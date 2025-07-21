@@ -84,10 +84,10 @@ runs:
         if [ "$branch_name" == "chore/add-db-connectivity" ]; then
           echo "Extracting RDS credentials..."
 
-          export DB_USERNAME=$(kubectl get secret rds-postgresql-instance-output -n my_namespace -o jsonpath="{.data.database_username}" | base64 -d | xargs)
-          export DB_PASSWORD=$(kubectl get secret rds-postgresql-instance-output -n my_namespace -o jsonpath="{.data.database_password}" | base64 -d | xargs)
-          export DB_NAME=$(kubectl get secret rds-postgresql-instance-output -n my_namespace -o jsonpath="{.data.database_name}" | base64 -d | xargs)
-          export DB_HOST=$(kubectl get secret rds-postgresql-instance-output -n my_namespace -o jsonpath="{.data.rds_instance_address}" | base64 -d | xargs)
+          export DB_USERNAME=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_username}" | base64 -d | xargs)
+          export DB_PASSWORD=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_password}" | base64 -d | xargs)
+          export DB_NAME=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_name}" | base64 -d | xargs)
+          export DB_HOST=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.rds_instance_address}" | base64 -d | xargs)
         
           export DB_URL="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}"
 
