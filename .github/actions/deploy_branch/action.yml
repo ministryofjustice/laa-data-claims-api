@@ -78,9 +78,9 @@ runs:
 
         echo "Deploying commit: $GIT_SHA under release name: $RELEASE_NAME to $release_host..."
         
-        echo "branch name: $BRANCH_NAME"
+        echo "branch name: $branch_name"
 
-        if [ "$BRANCH_NAME" == "chore/add-db-connectivity" ]; then
+        if [ "$branch_name" == "chore/add-db-connectivity" ]; then
           echo "Extracting RDS credentials..."
 
           export DB_USERNAME=$(kubectl get secret rds-postgresql-instance-output -n my_namespace -o jsonpath="{.data.database_username}" | base64 -d | xargs)
