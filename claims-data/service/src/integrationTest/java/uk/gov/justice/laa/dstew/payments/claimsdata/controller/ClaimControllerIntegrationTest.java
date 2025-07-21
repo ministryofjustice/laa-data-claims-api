@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
 
-@ActiveProfiles("h2")
+@ActiveProfiles("test")
 @SpringBootTest(classes = ClaimsDataApplication.class)
 @AutoConfigureMockMvc
 @Transactional

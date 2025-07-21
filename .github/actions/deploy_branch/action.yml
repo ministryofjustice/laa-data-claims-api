@@ -112,7 +112,7 @@ runs:
             --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
             --set ingress.hosts="{$release_host}" \
             --values ${VALUES_FILE} \
-            --set db.profile="h2" \
+            --set db.profile="test" \
             --install \
             --wait
         fi
