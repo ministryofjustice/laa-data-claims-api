@@ -1,7 +1,6 @@
 CREATE TABLE claims
 (
-    id          BIGINT          AUTO_INCREMENT,
-    name        varchar(20)     NOT NULL,
-    description varchar(100)    NOT NULL,
-    PRIMARY KEY (id)
+    id          BIGSERIAL       PRIMARY KEY,
+    name        VARCHAR(20)     NOT NULL,
+    description VARCHAR(100)    NOT NULL
 );
