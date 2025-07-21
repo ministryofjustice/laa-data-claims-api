@@ -6,3 +6,7 @@ spring:
     password:
   flyway:
     enabled: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
