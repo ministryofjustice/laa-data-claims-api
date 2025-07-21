@@ -69,7 +69,7 @@ runs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         GIT_SHA: ${{ github.sha }}
         KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
-        VALUES_FILE: .helm/data-stewardship-civil-claims-api/values/${{ inputs.app-environment }}.yaml
+        VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
         ingress_name="$RELEASE_NAME-dsp-chart"
@@ -88,7 +88,7 @@ runs:
         
           export DB_URL="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}"
 
-          helm upgrade $RELEASE_NAME .helm/data-stewardship-civil-claims-api \
+          helm upgrade $RELEASE_NAME .helm/data-claims-api \
             --namespace ${KUBE_NAMESPACE} \
             --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
             --set image.tag="${GIT_SHA}" \
@@ -101,7 +101,7 @@ runs:
             --install \
             --wait
         else
-          helm upgrade $RELEASE_NAME .helm/data-stewardship-civil-claims-api \
+          helm upgrade $RELEASE_NAME .helm/data-claims-api \
             --namespace ${KUBE_NAMESPACE} \
             --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
             --set image.tag="${GIT_SHA}" \
