@@ -158,7 +158,7 @@ components:
         description:
           type: string
         claim_type:
-          type: MadeUpType
+          type: string
     ClaimRequestBody:
       required:
         - name

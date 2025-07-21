@@ -4,13 +4,11 @@ spring:
 
   # example database
   datasource:
-    url: jdbc:h2:mem:claimsDb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-  h2:
-    console:
-      enabled: true
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
 
   #do not auto create db schema, use .sql scripts
   jpa:
@@ -41,4 +39,4 @@ management:
 
   info:
     env:
-      enabled: true
+      enabled: false
