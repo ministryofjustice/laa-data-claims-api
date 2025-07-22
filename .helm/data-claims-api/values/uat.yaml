@@ -9,7 +9,7 @@ image:
   tag: null
 
 service_account:
-  name: laa-data-stewardship-civil-claims-api-uat-service-account
+  name: laa-data-claims-api-uat-service-account
 
 service:
   type: ClusterIP
@@ -18,12 +18,12 @@ service:
 ingress:
   className: modsec-non-prod
   annotations:
-    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-stewardship-civil-claims-api-dsp-chart-laa-data-stewardship-civil-claims-api-green"
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-dsp-chart-laa-data-claims-api-green"
     external-dns.alpha.kubernetes.io/aws-weight: "100"
     nginx.ingress.kubernetes.io/enable-modsecurity: "true"
     nginx.ingress.kubernetes.io/modsecurity-snippet: |
       SecRuleEngine On
-      SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-stewardship-civil-claims-api-uat"
+      SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-uat"
   hosts: []
 
 resources:

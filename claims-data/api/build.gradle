@@ -56,7 +56,7 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
 compileJava.dependsOn 'openApiGenerate'
 
 clean {
-    delete "$rootDir/laa-data-stewardship-civil-claims-api/generated"
+    delete "$rootDir/laa-data-claims-api/generated"
 }
 
 // disable for overall project when running a build
