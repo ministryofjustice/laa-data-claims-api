@@ -72,7 +72,7 @@ runs:
         VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
-        ingress_name="$RELEASE_NAME-dsp-chart"
+        ingress_name="$RELEASE_NAME-data-claims-api"
         release_host="$RELEASE_NAME-$KUBE_NAMESPACE.cloud-platform.service.justice.gov.uk"
         identifier="$ingress_name-$KUBE_NAMESPACE-green"
         branch_name=${{ steps.extract_release_name.outputs.branch-name }}
