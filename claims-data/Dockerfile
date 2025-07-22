@@ -2,8 +2,8 @@
 FROM amazoncorretto:21-alpine
 
 # Set up working directory in the container
-RUN mkdir -p /opt/laa-data-stewardship-civil-claims-api/claims-data/
-WORKDIR /opt/laa-data-stewardship-civil-claims-api/claims-data/
+RUN mkdir -p /opt/laa-data-claims-api/claims-data/
+WORKDIR /opt/laa-data-claims-api/claims-data/
 
 # Copy the JAR file into the container
 COPY service/build/libs/service-1.0.0.jar app.jar

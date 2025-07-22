@@ -12,7 +12,7 @@ image:
   tag: null
 
 service_account:
-  name: laa-data-stewardship-civil-claims-api-staging-service-account
+  name: laa-data-claims-api-staging-service-account
 
 service:
   type: ClusterIP
@@ -20,13 +20,13 @@ service:
 
 ingress:
   annotations:
-    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-stewardship-civil-claims-api-dsp-chart-laa-data-stewardship-civil-claims-api-staging-green"
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-data-claims-api-laa-data-claims-api-staging-green"
     external-dns.alpha.kubernetes.io/aws-weight: "100"
   hosts:
-    - laa-data-stewardship-civil-claims-api-staging.cloud-platform.service.justice.gov.uk
+    - laa-data-claims-api-staging.cloud-platform.service.justice.gov.uk
   tls:
     - hosts:
-      - domain: laa-data-stewardship-civil-claims-api-staging.cloud-platform.service.justice.gov.uk
+      - domain: laa-data-claims-api-staging.cloud-platform.service.justice.gov.uk
 
 resources:
   limits:
