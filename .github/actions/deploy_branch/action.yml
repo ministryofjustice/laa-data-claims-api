@@ -100,7 +100,6 @@ runs:
             --set db.username="$DB_USERNAME" \
             --set db.password="$DB_PASSWORD" \
             --set db.url="$DB_URL" \
-            --set db.profile="rds" \
             --values ${VALUES_FILE} \
             --install \
             --wait
