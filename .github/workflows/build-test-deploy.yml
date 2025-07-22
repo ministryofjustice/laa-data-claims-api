@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - chore/add-db-connectivity
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
