@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "data-stewardship-payments.name" -}}
+{{- define "data-claims-api.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "data-stewardship-payments.fullname" -}}
+{{- define "data-claims-api.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "data-stewardship-payments.chart" -}}
+{{- define "data-claims-api.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "data-stewardship-payments.labels" -}}
-helm.sh/chart: {{ include "data-stewardship-payments.chart" . }}
-{{ include "data-stewardship-payments.selectorLabels" . }}
+{{- define "data-claims-api.labels" -}}
+helm.sh/chart: {{ include "data-claims-api.chart" . }}
+{{ include "data-claims-api.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,9 +45,9 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "data-stewardship-payments.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "data-stewardship-payments.name" . }}
+{{- define "data-claims-api.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "data-claims-api.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app: {{ template "data-stewardship-payments.name" . }}
+app: {{ template "data-claims-api.name" . }}
 release: {{ .Release.Name }}
 {{- end }}
