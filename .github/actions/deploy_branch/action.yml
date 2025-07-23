@@ -81,7 +81,7 @@ runs:
         
         echo "branch name: $branch_name"
 
-        if [ "$branch_name" == "main" ]; then
+        if [ "$branch_name" == "chore/add-db-connectivity" ]; then
           echo "Extracting RDS credentials..."
           export DB_USERNAME=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_username}" | base64 -d | xargs)
           export DB_PASSWORD=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_password}" | base64 -d | xargs)
