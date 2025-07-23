@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "data-stewardship-payments.fullname" . }}
+  name: {{ include "data-claims-api.fullname" . }}
   labels:
-    {{- include "data-stewardship-payments.labels" . | nindent 4 }}
+    {{- include "data-claims-api.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   strategy:
@@ -13,11 +13,11 @@ spec:
       maxSurge: 100%
   selector:
     matchLabels:
-      {{- include "data-stewardship-payments.selectorLabels" . | nindent 6 }}
+      {{- include "data-claims-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "data-stewardship-payments.selectorLabels" . | nindent 8 }}
+        {{- include "data-claims-api.selectorLabels" . | nindent 8 }}
       annotations:
         releaseTime: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
     spec:

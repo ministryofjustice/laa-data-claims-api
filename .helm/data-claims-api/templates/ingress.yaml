@@ -1,4 +1,4 @@
-{{- $fullName := include "data-stewardship-payments.fullname" . -}}
+{{- $fullName := include "data-claims-api.fullname" . -}}
 
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
@@ -10,8 +10,8 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    app: {{ template "data-stewardship-payments.name" . }}
-    chart: {{ template "data-stewardship-payments.chart" . }}
+    app: {{ template "data-claims-api.name" . }}
+    chart: {{ template "data-claims-api.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
   {{- with .Values.ingress.annotations }}
