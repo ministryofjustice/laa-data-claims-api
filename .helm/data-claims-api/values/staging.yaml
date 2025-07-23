@@ -20,7 +20,7 @@ service:
 
 ingress:
   annotations:
-    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-data-claims-api-laa-data-claims-api-staging-green"
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-laa-data-claims-api-staging-green"
     external-dns.alpha.kubernetes.io/aws-weight: "100"
   hosts:
     - laa-data-claims-api-staging.cloud-platform.service.justice.gov.uk
