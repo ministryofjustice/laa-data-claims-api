@@ -83,35 +83,25 @@ runs:
 
         if [ "$branch_name" == "main" ]; then
           echo "Extracting RDS credentials..."
-
           export DB_USERNAME=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_username}" | base64 -d | xargs)
           export DB_PASSWORD=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_password}" | base64 -d | xargs)
           export DB_NAME=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.database_name}" | base64 -d | xargs)
           export DB_HOST=$(kubectl get secret rds-postgresql-instance-output -n ${KUBE_NAMESPACE} -o jsonpath="{.data.rds_instance_address}" | base64 -d | xargs)
-        
           export DB_URL="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}"
-
-          helm upgrade $RELEASE_NAME .helm/data-claims-api \
-            --namespace ${KUBE_NAMESPACE} \
-            --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
-            --set image.tag="${GIT_SHA}" \
-            --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
-            --set ingress.hosts="{$release_host}" \
-            --set db.username="$DB_USERNAME" \
-            --set db.password="$DB_PASSWORD" \
-            --set db.url="$DB_URL" \
-            --values ${VALUES_FILE} \
-            --install \
-            --wait
         else
-          helm upgrade $RELEASE_NAME .helm/data-claims-api \
-            --namespace ${KUBE_NAMESPACE} \
-            --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
-            --set image.tag="${GIT_SHA}" \
-            --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
-            --set ingress.hosts="{$release_host}" \
-            --values ${VALUES_FILE} \
-            --set db.profile="test" \
-            --install \
-            --wait
+          export DB_PROFILE="test"
         fi
+
+        helm upgrade $RELEASE_NAME .helm/data-claims-api \
+          --namespace ${KUBE_NAMESPACE} \
+          --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
+          --set image.tag="${GIT_SHA}" \
+          --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
+          --set ingress.hosts="{$release_host}" \
+          --set db.username="$DB_USERNAME" \
+          --set db.password="$DB_PASSWORD" \
+          --set db.url="$DB_URL" \
+          --set db.profile="$DB_PROFILE" \
+          --values ${VALUES_FILE} \
+          --install \
+          --wait
