@@ -50,7 +50,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            {{ include "envsFromRdsSecret" . | indent 6 }}
+            {{ include "envsFromRdsSecret" . | indent 12 }}
             - name: SPRING_PROFILES_ACTIVE
               value: "{{ .Values.db.profile }}"
             - name: DB_URL
