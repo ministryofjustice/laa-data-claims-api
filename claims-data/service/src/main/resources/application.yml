@@ -10,9 +10,6 @@ spring:
   flyway:
     enabled: true
 
-  profiles:
-    active: ${SPRING_PROFILE:default}
-
   #do not auto create db schema, use .sql scripts
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

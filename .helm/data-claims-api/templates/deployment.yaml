@@ -54,4 +54,4 @@ spec:
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
             - name: SPRING_PROFILES_ACTIVE
-              value: {{ .Values.profile | quote }}
+              value: {{ .Values.spring.profile | quote }}
