@@ -81,7 +81,7 @@ runs:
         
         echo "branch name: $branch_name"
 
-        if [ "$branch_name" != "chore/add-db-connectivity" ]; then
+        if [ "$branch_name" != "main" ]; then
           export DB_PROFILE="test"
         fi
         
