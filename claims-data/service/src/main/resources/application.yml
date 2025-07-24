@@ -11,7 +11,7 @@ spring:
     enabled: true
 
   profiles:
-    active: ${DB_PROFILE:default}
+    active: ${SPRING_PROFILE:default}
 
   #do not auto create db schema, use .sql scripts
   jpa:

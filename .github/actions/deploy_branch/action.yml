@@ -82,20 +82,18 @@ runs:
         echo "branch name: $branch_name"
 
         if [ "$branch_name" == "main" ]; then
-          export DB_PROFILE="main"
+          export SPRING_PROFILE="main"
         else
-          export DB_PROFILE="test"
+          export SPRING_PROFILE="test"
         fi
         
-        echo "DB_PROFILE is: $DB_PROFILE"
-
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
           --set ingress.hosts="{$release_host}" \
-          --set db.profile="$DB_PROFILE" \
+          --set db.profile="$SPRING_PROFILE" \
           --values ${VALUES_FILE} \
           --install \
           --wait
