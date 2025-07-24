@@ -81,9 +81,7 @@ runs:
         
         echo "branch name: $branch_name"
 
-        if [ "$branch_name" == "chore/add-db-connectivity" ]; then
-          export DB_URL="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}"
-        else
+        if [ "$branch_name" != "chore/add-db-connectivity" ]; then
           export DB_PROFILE="test"
         fi
         
