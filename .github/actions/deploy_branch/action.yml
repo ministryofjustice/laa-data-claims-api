@@ -85,6 +85,8 @@ runs:
           export DB_PROFILE="test"
         fi
         
+        echo "DB_PROFILE is: $DB_PROFILE"
+
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
