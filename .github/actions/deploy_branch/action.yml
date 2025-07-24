@@ -87,10 +87,9 @@ runs:
           export DB_PROFILE="test"
         fi
         
-        [[ -z "$DB_HOST" || -z "$DB_NAME" ]] && {
-          echo "DB_HOST or DB_NAME is not set. Exiting."
-          exit 1
-        }
+        echo "DB_HOST=$DB_HOST"
+        echo "DB_NAME=$DB_NAME"
+        echo "DB_URL=$DB_URL"
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
