@@ -3,7 +3,7 @@ Expand DB environment variables from rds-postgresql-instance-output secret
 */}}
 {{- define "envsFromRdsSecret" }}
 
-{{- if eq .Values.db.profile "prod" }}
+{{- if eq .Values.db.profile "main" }}
 - name: DB_NAME
   valueFrom:
     secretKeyRef:
