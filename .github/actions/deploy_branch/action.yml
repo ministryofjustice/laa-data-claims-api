@@ -84,7 +84,7 @@ runs:
         if [ "$branch_name" == "main" ]; then
           export SPRING_PROFILE="main"
         else
-          export SPRING_PROFILE="test"
+          export SPRING_PROFILE="preview"
         fi
         
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
