@@ -37,6 +37,3 @@ resources:
   requests:
     cpu: 10m
     memory: 125Mi
-
-spring:
-  profile: main
