@@ -1,0 +1,32 @@
+# Default values for data-stewardship-payments.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+image:
+  repository: null
+  tag: null
+
+service_account:
+  name: laa-data-claims-api-prod-service-account
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  className: modsec
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-laa-data-claims-api-prod-green"
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-production"
+  hosts:
+    - laa-data-claims-api.cloud-platform.service.justice.gov.uk
+  tls:
+    - hosts:
+      - domain: laa-data-claims-api.cloud-platform.service.justice.gov.uk
+
