@@ -2,17 +2,6 @@ spring:
   application:
     name: LAA Data Stewardship Payments - Claims Data Application
 
-  # example database
-  datasource:
-    url: jdbc:h2:mem:claimsDb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-  h2:
-    console:
-      enabled: true
-
-  #do not auto create db schema, use .sql scripts
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
@@ -41,4 +30,4 @@ management:
 
   info:
     env:
-      enabled: true
+      enabled: false

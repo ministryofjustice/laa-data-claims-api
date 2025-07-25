@@ -63,6 +63,7 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
+          --set spring.profile="main" \
           --values ${VALUES_FILE} \
           --install \
           --wait
