@@ -88,12 +88,9 @@ runs:
           export DB_NAME="postgres"
           export DB_USERNAME="postgres"
           export DB_HOST=${RELEASE_NAME}-postgresql
-          echo "output of ls -R"
-          ls -R
           helm install $RELEASE_NAME oci://registry-1.docker.io/bitnamicharts/postgresql \
             -f .helm/bitnami_postgres/values.yaml \
             --namespace ${KUBE_NAMESPACE}
-          
         fi
         
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
