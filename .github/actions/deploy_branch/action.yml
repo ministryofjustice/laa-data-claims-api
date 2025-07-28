@@ -85,12 +85,17 @@ runs:
           export SPRING_PROFILE="main"
         else
           export SPRING_PROFILE="preview"
-          export DB_NAME="postgres"
-          export DB_USERNAME="postgres"
           export DB_HOST=${RELEASE_NAME}-postgresql
           helm install $RELEASE_NAME oci://registry-1.docker.io/bitnamicharts/postgresql \
             -f .helm/bitnami_postgres/values.yaml \
-            --namespace ${KUBE_NAMESPACE}
+            --namespace ${KUBE_NAMESPACE} \
+            --wait
+          echo "running helm status..."
+          helm status $RELEASE_NAME -n $KUBE_NAMESPACE
+          echo "running kubectl get statefulsets..."
+          kubectl get statefulsets -n $KUBE_NAMESPACE
+          echo "running kubectl describe statefulset..."
+          kubectl describe statefulset $RELEASE_NAME-postgresql -n $KUBE_NAMESPACE
         fi
         
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
