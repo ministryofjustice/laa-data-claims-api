@@ -89,7 +89,7 @@ runs:
           helm upgrade $RELEASE_NAME oci://registry-1.docker.io/bitnamicharts/postgresql \
             -f .helm/bitnami_postgres/values.yaml \
             --namespace ${KUBE_NAMESPACE} \
-            --install --wait
+            --install --wait --timeout=5m
           echo "running helm status..."
           helm status $RELEASE_NAME -n $KUBE_NAMESPACE
           echo "running kubectl get statefulsets..."
@@ -97,6 +97,10 @@ runs:
           echo "running kubectl describe statefulset..."
           kubectl describe statefulset $RELEASE_NAME-postgresql -n $KUBE_NAMESPACE
         fi
+        
+        echo "sleeping for 10 min"
+        sleep 600
+        echo "waking up after 10 min"
         
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
