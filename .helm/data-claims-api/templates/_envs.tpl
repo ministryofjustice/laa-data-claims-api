@@ -13,7 +13,10 @@ For the preview branches, set DB connection details to Bitnami Postgres specific
 - name: DB_HOST
   value: {{ .Release.Name }}-postgresql
 - name: DB_PASSWORD
-  value: "preview-password"
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-postgresql
+      key: postgres-password
 {{- end }}
 
 {{/*
