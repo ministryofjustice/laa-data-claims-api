@@ -98,10 +98,6 @@ runs:
           kubectl describe statefulset $RELEASE_NAME-postgresql -n $KUBE_NAMESPACE
         fi
         
-        echo "sleeping for 10 min"
-        sleep 600
-        echo "waking up after 10 min"
-        
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
