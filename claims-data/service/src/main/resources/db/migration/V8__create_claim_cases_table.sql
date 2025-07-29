@@ -1,0 +1,25 @@
+CREATE TABLE claim_cases (
+    id                                          UUID PRIMARY KEY,
+    claim_id                                    UUID NOT NULL REFERENCES claims(id),
+    case_id                                     TEXT,
+    unique_case_id                              TEXT,
+    case_stage_code                             TEXT,
+    stage_reached_code                          TEXT,
+    standard_fee_category_code                  TEXT,
+    outcome_code                                TEXT NOT NULL,
+    designated_accredited_representative_code   TEXT,
+    is_postal_application_accepted              BOOLEAN,
+    is_client_2_postal_application_accepted     BOOLEAN,
+    mental_health_tribunal_reference            TEXT,
+    is_nrm_advice                               BOOLEAN,
+    follow_on_work                              TEXT,
+    transfer_date                               DATE,
+    exemption_criteria_satisfied                TEXT,
+    exceptional_case_funding_reference          TEXT,
+    is_legacy_case                              BOOLEAN,
+    created_by_user_id                          UUID NOT NULL,
+    created_on                                  TIMESTAMPTZ NOT NULL,
+    modified_by_user_id                         UUID,
+    modified_on                                 TIMESTAMPTZ
+);
+CREATE INDEX idx_claim_cases_claim_id ON claim_cases(claim_id);
