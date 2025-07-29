@@ -34,9 +34,9 @@ CREATE TABLE claim_summary_fees (
    is_substantive_hearing                   BOOLEAN,
    ho_interview                             TEXT,
    local_authority_number                   TEXT,
-   created_by_user_id                       UUID NOT NULL,
+   created_by_user_id                       TEXT NOT NULL,
    created_on                               TIMESTAMPTZ NOT NULL,
-   modified_by_user_id                      UUID,
+   modified_by_user_id                      TEXT,
    modified_on                              TIMESTAMPTZ
 );
 CREATE INDEX idx_claim_summary_fees_claim_id ON claim_summary_fees(claim_id);

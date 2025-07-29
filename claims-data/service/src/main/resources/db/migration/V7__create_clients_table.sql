@@ -23,9 +23,9 @@ CREATE TABLE clients (
     client_2_ethnicity_code     TEXT,
     client_2_disability_code    TEXT,
     client_2_is_legally_aided   BOOLEAN,
-    created_by_user_id          UUID NOT NULL,
+    created_by_user_id          TEXT NOT NULL,
     created_on                  TIMESTAMPTZ NOT NULL,
-    modified_by_user_id         UUID,
+    modified_by_user_id         TEXT,
     modified_on                 TIMESTAMPTZ
 );
 CREATE INDEX idx_clients_claim_id ON clients(claim_id);

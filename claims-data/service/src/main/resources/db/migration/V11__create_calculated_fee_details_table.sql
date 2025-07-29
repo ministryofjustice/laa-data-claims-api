@@ -7,9 +7,9 @@ CREATE TABLE calculated_fee_details (
    total_fee                NUMERIC,
    vat_amount               NUMERIC,
    calculated_fee_status    TEXT,
-   created_by_user_id       UUID NOT NULL,
+   created_by_user_id       TEXT NOT NULL,
    created_on               TIMESTAMPTZ NOT NULL,
-   modified_by_user_id      UUID,
+   modified_by_user_id      TEXT,
    modified_on              TIMESTAMPTZ
 );
 CREATE INDEX idx_calculated_fee_details_case_summary_fee_id ON calculated_fee_details(case_summary_fee_id);

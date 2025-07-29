@@ -17,9 +17,9 @@ CREATE TABLE claim_cases (
     exemption_criteria_satisfied                TEXT,
     exceptional_case_funding_reference          TEXT,
     is_legacy_case                              BOOLEAN,
-    created_by_user_id                          UUID NOT NULL,
+    created_by_user_id                          TEXT NOT NULL,
     created_on                                  TIMESTAMPTZ NOT NULL,
-    modified_by_user_id                         UUID,
+    modified_by_user_id                         TEXT,
     modified_on                                 TIMESTAMPTZ
 );
 CREATE INDEX idx_claim_cases_claim_id ON claim_cases(claim_id);

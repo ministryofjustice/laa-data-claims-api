@@ -5,9 +5,9 @@ CREATE TABLE validation_error_logs (
   error_code            TEXT NOT NULL,
   error_description     TEXT NOT NULL,
   error_timestamp       TIMESTAMPTZ NOT NULL,
-  created_by_user_id    UUID NOT NULL,
+  created_by_user_id    TEXT NOT NULL,
   created_on            TIMESTAMPTZ NOT NULL,
-  modified_by_user_id   UUID,
+  modified_by_user_id   TEXT,
   modified_on           TIMESTAMPTZ
 );
 CREATE INDEX idx_validation_error_logs_submission_id ON validation_error_logs(submission_id);

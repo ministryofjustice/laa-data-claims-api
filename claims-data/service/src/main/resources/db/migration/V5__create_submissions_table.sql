@@ -11,9 +11,9 @@ CREATE TABLE submissions (
     is_nil_submission       BOOLEAN,
     number_of_claims        INTEGER,
     error_messages          TEXT,
-    created_by_user_id      UUID NOT NULL,
+    created_by_user_id      TEXT NOT NULL,
     created_on              TIMESTAMPTZ NOT NULL,
-    modified_by_user_id     UUID,
+    modified_by_user_id     TEXT,
     modified_on             TIMESTAMPTZ
 );
 CREATE INDEX idx_submissions_bulk_submission_id ON submissions(bulk_submission_id);
