@@ -11,10 +11,7 @@ For the preview branches, set DB connection details to Bitnami Postgres specific
 - name: DB_USERNAME
   value: "postgres"
 - name: DB_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Release.Name }}-postgresql
-      key: postgres-password
+  value: "preview-password"
 - name: DB_HOST
   value: {{ .Release.Name }}-postgresql
 {{- else if eq .Values.spring.profile "main" }}
