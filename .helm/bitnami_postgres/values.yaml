@@ -138,6 +138,7 @@ auth:
   ##
   enablePostgresUser: true
   ## @param auth.postgresPassword Password for the "postgres" admin user. Ignored if `auth.existingSecret` is provided
+  ## @param auth.postgresPassword Password for the "postgres" admin user. Ignored if `auth.existingSecret` is provided
   ##
   postgresPassword: "preview-password"
   ## @param auth.username Name for a custom user to create
@@ -168,7 +169,7 @@ auth:
     replicationPasswordKey: replication-password
   ## @param auth.usePasswordFiles Mount credentials as a files instead of using an environment variable
   ##
-  usePasswordFiles: true
+  usePasswordFiles: false
 ## @param architecture PostgreSQL architecture (`standalone` or `replication`)
 ##
 architecture: standalone
