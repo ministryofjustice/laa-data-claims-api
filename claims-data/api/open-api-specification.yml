@@ -46,14 +46,11 @@ components:
         id:
           type: string
           format: uuid
-          required: true
         data:
           type: object
-          required: true
           description: the object containing the complete JSON bulk submission data
         status:
           type: string
-          required: true
           description: allows to track the status of the bulk submission for validation purposes
         error_code:
           type: string
@@ -61,10 +58,8 @@ components:
           type: string
         created_by_user_id:
           type: string
-          required: true
         created_on:
           type: string
-          required: true
         modified_by_user_id:
           type: string
         modified_on:
