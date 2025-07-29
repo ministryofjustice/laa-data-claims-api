@@ -3,40 +3,18 @@ info:
   version: 1.0.1
   title: Claims API
 paths:
-  /api/v1/claims:
-    get:
-      tags:
-        - claims
-      summary: Get claims
-      operationId: getClaims
-      responses:
-        '200':
-          description: 'Success'
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Claims"
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Not found'
-        '500':
-          description: 'Internal server error'
+  /api/v0/bulk-submission:
     post:
       tags:
-        - claims
-      summary: Create an claim
-      operationId: createClaim
+        - bulk-submission
+      summary: Create a bulk of provider submissions
+      operationId: createBulkSubmission
       requestBody:
-        description: create an claim
+        description: A JSON containing details about a bulk submission
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimRequestBody'
+              $ref: '#/components/schemas/BulkSubmissionBody'
       responses:
         '201':
           description: 'Created'
@@ -51,126 +29,43 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v1/claims/{id}:
-    get:
-      summary: Get claim by id
-      operationId: getClaimById
-      tags:
-        - claims
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: The id of the claim to retrieve
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Claim"
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Not found'
-        '500':
-          description: 'Internal server error'
-    put:
-      tags:
-        - claims
-      summary: Update an claim
-      operationId: updateClaim
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: The id of the claim to be updated
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        description: update an existing claim
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClaimRequestBody'
-      responses:
-        '204':
-          description: No content
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Not found'
-        '500':
-          description: 'Internal server error'
-    delete:
-      summary: Delete claim by id
-      operationId: deleteClaim
-      tags:
-        - claims
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: The id of the claim to be deleted
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: No content
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Not found'
-        '500':
-          description: 'Internal server error'
-
 components:
   schemas:
-    Claim:
+    BulkSubmissionBody:
       required:
         - id
-        - name
-        - description
-        - claim_type
+        - data
+        - status
+        - error_code
+        - error_description
+        - created_by_user_id
+        - created_on
+        - modified_by_user_id
+        - modified_on
       properties:
         id:
-          type: integer
-          format: int64
-        name:
           type: string
-        description:
+          format: uuid
+          required: true
+        data:
+          type: object
+          required: true
+          description: the object containing the complete JSON bulk submission data
+        status:
           type: string
-        claim_type:
+          required: true
+          description: allows to track the status of the bulk submission for validation purposes
+        error_code:
           type: string
-    ClaimRequestBody:
-      required:
-        - name
-        - description
-        - claim_type
-      properties:
-        name:
+        error_description:
           type: string
-        description:
+        created_by_user_id:
           type: string
-
-    Claims:
-      type: array
-      items:
-        $ref: "#/components/schemas/Claim"
+          required: true
+        created_on:
+          type: string
+          required: true
+        modified_by_user_id:
+          type: string
+        modified_on:
+          type: string
