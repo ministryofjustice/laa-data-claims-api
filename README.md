@@ -28,8 +28,9 @@ Includes the following subprojects:
 `./gradlew integrationTest`
 
 ### Run application (after first starting local postgres container)
+cd claims-data
 `docker compose up -d`
-`./gradlew bootRun`
+`../gradlew bootRun`
 
 ### Run application dependencies via Docker
 `docker compose up -d`
