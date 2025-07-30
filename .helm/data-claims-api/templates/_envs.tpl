@@ -1,11 +1,23 @@
 {{/*
   Define environment variables that can be "included" in deployment.yaml
 */}}
-{{- define "envsFromRdsSecret" }}
+{{- define "dbConnectionDetails" }}
+{{- if eq .Values.spring.profile "preview" }}
 {{/*
-Only for the main branch, extract DB environment variables from rds-postgresql-instance-output secret
+For the preview branches, set DB connection details to Bitnami Postgres specific values
 */}}
-{{- if eq .Values.spring.profile "main" }}
+- name: DB_NAME
+  value: "postgres"
+- name: DB_USERNAME
+  value: "postgres"
+- name: DB_PASSWORD
+  value: "preview-password"
+- name: DB_HOST
+  value: {{ .Release.Name }}-postgresql
+{{- else if eq .Values.spring.profile "main" }}
+{{/*
+For the main branch, extract DB environment variables from rds-postgresql-instance-output secret
+*/}}
 - name: DB_NAME
   valueFrom:
     secretKeyRef:
