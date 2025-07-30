@@ -9,7 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,16 +20,39 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
 import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = ClaimsDataApplication.class)
 @AutoConfigureMockMvc
 @Transactional
+@Testcontainers
+@Slf4j
 public class ClaimControllerIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;
+
+  @Container
+  @ServiceConnection
+  public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest")
+      .withDatabaseName("testdb")
+      .withUsername("testuser")
+      .withPassword("testpassword");
+
+  static {
+    setUpDatabase();
+  }
+
+  private static void setUpDatabase() {
+    postgresContainer.start();
+    System.setProperty("DB_PORT", postgresContainer.getFirstMappedPort().toString());
+    log.info("DB_PORT: {}", System.getProperty("DB_PORT"));
+  }
 
   @Test
   void shouldGetAllClaims() throws Exception {
