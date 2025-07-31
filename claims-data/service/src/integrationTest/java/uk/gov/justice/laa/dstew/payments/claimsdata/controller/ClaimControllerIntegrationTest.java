@@ -37,20 +37,8 @@ public class ClaimControllerIntegrationTest {
 
   @Container
   @ServiceConnection
-  public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest")
-      .withDatabaseName("testdb")
-      .withUsername("testuser")
-      .withPassword("testpassword");
+  public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
-  static {
-    setUpDatabase();
-  }
-
-  private static void setUpDatabase() {
-    postgresContainer.start();
-    System.setProperty("DB_PORT", postgresContainer.getFirstMappedPort().toString());
-    log.info("DB_PORT: {}", System.getProperty("DB_PORT"));
-  }
 
   @Test
   void shouldGetAllClaims() throws Exception {

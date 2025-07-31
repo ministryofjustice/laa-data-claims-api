@@ -15,10 +15,7 @@ class ClaimsDataApplicationTests {
 
   @Container
   @ServiceConnection
-  public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest")
-      .withDatabaseName("testdb")
-      .withUsername("testuser")
-      .withPassword("testpassword");
+  public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
   @Test
   void contextLoads() {
