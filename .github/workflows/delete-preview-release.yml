@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   pull_request:
     types: [closed]
-  delete:
-    branches:
-      - '**'
 jobs:
 
   cleanup-uat:
