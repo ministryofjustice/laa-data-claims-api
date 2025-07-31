@@ -1,7 +1,7 @@
 spring:
   application:
     name: LAA Data Stewardship Payments - Claims Data Application
-
+# Default connection details for local dev, overridden in other envs
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/testdb

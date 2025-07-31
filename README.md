@@ -28,13 +28,17 @@ Includes the following subprojects:
 `./gradlew integrationTest`
 
 ### Run application (after first starting local postgres container)
-cd claims-data
+`cd claims-data`
 `docker compose up -d`
 `../gradlew bootRun`
 
 ### Run application dependencies via Docker
 `docker compose up -d`
 Failure to start Docker and run this command prior to running application (including debugging) will give a Postgres connectivity error.
+
+### Reset local Postgres DB data (if you want to delete flyway history and start from a blank database)
+`cd claims-data`
+`docker compose down -v`
 
 ## Application Endpoints
 

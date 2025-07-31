@@ -14,7 +14,6 @@ For the preview branches, set DB connection details to Bitnami Postgres specific
 {{/*
 For the main branch, extract DB environment variables from rds-postgresql-instance-output secret
 */}}
-{{- if eq .Values.spring.profile "main" }}
 - name: DB_NAME
   valueFrom:
     secretKeyRef:
