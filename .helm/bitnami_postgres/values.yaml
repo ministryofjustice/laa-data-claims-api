@@ -8,3 +8,8 @@ primary:
     enabled: true
     size: 8Gi
     storageClass: ""
+
+serviceAccount:
+  create: false            # Do not create a new service account
+  name: default            # Use the existing 'default' service account in the namespace
+  automountServiceAccountToken: false  # Don't mount the service account token inside the pod
