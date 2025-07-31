@@ -59,10 +59,13 @@ runs:
         KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
         VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
       run: |
+        LAA_ALLOWED_IP_RANGES=$(curl -s https://raw.githubusercontent.com/ministryofjustice/laa-ip-allowlist/main/cidrs.txt | tr -d ' ' | tr '\n' ',' | sed 's/,/\\,/g' | sed 's/\\,$//')
+
         helm upgrade laa-data-claims-api .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
+          --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"=$LAA_ALLOWED_IP_RANGES \
           --set spring.profile="main" \
           --values ${VALUES_FILE} \
           --install \
