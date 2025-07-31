@@ -24,13 +24,17 @@ Includes the following subprojects:
 `./gradlew clean build`
 
 ### Run integration tests
+
 `./gradlew integrationTest`
 
-### Run application
-`./gradlew bootRun`
+### Run application (after first starting local postgres container)
+`cd claims-data`
+`docker compose up -d`
+`../gradlew bootRun`
 
-### Run application via Docker
-`docker compose up`
+### Reset local Postgres DB data (if you want to delete flyway history and start from a blank database)
+`cd claims-data`
+`docker compose down -v`
 
 ## Application Endpoints
 
@@ -58,6 +62,5 @@ The following actuator endpoints have been configured:
   methods like getters, setters, constructors etc. at compile-time using annotations.
 - [MapStruct](https://mapstruct.org/) - used for object mapping, specifically for converting between different Java object types, such as Data Transfer Objects (DTOs)
   and Entity objects. It generates mapping code at compile code.
-- [H2](https://www.h2database.com/html/main.html) - used to provide an example database and should not be used in production.
 
 
