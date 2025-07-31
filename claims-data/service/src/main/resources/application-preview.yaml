@@ -1,7 +1,7 @@
 spring:
   datasource:
     url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: "postgres"
+    password: "preview-password"
   flyway:
     enabled: true
