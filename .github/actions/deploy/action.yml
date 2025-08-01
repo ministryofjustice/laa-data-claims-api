@@ -69,7 +69,6 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
-          --set-string ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$ALLOW_LIST" \
           --set spring.profile="main" \
           --values ${VALUES_FILE} \
           --install \
