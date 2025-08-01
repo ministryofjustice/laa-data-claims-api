@@ -76,7 +76,9 @@ runs:
         release_host="$RELEASE_NAME-$KUBE_NAMESPACE.cloud-platform.service.justice.gov.uk"
         identifier="$ingress_name-$KUBE_NAMESPACE-green"
         branch_name=${{ steps.extract_release_name.outputs.branch-name }}
-        LAA_ALLOWED_IP_RANGES=$(curl -s https://raw.githubusercontent.com/ministryofjustice/laa-ip-allowlist/main/cidrs.txt | tr -d ' ' | tr '\n' ',' | sed 's/,/\\,/g' | sed 's/\\,$//')
+        LAA_IPS=$(curl -s https://raw.githubusercontent.com/ministryofjustice/laa-ip-allowlist/main/cidrs.txt | tr -d ' ' | tr '\n' ',' | sed 's/,/\\,/g' | sed 's/\\,$//')
+        PINGDOM_IPS=$(curl -s https://my.pingdom.com/probes/ipv4 | tr -d ' ' | tr '\n' ',' | sed 's/,/\\,/g' | sed 's/\\,$//')
+        COMBINED_IPS="${LAA_IPS},${PINGDOM_IPS}"
 
         echo "Deploying commit: $GIT_SHA under release name: $RELEASE_NAME to $release_host..."
 
@@ -97,7 +99,7 @@ runs:
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
-          --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"=$LAA_ALLOWED_IP_RANGES \
+          --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$ALLOW_LIST" \
           --set ingress.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
           --values ${VALUES_FILE} \
