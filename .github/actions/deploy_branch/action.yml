@@ -99,7 +99,7 @@ runs:
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
-          --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$ALLOW_LIST" \
+          --set-string ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$ALLOW_LIST" \
           --set ingress.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
           --values ${VALUES_FILE} \
