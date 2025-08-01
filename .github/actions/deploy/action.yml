@@ -63,6 +63,8 @@ runs:
         PINGDOM_IPS=$(curl -s https://my.pingdom.com/probes/ipv4 | tr -d ' ' | tr '\n' ',' | sed 's/,$//')
         ALLOW_LIST="${LAA_IPS},${PINGDOM_IPS}"
 
+        echo "$ALLOW_LIST"
+
         helm upgrade laa-data-claims-api .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
