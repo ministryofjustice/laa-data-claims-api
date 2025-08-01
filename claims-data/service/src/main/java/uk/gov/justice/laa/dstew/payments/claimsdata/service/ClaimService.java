@@ -18,7 +18,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 @Service
 public class ClaimService {
 
-  public static final String API_USER = "api user"; //TODO: replace with the actual user ID/name when available
+  //TODO: replace with the actual user ID/name when available
+  public static final String API_USER = "api user";
   private final ClaimRepository claimRepository;
   private final ClaimMapper claimMapper;
   private final Javers javers;
