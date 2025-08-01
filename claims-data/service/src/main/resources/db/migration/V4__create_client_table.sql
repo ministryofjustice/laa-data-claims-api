@@ -1,6 +1,6 @@
-CREATE TABLE clients (
+CREATE TABLE client (
     id                          UUID PRIMARY KEY ,
-    claim_id                    UUID NOT NULL REFERENCES claims(id),
+    claim_id                    UUID NOT NULL REFERENCES claim(id),
     client_forename             TEXT,
     client_surname              TEXT,
     client_date_of_birth        DATE,
@@ -25,7 +25,7 @@ CREATE TABLE clients (
     client_2_is_legally_aided   BOOLEAN,
     created_by_user_id          TEXT NOT NULL,
     created_on                  TIMESTAMPTZ NOT NULL,
-    modified_by_user_id         TEXT,
-    modified_on                 TIMESTAMPTZ
+    updated_by_user_id          TEXT,
+    updated_on                  TIMESTAMPTZ
 );
-CREATE INDEX idx_clients_claim_id ON clients(claim_id);
+CREATE INDEX idx_client_claim_id ON client(claim_id);

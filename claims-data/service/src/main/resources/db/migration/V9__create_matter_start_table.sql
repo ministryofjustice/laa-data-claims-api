@@ -1,6 +1,6 @@
-CREATE TABLE matter_starts (
+CREATE TABLE matter_start (
    id                        UUID PRIMARY KEY,
-   submission_id             UUID NOT NULL REFERENCES submissions(id),
+   submission_id             UUID NOT NULL REFERENCES submission(id),
    schedule_reference        TEXT,
    category_code             TEXT,
    procurement_area_code     TEXT,
@@ -9,7 +9,7 @@ CREATE TABLE matter_starts (
    number_of_matter_starts   INTEGER,
    created_by_user_id        TEXT NOT NULL,
    created_on                TIMESTAMPTZ NOT NULL,
-   modified_by_user_id       TEXT,
-   modified_on               TIMESTAMPTZ
+   updated_by_user_id        TEXT,
+   updated_on                TIMESTAMPTZ
 );
-CREATE INDEX idx_matter_starts_submission_id ON matter_starts(submission_id);
+CREATE INDEX idx_matter_start_submission_id ON matter_start(submission_id);

@@ -1,7 +1,7 @@
-CREATE TABLE claims (
+CREATE TABLE claim (
     id                                       UUID PRIMARY KEY,
-    submission_id                            UUID NOT NULL REFERENCES submissions(id),
-    status                                   TEXT NOT NULL CHECK (status IN ('READY_TO_PROCESS', 'NOT_VALIDATED', 'INVALID', 'VALID')),
+    submission_id                            UUID NOT NULL REFERENCES submission(id),
+    status                                   TEXT NOT NULL CHECK (status IN ('READY_TO_PROCESS', 'VALID', 'INVALID')),
     schedule_reference                       TEXT NOT NULL,
     line_number                              INTEGER NOT NULL,
     case_reference_number                    TEXT NOT NULL,
@@ -29,10 +29,11 @@ CREATE TABLE claims (
     mediation_time_minutes                   INTEGER,
     outreach_location                        TEXT,
     referral_source                          TEXT,
+    matched_claim_id                         UUID,
     total_value                              NUMERIC,
     created_by_user_id                       TEXT NOT NULL,
     created_on                               TIMESTAMPTZ NOT NULL,
-    modified_by_user_id                      TEXT,
-    modified_on                              TIMESTAMPTZ
+    updated_by_user_id                       TEXT,
+    updated_on                                  TIMESTAMPTZ
 );
-CREATE INDEX idx_claims_submission_id ON claims(submission_id);
+CREATE INDEX idx_claim_submission_id ON claim(submission_id);

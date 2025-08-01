@@ -1,6 +1,6 @@
-CREATE TABLE claim_cases (
+CREATE TABLE claim_case (
     id                                          UUID PRIMARY KEY,
-    claim_id                                    UUID NOT NULL REFERENCES claims(id),
+    claim_id                                    UUID NOT NULL REFERENCES claim(id),
     case_id                                     TEXT,
     unique_case_id                              TEXT,
     case_stage_code                             TEXT,
@@ -19,7 +19,7 @@ CREATE TABLE claim_cases (
     is_legacy_case                              BOOLEAN,
     created_by_user_id                          TEXT NOT NULL,
     created_on                                  TIMESTAMPTZ NOT NULL,
-    modified_by_user_id                         TEXT,
-    modified_on                                 TIMESTAMPTZ
+    updated_by_user_id                          TEXT,
+    updated_on                                  TIMESTAMPTZ
 );
-CREATE INDEX idx_claim_cases_claim_id ON claim_cases(claim_id);
+CREATE INDEX idx_claim_case_claim_id ON claim_case(claim_id);
