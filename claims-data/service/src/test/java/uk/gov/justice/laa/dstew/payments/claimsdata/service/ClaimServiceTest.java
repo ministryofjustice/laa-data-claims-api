@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import org.javers.core.Javers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,6 +33,9 @@ class ClaimServiceTest {
 
   @InjectMocks
   private ClaimService claimService;
+
+  @Mock
+  private Javers javers;
 
   @Test
   void shouldGetAllClaims() {
