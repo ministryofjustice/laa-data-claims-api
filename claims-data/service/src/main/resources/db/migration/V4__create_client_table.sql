@@ -1,6 +1,6 @@
 CREATE TABLE client (
-    id                          UUID PRIMARY KEY ,
-    claim_id                    UUID NOT NULL REFERENCES claim(id),
+    id                          UUID NOT NULL,
+    claim_id                    UUID NOT NULL,
     client_forename             TEXT,
     client_surname              TEXT,
     client_date_of_birth        DATE,
@@ -26,6 +26,9 @@ CREATE TABLE client (
     created_by_user_id          TEXT NOT NULL,
     created_on                  TIMESTAMPTZ NOT NULL,
     updated_by_user_id          TEXT,
-    updated_on                  TIMESTAMPTZ
+    updated_on                  TIMESTAMPTZ,
+
+    CONSTRAINT pk_client PRIMARY KEY (id),
+    CONSTRAINT fk_client_claim_id FOREIGN KEY (claim_id) REFERENCES claim(id)
 );
-CREATE INDEX idx_client_claim_id ON client(claim_id);
+CREATE INDEX ix_client_claim_id ON client(claim_id);

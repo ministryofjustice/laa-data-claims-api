@@ -1,7 +1,7 @@
 CREATE TABLE claim (
-    id                                       UUID PRIMARY KEY,
-    submission_id                            UUID NOT NULL REFERENCES submission(id),
-    status                                   TEXT NOT NULL CHECK (status IN ('READY_TO_PROCESS', 'VALID', 'INVALID')),
+    id                                       UUID NOT NULL,
+    submission_id                            UUID NOT NULL,
+    status                                   TEXT NOT NULL,
     schedule_reference                       TEXT NOT NULL,
     line_number                              INTEGER NOT NULL,
     case_reference_number                    TEXT NOT NULL,
@@ -34,6 +34,15 @@ CREATE TABLE claim (
     created_by_user_id                       TEXT NOT NULL,
     created_on                               TIMESTAMPTZ NOT NULL,
     updated_by_user_id                       TEXT,
-    updated_on                                  TIMESTAMPTZ
+    updated_on                               TIMESTAMPTZ,
+
+    CONSTRAINT pk_claim PRIMARY KEY (id),
+    CONSTRAINT fk_claim_submission_id FOREIGN KEY (submission_id) REFERENCES submission(id),
+    CONSTRAINT fk_claim_matched_claim_id FOREIGN KEY (matched_claim_id) REFERENCES claim(id),
+    CONSTRAINT chk_claim_status CHECK (status IN ('READY_TO_PROCESS', 'VALID', 'INVALID'))
 );
-CREATE INDEX idx_claim_submission_id ON claim(submission_id);
+
+CREATE INDEX ix_claim_submission_id ON claim(submission_id);
+CREATE INDEX ix_claim_matched_claim_id ON claim(matched_claim_id);
+
+COMMENT ON COLUMN claim.matched_claim_id IS 'ID of claim of which this is found to be a duplicate';

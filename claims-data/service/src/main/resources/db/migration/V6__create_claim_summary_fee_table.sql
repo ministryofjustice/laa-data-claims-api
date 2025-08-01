@@ -1,6 +1,6 @@
 CREATE TABLE claim_summary_fee (
-   id                                       UUID PRIMARY KEY,
-   claim_id                                 UUID NOT NULL REFERENCES claim(id),
+   id                                       UUID NOT NULL,
+   claim_id                                 UUID NOT NULL,
    advice_time                              INTEGER,
    travel_time                              INTEGER,
    waiting_time                             INTEGER,
@@ -37,6 +37,9 @@ CREATE TABLE claim_summary_fee (
    created_by_user_id                       TEXT NOT NULL,
    created_on                               TIMESTAMPTZ NOT NULL,
    updated_by_user_id                       TEXT,
-   updated_on                               TIMESTAMPTZ
+   updated_on                               TIMESTAMPTZ,
+
+   CONSTRAINT pk_claim_summary_fee PRIMARY KEY (id),
+   CONSTRAINT fk_claim_summary_fee_claim_id FOREIGN KEY (claim_id) REFERENCES claim(id)
 );
-CREATE INDEX idx_claim_summary_fee_claim_id ON claim_summary_fee(claim_id);
+CREATE INDEX ix_claim_summary_fee_claim_id ON claim_summary_fee(claim_id);
