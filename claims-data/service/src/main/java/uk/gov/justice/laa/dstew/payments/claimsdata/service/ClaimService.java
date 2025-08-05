@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.javers.core.Javers;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
@@ -18,11 +17,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 @Service
 public class ClaimService {
 
-  //TODO: replace with the actual user ID/name when available
-  public static final String API_USER = "api user";
   private final ClaimRepository claimRepository;
   private final ClaimMapper claimMapper;
-  private final Javers javers;
 
   /**
    * Gets all claims.
@@ -55,7 +51,6 @@ public class ClaimService {
     claimEntity.setName(claimRequestBody.getName());
     claimEntity.setDescription(claimRequestBody.getDescription());
     ClaimEntity createdClaimEntity = claimRepository.save(claimEntity);
-    javers.commit(API_USER, createdClaimEntity);
     return createdClaimEntity.getId();
   }
 
@@ -70,7 +65,6 @@ public class ClaimService {
     claimEntity.setName(claimRequestBody.getName());
     claimEntity.setDescription(claimRequestBody.getDescription());
     claimRepository.save(claimEntity);
-    javers.commit(API_USER, claimEntity);
   }
 
   /**
@@ -79,9 +73,7 @@ public class ClaimService {
    * @param id the id of the claim to be deleted
    */
   public void deleteClaim(Long id) {
-    ClaimEntity claimToDelete = checkIfClaimExist(id);
-    javers.commitShallowDelete(API_USER, claimToDelete);
-
+    checkIfClaimExist(id);
     claimRepository.deleteById(id);
   }
 
