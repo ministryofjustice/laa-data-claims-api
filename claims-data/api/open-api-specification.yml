@@ -1,19 +1,31 @@
 openapi: "3.0.0"
 info:
   version: 1.0.1
-  title: Claims API
+  title: LAA Data Claims API
+  description: |
+    API to upload submissions with claims and other data and enrich it with fees and validations 
+
+tags:
+  - name: Bulk Submissions
+    description: Operations related to bulk submissions
+  - name: Submissions
+    description: Operations related to submissions
+  - name: Claims
+    description: Operations related to claims
+  - name: Matter Starts
+    description: Operations related to matter starts
 
 paths:
   /api/v0/bulk-submissions:
     post:
+      operationId: createBulkSubmission
       tags:
-        - bulk-submission
+        - Bulk Submissions
       summary: Upload a submission file
       description: >
         Upload a file (as multipart/form-data) containing data related to a submission.
         The file is converted into a JSON document and stored in the `bulk_submission` table.
         A 201 response is returned with a `Location` header containing the URI of the created record.
-      operationId: createBulkSubmission
       requestBody:
         required: true
         content:
@@ -59,6 +71,9 @@ paths:
           description: 'Internal server error'
   /api/v0/bulk-submissions/{id}:
     get:
+      operationId: getBulkSubmission
+      tags:
+        - Bulk Submissions
       summary: Get the contents of a bulk submission
       description: |
         Returns the raw JSON document stored in the `bulk_submission` table,
@@ -91,6 +106,9 @@ paths:
           description: 'Internal server error'
   /api/v0/submissions:
     post:
+      operationId: createSubmission
+      tags:
+        - Submissions
       summary: Create a new submission
       description: |
         Creates a new submission record associated with a bulk submission.
@@ -129,6 +147,9 @@ paths:
 
   /api/v0/submissions/{id}/claims:
     post:
+      operationId: createClaim
+      tags:
+        - Claims
       summary: Add a claim to a submission
       description: Adds a claim to the specified submission ID.
       parameters:
@@ -174,12 +195,13 @@ paths:
 
   /api/v0/submissions/{id}/matter-starts:
     post:
+      operationId: createMatterStart
+      tags:
+        - Matter Starts
       summary: Create a Matter Start for a Submission
       description: |
         Adds a Matter Start record to the submission with the specified ID.
         Returns HTTP 201 Created with a Location header pointing to the newly created resource.
-      tags:
-        - MatterStarts
       parameters:
         - name: id
           in: path
@@ -236,11 +258,11 @@ paths:
 
   /api/v0/submissions/{id}:
     patch:
-      summary: Update submission status
-      description: Updates the `status` field of an existing submission identified by its ID.
-      operationId: updateSubmissionStatus
+      operationId: updateSubmission
       tags:
         - Submissions
+      summary: Update submission status
+      description: Updates the `status` field of an existing submission identified by its ID.
       parameters:
         - name: id
           in: path
@@ -270,6 +292,9 @@ paths:
           description: 'Internal server error'
 
     get:
+      operationId: getSubmssion
+      tags:
+        - Submissions
       summary: Get a submission summary by ID
       description: Returns the submission details along with associated claims (ID and status only) and matter starts (IDs only).
       parameters:
@@ -320,6 +345,9 @@ paths:
 
   /api/v0/submissions/{submission-id}/claims/{claim-id}:
     get:
+      operationId: getClaim
+      tags:
+        - Claims
       summary: Get a specific claim for a submission
       description: Returns the details of a specific claim associated with a submission.
       parameters:
@@ -356,6 +384,9 @@ paths:
           description: 'Internal server error'
 
     patch:
+      operationId: updateClaim
+      tags:
+        - Claims
       summary: Update fields of a specific claim
       description: Partially update a claim within a submission. Only fields provided in the request will be updated.
       parameters:
