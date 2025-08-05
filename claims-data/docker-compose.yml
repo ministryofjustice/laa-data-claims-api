@@ -4,9 +4,9 @@ services:
     container_name: local-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: laa_data_claims_api_dev
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: testdb
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
     ports:
       - "5432:5432"
     volumes:

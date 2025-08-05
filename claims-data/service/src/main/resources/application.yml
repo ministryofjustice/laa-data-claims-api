@@ -4,12 +4,10 @@ spring:
 # Default connection details for local dev, overridden in other envs
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/laa_data_claims_api_dev
-    username: user
-    password: dev
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: testuser
+    password: testpassword
   flyway:
-    schemas: claims
-    create-schemas: true
     enabled: true
 
   jpa:
