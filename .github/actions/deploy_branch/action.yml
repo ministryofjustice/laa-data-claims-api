@@ -111,4 +111,4 @@ runs:
           --values ${VALUES_FILE} \
           --values /tmp/ip-allowlist-values.yaml \
           --install \
-          --wait
+          --wait --timeout=5m
