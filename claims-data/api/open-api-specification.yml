@@ -1,9 +1,9 @@
 openapi: "3.0.0"
 info:
-  version: 1.0.1
+  version: 0.0.1
   title: LAA Data Claims API
   description: |
-    API to upload submissions with claims and other data and enrich it with fees and validations 
+    This API allows bulk submission and claim management for the LAA Data Stewardship Payments project. 
 
 tags:
   - name: Bulk Submissions
