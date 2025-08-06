@@ -13,7 +13,6 @@ spring:
     enabled: true
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
     generate-ddl: false
     hibernate:
