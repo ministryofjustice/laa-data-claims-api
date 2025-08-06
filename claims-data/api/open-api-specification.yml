@@ -37,6 +37,10 @@ paths:
                   type: string
                   format: binary
                   description: The submission file to be uploaded.
+                previous-submission-id:
+                  type: string
+                  format: uuid
+                  description: Optional ID of a previous submission that this one replaces.
               required:
                 - file
       responses:
@@ -52,6 +56,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Bulk Submission details
                 properties:
                   bulk_submission_id:
                     type: string
@@ -216,6 +221,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Matter Start details
               properties:
                 schedule_reference:
                   type: string
@@ -280,6 +286,7 @@ paths:
       responses:
         '204':
           description: 'Submission status updated successfully'
+          content: {}
         '400':
           description: 'Bad request'
         '401':
@@ -292,7 +299,7 @@ paths:
           description: 'Internal server error'
 
     get:
-      operationId: getSubmssion
+      operationId: getSubmission
       tags:
         - Submissions
       summary: Get a submission summary by ID
@@ -312,6 +319,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: submission details
                 properties:
                   submission:
                     $ref: '#/components/schemas/SubmissionFields'
@@ -320,6 +328,7 @@ paths:
                     description: List of claims (ID + status) for this submission
                     items:
                       type: object
+                      description: Claim UUID and status
                       properties:
                         claim_id:
                           type: string
@@ -413,6 +422,7 @@ paths:
       responses:
         '204':
           description: Claim updated successfully
+          content: {}
         '400':
           description: Invalid request
         '404':
@@ -434,6 +444,7 @@ components:
         - $ref: '#/components/schemas/SubmissionFields'
     SubmissionFields:
       type: object
+      description: submission details
       properties:
         submission_id:
           type: string
@@ -487,6 +498,7 @@ components:
 
     ClaimFields:
       type: object
+      description: Claim details
       properties:
         status:
           type: string
