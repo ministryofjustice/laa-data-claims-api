@@ -17,6 +17,9 @@ metadata:
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
+    {{- if .Values.ingress.whitelist.enabled }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: "{{ include "data-claims-api.whitelist" $ }}"
+    {{- end }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}

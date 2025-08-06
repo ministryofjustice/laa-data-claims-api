@@ -17,6 +17,8 @@ service:
 
 ingress:
   className: modsec
+  whitelist:
+    enabled: true
   annotations:
     external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-laa-data-claims-api-prod-green"
     external-dns.alpha.kubernetes.io/aws-weight: "100"
@@ -30,4 +32,3 @@ ingress:
   tls:
     - hosts:
       - domain: laa-data-claims-api.cloud-platform.service.justice.gov.uk
-

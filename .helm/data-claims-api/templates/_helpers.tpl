@@ -51,3 +51,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app: {{ template "data-claims-api.name" . }}
 release: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Function to return a list of IPs allowed to access the service.
+*/}}
+{{- define "data-claims-api.whitelist" -}}
+{{- .Values.laaIPs }},{{- .Values.pingdomIPs }}
+{{- end -}}
