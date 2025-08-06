@@ -37,10 +37,6 @@ paths:
                   type: string
                   format: binary
                   description: The submission file to be uploaded.
-                previous-submission-id:
-                  type: string
-                  format: uuid
-                  description: Optional ID of a previous submission that this one replaces.
               required:
                 - file
       responses:
