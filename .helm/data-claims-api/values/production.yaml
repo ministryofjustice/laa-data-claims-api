@@ -17,8 +17,6 @@ service:
 
 ingress:
   className: modsec
-  whitelist:
-    enabled: true
   annotations:
     external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-laa-data-claims-api-prod-green"
     external-dns.alpha.kubernetes.io/aws-weight: "100"
