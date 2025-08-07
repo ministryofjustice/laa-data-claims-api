@@ -8,7 +8,7 @@ spring:
     username: user
     password: dev
   flyway:
-    schemas: claims
+    schemas: claims, javers
     create-schemas: true
     enabled: true
 
@@ -20,6 +20,9 @@ spring:
     properties:
       hibernate:
         default_schema: claims
+
+javers:
+  sqlSchema: javers
 
 # used by actuator info endpoint
 info:
