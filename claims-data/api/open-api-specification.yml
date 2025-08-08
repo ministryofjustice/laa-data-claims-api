@@ -1,8 +1,85 @@
 openapi: "3.0.0"
 info:
-  version: 1.0.1
-  title: Claims API
+  version: 0.0.1
+  title: LAA Data Claims API
+  description: |
+    This API allows bulk submission and claim management for the LAA Data Stewardship Payments project. 
+
+tags:
+  - name: Bulk Submissions
+    description: Operations related to bulk submissions
+  - name: Submissions
+    description: Operations related to submissions
+  - name: Claims
+    description: Operations related to claims
+  - name: Matter Starts
+    description: Operations related to matter starts
+
 paths:
+  /api/v0/bulk-submissions:
+    post:
+      operationId: createBulkSubmission
+      tags:
+        - Bulk Submissions
+      summary: Upload a submission file
+      description: >
+        Upload a file (as multipart/form-data) containing data related to a submission.
+        The file is converted into a JSON document and stored in the `bulk_submission` table.
+        A 201 response is returned with a `Location` header containing the URI of the created record.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: The user ID of the user performing the bulk submission
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The submission file to be uploaded.
+              required:
+                - file
+      responses:
+        '201':
+          description: Bulk Submission accepted and processed
+          headers:
+            Location:
+              description: URI of the created bulk submission resource.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Bulk Submission details
+                properties:
+                  bulk_submission_id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created bulk submission record.
+                  submission_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+                    description: list of UUIDs for the future submission records (only one submission per bulk expected), will have to be sent back in a later call.
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+
   /api/v1/claims:
     get:
       tags:
