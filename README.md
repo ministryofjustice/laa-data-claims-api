@@ -19,7 +19,7 @@ Includes the following subprojects:
                                 - (openapi spec changes have to be made on a branch named openapi/*)
 ## Add GitHub Token
 1.	Generate a Github PAT (Personal Access Token) to access the required plugin, via https://github.com/settings/tokens
-2.	Specify the Note field, e.g. “Token to allow access to CCMS Gradle plugin” 
+2.	Specify the Note field, e.g. “Token to allow access to LAA Gradle plugin” 
 3.  If you haven’t got a gradle.properties file create one under `~/.gradle/gradle.properties`
 4.  Add the following properties to `~/.gradle/gradle.properties` and replace the placeholder values as follows:
     - `project.ext.gitPackageUser` = YOUR_GITHUB_USERNAME
