@@ -46,3 +46,33 @@ management:
   info:
     env:
       enabled: false
+
+laa.springboot.starter:
+  auth:
+    authentication-header: "Authorization"
+    authorized-clients: '[
+        {
+            "name": "laa-data-claims-event-service",
+            "roles": [
+                "ALL"
+            ],
+            "token": "f67f968e-b479-4e61-b66e-f57984931e56"
+        },
+        {
+            "name": "laa-submit-a-bulk-claim",
+            "roles": [
+                "ALL"
+            ],
+            "token": "4bf46007-caa7-47f6-a20e-f89b874c0cda"
+        }
+    ]'
+    authorized-roles: '[
+        {
+            "name": "ALL",
+            "URIs": [
+                "/**"
+            ]
+        }
+    ]'
+    unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
+                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]
