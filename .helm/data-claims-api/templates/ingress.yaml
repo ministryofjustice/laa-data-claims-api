@@ -1,3 +1,5 @@
+{{- if .Values.ingress.enabled -}}
+
 {{- $fullName := include "data-claims-api.fullname" . -}}
 
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
@@ -42,3 +44,4 @@ spec:
                 port:
                   name: http
     {{- end }}
+{{- end }}
