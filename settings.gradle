@@ -2,7 +2,7 @@ pluginManagement {
     repositories {
         maven {
             name = "gitHubPackages"
-            url = 'https://maven.pkg.github.com/ministryofjustice/laa-ccms-spring-boot-common'
+            url = 'https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common'
             credentials {
                 username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser')
                 password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find('project.ext.gitPackageKey')
@@ -13,7 +13,7 @@ pluginManagement {
     }
 
     plugins {
-        id 'uk.gov.laa.ccms.springboot.laa-ccms-spring-boot-gradle-plugin' version '0.0.39'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '1.0.0'
     }
 }
 
