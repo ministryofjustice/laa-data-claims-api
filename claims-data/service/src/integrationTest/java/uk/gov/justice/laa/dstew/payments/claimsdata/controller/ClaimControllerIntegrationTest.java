@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
@@ -39,11 +40,16 @@ public class ClaimControllerIntegrationTest {
   @ServiceConnection
   public static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
+  private static final String AUTHORIZATION_HEADER = "Authorization";
+
+  //must match application.yml for test-runner token
+  private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   @Test
   void shouldGetAllClaims() throws Exception {
     mockMvc
-        .perform(get("/api/v1/claims"))
+        .perform(get("/api/v1/claims")
+            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.*", hasSize(5)));
@@ -51,7 +57,8 @@ public class ClaimControllerIntegrationTest {
 
   @Test
   void shouldGetClaim() throws Exception {
-    mockMvc.perform(get("/api/v1/claims/1"))
+    mockMvc.perform(get("/api/v1/claims/1")
+            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value(1))
@@ -64,6 +71,7 @@ public class ClaimControllerIntegrationTest {
     mockMvc
         .perform(
             post("/api/v1/claims")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\": \"Claim Six\", \"description\": \"This is a description of Claim Six.\"}")
                 .accept(MediaType.APPLICATION_JSON))
@@ -75,6 +83,7 @@ public class ClaimControllerIntegrationTest {
     mockMvc
         .perform(
             put("/api/v1/claims/2")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\": 2, \"name\": \"Claim Two\", \"description\": \"This is a updated description of Claim Three.\"}")
                 .accept(MediaType.APPLICATION_JSON))
@@ -83,6 +92,7 @@ public class ClaimControllerIntegrationTest {
 
   @Test
   void shouldDeleteClaim() throws Exception {
-    mockMvc.perform(delete("/api/v1/claims/3")).andExpect(status().isNoContent());
+    mockMvc.perform(delete("/api/v1/claims/3")
+        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)).andExpect(status().isNoContent());
   }
 }
