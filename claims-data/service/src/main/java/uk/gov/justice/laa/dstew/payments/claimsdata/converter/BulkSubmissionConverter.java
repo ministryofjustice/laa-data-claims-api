@@ -6,8 +6,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
 
 /** Interface for bulk submission file converters. */
 public interface BulkSubmissionConverter {
+  FileSubmission convert(MultipartFile file);
 
-    FileSubmission convert(MultipartFile file);
-
-    boolean handles(FileExtension fileExtension);
+  boolean handles(FileExtension fileExtension);
 }

@@ -5,14 +5,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import java.io.IOException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 
-import java.io.IOException;
-
 /** Deserializer which handles deserialization of bulk submission outcomes from XML files. */
 public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
-
   /**
    * Deserializes the provided content into a {@link XmlOutcome} object.
    *
@@ -24,7 +22,6 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
    */
   @Override
   public XmlOutcome deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-
     String feeCode = null;
     String caseRefNumber = null;
     String caseStartDate = null;
@@ -253,109 +250,24 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
       }
     }
 
-    return new XmlOutcome(
-        matterType,
-        feeCode,
-        caseRefNumber,
-        caseStartDate,
-        caseId,
-        caseStageLevel,
-        ufn,
-        procurementArea,
-        accessPoint,
-        clientForename,
-        clientSurname,
-        clientDateOfBirth,
-        ucn,
-        claRefNumber,
-        claExemption,
-        gender,
-        ethnicity,
-        disability,
-        clientPostCode,
-        workConcludedDate,
-        adviceTime,
-        travelTime,
-        waitingTime,
-        profitCost,
-        valueOfCosts,
-        disbursementsAmount,
-        counselCost,
-        disbursementsVat,
-        travelWaitingCosts,
-        vatIndicator,
-        londonNonlondonRate,
-        clientType,
-        toleranceIndicator,
-        travelCosts,
-        outcomeCode,
-        legacyCase,
-        claimType,
-        adjournedHearingFee,
-        typeOfAdvice,
-        postalApplAccp,
-        scheduleRef,
-        cmrhOral,
-        cmrhTelephone,
-        aitHearingCentre,
-        substantiveHearing,
-        hoInterview,
-        hoUcn,
-        transferDate,
-        detentionTravelWaitingCosts,
-        deliveryLocation,
-        priorAuthorityRef,
-        jrFormFilling,
-        additionalTravelPayment,
-        meetingsAttended,
-        medicalReportsClaimed,
-        desiAccRep,
-        mhtRefNumber,
-        stageReached,
-        followOnWork,
-        nationalRefMechanismAdvice,
-        exemptionCriteriaSatisfied,
-        exclCaseFundingRef,
-        noOfClients,
-        noOfSurgeryClients,
-        ircSurgery,
-        surgeryDate,
-        lineNumber,
-        crimeMatterType,
-        feeScheme,
-        repOrderDate,
-        noOfSuspects,
-        noOfPoliceStation,
-        policeStation,
-        dsccNumber,
-        maatId,
-        prisonLawPriorApproval,
-        dutySolicitor,
-        youthCourt,
-        schemeId,
-        numberOfMediationSessions,
-        mediationTime,
-        outreach,
-        referral,
-        clientLegallyAided,
-        client2Forename,
-        client2Surname,
-        client2DateOfBirth,
-        client2Ucn,
-        client2PostCode,
-        client2Gender,
-        client2Ethnicity,
-        client2Disability,
-        client2LegallyAided,
-        uniqueCaseId,
-        standardFeeCat,
-        client2PostalApplAccp,
-        costsDamagesRecovered,
-        eligibleClient,
-        courtLocation,
-        localAuthorityNumber,
-        paNumber,
-        excessTravelCosts,
-        medConcludedDate);
+    return new XmlOutcome(matterType, feeCode, caseRefNumber, caseStartDate, caseId, caseStageLevel,
+        ufn, procurementArea, accessPoint, clientForename, clientSurname, clientDateOfBirth, ucn,
+        claRefNumber, claExemption, gender, ethnicity, disability, clientPostCode,
+        workConcludedDate, adviceTime, travelTime, waitingTime, profitCost, valueOfCosts,
+        disbursementsAmount, counselCost, disbursementsVat, travelWaitingCosts, vatIndicator,
+        londonNonlondonRate, clientType, toleranceIndicator, travelCosts, outcomeCode, legacyCase,
+        claimType, adjournedHearingFee, typeOfAdvice, postalApplAccp, scheduleRef, cmrhOral,
+        cmrhTelephone, aitHearingCentre, substantiveHearing, hoInterview, hoUcn, transferDate,
+        detentionTravelWaitingCosts, deliveryLocation, priorAuthorityRef, jrFormFilling,
+        additionalTravelPayment, meetingsAttended, medicalReportsClaimed, desiAccRep, mhtRefNumber,
+        stageReached, followOnWork, nationalRefMechanismAdvice, exemptionCriteriaSatisfied,
+        exclCaseFundingRef, noOfClients, noOfSurgeryClients, ircSurgery, surgeryDate, lineNumber,
+        crimeMatterType, feeScheme, repOrderDate, noOfSuspects, noOfPoliceStation, policeStation,
+        dsccNumber, maatId, prisonLawPriorApproval, dutySolicitor, youthCourt, schemeId,
+        numberOfMediationSessions, mediationTime, outreach, referral, clientLegallyAided,
+        client2Forename, client2Surname, client2DateOfBirth, client2Ucn, client2PostCode,
+        client2Gender, client2Ethnicity, client2Disability, client2LegallyAided, uniqueCaseId,
+        standardFeeCat, client2PostalApplAccp, costsDamagesRecovered, eligibleClient, courtLocation,
+        localAuthorityNumber, paNumber, excessTravelCosts, medConcludedDate);
   }
 }

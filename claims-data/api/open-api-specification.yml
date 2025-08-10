@@ -80,19 +80,31 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v1/claims:
+  /api/v0/bulk-submissions/{id}:
     get:
+      operationId: getBulkSubmission
       tags:
-        - claims
-      summary: Get claims
-      operationId: getClaims
+        - Bulk Submissions
+      summary: Get the contents of a bulk submission
+      description: |
+        Returns the raw JSON document stored in the `bulk_submission` table,
+        identified by its UUID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the bulk submission
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: 'Success'
+          description: Successfully retrieved bulk submission document
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Claims"
+                type: object
+                description: The JSON document stored in the `bulk_submission` table
         '400':
           description: 'Bad request'
         '401':
@@ -100,113 +112,187 @@ paths:
         '403':
           description: 'Forbidden'
         '404':
-          description: 'Not found'
+          description: Bulk submission not found
         '500':
           description: 'Internal server error'
+  /api/v0/submissions:
     post:
+      operationId: createSubmission
       tags:
-        - claims
-      summary: Create an claim
-      operationId: createClaim
+        - Submissions
+      summary: Create a new submission
+      description: |
+        Creates a new submission record associated with a bulk submission.
       requestBody:
-        description: create an claim
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimRequestBody'
+              $ref: '#/components/schemas/SubmissionPost'
       responses:
         '201':
-          description: 'Created'
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Not found'
-        '500':
-          description: 'Internal server error'
-
-  /api/v1/claims/{id}:
-    get:
-      summary: Get claim by id
-      operationId: getClaimById
-      tags:
-        - claims
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: The id of the claim to retrieve
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Success
+          description: Submission created successfully.
+          headers:
+            Location:
+              description: URI of the created submission resource.
+              schema:
+                type: string
+                format: uri
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Claim"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created submission.
         '400':
           description: 'Bad request'
         '401':
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
-        '404':
-          description: 'Not found'
         '500':
           description: 'Internal server error'
-    put:
+
+  /api/v0/submissions/{id}/claims:
+    post:
+      operationId: createClaim
       tags:
-        - claims
-      summary: Update an claim
-      operationId: updateClaim
+        - Claims
+      summary: Add a claim to a submission
+      description: Adds a claim to the specified submission ID.
       parameters:
         - name: id
           in: path
           required: true
-          description: The id of the claim to be updated
+          description: UUID of the parent submission
           schema:
-            type: integer
-            format: int64
+            type: string
+            format: uuid
       requestBody:
-        description: update an existing claim
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimRequestBody'
+              $ref: '#/components/schemas/ClaimPost'
       responses:
-        '204':
-          description: No content
+        '201':
+          description: Claim created successfully
+          headers:
+            Location:
+              description: URI of the created claim resource
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created claim
         '400':
           description: 'Bad request'
         '401':
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
-        '404':
-          description: 'Not found'
         '500':
           description: 'Internal server error'
-    delete:
-      summary: Delete claim by id
-      operationId: deleteClaim
+
+  /api/v0/submissions/{id}/matter-starts:
+    post:
+      operationId: createMatterStart
       tags:
-        - claims
+        - Matter Starts
+      summary: Create a Matter Start for a Submission
+      description: |
+        Adds a Matter Start record to the submission with the specified ID.
+        Returns HTTP 201 Created with a Location header pointing to the newly created resource.
       parameters:
         - name: id
           in: path
           required: true
-          description: The id of the claim to be deleted
+          description: UUID of the submission
           schema:
-            type: integer
-            format: int64
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Matter Start details
+              properties:
+                schedule_reference:
+                  type: string
+                category_code:
+                  type: string
+                procurement_area_code:
+                  type: string
+                access_point_code:
+                  type: string
+                delivery_location:
+                  type: string
+                number_of_matter_starts:
+                  type: integer
+                  example: 3
+      responses:
+        '201':
+          description: Matter Start created successfully
+          headers:
+            Location:
+              description: URI of the newly created Matter Start
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created Matter Start
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+
+  /api/v0/submissions/{id}:
+    patch:
+      operationId: updateSubmission
+      tags:
+        - Submissions
+      summary: Update submission status
+      description: Updates the `status` field of an existing submission identified by its ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the submission to update
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionPatch'
       responses:
         '204':
-          description: No content
+          description: 'Submission status updated successfully'
+          content: {}
         '400':
           description: 'Bad request'
         '401':
@@ -214,40 +300,438 @@ paths:
         '403':
           description: 'Forbidden'
         '404':
-          description: 'Not found'
+          description: 'Submission ID not found'
         '500':
           description: 'Internal server error'
 
+    get:
+      operationId: getSubmission
+      tags:
+        - Submissions
+      summary: Get a submission summary by ID
+      description: Returns the submission details along with associated claims (ID and status only) and matter starts (IDs only).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID of the submission
+      responses:
+        '200':
+          description: Submission found
+          content:
+            application/json:
+              schema:
+                type: object
+                description: submission details
+                properties:
+                  submission:
+                    $ref: '#/components/schemas/SubmissionFields'
+                  claims:
+                    type: array
+                    description: List of claims (ID + status) for this submission
+                    items:
+                      type: object
+                      description: Claim UUID and status
+                      properties:
+                        claim_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum:
+                            - READY_TO_PROCESS
+                            - VALID
+                            - INVALID
+                  matter_starts:
+                    type: array
+                    description: List of matter start IDs for this submission
+                    items:
+                      type: string
+                      format: uuid
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Submission ID not found'
+        '500':
+          description: 'Internal server error'
+
+  /api/v0/submissions/{submission-id}/claims/{claim-id}:
+    get:
+      operationId: getClaim
+      tags:
+        - Claims
+      summary: Get a specific claim for a submission
+      description: Returns the details of a specific claim associated with a submission.
+      parameters:
+        - name: submission-id
+          in: path
+          required: true
+          description: ID of the submission
+          schema:
+            type: string
+            format: uuid
+        - name: claim-id
+          in: path
+          required: true
+          description: ID of the claim
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Claim details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimFields'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: Submission or claim not found
+        '500':
+          description: 'Internal server error'
+
+    patch:
+      operationId: updateClaim
+      tags:
+        - Claims
+      summary: Update fields of a specific claim
+      description: Partially update a claim within a submission. Only fields provided in the request will be updated.
+      parameters:
+        - name: submission-id
+          in: path
+          required: true
+          description: ID of the submission
+          schema:
+            type: string
+            format: uuid
+        - name: claim-id
+          in: path
+          required: true
+          description: ID of the claim to update
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimPatch'
+      responses:
+        '204':
+          description: Claim updated successfully
+          content: {}
+        '400':
+          description: Invalid request
+        '404':
+          description: Submission or claim not found
 components:
   schemas:
-    Claim:
+    SubmissionPost:
+      allOf:
+        - $ref: '#/components/schemas/SubmissionFields'
       required:
-        - id
-        - name
-        - description
-        - claim_type
+        - submission_id
+        - bulk_submission_id
+        - office_account_number
+        - submission_period
+        - area_of_law
+        - status
+    SubmissionPatch:
+      allOf:
+        - $ref: '#/components/schemas/SubmissionFields'
+    SubmissionStatus:
+      type: string
+      enum:
+        - CREATED
+        - READY_FOR_VALIDATION
+        - VALIDATION_IN_PROGRESS
+        - VALIDATION_SUCCEEDED
+        - VALIDATION_FAILED
+        - REPLACED
+    SubmissionFields:
+      type: object
+      description: submission details
       properties:
-        id:
+        submission_id:
+          type: string
+          format: uuid
+          description: UUID for submission that was returned when bulk_submission was created.
+        bulk_submission_id:
+          type: string
+          format: uuid
+          description: UUID of the associated bulk submission.
+        office_account_number:
+          type: string
+          description: The office account number.
+        submission_period:
+          type: string
+          description: Submission period (e.g., "2025-07").
+        area_of_law:
+          type: string
+          description: Area of law (e.g., "crime", "civil").
+        status:
+          $ref: "#/components/schemas/SubmissionStatus"
+        schedule_number:
+          type: string
+          description: Optional schedule number.
+        previous_submission_id:
+          type: string
+          format: uuid
+          description: UUID of the previous submission that this replaces, if any.
+        is_nil_submission:
+          type: boolean
+          description: Whether the submission is a nil submission, i.e. a submission without any claims.
+        number_of_claims:
           type: integer
-          format: int64
-        name:
-          type: string
-        description:
-          type: string
-        claim_type:
-          type: string
-    ClaimRequestBody:
-      required:
-        - name
-        - description
-        - claim_type
-      properties:
-        name:
-          type: string
-        description:
-          type: string
+          description: Number of claims in this submission.
 
-    Claims:
-      type: array
-      items:
-        $ref: "#/components/schemas/Claim"
+    ClaimPost:
+      allOf:
+        - $ref: '#/components/schemas/ClaimFields'
+      required:
+        - status
+        - schedule_reference
+        - line_number
+        - case_reference_number
+        - unique_file_number
+        - case_start_date
+        - case_concluded_date
+        - matter_type_code
+        - outcome_code
+    ClaimPatch:
+      allOf:
+        - $ref: '#/components/schemas/ClaimFields'
+
+    ClaimFields:
+      type: object
+      description: Claim details
+      properties:
+        status:
+          type: string
+          enum:
+            - READY_TO_PROCESS
+            - VALID
+            - INVALID
+        schedule_reference:
+          type: string
+        line_number:
+          type: integer
+        case_reference_number:
+          type: string
+        unique_file_number:
+          type: string
+        case_start_date:
+          type: string
+          format: date
+          description: Date the case was started (format YYYY-MM-DD)
+        case_concluded_date:
+          type: string
+          format: date
+          description: Date the case was concluded (format YYYY-MM-DD)
+        matter_type_code:
+          type: string
+        crime_matter_type_code:
+          type: string
+        fee_scheme_code:
+          type: string
+        fee_code:
+          type: string
+        procurement_area_code:
+          type: string
+        access_point_code:
+          type: string
+        delivery_location:
+          type: string
+        representation_order_date:
+          type: string
+          format: date
+          description: Date the rep order was created (format YYYY-MM-DD)
+        suspects_defendants_count:
+          type: integer
+        police_station_court_attendances_count:
+          type: integer
+        police_station_court_prison_id:
+          type: string
+        dscc_number:
+          type: string
+        maat_id:
+          type: string
+        prison_law_prior_approval_number:
+          type: string
+        is_duty_solicitor:
+          type: boolean
+        is_youth_court:
+          type: boolean
+        scheme_id:
+          type: string
+        mediation_sessions_count:
+          type: integer
+        mediation_time_minutes:
+          type: integer
+        outreach_location:
+          type: string
+        referral_source:
+          type: string
+        client_forename:
+          type: string
+        client_surname:
+          type: string
+        client_date_of_birth:
+          type: string
+          format: date
+          description: Client's date of birth (format YYYY-MM-DD)
+        unique_client_number:
+          type: string
+        client_postcode:
+          type: string
+        gender_code:
+          type: string
+        ethnicity_code:
+          type: string
+        disability_code:
+          type: string
+        is_legally_aided:
+          type: boolean
+        client_type_code:
+          type: string
+        home_office_client_number:
+          type: string
+        cla_reference_number:
+          type: string
+        cla_exemption_code:
+          type: string
+        client_2_forename:
+          type: string
+        client_2_surname:
+          type: string
+        client_2_date_of_birth:
+          type: string
+          format: date
+          description: Client 2's date of birth (format YYYY-MM-DD)
+        client_2_ucn:
+          type: string
+        client_2_postcode:
+          type: string
+        client_2_gender_code:
+          type: string
+        client_2_ethnicity_code:
+          type: string
+        client_2_disability_code:
+          type: string
+        client_2_is_legally_aided:
+          type: boolean
+        case_id:
+          type: string
+        unique_case_id:
+          type: string
+        case_stage_code:
+          type: string
+        stage_reached_code:
+          type: string
+        standard_fee_category_code:
+          type: string
+        outcome_code:
+          type: string
+        designated_accredited_representative_code:
+          type: string
+        is_postal_application_accepted:
+          type: boolean
+        is_client_2_postal_application_accepted:
+          type: boolean
+        mental_health_tribunal_reference:
+          type: string
+        is_nrm_advice:
+          type: boolean
+        follow_on_work:
+          type: string
+        transfer_date:
+          type: string
+          format: date
+          description: Transfer Date (format YYYY-MM-DD)
+        exemption_criteria_satisfied:
+          type: string
+        exceptional_case_funding_reference:
+          type: string
+        is_legacy_case:
+          type: boolean
+        advice_time:
+          type: integer
+        travel_time:
+          type: integer
+        waiting_time:
+          type: integer
+        net_profit_costs_amount:
+          type: number
+        net_disbursement_amount:
+          type: number
+        net_counsel_costs_amount:
+          type: number
+        disbursements_vat_amount:
+          type: number
+        travel_waiting_costs_amount:
+          type: number
+        net_waiting_costs_amount:
+          type: number
+        is_vat_applicable:
+          type: boolean
+        is_tolerance_applicable:
+          type: boolean
+        prior_authority_reference:
+          type: string
+        is_london_rate:
+          type: boolean
+        adjourned_hearing_fee_amount:
+          type: number
+        is_additional_travel_payment:
+          type: boolean
+        costs_damages_recovered_amount:
+          type: number
+        meetings_attended_code:
+          type: string
+        detention_travel_waiting_costs_amount:
+          type: number
+        jr_form_filling_amount:
+          type: number
+        is_eligible_client:
+          type: boolean
+        court_location_code:
+          type: string
+        advice_type_code:
+          type: string
+        medical_reports_count:
+          type: integer
+        is_irc_surgery:
+          type: boolean
+        surgery_date:
+          type: string
+          format: date
+          description: Surgery Date (format YYYY-MM-DD)
+        surgery_clients_count:
+          type: integer
+        surgery_matters_count:
+          type: integer
+        cmrh_oral_count:
+          type: integer
+        cmrh_telephone_count:
+          type: integer
+        ait_hearing_centre_code:
+          type: string
+        is_substantive_hearing:
+          type: boolean
+        ho_interview:
+          type: string
+        local_authority_number:
+          type: string

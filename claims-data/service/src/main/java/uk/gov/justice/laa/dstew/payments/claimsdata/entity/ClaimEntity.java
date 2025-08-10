@@ -20,9 +20,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "CLAIMS")
 public class ClaimEntity {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
 
   private String name;
 

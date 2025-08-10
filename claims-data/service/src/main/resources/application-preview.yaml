@@ -5,3 +5,10 @@ spring:
     password: ${DB_PASSWORD}
   flyway:
     enabled: true
+
+laa:
+  springboot.starter.auth:
+    authentication-header: "Authorization"
+    authorized-clients: ${AUTHORIZED_CLIENTS}
+    authorized-roles: ${AUTHORIZED_ROLES}
+    unprotected-uris: ${UNPROTECTED_URIS}

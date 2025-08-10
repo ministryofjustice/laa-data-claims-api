@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Primary;
 /** Configuration for Jackson mapping beans. */
 @Configuration
 public class JacksonMappingConfig {
-
   /**
    * Provides an {@link ObjectMapper} bean.
    *

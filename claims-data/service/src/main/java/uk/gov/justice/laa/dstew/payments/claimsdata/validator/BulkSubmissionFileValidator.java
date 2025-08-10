@@ -15,7 +15,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionVali
  */
 @Component
 public class BulkSubmissionFileValidator {
-
   /**
    * Validates the provided file against specific criteria, including emptiness, file extension, and
    * MIME type compliance.
@@ -55,12 +54,14 @@ public class BulkSubmissionFileValidator {
     String contentType = file.getContentType();
     if (originalFilename.toLowerCase().endsWith(".csv") && !"text/csv".equals(contentType)) {
       // Causes a 415 Unsupported Media Type response to be returned to the client.
-      throw new BulkSubmissionInvalidFileException("Mime type does not match the .csv file extension");
+      throw new BulkSubmissionInvalidFileException(
+          "Mime type does not match the .csv file extension");
     }
     if (originalFilename.toLowerCase().endsWith(".xml")
         && !("text/xml".equals(contentType) || "application/xml".equals(contentType))) {
       // Causes a 415 Unsupported Media Type response to be returned to the client.
-      throw new BulkSubmissionInvalidFileException("Mime type does not match the .xml file extension");
+      throw new BulkSubmissionInvalidFileException(
+          "Mime type does not match the .xml file extension");
     }
   }
 }

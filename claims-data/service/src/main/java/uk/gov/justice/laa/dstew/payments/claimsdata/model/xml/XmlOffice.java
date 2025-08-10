@@ -11,6 +11,5 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
  * @param schedule the schedule details for the office.
  */
 @JacksonXmlRootElement(localName = "office")
-public record XmlOffice(
-    @JacksonXmlProperty(isAttribute = true) String account,
+public record XmlOffice(@JacksonXmlProperty(isAttribute = true) String account,
     @JacksonXmlProperty @JsonProperty(required = true) XmlSchedule schedule) {}

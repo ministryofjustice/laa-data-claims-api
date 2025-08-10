@@ -8,12 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
 class GlobalExceptionHandlerTest {
-
   GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
 
   @Test
   void handleClaimNotFound_returnsNotFoundStatusAndErrorMessage() {
-    ResponseEntity<String> result = globalExceptionHandler.handleClaimNotFound(new ClaimNotFoundException("Claim not found"));
+    ResponseEntity<String> result =
+        globalExceptionHandler.handleClaimNotFound(new ClaimNotFoundException("Claim not found"));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -22,8 +22,21 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  void handleSubmissionNotFound_returnsNotFoundStatusAndErrorMessage() {
+    ResponseEntity<String> result =
+        globalExceptionHandler.handleSubmissionNotFound(
+            new SubmissionNotFoundException("Submission not found"));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(NOT_FOUND);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody()).isEqualTo("Submission not found");
+  }
+
+  @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
-    ResponseEntity<String> result = globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
+    ResponseEntity<String> result =
+        globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);

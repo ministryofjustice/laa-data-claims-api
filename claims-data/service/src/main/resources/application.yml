@@ -47,8 +47,8 @@ management:
     env:
       enabled: false
 
-laa.springboot.starter:
-  auth:
+laa:
+  springboot.starter.auth:
     authentication-header: "Authorization"
     authorized-clients: '[
         {

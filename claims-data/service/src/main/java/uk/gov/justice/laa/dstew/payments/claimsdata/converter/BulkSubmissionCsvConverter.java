@@ -5,26 +5,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import io.micrometer.common.util.StringUtils;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvBulkSubmissionRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvHeader;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 
 /** Converter responsible for converting bulk submissions in CSV format. */
 @Slf4j
 @Component
 public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
-
   private final ObjectMapper objectMapper;
   private final CsvMapper csvMapper;
 
@@ -48,11 +52,9 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     List<CsvMatterStarts> csvMatterStarts = new ArrayList<>();
 
     try (InputStream fileReader = file.getInputStream()) {
-      MappingIterator<List<String>> rowIterator =
-          csvMapper
-              .readerForListOf(String.class)
-              .with(CsvParser.Feature.WRAP_AS_ARRAY)
-              .readValues(fileReader);
+      MappingIterator<List<String>> rowIterator = csvMapper.readerForListOf(String.class)
+                                                      .with(CsvParser.Feature.WRAP_AS_ARRAY)
+                                                      .readValues(fileReader);
 
       while (rowIterator.hasNextValue()) {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
@@ -65,22 +67,23 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         switch (csvBulkSubmissionRow.header()) {
           case CsvHeader.OFFICE -> {
             if (csvOffice != null) {
-              throw new BulkSubmissionFileReadException("Multiple offices found in bulk claim file");
+              throw new BulkSubmissionFileReadException(
+                  "Multiple offices found in bulk claim file");
             }
             csvOffice = objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOffice.class);
           }
           case CsvHeader.SCHEDULE -> {
             if (csvSchedule != null) {
-              throw new BulkSubmissionFileReadException("Multiple schedules found in bulk claim file");
+              throw new BulkSubmissionFileReadException(
+                  "Multiple schedules found in bulk claim file");
             }
-            csvSchedule = objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
+            csvSchedule =
+                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
-          case CsvHeader.OUTCOME ->
-              csvOutcomes.add(
-                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
-          case CsvHeader.MATTERSTARTS ->
-              csvMatterStarts.add(
-                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
+          case CsvHeader.OUTCOME -> csvOutcomes.add(
+                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
+          case CsvHeader.MATTERSTARTS -> csvMatterStarts.add(
+                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
         }
       }
@@ -98,7 +101,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
 
     // parent submission object
 
-      return new CsvSubmission(csvOffice, csvSchedule, csvOutcomes, csvMatterStarts);
+    return new CsvSubmission(csvOffice, csvSchedule, csvOutcomes, csvMatterStarts);
   }
 
   /**
@@ -114,22 +117,20 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
 
   private Map<String, String> getValues(List<String> row, CsvHeader header) {
     Map<String, String> values = new HashMap<>();
-    row.subList(1, row.size())
-        .forEach(
-            rowValue -> {
-              rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
-              if (StringUtils.isBlank(rowValue)) {
-                log.debug("Blank row value found for {} row. Skipping...", header);
-                return;
-              }
-              String[] entry = rowValue.split("=", 2);
-              if (entry.length == 2) {
-                values.put(entry[0], entry[1]);
-              } else {
-                throw new BulkSubmissionFileReadException(
-                    "Unable to read entry for %s:'%s'".formatted(header.name(), rowValue));
-              }
-            });
+    row.subList(1, row.size()).forEach(rowValue -> {
+      rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
+      if (StringUtils.isBlank(rowValue)) {
+        log.debug("Blank row value found for {} row. Skipping...", header);
+        return;
+      }
+      String[] entry = rowValue.split("=", 2);
+      if (entry.length == 2) {
+        values.put(entry[0], entry[1]);
+      } else {
+        throw new BulkSubmissionFileReadException(
+            "Unable to read entry for %s:'%s'".formatted(header.name(), rowValue));
+      }
+    });
     return values;
   }
 

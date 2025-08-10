@@ -14,7 +14,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
   /**
    * The handler for ClaimNotFoundException.
    *
@@ -23,6 +22,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    */
   @ExceptionHandler(ClaimNotFoundException.class)
   public ResponseEntity<String> handleClaimNotFound(ClaimNotFoundException exception) {
+    return ResponseEntity.status(NOT_FOUND).body(exception.getMessage());
+  }
+
+  /**
+   * The handler for SubmissionNotFoundException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(SubmissionNotFoundException.class)
+  public ResponseEntity<String> handleSubmissionNotFound(
+      SubmissionNotFoundException exception) {
     return ResponseEntity.status(NOT_FOUND).body(exception.getMessage());
   }
 

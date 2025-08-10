@@ -11,4 +11,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  * @param scheduleNum the submission schedule number
  */
 @JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
-public record BulkSubmissionSchedule(String submissionPeriod, String areaOfLaw, String scheduleNum) {}
+public record BulkSubmissionSchedule(
+    String submissionPeriod, String areaOfLaw, String scheduleNum) {}

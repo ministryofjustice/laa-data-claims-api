@@ -1,16 +1,17 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import java.net.URI;
-import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRequestBody;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 /**
@@ -20,45 +21,29 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 @RequiredArgsConstructor
 @Slf4j
 public class ClaimController implements ClaimsApi {
-  private final ClaimService service;
+  private final ClaimService claimService;
 
   @Override
-  public ResponseEntity<List<Claim>> getClaims() {
-    log.info("Getting all claims");
-
-    return ResponseEntity.ok(service.getAllClaims());
+  public ResponseEntity<CreateClaim201Response> createClaim(UUID id, ClaimPost claimPost) {
+    UUID claimId = claimService.createClaim(id, claimPost);
+    URI location =
+        ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{claimId}")
+            .buildAndExpand(claimId)
+            .toUri();
+    return ResponseEntity.created(location).body(new CreateClaim201Response().id(claimId));
   }
 
   @Override
-  public ResponseEntity<Claim> getClaimById(Long id) {
-    log.info("Getting claim {}", id);
-
-    return ResponseEntity.ok(service.getClaim(id));
+  public ResponseEntity<ClaimFields> getClaim(UUID submissionId, UUID claimId) {
+    ClaimFields fields = claimService.getClaim(submissionId, claimId);
+    return ResponseEntity.ok(fields);
   }
 
   @Override
-  public ResponseEntity<Void> createClaim(@RequestBody ClaimRequestBody claimRequestBody) {
-    log.info("Creating claim {}", claimRequestBody);
-
-    Long id = service.createClaim(claimRequestBody);
-    URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
-        .buildAndExpand(id).toUri();
-    return ResponseEntity.created(uri).build();
-  }
-
-  @Override
-  public ResponseEntity<Void> updateClaim(Long id, ClaimRequestBody claimRequestBody) {
-    log.info("Updating claim {}", id);
-
-    service.updateClaim(id, claimRequestBody);
-    return ResponseEntity.noContent().build();
-  }
-
-  @Override
-  public ResponseEntity<Void> deleteClaim(Long id) {
-    log.info("Deleting claim {}", id);
-
-    service.deleteClaim(id);
+  public ResponseEntity<Void> updateClaim(
+      UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+    claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
   }
 }

@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.model;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.List;
 
 /**
@@ -14,9 +13,5 @@ import java.util.List;
  * @param matterStarts the submission matter starts
  */
 @JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
-public record BulkSubmissionDetails(
-        BulkSubmissionOffice office,
-        BulkSubmissionSchedule schedule,
-        List<BulkSubmissionOutcome> outcomes,
-        List<BulkSubmissionMatterStarts> matterStarts
-) {}
+public record BulkSubmissionDetails(BulkSubmissionOffice office, BulkSubmissionSchedule schedule,
+    List<BulkSubmissionOutcome> outcomes, List<BulkSubmissionMatterStarts> matterStarts) {}

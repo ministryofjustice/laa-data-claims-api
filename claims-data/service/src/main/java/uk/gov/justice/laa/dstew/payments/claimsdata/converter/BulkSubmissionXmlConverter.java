@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -9,13 +10,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFile
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
-import java.io.IOException;
-
 /** Converter responsible for converting bulk submissions in XML format. */
 @Slf4j
 @Component
 public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
-
   private final XmlMapper xmlMapper;
 
   @Autowired

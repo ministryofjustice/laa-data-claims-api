@@ -8,5 +8,4 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimEntity;
  * Repository for managing claim entities.
  */
 @Repository
-public interface ClaimRepository extends JpaRepository<ClaimEntity, Long> {
-}
+public interface ClaimRepository extends JpaRepository<ClaimEntity, Long> {}
