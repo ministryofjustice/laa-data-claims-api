@@ -10,10 +10,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverterFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -24,9 +24,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRep
 @Slf4j
 @RequiredArgsConstructor
 public class BulkSubmissionService {
+
   private final BulkSubmissionConverterFactory bulkSubmissionConverterFactory;
-  private final BulkSubmissionMapper submissionMapper;
   private final BulkSubmissionRepository bulkSubmissionRepository;
+  private final BulkSubmissionMapper submissionMapper;
 
   /**
    * Converts the provided file to a Java object based on the filename extension, then maps it to

@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
@@ -16,8 +15,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 /**
  * Service containing business logic for handling submissions.

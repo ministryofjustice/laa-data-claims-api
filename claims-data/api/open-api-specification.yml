@@ -439,6 +439,14 @@ paths:
           description: Submission or claim not found
 components:
   schemas:
+    BulkSubmissionStatus:
+      type: string
+      enum:
+        - READY_FOR_PARSING
+        - PARSING_COMPLETED
+        - PARSING_FAILED
+        - VALIDATION_FAILED
+        - REPLACED
     SubmissionPost:
       allOf:
         - $ref: '#/components/schemas/SubmissionFields'

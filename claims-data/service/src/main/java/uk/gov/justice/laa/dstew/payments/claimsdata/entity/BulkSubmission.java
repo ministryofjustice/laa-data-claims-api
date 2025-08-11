@@ -23,6 +23,7 @@ import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 
 /** Entity representing a bulk submission of claims. */
 @Getter
@@ -40,7 +41,8 @@ public class BulkSubmission {
   @JdbcTypeCode(SqlTypes.JSON)
   private BulkSubmissionDetails data;
 
-  @NotNull @Enumerated(EnumType.STRING) private BulkSubmissionStatus status;
+  @NotNull @Enumerated(EnumType.STRING)
+  private BulkSubmissionStatus status;
 
   private String errorCode;
 

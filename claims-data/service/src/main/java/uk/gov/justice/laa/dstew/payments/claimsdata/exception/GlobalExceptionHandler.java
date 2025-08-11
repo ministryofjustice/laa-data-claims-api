@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,6 +24,31 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ClaimNotFoundException.class)
   public ResponseEntity<String> handleClaimNotFound(ClaimNotFoundException exception) {
     return ResponseEntity.status(NOT_FOUND).body(exception.getMessage());
+  }
+
+  /**
+   * Handles validation-related exceptions by returning a HTTP 400 Bad Request status with the
+   * corresponding error message from the exception.
+   *
+   * @param ex the BulkSubmissionValidationException encountered during validation
+   * @return a ResponseEntity containing the HTTP Bad Request status and the exception message
+   */
+  @ExceptionHandler(BulkSubmissionValidationException.class)
+  public ResponseEntity<String> handleValidationException(BulkSubmissionValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
+
+  /**
+   * Handles validation-related exceptions by returning a HTTP 400 Bad Request status with the
+   * corresponding error message from the exception.
+   *
+   * @param ex the BulkSubmissionInvalidFileException encountered during validation
+   * @return a ResponseEntity containing the HTTP unsupported media type status and the exception
+   *     message
+   */
+  @ExceptionHandler(BulkSubmissionInvalidFileException.class)
+  public ResponseEntity<String> handleUnsupportedMediaTypeValidationException(BulkSubmissionInvalidFileException ex) {
+    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ex.getMessage());
   }
 
   /**

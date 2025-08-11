@@ -32,15 +32,15 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
-    CreateBulkSubmission201Response submissionResponse =
+    CreateBulkSubmission201Response bulkSubmissionResponse =
         bulkSubmissionService.submitBulkSubmissionFile(userId, file);
     URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                        .path("/api/v0/submissions/{id}")
-                       .buildAndExpand(submissionResponse.getSubmissionIds().getFirst())
+                       .buildAndExpand(bulkSubmissionResponse.getSubmissionIds().getFirst())
                        .toUri();
 
     // Return response entity
-    return ResponseEntity.created(location).body(submissionResponse);
+    return ResponseEntity.created(location).body(bulkSubmissionResponse);
   }
 
   @Override

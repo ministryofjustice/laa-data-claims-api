@@ -68,14 +68,14 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
           case CsvHeader.OFFICE -> {
             if (csvOffice != null) {
               throw new BulkSubmissionFileReadException(
-                  "Multiple offices found in bulk claim file");
+                  "Multiple offices found in bulk submission file");
             }
             csvOffice = objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOffice.class);
           }
           case CsvHeader.SCHEDULE -> {
             if (csvSchedule != null) {
               throw new BulkSubmissionFileReadException(
-                  "Multiple schedules found in bulk claim file");
+                  "Multiple schedules found in bulk submission file");
             }
             csvSchedule =
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
@@ -88,15 +88,15 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         }
       }
     } catch (IOException e) {
-      throw new BulkSubmissionFileReadException("Failed to read csv bulk claim file", e);
+      throw new BulkSubmissionFileReadException("Failed to read csv bulk submission file", e);
     }
 
     if (csvOffice == null) {
-      throw new BulkSubmissionFileReadException("Office missing from csv bulk claim file");
+      throw new BulkSubmissionFileReadException("Office missing from csv bulk submission file");
     }
 
     if (csvSchedule == null) {
-      throw new BulkSubmissionFileReadException("Schedule missing from csv bulk claim file");
+      throw new BulkSubmissionFileReadException("Schedule missing from csv bulk submission file");
     }
 
     // parent submission object
@@ -139,7 +139,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       return CsvHeader.valueOf(rawHeader);
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BulkSubmissionFileReadException(
-          "Failed to parse bulk claim file header: %s".formatted(rawHeader), e);
+          "Failed to parse bulk submission file header: %s".formatted(rawHeader), e);
     }
   }
 }

@@ -1,0 +1,7 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+  xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <office account="2P554H">
+  </office>
+</submission>
