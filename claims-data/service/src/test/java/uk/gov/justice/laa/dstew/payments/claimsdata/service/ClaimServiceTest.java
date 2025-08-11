@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
@@ -37,48 +41,115 @@ class ClaimServiceTest {
 
   @Test
   void shouldCreateClaimAndClient() {
-    UUID submissionId = UUID.randomUUID();
-    Submission submission = Submission.builder().id(submissionId).build();
-    ClaimPost post = new ClaimPost();
-    SubmissionClaim claim = SubmissionClaim.builder().build();
-    Client client = Client.builder().clientForename("John").build();
+    final UUID submissionId = UUID.randomUUID();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    final SubmissionClaim claim = SubmissionClaim.builder().build();
+    final Client client = Client.builder().clientForename("John").build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(submissionClaimMapper.toSubmissionClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(client);
 
-    UUID id = claimService.createClaim(submissionId, post);
+    final UUID id = claimService.createClaim(submissionId, post);
 
     assertThat(id).isNotNull();
+    assertThat(claim.getId()).isEqualTo(id);
+    assertThat(claim.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(client.getClaim()).isSameAs(claim);
+    assertThat(client.getCreatedByUserId()).isEqualTo("todo");
     verify(submissionClaimRepository).save(claim);
     verify(clientRepository).save(client);
   }
 
   @Test
+  void shouldCreateClaimWithoutClientWhenNoClientData() {
+    final UUID submissionId = UUID.randomUUID();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    final SubmissionClaim claim = SubmissionClaim.builder().build();
+    final Client emptyClient = Client.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(submissionClaimMapper.toSubmissionClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(emptyClient);
+
+    final UUID id = claimService.createClaim(submissionId, post);
+
+    assertThat(id).isNotNull();
+    verify(submissionClaimRepository).save(claim);
+    verify(clientRepository, never()).save(emptyClient);
+  }
+
+  @Test
+  void shouldThrowWhenSubmissionNotFoundOnCreate() {
+    final UUID submissionId = UUID.randomUUID();
+    final ClaimPost post = new ClaimPost();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(SubmissionNotFoundException.class)
+        .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
   void shouldGetClaim() {
-    UUID submissionId = UUID.randomUUID();
-    UUID claimId = UUID.randomUUID();
-    SubmissionClaim claim = SubmissionClaim.builder().id(claimId).build();
-    ClaimFields fields = new ClaimFields();
-    Client client = Client.builder().clientForename("John").build();
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final SubmissionClaim claim = SubmissionClaim.builder().id(claimId).build();
+    final ClaimFields fields = new ClaimFields();
+    final Client client = Client.builder().clientForename("John").build();
 
     when(submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
     when(submissionClaimMapper.toClaimFields(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
 
-    ClaimFields result = claimService.getClaim(submissionId, claimId);
+    final ClaimFields result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
     verify(clientMapper).updateClaimFieldsFromClient(client, fields);
   }
 
   @Test
+  void shouldGetClaimWithoutClient() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final SubmissionClaim claim = SubmissionClaim.builder().id(claimId).build();
+    final ClaimFields fields = new ClaimFields();
+
+    when(submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(submissionClaimMapper.toClaimFields(claim)).thenReturn(fields);
+    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+
+    final ClaimFields result = claimService.getClaim(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+    verify(clientMapper, never()).updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
+  }
+
+  @Test
+  void shouldThrowWhenClaimNotFound() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+
+    when(submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.getClaim(submissionId, claimId))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
   void shouldUpdateClaim() {
-    UUID submissionId = UUID.randomUUID();
-    UUID claimId = UUID.randomUUID();
-    SubmissionClaim claim = SubmissionClaim.builder().id(claimId).build();
-    ClaimPatch patch = new ClaimPatch();
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final SubmissionClaim claim = SubmissionClaim.builder().id(claimId).build();
+    final ClaimPatch patch = new ClaimPatch();
 
     when(submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
@@ -90,16 +161,30 @@ class ClaimServiceTest {
   }
 
   @Test
-  void shouldGetClaimsForSubmission() {
-    UUID submissionId = UUID.randomUUID();
-    SubmissionClaim claim = SubmissionClaim.builder().build();
-    GetSubmission200ResponseClaimsInner inner = new GetSubmission200ResponseClaimsInner();
+  void shouldThrowWhenClaimNotFoundOnUpdate() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final ClaimPatch patch = new ClaimPatch();
 
-    when(submissionClaimRepository.findBySubmissionId(submissionId))
-        .thenReturn(List.of(claim));
+    when(submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
+  void shouldGetClaimsForSubmission() {
+    final UUID submissionId = UUID.randomUUID();
+    final SubmissionClaim claim = SubmissionClaim.builder().build();
+    final GetSubmission200ResponseClaimsInner inner = new GetSubmission200ResponseClaimsInner();
+
+    when(submissionClaimRepository.findBySubmissionId(submissionId)).thenReturn(List.of(claim));
     when(submissionClaimMapper.toGetSubmission200ResponseClaimsInner(claim)).thenReturn(inner);
 
-    List<GetSubmission200ResponseClaimsInner> result =
+    final List<GetSubmission200ResponseClaimsInner> result =
         claimService.getClaimsForSubmission(submissionId);
 
     assertThat(result).containsExactly(inner);

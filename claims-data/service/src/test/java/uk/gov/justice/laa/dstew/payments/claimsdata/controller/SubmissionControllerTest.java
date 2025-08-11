@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata;
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,7 +22,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.SubmissionController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
