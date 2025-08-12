@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -51,13 +52,12 @@ public class BulkSubmission {
 
   @NotNull private String createdByUserId;
 
-  @NotNull
   @CreationTimestamp
+  @Column(nullable = false)
   private Instant createdOn;
 
   private String updatedByUserId;
 
-  @NotNull
   @UpdateTimestamp
   private Instant updatedOn;
 }
