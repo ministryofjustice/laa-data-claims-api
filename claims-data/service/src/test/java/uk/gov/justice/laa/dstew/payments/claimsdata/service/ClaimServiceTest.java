@@ -6,11 +6,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,13 +45,13 @@ class ClaimServiceTest {
 
   @InjectMocks private ClaimService claimService;
 
-  @Test
-  void shouldCreateClaimAndClient() {
+  @ParameterizedTest
+  @MethodSource("getClientTestingArguments")
+  void shouldCreateClaimAndClient(Client client) {
     final UUID submissionId = UUID.randomUUID();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     final SubmissionClaim claim = SubmissionClaim.builder().build();
-    final Client client = Client.builder().clientForename("John").build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(submissionClaimMapper.toSubmissionClaim(post)).thenReturn(claim);
@@ -60,6 +66,17 @@ class ClaimServiceTest {
     assertThat(client.getCreatedByUserId()).isEqualTo("todo");
     verify(submissionClaimRepository).save(claim);
     verify(clientRepository).save(client);
+  }
+
+  public static Stream<Arguments> getClientTestingArguments() {
+    return Stream.of(
+            Arguments.of(Client.builder().clientForename("John").build()),
+            Arguments.of(Client.builder().clientSurname("Smith").build()),
+            Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
+            Arguments.of(Client.builder().client2Forename("TestName").build()),
+            Arguments.of(Client.builder().client2Surname("TestSurname").build()),
+            Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build())
+    );
   }
 
   @Test

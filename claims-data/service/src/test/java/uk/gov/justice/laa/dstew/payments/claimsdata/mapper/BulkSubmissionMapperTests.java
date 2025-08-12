@@ -15,6 +15,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 @Slf4j
 public class BulkSubmissionMapperTests {
@@ -22,8 +24,19 @@ public class BulkSubmissionMapperTests {
   private final BulkSubmissionMapper bulkSubmissionMapper = new BulkSubmissionMapperImpl();
 
   @Test
-  @DisplayName("Should map csv submission to bulk claim submission")
-  void shouldMapCsvSubmissionToBulkClaimSubmission() {
+  @DisplayName("Should throw an exception if the submission file type is not supported")
+  void throwsException() {
+    FileSubmission csvSubmission = mock(FileSubmission.class);
+
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission),
+            "Unsupported submission type");
+  }
+
+  @Test
+  @DisplayName("Should map csv submission to bulk submission")
+  void shouldMapCsvSubmissionToBulkSubmission() {
     FileSubmission submission =
         new CsvSubmission(
             new CsvOffice("account"),
@@ -143,7 +156,7 @@ public class BulkSubmissionMapperTests {
                     "categoryCode",
                     "deliveryLocation")));
 
-    BulkSubmissionDetails expected = getExpectedBulkClaimSubmission(true);
+    BulkSubmissionDetails expected = getExpectedBulkSubmissionDetails(true);
 
     BulkSubmissionDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
@@ -151,8 +164,8 @@ public class BulkSubmissionMapperTests {
   }
 
   @Test
-  @DisplayName("Should map xml submission to bulk claim submission")
-  void shouldMapXmlSubmissionToBulkClaimSubmission() {
+  @DisplayName("Should map xml submission to bulk submission")
+  void shouldMapXmlSubmissionToBulkSubmission() {
     FileSubmission submission =
         new XmlSubmission(
             null,
@@ -268,14 +281,14 @@ public class BulkSubmissionMapperTests {
                             "0.10",
                             "08/01/2000")))));
 
-    BulkSubmissionDetails expected = getExpectedBulkClaimSubmission(false);
+    BulkSubmissionDetails expected = getExpectedBulkSubmissionDetails(false);
 
     BulkSubmissionDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
   }
 
-  private BulkSubmissionDetails getExpectedBulkClaimSubmission(boolean includeMatterStarts) {
+  private BulkSubmissionDetails getExpectedBulkSubmissionDetails(boolean includeMatterStarts) {
     List<BulkSubmissionMatterStarts> matterStarts =
         includeMatterStarts
             ? List.of(

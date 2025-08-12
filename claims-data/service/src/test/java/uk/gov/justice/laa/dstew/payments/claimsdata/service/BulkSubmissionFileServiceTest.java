@@ -47,6 +47,22 @@ class BulkSubmissionFileServiceTest {
     }
 
     @Test
+    @DisplayName("Returns the converted csv file with original filename into a FileSubmission object")
+    void convertCsvToFileSubmissionWithOriginalFilename() {
+        MultipartFile file = new MockMultipartFile("filePath", "filePath.csv", "text/csv", new byte[0]);
+        CsvSubmission expected = mock(CsvSubmission.class);
+        BulkSubmissionCsvConverter bulkClaimCsvConverter = mock(BulkSubmissionCsvConverter.class);
+        when(bulkSubmissionConverterFactory.converterFor(FileExtension.CSV))
+                .thenReturn(bulkClaimCsvConverter);
+        when(bulkClaimCsvConverter.convert(any(MockMultipartFile.class)))
+                .thenReturn(expected);
+
+        FileSubmission actual = bulkSubmissionFileService.convert(file);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     @DisplayName("Throws an exception for unsupported file extensions")
     void throwsExceptionForInvalidFileExtensions() {
         MultipartFile file = new MockMultipartFile("filePath.invalid", new byte[0]);

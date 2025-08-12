@@ -29,8 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 @ExtendWith(SpringExtension.class)
@@ -70,7 +69,7 @@ class BulkSubmissionControllerTest {
 
     @Nested
     @DisplayName("POST: /api/v0/bulk-submissions")
-    class PostSubmissionTests {
+    class PostBulkSubmissionTests {
 
         @Test
         @DisplayName("Should return 201 response")
@@ -156,6 +155,21 @@ class BulkSubmissionControllerTest {
             // Perform POST with multipart file
             assertThat(mockMvc.perform(post(BULK_SUBMISSION_FILE_URI).param("userId", USER_ID)))
                     .hasStatus(415);
+        }
+    }
+
+    @Nested
+    @DisplayName("GET: /api/v0/bulk-submissions/{id}")
+    class GetBulkSubmissionTests {
+        // TODO: Refactor when working on DSTEW-287: Implement GET bulk-submissions/:id endpoint
+        @Test
+        @DisplayName("Should return 200 response")
+        void shouldReturn200Response() throws IOException {
+            UUID id = UUID.randomUUID();
+
+            assertThat(
+                    mockMvc.perform(get("/api/v0/bulk-submissions/{id}", id)))
+            .hasStatus(200);
         }
     }
 }
