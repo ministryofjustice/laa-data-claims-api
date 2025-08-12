@@ -100,7 +100,6 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     }
 
     // parent submission object
-
     return new CsvSubmission(csvOffice, csvSchedule, csvOutcomes, csvMatterStarts);
   }
 

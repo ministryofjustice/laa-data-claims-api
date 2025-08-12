@@ -58,6 +58,9 @@ public class BulkSubmissionCsvConverterTests {
   private static final String DUPLICATE_SCHEDULE_INPUT_FILE =
       "classpath:test_upload_files/csv/duplicate_schedule.csv";
 
+  private static final String CORRUPTED_FILE =
+      "classpath:test_upload_files/csv/corrupted_file.csv";
+
   @BeforeEach
   public void init() {
     objectMapper = new ObjectMapper();
@@ -113,6 +116,16 @@ public class BulkSubmissionCsvConverterTests {
           BulkSubmissionFileReadException.class,
           () -> bulkSubmissionCsvConverter.convert(file),
           "Expected exception to be thrown when schedule is missing");
+    }
+
+    @Test
+    @DisplayName("Throws exception when file does not contain valid entries")
+    void throwsExceptionWhenFileIsInvalid() throws IOException {
+      MultipartFile file = getMultipartFile(CORRUPTED_FILE);
+      assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file),
+              "Unable to read file");
     }
 
     @Test

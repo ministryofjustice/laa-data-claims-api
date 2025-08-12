@@ -24,8 +24,8 @@ public class ClaimController implements ClaimsApi {
   private final ClaimService claimService;
 
   @Override
-  public ResponseEntity<CreateClaim201Response> createClaim(UUID id, ClaimPost claimPost) {
-    UUID claimId = claimService.createClaim(id, claimPost);
+  public ResponseEntity<CreateClaim201Response> createClaim(UUID submissionId, ClaimPost claimPost) {
+    UUID claimId = claimService.createClaim(submissionId, claimPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{claimId}")
