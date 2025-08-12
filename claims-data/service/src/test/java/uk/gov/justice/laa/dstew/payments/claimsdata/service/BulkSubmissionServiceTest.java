@@ -9,10 +9,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 
@@ -39,19 +36,12 @@ class BulkSubmissionServiceTest {
 
     @Test
     @DisplayName("Returns the bulk submission details")
-    void saveBulkSubmission() {
+    void submitBulkSubmissionFile() {
         // Setup and mock
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
         String userId = "test-user-id";
         BulkSubmissionDetails mockDetails = mock(BulkSubmissionDetails.class);
         doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
-
-        BulkSubmission savedSubmission = BulkSubmission.builder()
-                .data(mockDetails)
-                .status(BulkSubmissionStatus.READY_FOR_PARSING)
-                .createdByUserId(userId)
-                .build();
-        when(bulkSubmissionRepository.save(ArgumentMatchers.any())).thenReturn(savedSubmission);
 
         // Test
         CreateBulkSubmission201Response response = bulkSubmissionService.submitBulkSubmissionFile(userId, file);
@@ -73,9 +63,9 @@ class BulkSubmissionServiceTest {
                         BulkSubmission::getData,
                         BulkSubmission::getStatus
                 ).containsExactly(
-                        savedSubmission.getCreatedByUserId(),
-                        savedSubmission.getData(),
-                        savedSubmission.getStatus()
+                        userId,
+                        mockDetails,
+                        BulkSubmissionStatus.READY_FOR_PARSING
                 );
     }
 
