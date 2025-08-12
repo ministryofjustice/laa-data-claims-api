@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -34,14 +33,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 @Entity
 @Table(name = "bulk_submission")
 public class BulkSubmission {
-  @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
 
   @NotNull
   @Type(JsonBinaryType.class)
   @JdbcTypeCode(SqlTypes.JSON)
   private BulkSubmissionDetails data;
 
-  @NotNull @Enumerated(EnumType.STRING)
+  @NotNull
+  @Enumerated(EnumType.STRING)
   private BulkSubmissionStatus status;
 
   private String errorCode;
@@ -50,13 +51,13 @@ public class BulkSubmission {
 
   @NotNull private String createdByUserId;
 
+  @NotNull
   @CreationTimestamp
-  @Column(name = "created_on", nullable = false)
   private Instant createdOn;
 
   private String updatedByUserId;
 
+  @NotNull
   @UpdateTimestamp
-  @Column(name = "updated_on", nullable = false)
   private Instant updatedOn;
 }
