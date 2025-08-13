@@ -23,6 +23,10 @@ public interface SubmissionMapper {
    * @return mapped {@link Submission} entity
    */
   @Mapping(target = "id", source = "submissionId")
+  @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "updatedOn", ignore = true)
   Submission toSubmission(SubmissionPost submissionPost);
 
   /**
@@ -43,5 +47,9 @@ public interface SubmissionMapper {
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "updatedOn", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 }

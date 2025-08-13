@@ -40,17 +40,20 @@ public class BulkSubmission {
   @NotNull
   @Type(JsonBinaryType.class)
   @JdbcTypeCode(SqlTypes.JSON)
+  @Column(nullable = false)
   private BulkSubmissionDetails data;
 
   @NotNull
   @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
   private BulkSubmissionStatus status;
 
   private String errorCode;
 
   private String errorDescription;
 
-  @NotNull private String createdByUserId;
+  @Column(nullable = false)
+  private String createdByUserId;
 
   @CreationTimestamp
   @Column(nullable = false)
@@ -59,5 +62,6 @@ public class BulkSubmission {
   private String updatedByUserId;
 
   @UpdateTimestamp
+  @Column(nullable = false)
   private Instant updatedOn;
 }
