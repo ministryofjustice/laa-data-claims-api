@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
@@ -28,15 +28,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 /** Converter responsible for converting bulk submissions in CSV format. */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
   private final ObjectMapper objectMapper;
   private final CsvMapper csvMapper;
-
-  @Autowired
-  public BulkSubmissionCsvConverter(ObjectMapper objectMapper, CsvMapper csvMapper) {
-    this.objectMapper = objectMapper;
-    this.csvMapper = csvMapper;
-  }
 
   /**
    * Converts the given file to a {@link CsvSubmission} object.
