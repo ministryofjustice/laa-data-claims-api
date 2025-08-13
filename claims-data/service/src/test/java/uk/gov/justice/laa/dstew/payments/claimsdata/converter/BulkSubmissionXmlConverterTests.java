@@ -27,9 +27,9 @@ public class BulkSubmissionXmlConverterTests {
 
   BulkSubmissionXmlConverter bulkSubmissionXmlConverter;
 
-  private static final String OUTCOMES_INPUT_FILE = "classpath:test_upload_files/xml/outcomes_complete.xml";
+  private static final String OUTCOMES_INPUT_FILE = "classpath:test_upload_files/xml/outcomes_with_client.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
-      "classpath:test_upload_files/xml/outcomes_complete_converted.json";
+      "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
