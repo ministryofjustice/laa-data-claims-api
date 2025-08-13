@@ -50,6 +50,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
+            {{ include "authDetails" . | indent 12 }}
             {{ include "dbConnectionDetails" . | indent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"

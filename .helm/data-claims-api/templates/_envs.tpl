@@ -15,6 +15,21 @@ For the preview branches, set DB connection details to Bitnami Postgres specific
       key: postgres-password
 - name: DB_HOST
   value: {{ .Release.Name }}-postgresql
+- name: AUTHORIZED_CLIENTS
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: authorized-clients
+- name: AUTHORIZED_ROLES
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: authorized-roles
+- name: UNPROTECTED_URIS
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: unprotected-uris
 {{- else if eq .Values.spring.profile "main" }}
 {{/*
 For the main branch, extract DB environment variables from rds-postgresql-instance-output secret
@@ -40,4 +55,21 @@ For the main branch, extract DB environment variables from rds-postgresql-instan
       name: rds-postgresql-instance-output
       key: rds_instance_address
 {{- end }}
+{{- end }}
+{{- define "authDetails" }}
+- name: AUTHORIZED_CLIENTS
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: authorized-clients
+- name: AUTHORIZED_ROLES
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: authorized-roles
+- name: UNPROTECTED_URIS
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: unprotected-uris
 {{- end }}
