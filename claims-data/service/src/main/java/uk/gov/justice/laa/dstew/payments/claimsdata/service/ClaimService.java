@@ -10,7 +10,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
@@ -20,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
 
 /**
  * Service containing business logic for handling claims.
@@ -27,12 +27,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ClaimService {
+public class ClaimService implements SubmissionLookup {
   private final SubmissionRepository submissionRepository;
   private final SubmissionClaimRepository submissionClaimRepository;
   private final ClientRepository clientRepository;
   private final SubmissionClaimMapper submissionClaimMapper;
   private final ClientMapper clientMapper;
+
+  @Override
+  public SubmissionRepository submissionLookup() {
+    return submissionRepository;
+  }
 
   /**
    * Create a claim for a submission.
@@ -43,13 +48,7 @@ public class ClaimService {
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
-    Submission submission =
-        submissionRepository
-            .findById(submissionId)
-            .orElseThrow(
-                () ->
-                    new SubmissionNotFoundException(
-                        String.format("No submission found with id: %s", submissionId)));
+    Submission submission = requireSubmission(submissionId);
 
     SubmissionClaim claim = submissionClaimMapper.toSubmissionClaim(claimPost);
     claim.setId(UUID.randomUUID());
@@ -79,14 +78,7 @@ public class ClaimService {
    */
   @Transactional(readOnly = true)
   public ClaimFields getClaim(UUID submissionId, UUID claimId) {
-    SubmissionClaim claim =
-        submissionClaimRepository
-            .findByIdAndSubmissionId(claimId, submissionId)
-            .orElseThrow(
-                () ->
-                    new ClaimNotFoundException(
-                        String.format("No claim %s for submission %s", claimId, submissionId)));
-
+    SubmissionClaim claim = requireClaim(submissionId, claimId);
     ClaimFields fields = submissionClaimMapper.toClaimFields(claim);
     clientRepository
         .findByClaimId(claimId)
@@ -103,14 +95,7 @@ public class ClaimService {
    */
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
-    SubmissionClaim claim =
-        submissionClaimRepository
-            .findByIdAndSubmissionId(claimId, submissionId)
-            .orElseThrow(
-                () ->
-                    new ClaimNotFoundException(
-                        String.format("No claim %s for submission %s", claimId, submissionId)));
-
+    SubmissionClaim claim = requireClaim(submissionId, claimId);
     submissionClaimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     submissionClaimRepository.save(claim);
   }
@@ -128,6 +113,12 @@ public class ClaimService {
         .toList();
   }
 
+  protected SubmissionClaim requireClaim(UUID submissionId, UUID claimId) {
+    return submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId)
+        .orElseThrow(() -> new ClaimNotFoundException(
+            String.format("No claim %s for submission %s", claimId, submissionId)));
+  }
+
   private boolean hasClientData(Client client) {
     return client.getClientForename() != null
         || client.getClientSurname() != null
@@ -136,4 +127,5 @@ public class ClaimService {
         || client.getClient2Surname() != null
         || client.getClient2DateOfBirth() != null;
   }
+
 }

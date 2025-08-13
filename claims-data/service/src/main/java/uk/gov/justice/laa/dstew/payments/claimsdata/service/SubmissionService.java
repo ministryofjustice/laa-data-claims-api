@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
@@ -15,6 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
 
 /**
  * Service containing business logic for handling submissions.
@@ -22,11 +22,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubmissionService {
+public class SubmissionService implements SubmissionLookup {
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
+
+  @Override
+  public SubmissionRepository submissionLookup() {
+    return submissionRepository;
+  }
 
   /**
    * Create and persist a new submission.
@@ -51,13 +56,7 @@ public class SubmissionService {
    */
   @Transactional(readOnly = true)
   public GetSubmission200Response getSubmission(UUID id) {
-    Submission submission =
-        submissionRepository
-            .findById(id)
-            .orElseThrow(
-                () ->
-                    new SubmissionNotFoundException(
-                        String.format("No submission found with id: %s", id)));
+    Submission submission = requireSubmission(id);
 
     SubmissionFields fields = submissionMapper.toSubmissionFields(submission);
 
@@ -80,13 +79,7 @@ public class SubmissionService {
    */
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
-    Submission submission =
-        submissionRepository
-            .findById(id)
-            .orElseThrow(
-                () ->
-                    new SubmissionNotFoundException(
-                        String.format("No submission found with id: %s", id)));
+    Submission submission = requireSubmission(id);
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);

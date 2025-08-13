@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
 
 /**
  * Service containing business logic for handling matter starts.
@@ -20,10 +20,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MatterStartService {
+public class MatterStartService implements SubmissionLookup {
   private final SubmissionRepository submissionRepository;
   private final MatterStartRepository matterStartRepository;
   private final MatterStartMapper matterStartMapper;
+
+  @Override
+  public SubmissionRepository submissionLookup() {
+    return submissionRepository;
+  }
 
   /**
    * Create a matter start for a submission.
@@ -34,13 +39,7 @@ public class MatterStartService {
    */
   @Transactional
   public UUID createMatterStart(UUID submissionId, CreateMatterStartRequest request) {
-    Submission submission =
-        submissionRepository
-            .findById(submissionId)
-            .orElseThrow(
-                () ->
-                    new SubmissionNotFoundException(
-                        String.format("No submission found with id: %s", submissionId)));
+    Submission submission = requireSubmission(submissionId);
 
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
     matterStart.setId(UUID.randomUUID());
