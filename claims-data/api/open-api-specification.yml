@@ -77,6 +77,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '415':
+          description: 'Unsupported Media Type'
         '500':
           description: 'Internal server error'
 

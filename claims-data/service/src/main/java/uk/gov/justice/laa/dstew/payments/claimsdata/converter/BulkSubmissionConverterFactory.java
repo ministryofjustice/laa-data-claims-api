@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 
@@ -10,13 +10,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
  * extension.
  */
 @Component
+@RequiredArgsConstructor
 public class BulkSubmissionConverterFactory {
   private final List<BulkSubmissionConverter> converters;
-
-  @Autowired
-  public BulkSubmissionConverterFactory(List<BulkSubmissionConverter> converters) {
-    this.converters = converters;
-  }
 
   /**
    * Provides a {@link BulkSubmissionConverter} for the given file extension.
