@@ -98,8 +98,10 @@ public class SubmissionClaim {
 
   private String prisonLawPriorApprovalNumber;
 
+  @Column(name = "is_duty_solicitor")
   private Boolean dutySolicitor;
 
+  @Column(name = "is_youth_court")
   private Boolean youthCourt;
 
   private String schemeId;
