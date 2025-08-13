@@ -19,8 +19,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.ClaimController;
@@ -29,6 +31,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRequestBody;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 @WebMvcTest(ClaimController.class)
+@ImportAutoConfiguration(exclude = {
+    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
+})
 class ClaimControllerTest {
 
   @Autowired

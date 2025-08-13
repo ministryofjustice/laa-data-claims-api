@@ -4,18 +4,25 @@ spring:
 # Default connection details for local dev, overridden in other envs
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/testdb
-    username: testuser
-    password: testpassword
+    url: jdbc:postgresql://localhost:5432/laa_data_claims_api_dev
+    username: user
+    password: dev
   flyway:
+    schemas: claims, javers
+    create-schemas: true
     enabled: true
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
     generate-ddl: false
     hibernate:
       ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: claims
+
+javers:
+  sqlSchema: javers
 
 # used by actuator info endpoint
 info:
@@ -39,3 +46,26 @@ management:
   info:
     env:
       enabled: false
+
+laa.springboot.starter:
+  auth:
+    authentication-header: "Authorization"
+    authorized-clients: '[
+        {
+            "name": "test-runner",
+            "roles": [
+                "ALL"
+            ],
+            "token": "f67f968e-b479-4e61-b66e-f57984931e56"
+        }
+    ]'
+    authorized-roles: '[
+        {
+            "name": "ALL",
+            "URIs": [
+                "/**"
+            ]
+        }
+    ]'
+    unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
+                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]

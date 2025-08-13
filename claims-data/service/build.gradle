@@ -1,6 +1,6 @@
 plugins {
     id 'io.freefair.lombok' version '8.13.1'
-    id 'uk.gov.laa.ccms.springboot.laa-ccms-spring-boot-gradle-plugin'
+    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
 }
 
@@ -34,14 +34,17 @@ ext['commons-lang3.version'] = '3.18.0'
 dependencies {
     implementation project(':claims-data:api')
 
+    //Enable access token authentication
+    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
+
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
-
     implementation 'org.mapstruct:mapstruct:1.6.3'
+    implementation 'org.javers:javers-spring-boot-starter-sql:7.6.2'
+
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"

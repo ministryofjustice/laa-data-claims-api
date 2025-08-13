@@ -74,7 +74,6 @@ public class ClaimService {
    */
   public void deleteClaim(Long id) {
     checkIfClaimExist(id);
-
     claimRepository.deleteById(id);
   }
 

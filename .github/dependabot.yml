@@ -12,7 +12,7 @@ version: 2
 registries:
   spring-boot-common-github-packages:
     type: maven-repository
-    url: https://maven.pkg.github.com/ministryofjustice/laa-ccms-spring-boot-common
+    url: https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common
     username: ${{ github.actor }}
     password: ${{ secrets.GITHUB_TOKEN }}
 
