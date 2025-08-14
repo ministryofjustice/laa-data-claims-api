@@ -16,7 +16,7 @@ service:
   port: 8080
 
 ingress:
-  enabled: false
+  enabled: true
   className: modsec-non-prod
   annotations:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
