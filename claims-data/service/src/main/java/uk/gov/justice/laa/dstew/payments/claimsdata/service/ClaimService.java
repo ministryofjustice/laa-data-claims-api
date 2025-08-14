@@ -6,18 +6,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
 
@@ -29,9 +30,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLoo
 @Slf4j
 public class ClaimService implements SubmissionLookup {
   private final SubmissionRepository submissionRepository;
-  private final SubmissionClaimRepository submissionClaimRepository;
+  private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
-  private final SubmissionClaimMapper submissionClaimMapper;
+  private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
 
   @Override
@@ -50,12 +51,12 @@ public class ClaimService implements SubmissionLookup {
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireSubmission(submissionId);
 
-    SubmissionClaim claim = submissionClaimMapper.toSubmissionClaim(claimPost);
+    Claim claim = claimMapper.toSubmissionClaim(claimPost);
     claim.setId(UUID.randomUUID());
     claim.setSubmission(submission);
     //  TODO: replace with the actual user ID/name when available
     claim.setCreatedByUserId("todo");
-    submissionClaimRepository.save(claim);
+    claimRepository.save(claim);
 
     Client client = clientMapper.toClient(claimPost);
     if (hasClientData(client)) {
@@ -78,8 +79,8 @@ public class ClaimService implements SubmissionLookup {
    */
   @Transactional(readOnly = true)
   public ClaimFields getClaim(UUID submissionId, UUID claimId) {
-    SubmissionClaim claim = requireClaim(submissionId, claimId);
-    ClaimFields fields = submissionClaimMapper.toClaimFields(claim);
+    Claim claim = requireClaim(submissionId, claimId);
+    ClaimFields fields = claimMapper.toClaimFields(claim);
     clientRepository
         .findByClaimId(claimId)
         .ifPresent(client -> clientMapper.updateClaimFieldsFromClient(client, fields));
@@ -95,9 +96,9 @@ public class ClaimService implements SubmissionLookup {
    */
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
-    SubmissionClaim claim = requireClaim(submissionId, claimId);
-    submissionClaimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
-    submissionClaimRepository.save(claim);
+    Claim claim = requireClaim(submissionId, claimId);
+    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
+    claimRepository.save(claim);
   }
 
   /**
@@ -108,23 +109,23 @@ public class ClaimService implements SubmissionLookup {
    */
   @Transactional(readOnly = true)
   public List<GetSubmission200ResponseClaimsInner> getClaimsForSubmission(UUID submissionId) {
-    return submissionClaimRepository.findBySubmissionId(submissionId).stream()
-        .map(submissionClaimMapper::toGetSubmission200ResponseClaimsInner)
+    return claimRepository.findBySubmissionId(submissionId).stream()
+        .map(claimMapper::toGetSubmission200ResponseClaimsInner)
         .toList();
   }
 
-  protected SubmissionClaim requireClaim(UUID submissionId, UUID claimId) {
-    return submissionClaimRepository.findByIdAndSubmissionId(claimId, submissionId)
+  protected Claim requireClaim(UUID submissionId, UUID claimId) {
+    return claimRepository.findByIdAndSubmissionId(claimId, submissionId)
         .orElseThrow(() -> new ClaimNotFoundException(
             String.format("No claim %s for submission %s", claimId, submissionId)));
   }
 
   private boolean hasClientData(Client client) {
-    return client.getClientForename() != null
-        || client.getClientSurname() != null
+    return StringUtils.hasText(client.getClientForename())
+        || StringUtils.hasText(client.getClientSurname())
         || client.getClientDateOfBirth() != null
-        || client.getClient2Forename() != null
-        || client.getClient2Surname() != null
+        || StringUtils.hasText(client.getClient2Forename())
+        || StringUtils.hasText(client.getClient2Surname())
         || client.getClient2DateOfBirth() != null;
   }
 

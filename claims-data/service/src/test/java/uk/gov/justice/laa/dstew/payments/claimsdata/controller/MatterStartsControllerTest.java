@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -49,12 +50,12 @@ class MatterStartsControllerTest {
         + "\"number_of_matter_starts\":3"
         + "}";
 
-    mockMvc.perform(post("/api/v0/submissions/{id}/matter-starts", submissionId)
+    mockMvc.perform(post(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isCreated())
         .andExpect(header().string("Location",
-            containsString("/api/v0/submissions/" + submissionId + "/matter-starts/" + matterStartId)))
+            containsString(API_URI_PREFIX + "/submissions/" + submissionId + "/matter-starts/" + matterStartId)))
         .andExpect(jsonPath("$.id").value(matterStartId.toString()));
 
     verify(matterStartService).createMatterStart(eq(submissionId), any(CreateMatterStartRequest.class));

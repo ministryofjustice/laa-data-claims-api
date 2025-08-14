@@ -36,7 +36,7 @@ public class Client {
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_id", nullable = false)
-  private SubmissionClaim claim;
+  private Claim claim;
 
   private String clientForename;
 
@@ -64,22 +64,31 @@ public class Client {
 
   private String claExemptionCode;
 
+  @Column(name = "client_2_forename")
   private String client2Forename;
 
+  @Column(name = "client_2_surname")
   private String client2Surname;
 
+  @Column(name = "client_2_date_of_birth")
   private LocalDate client2DateOfBirth;
 
+  @Column(name = "client_2_ucn")
   private String client2Ucn;
 
+  @Column(name = "client_2_postcode")
   private String client2Postcode;
 
+  @Column(name = "client_2_gender_code")
   private String client2GenderCode;
 
+  @Column(name = "client_2_ethnicity_code")
   private String client2EthnicityCode;
 
+  @Column(name = "client_2_disability_code")
   private String client2DisabilityCode;
 
+  @Column(name = "client_2_is_legally_aided")
   private Boolean client2IsLegallyAided;
 
   @Column(nullable = false)

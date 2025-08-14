@@ -63,7 +63,7 @@ class BulkSubmissionFileValidatorTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"test.txt", "test.json", "test.pdf"})
+  @ValueSource(strings = {"test.json", "test.pdf"})
   @DisplayName("Should throw exception for unsupported file extensions")
   void shouldThrowExceptionForUnsupportedFileExtensions(String fileName) {
     // Given

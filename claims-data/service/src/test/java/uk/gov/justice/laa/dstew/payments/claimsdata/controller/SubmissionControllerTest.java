@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
                                  .SecurityAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class SubmissionControllerTest {
+  private static final String SUBMISSIONS_URI = API_URI_PREFIX + "/submissions";
+
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private SubmissionService submissionService;
@@ -53,23 +56,23 @@ class SubmissionControllerTest {
         + "}";
 
     mockMvc
-        .perform(post("/api/v0/submissions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
-        .andExpect(header().string("Location", containsString("/api/v0/submissions/" + id)))
+        .andExpect(header().string("Location", containsString(SUBMISSIONS_URI + "/" + id)))
         .andExpect(jsonPath("$.id").value(id.toString()));
   }
 
   @Test
   void createSubmission_returnsBadRequestStatusWhenInvalidBody() throws Exception {
     mockMvc
-        .perform(post("/api/v0/submissions").contentType(MediaType.APPLICATION_JSON).content("{ }"))
+        .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content("{ }"))
         .andExpect(status().isBadRequest())
         .andExpect(content().string("{"
             + "\"type\":\"about:blank\","
             + "\"title\":\"Bad Request\","
             + "\"status\":400,"
             + "\"detail\":\"Invalid request content.\","
-            + "\"instance\":\"/api/v0/submissions\"}"));
+            + "\"instance\":\"" + SUBMISSIONS_URI + "\"}"));
 
     verify(submissionService, never()).createSubmission(any());
   }
@@ -91,7 +94,7 @@ class SubmissionControllerTest {
     when(submissionService.getSubmission(id)).thenReturn(response);
 
     mockMvc
-        .perform(get("/api/v0/submissions/{id}", id))
+        .perform(get(SUBMISSIONS_URI + "/{id}", id))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.submission.submission_id").value(id.toString()));
   }
@@ -103,7 +106,7 @@ class SubmissionControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v0/submissions/{id}", id)
+            patch(SUBMISSIONS_URI + "/{id}", id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .andExpect(status().isNoContent());

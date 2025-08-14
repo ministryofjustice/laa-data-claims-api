@@ -31,6 +31,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration
@@ -38,7 +39,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @DisplayName("Bulk Submission Controller Test")
 class BulkSubmissionControllerTest {
 
-    private static final String BULK_SUBMISSION_FILE_URI = "/api/v0/bulk-submissions";
+    private static final String BULK_SUBMISSIONS_URI = API_URI_PREFIX + "/bulk-submissions";
     private static final String USER_ID = "12345";
     private static final UUID SUBMISSION_ID = UUID.randomUUID();
 
@@ -68,7 +69,7 @@ class BulkSubmissionControllerTest {
     }
 
     @Nested
-    @DisplayName("POST: /api/v0/bulk-submissions")
+    @DisplayName("POST: " + BULK_SUBMISSIONS_URI)
     class PostBulkSubmissionTests {
 
         @Test
@@ -83,11 +84,11 @@ class BulkSubmissionControllerTest {
             // Perform POST with multipart file
             assertThat(
                     mockMvc.perform(
-                            multipart(BULK_SUBMISSION_FILE_URI)
+                            multipart(BULK_SUBMISSIONS_URI)
                                     .file("file", mockMultipartFile.getBytes())
                                     .param("userId", USER_ID)))
                     .hasStatus(201)
-                    .hasHeader("Location", String.format("http://localhost/api/v0/submissions/%s", SUBMISSION_ID))
+                    .hasHeader("Location", String.format("http://localhost%s/submissions/%s", API_URI_PREFIX, SUBMISSION_ID))
                     .bodyJson()
                     .convertTo(CreateBulkSubmission201Response.class)
                     .isEqualTo(expected);
@@ -103,7 +104,7 @@ class BulkSubmissionControllerTest {
             // Perform POST with multipart file
             assertThat(
                     mockMvc.perform(
-                            multipart(BULK_SUBMISSION_FILE_URI)
+                            multipart(BULK_SUBMISSIONS_URI)
                                     .file("file", mockMultipartFile.getBytes())
                                     .param("userId", USER_ID)))
                     .hasStatus(400)
@@ -121,7 +122,7 @@ class BulkSubmissionControllerTest {
             // Perform POST with multipart file
             assertThat(
                     mockMvc.perform(
-                            multipart(BULK_SUBMISSION_FILE_URI).file("file", mockMultipartFile.getBytes())))
+                            multipart(BULK_SUBMISSIONS_URI).file("file", mockMultipartFile.getBytes())))
                     .hasStatus(400)
                     .bodyText()
                     .contains("Required parameter 'userId' is not present.");
@@ -137,7 +138,7 @@ class BulkSubmissionControllerTest {
             // Perform POST with multipart file
             assertThat(
                     mockMvc.perform(
-                            multipart(BULK_SUBMISSION_FILE_URI)
+                            multipart(BULK_SUBMISSIONS_URI)
                                     .file("file", mockMultipartFile.getBytes())
                                     .param("userId", USER_ID)))
                     .hasStatus(415)
@@ -153,13 +154,13 @@ class BulkSubmissionControllerTest {
                     .validate(any(MockMultipartFile.class));
 
             // Perform POST with multipart file
-            assertThat(mockMvc.perform(post(BULK_SUBMISSION_FILE_URI).param("userId", USER_ID)))
+            assertThat(mockMvc.perform(post(BULK_SUBMISSIONS_URI).param("userId", USER_ID)))
                     .hasStatus(415);
         }
     }
 
     @Nested
-    @DisplayName("GET: /api/v0/bulk-submissions/{id}")
+    @DisplayName("GET: " + BULK_SUBMISSIONS_URI + "/{id}")
     class GetBulkSubmissionTests {
         // TODO: Refactor when working on DSTEW-287: Implement GET bulk-submissions/:id endpoint
         @Test
@@ -168,7 +169,7 @@ class BulkSubmissionControllerTest {
             UUID id = UUID.randomUUID();
 
             assertThat(
-                    mockMvc.perform(get("/api/v0/bulk-submissions/{id}", id)))
+                    mockMvc.perform(get(BULK_SUBMISSIONS_URI + "/{id}", id)))
             .hasStatus(200);
         }
     }

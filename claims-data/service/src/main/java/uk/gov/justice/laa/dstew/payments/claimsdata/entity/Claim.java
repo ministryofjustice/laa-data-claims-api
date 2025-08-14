@@ -31,7 +31,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor
 @Entity
 @Table(name = "claim")
-public class SubmissionClaim {
+public class Claim {
 
   @Id private UUID id;
 

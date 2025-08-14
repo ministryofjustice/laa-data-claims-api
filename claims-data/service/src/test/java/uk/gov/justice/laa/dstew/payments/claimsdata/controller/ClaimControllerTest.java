@@ -11,9 +11,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
-import org.junit.jupiter.api.DisplayName;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -31,6 +32,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 @ImportAutoConfiguration(exclude = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class ClaimControllerTest {
+
+  private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
 
   @Autowired
   private MockMvc mockMvc;
@@ -56,12 +59,12 @@ class ClaimControllerTest {
         + "\"outcome_code\":\"OUT01\""
         + "}";
 
-    mockMvc.perform(post("/api/v0/submissions/{id}/claims", submissionId)
+    mockMvc.perform(post(SUBMISSIONS_CLAIMS_URI + "/{id}/claims", submissionId)
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isCreated())
         .andExpect(header().string("Location",
-            containsString("/api/v0/submissions/" + submissionId + "/claims/" + claimId)))
+            containsString(SUBMISSIONS_CLAIMS_URI + "/" + submissionId + "/claims/" + claimId)))
         .andExpect(jsonPath("$.id").value(claimId.toString()));
 
     verify(claimService).createClaim(eq(submissionId), any(ClaimPost.class));
@@ -83,7 +86,7 @@ class ClaimControllerTest {
         .outcomeCode("OUT77");
     when(claimService.getClaim(submissionId, claimId)).thenReturn(claimFields);
 
-    mockMvc.perform(get("/api/v0/submissions/{submission-id}/claims/{claim-id}", submissionId, claimId))
+    mockMvc.perform(get(SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}", submissionId, claimId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("VALID"))
         .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
@@ -102,7 +105,7 @@ class ClaimControllerTest {
     final UUID claimId = UUID.randomUUID();
     final String body = "{ \"status\": \"INVALID\" }";
 
-    mockMvc.perform(patch("/api/v0/submissions/{submission-id}/claims/{claim-id}", submissionId, claimId)
+    mockMvc.perform(patch(SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}", submissionId, claimId)
             .contentType(MediaType.APPLICATION_JSON)
             .content(body))
         .andExpect(status().isNoContent());

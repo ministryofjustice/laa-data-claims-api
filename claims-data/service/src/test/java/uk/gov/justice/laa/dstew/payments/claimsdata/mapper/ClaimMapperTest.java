@@ -8,15 +8,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
 
-class SubmissionClaimMapperTest {
+class ClaimMapperTest {
 
-  private final SubmissionClaimMapperImpl mapper = new SubmissionClaimMapperImpl();
+  private final ClaimMapperImpl mapper = new ClaimMapperImpl();
 
   @Test
   void toSubmissionClaim_nullInput_returnsNull() {
@@ -55,7 +55,7 @@ class SubmissionClaimMapperTest {
         .outreachLocation("OUTLOC")
         .referralSource("REFSRC");
 
-    final SubmissionClaim entity = mapper.toSubmissionClaim(post);
+    final Claim entity = mapper.toSubmissionClaim(post);
 
     assertNotNull(entity);
     assertEquals(post.getIsDutySolicitor(), entity.getDutySolicitor());
@@ -95,7 +95,7 @@ class SubmissionClaimMapperTest {
 
   @Test
   void toClaimFields_mapsAllFields() {
-    final SubmissionClaim entity = SubmissionClaim.builder()
+    final Claim entity = Claim.builder()
         .dutySolicitor(true)
         .youthCourt(false)
         .status(ClaimFields.StatusEnum.READY_TO_PROCESS.getValue())
@@ -167,7 +167,7 @@ class SubmissionClaimMapperTest {
   @Test
   void toGetSubmission200ResponseClaimsInner_mapsFields() {
     final UUID id = UUID.randomUUID();
-    final SubmissionClaim entity = SubmissionClaim.builder()
+    final Claim entity = Claim.builder()
         .id(id)
         .status("READY_TO_PROCESS")
         .build();
@@ -183,14 +183,14 @@ class SubmissionClaimMapperTest {
 
   @Test
   void updateSubmissionClaimFromPatch_nullPatch_noChanges() {
-    final SubmissionClaim entity = SubmissionClaim.builder().dutySolicitor(true).build();
+    final Claim entity = Claim.builder().dutySolicitor(true).build();
     mapper.updateSubmissionClaimFromPatch(null, entity);
     assertTrue(entity.getDutySolicitor());
   }
 
   @Test
   void updateSubmissionClaimFromPatch_updatesOnlyNonNullFields() {
-    final SubmissionClaim entity = SubmissionClaim.builder()
+    final Claim entity = Claim.builder()
         .dutySolicitor(false)
         .youthCourt(false)
         .status("OLD")

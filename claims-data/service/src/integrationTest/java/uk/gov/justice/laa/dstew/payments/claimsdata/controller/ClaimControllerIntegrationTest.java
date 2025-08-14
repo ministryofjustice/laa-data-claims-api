@@ -1,32 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = ClaimsDataApplication.class)
@@ -64,7 +56,7 @@ public class ClaimControllerIntegrationTest {
       UUID claimId,
       int expectedStatus
   ) throws Exception {
-    mockMvc.perform(get("/api/v0/submissions/{submissionId}/claims/{claimId}", submissionId, claimId)
+    mockMvc.perform(get(API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}", submissionId, claimId)
             .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().is(expectedStatus));
   }

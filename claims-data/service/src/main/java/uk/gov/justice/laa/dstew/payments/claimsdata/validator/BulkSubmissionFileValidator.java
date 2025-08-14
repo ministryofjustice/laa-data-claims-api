@@ -45,7 +45,8 @@ public class BulkSubmissionFileValidator {
     String originalFilename = file.getOriginalFilename();
     if (originalFilename == null
         || (!originalFilename.toLowerCase().endsWith(".csv")
-            && !originalFilename.toLowerCase().endsWith(".xml"))) {
+            && !originalFilename.toLowerCase().endsWith(".xml")
+            && !originalFilename.toLowerCase().endsWith(".txt"))) {
       // Causes a 415 Unsupported Media Type response to be returned to the client.
       throw new BulkSubmissionInvalidFileException("Only .csv and .xml files are allowed");
     }
