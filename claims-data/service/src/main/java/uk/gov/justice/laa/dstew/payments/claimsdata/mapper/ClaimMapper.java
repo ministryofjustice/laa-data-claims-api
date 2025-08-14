@@ -18,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface ClaimMapper {
 
+  // TODO: Refactor this as part of DSTEW:323
   /** Map a {@link ClaimPost} to a {@link Claim} entity. */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "submission", ignore = true)

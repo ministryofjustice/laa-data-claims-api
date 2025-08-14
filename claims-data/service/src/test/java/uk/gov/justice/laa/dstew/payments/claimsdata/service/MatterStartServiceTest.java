@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -45,6 +44,7 @@ class MatterStartServiceTest {
     assertThat(id).isNotNull();
     assertThat(matterStart.getId()).isEqualTo(id);
     assertThat(matterStart.getSubmission()).isSameAs(submission);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(matterStart.getCreatedByUserId()).isEqualTo("todo");
     verify(matterStartRepository).save(matterStart);
     verify(matterStartMapper).toMatterStart(request);

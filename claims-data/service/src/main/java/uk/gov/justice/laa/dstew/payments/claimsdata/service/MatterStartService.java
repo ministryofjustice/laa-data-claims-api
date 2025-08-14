@@ -44,7 +44,7 @@ public class MatterStartService implements SubmissionLookup {
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
     matterStart.setId(UUID.randomUUID());
     matterStart.setSubmission(submission);
-    //  TODO: replace with the actual user ID/name when available
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     matterStart.setCreatedByUserId("todo");
     matterStartRepository.save(matterStart);
     return matterStart.getId();

@@ -61,8 +61,10 @@ class ClaimServiceTest {
 
     assertThat(id).isNotNull();
     assertThat(claim.getId()).isEqualTo(id);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(claim.getCreatedByUserId()).isEqualTo("todo");
     assertThat(client.getClaim()).isSameAs(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(client.getCreatedByUserId()).isEqualTo("todo");
     verify(claimRepository).save(claim);
     verify(clientRepository).save(client);

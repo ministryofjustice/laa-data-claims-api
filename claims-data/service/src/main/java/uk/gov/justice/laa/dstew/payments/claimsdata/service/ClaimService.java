@@ -54,7 +54,7 @@ public class ClaimService implements SubmissionLookup {
     Claim claim = claimMapper.toSubmissionClaim(claimPost);
     claim.setId(UUID.randomUUID());
     claim.setSubmission(submission);
-    //  TODO: replace with the actual user ID/name when available
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     claim.setCreatedByUserId("todo");
     claimRepository.save(claim);
 
@@ -62,7 +62,7 @@ public class ClaimService implements SubmissionLookup {
     if (hasClientData(client)) {
       client.setId(UUID.randomUUID());
       client.setClaim(claim);
-      //  TODO: replace with the actual user ID/name when available
+      //  TODO: DSTEW-323 replace with the actual user ID/name when available
       client.setCreatedByUserId("todo");
       clientRepository.save(client);
     }

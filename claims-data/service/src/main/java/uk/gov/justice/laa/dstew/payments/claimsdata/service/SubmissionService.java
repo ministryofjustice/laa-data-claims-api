@@ -41,7 +41,7 @@ public class SubmissionService implements SubmissionLookup {
    */
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
-    //  TODO: replace with the actual user ID/name when available
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
     submission.setCreatedByUserId("todo");
 
     submissionRepository.save(submission);

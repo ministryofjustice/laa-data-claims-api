@@ -41,7 +41,7 @@ public class ClaimControllerIntegrationTest {
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
 
-  //todo add more scenarios & add sql scripts to populate db with test data
+  //TODO: DSTEW-321 add more scenarios & add sql scripts to populate db with test data
   @ParameterizedTest(name = """
       GIVEN submissionId={0} and claimId={1}
       WHEN requesting a claim
