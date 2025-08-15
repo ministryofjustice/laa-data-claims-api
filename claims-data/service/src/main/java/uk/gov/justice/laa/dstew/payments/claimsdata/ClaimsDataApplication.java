@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class ClaimsDataApplication {
-
   /**
    * The application main method.
    *

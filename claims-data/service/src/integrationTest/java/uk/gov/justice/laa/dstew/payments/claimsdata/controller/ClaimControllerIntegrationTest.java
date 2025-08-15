@@ -1,29 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = ClaimsDataApplication.class)
@@ -42,57 +37,27 @@ public class ClaimControllerIntegrationTest {
 
   private static final String AUTHORIZATION_HEADER = "Authorization";
 
-  //must match application.yml for test-runner token
+  //must match application-test.yml for test-runner token
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
-  @Test
-  void shouldGetAllClaims() throws Exception {
-    mockMvc
-        .perform(get("/api/v1/claims")
+
+  //TODO: DSTEW-321 add more scenarios & add sql scripts to populate db with test data
+  @ParameterizedTest(name = """
+      GIVEN submissionId={0} and claimId={1}
+      WHEN requesting a claim
+      THEN the response status is {2}
+      """)
+  @CsvSource({
+      // submissionId, claimId, expectedStatus
+      "32765fbb-b258-4c20-a212-b68085843590, 49c5bc98-9b64-4f34-a2f6-861f06c1b95a, 404",
+  })
+  void shouldRequestClaim_withStatus(
+      UUID submissionId,
+      UUID claimId,
+      int expectedStatus
+  ) throws Exception {
+    mockMvc.perform(get(API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}", submissionId, claimId)
             .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.*", hasSize(5)));
-  }
-
-  @Test
-  void shouldGetClaim() throws Exception {
-    mockMvc.perform(get("/api/v1/claims/1")
-            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.id").value(1))
-        .andExpect(jsonPath("$.name").value("Claim One"))
-        .andExpect(jsonPath("$.description").value("This is a description of Claim One."));
-  }
-
-  @Test
-  void shouldCreateClaim() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/v1/claims")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"Claim Six\", \"description\": \"This is a description of Claim Six.\"}")
-                .accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isCreated());
-  }
-
-  @Test
-  void shouldUpdateClaim() throws Exception {
-    mockMvc
-        .perform(
-            put("/api/v1/claims/2")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\": 2, \"name\": \"Claim Two\", \"description\": \"This is a updated description of Claim Three.\"}")
-                .accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
-  }
-
-  @Test
-  void shouldDeleteClaim() throws Exception {
-    mockMvc.perform(delete("/api/v1/claims/3")
-        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)).andExpect(status().isNoContent());
+        .andExpect(status().is(expectedStatus));
   }
 }

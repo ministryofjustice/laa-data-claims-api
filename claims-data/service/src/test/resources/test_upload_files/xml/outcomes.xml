@@ -1,0 +1,33 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+	xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<office account="2P554H">
+		<schedule submissionPeriod="JAN-2010" areaOfLaw="CRIME LOWER" scheduleNum="ABC/20000L/10">
+			<outcome matterType="INVC">
+				<outcomeItem name="CLIENT_SURNAME">Client surname</outcomeItem>
+				<outcomeItem name="CLIENT_FORENAME">Client forename</outcomeItem>
+				<outcomeItem name="GENDER">M</outcomeItem>
+				<outcomeItem name="ETHNICITY">00</outcomeItem>
+				<outcomeItem name="DISABILITY">NCD</outcomeItem>
+				<outcomeItem name="UFN">300101/001</outcomeItem>
+				<outcomeItem name="OUTCOME_CODE">AB01</outcomeItem>
+				<outcomeItem name="CRIME_MATTER_TYPE">3</outcomeItem>
+				<outcomeItem name="PROFIT_COST">1.01</outcomeItem>
+				<outcomeItem name="DISBURSEMENTS_AMOUNT">1.02</outcomeItem>
+				<outcomeItem name="TRAVEL_COSTS">1.03</outcomeItem>
+				<outcomeItem name="TRAVEL_WAITING_COSTS">1.04</outcomeItem>
+				<outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+				<outcomeItem name="DISBURSEMENTS_VAT">0.90</outcomeItem>
+				<outcomeItem name="WORK_CONCLUDED_DATE">01/01/2010</outcomeItem>
+				<outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+				<outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+				<outcomeItem name="POLICE_STATION">AB001</outcomeItem>
+				<outcomeItem name="DSCC_NUMBER">100000000A</outcomeItem>
+				<outcomeItem name="DUTY_SOLICITOR">N</outcomeItem>
+				<outcomeItem name="YOUTH_COURT">N</outcomeItem>
+				<outcomeItem name="SCHEME_ID">2001</outcomeItem>
+			</outcome>
+		</schedule>
+	</office>
+</submission>

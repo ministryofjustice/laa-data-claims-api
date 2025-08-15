@@ -1,0 +1,28 @@
+{
+  "office" : {
+    "account" : "2A300G"
+  },
+  "schedule" : {
+    "submissionPeriod" : "APR-2024",
+    "areaOfLaw" : "LEGAL HELP",
+    "scheduleNum" : "2A300G/CIVIL"
+  },
+  "outcomes" : [ ],
+  "matterStarts" : [ {
+    "SCHEDULE_REF" : "2A300G/2010/01",
+    "PROCUREMENT_AREA" : "PA00100",
+    "ACCESS_POINT" : "AP00000",
+    "MAT" : "2",
+    "IMMAS" : null,
+    "CATEGORY_CODE" : null,
+    "DELIVERY_LOCATION" : null
+  }, {
+    "SCHEDULE_REF" : "2A300G/2010/01",
+    "PROCUREMENT_AREA" : "PA00100",
+    "ACCESS_POINT" : "AP00000",
+    "MAT" : "3",
+    "IMMAS" : null,
+    "CATEGORY_CODE" : null,
+    "DELIVERY_LOCATION" : null
+  } ]
+}

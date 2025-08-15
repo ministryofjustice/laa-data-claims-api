@@ -1,86 +1,132 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRequestBody;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
 
 /**
- * Service class for handling claims requests.
+ * Service containing business logic for handling claims.
  */
-@RequiredArgsConstructor
 @Service
-public class ClaimService {
-
+@RequiredArgsConstructor
+@Slf4j
+public class ClaimService implements SubmissionLookup {
+  private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
+  private final ClientRepository clientRepository;
   private final ClaimMapper claimMapper;
+  private final ClientMapper clientMapper;
 
-  /**
-   * Gets all claims.
-   *
-   * @return the list of claims
-   */
-  public List<Claim> getAllClaims() {
-    return claimRepository.findAll().stream().map(claimMapper::toClaim).toList();
+  @Override
+  public SubmissionRepository submissionLookup() {
+    return submissionRepository;
   }
 
   /**
-   * Gets an claim for a given id.
+   * Create a claim for a submission.
    *
-   * @param id the claim id
-   * @return the requested claim
+   * @param submissionId submission identifier
+   * @param claimPost request payload
+   * @return identifier of the created claim
    */
-  public Claim getClaim(Long id) {
-    ClaimEntity claimEntity = checkIfClaimExist(id);
-    return claimMapper.toClaim(claimEntity);
+  @Transactional
+  public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
+    Submission submission = requireSubmission(submissionId);
+
+    Claim claim = claimMapper.toSubmissionClaim(claimPost);
+    claim.setId(UUID.randomUUID());
+    claim.setSubmission(submission);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    claim.setCreatedByUserId("todo");
+    claimRepository.save(claim);
+
+    Client client = clientMapper.toClient(claimPost);
+    if (hasClientData(client)) {
+      client.setId(UUID.randomUUID());
+      client.setClaim(claim);
+      //  TODO: DSTEW-323 replace with the actual user ID/name when available
+      client.setCreatedByUserId("todo");
+      clientRepository.save(client);
+    }
+
+    return claim.getId();
   }
 
   /**
-   * Creates an claim.
+   * Retrieve a claim for a submission.
    *
-   * @param claimRequestBody the claim to be created
-   * @return the id of the created claim
+   * @param submissionId submission identifier
+   * @param claimId claim identifier
+   * @return populated claim fields
    */
-  public Long createClaim(ClaimRequestBody claimRequestBody) {
-    ClaimEntity claimEntity = new ClaimEntity();
-    claimEntity.setName(claimRequestBody.getName());
-    claimEntity.setDescription(claimRequestBody.getDescription());
-    ClaimEntity createdClaimEntity = claimRepository.save(claimEntity);
-    return createdClaimEntity.getId();
+  @Transactional(readOnly = true)
+  public ClaimFields getClaim(UUID submissionId, UUID claimId) {
+    Claim claim = requireClaim(submissionId, claimId);
+    ClaimFields fields = claimMapper.toClaimFields(claim);
+    clientRepository
+        .findByClaimId(claimId)
+        .ifPresent(client -> clientMapper.updateClaimFieldsFromClient(client, fields));
+    return fields;
   }
 
   /**
-   * Updates an claim.
+   * Update a claim for a submission.
    *
-   * @param id the id of the claim to be updated
-   * @param claimRequestBody the updated claim
+   * @param submissionId submission identifier
+   * @param claimId claim identifier
+   * @param claimPatch patch payload
    */
-  public void updateClaim(Long id, ClaimRequestBody claimRequestBody) {
-    ClaimEntity claimEntity = checkIfClaimExist(id);
-    claimEntity.setName(claimRequestBody.getName());
-    claimEntity.setDescription(claimRequestBody.getDescription());
-    claimRepository.save(claimEntity);
+  @Transactional
+  public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+    Claim claim = requireClaim(submissionId, claimId);
+    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
+    claimRepository.save(claim);
   }
 
   /**
-   * Deletes an claim.
+   * Retrieve claim summaries for a submission.
    *
-   * @param id the id of the claim to be deleted
+   * @param submissionId submission identifier
+   * @return list of claim summary records
    */
-  public void deleteClaim(Long id) {
-    checkIfClaimExist(id);
-    claimRepository.deleteById(id);
+  @Transactional(readOnly = true)
+  public List<GetSubmission200ResponseClaimsInner> getClaimsForSubmission(UUID submissionId) {
+    return claimRepository.findBySubmissionId(submissionId).stream()
+        .map(claimMapper::toGetSubmission200ResponseClaimsInner)
+        .toList();
   }
 
-  private ClaimEntity checkIfClaimExist(Long id) {
-    return claimRepository
-        .findById(id)
-        .orElseThrow(
-            () -> new ClaimNotFoundException(String.format("No claim found with id: %s", id)));
+  protected Claim requireClaim(UUID submissionId, UUID claimId) {
+    return claimRepository.findByIdAndSubmissionId(claimId, submissionId)
+        .orElseThrow(() -> new ClaimNotFoundException(
+            String.format("No claim %s for submission %s", claimId, submissionId)));
   }
+
+  private boolean hasClientData(Client client) {
+    return StringUtils.hasText(client.getClientForename())
+        || StringUtils.hasText(client.getClientSurname())
+        || client.getClientDateOfBirth() != null
+        || StringUtils.hasText(client.getClient2Forename())
+        || StringUtils.hasText(client.getClient2Surname())
+        || client.getClient2DateOfBirth() != null;
+  }
+
 }

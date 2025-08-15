@@ -1,0 +1,36 @@
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+
+import java.net.URI;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.justice.laa.dstew.payments.claimsdata.api.MatterStartsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStart201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
+
+/**
+ * Controller for handling matter starts requests.
+ */
+@RestController
+@RequiredArgsConstructor
+@Slf4j
+public class MatterStartsController implements MatterStartsApi {
+  private final MatterStartService matterStartService;
+
+  @Override
+  public ResponseEntity<CreateMatterStart201Response> createMatterStart(
+      UUID id, CreateMatterStartRequest createMatterStartRequest) {
+    UUID matterStartId = matterStartService.createMatterStart(id, createMatterStartRequest);
+    URI location =
+        ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{matterStartId}")
+            .buildAndExpand(matterStartId)
+            .toUri();
+    return ResponseEntity.created(location)
+        .body(new CreateMatterStart201Response().id(matterStartId));
+  }
+}

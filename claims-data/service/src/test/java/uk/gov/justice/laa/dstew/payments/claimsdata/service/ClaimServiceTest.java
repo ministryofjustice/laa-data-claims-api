@@ -1,139 +1,211 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import org.javers.core.Javers;
+import java.util.UUID;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRequestBody;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
+  @Mock private SubmissionRepository submissionRepository;
+  @Mock private ClaimRepository claimRepository;
+  @Mock private ClientRepository clientRepository;
+  @Mock private ClaimMapper claimMapper;
+  @Mock private ClientMapper clientMapper;
 
-  @Mock
-  private ClaimRepository mockClaimRepository;
+  @InjectMocks private ClaimService claimService;
 
-  @Mock
-  private ClaimMapper mockClaimMapper;
+  @ParameterizedTest
+  @MethodSource("getClientTestingArguments")
+  void shouldCreateClaimAndClient(Client client) {
+    final UUID submissionId = UUID.randomUUID();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    final Claim claim = Claim.builder().build();
 
-  @InjectMocks
-  private ClaimService claimService;
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toSubmissionClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(client);
 
-  @Mock
-  private Javers javers;
+    final UUID id = claimService.createClaim(submissionId, post);
 
-  @Test
-  void shouldGetAllClaims() {
-    ClaimEntity firstClaimEntity = new ClaimEntity(1L, "Claim One", "This is Claim One.");
-    ClaimEntity secondClaimEntity = new ClaimEntity(2L, "Claim Two", "This is Claim Two.");
-    Claim firstClaim = Claim.builder().id(1L).name("Claim One").description("This is Claim One.").build();
-    Claim secondClaim = Claim.builder().id(2L).name("Claim Two").description("This is Claim Two.").build();
-    when(mockClaimRepository.findAll()).thenReturn(List.of(firstClaimEntity, secondClaimEntity));
-    when(mockClaimMapper.toClaim(firstClaimEntity)).thenReturn(firstClaim);
-    when(mockClaimMapper.toClaim(secondClaimEntity)).thenReturn(secondClaim);
+    assertThat(id).isNotNull();
+    assertThat(claim.getId()).isEqualTo(id);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(claim.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(client.getClaim()).isSameAs(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(client.getCreatedByUserId()).isEqualTo("todo");
+    verify(claimRepository).save(claim);
+    verify(clientRepository).save(client);
+  }
 
-    List<Claim> result = claimService.getAllClaims();
-
-    assertThat(result).hasSize(2).contains(firstClaim, secondClaim);
+  public static Stream<Arguments> getClientTestingArguments() {
+    return Stream.of(
+            Arguments.of(Client.builder().clientForename("John").build()),
+            Arguments.of(Client.builder().clientSurname("Smith").build()),
+            Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
+            Arguments.of(Client.builder().client2Forename("TestName").build()),
+            Arguments.of(Client.builder().client2Surname("TestSurname").build()),
+            Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build())
+    );
   }
 
   @Test
-  void shouldGetClaimById() {
-    Long id = 1L;
-    String name = "Claim One";
-    String description = "This is Claim One.";
-    ClaimEntity claimEntity = new ClaimEntity(id, name, description);
-    Claim claim = Claim.builder().id(id).name(name).description(description).build();
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.of(claimEntity));
-    when(mockClaimMapper.toClaim(claimEntity)).thenReturn(claim);
+  void shouldCreateClaimWithoutClientWhenNoClientData() {
+    final UUID submissionId = UUID.randomUUID();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    final Claim claim = Claim.builder().build();
+    final Client emptyClient = Client.builder().build();
 
-    Claim result = claimService.getClaim(id);
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toSubmissionClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(emptyClient);
 
-    assertThat(result).isNotNull();
-    assertThat(result.getId()).isEqualTo(id);
-    assertThat(result.getName()).isEqualTo(name);
+    final UUID id = claimService.createClaim(submissionId, post);
+
+    assertThat(id).isNotNull();
+    verify(claimRepository).save(claim);
+    verify(clientRepository, never()).save(emptyClient);
   }
 
   @Test
-  void shouldNotGetClaimById_whenClaimNotFoundThenThrowsException() {
-    Long id = 5L;
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.empty());
+  void shouldThrowWhenSubmissionNotFoundOnCreate() {
+    final UUID submissionId = UUID.randomUUID();
+    final ClaimPost post = new ClaimPost();
 
-    assertThrows(ClaimNotFoundException.class, () -> claimService.getClaim(id));
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
 
-    verify(mockClaimMapper, never()).toClaim(any(ClaimEntity.class));
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(SubmissionNotFoundException.class)
+        .hasMessageContaining(submissionId.toString());
   }
 
   @Test
-  void shouldCreateClaim() {
-    ClaimRequestBody claimRequestBody = ClaimRequestBody.builder().name("Claim Three").description("This is Claim Three.").build();
-    ClaimEntity claimEntity = new ClaimEntity(3L, "Claim Three", "This is Claim Three.");
-    when(mockClaimRepository.save(new ClaimEntity(null, "Claim Three", "This is Claim Three.")))
-        .thenReturn(claimEntity);
+  void shouldGetClaim() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimFields fields = new ClaimFields();
+    final Client client = Client.builder().clientForename("John").build();
 
-    Long result = claimService.createClaim(claimRequestBody);
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimFields(claim)).thenReturn(fields);
+    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
 
-    assertThat(result).isNotNull().isEqualTo(3L);
+    final ClaimFields result = claimService.getClaim(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+    verify(clientMapper).updateClaimFieldsFromClient(client, fields);
+  }
+
+  @Test
+  void shouldGetClaimWithoutClient() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimFields fields = new ClaimFields();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimFields(claim)).thenReturn(fields);
+    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+
+    final ClaimFields result = claimService.getClaim(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+    verify(clientMapper, never()).updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
+  }
+
+  @Test
+  void shouldThrowWhenClaimNotFound() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.getClaim(submissionId, claimId))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
   }
 
   @Test
   void shouldUpdateClaim() {
-    Long id = 1L;
-    String name = "Claim One";
-    String description = "This is Claim One.";
-    ClaimRequestBody claimRequestBody = ClaimRequestBody.builder().name(name).description(description).build();
-    ClaimEntity claimEntity = new ClaimEntity(id, name, description);
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.of(claimEntity));
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimPatch patch = new ClaimPatch();
 
-    claimService.updateClaim(id, claimRequestBody);
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
 
-    verify(mockClaimRepository).save(claimEntity);
+    claimService.updateClaim(submissionId, claimId, patch);
+
+    verify(claimMapper).updateSubmissionClaimFromPatch(patch, claim);
+    verify(claimRepository).save(claim);
   }
 
   @Test
-  void shouldNotUpdateClaim_whenClaimNotFoundThenThrowsException() {
-    Long id = 5L;
-    ClaimRequestBody claimRequestBody = ClaimRequestBody.builder().name("Claim Five").description("This is Claim Five.").build();
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.empty());
+  void shouldThrowWhenClaimNotFoundOnUpdate() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final ClaimPatch patch = new ClaimPatch();
 
-    assertThrows(ClaimNotFoundException.class, () -> claimService.updateClaim(id, claimRequestBody));
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
 
-    verify(mockClaimRepository, never()).save(any(ClaimEntity.class));
+    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
   }
 
   @Test
-  void shouldDeleteClaim() {
-    Long id = 1L;
-    ClaimEntity claimEntity = new ClaimEntity(id, "Claim One", "This is Claim One.");
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.of(claimEntity));
+  void shouldGetClaimsForSubmission() {
+    final UUID submissionId = UUID.randomUUID();
+    final Claim claim = Claim.builder().build();
+    final GetSubmission200ResponseClaimsInner inner = new GetSubmission200ResponseClaimsInner();
 
-    claimService.deleteClaim(id);
+    when(claimRepository.findBySubmissionId(submissionId)).thenReturn(List.of(claim));
+    when(claimMapper.toGetSubmission200ResponseClaimsInner(claim)).thenReturn(inner);
 
-    verify(mockClaimRepository).deleteById(id);
-  }
+    final List<GetSubmission200ResponseClaimsInner> result =
+        claimService.getClaimsForSubmission(submissionId);
 
-  @Test
-  void shouldNotDeleteClaim_whenClaimNotFoundThenThrowsException() {
-    Long id = 5L;
-    when(mockClaimRepository.findById(id)).thenReturn(Optional.empty());
-
-    assertThrows(ClaimNotFoundException.class, () -> claimService.deleteClaim(id));
-
-    verify(mockClaimRepository, never()).deleteById(id);
+    assertThat(result).containsExactly(inner);
   }
 }
