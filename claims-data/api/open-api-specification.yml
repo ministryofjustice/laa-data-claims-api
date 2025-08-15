@@ -101,12 +101,12 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Successfully retrieved bulk submission document
+          description: Successfully retrieved bulk submission resource
           content:
             application/json:
               schema:
                 type: object
-                description: The JSON document stored in the `bulk_submission` table
+                description: The JSON object representing the `bulk_submission` stored in the corresponding table with bulk submission id and status
                 properties:
                   bulkSubmissionId:
                     type: string
