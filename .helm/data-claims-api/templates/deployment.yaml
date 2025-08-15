@@ -50,7 +50,21 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            {{ include "authDetails" . | nindent 12 }}
+            - name: AUTHORIZED_CLIENTS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: authorized-clients
+            - name: AUTHORIZED_ROLES
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: authorized-roles
+            - name: UNPROTECTED_URIS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: unprotected-uris
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
