@@ -107,6 +107,58 @@ paths:
               schema:
                 type: object
                 description: The JSON document stored in the `bulk_submission` table
+                properties:
+                  bulkSubmissionId:
+                    type: string
+                    format: uuid
+                    description: UUID of the bulk submission.
+                  status:
+                    $ref: "#/components/schemas/BulkSubmissionStatus"
+                  details:
+                    type: object
+                    description: The object storing all the details of the bulk submission
+                    properties:
+                      office:
+                        type: object
+                        description: The office submitting a claim
+                        properties:
+                          account:
+                            type: string
+                      schedule:
+                        type: object
+                        description: The details of the bulk submission schedule
+                        properties:
+                          submissionPeriod:
+                            type: string
+                          areaOfLaw:
+                            type: string
+                          scheduleNum:
+                            type: string
+                      outcomes:
+                        type: array
+                        description: List of outcome objects for the bulk submission
+                        items:
+                          type: object
+                          description: Claim UUID and status
+                          properties:
+                            submissionOutcome:
+                              $ref: '#/components/schemas/BulkSubmissionOutcome'
+                      matterStarts:
+                        type: array
+                        description: List of matter start objects for the bulk submission
+                        items:
+                          description: The details of the bulk submission schedule
+                          properties:
+                            accessPoint:
+                              type: string
+                            mat:
+                              type: string
+                            immas:
+                              type: string
+                            categoryCode:
+                              type: string
+                            deliveryLocation:
+                              type: string
         '400':
           description: 'Bad request'
         '401':
@@ -745,3 +797,234 @@ components:
           type: string
         local_authority_number:
           type: string
+
+    BulkSubmissionOutcome:
+      type: object
+      description: bulk submission outcome details
+      properties:
+        matterType:
+          type: string
+        feeCode:
+          type: string
+        caseRefNumber:
+          type: string
+        caseStartDate:
+          type: string
+          format: date
+        caseId:
+          type: string
+        caseStageLevel:
+          type: string
+        ufn:
+          type: string
+        procurementArea:
+          type: string
+        accessPoint:
+          type: string
+        clientForename:
+          type: string
+        clientSurname:
+          type: string
+        clientDateOfBirth:
+          type: string
+          format: date
+        ucn:
+          type: string
+        claRefNumber:
+          type: string
+        claExemption:
+          type: string
+        gender:
+          type: string
+        ethnicity:
+          type: string
+        disability:
+          type: string
+        clientPostCode:
+          type: string
+        workConcludedDate:
+          type: string
+          format: date
+        adviceTime:
+          type: integer
+        travelTime:
+          type: integer
+        waitingTime:
+          type: integer
+        profitCost:
+          type: number
+          format: double
+        valueOfCosts:
+          type: number
+          format: double
+        disbursementsAmount:
+          type: number
+          format: double
+        counselCost:
+          type: number
+          format: double
+        disbursementsVat:
+          type: number
+          format: double
+        travelWaitingCosts:
+          type: number
+          format: double
+        vatIndicator:
+          type: boolean
+        londonNonlondonRate:
+          type: boolean
+        clientType:
+          type: string
+        toleranceIndicator:
+          type: boolean
+        travelCosts:
+          type: number
+          format: double
+        outcomeCode:
+          type: string
+        legacyCase:
+          type: boolean
+        claimType:
+          type: string
+        adjournedHearingFee:
+          type: number
+          format: double
+        typeOfAdvice:
+          type: string
+        postalApplAccp:
+          type: boolean
+        scheduleRef:
+          type: string
+        cmrhOral:
+          type: string
+        cmrhTelephone:
+          type: string
+        aitHearingCentre:
+          type: string
+        substantiveHearing:
+          type: boolean
+        hoInterview:
+          type: string
+        hoUcn:
+          type: string
+        transferDate:
+          type: string
+          format: date
+        detentionTravelWaitingCosts:
+          type: number
+          format: double
+        deliveryLocation:
+          type: string
+        priorAuthorityRef:
+          type: string
+        jrFormFilling:
+          type: string
+        additionalTravelPayment:
+          type: boolean
+        meetingsAttended:
+          type: string
+        medicalReportsClaimed:
+          type: integer
+        desiAccRep:
+          type: integer
+        mhtRefNumber:
+          type: string
+        stageReached:
+          type: string
+        followOnWork:
+          type: string
+        nationalRefMechanismAdvice:
+          type: string
+        exemptionCriteriaSatisfied:
+          type: string
+        exclCaseFundingRef:
+          type: string
+        noOfClients:
+          type: integer
+        noOfSurgeryClients:
+          type: integer
+        ircSurgery:
+          type: string
+        surgeryDate:
+          type: string
+          format: date
+        lineNumber:
+          type: string
+        crimeMatterType:
+          type: string
+        feeScheme:
+          type: string
+        repOrderDate:
+          type: string
+          format: date
+        noOfSuspects:
+          type: integer
+        noOfPoliceStation:
+          type: integer
+        policeStation:
+          type: string
+        dsccNumber:
+          type: string
+        maatId:
+          type: string
+        prisonLawPriorApproval:
+          type: string
+        dutySolicitor:
+          type: string
+        youthCourt:
+          type: string
+        schemeId:
+          type: string
+        numberOfMediationSessions:
+          type: integer
+        mediationTime:
+          type: integer
+        outreach:
+          type: string
+        referral:
+          type: string
+        clientLegallyAided:
+          type: string
+        client2Forename:
+          type: string
+        client2Surname:
+          type: string
+        client2DateOfBirth:
+          type: string
+          format: date
+        client2Ucn:
+          type: string
+        client2PostCode:
+          type: string
+        client2Gender:
+          type: string
+        client2Ethnicity:
+          type: string
+        client2Disability:
+          type: string
+        client2LegallyAided:
+          type: string
+        uniqueCaseId:
+          type: string
+        standardFeeCat:
+          type: string
+        client2PostalApplAccp:
+          type: string
+        costsDamagesRecovered:
+          type: string
+        eligibleClient:
+          type: string
+        courtLocation:
+          type: string
+        localAuthorityNumber:
+          type: string
+        paNumber:
+          type: string
+        excessTravelCosts:
+          type: number
+          format: double
+        medConcludedDate:
+          type: string
+          format: date
+
+

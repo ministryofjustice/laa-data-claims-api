@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.BulkSubmissionsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 
@@ -44,7 +45,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   }
 
   @Override
-  public ResponseEntity<Object> getBulkSubmission(UUID id) {
+  public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
     // TODO: DSTEW-287: Implement GET bulk-submissions/:id endpoint
     return null;
   }
