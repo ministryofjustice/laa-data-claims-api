@@ -22,7 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
 /** Mapping interface for the mapping of bulk submission objects. */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
 public interface BulkSubmissionMapper {
   /**
    * Maps the given {@code FileSubmission} to a {@code BulkSubmissionDetails}.
@@ -99,22 +99,17 @@ public interface BulkSubmissionMapper {
    * @param outcome the {@link XmlOutcome} to map.
    * @return a mapped {@link BulkSubmissionOutcome} object.
    */
-  @Mapping(target = "caseStartDate", source = "caseStartDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "workConcludedDate", source = "workConcludedDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
+  @Mapping(target = "caseStartDate", source = "caseStartDate")
+  @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth")
+  @Mapping(target = "workConcludedDate", source = "workConcludedDate")
   @Mapping(
-      target = "transferDate", source = "transferDate", qualifiedByName = "outcomeFieldToLocalDate")
+      target = "transferDate", source = "transferDate")
   @Mapping(
-      target = "surgeryDate", source = "surgeryDate", qualifiedByName = "outcomeFieldToLocalDate")
+      target = "surgeryDate", source = "surgeryDate")
   @Mapping(
-      target = "repOrderDate", source = "repOrderDate", qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "medConcludedDate", source = "medConcludedDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
+      target = "repOrderDate", source = "repOrderDate")
+  @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
+  @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
       target = "vatIndicator", source = "vatIndicator", qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "londonNonlondonRate", source = "londonNonlondonRate",
@@ -136,22 +131,17 @@ public interface BulkSubmissionMapper {
    * @param outcome the {@link CsvOutcome} to map.
    * @return a mapped {@link BulkSubmissionOutcome} object.
    */
-  @Mapping(target = "caseStartDate", source = "caseStartDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "workConcludedDate", source = "workConcludedDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
+  @Mapping(target = "caseStartDate", source = "caseStartDate")
+  @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth")
+  @Mapping(target = "workConcludedDate", source = "workConcludedDate")
   @Mapping(
-      target = "transferDate", source = "transferDate", qualifiedByName = "outcomeFieldToLocalDate")
+      target = "transferDate", source = "transferDate")
   @Mapping(
-      target = "surgeryDate", source = "surgeryDate", qualifiedByName = "outcomeFieldToLocalDate")
+      target = "surgeryDate", source = "surgeryDate")
   @Mapping(
-      target = "repOrderDate", source = "repOrderDate", qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth",
-      qualifiedByName = "outcomeFieldToLocalDate")
-  @Mapping(target = "medConcludedDate", source = "medConcludedDate",
-      qualifiedByName = "outcomeFieldToLocalDate")
+      target = "repOrderDate", source = "repOrderDate")
+  @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
+  @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
       target = "vatIndicator", source = "vatIndicator", qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "londonNonlondonRate", source = "londonNonlondonRate",
@@ -187,20 +177,5 @@ public interface BulkSubmissionMapper {
       return null;
     }
     return "Y".equals(outcomeField);
-  }
-
-  /**
-   * Map to a {@link LocalDate}.
-   *
-   * @param outcomeField the outcome field to map.
-   * @return a local date representation of the outcome field.
-   */
-  @Named("outcomeFieldToLocalDate")
-  default LocalDate toLocalDate(String outcomeField) {
-    if (outcomeField == null) {
-      return null;
-    }
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    return LocalDate.parse(outcomeField, formatter);
   }
 }

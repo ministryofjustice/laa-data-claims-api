@@ -3,6 +3,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
@@ -19,9 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 @Slf4j
+@ExtendWith(MockitoExtension.class)
 public class BulkSubmissionMapperTests {
 
+  @InjectMocks
   private final BulkSubmissionMapper bulkSubmissionMapper = new BulkSubmissionMapperImpl();
+
+  @Spy
+  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   @DisplayName("Should throw an exception if the submission file type is not supported")

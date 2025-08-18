@@ -13,7 +13,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 /**
  * MapStruct mapper for converting between client models and entities.
  */
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    uses = GlobalStringMapper.class)
 public interface ClientMapper {
 
   /**
