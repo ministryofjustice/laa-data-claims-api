@@ -138,27 +138,13 @@ paths:
                         type: array
                         description: List of outcome objects for the bulk submission
                         items:
-                          type: object
-                          description: Claim UUID and status
-                          properties:
-                            submissionOutcome:
-                              $ref: '#/components/schemas/BulkSubmissionOutcome'
+                          $ref: '#/components/schemas/BulkSubmissionOutcome'
                       matterStarts:
                         type: array
                         description: List of matter start objects for the bulk submission
                         items:
-                          description: The details of the bulk submission schedule
-                          properties:
-                            accessPoint:
-                              type: string
-                            mat:
-                              type: string
-                            immas:
-                              type: string
-                            categoryCode:
-                              type: string
-                            deliveryLocation:
-                              type: string
+                          $ref: '#/components/schemas/BulkSubmissionMatterStart'
+
         '400':
           description: 'Bad request'
         '401':
@@ -577,16 +563,19 @@ components:
       allOf:
         - $ref: '#/components/schemas/ClaimFields'
 
+    ClaimStatus:
+      type: string
+      enum:
+        - READY_TO_PROCESS
+        - VALID
+        - INVALID
+
     ClaimFields:
       type: object
       description: Claim details
       properties:
         status:
-          type: string
-          enum:
-            - READY_TO_PROCESS
-            - VALID
-            - INVALID
+          $ref: "#/components/schemas/ClaimStatus"
         schedule_reference:
           type: string
         line_number:
@@ -796,6 +785,20 @@ components:
         ho_interview:
           type: string
         local_authority_number:
+          type: string
+    BulkSubmissionMatterStart:
+      type: object
+      description: matter start details for a bulk submission
+      properties:
+        scheduleRef:
+          type: string
+        categoryCode:
+          type: string
+        procurementArea:
+          type: string
+        accessPoint:
+          type: string
+        deliveryLocation:
           type: string
 
     BulkSubmissionOutcome:
@@ -1026,5 +1029,3 @@ components:
         medConcludedDate:
           type: string
           format: date
-
-

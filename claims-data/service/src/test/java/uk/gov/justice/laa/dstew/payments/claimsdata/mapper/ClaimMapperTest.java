@@ -13,10 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimMapperTest {
@@ -37,7 +34,7 @@ class ClaimMapperTest {
     final ClaimPost post = new ClaimPost()
         .isDutySolicitor(true)
         .isYouthCourt(false)
-        .status(ClaimPost.StatusEnum.READY_TO_PROCESS)
+        .status(ClaimStatus.READY_TO_PROCESS)
         .scheduleReference("SCH123")
         .lineNumber(5)
         .caseReferenceNumber("CASE001")
@@ -107,7 +104,7 @@ class ClaimMapperTest {
     final Claim entity = Claim.builder()
         .dutySolicitor(true)
         .youthCourt(false)
-        .status(ClaimFields.StatusEnum.READY_TO_PROCESS.getValue())
+        .status(ClaimStatus.READY_TO_PROCESS.getValue())
         .scheduleReference("SCH123")
         .lineNumber(5)
         .caseReferenceNumber("CASE001")
@@ -140,7 +137,7 @@ class ClaimMapperTest {
     assertNotNull(fields);
     assertEquals(entity.getDutySolicitor(), fields.getIsDutySolicitor());
     assertEquals(entity.getYouthCourt(), fields.getIsYouthCourt());
-    assertEquals(ClaimFields.StatusEnum.READY_TO_PROCESS, fields.getStatus());
+    assertEquals(ClaimStatus.READY_TO_PROCESS, fields.getStatus());
     assertEquals(entity.getScheduleReference(), fields.getScheduleReference());
     assertEquals(entity.getLineNumber(), fields.getLineNumber());
     assertEquals(entity.getCaseReferenceNumber(), fields.getCaseReferenceNumber());
@@ -209,7 +206,7 @@ class ClaimMapperTest {
     final ClaimPatch patch = new ClaimPatch()
         .isDutySolicitor(true)
         .isYouthCourt(true)
-        .status(ClaimPatch.StatusEnum.READY_TO_PROCESS)
+        .status(ClaimStatus.READY_TO_PROCESS)
         .scheduleReference("NEW_SCH");
 
     mapper.updateSubmissionClaimFromPatch(patch, entity);

@@ -160,8 +160,6 @@ public class BulkSubmissionMapperTests {
                     "scheduleRef",
                     "procurementArea",
                     "accessPoint",
-                    "mat",
-                    "immas",
                     "categoryCode",
                     "deliveryLocation")));
 
@@ -298,17 +296,15 @@ public class BulkSubmissionMapperTests {
   }
 
   private BulkSubmissionDetails getExpectedBulkSubmissionDetails(boolean includeMatterStarts) {
-    List<BulkSubmissionMatterStarts> matterStarts =
+    List<BulkSubmissionMatterStart> matterStarts =
         includeMatterStarts
             ? List.of(
-                new BulkSubmissionMatterStarts(
-                    "scheduleRef",
-                    "procurementArea",
-                    "accessPoint",
-                    "mat",
-                    "immas",
-                    "categoryCode",
-                    "deliveryLocation"))
+                new BulkSubmissionMatterStart()
+                        .scheduleRef("scheduleRef")
+                        .categoryCode("categoryCode")
+                        .procurementArea("procurementArea")
+                        .accessPoint("accessPoint")
+                        .deliveryLocation("deliveryLocation"))
             : List.of();
 
     return new BulkSubmissionDetails(

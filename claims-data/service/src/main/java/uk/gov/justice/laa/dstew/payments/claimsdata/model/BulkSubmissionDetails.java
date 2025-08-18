@@ -14,4 +14,4 @@ import java.util.List;
  */
 @JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy.class)
 public record BulkSubmissionDetails(BulkSubmissionOffice office, BulkSubmissionSchedule schedule,
-    List<BulkSubmissionOutcome> outcomes, List<BulkSubmissionMatterStarts> matterStarts) {}
+    List<BulkSubmissionOutcome> outcomes, List<BulkSubmissionMatterStart> matterStarts) {}

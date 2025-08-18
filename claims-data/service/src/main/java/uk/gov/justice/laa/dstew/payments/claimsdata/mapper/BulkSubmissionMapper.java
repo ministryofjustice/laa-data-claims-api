@@ -1,16 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStarts;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOffice;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionSchedule;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
@@ -158,12 +151,12 @@ public interface BulkSubmissionMapper {
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 
   /**
-   * Map to a {@link BulkSubmissionMatterStarts}.
+   * Map to a {@link BulkSubmissionMatterStart}.
    *
    * @param csvMatterStarts the {@link CsvMatterStarts} to map.
-   * @return a mapped {@link BulkSubmissionMatterStarts} object.
+   * @return a mapped {@link BulkSubmissionMatterStart} object.
    */
-  BulkSubmissionMatterStarts toBulkSubmissionMatterStarts(CsvMatterStarts csvMatterStarts);
+  BulkSubmissionMatterStart toBulkSubmissionMatterStarts(CsvMatterStarts csvMatterStarts);
 
   /**
    * Map to a {@link Boolean}.

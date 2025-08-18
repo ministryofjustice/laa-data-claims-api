@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 @WebMvcTest(ClaimController.class)
@@ -75,7 +76,7 @@ class ClaimControllerTest {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
     final ClaimFields claimFields = new ClaimFields()
-        .status(ClaimFields.StatusEnum.VALID)
+        .status(ClaimStatus.VALID)
         .scheduleReference("SCH-777")
         .lineNumber(42)
         .caseReferenceNumber("CRN-777")
