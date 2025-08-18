@@ -40,7 +40,7 @@ class BulkSubmissionServiceTest {
         // Setup and mock
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
         String userId = "test-user-id";
-        BulkSubmissionDetails mockDetails = mock(BulkSubmissionDetails.class);
+        GetBulkSubmission200ResponseDetails mockDetails = mock(GetBulkSubmission200ResponseDetails.class);
         doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
 
         // Test
@@ -74,11 +74,11 @@ class BulkSubmissionServiceTest {
     void returnsBulkSubmissionDetails() {
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
         FileSubmission csvSubmission = mock(CsvSubmission.class);
-        BulkSubmissionDetails expected = mock(BulkSubmissionDetails.class);
+        GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
         when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
         when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission)).thenReturn(expected);
 
-        BulkSubmissionDetails actual = bulkSubmissionService.getBulkSubmissionDetails(file);
+        GetBulkSubmission200ResponseDetails actual = bulkSubmissionService.getBulkSubmissionDetails(file);
 
         assertEquals(expected, actual);
     }

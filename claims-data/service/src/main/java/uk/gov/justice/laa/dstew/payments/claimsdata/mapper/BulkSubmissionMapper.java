@@ -3,7 +3,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
@@ -18,12 +23,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 @Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
 public interface BulkSubmissionMapper {
   /**
-   * Maps the given {@code FileSubmission} to a {@code BulkSubmissionDetails}.
+   * Maps the given {@code FileSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
    *
    * @param submission the java representation of the bulk submission file
    * @return the API model for the bulk submission.
    */
-  default BulkSubmissionDetails toBulkSubmissionDetails(FileSubmission submission) {
+  default GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(FileSubmission submission) {
     if (submission instanceof CsvSubmission csvSubmission) {
       return toBulkSubmissionDetails(csvSubmission);
     } else if (submission instanceof XmlSubmission xmlSubmission) {
@@ -34,7 +39,7 @@ public interface BulkSubmissionMapper {
   }
 
   /**
-   * Maps the given {@code XmlSubmission} to a {@code BulkSubmissionDetails}.
+   * Maps the given {@code XmlSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
    *
    * @param submission the java representation of the xml bulk submission file
    * @return the API model for the bulk submission.
@@ -42,49 +47,49 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "schedule", source = "office.schedule")
   @Mapping(target = "outcomes", source = "office.schedule.outcomes")
   @Mapping(target = "matterStarts", expression = "java(new ArrayList<>())")
-  BulkSubmissionDetails toBulkSubmissionDetails(XmlSubmission submission);
+  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(XmlSubmission submission);
 
   /**
-   * Maps the given {@code CsvSubmission} to a {@code BulkSubmissionDetails}.
+   * Maps the given {@code CsvSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
    *
    * @param submission the java representation of the csv bulk submission file
    * @return the API model for the bulk submission.
    */
   @Mapping(target = "matterStarts", source = "matterStarts",
       defaultExpression = "java(new ArrayList<>())")
-  BulkSubmissionDetails toBulkSubmissionDetails(CsvSubmission submission);
+  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(CsvSubmission submission);
 
   /**
-   * Map to a {@link BulkSubmissionOffice}.
+   * Map to a {@link GetBulkSubmission200ResponseDetailsOffice}.
    *
    * @param office the {@link XmlOffice} to map.
-   * @return a mapped {@link BulkSubmissionOffice} object.
+   * @return a mapped {@link GetBulkSubmission200ResponseDetailsOffice} object.
    */
-  BulkSubmissionOffice toBulkSubmissionOffice(XmlOffice office);
+  GetBulkSubmission200ResponseDetailsOffice toBulkSubmissionOffice(XmlOffice office);
 
   /**
-   * Map to a {@link BulkSubmissionOffice}.
+   * Map to a {@link GetBulkSubmission200ResponseDetailsOffice}.
    *
    * @param office the {@link CsvOffice} to map.
-   * @return a mapped {@link BulkSubmissionOffice} object.
+   * @return a mapped {@link GetBulkSubmission200ResponseDetailsOffice} object.
    */
-  BulkSubmissionOffice toBulkSubmissionOffice(CsvOffice office);
+  GetBulkSubmission200ResponseDetailsOffice toBulkSubmissionOffice(CsvOffice office);
 
   /**
-   * Map to a {@link BulkSubmissionSchedule}.
+   * Map to a {@link GetBulkSubmission200ResponseDetailsSchedule}.
    *
    * @param schedule the {@link XmlSchedule} to map.
-   * @return a mapped {@link BulkSubmissionSchedule} object.
+   * @return a mapped {@link GetBulkSubmission200ResponseDetailsSchedule} object.
    */
-  BulkSubmissionSchedule toBulkSubmissionSchedule(XmlSchedule schedule);
+  GetBulkSubmission200ResponseDetailsSchedule toBulkSubmissionSchedule(XmlSchedule schedule);
 
   /**
-   * Map to a {@link BulkSubmissionSchedule}.
+   * Map to a {@link GetBulkSubmission200ResponseDetailsSchedule}.
    *
    * @param schedule the {@link CsvSchedule} to map.
-   * @return a mapped {@link BulkSubmissionSchedule} object.
+   * @return a mapped {@link GetBulkSubmission200ResponseDetailsSchedule} object.
    */
-  BulkSubmissionSchedule toBulkSubmissionSchedule(CsvSchedule schedule);
+  GetBulkSubmission200ResponseDetailsSchedule toBulkSubmissionSchedule(CsvSchedule schedule);
 
   /**
    * Map to a {@link BulkSubmissionOutcome}.

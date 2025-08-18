@@ -22,8 +22,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 
 /** Entity representing a bulk submission of claims. */
 @Getter
@@ -41,7 +41,7 @@ public class BulkSubmission {
   @Type(JsonBinaryType.class)
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(nullable = false)
-  private BulkSubmissionDetails data;
+  private GetBulkSubmission200ResponseDetails data;
 
   @NotNull
   @Enumerated(EnumType.STRING)

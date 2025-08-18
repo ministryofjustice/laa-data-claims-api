@@ -163,9 +163,9 @@ public class BulkSubmissionMapperTests {
                     "categoryCode",
                     "deliveryLocation")));
 
-    BulkSubmissionDetails expected = getExpectedBulkSubmissionDetails(true);
+    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
 
-    BulkSubmissionDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+    GetBulkSubmission200ResponseDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
   }
@@ -288,14 +288,14 @@ public class BulkSubmissionMapperTests {
                             "0.10",
                             "08/01/2000")))));
 
-    BulkSubmissionDetails expected = getExpectedBulkSubmissionDetails(false);
+    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(false);
 
-    BulkSubmissionDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+    GetBulkSubmission200ResponseDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
   }
 
-  private BulkSubmissionDetails getExpectedBulkSubmissionDetails(boolean includeMatterStarts) {
+  private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(boolean includeMatterStarts) {
     List<BulkSubmissionMatterStart> matterStarts =
         includeMatterStarts
             ? List.of(
@@ -307,114 +307,117 @@ public class BulkSubmissionMapperTests {
                         .deliveryLocation("deliveryLocation"))
             : List.of();
 
-    return new BulkSubmissionDetails(
-        new BulkSubmissionOffice("account"),
-        new BulkSubmissionSchedule("submissionPeriod", "areaOfLaw", "scheduleNum"),
-        List.of(
-            new BulkSubmissionOutcome(
-                "matterType",
-                "feeCode",
-                "caseRefNumber",
-                LocalDate.of(2000, 1, 1),
-                "caseId",
-                "caseStageLevel",
-                "ufn",
-                "procurementArea",
-                "accessPoint",
-                "clientForename",
-                "clientSurname",
-                LocalDate.of(2000, 1, 2),
-                "ucn",
-                "claRefNumber",
-                "claExemption",
-                "gender",
-                "ethnicity",
-                "disability",
-                "clientPostCode",
-                LocalDate.of(2000, 1, 3),
-                1,
-                2,
-                3,
-                new BigDecimal("0.01"),
-                new BigDecimal("0.02"),
-                new BigDecimal("0.03"),
-                new BigDecimal("0.04"),
-                new BigDecimal("0.05"),
-                new BigDecimal("0.06"),
-                Boolean.TRUE,
-                Boolean.FALSE,
-                "clientType",
-                Boolean.TRUE,
-                new BigDecimal("0.07"),
-                "outcomeCode",
-                Boolean.FALSE,
-                "claimType",
-                new BigDecimal("0.08"),
-                "typeOfAdvice",
-                Boolean.TRUE,
-                "scheduleRef",
-                "cmrhOral",
-                "cmrhTelephone",
-                "aitHearingCentre",
-                Boolean.FALSE,
-                "hoInterview",
-                "hoUcn",
-                LocalDate.of(2000, 1, 4),
-                new BigDecimal("0.09"),
-                "deliveryLocation",
-                "priorAuthorityRef",
-                "jrFormFilling",
-                Boolean.TRUE,
-                "meetingsAttended",
-                4,
-                5,
-                "mhtRefNumber",
-                "stageReached",
-                "followOnWork",
-                "nationalRefMechanismAdvice",
-                "exemptionCriteriaSatisfied",
-                "exclCaseFundingRef",
-                6,
-                7,
-                "ircSurgery",
-                LocalDate.of(2000, 1, 5),
-                "lineNumber",
-                "crimeMatterType",
-                "feeScheme",
-                LocalDate.of(2000, 1, 6),
-                8,
-                9,
-                "policeStation",
-                "dsccNumber",
-                "maatId",
-                "prisonLawPriorApproval",
-                "dutySolicitor",
-                "youthCourt",
-                "schemeId",
-                10,
-                11,
-                "outreach",
-                "referral",
-                "clientLegallyAided",
-                "client2Forename",
-                "client2Surname",
-                LocalDate.of(2000, 1, 7),
-                "client2Ucn",
-                "client2PostCode",
-                "client2Gender",
-                "client2Ethnicity",
-                "client2Disability",
-                "client2LegallyAided",
-                "uniqueCaseId",
-                "standardFeeCat",
-                "client2PostalApplAccp",
-                "costsDamagesRecovered",
-                "eligibleClient",
-                "courtLocation",
-                "localAuthorityNumber",
-                "paNumber",
-                new BigDecimal("0.10"),
-                LocalDate.of(2000, 1, 8))),
-        matterStarts);
+    return new GetBulkSubmission200ResponseDetails()
+            .office(new GetBulkSubmission200ResponseDetailsOffice().account("account"))
+            .schedule(new GetBulkSubmission200ResponseDetailsSchedule()
+                            .submissionPeriod("submissionPeriod")
+                            .areaOfLaw("areaOfLaw")
+                            .scheduleNum("scheduleNum"))
+            .outcomes(List.of(
+                    new BulkSubmissionOutcome()
+                            .matterType("matterType")
+                            .feeCode("feeCode")
+                            .caseRefNumber("caseRefNumber")
+                            .caseStartDate(LocalDate.of(2000, 1, 1))
+                            .caseId("caseId")
+                            .caseStageLevel("caseStageLevel")
+                            .ufn("ufn")
+                            .procurementArea("procurementArea")
+                            .accessPoint("accessPoint")
+                            .clientForename("clientForename")
+                            .clientSurname("clientSurname")
+                            .clientDateOfBirth(LocalDate.of(2000, 1, 2))
+                            .ucn("ucn")
+                            .claRefNumber("claRefNumber")
+                            .claExemption("claExemption")
+                            .gender("gender")
+                            .ethnicity("ethnicity")
+                            .disability("disability")
+                            .clientPostCode("clientPostCode")
+                            .workConcludedDate(LocalDate.of(2000, 1, 3))
+                            .adviceTime(1)
+                            .travelTime(2)
+                            .waitingTime(3)
+                            .profitCost(0.01)
+                            .valueOfCosts(0.02)
+                            .disbursementsAmount(0.03)
+                            .counselCost(0.04)
+                            .disbursementsVat(0.05)
+                            .travelWaitingCosts(0.06)
+                            .vatIndicator(Boolean.TRUE)
+                            .londonNonlondonRate(Boolean.FALSE)
+                            .clientType("clientType")
+                            .toleranceIndicator(Boolean.TRUE)
+                            .travelCosts(0.07)
+                            .outcomeCode("outcomeCode")
+                            .legacyCase(Boolean.FALSE)
+                            .claimType("claimType")
+                            .adjournedHearingFee(0.08)
+                            .typeOfAdvice("typeOfAdvice")
+                            .postalApplAccp(Boolean.TRUE)
+                            .scheduleRef("scheduleRef")
+                            .cmrhOral("cmrhOral")
+                            .cmrhTelephone("cmrhTelephone")
+                            .aitHearingCentre("aitHearingCentre")
+                            .substantiveHearing(Boolean.FALSE)
+                            .hoInterview("hoInterview")
+                            .hoUcn("hoUcn")
+                            .transferDate(LocalDate.of(2000, 1, 4))
+                            .detentionTravelWaitingCosts(0.09)
+                            .deliveryLocation("deliveryLocation")
+                            .priorAuthorityRef("priorAuthorityRef")
+                            .jrFormFilling("jrFormFilling")
+                            .additionalTravelPayment(Boolean.TRUE)
+                            .meetingsAttended("meetingsAttended")
+                            .medicalReportsClaimed(4)
+                            .desiAccRep(5)
+                            .mhtRefNumber("mhtRefNumber")
+                            .stageReached("stageReached")
+                            .followOnWork("followOnWork")
+                            .nationalRefMechanismAdvice("nationalRefMechanismAdvice")
+                            .exemptionCriteriaSatisfied("exemptionCriteriaSatisfied")
+                            .exclCaseFundingRef("exclCaseFundingRef")
+                            .noOfClients(6)
+                            .noOfSurgeryClients(7)
+                            .ircSurgery("ircSurgery")
+                            .surgeryDate(LocalDate.of(2000, 1, 5))
+                            .lineNumber("lineNumber")
+                            .crimeMatterType("crimeMatterType")
+                            .feeScheme("feeScheme")
+                            .repOrderDate(LocalDate.of(2000, 1, 6))
+                            .noOfSuspects(8)
+                            .noOfPoliceStation(9)
+                            .policeStation("policeStation")
+                            .dsccNumber("dsccNumber")
+                            .maatId("maatId")
+                            .prisonLawPriorApproval("prisonLawPriorApproval")
+                            .dutySolicitor("dutySolicitor")
+                            .youthCourt("youthCourt")
+                            .schemeId("schemeId")
+                            .numberOfMediationSessions(10)
+                            .mediationTime(11)
+                            .outreach("outreach")
+                            .referral("referral")
+                            .clientLegallyAided("clientLegallyAided")
+                            .client2Forename("client2Forename")
+                            .client2Surname("client2Surname")
+                            .client2DateOfBirth(LocalDate.of(2000, 1, 7))
+                            .client2Ucn("client2Ucn")
+                            .client2PostCode("client2PostCode")
+                            .client2Gender("client2Gender")
+                            .client2Ethnicity("client2Ethnicity")
+                            .client2Disability("client2Disability")
+                            .client2LegallyAided("client2LegallyAided")
+                            .uniqueCaseId("uniqueCaseId")
+                            .standardFeeCat("standardFeeCat")
+                            .client2PostalApplAccp("client2PostalApplAccp")
+                            .costsDamagesRecovered("costsDamagesRecovered")
+                            .eligibleClient("eligibleClient")
+                            .courtLocation("courtLocation")
+                            .localAuthorityNumber("localAuthorityNumber")
+                            .paNumber("paNumber")
+                            .excessTravelCosts(0.10)
+                            .medConcludedDate(LocalDate.of(2000, 1, 8))))
+            .matterStarts(matterStarts);
   }
 }
