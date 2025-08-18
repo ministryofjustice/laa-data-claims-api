@@ -8,7 +8,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartReque
 /**
  * MapStruct mapper for converting between matter start models and entities.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
 public interface MatterStartMapper {
 
   /** Map a {@link CreateMatterStartRequest} to a {@link MatterStart} entity. */

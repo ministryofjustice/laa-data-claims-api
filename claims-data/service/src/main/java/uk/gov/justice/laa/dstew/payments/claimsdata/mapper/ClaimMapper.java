@@ -15,7 +15,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 /**
  * MapStruct mapper for converting between claim models and entities.
  */
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    uses = GlobalStringMapper.class)
 public interface ClaimMapper {
 
   // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using these)

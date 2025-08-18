@@ -77,7 +77,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
           }
           case CsvHeader.OUTCOME -> csvOutcomes.add(
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
-          case CsvHeader.MATTER_STARTS -> csvMatterStarts.add(
+          case CsvHeader.MATTERSTARTS -> csvMatterStarts.add(
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
         }

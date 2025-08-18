@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
@@ -15,6 +16,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
   @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
+
+  @Spy
+  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void shouldMapToSubmissionEntity() {

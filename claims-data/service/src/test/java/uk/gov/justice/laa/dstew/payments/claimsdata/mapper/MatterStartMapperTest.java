@@ -5,12 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
 
+@ExtendWith(MockitoExtension.class)
 class MatterStartMapperTest {
 
-  private final MatterStartMapperImpl mapper = new MatterStartMapperImpl();
+  @InjectMocks
+  private MatterStartMapper mapper = new MatterStartMapperImpl();
+
+  @Spy
+  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void toMatterStart_null_returnsNull() {

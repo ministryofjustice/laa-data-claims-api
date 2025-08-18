@@ -8,15 +8,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
 
+@ExtendWith(MockitoExtension.class)
 class ClaimMapperTest {
 
+  @InjectMocks
   private final ClaimMapperImpl mapper = new ClaimMapperImpl();
+
+  @Spy
+  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void toSubmissionClaim_nullInput_returnsNull() {

@@ -14,7 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 /**
  * MapStruct mapper for converting between API models and Submission entities.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
 public interface SubmissionMapper {
   /**
    * Map a {@link SubmissionPost} to a {@link Submission} entity.

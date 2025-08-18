@@ -8,13 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 
+@ExtendWith(MockitoExtension.class)
 class ClientMapperTest {
 
-  private final ClientMapperImpl mapper = new ClientMapperImpl();
+  @InjectMocks
+  private ClientMapperImpl mapper = new ClientMapperImpl();
+
+  @Spy
+  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void toClient_null_returnsNull() {
