@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
+import org.springframework.util.StringUtils;
 
 
 /**
@@ -20,7 +21,7 @@ public interface GlobalStringMapper {
    * @return the original string if non-blank, otherwise {@code null}
    */
   default String map(String value) {
-    return (value == null || value.trim().isEmpty()) ? null : value;
+    return StringUtils.hasText(value) ? value : null;
   }
 
   /**
@@ -31,7 +32,7 @@ public interface GlobalStringMapper {
    * @throws NumberFormatException if the string is non-blank and not a valid integer
    */
   default Integer mapToInteger(String value) {
-    return (value == null || value.trim().isEmpty()) ? null : Integer.parseInt(value);
+    return StringUtils.hasText(value) ? Integer.valueOf(value) : null;
   }
 
   /**
@@ -42,7 +43,7 @@ public interface GlobalStringMapper {
    * @throws NumberFormatException if the string is non-blank and not a valid long
    */
   default Long mapToLong(String value) {
-    return (value == null || value.trim().isEmpty()) ? null : Long.parseLong(value);
+    return StringUtils.hasText(value) ? Long.valueOf(value) : null;
   }
 
   /**
@@ -53,7 +54,7 @@ public interface GlobalStringMapper {
    * @throws NumberFormatException if the string is non-blank and not a valid decimal number
    */
   default java.math.BigDecimal mapToBigDecimal(String value) {
-    return (value == null || value.trim().isEmpty()) ? null : new java.math.BigDecimal(value);
+    return StringUtils.hasText(value) ? new java.math.BigDecimal(value) : null;
   }
 
   /**
@@ -65,11 +66,9 @@ public interface GlobalStringMapper {
    * @throws java.time.format.DateTimeParseException if the string is non-blank and not in the expected format
    */
   default LocalDate stringToLocalDate(String value) {
-    if (value == null || value.isBlank()) {
-      return null;
-    }
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
-    return LocalDate.parse(value, formatter);
+    return StringUtils.hasText(value)
+        ? LocalDate.parse(value, DateTimeFormatter.ofPattern("d/M/yyyy"))
+        : null;
   }
 }
 
