@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
