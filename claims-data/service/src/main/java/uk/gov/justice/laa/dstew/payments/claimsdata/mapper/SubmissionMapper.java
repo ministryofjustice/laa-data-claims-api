@@ -1,5 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -36,7 +39,19 @@ public interface SubmissionMapper {
    * @return mapped {@link SubmissionFields}
    */
   @Mapping(target = "submissionId", source = "id")
+  @Mapping(target = "submitted", source = "createdOn")
   SubmissionFields toSubmissionFields(Submission submission);
+
+  /**
+   * Converts an instant to a LocalDate.
+   *
+   * @param instant the instant to convert
+   * @return the converted LocalDate
+   */
+  default LocalDate mapInstantToLocalDate(Instant instant) {
+    return instant != null ? instant.atZone(ZoneId.systemDefault()).toLocalDate() : null;
+  }
+
 
   /**
    * Update a {@link Submission} entity from a {@link SubmissionPatch}.

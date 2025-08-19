@@ -507,6 +507,9 @@ components:
         number_of_claims:
           type: integer
           description: Number of claims in this submission.
+        submitted:
+          type: date
+          description: Date the submission was submitted
 
     ClaimPost:
       allOf:
