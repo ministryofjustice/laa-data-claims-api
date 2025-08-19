@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +17,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
-  @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
+
+  @InjectMocks
+  private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
 
   @Spy
   private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
@@ -25,13 +29,13 @@ class SubmissionMapperTest {
     UUID id = UUID.randomUUID();
     UUID bulkId = UUID.randomUUID();
     SubmissionPost post = new SubmissionPost()
-                              .submissionId(id)
-                              .bulkSubmissionId(bulkId)
-                              .officeAccountNumber("12345")
-                              .submissionPeriod("2025-07")
-                              .areaOfLaw("crime")
-                              .isNilSubmission(false)
-                              .numberOfClaims(1);
+        .submissionId(id)
+        .bulkSubmissionId(bulkId)
+        .officeAccountNumber("12345")
+        .submissionPeriod("2025-07")
+        .areaOfLaw("crime")
+        .isNilSubmission(false)
+        .numberOfClaims(1);
 
     Submission result = submissionMapper.toSubmission(post);
 
@@ -56,17 +60,21 @@ class SubmissionMapperTest {
             .areaOfLaw("crime")
             .isNilSubmission(false)
             .numberOfClaims(2)
+            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneId.systemDefault()).toInstant())
             .build();
 
     SubmissionFields result = submissionMapper.toSubmissionFields(submission);
 
     assertThat(result.getSubmissionId()).isEqualTo(id);
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
+    assertThat(result.getSubmissionPeriod()).isEqualTo("2025-07");
+    assertThat(result.getSubmitted()).isEqualTo(LocalDate.of(2025, 5, 20));
   }
 
   @Test
   void shouldUpdateSubmissionFromPatch() {
-    Submission submission = Submission.builder().scheduleNumber("123").isNilSubmission(false).build();
+    Submission submission =
+        Submission.builder().scheduleNumber("123").isNilSubmission(false).build();
     SubmissionPatch patch = new SubmissionPatch().scheduleNumber("456").isNilSubmission(true);
 
     submissionMapper.updateSubmissionFromPatch(patch, submission);

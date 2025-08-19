@@ -507,6 +507,9 @@ components:
         number_of_claims:
           type: integer
           description: Number of claims in this submission.
+        submitted:
+          type: date
+          description: Date the submission was submitted
 
     ClaimPost:
       allOf:
@@ -595,6 +598,8 @@ components:
           type: string
         referral_source:
           type: string
+        total_value:
+          type: number
         client_forename:
           type: string
         client_surname:
