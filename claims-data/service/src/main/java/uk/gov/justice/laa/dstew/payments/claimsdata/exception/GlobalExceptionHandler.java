@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,6 +70,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<String> handleSubmissionBadRequestException(
       SubmissionBadRequestException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
+
+  /**
+   * The handler for BulkSubmissionQueuePublishException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(BulkSubmissionQueuePublishException.class)
+  public ResponseEntity<String> handleBulkSubmissionQueuePublishException(
+      BulkSubmissionQueuePublishException exception) {
+    return ResponseEntity.internalServerError().body(exception.getMessage());
   }
 
   /**
