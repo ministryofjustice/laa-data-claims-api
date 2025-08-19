@@ -4,14 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
-
-import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionQueuePublishException;
 
 /**
@@ -50,7 +49,8 @@ public class BulkSubmissionPublisherService {
           )
       );
     } catch (JsonProcessingException e) {
-      throw new BulkSubmissionQueuePublishException("Error when creating JSON message for bulk submission id ["+bulkSubmissionId+"] : "+ e.getMessage());
+      throw new BulkSubmissionQueuePublishException(
+          "Error when creating JSON message for bulk submission id [" + bulkSubmissionId + "] : " + e.getMessage());
     }
 
     sqsClient.sendMessage(SendMessageRequest.builder()

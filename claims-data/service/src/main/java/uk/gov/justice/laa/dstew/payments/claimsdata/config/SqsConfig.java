@@ -20,6 +20,15 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 @Configuration
 public class SqsConfig {
 
+  /**
+   * Configures and provides a Spring-managed {@link SqsClient} bean for interacting with Amazon SQS.
+   * The client is configured using the specified AWS region and optionally an endpoint for local testing.
+   *
+   * @param region the AWS region to configure the SQS client for (e.g., "us-east-1").
+   * @param endpoint the optional endpoint to override the default AWS endpoint, typically used with LocalStack.
+   *                 If not specified, the client uses the default AWS SQS endpoint.
+   * @return a configured {@link SqsClient} instance.
+   */
   @Bean
   public SqsClient sqsClient(
       @Value("${aws.region}") String region,
