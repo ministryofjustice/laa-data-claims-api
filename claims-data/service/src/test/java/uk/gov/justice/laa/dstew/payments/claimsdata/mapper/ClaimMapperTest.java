@@ -166,6 +166,7 @@ class ClaimMapperTest {
     assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.getTotalValue(), fields.getTotalValue());
   }
 
   @Test

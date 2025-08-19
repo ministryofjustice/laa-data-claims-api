@@ -595,6 +595,8 @@ components:
           type: string
         referral_source:
           type: string
+        total_value:
+          type: number
         client_forename:
           type: string
         client_surname:
