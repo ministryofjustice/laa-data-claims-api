@@ -423,6 +423,43 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
+
+  /api/v0/validation-errors:
+    get:
+      operationId: getValidationErrors
+      tags:
+        - Validation
+      summary: Gets all validation errors for a submission
+      description: Returns all the validation errors for the specified submission ID.
+      parameters:
+        - name: submission-id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID of the submission
+      responses:
+        '200':
+          description: Submission found
+          content:
+            application/json:
+              schema:
+                type: array
+                description: List of validation errors for this submission
+                items:
+                  $ref: '#/components/schemas/ClaimValidationError'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Submission ID not found'
+        '500':
+          description: 'Internal server error'
+
 components:
   schemas:
     SubmissionPost:
@@ -707,4 +744,16 @@ components:
         ho_interview:
           type: string
         local_authority_number:
+          type: string
+    ClaimValidationError:
+      type: object
+      description: Validation error for a claim
+      properties:
+        unique_client_number:
+          type: string
+        unique_file_number:
+          type: string
+        client:
+          type: string
+        error_description:
           type: string
