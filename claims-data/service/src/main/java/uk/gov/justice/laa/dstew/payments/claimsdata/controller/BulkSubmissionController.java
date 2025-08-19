@@ -46,7 +46,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
 
   @Override
   public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
-    // TODO: DSTEW-287: Implement GET bulk-submissions/:id endpoint
-    return null;
+    GetBulkSubmission200Response response = bulkSubmissionService.getBulkSubmission(id);
+    return ResponseEntity.ok(response);
   }
 }

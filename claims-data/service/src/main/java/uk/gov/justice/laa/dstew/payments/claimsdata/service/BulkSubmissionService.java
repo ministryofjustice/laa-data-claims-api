@@ -6,24 +6,32 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.BulkSubmissionLookup;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class BulkSubmissionService {
+public class BulkSubmissionService implements BulkSubmissionLookup {
 
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
   private final BulkSubmissionMapper submissionMapper;
+
+  @Override
+  public BulkSubmissionRepository bulkSubmissionLookup() {
+    return bulkSubmissionRepository;
+  }
 
   /**
    * Processes a bulk submission from the provided multipart file and returns a response with
@@ -64,5 +72,21 @@ public class BulkSubmissionService {
     FileSubmission fileSubmission = bulkSubmissionFileService.convert(file);
 
     return submissionMapper.toBulkSubmissionDetails(fileSubmission);
+  }
+
+  /**
+   * Retrieve a bulk submission by its identifier.
+   *
+   * @param id the bulk submission id
+   * @return bulk submission response model
+   */
+  @Transactional(readOnly = true)
+  public GetBulkSubmission200Response getBulkSubmission(UUID id) {
+    BulkSubmission bulkSubmission = requireBulkSubmission(id);
+
+    return new GetBulkSubmission200Response()
+            .bulkSubmissionId(id)
+            .status(bulkSubmission.getStatus())
+            .details(bulkSubmission.getData());
   }
 }

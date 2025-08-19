@@ -46,8 +46,7 @@ class MatterStartsControllerTest {
         + "\"category_code\":\"CAT-01\","
         + "\"procurement_area_code\":\"PAC-1\","
         + "\"access_point_code\":\"AP-9\","
-        + "\"delivery_location\":\"LOC-77\","
-        + "\"number_of_matter_starts\":3"
+        + "\"delivery_location\":\"LOC-77\""
         + "}";
 
     mockMvc.perform(post(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)

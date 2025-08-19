@@ -279,9 +279,6 @@ paths:
                   type: string
                 delivery_location:
                   type: string
-                number_of_matter_starts:
-                  type: integer
-                  example: 3
       responses:
         '201':
           description: Matter Start created successfully
@@ -856,22 +853,22 @@ components:
           type: integer
         profitCost:
           type: number
-          format: double
+          format: bigDecimal
         valueOfCosts:
           type: number
-          format: double
+          format: bigDecimal
         disbursementsAmount:
           type: number
-          format: double
+          format: bigDecimal
         counselCost:
           type: number
-          format: double
+          format: bigDecimal
         disbursementsVat:
           type: number
-          format: double
+          format: bigDecimal
         travelWaitingCosts:
           type: number
-          format: double
+          format: bigDecimal
         vatIndicator:
           type: boolean
         londonNonlondonRate:
@@ -882,7 +879,7 @@ components:
           type: boolean
         travelCosts:
           type: number
-          format: double
+          format: bigDecimal
         outcomeCode:
           type: string
         legacyCase:
@@ -891,7 +888,7 @@ components:
           type: string
         adjournedHearingFee:
           type: number
-          format: double
+          format: bigDecimal
         typeOfAdvice:
           type: string
         postalApplAccp:
@@ -915,7 +912,7 @@ components:
           format: date
         detentionTravelWaitingCosts:
           type: number
-          format: double
+          format: bigDecimal
         deliveryLocation:
           type: string
         priorAuthorityRef:
@@ -1025,7 +1022,7 @@ components:
           type: string
         excessTravelCosts:
           type: number
-          format: double
+          format: bigDecimal
         medConcludedDate:
           type: string
           format: date

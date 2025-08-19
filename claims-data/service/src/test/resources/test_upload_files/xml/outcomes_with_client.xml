@@ -12,7 +12,7 @@
                 <outcomeItem name="CASE_STAGE_LEVEL">STAGE/123</outcomeItem>
                 <outcomeItem name="CLIENT_SURNAME">Client surname</outcomeItem>
                 <outcomeItem name="CLIENT_FORENAME">Client forename</outcomeItem>
-                <outcomeItem name="CLIENT_DATE_OF_BIRTH">15/15/1985</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">15/12/1985</outcomeItem>
                 <outcomeItem name="CLIENT_POST_CODE">SW12345</outcomeItem>
                 <outcomeItem name="GENDER">M</outcomeItem>
                 <outcomeItem name="ETHNICITY">00</outcomeItem>
