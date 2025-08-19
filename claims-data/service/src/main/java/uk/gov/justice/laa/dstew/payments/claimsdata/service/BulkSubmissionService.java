@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,8 @@ public class BulkSubmissionService {
 
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
-  private final BulkSubmissionMapper submissionMapper;
+  private final BulkSubmissionMapper bulkSubmissionMapper;
+  private final BulkSubmissionPublisherService bulkSubmissionPublisherService;
 
   /**
    * Processes a bulk submission from the provided multipart file and returns a response with
@@ -48,9 +50,12 @@ public class BulkSubmissionService {
 
     bulkSubmissionRepository.save(bulkSubmission);
 
+    UUID newSubmissionId = UUID.randomUUID();
+
+    bulkSubmissionPublisherService.publish(bulkSubmission.getId(), List.of(newSubmissionId));
     return new CreateBulkSubmission201Response()
         .bulkSubmissionId(bulkSubmission.getId())
-        .submissionIds(Collections.singletonList(UUID.randomUUID()));
+        .submissionIds(Collections.singletonList(newSubmissionId));
   }
 
   /**
@@ -63,6 +68,6 @@ public class BulkSubmissionService {
   public BulkSubmissionDetails getBulkSubmissionDetails(MultipartFile file) {
     FileSubmission fileSubmission = bulkSubmissionFileService.convert(file);
 
-    return submissionMapper.toBulkSubmissionDetails(fileSubmission);
+    return bulkSubmissionMapper.toBulkSubmissionDetails(fileSubmission);
   }
 }
