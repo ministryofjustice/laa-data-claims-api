@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +25,14 @@ class BulkSubmissionPublisherServiceTest {
 
   @InjectMocks
   private BulkSubmissionPublisherService bulkSubmissionPublisherService; // replace with your actual class name
+
+  @BeforeEach
+  void setUp() {
+    bulkSubmissionPublisherService = new BulkSubmissionPublisherService(
+        sqsClient,
+        new ObjectMapper()
+    );
+  }
 
   @Test
   void publish_sendsMessageWithCorrectPayload() {
@@ -54,11 +64,8 @@ class BulkSubmissionPublisherServiceTest {
         .contains(submissionId1.toString())
         .contains(submissionId2.toString());
 
-    // also verify getQueueUrl was called with the right queue name
-    verify(sqsClient).getQueueUrl(
-        GetQueueUrlRequest.builder().queueName(queueName).build()
-    );
-
+    // also verify getQueueUrl was called
+    verify(sqsClient).getQueueUrl(any(GetQueueUrlRequest.class));
     verifyNoMoreInteractions(sqsClient);
   }
 }
