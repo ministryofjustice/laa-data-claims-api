@@ -196,7 +196,7 @@ paths:
 
   /api/v0/submissions/{id}/matter-starts:
     post:
-      operationId: createMatterStart
+      operationId: getMatterStart
       tags:
         - Matter Starts
       summary: Create a Matter Start for a Submission
@@ -216,22 +216,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Matter Start details
-              properties:
-                schedule_reference:
-                  type: string
-                category_code:
-                  type: string
-                procurement_area_code:
-                  type: string
-                access_point_code:
-                  type: string
-                delivery_location:
-                  type: string
-                number_of_matter_starts:
-                  type: integer
-                  example: 3
+              $ref: '#/components/schemas/MatterStartsFields'
       responses:
         '201':
           description: Matter Start created successfully
@@ -257,7 +242,60 @@ paths:
           description: 'Forbidden'
         '500':
           description: 'Internal server error'
-
+  /api/v0/submissions/{id}/matter-starts/{matter-starts-id}:
+    get:
+      operationId: getMatterStart
+      tags:
+        - Matter Starts
+      summary: Returns a Matter Start for a Submission
+      description: |
+        Returns a Matter Start record belonging to the submission with the specified ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the submission
+          schema:
+            type: string
+            format: uuid
+        - name: matter-starts-id
+          in: path
+          required: true
+          description: UUID of the matter starts
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatterStartsFields'
+      responses:
+        '201':
+          description: Matter Start created successfully
+          headers:
+            Location:
+              description: URI of the newly created Matter Start
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created Matter Start
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
   /api/v0/submissions/{id}:
     patch:
       operationId: updateSubmission
@@ -757,3 +795,20 @@ components:
           type: string
         error_description:
           type: string
+    MatterStartsFields:
+      type: object
+      description: Matter starts for a submission
+      properties:
+        schedule_reference:
+          type: string
+        category_code:
+          type: string
+        procurement_area_code:
+          type: string
+        access_point_code:
+          type: string
+        delivery_location:
+          type: string
+        number_of_matter_starts:
+          type: integer
+          example: 3
