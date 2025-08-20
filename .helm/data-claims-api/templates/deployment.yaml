@@ -65,6 +65,11 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: unprotected-uris
+            - name: QUEUE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: sqs-queue-name
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
@@ -72,5 +77,3 @@ spec:
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
               value: {{ .Values.aws.region | quote }}
-            - name: QUEUE_NAME
-              value: {{ .Values.aws.queuename | quote }}

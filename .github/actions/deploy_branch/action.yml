@@ -102,7 +102,6 @@ runs:
           --set ingress.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
           --set aws.region="${ECR_REGION}" \
-          --set aws.queuename="${KUBE_NAMESPACE}-sqs-queue" \
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m
