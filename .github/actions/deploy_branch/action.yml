@@ -101,7 +101,7 @@ runs:
           --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
           --set ingress.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
-          --set aws.region="${ECR_REGION}"
+          --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m
