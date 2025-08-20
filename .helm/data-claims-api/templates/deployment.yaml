@@ -72,3 +72,5 @@ spec:
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
               value: {{ .Values.aws.region | quote }}
+            - name: QUEUE_NAME
+              value: {{ .Values.aws.queuename | quote }}
