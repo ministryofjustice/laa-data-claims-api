@@ -244,7 +244,7 @@ paths:
           description: 'Internal server error'
   /api/v0/submissions/{id}/matter-starts/{matter-starts-id}:
     get:
-      operationId: getMatterStart
+      operationId: createMatterStart
       tags:
         - Matter Starts
       summary: Returns a Matter Start for a Submission
