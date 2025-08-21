@@ -3,12 +3,14 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
@@ -16,21 +18,26 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.BulkSubmissionLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class BulkSubmissionService implements BulkSubmissionLookup {
+public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmission, BulkSubmissionRepository, BulkSubmissionNotFoundException> {
 
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
   private final BulkSubmissionMapper submissionMapper;
 
   @Override
-  public BulkSubmissionRepository bulkSubmissionLookup() {
+  public BulkSubmissionRepository lookup() {
     return bulkSubmissionRepository;
+  }
+
+  @Override
+  public Supplier<BulkSubmissionNotFoundException> entityNotFoundSupplier(String message) {
+    return () -> new BulkSubmissionNotFoundException(message);
   }
 
   /**
@@ -82,7 +89,7 @@ public class BulkSubmissionService implements BulkSubmissionLookup {
    */
   @Transactional(readOnly = true)
   public GetBulkSubmission200Response getBulkSubmission(UUID id) {
-    BulkSubmission bulkSubmission = requireBulkSubmission(id);
+    BulkSubmission bulkSubmission = requireEntity(id);
 
     return new GetBulkSubmission200Response()
             .bulkSubmissionId(id)

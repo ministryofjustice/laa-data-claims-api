@@ -17,8 +17,9 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionInvalidFileException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.GlobalExceptionHandler;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 
 import java.io.IOException;
@@ -162,11 +163,20 @@ class BulkSubmissionControllerTest {
     @Nested
     @DisplayName("GET: " + BULK_SUBMISSIONS_URI + "/{id}")
     class GetBulkSubmissionTests {
-        // TODO: Refactor when working on DSTEW-287: Implement GET bulk-submissions/:id endpoint
+
         @Test
         @DisplayName("Should return 200 response")
-        void shouldReturn200Response() throws IOException {
+        void shouldReturn200Response() {
             UUID id = UUID.randomUUID();
+
+            var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
+
+            var expectedResponse = new GetBulkSubmission200Response();
+            expectedResponse.setBulkSubmissionId(id);
+            expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+            expectedResponse.details(expectedDetails);
+
+            when(bulkSubmissionService.getBulkSubmission(id)).thenReturn(expectedResponse);
 
             assertThat(
                     mockMvc.perform(get(BULK_SUBMISSIONS_URI + "/{id}", id)))

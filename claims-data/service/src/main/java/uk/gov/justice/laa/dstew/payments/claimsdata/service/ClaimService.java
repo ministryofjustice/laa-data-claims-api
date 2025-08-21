@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
@@ -20,7 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /**
  * Service containing business logic for handling claims.
@@ -28,7 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLoo
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ClaimService implements SubmissionLookup {
+public class ClaimService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -36,8 +38,13 @@ public class ClaimService implements SubmissionLookup {
   private final ClientMapper clientMapper;
 
   @Override
-  public SubmissionRepository submissionLookup() {
+  public SubmissionRepository lookup() {
     return submissionRepository;
+  }
+
+  @Override
+  public Supplier<SubmissionNotFoundException> entityNotFoundSupplier(String message) {
+    return () -> new SubmissionNotFoundException(message);
   }
 
   /**
@@ -49,7 +56,7 @@ public class ClaimService implements SubmissionLookup {
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
-    Submission submission = requireSubmission(submissionId);
+    Submission submission = requireEntity(submissionId);
 
     Claim claim = claimMapper.toSubmissionClaim(claimPost);
     claim.setId(UUID.randomUUID());

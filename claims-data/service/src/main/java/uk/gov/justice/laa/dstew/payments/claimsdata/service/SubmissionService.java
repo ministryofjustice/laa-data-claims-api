@@ -2,11 +2,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
@@ -14,7 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /**
  * Service containing business logic for handling submissions.
@@ -22,15 +24,20 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.SubmissionLoo
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubmissionService implements SubmissionLookup {
+public class SubmissionService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
 
   @Override
-  public SubmissionRepository submissionLookup() {
+  public SubmissionRepository lookup() {
     return submissionRepository;
+  }
+
+  @Override
+  public Supplier<SubmissionNotFoundException> entityNotFoundSupplier(String message) {
+    return () -> new SubmissionNotFoundException(message);
   }
 
   /**
@@ -56,7 +63,7 @@ public class SubmissionService implements SubmissionLookup {
    */
   @Transactional(readOnly = true)
   public GetSubmission200Response getSubmission(UUID id) {
-    Submission submission = requireSubmission(id);
+    Submission submission = requireEntity(id);
 
     SubmissionFields fields = submissionMapper.toSubmissionFields(submission);
 
@@ -79,7 +86,7 @@ public class SubmissionService implements SubmissionLookup {
    */
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
-    Submission submission = requireSubmission(id);
+    Submission submission = requireEntity(id);
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
