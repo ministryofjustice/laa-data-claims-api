@@ -12,17 +12,13 @@
     "SCHEDULE_REF" : "2A300G/2010/01",
     "PROCUREMENT_AREA" : "PA00100",
     "ACCESS_POINT" : "AP00000",
-    "MAT" : "2",
-    "IMMAS" : null,
-    "CATEGORY_CODE" : null,
-    "DELIVERY_LOCATION" : null
+    "CATEGORY_CODE" : "HOU",
+    "DELIVERY_LOCATION" : "LONDON"
   }, {
     "SCHEDULE_REF" : "2A300G/2010/01",
     "PROCUREMENT_AREA" : "PA00100",
     "ACCESS_POINT" : "AP00000",
-    "MAT" : "3",
-    "IMMAS" : null,
-    "CATEGORY_CODE" : null,
-    "DELIVERY_LOCATION" : null
+    "CATEGORY_CODE" : "MED",
+    "DELIVERY_LOCATION" : "MANCHESTER"
   } ]
 }

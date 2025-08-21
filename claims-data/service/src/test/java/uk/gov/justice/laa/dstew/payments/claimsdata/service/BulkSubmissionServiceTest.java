@@ -8,14 +8,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +44,7 @@ class BulkSubmissionServiceTest {
         // Setup and mock
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
         String userId = "test-user-id";
-        BulkSubmissionDetails mockDetails = mock(BulkSubmissionDetails.class);
+        GetBulkSubmission200ResponseDetails mockDetails = mock(GetBulkSubmission200ResponseDetails.class);
         doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
 
         // Test
@@ -70,16 +74,49 @@ class BulkSubmissionServiceTest {
     }
 
     @Test
-    @DisplayName("Returns the bulk submission details")
-    void returnsBulkSubmissionDetails() {
+    @DisplayName("Returns the bulk submission details from the multipart file")
+    void returnsBulkSubmissionDetailsFromFile() {
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
         FileSubmission csvSubmission = mock(CsvSubmission.class);
-        BulkSubmissionDetails expected = mock(BulkSubmissionDetails.class);
+        GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
         when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
         when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission)).thenReturn(expected);
 
-        BulkSubmissionDetails actual = bulkSubmissionService.getBulkSubmissionDetails(file);
+        GetBulkSubmission200ResponseDetails actual = bulkSubmissionService.getBulkSubmissionDetails(file);
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    @DisplayName("Returns the bulk submission")
+    void returnsBulkSubmission() {
+        var id = UUID.randomUUID();
+        var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
+        var expectedBulkSubmission = new BulkSubmission();
+        expectedBulkSubmission.setId(id);
+        expectedBulkSubmission.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+        expectedBulkSubmission.setData(expectedDetails);
+
+        var expectedResponse = new GetBulkSubmission200Response();
+        expectedResponse.setBulkSubmissionId(id);
+        expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+        expectedResponse.details(expectedDetails);
+
+        when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
+
+        var bulkSubmissionResponse = bulkSubmissionService.getBulkSubmission(id);
+
+        assertEquals(expectedResponse, bulkSubmissionResponse);
+    }
+
+    @Test
+    @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
+    void shouldThrowWhenBulkSubmissionNotFound() {
+        var id = UUID.randomUUID();
+        when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(
+            BulkSubmissionNotFoundException.class,
+            () -> bulkSubmissionService.getBulkSubmission(id));
     }
 }

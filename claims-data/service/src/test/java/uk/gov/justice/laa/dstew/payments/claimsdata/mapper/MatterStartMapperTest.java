@@ -33,8 +33,7 @@ class MatterStartMapperTest {
         .categoryCode("CAT-A")
         .procurementAreaCode("PA-10")
         .accessPointCode("AP-01")
-        .deliveryLocation("DL-XYZ")
-        .numberOfMatterStarts(7);
+        .deliveryLocation("DL-XYZ");
 
     final MatterStart result = mapper.toMatterStart(request);
 
@@ -44,6 +43,5 @@ class MatterStartMapperTest {
     assertEquals("PA-10", result.getProcurementAreaCode());
     assertEquals("AP-01", result.getAccessPointCode());
     assertEquals("DL-XYZ", result.getDeliveryLocation());
-    assertEquals(7, result.getNumberOfMatterStarts());
   }
 }

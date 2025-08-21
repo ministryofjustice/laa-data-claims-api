@@ -6,4 +6,4 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 /** Record holding submission matter starts details. */
 @JsonNaming(PropertyNamingStrategies.UpperSnakeCaseStrategy.class)
 public record CsvMatterStarts(String scheduleRef, String procurementArea, String accessPoint,
-    String mat, String immas, String categoryCode, String deliveryLocation) {}
+                              String categoryCode, String deliveryLocation) {}

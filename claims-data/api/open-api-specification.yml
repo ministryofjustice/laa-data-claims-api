@@ -101,12 +101,50 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Successfully retrieved bulk submission document
+          description: Successfully retrieved bulk submission resource
           content:
             application/json:
               schema:
                 type: object
-                description: The JSON document stored in the `bulk_submission` table
+                description: The JSON object representing the `bulk_submission` stored in the corresponding table with bulk submission id and status
+                properties:
+                  bulkSubmissionId:
+                    type: string
+                    format: uuid
+                    description: UUID of the bulk submission.
+                  status:
+                    $ref: "#/components/schemas/BulkSubmissionStatus"
+                  details:
+                    type: object
+                    description: The object storing all the details of the bulk submission
+                    properties:
+                      office:
+                        type: object
+                        description: The office submitting a claim
+                        properties:
+                          account:
+                            type: string
+                      schedule:
+                        type: object
+                        description: The details of the bulk submission schedule
+                        properties:
+                          submissionPeriod:
+                            type: string
+                          areaOfLaw:
+                            type: string
+                          scheduleNum:
+                            type: string
+                      outcomes:
+                        type: array
+                        description: List of outcome objects for the bulk submission
+                        items:
+                          $ref: '#/components/schemas/BulkSubmissionOutcome'
+                      matterStarts:
+                        type: array
+                        description: List of matter start objects for the bulk submission
+                        items:
+                          $ref: '#/components/schemas/BulkSubmissionMatterStart'
+
         '400':
           description: 'Bad request'
         '401':
@@ -241,9 +279,6 @@ paths:
                   type: string
                 delivery_location:
                   type: string
-                number_of_matter_starts:
-                  type: integer
-                  example: 3
       responses:
         '201':
           description: Matter Start created successfully
@@ -528,16 +563,19 @@ components:
       allOf:
         - $ref: '#/components/schemas/ClaimFields'
 
+    ClaimStatus:
+      type: string
+      enum:
+        - READY_TO_PROCESS
+        - VALID
+        - INVALID
+
     ClaimFields:
       type: object
       description: Claim details
       properties:
         status:
-          type: string
-          enum:
-            - READY_TO_PROCESS
-            - VALID
-            - INVALID
+          $ref: "#/components/schemas/ClaimStatus"
         schedule_reference:
           type: string
         line_number:
@@ -750,3 +788,246 @@ components:
           type: string
         local_authority_number:
           type: string
+    BulkSubmissionMatterStart:
+      type: object
+      description: matter start details for a bulk submission
+      properties:
+        scheduleRef:
+          type: string
+        categoryCode:
+          type: string
+        procurementArea:
+          type: string
+        accessPoint:
+          type: string
+        deliveryLocation:
+          type: string
+
+    BulkSubmissionOutcome:
+      type: object
+      description: bulk submission outcome details
+      properties:
+        matterType:
+          type: string
+        feeCode:
+          type: string
+        caseRefNumber:
+          type: string
+        caseStartDate:
+          type: string
+          format: date
+        caseId:
+          type: string
+        caseStageLevel:
+          type: string
+        ufn:
+          type: string
+        procurementArea:
+          type: string
+        accessPoint:
+          type: string
+        clientForename:
+          type: string
+        clientSurname:
+          type: string
+        clientDateOfBirth:
+          type: string
+          format: date
+        ucn:
+          type: string
+        claRefNumber:
+          type: string
+        claExemption:
+          type: string
+        gender:
+          type: string
+        ethnicity:
+          type: string
+        disability:
+          type: string
+        clientPostCode:
+          type: string
+        workConcludedDate:
+          type: string
+          format: date
+        adviceTime:
+          type: integer
+        travelTime:
+          type: integer
+        waitingTime:
+          type: integer
+        profitCost:
+          type: number
+          format: bigDecimal
+        valueOfCosts:
+          type: number
+          format: bigDecimal
+        disbursementsAmount:
+          type: number
+          format: bigDecimal
+        counselCost:
+          type: number
+          format: bigDecimal
+        disbursementsVat:
+          type: number
+          format: bigDecimal
+        travelWaitingCosts:
+          type: number
+          format: bigDecimal
+        vatIndicator:
+          type: boolean
+        londonNonlondonRate:
+          type: boolean
+        clientType:
+          type: string
+        toleranceIndicator:
+          type: boolean
+        travelCosts:
+          type: number
+          format: bigDecimal
+        outcomeCode:
+          type: string
+        legacyCase:
+          type: boolean
+        claimType:
+          type: string
+        adjournedHearingFee:
+          type: number
+          format: bigDecimal
+        typeOfAdvice:
+          type: string
+        postalApplAccp:
+          type: boolean
+        scheduleRef:
+          type: string
+        cmrhOral:
+          type: string
+        cmrhTelephone:
+          type: string
+        aitHearingCentre:
+          type: string
+        substantiveHearing:
+          type: boolean
+        hoInterview:
+          type: string
+        hoUcn:
+          type: string
+        transferDate:
+          type: string
+          format: date
+        detentionTravelWaitingCosts:
+          type: number
+          format: bigDecimal
+        deliveryLocation:
+          type: string
+        priorAuthorityRef:
+          type: string
+        jrFormFilling:
+          type: string
+        additionalTravelPayment:
+          type: boolean
+        meetingsAttended:
+          type: string
+        medicalReportsClaimed:
+          type: integer
+        desiAccRep:
+          type: integer
+        mhtRefNumber:
+          type: string
+        stageReached:
+          type: string
+        followOnWork:
+          type: string
+        nationalRefMechanismAdvice:
+          type: string
+        exemptionCriteriaSatisfied:
+          type: string
+        exclCaseFundingRef:
+          type: string
+        noOfClients:
+          type: integer
+        noOfSurgeryClients:
+          type: integer
+        ircSurgery:
+          type: string
+        surgeryDate:
+          type: string
+          format: date
+        lineNumber:
+          type: string
+        crimeMatterType:
+          type: string
+        feeScheme:
+          type: string
+        repOrderDate:
+          type: string
+          format: date
+        noOfSuspects:
+          type: integer
+        noOfPoliceStation:
+          type: integer
+        policeStation:
+          type: string
+        dsccNumber:
+          type: string
+        maatId:
+          type: string
+        prisonLawPriorApproval:
+          type: string
+        dutySolicitor:
+          type: string
+        youthCourt:
+          type: string
+        schemeId:
+          type: string
+        numberOfMediationSessions:
+          type: integer
+        mediationTime:
+          type: integer
+        outreach:
+          type: string
+        referral:
+          type: string
+        clientLegallyAided:
+          type: string
+        client2Forename:
+          type: string
+        client2Surname:
+          type: string
+        client2DateOfBirth:
+          type: string
+          format: date
+        client2Ucn:
+          type: string
+        client2PostCode:
+          type: string
+        client2Gender:
+          type: string
+        client2Ethnicity:
+          type: string
+        client2Disability:
+          type: string
+        client2LegallyAided:
+          type: string
+        uniqueCaseId:
+          type: string
+        standardFeeCat:
+          type: string
+        client2PostalApplAccp:
+          type: string
+        costsDamagesRecovered:
+          type: string
+        eligibleClient:
+          type: string
+        courtLocation:
+          type: string
+        localAuthorityNumber:
+          type: string
+        paNumber:
+          type: string
+        excessTravelCosts:
+          type: number
+          format: bigDecimal
+        medConcludedDate:
+          type: string
+          format: date

@@ -116,9 +116,7 @@
     "SCHEDULE_REF" : "0U100A/2018/02",
     "PROCUREMENT_AREA" : "PA0000",
     "ACCESS_POINT" : "AP00100",
-    "MAT" : null,
-    "IMMAS" : "4",
-    "CATEGORY_CODE" : null,
-    "DELIVERY_LOCATION" : null
+    "CATEGORY_CODE" : "MED",
+    "DELIVERY_LOCATION" : "LONDON"
   } ]
 }
