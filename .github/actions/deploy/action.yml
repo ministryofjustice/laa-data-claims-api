@@ -66,4 +66,4 @@ runs:
           --set spring.profile="main" \
           --values ${VALUES_FILE} \
           --install \
-          --wait
+          --wait --timeout=10m
