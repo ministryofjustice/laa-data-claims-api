@@ -244,6 +244,53 @@ paths:
         '500':
           description: 'Internal server error'
 
+  /api/v0/search-submissions:
+    get:
+      operationId: searchSubmissions
+      tags:
+        - Search
+      summary: Search for claim submissions
+      description: Return searched claim submissions if any found
+      parameters:
+        - name: offices
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            description: List of office codes associated with users running the search
+        - name: submissionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission ID
+        - name: submittedDateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter submissions submitted from this date (inclusive)
+        - name: submittedDateTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter submissions submitted up to this date (inclusive)
+
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionFields'
+
   /api/v0/submissions/{id}/matter-starts:
     post:
       operationId: createMatterStart
