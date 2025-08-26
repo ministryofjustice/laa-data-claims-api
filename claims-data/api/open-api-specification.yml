@@ -265,29 +265,13 @@ paths:
           schema:
             type: string
             format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MatterStartsFields'
       responses:
-        '201':
-          description: Matter Start created successfully
-          headers:
-            Location:
-              description: URI of the newly created Matter Start
-              schema:
-                type: string
+        '200':
+          description: Returns a Matter Start for a Submission
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created Matter Start
+                $ref: '#/components/schemas/MatterStartsFields'
         '400':
           description: 'Bad request'
         '401':
@@ -795,6 +779,12 @@ components:
           type: string
         error_description:
           type: string
+    MatterStartsPost:
+      allOf:
+        - $ref: '#/components/schemas/MatterStartsFields'
+    MatterStartsGet:
+      allOf:
+        - $ref: '#/components/schemas/MatterStartsFields'
     MatterStartsFields:
       type: object
       description: Matter starts for a submission
