@@ -20,7 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 @WebMvcTest(MatterStartsController.class)
@@ -38,7 +38,7 @@ class MatterStartsControllerTest {
   void createMatterStart_returnsCreatedStatusAndLocationHeader() throws Exception {
     final UUID submissionId = UUID.randomUUID();
     final UUID matterStartId = UUID.randomUUID();
-    when(matterStartService.createMatterStart(eq(submissionId), any(CreateMatterStartRequest.class)))
+    when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartsPost.class)))
         .thenReturn(matterStartId);
 
     final String body = "{"
@@ -57,6 +57,6 @@ class MatterStartsControllerTest {
             containsString(API_URI_PREFIX + "/submissions/" + submissionId + "/matter-starts/" + matterStartId)))
         .andExpect(jsonPath("$.id").value(matterStartId.toString()));
 
-    verify(matterStartService).createMatterStart(eq(submissionId), any(CreateMatterStartRequest.class));
+    verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartsPost.class));
   }
 }

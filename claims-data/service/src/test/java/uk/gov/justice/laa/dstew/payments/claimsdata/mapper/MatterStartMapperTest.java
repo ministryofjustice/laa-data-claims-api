@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 
 @ExtendWith(MockitoExtension.class)
 class MatterStartMapperTest {
@@ -28,7 +28,7 @@ class MatterStartMapperTest {
 
   @Test
   void toMatterStart_mapsAllFields() {
-    final CreateMatterStartRequest request = new CreateMatterStartRequest()
+    final MatterStartsPost request = new MatterStartsPost()
         .scheduleReference("SCH-001")
         .categoryCode("CAT-A")
         .procurementAreaCode("PA-10")

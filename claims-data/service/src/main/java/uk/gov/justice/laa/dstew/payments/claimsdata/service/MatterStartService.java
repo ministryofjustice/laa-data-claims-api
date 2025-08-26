@@ -11,7 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
@@ -45,7 +45,7 @@ public class MatterStartService implements AbstractEntityLookup<Submission, Subm
    * @return identifier of the created matter start
    */
   @Transactional
-  public UUID createMatterStart(UUID submissionId, CreateMatterStartRequest request) {
+  public UUID createMatterStart(UUID submissionId, MatterStartsPost request) {
     Submission submission = requireEntity(submissionId);
 
     MatterStart matterStart = matterStartMapper.toMatterStart(request);

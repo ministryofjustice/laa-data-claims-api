@@ -17,7 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 
@@ -33,7 +33,7 @@ class MatterStartServiceTest {
   void shouldCreateMatterStart() {
     final UUID submissionId = UUID.randomUUID();
     final Submission submission = Submission.builder().id(submissionId).build();
-    final CreateMatterStartRequest request = new CreateMatterStartRequest();
+    final MatterStartsPost request = new MatterStartsPost();
     final MatterStart matterStart = MatterStart.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
@@ -53,7 +53,7 @@ class MatterStartServiceTest {
   @Test
   void shouldThrowWhenSubmissionNotFound() {
     final UUID missingSubmissionId = UUID.randomUUID();
-    final CreateMatterStartRequest request = new CreateMatterStartRequest();
+    final MatterStartsPost request = new MatterStartsPost();
 
     when(submissionRepository.findById(missingSubmissionId)).thenReturn(Optional.empty());
 

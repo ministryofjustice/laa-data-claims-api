@@ -9,7 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.MatterStartsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStart201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStartRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 /**
@@ -22,9 +23,9 @@ public class MatterStartsController implements MatterStartsApi {
   private final MatterStartService matterStartService;
 
   @Override
-  public ResponseEntity<CreateMatterStart201Response> createMatterStart(
-      UUID id, CreateMatterStartRequest createMatterStartRequest) {
-    UUID matterStartId = matterStartService.createMatterStart(id, createMatterStartRequest);
+  public ResponseEntity<CreateMatterStart201Response> createMatterStart(UUID id,
+      MatterStartsPost matterStartsPost) {
+    UUID matterStartId = matterStartService.createMatterStart(id, matterStartsPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{matterStartId}")
@@ -32,5 +33,10 @@ public class MatterStartsController implements MatterStartsApi {
             .toUri();
     return ResponseEntity.created(location)
         .body(new CreateMatterStart201Response().id(matterStartId));
+  }
+
+  @Override
+  public ResponseEntity<MatterStartsFields> getMatterStart(UUID id, UUID matterStartsId) {
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 }
