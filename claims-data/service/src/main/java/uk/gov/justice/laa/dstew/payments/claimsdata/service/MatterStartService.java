@@ -1,16 +1,19 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -22,10 +25,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MatterStartService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+public class MatterStartService
+    implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+
   private final SubmissionRepository submissionRepository;
   private final MatterStartRepository matterStartRepository;
   private final MatterStartMapper matterStartMapper;
+  private final InitializingBean optionalLiveReloadServer;
 
   @Override
   public SubmissionRepository lookup() {
@@ -41,7 +47,7 @@ public class MatterStartService implements AbstractEntityLookup<Submission, Subm
    * Create a matter start for a submission.
    *
    * @param submissionId submission identifier
-   * @param request request payload
+   * @param request      request payload
    * @return identifier of the created matter start
    */
   @Transactional
@@ -68,5 +74,19 @@ public class MatterStartService implements AbstractEntityLookup<Submission, Subm
     return matterStartRepository.findBySubmissionId(submissionId).stream()
         .map(MatterStart::getId)
         .toList();
+  }
+
+
+  /**
+   * Retrieve a matter start for a submission.
+   *
+   * @param submissionId   submission identifier
+   * @param matterStartsId matter starts identifier
+   * @return the matter starts
+   */
+  @Transactional(readOnly = true)
+  public Optional<MatterStartsGet> getMatterStarts(UUID submissionId, UUID matterStartsId) {
+    return matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId).map(
+        matterStartMapper::toMatterStartsGet);
   }
 }

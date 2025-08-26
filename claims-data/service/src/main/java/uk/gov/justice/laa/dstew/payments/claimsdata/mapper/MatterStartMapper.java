@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 
 /**
@@ -19,5 +20,7 @@ public interface MatterStartMapper {
   @Mapping(target = "updatedByUserId", ignore = true)
   @Mapping(target = "updatedOn", ignore = true)
   MatterStart toMatterStart(MatterStartsPost request);
+
+  MatterStartsGet toMatterStartsGet(MatterStart entity);
 }
 

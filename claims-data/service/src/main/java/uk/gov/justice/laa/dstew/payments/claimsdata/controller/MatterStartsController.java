@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.MatterStartsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStart201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 @RequiredArgsConstructor
 @Slf4j
 public class MatterStartsController implements MatterStartsApi {
+
   private final MatterStartService matterStartService;
 
   @Override
@@ -36,7 +37,9 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
-  public ResponseEntity<MatterStartsFields> getMatterStart(UUID id, UUID matterStartsId) {
-    throw new UnsupportedOperationException("Not yet implemented");
+  public ResponseEntity<MatterStartsGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
+    return matterStartService.getMatterStarts(submissionId, matterStartsId)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
   }
 }
