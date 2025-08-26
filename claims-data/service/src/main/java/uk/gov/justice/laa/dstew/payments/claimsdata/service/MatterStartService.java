@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
@@ -31,7 +30,6 @@ public class MatterStartService
   private final SubmissionRepository submissionRepository;
   private final MatterStartRepository matterStartRepository;
   private final MatterStartMapper matterStartMapper;
-  private final InitializingBean optionalLiveReloadServer;
 
   @Override
   public SubmissionRepository lookup() {
