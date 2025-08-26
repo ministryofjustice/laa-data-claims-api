@@ -799,6 +799,3 @@ components:
           type: string
         delivery_location:
           type: string
-        number_of_matter_starts:
-          type: integer
-          example: 3
