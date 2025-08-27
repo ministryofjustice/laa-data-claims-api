@@ -22,7 +22,7 @@ public interface MatterStartRepository extends JpaRepository<MatterStart, UUID> 
   List<MatterStart> findBySubmissionId(UUID submissionId);
 
   /**
-   * Finds a matter start by submission id and id.
+   * Finds a matter start by submission id and matter start id.
    *
    * @param submissionId submission identifier
    * @param id matter start identifier

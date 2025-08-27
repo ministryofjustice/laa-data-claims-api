@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.MatterStartsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStart201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 /**
@@ -25,7 +25,7 @@ public class MatterStartsController implements MatterStartsApi {
 
   @Override
   public ResponseEntity<CreateMatterStart201Response> createMatterStart(UUID id,
-      MatterStartsPost matterStartsPost) {
+      MatterStartPost matterStartsPost) {
     UUID matterStartId = matterStartService.createMatterStart(id, matterStartsPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
@@ -37,8 +37,8 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
-  public ResponseEntity<MatterStartsGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
-    return matterStartService.getMatterStarts(submissionId, matterStartsId)
+  public ResponseEntity<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
+    return matterStartService.getMatterStart(submissionId, matterStartsId)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }

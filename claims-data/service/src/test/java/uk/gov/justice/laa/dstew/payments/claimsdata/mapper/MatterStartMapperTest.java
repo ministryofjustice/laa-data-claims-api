@@ -12,8 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 
 @ExtendWith(MockitoExtension.class)
 class MatterStartMapperTest {
@@ -35,7 +35,7 @@ class MatterStartMapperTest {
 
     @Test
     void toMatterStart_mapsAllFields() {
-      final MatterStartsPost request = new MatterStartsPost()
+      final MatterStartPost request = new MatterStartPost()
           .scheduleReference("SCH-001")
           .categoryCode("CAT-A")
           .procurementAreaCode("PA-10")
@@ -70,7 +70,7 @@ class MatterStartMapperTest {
           .accessPointCode("AP-01")
           .deliveryLocation("DL-XYZ").build();
 
-      final MatterStartsGet result = mapper.toMatterStartsGet(request);
+      final MatterStartGet result = mapper.toMatterStartGet(request);
 
       assertNotNull(result);
       SoftAssertions.assertSoftly(softly -> {

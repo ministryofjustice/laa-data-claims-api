@@ -20,8 +20,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 
@@ -46,7 +46,7 @@ class MatterStartServiceTest {
     void shouldCreateMatterStart() {
       final UUID submissionId = UUID.randomUUID();
       final Submission submission = Submission.builder().id(submissionId).build();
-      final MatterStartsPost request = new MatterStartsPost();
+      final MatterStartPost request = new MatterStartPost();
       final MatterStart matterStart = MatterStart.builder().build();
 
       when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
@@ -66,7 +66,7 @@ class MatterStartServiceTest {
     @Test
     void shouldThrowWhenSubmissionNotFound() {
       final UUID missingSubmissionId = UUID.randomUUID();
-      final MatterStartsPost request = new MatterStartsPost();
+      final MatterStartPost request = new MatterStartPost();
 
       when(submissionRepository.findById(missingSubmissionId)).thenReturn(Optional.empty());
 
@@ -106,13 +106,13 @@ class MatterStartServiceTest {
       final UUID matterStartsId = UUID.randomUUID();
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.of(MatterStart.builder().id(matterStartsId).build()));
-      MatterStartsGet expected =
-          MatterStartsGet.builder().categoryCode("CAT A").categoryCode("Access Code").build();
-      when(matterStartMapper.toMatterStartsGet(any())).thenReturn(
+      MatterStartGet expected =
+          MatterStartGet.builder().categoryCode("CAT A").categoryCode("Access Code").build();
+      when(matterStartMapper.toMatterStartGet(any())).thenReturn(
           expected);
       // When
-      Optional<MatterStartsGet> result =
-          matterStartService.getMatterStarts(submissionId, matterStartsId);
+      Optional<MatterStartGet> result =
+          matterStartService.getMatterStart(submissionId, matterStartsId);
       // Then
       assertThat(result).isNotEmpty().get().isEqualTo(expected);
     }
@@ -127,8 +127,8 @@ class MatterStartServiceTest {
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.empty());
       // When
-      Optional<MatterStartsGet> result =
-          matterStartService.getMatterStarts(submissionId, matterStartsId);
+      Optional<MatterStartGet> result =
+          matterStartService.getMatterStart(submissionId, matterStartsId);
       // Then
       assertThat(result).isEmpty();
     }

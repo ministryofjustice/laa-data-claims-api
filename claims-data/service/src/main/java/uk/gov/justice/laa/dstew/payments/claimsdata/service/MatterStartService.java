@@ -12,8 +12,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
@@ -45,11 +45,11 @@ public class MatterStartService
    * Create a matter start for a submission.
    *
    * @param submissionId submission identifier
-   * @param request      request payload
+   * @param request request payload
    * @return identifier of the created matter start
    */
   @Transactional
-  public UUID createMatterStart(UUID submissionId, MatterStartsPost request) {
+  public UUID createMatterStart(UUID submissionId, MatterStartPost request) {
     Submission submission = requireEntity(submissionId);
 
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
@@ -80,11 +80,11 @@ public class MatterStartService
    *
    * @param submissionId   submission identifier
    * @param matterStartsId matter starts identifier
-   * @return the matter starts
+   * @return the matter start
    */
   @Transactional(readOnly = true)
-  public Optional<MatterStartsGet> getMatterStarts(UUID submissionId, UUID matterStartsId) {
+  public Optional<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
     return matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId).map(
-        matterStartMapper::toMatterStartsGet);
+        matterStartMapper::toMatterStartGet);
   }
 }

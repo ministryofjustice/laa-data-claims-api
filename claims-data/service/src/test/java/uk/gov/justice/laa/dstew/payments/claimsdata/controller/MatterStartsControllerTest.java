@@ -24,8 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsGet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartsPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 @WebMvcTest(MatterStartsController.class)
@@ -48,7 +48,7 @@ class MatterStartsControllerTest {
     void createMatterStart_returnsCreatedStatusAndLocationHeader() throws Exception {
       final UUID submissionId = UUID.randomUUID();
       final UUID matterStartId = UUID.randomUUID();
-      when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartsPost.class)))
+      when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartPost.class)))
           .thenReturn(matterStartId);
 
       final String body = """
@@ -73,7 +73,7 @@ class MatterStartsControllerTest {
           .hasPathSatisfying("$.id", id -> assertThat(id)
               .isEqualTo(matterStartId.toString()));
 
-      verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartsPost.class));
+      verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartPost.class));
     }
 
   }
@@ -88,9 +88,9 @@ class MatterStartsControllerTest {
       // Given
       UUID id = UUID.randomUUID();
       UUID submissionId = UUID.randomUUID();
-      Optional<MatterStartsGet> expected =
-          Optional.of(new MatterStartsGet().categoryCode("Category"));
-      when(matterStartService.getMatterStarts(submissionId, id)).thenReturn(
+      Optional<MatterStartGet> expected =
+          Optional.of(new MatterStartGet().categoryCode("Category"));
+      when(matterStartService.getMatterStart(submissionId, id)).thenReturn(
           expected);
       // When
       ObjectMapper mapper = new ObjectMapper();

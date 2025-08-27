@@ -266,7 +266,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MatterStartsPost'
+              $ref: '#/components/schemas/MatterStartPost'
       responses:
         '201':
           description: Matter Start created successfully
@@ -292,7 +292,7 @@ paths:
           description: 'Forbidden'
         '500':
           description: 'Internal server error'
-  /api/v0/submissions/{id}/matter-starts/{matter-starts-id}:
+  /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
     get:
       operationId: getMatterStart
       tags:
@@ -308,10 +308,10 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: matter-starts-id
+        - name: matter-start-id
           in: path
           required: true
-          description: UUID of the matter starts
+          description: UUID of the matter start
           schema:
             type: string
             format: uuid
@@ -321,7 +321,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MatterStartsGet'
+                $ref: '#/components/schemas/MatterStartGet'
         '400':
           description: 'Bad request'
         '401':
@@ -355,7 +355,7 @@ paths:
       responses:
         '204':
           description: 'Submission status updated successfully'
-          content: { }
+          content: {}
         '400':
           description: 'Bad request'
         '401':
@@ -495,46 +495,11 @@ paths:
       responses:
         '204':
           description: Claim updated successfully
-          content: { }
+          content: {}
         '400':
           description: Invalid request
         '404':
           description: Submission or claim not found
-  /api/v0/validation-errors:
-    get:
-      operationId: getValidationErrors
-      tags:
-        - Validation
-      summary: Gets all validation errors for a submission
-      description: Returns all the validation errors for the specified submission ID.
-      parameters:
-        - name: submission-id
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: UUID of the submission
-      responses:
-        '200':
-          description: Submission found
-          content:
-            application/json:
-              schema:
-                type: array
-                description: List of validation errors for this submission
-                items:
-                  $ref: '#/components/schemas/ClaimValidationError'
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: 'Submission ID not found'
-        '500':
-          description: 'Internal server error'
 components:
   schemas:
     BulkSubmissionStatus:
@@ -1092,15 +1057,15 @@ components:
         medConcludedDate:
           type: string
           format: date
-    MatterStartsPost:
+    MatterStartPost:
       allOf:
-        - $ref: '#/components/schemas/MatterStartsFields'
-    MatterStartsGet:
+        - $ref: '#/components/schemas/MatterStartFields'
+    MatterStartGet:
       allOf:
-        - $ref: '#/components/schemas/MatterStartsFields'
-    MatterStartsFields:
+        - $ref: '#/components/schemas/MatterStartFields'
+    MatterStartFields:
       type: object
-      description: Matter starts for a submission
+      description: Matter start for a submission
       properties:
         schedule_reference:
           type: string
@@ -1111,16 +1076,4 @@ components:
         access_point_code:
           type: string
         delivery_location:
-          type: string
-    ClaimValidationError:
-      type: object
-      description: Validation error for a claim
-      properties:
-        unique_client_number:
-          type: string
-        unique_file_number:
-          type: string
-        client:
-          type: string
-        error_description:
           type: string
