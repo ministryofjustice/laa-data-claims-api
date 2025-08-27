@@ -45,7 +45,7 @@ public class MatterStartService
    * Create a matter start for a submission.
    *
    * @param submissionId submission identifier
-   * @param request      request payload
+   * @param request request payload
    * @return identifier of the created matter start
    */
   @Transactional
