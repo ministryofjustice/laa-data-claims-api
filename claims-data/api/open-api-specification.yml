@@ -266,19 +266,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Matter Start details
-              properties:
-                schedule_reference:
-                  type: string
-                category_code:
-                  type: string
-                procurement_area_code:
-                  type: string
-                access_point_code:
-                  type: string
-                delivery_location:
-                  type: string
+              $ref: '#/components/schemas/MatterStartPost'
       responses:
         '201':
           description: Matter Start created successfully
@@ -296,6 +284,44 @@ paths:
                     type: string
                     format: uuid
                     description: UUID of the created Matter Start
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+  /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
+    get:
+      operationId: getMatterStart
+      tags:
+        - Matter Starts
+      summary: Returns a Matter Start for a Submission
+      description: |
+        Returns a Matter Start record belonging to the submission with the specified ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the submission
+          schema:
+            type: string
+            format: uuid
+        - name: matter-start-id
+          in: path
+          required: true
+          description: UUID of the matter start
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns a Matter Start for a Submission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatterStartGet'
         '400':
           description: 'Bad request'
         '401':
@@ -1031,3 +1057,23 @@ components:
         medConcludedDate:
           type: string
           format: date
+    MatterStartPost:
+      allOf:
+        - $ref: '#/components/schemas/MatterStartFields'
+    MatterStartGet:
+      allOf:
+        - $ref: '#/components/schemas/MatterStartFields'
+    MatterStartFields:
+      type: object
+      description: Matter start for a submission
+      properties:
+        schedule_reference:
+          type: string
+        category_code:
+          type: string
+        procurement_area_code:
+          type: string
+        access_point_code:
+          type: string
+        delivery_location:
+          type: string
