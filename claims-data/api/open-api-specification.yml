@@ -408,42 +408,9 @@ paths:
               schema:
                 type: object
                 description: submission details
+                allOf:
+                  - $ref: '#/components/schemas/SubmissionFields'
                 properties:
-                  submission_id:
-                    type: string
-                    format: uuid
-                    description: UUID for submission that was returned when bulk_submission was created.
-                  bulk_submission_id:
-                    type: string
-                    format: uuid
-                    description: UUID of the associated bulk submission.
-                  office_account_number:
-                    type: string
-                    description: The office account number.
-                  submission_period:
-                    type: string
-                    description: Submission period (e.g., "2025-07").
-                  area_of_law:
-                    type: string
-                    description: Area of law (e.g., "crime", "civil").
-                  status:
-                    $ref: "#/components/schemas/SubmissionStatus"
-                  schedule_number:
-                    type: string
-                    description: Optional schedule number.
-                  previous_submission_id:
-                    type: string
-                    format: uuid
-                    description: UUID of the previous submission that this replaces, if any.
-                  is_nil_submission:
-                    type: boolean
-                    description: Whether the submission is a nil submission, i.e. a submission without any claims.
-                  number_of_claims:
-                    type: integer
-                    description: Number of claims in this submission.
-                  submitted:
-                    type: date
-                    description: Date the submission was submitted
                   claims:
                     type: array
                     description: List of claims (ID + status) for this submission
