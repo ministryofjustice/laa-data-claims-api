@@ -37,8 +37,8 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
-  public ResponseEntity<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
-    return matterStartService.getMatterStart(submissionId, matterStartsId)
+  public ResponseEntity<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartId) {
+    return matterStartService.getMatterStart(submissionId, matterStartId)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }

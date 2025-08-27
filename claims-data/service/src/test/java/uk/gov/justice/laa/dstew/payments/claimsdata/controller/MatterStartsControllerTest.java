@@ -5,8 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -61,17 +59,18 @@ class MatterStartsControllerTest {
           }""";
 
       assertThat(
-          mockMvc.perform(post(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
+          mockMvc.post().uri(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
               .contentType(MediaType.APPLICATION_JSON)
-              .content(body)))
+              .content(body))
           .hasStatus(HttpStatus.CREATED)
           .hasHeader(
               "Location", "http://localhost" + API_URI_PREFIX + "/submissions/" + submissionId
                   + "/matter-starts/"
                   + matterStartId)
           .bodyJson()
-          .hasPathSatisfying("$.id", id -> assertThat(id)
-              .isEqualTo(matterStartId.toString()));
+          .hasPathSatisfying(
+              "$.id", id -> assertThat(id)
+                  .isEqualTo(matterStartId.toString()));
 
       verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartPost.class));
     }
@@ -79,7 +78,7 @@ class MatterStartsControllerTest {
   }
 
   @Nested
-  @DisplayName("GET: /api/v0/submissions/{id}/matter-starts/{matter-starts-id} tests")
+  @DisplayName("GET: /api/v0/submissions/{id}/matter-starts/{matter-start-id} tests")
   class GetMatterStarts {
 
     @Test
@@ -94,8 +93,9 @@ class MatterStartsControllerTest {
           expected);
       // When
       ObjectMapper mapper = new ObjectMapper();
-      assertThat(mockMvc.perform(get(API_URI_PREFIX + "/submissions/{id}/matter-starts/{matter-starts-id}",
-          submissionId, id)))
+      assertThat(mockMvc.get().uri(
+          API_URI_PREFIX + "/submissions/{id}/matter-starts/{matter-start-id}",
+          submissionId, id))
           .hasStatusOk()
           .bodyJson()
           .isLenientlyEqualTo(mapper.writeValueAsString(expected.get()));

@@ -47,8 +47,6 @@ public class MatterStart {
 
   private String deliveryLocation;
 
-  private Integer numberOfMatterStarts;
-
   @Column(nullable = false)
   private String createdByUserId;
 

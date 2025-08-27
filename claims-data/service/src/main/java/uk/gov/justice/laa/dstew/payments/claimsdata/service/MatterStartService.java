@@ -45,7 +45,7 @@ public class MatterStartService
    * Create a matter start for a submission.
    *
    * @param submissionId submission identifier
-   * @param request request payload
+   * @param request      request payload
    * @return identifier of the created matter start
    */
   @Transactional
@@ -78,13 +78,13 @@ public class MatterStartService
   /**
    * Retrieve a matter start for a submission.
    *
-   * @param submissionId   submission identifier
-   * @param matterStartsId matter starts identifier
+   * @param submissionId submission identifier
+   * @param matterStartId matter starts identifier
    * @return the matter start
    */
   @Transactional(readOnly = true)
-  public Optional<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartsId) {
-    return matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId).map(
+  public Optional<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartId) {
+    return matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartId).map(
         matterStartMapper::toMatterStartGet);
   }
 }

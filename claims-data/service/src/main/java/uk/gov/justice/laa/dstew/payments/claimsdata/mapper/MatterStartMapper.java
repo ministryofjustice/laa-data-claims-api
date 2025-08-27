@@ -19,7 +19,6 @@ public interface MatterStartMapper {
   @Mapping(target = "createdOn", ignore = true)
   @Mapping(target = "updatedByUserId", ignore = true)
   @Mapping(target = "updatedOn", ignore = true)
-  @Mapping(target = "numberOfMatterStarts", ignore = true)
   MatterStart toMatterStart(MatterStartPost request);
 
   MatterStartGet toMatterStartGet(MatterStart entity);
