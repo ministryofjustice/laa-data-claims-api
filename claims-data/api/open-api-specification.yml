@@ -235,7 +235,7 @@ paths:
 
       responses:
         '200':
-          description: list of paginated claim submissions (if any found)
+          description: returns a list of paginated claim submissions
           content:
             application/json:
               schema:
