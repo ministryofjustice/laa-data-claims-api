@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,13 +15,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
@@ -51,18 +50,28 @@ class SubmissionServiceTest {
 
   @Test
   void shouldGetSubmission() {
-    UUID id = UUID.randomUUID();
-    Submission entity = Submission.builder().id(id).build();
-    SubmissionFields fields = new SubmissionFields().submissionId(id);
-    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
-    when(submissionMapper.toSubmissionFields(entity)).thenReturn(fields);
-    when(claimService.getClaimsForSubmission(id)).thenReturn(java.util.List.of());
-    when(matterStartService.getMatterStartIdsForSubmission(id))
+    UUID submissionId = UUID.randomUUID();
+    Submission entity = Submission.builder()
+        .id(submissionId)
+        .bulkSubmissionId(UUID.randomUUID())
+        .officeAccountNumber("123-ABC")
+        .submissionPeriod("APR-2024")
+        .areaOfLaw("CIVIL")
+        .status(SubmissionStatus.CREATED)
+        .scheduleNumber("SCH-123")
+        .previousSubmissionId(submissionId)
+        .isNilSubmission(false)
+        .numberOfClaims(10)
+        .createdOn(Instant.now())
+        .build();
+    when(submissionRepository.findById(submissionId)).thenReturn(java.util.Optional.of(entity));
+    when(claimService.getClaimsForSubmission(submissionId)).thenReturn(java.util.List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(submissionId))
         .thenReturn(java.util.List.of());
 
-    GetSubmission200Response result = submissionService.getSubmission(id);
+    GetSubmission200Response result = submissionService.getSubmission(submissionId);
 
-    assertThat(result.getSubmission().getSubmissionId()).isEqualTo(id);
+    assertThat(result.getSubmissionId()).isEqualTo(submissionId);
   }
 
   @Test

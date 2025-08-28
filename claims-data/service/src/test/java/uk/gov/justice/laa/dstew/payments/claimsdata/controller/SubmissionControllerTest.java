@@ -24,7 +24,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
@@ -80,23 +79,22 @@ class SubmissionControllerTest {
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
     UUID id = UUID.randomUUID();
-    SubmissionFields fields =
-        new SubmissionFields()
+    GetSubmission200Response response =
+        new GetSubmission200Response()
             .submissionId(id)
             .bulkSubmissionId(UUID.randomUUID())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
-            .areaOfLaw("crime")
+            .areaOfLaw("CIVIL")
             .isNilSubmission(false)
-            .numberOfClaims(1);
-    GetSubmission200Response response =
-        new GetSubmission200Response().submission(fields).claims(java.util.List.of()).matterStarts(java.util.List.of());
+            .claims(java.util.List.of())
+            .matterStarts(java.util.List.of());
     when(submissionService.getSubmission(id)).thenReturn(response);
 
     mockMvc
         .perform(get(SUBMISSIONS_URI + "/{id}", id))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.submission.submission_id").value(id.toString()));
+        .andExpect(jsonPath("$.submission_id").value(id.toString()));
   }
 
   @Test

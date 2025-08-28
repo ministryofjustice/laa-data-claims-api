@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -12,7 +14,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -65,15 +66,23 @@ public class SubmissionService implements AbstractEntityLookup<Submission, Submi
   public GetSubmission200Response getSubmission(UUID id) {
     Submission submission = requireEntity(id);
 
-    SubmissionFields fields = submissionMapper.toSubmissionFields(submission);
-
     List<GetSubmission200ResponseClaimsInner> claims =
         claimService.getClaimsForSubmission(id);
 
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
     return new GetSubmission200Response()
-        .submission(fields)
+        .submissionId(submission.getId())
+        .bulkSubmissionId(submission.getBulkSubmissionId())
+        .officeAccountNumber(submission.getOfficeAccountNumber())
+        .submissionPeriod(submission.getSubmissionPeriod())
+        .areaOfLaw(submission.getAreaOfLaw())
+        .status(submission.getStatus())
+        .scheduleNumber(submission.getScheduleNumber())
+        .previousSubmissionId(submission.getPreviousSubmissionId())
+        .isNilSubmission(submission.getIsNilSubmission())
+        .numberOfClaims(submission.getNumberOfClaims())
+        .submitted(LocalDate.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
         .matterStarts(matterStartIds);
   }

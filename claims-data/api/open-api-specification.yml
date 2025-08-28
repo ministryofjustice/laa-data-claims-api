@@ -196,6 +196,51 @@ paths:
         '500':
           description: 'Internal server error'
 
+    get:
+      operationId: getSubmissions
+      x-spring-paginated: true
+      tags:
+        - Submissions
+      summary: get claim submissions
+      description: Return claim submissions by office account numbers (mandatory), submissionId, submittedDateFrom, submittedDateTo
+      parameters:
+        - name: offices
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            description: Filter by list of office account numbers
+        - name: submissionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission ID
+        - name: submittedDateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter submissions submitted from this date (inclusive)
+        - name: submittedDateTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter submissions submitted up to this date (inclusive)
+
+      responses:
+        '200':
+          description: returns a list of paginated claim submissions
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/SubmissionsResultSet'
+
   /api/v0/submissions/{id}/claims:
     post:
       operationId: createClaim
@@ -389,9 +434,9 @@ paths:
               schema:
                 type: object
                 description: submission details
+                allOf:
+                  - $ref: '#/components/schemas/SubmissionFields'
                 properties:
-                  submission:
-                    $ref: '#/components/schemas/SubmissionFields'
                   claims:
                     type: array
                     description: List of claims (ID + status) for this submission
@@ -571,6 +616,15 @@ components:
         submitted:
           type: date
           description: Date the submission was submitted
+    SubmissionsResultSet:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/SubmissionFields'
 
     ClaimPost:
       allOf:
@@ -1077,3 +1131,14 @@ components:
           type: string
         delivery_location:
           type: string
+    page:
+      type: 'object'
+      properties:
+        total_pages:
+          type: 'integer'
+        total_elements:
+          type: 'integer'
+        number:
+          type: 'integer'
+        size:
+          type: 'integer'
