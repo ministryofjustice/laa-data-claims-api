@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -20,16 +21,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
   @Mock private SubmissionRepository submissionRepository;
-
   @Mock private ClaimService claimService;
-
   @Mock private MatterStartService matterStartService;
-
   @Mock private SubmissionMapper submissionMapper;
+  @Mock private ValidationErrorLogRepository validationErrorLogRepository;
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -103,5 +103,26 @@ class SubmissionServiceTest {
 
     assertThrows(
         SubmissionNotFoundException.class, () -> submissionService.updateSubmission(id, patch));
+  }
+
+  @Test
+  void shouldUpdateSubmissionAndLogValidationErrors() {
+    UUID id = UUID.randomUUID();
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionPatch patch = new SubmissionPatch().validationErrors(java.util.List.of("ERR1"));
+    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
+    when(submissionMapper.toValidationErrorLog(
+        org.mockito.ArgumentMatchers.anyString(),
+        org.mockito.ArgumentMatchers.eq(entity)))
+        .thenReturn(new ValidationErrorLog());
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper)
+        .toValidationErrorLog(
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.eq(entity));
+    verify(validationErrorLogRepository)
+        .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
   }
 }

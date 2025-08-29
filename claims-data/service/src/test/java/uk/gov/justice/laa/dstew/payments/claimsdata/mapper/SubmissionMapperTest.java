@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -81,5 +82,19 @@ class SubmissionMapperTest {
 
     assertThat(submission.getScheduleNumber()).isEqualTo("456");
     assertThat(submission.getIsNilSubmission()).isTrue();
+  }
+
+  @Test
+  void toValidationErrorLog_mapsFields() {
+    Submission submission = Submission.builder().id(UUID.randomUUID()).build();
+
+    ValidationErrorLog log = submissionMapper.toValidationErrorLog("ERR1", submission);
+
+    assertThat(log.getId()).isNotNull();
+    assertThat(log.getSubmission()).isEqualTo(submission);
+    assertThat(log.getClaim()).isNull();
+    assertThat(log.getErrorCode()).isEqualTo("ERR1");
+    assertThat(log.getErrorDescription()).isEqualTo("ERR1");
+    assertThat(log.getCreatedByUserId()).isEqualTo("todo");
   }
 }

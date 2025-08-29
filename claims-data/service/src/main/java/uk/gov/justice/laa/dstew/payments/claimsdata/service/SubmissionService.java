@@ -27,7 +27,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubmissionService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+public class SubmissionService implements
+    AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;

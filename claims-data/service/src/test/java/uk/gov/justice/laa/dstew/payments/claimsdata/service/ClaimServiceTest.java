@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
@@ -34,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -42,6 +44,7 @@ class ClaimServiceTest {
   @Mock private ClientRepository clientRepository;
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
+  @Mock private ValidationErrorLogRepository validationErrorLogRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -207,5 +210,24 @@ class ClaimServiceTest {
         claimService.getClaimsForSubmission(submissionId);
 
     assertThat(result).containsExactly(inner);
+  }
+
+  @Test
+  void shouldUpdateClaimAndLogValidationErrors() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final Claim claim = Claim.builder().id(claimId).submission(Submission.builder().id(submissionId).build()).build();
+    final ClaimPatch patch = new ClaimPatch().validationErrors(java.util.List.of("ERR1", "ERR2"));
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId)).thenReturn(Optional.of(claim));
+    when(claimMapper.toValidationErrorLog(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim)))
+        .thenReturn(new ValidationErrorLog());
+
+    claimService.updateClaim(submissionId, claimId, patch);
+
+    verify(claimMapper, org.mockito.Mockito.times(2))
+        .toValidationErrorLog(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim));
+    verify(validationErrorLogRepository, org.mockito.Mockito.times(2))
+        .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
   }
 }

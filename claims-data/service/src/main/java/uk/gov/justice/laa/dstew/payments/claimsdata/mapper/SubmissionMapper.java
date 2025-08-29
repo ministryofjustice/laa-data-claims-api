@@ -76,7 +76,7 @@ public interface SubmissionMapper {
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(UUID.randomUUID())")
   @Mapping(target = "submission", source = "submission")
-  @Mapping(target = "claim", ignore = true )
+  @Mapping(target = "claim", ignore = true)
   @Mapping(target = "errorCode", source = "error")
   @Mapping(target = "errorDescription", source = "error")
   @Mapping(target = "createdByUserId", constant = "todo")

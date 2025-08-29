@@ -13,6 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -216,5 +218,19 @@ class ClaimMapperTest {
     assertTrue(entity.getYouthCourt());
     assertEquals("READY_TO_PROCESS", entity.getStatus());
     assertEquals("NEW_SCH", entity.getScheduleReference());
+  }
+
+  @Test
+  void toValidationErrorLog_mapsFields() {
+    final Submission submission = Submission.builder().id(UUID.randomUUID()).build();
+    final Claim claim = Claim.builder().id(UUID.randomUUID()).submission(submission).build();
+
+    final ValidationErrorLog log = mapper.toValidationErrorLog("ERR1", claim);
+
+    assertNotNull(log.getId());
+    assertEquals(submission, log.getSubmission());
+    assertEquals(claim, log.getClaim());
+    assertEquals("ERR1", log.getErrorCode());
+    assertEquals("ERR1", log.getErrorDescription());
   }
 }
