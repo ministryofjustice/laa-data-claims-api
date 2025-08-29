@@ -7,9 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 
-/**
- * Repository for managing matter start entities.
- */
+/** Repository for managing matter start entities. */
 @Repository
 public interface MatterStartRepository extends JpaRepository<MatterStart, UUID> {
 
@@ -30,4 +28,3 @@ public interface MatterStartRepository extends JpaRepository<MatterStart, UUID> 
    */
   Optional<MatterStart> findBySubmissionIdAndId(UUID submissionId, UUID id);
 }
-

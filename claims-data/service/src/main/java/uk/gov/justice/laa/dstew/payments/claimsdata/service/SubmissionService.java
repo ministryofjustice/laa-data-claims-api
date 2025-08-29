@@ -21,14 +21,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
-/**
- * Service containing business logic for handling submissions.
- */
+/** Service containing business logic for handling submissions. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubmissionService implements
-    AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+public class SubmissionService
+    implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
@@ -70,8 +68,7 @@ public class SubmissionService implements
   public GetSubmission200Response getSubmission(UUID id) {
     Submission submission = requireEntity(id);
 
-    List<GetSubmission200ResponseClaimsInner> claims =
-        claimService.getClaimsForSubmission(id);
+    List<GetSubmission200ResponseClaimsInner> claims = claimService.getClaimsForSubmission(id);
 
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
@@ -106,10 +103,13 @@ public class SubmissionService implements
 
     if (submissionPatch.getValidationErrors() != null
         && !submissionPatch.getValidationErrors().isEmpty()) {
-      submissionPatch.getValidationErrors().forEach(error -> {
-        ValidationErrorLog log = submissionMapper.toValidationErrorLog(error, submission);
-        validationErrorLogRepository.save(log);
-      });
+      submissionPatch
+          .getValidationErrors()
+          .forEach(
+              error -> {
+                ValidationErrorLog log = submissionMapper.toValidationErrorLog(error, submission);
+                validationErrorLogRepository.save(log);
+              });
     }
   }
 }

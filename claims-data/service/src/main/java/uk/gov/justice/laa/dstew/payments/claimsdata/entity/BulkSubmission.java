@@ -35,7 +35,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 @Table(name = "bulk_submission")
 public class BulkSubmission {
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @NotNull
   @Type(JsonBinaryType.class)

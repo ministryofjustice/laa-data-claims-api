@@ -19,24 +19,23 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
 
-  @InjectMocks
-  private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
+  @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
 
-  @Spy
-  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+  @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void shouldMapToSubmissionEntity() {
     UUID id = UUID.randomUUID();
     UUID bulkId = UUID.randomUUID();
-    SubmissionPost post = new SubmissionPost()
-        .submissionId(id)
-        .bulkSubmissionId(bulkId)
-        .officeAccountNumber("12345")
-        .submissionPeriod("2025-07")
-        .areaOfLaw("crime")
-        .isNilSubmission(false)
-        .numberOfClaims(1);
+    SubmissionPost post =
+        new SubmissionPost()
+            .submissionId(id)
+            .bulkSubmissionId(bulkId)
+            .officeAccountNumber("12345")
+            .submissionPeriod("2025-07")
+            .areaOfLaw("crime")
+            .isNilSubmission(false)
+            .numberOfClaims(1);
 
     Submission result = submissionMapper.toSubmission(post);
 

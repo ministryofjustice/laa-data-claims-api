@@ -12,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
  * @param office the office submitting the claim
  */
 @JacksonXmlRootElement(localName = "submission")
-public record XmlSubmission(@JacksonXmlProperty(isAttribute = true) String schemaLocation,
-    @JacksonXmlProperty @JsonProperty(required = true) XmlOffice office) implements FileSubmission {
-}
+public record XmlSubmission(
+    @JacksonXmlProperty(isAttribute = true) String schemaLocation,
+    @JacksonXmlProperty @JsonProperty(required = true) XmlOffice office)
+    implements FileSubmission {}

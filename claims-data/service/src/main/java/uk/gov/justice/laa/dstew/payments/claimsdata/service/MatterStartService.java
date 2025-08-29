@@ -18,9 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartReposi
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
-/**
- * Service containing business logic for handling matter starts.
- */
+/** Service containing business logic for handling matter starts. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -74,7 +72,6 @@ public class MatterStartService
         .toList();
   }
 
-
   /**
    * Retrieve a matter start for a submission.
    *
@@ -84,7 +81,8 @@ public class MatterStartService
    */
   @Transactional(readOnly = true)
   public Optional<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartId) {
-    return matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartId).map(
-        matterStartMapper::toMatterStartGet);
+    return matterStartRepository
+        .findBySubmissionIdAndId(submissionId, matterStartId)
+        .map(matterStartMapper::toMatterStartGet);
   }
 }

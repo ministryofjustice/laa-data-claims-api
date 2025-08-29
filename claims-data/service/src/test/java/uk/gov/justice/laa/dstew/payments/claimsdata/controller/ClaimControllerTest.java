@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -30,17 +29,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 @WebMvcTest(ClaimController.class)
-@ImportAutoConfiguration(exclude = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
+@ImportAutoConfiguration(
+    exclude = {
+      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
+    })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @MockitoBean
-  private ClaimService claimService;
+  @MockitoBean private ClaimService claimService;
 
   @Test
   void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
@@ -48,24 +48,31 @@ class ClaimControllerTest {
     final UUID claimId = UUID.randomUUID();
     when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
 
-    final String body = "{"
-        + "\"status\":\"READY_TO_PROCESS\","
-        + "\"schedule_reference\":\"SCH-001\","
-        + "\"line_number\":1,"
-        + "\"case_reference_number\":\"CRN-123\","
-        + "\"unique_file_number\":\"UFN-999\","
-        + "\"case_start_date\":\"2025-07-01\","
-        + "\"case_concluded_date\":\"2025-07-31\","
-        + "\"matter_type_code\":\"MAT01\","
-        + "\"outcome_code\":\"OUT01\""
-        + "}";
+    final String body =
+        "{"
+            + "\"status\":\"READY_TO_PROCESS\","
+            + "\"schedule_reference\":\"SCH-001\","
+            + "\"line_number\":1,"
+            + "\"case_reference_number\":\"CRN-123\","
+            + "\"unique_file_number\":\"UFN-999\","
+            + "\"case_start_date\":\"2025-07-01\","
+            + "\"case_concluded_date\":\"2025-07-31\","
+            + "\"matter_type_code\":\"MAT01\","
+            + "\"outcome_code\":\"OUT01\""
+            + "}";
 
-    mockMvc.perform(post(SUBMISSIONS_CLAIMS_URI + "/{id}/claims", submissionId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(body))
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_CLAIMS_URI + "/{id}/claims", submissionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
         .andExpect(status().isCreated())
-        .andExpect(header().string("Location",
-            containsString(SUBMISSIONS_CLAIMS_URI + "/" + submissionId + "/claims/" + claimId)))
+        .andExpect(
+            header()
+                .string(
+                    "Location",
+                    containsString(
+                        SUBMISSIONS_CLAIMS_URI + "/" + submissionId + "/claims/" + claimId)))
         .andExpect(jsonPath("$.id").value(claimId.toString()));
 
     verify(claimService).createClaim(eq(submissionId), any(ClaimPost.class));
@@ -75,19 +82,25 @@ class ClaimControllerTest {
   void getClaim_returnsClaimDetails() throws Exception {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
-    final ClaimFields claimFields = new ClaimFields()
-        .status(ClaimStatus.VALID)
-        .scheduleReference("SCH-777")
-        .lineNumber(42)
-        .caseReferenceNumber("CRN-777")
-        .uniqueFileNumber("UFN-777")
-        .caseStartDate(java.time.LocalDate.parse("2025-06-01"))
-        .caseConcludedDate(java.time.LocalDate.parse("2025-06-30"))
-        .matterTypeCode("MAT77")
-        .outcomeCode("OUT77");
+    final ClaimFields claimFields =
+        new ClaimFields()
+            .status(ClaimStatus.VALID)
+            .scheduleReference("SCH-777")
+            .lineNumber(42)
+            .caseReferenceNumber("CRN-777")
+            .uniqueFileNumber("UFN-777")
+            .caseStartDate(java.time.LocalDate.parse("2025-06-01"))
+            .caseConcludedDate(java.time.LocalDate.parse("2025-06-30"))
+            .matterTypeCode("MAT77")
+            .outcomeCode("OUT77");
     when(claimService.getClaim(submissionId, claimId)).thenReturn(claimFields);
 
-    mockMvc.perform(get(SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}", submissionId, claimId))
+    mockMvc
+        .perform(
+            get(
+                SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
+                submissionId,
+                claimId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("VALID"))
         .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
@@ -106,9 +119,14 @@ class ClaimControllerTest {
     final UUID claimId = UUID.randomUUID();
     final String body = "{ \"status\": \"INVALID\" }";
 
-    mockMvc.perform(patch(SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}", submissionId, claimId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(body))
+    mockMvc
+        .perform(
+            patch(
+                    SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
+                    submissionId,
+                    claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
         .andExpect(status().isNoContent());
 
     verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));

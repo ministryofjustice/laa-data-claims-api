@@ -10,9 +10,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 
 /**
- * An aspect responsible for auditing changes to entities using Javers.
- * This aspect intercepts save and delete operations in the specified
- * repository package and commits changes to Javers for auditing.
+ * An aspect responsible for auditing changes to entities using Javers. This aspect intercepts save
+ * and delete operations in the specified repository package and commits changes to Javers for
+ * auditing.
  */
 @Aspect
 @Component
@@ -27,9 +27,9 @@ public class JaversAuditingAspect {
   private static final String API_USER = "api-user";
 
   /**
-   * Audits the save operation performed on an entity within the specified repository package.
-   * This is run after the successful execution of the save method in any of the classes in the
-   * specified repository package. It uses Javers to save it in the audit log table (jv_snapshot)
+   * Audits the save operation performed on an entity within the specified repository package. This
+   * is run after the successful execution of the save method in any of the classes in the specified
+   * repository package. It uses Javers to save it in the audit log table (jv_snapshot)
    *
    * @param joinPoint the join point providing reflective access to the intercepted method
    * @param result the result of the save operation, representing the saved entity
@@ -53,7 +53,8 @@ public class JaversAuditingAspect {
    * @param id Id of the entity being deleted, used to fetch the data to be audited, before it gets
    *     deleted.
    */
-  @Before("execution(* uk.gov.justice.laa.dstew.payments.claimsdata.repository.*.deleteById(..)) "
+  @Before(
+      "execution(* uk.gov.justice.laa.dstew.payments.claimsdata.repository.*.deleteById(..)) "
           + "&& args(id)")
   public void auditDelete(JoinPoint joinPoint, Object id) {
     // You need to load the entity before deletion to audit it

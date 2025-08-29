@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
-
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -21,9 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entity representing a claim linked to a submission.
- */
+/** Entity representing a claim linked to a submission. */
 @Getter
 @Setter
 @Builder
@@ -131,4 +127,3 @@ public class Claim {
   @Column(nullable = false)
   private Instant updatedOn;
 }
-

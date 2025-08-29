@@ -18,11 +18,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 @ExtendWith(MockitoExtension.class)
 class MatterStartMapperTest {
 
-  @InjectMocks
-  private MatterStartMapper mapper = new MatterStartMapperImpl();
+  @InjectMocks private MatterStartMapper mapper = new MatterStartMapperImpl();
 
-  @Spy
-  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+  @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void toMatterStart_null_returnsNull() {
@@ -35,24 +33,26 @@ class MatterStartMapperTest {
 
     @Test
     void toMatterStart_mapsAllFields() {
-      final MatterStartPost request = new MatterStartPost()
-          .scheduleReference("SCH-001")
-          .categoryCode("CAT-A")
-          .procurementAreaCode("PA-10")
-          .accessPointCode("AP-01")
-          .deliveryLocation("DL-XYZ");
+      final MatterStartPost request =
+          new MatterStartPost()
+              .scheduleReference("SCH-001")
+              .categoryCode("CAT-A")
+              .procurementAreaCode("PA-10")
+              .accessPointCode("AP-01")
+              .deliveryLocation("DL-XYZ");
 
       final MatterStart result = mapper.toMatterStart(request);
 
       assertNotNull(result);
 
-      SoftAssertions.assertSoftly(softly -> {
-        softly.assertThat(result.getScheduleReference()).isEqualTo("SCH-001");
-        softly.assertThat(result.getCategoryCode()).isEqualTo("CAT-A");
-        softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
-        softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
-        softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
-      });
+      SoftAssertions.assertSoftly(
+          softly -> {
+            softly.assertThat(result.getScheduleReference()).isEqualTo("SCH-001");
+            softly.assertThat(result.getCategoryCode()).isEqualTo("CAT-A");
+            softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
+            softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
+            softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
+          });
     }
   }
 
@@ -63,25 +63,26 @@ class MatterStartMapperTest {
     @Test
     void toMatterStart_mapsAllFields() {
 
-      final MatterStart request = MatterStart.builder()
-          .scheduleReference("SCH-001")
-          .categoryCode("CAT-A")
-          .procurementAreaCode("PA-10")
-          .accessPointCode("AP-01")
-          .deliveryLocation("DL-XYZ").build();
+      final MatterStart request =
+          MatterStart.builder()
+              .scheduleReference("SCH-001")
+              .categoryCode("CAT-A")
+              .procurementAreaCode("PA-10")
+              .accessPointCode("AP-01")
+              .deliveryLocation("DL-XYZ")
+              .build();
 
       final MatterStartGet result = mapper.toMatterStartGet(request);
 
       assertNotNull(result);
-      SoftAssertions.assertSoftly(softly -> {
-        softly.assertThat(result.getScheduleReference()).isEqualTo("SCH-001");
-        softly.assertThat(result.getCategoryCode()).isEqualTo("CAT-A");
-        softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
-        softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
-        softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
-      });
+      SoftAssertions.assertSoftly(
+          softly -> {
+            softly.assertThat(result.getScheduleReference()).isEqualTo("SCH-001");
+            softly.assertThat(result.getCategoryCode()).isEqualTo("CAT-A");
+            softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
+            softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
+            softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
+          });
     }
   }
-
-
 }

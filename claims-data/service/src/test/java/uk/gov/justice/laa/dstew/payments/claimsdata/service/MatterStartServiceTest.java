@@ -28,15 +28,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 @ExtendWith(MockitoExtension.class)
 class MatterStartServiceTest {
 
-  @Mock
-  private SubmissionRepository submissionRepository;
-  @Mock
-  private MatterStartRepository matterStartRepository;
-  @Mock
-  private MatterStartMapper matterStartMapper;
+  @Mock private SubmissionRepository submissionRepository;
+  @Mock private MatterStartRepository matterStartRepository;
+  @Mock private MatterStartMapper matterStartMapper;
 
-  @InjectMocks
-  private MatterStartService matterStartService;
+  @InjectMocks private MatterStartService matterStartService;
 
   @Nested
   @DisplayName("createMatterStart tests")
@@ -74,7 +70,6 @@ class MatterStartServiceTest {
           .isInstanceOf(SubmissionNotFoundException.class)
           .hasMessageContaining(missingSubmissionId.toString());
     }
-
   }
 
   @Nested
@@ -108,15 +103,13 @@ class MatterStartServiceTest {
           .thenReturn(Optional.of(MatterStart.builder().id(matterStartsId).build()));
       MatterStartGet expected =
           MatterStartGet.builder().categoryCode("CAT A").categoryCode("Access Code").build();
-      when(matterStartMapper.toMatterStartGet(any())).thenReturn(
-          expected);
+      when(matterStartMapper.toMatterStartGet(any())).thenReturn(expected);
       // When
       Optional<MatterStartGet> result =
           matterStartService.getMatterStart(submissionId, matterStartsId);
       // Then
       assertThat(result).isNotEmpty().get().isEqualTo(expected);
     }
-
 
     @Test
     @DisplayName("Should return empty")

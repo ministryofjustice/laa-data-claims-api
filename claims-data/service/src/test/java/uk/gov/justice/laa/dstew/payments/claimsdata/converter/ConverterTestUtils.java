@@ -1,14 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
-import io.micrometer.core.instrument.util.IOUtils;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
+import static org.springframework.util.ResourceUtils.getFile;
 
+import io.micrometer.core.instrument.util.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
-import static org.springframework.util.ResourceUtils.getFile;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 public class ConverterTestUtils {
 

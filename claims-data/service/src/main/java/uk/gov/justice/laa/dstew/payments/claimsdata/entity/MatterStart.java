@@ -18,9 +18,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entity representing a matter start linked to a submission.
- */
+/** Entity representing a matter start linked to a submission. */
 @Getter
 @Setter
 @Builder
@@ -60,4 +58,3 @@ public class MatterStart {
   @Column(nullable = false)
   private Instant updatedOn;
 }
-

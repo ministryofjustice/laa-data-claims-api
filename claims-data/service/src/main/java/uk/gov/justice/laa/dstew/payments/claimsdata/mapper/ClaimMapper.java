@@ -13,15 +13,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
 
-/**
- * MapStruct mapper for converting between claim models and entities.
- */
-@Mapper(componentModel = "spring",
+/** MapStruct mapper for converting between claim models and entities. */
+@Mapper(
+    componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
-    uses = GlobalStringMapper.class, imports = {java.util.UUID.class})
+    uses = GlobalStringMapper.class,
+    imports = {java.util.UUID.class})
 public interface ClaimMapper {
 
-  // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using these)
+  // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using
+  // these)
   /** Map a {@link ClaimPost} to a {@link Claim} entity. */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "submission", ignore = true)
@@ -63,4 +64,3 @@ public interface ClaimMapper {
   @Mapping(target = "createdByUserId", constant = "todo")
   ValidationErrorLog toValidationErrorLog(String error, Claim claim);
 }
-

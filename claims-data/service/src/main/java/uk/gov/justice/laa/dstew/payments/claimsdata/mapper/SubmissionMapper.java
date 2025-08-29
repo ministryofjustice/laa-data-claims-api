@@ -14,11 +14,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 
-
-/**
- * MapStruct mapper for converting between API models and Submission entities.
- */
-@Mapper(componentModel = "spring",
+/** MapStruct mapper for converting between API models and Submission entities. */
+@Mapper(
+    componentModel = "spring",
     uses = GlobalStringMapper.class,
     imports = {java.util.UUID.class})
 public interface SubmissionMapper {
@@ -56,10 +54,9 @@ public interface SubmissionMapper {
     return instant != null ? instant.atZone(ZoneId.systemDefault()).toLocalDate() : null;
   }
 
-
   /**
-   * Update a {@link Submission} entity from a {@link SubmissionPatch}.
-   * Only non-null values from the patch will be copied.
+   * Update a {@link Submission} entity from a {@link SubmissionPatch}. Only non-null values from
+   * the patch will be copied.
    *
    * @param patch the patch object
    * @param entity the entity to update
@@ -81,5 +78,4 @@ public interface SubmissionMapper {
   @Mapping(target = "errorDescription", source = "error")
   @Mapping(target = "createdByUserId", constant = "todo")
   ValidationErrorLog toValidationErrorLog(String error, Submission submission);
-
 }

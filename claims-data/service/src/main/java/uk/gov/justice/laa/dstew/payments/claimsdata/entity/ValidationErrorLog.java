@@ -17,9 +17,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entity representing a validation error linked to a submission and optionally a claim.
- */
+/** Entity representing a validation error linked to a submission and optionally a claim. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,8 +26,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name = "validation_error_log")
 public class ValidationErrorLog {
 
-  @Id
-  private UUID id;
+  @Id private UUID id;
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
@@ -56,8 +53,7 @@ public class ValidationErrorLog {
   @Column(nullable = false)
   private Instant createdOn;
 
-  @Column
-  private String updatedByUserId;
+  @Column private String updatedByUserId;
 
   @UpdateTimestamp
   @Column(nullable = false)

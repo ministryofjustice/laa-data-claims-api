@@ -10,10 +10,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 
-/**
- * MapStruct mapper for converting between client models and entities.
- */
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE,
+/** MapStruct mapper for converting between client models and entities. */
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = GlobalStringMapper.class)
 public interface ClientMapper {
 

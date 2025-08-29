@@ -1,11 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpStatus.*;
 
 class GlobalExceptionHandlerTest {
   GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
@@ -25,8 +25,8 @@ class GlobalExceptionHandlerTest {
   @DisplayName("Handle BulkSubmissionValidationException")
   void handleBulkSubmissionValidationException_returnsBadRequestStatusAndErrorMessage() {
     ResponseEntity<String> result =
-            globalExceptionHandler.handleValidationException(
-                    new BulkSubmissionValidationException("Field is required"));
+        globalExceptionHandler.handleValidationException(
+            new BulkSubmissionValidationException("Field is required"));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -38,8 +38,8 @@ class GlobalExceptionHandlerTest {
   @DisplayName("Handle BulkSubmissionInvalidFileException")
   void handleBulkSubmissionInvalidFileException_returnsBadRequestStatusAndErrorMessage() {
     ResponseEntity<String> result =
-            globalExceptionHandler.handleUnsupportedMediaTypeValidationException(
-                    new BulkSubmissionInvalidFileException("Unsupported media type"));
+        globalExceptionHandler.handleUnsupportedMediaTypeValidationException(
+            new BulkSubmissionInvalidFileException("Unsupported media type"));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(UNSUPPORTED_MEDIA_TYPE);

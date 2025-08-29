@@ -26,13 +26,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
-/**
- * Service containing business logic for handling claims.
- */
+/** Service containing business logic for handling claims. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ClaimService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+public class ClaimService
+    implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -111,10 +110,13 @@ public class ClaimService implements AbstractEntityLookup<Submission, Submission
     claimRepository.save(claim);
 
     if (claimPatch.getValidationErrors() != null && !claimPatch.getValidationErrors().isEmpty()) {
-      claimPatch.getValidationErrors().forEach(error -> {
-        ValidationErrorLog log = claimMapper.toValidationErrorLog(error, claim);
-        validationErrorLogRepository.save(log);
-      });
+      claimPatch
+          .getValidationErrors()
+          .forEach(
+              error -> {
+                ValidationErrorLog log = claimMapper.toValidationErrorLog(error, claim);
+                validationErrorLogRepository.save(log);
+              });
     }
   }
 
@@ -132,9 +134,12 @@ public class ClaimService implements AbstractEntityLookup<Submission, Submission
   }
 
   protected Claim requireClaim(UUID submissionId, UUID claimId) {
-    return claimRepository.findByIdAndSubmissionId(claimId, submissionId)
-        .orElseThrow(() -> new ClaimNotFoundException(
-            String.format("No claim %s for submission %s", claimId, submissionId)));
+    return claimRepository
+        .findByIdAndSubmissionId(claimId, submissionId)
+        .orElseThrow(
+            () ->
+                new ClaimNotFoundException(
+                    String.format("No claim %s for submission %s", claimId, submissionId)));
   }
 
   private boolean hasClientData(Client client) {
@@ -145,5 +150,4 @@ public class ClaimService implements AbstractEntityLookup<Submission, Submission
         || StringUtils.hasText(client.getClient2Surname())
         || client.getClient2DateOfBirth() != null;
   }
-
 }

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,8 +31,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
@@ -75,13 +74,12 @@ class ClaimServiceTest {
 
   public static Stream<Arguments> getClientTestingArguments() {
     return Stream.of(
-            Arguments.of(Client.builder().clientForename("John").build()),
-            Arguments.of(Client.builder().clientSurname("Smith").build()),
-            Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
-            Arguments.of(Client.builder().client2Forename("TestName").build()),
-            Arguments.of(Client.builder().client2Surname("TestSurname").build()),
-            Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build())
-    );
+        Arguments.of(Client.builder().clientForename("John").build()),
+        Arguments.of(Client.builder().clientSurname("Smith").build()),
+        Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
+        Arguments.of(Client.builder().client2Forename("TestName").build()),
+        Arguments.of(Client.builder().client2Surname("TestSurname").build()),
+        Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
   }
 
   @Test
@@ -149,7 +147,8 @@ class ClaimServiceTest {
     final ClaimFields result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
-    verify(clientMapper, never()).updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
+    verify(clientMapper, never())
+        .updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
   }
 
   @Test
@@ -216,17 +215,24 @@ class ClaimServiceTest {
   void shouldUpdateClaimAndLogValidationErrors() {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
-    final Claim claim = Claim.builder().id(claimId).submission(Submission.builder().id(submissionId).build()).build();
+    final Claim claim =
+        Claim.builder()
+            .id(claimId)
+            .submission(Submission.builder().id(submissionId).build())
+            .build();
     final ClaimPatch patch = new ClaimPatch().validationErrors(java.util.List.of("ERR1", "ERR2"));
 
-    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId)).thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationErrorLog(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim)))
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toValidationErrorLog(
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim)))
         .thenReturn(new ValidationErrorLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
     verify(claimMapper, org.mockito.Mockito.times(2))
-        .toValidationErrorLog(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim));
+        .toValidationErrorLog(
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim));
     verify(validationErrorLogRepository, org.mockito.Mockito.times(2))
         .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
   }

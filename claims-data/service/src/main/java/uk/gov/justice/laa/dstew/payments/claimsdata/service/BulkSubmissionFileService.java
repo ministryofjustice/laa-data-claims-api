@@ -25,14 +25,16 @@ public class BulkSubmissionFileService {
   }
 
   private FileExtension getFileExtension(MultipartFile file) {
-    String filename = !StringUtils.hasText(file.getOriginalFilename()) ? file.getName()
-                : file.getOriginalFilename();
+    String filename =
+        !StringUtils.hasText(file.getOriginalFilename())
+            ? file.getName()
+            : file.getOriginalFilename();
     try {
       int index = filename.lastIndexOf('.');
       return FileExtension.valueOf(filename.substring(index + 1).toUpperCase());
     } catch (NullPointerException | IllegalArgumentException e) {
       throw new BulkSubmissionFileReadException(
-                  "Unable to retrieve file extension from filename: %s".formatted(filename), e);
+          "Unable to retrieve file extension from filename: %s".formatted(filename), e);
     }
   }
 }

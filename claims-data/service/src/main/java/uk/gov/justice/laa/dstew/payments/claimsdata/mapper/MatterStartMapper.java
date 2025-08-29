@@ -6,9 +6,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 
-/**
- * MapStruct mapper for converting between matter start models and entities.
- */
+/** MapStruct mapper for converting between matter start models and entities. */
 @Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
 public interface MatterStartMapper {
 
@@ -23,4 +21,3 @@ public interface MatterStartMapper {
 
   MatterStartGet toMatterStartGet(MatterStart entity);
 }
-

@@ -11,5 +11,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
  * @param outcomes the submission outcomes
  * @param matterStarts the submission matter starts
  */
-public record CsvSubmission(CsvOffice office, CsvSchedule schedule, List<CsvOutcome> outcomes,
-    List<CsvMatterStarts> matterStarts) implements FileSubmission {}
+public record CsvSubmission(
+    CsvOffice office,
+    CsvSchedule schedule,
+    List<CsvOutcome> outcomes,
+    List<CsvMatterStarts> matterStarts)
+    implements FileSubmission {}

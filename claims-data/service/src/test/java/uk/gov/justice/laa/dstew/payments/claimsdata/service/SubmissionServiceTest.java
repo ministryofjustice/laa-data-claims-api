@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -14,13 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,19 +51,20 @@ class SubmissionServiceTest {
   @Test
   void shouldGetSubmission() {
     UUID submissionId = UUID.randomUUID();
-    Submission entity = Submission.builder()
-        .id(submissionId)
-        .bulkSubmissionId(UUID.randomUUID())
-        .officeAccountNumber("123-ABC")
-        .submissionPeriod("APR-2024")
-        .areaOfLaw("CIVIL")
-        .status(SubmissionStatus.CREATED)
-        .scheduleNumber("SCH-123")
-        .previousSubmissionId(submissionId)
-        .isNilSubmission(false)
-        .numberOfClaims(10)
-        .createdOn(Instant.now())
-        .build();
+    Submission entity =
+        Submission.builder()
+            .id(submissionId)
+            .bulkSubmissionId(UUID.randomUUID())
+            .officeAccountNumber("123-ABC")
+            .submissionPeriod("APR-2024")
+            .areaOfLaw("CIVIL")
+            .status(SubmissionStatus.CREATED)
+            .scheduleNumber("SCH-123")
+            .previousSubmissionId(submissionId)
+            .isNilSubmission(false)
+            .numberOfClaims(10)
+            .createdOn(Instant.now())
+            .build();
     when(submissionRepository.findById(submissionId)).thenReturn(java.util.Optional.of(entity));
     when(claimService.getClaimsForSubmission(submissionId)).thenReturn(java.util.List.of());
     when(matterStartService.getMatterStartIdsForSubmission(submissionId))
@@ -112,16 +113,14 @@ class SubmissionServiceTest {
     SubmissionPatch patch = new SubmissionPatch().validationErrors(java.util.List.of("ERR1"));
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
     when(submissionMapper.toValidationErrorLog(
-        org.mockito.ArgumentMatchers.anyString(),
-        org.mockito.ArgumentMatchers.eq(entity)))
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(entity)))
         .thenReturn(new ValidationErrorLog());
 
     submissionService.updateSubmission(id, patch);
 
     verify(submissionMapper)
         .toValidationErrorLog(
-            org.mockito.ArgumentMatchers.anyString(),
-            org.mockito.ArgumentMatchers.eq(entity));
+            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(entity));
     verify(validationErrorLogRepository)
         .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
   }
