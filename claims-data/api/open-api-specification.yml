@@ -568,6 +568,12 @@ components:
     SubmissionPatch:
       allOf:
         - $ref: '#/components/schemas/SubmissionFields'
+      type: object
+      properties:
+        validation_errors:
+          type: array
+          items:
+            type: string
     SubmissionStatus:
       type: string
       enum:

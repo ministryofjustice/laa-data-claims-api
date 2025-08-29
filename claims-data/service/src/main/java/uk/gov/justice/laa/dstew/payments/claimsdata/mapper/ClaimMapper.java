@@ -7,6 +7,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
@@ -17,7 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
  */
 @Mapper(componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
-    uses = GlobalStringMapper.class)
+    uses = GlobalStringMapper.class, imports = {java.util.UUID.class})
 public interface ClaimMapper {
 
   // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using these)
@@ -52,5 +53,14 @@ public interface ClaimMapper {
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
   void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
+
+  /** Map a validation error string to a ValidationErrorLog. */
+  @Mapping(target = "id", expression = "java(UUID.randomUUID())")
+  @Mapping(target = "submission", source = "claim.submission")
+  @Mapping(target = "claim", source = "claim")
+  @Mapping(target = "errorCode", source = "error")
+  @Mapping(target = "errorDescription", source = "error")
+  @Mapping(target = "createdByUserId", constant = "todo")
+  ValidationErrorLog toValidationErrorLog(String error, Claim claim);
 }
 

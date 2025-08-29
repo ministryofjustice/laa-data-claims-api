@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /**
@@ -36,6 +38,7 @@ public class ClaimService implements AbstractEntityLookup<Submission, Submission
   private final ClientRepository clientRepository;
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
+  private final ValidationErrorLogRepository validationErrorLogRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -106,6 +109,13 @@ public class ClaimService implements AbstractEntityLookup<Submission, Submission
     Claim claim = requireClaim(submissionId, claimId);
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
+
+    if (claimPatch.getValidationErrors() != null && !claimPatch.getValidationErrors().isEmpty()) {
+      claimPatch.getValidationErrors().forEach(error -> {
+        ValidationErrorLog log = claimMapper.toValidationErrorLog(error, claim);
+        validationErrorLogRepository.save(log);
+      });
+    }
   }
 
   /**
