@@ -1,26 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.util.ResourceUtils.getFile;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.File;
+import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.GlobalStringMapperImpl;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
-
-import java.io.File;
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.util.ResourceUtils.getFile;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
 public class BulkSubmissionCsvConverterTests {
 
@@ -59,8 +57,7 @@ public class BulkSubmissionCsvConverterTests {
   private static final String DUPLICATE_SCHEDULE_INPUT_FILE =
       "classpath:test_upload_files/csv/duplicate_schedule.csv";
 
-  private static final String CORRUPTED_FILE =
-      "classpath:test_upload_files/csv/corrupted_file.csv";
+  private static final String CORRUPTED_FILE = "classpath:test_upload_files/csv/corrupted_file.csv";
 
   @BeforeEach
   public void init() {
@@ -88,13 +85,15 @@ public class BulkSubmissionCsvConverterTests {
     }
 
     @Test
-    @DisplayName("Can convert a bulk submission file with outcomes and matterstarts to csv submission")
+    @DisplayName(
+        "Can convert a bulk submission file with outcomes and matterstarts to csv submission")
     void canConvertAllTypesToCsvSubmission() throws IOException {
       runTest(ALL_TYPES_INPUT_FILE, ALL_TYPES_CONVERTED_FILE);
     }
 
     @Test
-    @DisplayName("Can convert a bulk submission file with nil submission (office and schedule only)")
+    @DisplayName(
+        "Can convert a bulk submission file with nil submission (office and schedule only)")
     void canConvertNilSubmission() throws IOException {
       runTest(NIL_SUBMISSION_INPUT_FILE, NIL_SUBMISSION_CONVERTED_FILE);
     }
@@ -124,9 +123,9 @@ public class BulkSubmissionCsvConverterTests {
     void throwsExceptionWhenFileIsInvalid() throws IOException {
       MultipartFile file = getMultipartFile(CORRUPTED_FILE);
       assertThrows(
-              BulkSubmissionFileReadException.class,
-              () -> bulkSubmissionCsvConverter.convert(file),
-              "Unable to read file");
+          BulkSubmissionFileReadException.class,
+          () -> bulkSubmissionCsvConverter.convert(file),
+          "Unable to read file");
     }
 
     @Test

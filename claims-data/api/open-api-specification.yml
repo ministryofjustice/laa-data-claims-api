@@ -568,6 +568,12 @@ components:
     SubmissionPatch:
       allOf:
         - $ref: '#/components/schemas/SubmissionFields'
+      type: object
+      properties:
+        validation_errors:
+          type: array
+          items:
+            type: string
     SubmissionStatus:
       type: string
       enum:
@@ -642,6 +648,12 @@ components:
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/ClaimFields'
+      type: object
+      properties:
+        validation_errors:
+          type: array
+          items:
+            type: string
 
     ClaimStatus:
       type: string

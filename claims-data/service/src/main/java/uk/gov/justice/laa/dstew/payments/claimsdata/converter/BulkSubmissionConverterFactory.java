@@ -6,8 +6,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 
 /**
- * Factory for providing a bulk submission converter that corresponds to the given file
- * extension.
+ * Factory for providing a bulk submission converter that corresponds to the given file extension.
  */
 @Component
 @RequiredArgsConstructor

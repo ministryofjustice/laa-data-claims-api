@@ -47,9 +47,11 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     List<CsvMatterStarts> csvMatterStarts = new ArrayList<>();
 
     try (InputStream fileReader = file.getInputStream()) {
-      MappingIterator<List<String>> rowIterator = csvMapper.readerForListOf(String.class)
-                                                      .with(CsvParser.Feature.WRAP_AS_ARRAY)
-                                                      .readValues(fileReader);
+      MappingIterator<List<String>> rowIterator =
+          csvMapper
+              .readerForListOf(String.class)
+              .with(CsvParser.Feature.WRAP_AS_ARRAY)
+              .readValues(fileReader);
 
       while (rowIterator.hasNextValue()) {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
@@ -75,10 +77,12 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
             csvSchedule =
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
-          case CsvHeader.OUTCOME -> csvOutcomes.add(
-                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
-          case CsvHeader.MATTERSTARTS -> csvMatterStarts.add(
-                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
+          case CsvHeader.OUTCOME ->
+              csvOutcomes.add(
+                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
+          case CsvHeader.MATTERSTARTS ->
+              csvMatterStarts.add(
+                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
         }
       }
@@ -111,20 +115,22 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
 
   private Map<String, String> getValues(List<String> row, CsvHeader header) {
     Map<String, String> values = new HashMap<>();
-    row.subList(1, row.size()).forEach(rowValue -> {
-      rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
-      if (StringUtils.isBlank(rowValue)) {
-        log.debug("Blank row value found for {} row. Skipping...", header);
-        return;
-      }
-      String[] entry = rowValue.split("=", 2);
-      if (entry.length == 2) {
-        values.put(entry[0], entry[1]);
-      } else {
-        throw new BulkSubmissionFileReadException(
-            "Unable to read entry for %s:'%s'".formatted(header.name(), rowValue));
-      }
-    });
+    row.subList(1, row.size())
+        .forEach(
+            rowValue -> {
+              rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
+              if (StringUtils.isBlank(rowValue)) {
+                log.debug("Blank row value found for {} row. Skipping...", header);
+                return;
+              }
+              String[] entry = rowValue.split("=", 2);
+              if (entry.length == 2) {
+                values.put(entry[0], entry[1]);
+              } else {
+                throw new BulkSubmissionFileReadException(
+                    "Unable to read entry for %s:'%s'".formatted(header.name(), rowValue));
+              }
+            });
     return values;
   }
 

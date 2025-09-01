@@ -27,16 +27,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 @WebMvcTest(MatterStartsController.class)
-@ImportAutoConfiguration(exclude = {
-    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
+@ImportAutoConfiguration(
+    exclude = {
+      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
+    })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class MatterStartsControllerTest {
 
-  @Autowired
-  private MockMvcTester mockMvc;
+  @Autowired private MockMvcTester mockMvc;
 
-  @MockitoBean
-  private MatterStartService matterStartService;
+  @MockitoBean private MatterStartService matterStartService;
 
   @Nested
   @DisplayName("POST: /api/v0/submissions/{id}/matter-starts tests")
@@ -49,7 +49,8 @@ class MatterStartsControllerTest {
       when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartPost.class)))
           .thenReturn(matterStartId);
 
-      final String body = """
+      final String body =
+          """
           {
             "schedule_reference": "SCH-123",
             "category_code": "CAT-01",
@@ -59,22 +60,25 @@ class MatterStartsControllerTest {
           }""";
 
       assertThat(
-          mockMvc.post().uri(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(body))
+              mockMvc
+                  .post()
+                  .uri(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body))
           .hasStatus(HttpStatus.CREATED)
           .hasHeader(
-              "Location", "http://localhost" + API_URI_PREFIX + "/submissions/" + submissionId
+              "Location",
+              "http://localhost"
+                  + API_URI_PREFIX
+                  + "/submissions/"
+                  + submissionId
                   + "/matter-starts/"
                   + matterStartId)
           .bodyJson()
-          .hasPathSatisfying(
-              "$.id", id -> assertThat(id)
-                  .isEqualTo(matterStartId.toString()));
+          .hasPathSatisfying("$.id", id -> assertThat(id).isEqualTo(matterStartId.toString()));
 
       verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartPost.class));
     }
-
   }
 
   @Nested
@@ -89,17 +93,19 @@ class MatterStartsControllerTest {
       UUID submissionId = UUID.randomUUID();
       Optional<MatterStartGet> expected =
           Optional.of(new MatterStartGet().categoryCode("Category"));
-      when(matterStartService.getMatterStart(submissionId, id)).thenReturn(
-          expected);
+      when(matterStartService.getMatterStart(submissionId, id)).thenReturn(expected);
       // When
       ObjectMapper mapper = new ObjectMapper();
-      assertThat(mockMvc.get().uri(
-          API_URI_PREFIX + "/submissions/{id}/matter-starts/{matter-start-id}",
-          submissionId, id))
+      assertThat(
+              mockMvc
+                  .get()
+                  .uri(
+                      API_URI_PREFIX + "/submissions/{id}/matter-starts/{matter-start-id}",
+                      submissionId,
+                      id))
           .hasStatusOk()
           .bodyJson()
           .isLenientlyEqualTo(mapper.writeValueAsString(expected.get()));
-
     }
   }
 }

@@ -14,8 +14,9 @@ import java.util.List;
  * @param outcomes the submission outcomes
  */
 @JacksonXmlRootElement(localName = "schedule")
-public record XmlSchedule(@JacksonXmlProperty(isAttribute = true) String submissionPeriod,
+public record XmlSchedule(
+    @JacksonXmlProperty(isAttribute = true) String submissionPeriod,
     @JacksonXmlProperty(isAttribute = true) String areaOfLaw,
     @JacksonXmlProperty(isAttribute = true) String scheduleNum,
-    @JacksonXmlElementWrapper(useWrapping = false) @JacksonXmlProperty(
-        localName = "outcome") List<XmlOutcome> outcomes) {}
+    @JacksonXmlElementWrapper(useWrapping = false) @JacksonXmlProperty(localName = "outcome")
+        List<XmlOutcome> outcomes) {}

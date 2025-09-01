@@ -1,5 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,13 +21,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 public class BulkSubmissionMapperTests {
@@ -29,8 +28,7 @@ public class BulkSubmissionMapperTests {
   @InjectMocks
   private final BulkSubmissionMapper bulkSubmissionMapper = new BulkSubmissionMapperImpl();
 
-  @Spy
-  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+  @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   @DisplayName("Should throw an exception if the submission file type is not supported")
@@ -38,9 +36,9 @@ public class BulkSubmissionMapperTests {
     FileSubmission csvSubmission = mock(FileSubmission.class);
 
     assertThrows(
-            IllegalArgumentException.class,
-            () -> bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission),
-            "Unsupported submission type");
+        IllegalArgumentException.class,
+        () -> bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission),
+        "Unsupported submission type");
   }
 
   @Test
@@ -165,7 +163,8 @@ public class BulkSubmissionMapperTests {
 
     GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
 
-    GetBulkSubmission200ResponseDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+    GetBulkSubmission200ResponseDetails actual =
+        bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
   }
@@ -290,26 +289,26 @@ public class BulkSubmissionMapperTests {
 
     GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(false);
 
-    GetBulkSubmission200ResponseDetails actual = bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+    GetBulkSubmission200ResponseDetails actual =
+        bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
   }
 
-  private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(boolean includeMatterStarts) {
+  private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(
+      boolean includeMatterStarts) {
     var expectedBulkSubmissionOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
     var expectedBulkSubmissionOutcome = ClaimsDataTestUtil.getBulkSubmissionOutcome();
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
 
     List<BulkSubmissionMatterStart> expectedMatterStarts =
-        includeMatterStarts
-            ? List.of(expectedBulkSubmissionMatterStart)
-            : Collections.emptyList();
+        includeMatterStarts ? List.of(expectedBulkSubmissionMatterStart) : Collections.emptyList();
 
     return new GetBulkSubmission200ResponseDetails()
-            .office(expectedBulkSubmissionOffice)
-            .schedule(expectedBulkSubmissionSchedule)
-            .outcomes(List.of(expectedBulkSubmissionOutcome))
-            .matterStarts(expectedMatterStarts);
+        .office(expectedBulkSubmissionOffice)
+        .schedule(expectedBulkSubmissionSchedule)
+        .outcomes(List.of(expectedBulkSubmissionOutcome))
+        .matterStarts(expectedMatterStarts);
   }
 }

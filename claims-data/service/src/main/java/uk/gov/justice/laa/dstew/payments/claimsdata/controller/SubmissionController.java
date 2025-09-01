@@ -18,9 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
-/**
- * Controller for handling submissions requests.
- */
+/** Controller for handling submissions requests. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -55,8 +53,7 @@ public class SubmissionController implements SubmissionsApi {
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
-      Pageable pageable
-  ) {
+      Pageable pageable) {
     // TODO: DSTEW-318:Implement Search endpoint for claim submissions
     return ResponseEntity.ok(new SubmissionsResultSet());
   }

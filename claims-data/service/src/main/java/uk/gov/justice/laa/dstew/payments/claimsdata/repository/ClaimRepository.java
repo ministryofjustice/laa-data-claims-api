@@ -7,13 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 
-/**
- * Repository for managing claim entities linked to submissions.
- */
+/** Repository for managing claim entities linked to submissions. */
 @Repository
 public interface ClaimRepository extends JpaRepository<Claim, UUID> {
   List<Claim> findBySubmissionId(UUID submissionId);
 
   Optional<Claim> findByIdAndSubmissionId(UUID id, UUID submissionId);
 }
-

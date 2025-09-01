@@ -2,6 +2,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
@@ -31,9 +34,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -42,6 +46,7 @@ class ClaimServiceTest {
   @Mock private ClientRepository clientRepository;
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
+  @Mock private ValidationErrorLogRepository validationErrorLogRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -72,13 +77,12 @@ class ClaimServiceTest {
 
   public static Stream<Arguments> getClientTestingArguments() {
     return Stream.of(
-            Arguments.of(Client.builder().clientForename("John").build()),
-            Arguments.of(Client.builder().clientSurname("Smith").build()),
-            Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
-            Arguments.of(Client.builder().client2Forename("TestName").build()),
-            Arguments.of(Client.builder().client2Surname("TestSurname").build()),
-            Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build())
-    );
+        Arguments.of(Client.builder().clientForename("John").build()),
+        Arguments.of(Client.builder().clientSurname("Smith").build()),
+        Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
+        Arguments.of(Client.builder().client2Forename("TestName").build()),
+        Arguments.of(Client.builder().client2Surname("TestSurname").build()),
+        Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
   }
 
   @Test
@@ -146,7 +150,7 @@ class ClaimServiceTest {
     final ClaimFields result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
-    verify(clientMapper, never()).updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
+    verify(clientMapper, never()).updateClaimFieldsFromClient(any(), eq(fields));
   }
 
   @Test
@@ -207,5 +211,28 @@ class ClaimServiceTest {
         claimService.getClaimsForSubmission(submissionId);
 
     assertThat(result).containsExactly(inner);
+  }
+
+  @Test
+  void shouldUpdateClaimAndLogValidationErrors() {
+    final UUID submissionId = UUID.randomUUID();
+    final UUID claimId = UUID.randomUUID();
+    final Claim claim =
+        Claim.builder()
+            .id(claimId)
+            .submission(Submission.builder().id(submissionId).build())
+            .build();
+    final ClaimPatch patch = new ClaimPatch().validationErrors(java.util.List.of("ERR1", "ERR2"));
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toValidationErrorLog(anyString(), eq(claim)))
+        .thenReturn(new ValidationErrorLog());
+
+    claimService.updateClaim(submissionId, claimId, patch);
+
+    verify(claimMapper, org.mockito.Mockito.times(2)).toValidationErrorLog(anyString(), eq(claim));
+    verify(validationErrorLogRepository, org.mockito.Mockito.times(2))
+        .save(any(ValidationErrorLog.class));
   }
 }

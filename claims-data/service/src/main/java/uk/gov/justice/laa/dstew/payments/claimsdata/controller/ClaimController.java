@@ -14,9 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
-/**
- * Controller for handling claims requests.
- */
+/** Controller for handling claims requests. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -24,7 +22,8 @@ public class ClaimController implements ClaimsApi {
   private final ClaimService claimService;
 
   @Override
-  public ResponseEntity<CreateClaim201Response> createClaim(UUID submissionId, ClaimPost claimPost) {
+  public ResponseEntity<CreateClaim201Response> createClaim(
+      UUID submissionId, ClaimPost claimPost) {
     UUID claimId = claimService.createClaim(submissionId, claimPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
@@ -41,8 +40,7 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
-  public ResponseEntity<Void> updateClaim(
-      UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+  public ResponseEntity<Void> updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
   }

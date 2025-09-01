@@ -1,8 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
-/**
- * The exception thrown when bulk submission not found.
- */
+/** The exception thrown when bulk submission not found. */
 public class BulkSubmissionNotFoundException extends RuntimeException {
   /**
    * Constructor for BulkSubmissionNotFoundException.

@@ -1,5 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,108 +21,92 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class BulkSubmissionServiceTest {
 
-    @Mock
-    BulkSubmissionFileService bulkSubmissionFileService;
+  @Mock BulkSubmissionFileService bulkSubmissionFileService;
 
-    @Mock
-    BulkSubmissionRepository bulkSubmissionRepository;
+  @Mock BulkSubmissionRepository bulkSubmissionRepository;
 
-    @Mock
-    BulkSubmissionMapper bulkSubmissionMapper;
+  @Mock BulkSubmissionMapper bulkSubmissionMapper;
 
-    @Spy
-    @InjectMocks
-    BulkSubmissionService bulkSubmissionService;
+  @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 
-    @Test
-    @DisplayName("Returns the bulk submission details")
-    void submitBulkSubmissionFile() {
-        // Setup and mock
-        MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
-        String userId = "test-user-id";
-        GetBulkSubmission200ResponseDetails mockDetails = mock(GetBulkSubmission200ResponseDetails.class);
-        doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+  @Test
+  @DisplayName("Returns the bulk submission details")
+  void submitBulkSubmissionFile() {
+    // Setup and mock
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    String userId = "test-user-id";
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
 
-        // Test
-        CreateBulkSubmission201Response response = bulkSubmissionService.submitBulkSubmissionFile(userId, file);
+    // Test
+    CreateBulkSubmission201Response response =
+        bulkSubmissionService.submitBulkSubmissionFile(userId, file);
 
-        // Assert
-        assertNotNull(response);
-        assertEquals(1, response.getSubmissionIds().size());
-        assertNotNull(response.getSubmissionIds().getFirst());
+    // Assert
+    assertNotNull(response);
+    assertEquals(1, response.getSubmissionIds().size());
+    assertNotNull(response.getSubmissionIds().getFirst());
 
-        // Capture and verify saved BulkSubmission
-        ArgumentCaptor<BulkSubmission> captor = ArgumentCaptor.forClass(BulkSubmission.class);
-        verify(bulkSubmissionRepository).save(captor.capture());
+    // Capture and verify saved BulkSubmission
+    ArgumentCaptor<BulkSubmission> captor = ArgumentCaptor.forClass(BulkSubmission.class);
+    verify(bulkSubmissionRepository).save(captor.capture());
 
-        BulkSubmission captured = captor.getValue();
+    BulkSubmission captured = captor.getValue();
 
-        assertThat(captured)
-                .extracting(
-                        BulkSubmission::getCreatedByUserId,
-                        BulkSubmission::getData,
-                        BulkSubmission::getStatus
-                ).containsExactly(
-                        userId,
-                        mockDetails,
-                        BulkSubmissionStatus.READY_FOR_PARSING
-                );
-    }
+    assertThat(captured)
+        .extracting(
+            BulkSubmission::getCreatedByUserId, BulkSubmission::getData, BulkSubmission::getStatus)
+        .containsExactly(userId, mockDetails, BulkSubmissionStatus.READY_FOR_PARSING);
+  }
 
-    @Test
-    @DisplayName("Returns the bulk submission details from the multipart file")
-    void returnsBulkSubmissionDetailsFromFile() {
-        MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
-        FileSubmission csvSubmission = mock(CsvSubmission.class);
-        GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
-        when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
-        when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission)).thenReturn(expected);
+  @Test
+  @DisplayName("Returns the bulk submission details from the multipart file")
+  void returnsBulkSubmissionDetailsFromFile() {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    FileSubmission csvSubmission = mock(CsvSubmission.class);
+    GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
+    when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
+    when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission)).thenReturn(expected);
 
-        GetBulkSubmission200ResponseDetails actual = bulkSubmissionService.getBulkSubmissionDetails(file);
+    GetBulkSubmission200ResponseDetails actual =
+        bulkSubmissionService.getBulkSubmissionDetails(file);
 
-        assertEquals(expected, actual);
-    }
+    assertEquals(expected, actual);
+  }
 
-    @Test
-    @DisplayName("Returns the bulk submission")
-    void returnsBulkSubmission() {
-        var id = UUID.randomUUID();
-        var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
-        var expectedBulkSubmission = new BulkSubmission();
-        expectedBulkSubmission.setId(id);
-        expectedBulkSubmission.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
-        expectedBulkSubmission.setData(expectedDetails);
+  @Test
+  @DisplayName("Returns the bulk submission")
+  void returnsBulkSubmission() {
+    var id = UUID.randomUUID();
+    var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
+    var expectedBulkSubmission = new BulkSubmission();
+    expectedBulkSubmission.setId(id);
+    expectedBulkSubmission.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+    expectedBulkSubmission.setData(expectedDetails);
 
-        var expectedResponse = new GetBulkSubmission200Response();
-        expectedResponse.setBulkSubmissionId(id);
-        expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
-        expectedResponse.details(expectedDetails);
+    var expectedResponse = new GetBulkSubmission200Response();
+    expectedResponse.setBulkSubmissionId(id);
+    expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+    expectedResponse.details(expectedDetails);
 
-        when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
+    when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
 
-        var bulkSubmissionResponse = bulkSubmissionService.getBulkSubmission(id);
+    var bulkSubmissionResponse = bulkSubmissionService.getBulkSubmission(id);
 
-        assertEquals(expectedResponse, bulkSubmissionResponse);
-    }
+    assertEquals(expectedResponse, bulkSubmissionResponse);
+  }
 
-    @Test
-    @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
-    void shouldThrowWhenBulkSubmissionNotFound() {
-        var id = UUID.randomUUID();
-        when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
+  @Test
+  @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
+  void shouldThrowWhenBulkSubmissionNotFound() {
+    var id = UUID.randomUUID();
+    when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(
-            BulkSubmissionNotFoundException.class,
-            () -> bulkSubmissionService.getBulkSubmission(id));
-    }
+    assertThrows(
+        BulkSubmissionNotFoundException.class, () -> bulkSubmissionService.getBulkSubmission(id));
+  }
 }

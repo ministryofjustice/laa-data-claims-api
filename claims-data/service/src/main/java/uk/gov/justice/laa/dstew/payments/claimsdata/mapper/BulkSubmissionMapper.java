@@ -55,7 +55,9 @@ public interface BulkSubmissionMapper {
    * @param submission the java representation of the csv bulk submission file
    * @return the API model for the bulk submission.
    */
-  @Mapping(target = "matterStarts", source = "matterStarts",
+  @Mapping(
+      target = "matterStarts",
+      source = "matterStarts",
       defaultExpression = "java(new ArrayList<>())")
   GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(CsvSubmission submission);
 
@@ -100,26 +102,35 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "caseStartDate", source = "caseStartDate")
   @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth")
   @Mapping(target = "workConcludedDate", source = "workConcludedDate")
-  @Mapping(
-      target = "transferDate", source = "transferDate")
-  @Mapping(
-      target = "surgeryDate", source = "surgeryDate")
-  @Mapping(
-      target = "repOrderDate", source = "repOrderDate")
+  @Mapping(target = "transferDate", source = "transferDate")
+  @Mapping(target = "surgeryDate", source = "surgeryDate")
+  @Mapping(target = "repOrderDate", source = "repOrderDate")
   @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
-      target = "vatIndicator", source = "vatIndicator", qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "londonNonlondonRate", source = "londonNonlondonRate",
+      target = "vatIndicator",
+      source = "vatIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "toleranceIndicator", source = "toleranceIndicator",
+  @Mapping(
+      target = "londonNonlondonRate",
+      source = "londonNonlondonRate",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "toleranceIndicator",
+      source = "toleranceIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "legacyCase", source = "legacyCase", qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "postalApplAccp", source = "postalApplAccp",
+  @Mapping(
+      target = "postalApplAccp",
+      source = "postalApplAccp",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "substantiveHearing", source = "substantiveHearing",
+  @Mapping(
+      target = "substantiveHearing",
+      source = "substantiveHearing",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "additionalTravelPayment", source = "additionalTravelPayment",
+  @Mapping(
+      target = "additionalTravelPayment",
+      source = "additionalTravelPayment",
       qualifiedByName = "outcomeFieldToBoolean")
   BulkSubmissionOutcome toBulkSubmissionOutcome(XmlOutcome outcome);
 
@@ -132,26 +143,35 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "caseStartDate", source = "caseStartDate")
   @Mapping(target = "clientDateOfBirth", source = "clientDateOfBirth")
   @Mapping(target = "workConcludedDate", source = "workConcludedDate")
-  @Mapping(
-      target = "transferDate", source = "transferDate")
-  @Mapping(
-      target = "surgeryDate", source = "surgeryDate")
-  @Mapping(
-      target = "repOrderDate", source = "repOrderDate")
+  @Mapping(target = "transferDate", source = "transferDate")
+  @Mapping(target = "surgeryDate", source = "surgeryDate")
+  @Mapping(target = "repOrderDate", source = "repOrderDate")
   @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
-      target = "vatIndicator", source = "vatIndicator", qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "londonNonlondonRate", source = "londonNonlondonRate",
+      target = "vatIndicator",
+      source = "vatIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "toleranceIndicator", source = "toleranceIndicator",
+  @Mapping(
+      target = "londonNonlondonRate",
+      source = "londonNonlondonRate",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "toleranceIndicator",
+      source = "toleranceIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "legacyCase", source = "legacyCase", qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "postalApplAccp", source = "postalApplAccp",
+  @Mapping(
+      target = "postalApplAccp",
+      source = "postalApplAccp",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "substantiveHearing", source = "substantiveHearing",
+  @Mapping(
+      target = "substantiveHearing",
+      source = "substantiveHearing",
       qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "additionalTravelPayment", source = "additionalTravelPayment",
+  @Mapping(
+      target = "additionalTravelPayment",
+      source = "additionalTravelPayment",
       qualifiedByName = "outcomeFieldToBoolean")
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 

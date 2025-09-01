@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -18,24 +19,23 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
 
-  @InjectMocks
-  private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
+  @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
 
-  @Spy
-  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+  @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void shouldMapToSubmissionEntity() {
     UUID id = UUID.randomUUID();
     UUID bulkId = UUID.randomUUID();
-    SubmissionPost post = new SubmissionPost()
-        .submissionId(id)
-        .bulkSubmissionId(bulkId)
-        .officeAccountNumber("12345")
-        .submissionPeriod("2025-07")
-        .areaOfLaw("crime")
-        .isNilSubmission(false)
-        .numberOfClaims(1);
+    SubmissionPost post =
+        new SubmissionPost()
+            .submissionId(id)
+            .bulkSubmissionId(bulkId)
+            .officeAccountNumber("12345")
+            .submissionPeriod("2025-07")
+            .areaOfLaw("crime")
+            .isNilSubmission(false)
+            .numberOfClaims(1);
 
     Submission result = submissionMapper.toSubmission(post);
 
@@ -81,5 +81,19 @@ class SubmissionMapperTest {
 
     assertThat(submission.getScheduleNumber()).isEqualTo("456");
     assertThat(submission.getIsNilSubmission()).isTrue();
+  }
+
+  @Test
+  void toValidationErrorLog_mapsFields() {
+    Submission submission = Submission.builder().id(UUID.randomUUID()).build();
+
+    ValidationErrorLog log = submissionMapper.toValidationErrorLog("ERR1", submission);
+
+    assertThat(log.getId()).isNotNull();
+    assertThat(log.getSubmission()).isEqualTo(submission);
+    assertThat(log.getClaim()).isNull();
+    assertThat(log.getErrorCode()).isEqualTo("ERR1");
+    assertThat(log.getErrorDescription()).isEqualTo("ERR1");
+    assertThat(log.getCreatedByUserId()).isEqualTo("todo");
   }
 }

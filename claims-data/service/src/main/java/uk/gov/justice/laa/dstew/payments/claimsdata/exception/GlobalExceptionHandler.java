@@ -9,9 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/**
- * The global exception handler for all exceptions.
- */
+/** The global exception handler for all exceptions. */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -47,7 +45,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    *     message
    */
   @ExceptionHandler(BulkSubmissionInvalidFileException.class)
-  public ResponseEntity<String> handleUnsupportedMediaTypeValidationException(BulkSubmissionInvalidFileException ex) {
+  public ResponseEntity<String> handleUnsupportedMediaTypeValidationException(
+      BulkSubmissionInvalidFileException ex) {
     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ex.getMessage());
   }
 
@@ -58,8 +57,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    * @return the response status with error message
    */
   @ExceptionHandler(SubmissionNotFoundException.class)
-  public ResponseEntity<String> handleSubmissionNotFound(
-      SubmissionNotFoundException exception) {
+  public ResponseEntity<String> handleSubmissionNotFound(SubmissionNotFoundException exception) {
     return ResponseEntity.status(NOT_FOUND).body(exception.getMessage());
   }
 

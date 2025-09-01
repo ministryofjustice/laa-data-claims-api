@@ -19,11 +19,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 @ExtendWith(MockitoExtension.class)
 class ClientMapperTest {
 
-  @InjectMocks
-  private ClientMapperImpl mapper = new ClientMapperImpl();
+  @InjectMocks private ClientMapperImpl mapper = new ClientMapperImpl();
 
-  @Spy
-  private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+  @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
   void toClient_null_returnsNull() {
@@ -35,29 +33,30 @@ class ClientMapperTest {
     final LocalDate dob1 = LocalDate.of(1990, 5, 20);
     final LocalDate dob2 = LocalDate.of(1992, 7, 15);
 
-    final ClaimPost post = new ClaimPost()
-        .clientForename("John")
-        .clientSurname("Doe")
-        .clientDateOfBirth(dob1)
-        .uniqueClientNumber("UCN-123")
-        .clientPostcode("AB1 2CD")
-        .genderCode("M")
-        .ethnicityCode("ETH1")
-        .disabilityCode("DIS1")
-        .isLegallyAided(true)
-        .clientTypeCode("TYPE-A")
-        .homeOfficeClientNumber("HO-999")
-        .claReferenceNumber("CLA-111")
-        .claExemptionCode("EX-22")
-        .client2Forename("Jane")
-        .client2Surname("Roe")
-        .client2DateOfBirth(dob2)
-        .client2Ucn("UCN-456")
-        .client2Postcode("EF3 4GH")
-        .client2GenderCode("F")
-        .client2EthnicityCode("ETH2")
-        .client2DisabilityCode("DIS2")
-        .client2IsLegallyAided(false);
+    final ClaimPost post =
+        new ClaimPost()
+            .clientForename("John")
+            .clientSurname("Doe")
+            .clientDateOfBirth(dob1)
+            .uniqueClientNumber("UCN-123")
+            .clientPostcode("AB1 2CD")
+            .genderCode("M")
+            .ethnicityCode("ETH1")
+            .disabilityCode("DIS1")
+            .isLegallyAided(true)
+            .clientTypeCode("TYPE-A")
+            .homeOfficeClientNumber("HO-999")
+            .claReferenceNumber("CLA-111")
+            .claExemptionCode("EX-22")
+            .client2Forename("Jane")
+            .client2Surname("Roe")
+            .client2DateOfBirth(dob2)
+            .client2Ucn("UCN-456")
+            .client2Postcode("EF3 4GH")
+            .client2GenderCode("F")
+            .client2EthnicityCode("ETH2")
+            .client2DisabilityCode("DIS2")
+            .client2IsLegallyAided(false);
 
     final Client client = mapper.toClient(post);
 
@@ -88,10 +87,8 @@ class ClientMapperTest {
 
   @Test
   void updateClaimFieldsFromClient_nullEntity_noChange() {
-    final ClaimFields fields = ClaimFields.builder()
-        .clientForename("Keep")
-        .clientSurname("Same")
-        .build();
+    final ClaimFields fields =
+        ClaimFields.builder().clientForename("Keep").clientSurname("Same").build();
 
     mapper.updateClaimFieldsFromClient(null, fields);
 
@@ -102,56 +99,58 @@ class ClientMapperTest {
   @Test
   void updateClaimFieldsFromClient_updatesOnlyNonNullFields() {
     final LocalDate initialDob = LocalDate.of(1980, 1, 1);
-    final ClaimFields fields = ClaimFields.builder()
-        .clientForename("OldForename")
-        .clientSurname("OldSurname")
-        .clientDateOfBirth(initialDob)
-        .uniqueClientNumber("OLD-UCN")
-        .clientPostcode("OLD-PC")
-        .genderCode("OLD-G")
-        .ethnicityCode("OLD-E")
-        .disabilityCode("OLD-D")
-        .isLegallyAided(false)
-        .clientTypeCode("OLD-TYPE")
-        .homeOfficeClientNumber("OLD-HO")
-        .claReferenceNumber("OLD-CLA")
-        .claExemptionCode("OLD-EX")
-        .client2Forename("Old2F")
-        .client2Surname("Old2S")
-        .client2DateOfBirth(LocalDate.of(1985, 2, 2))
-        .client2Ucn("OLD-UCN2")
-        .client2Postcode("OLD-PC2")
-        .client2GenderCode("OLD-G2")
-        .client2EthnicityCode("OLD-E2")
-        .client2DisabilityCode("OLD-D2")
-        .client2IsLegallyAided(true)
-        .build();
+    final ClaimFields fields =
+        ClaimFields.builder()
+            .clientForename("OldForename")
+            .clientSurname("OldSurname")
+            .clientDateOfBirth(initialDob)
+            .uniqueClientNumber("OLD-UCN")
+            .clientPostcode("OLD-PC")
+            .genderCode("OLD-G")
+            .ethnicityCode("OLD-E")
+            .disabilityCode("OLD-D")
+            .isLegallyAided(false)
+            .clientTypeCode("OLD-TYPE")
+            .homeOfficeClientNumber("OLD-HO")
+            .claReferenceNumber("OLD-CLA")
+            .claExemptionCode("OLD-EX")
+            .client2Forename("Old2F")
+            .client2Surname("Old2S")
+            .client2DateOfBirth(LocalDate.of(1985, 2, 2))
+            .client2Ucn("OLD-UCN2")
+            .client2Postcode("OLD-PC2")
+            .client2GenderCode("OLD-G2")
+            .client2EthnicityCode("OLD-E2")
+            .client2DisabilityCode("OLD-D2")
+            .client2IsLegallyAided(true)
+            .build();
 
     final LocalDate newDob1 = LocalDate.of(1999, 9, 9);
-    final Client entity = Client.builder()
-        .clientForename("NewForename")
-        .clientSurname("NewSurname")
-        .clientDateOfBirth(newDob1)
-        .uniqueClientNumber(null)
-        .clientPostcode("NEW-PC")
-        .genderCode(null)
-        .ethnicityCode("NEW-E")
-        .disabilityCode(null)
-        .isLegallyAided(true)
-        .clientTypeCode("NEW-TYPE")
-        .homeOfficeClientNumber(null)
-        .claReferenceNumber("NEW-CLA")
-        .claExemptionCode(null)
-        .client2Forename("New2F")
-        .client2Surname(null)
-        .client2DateOfBirth(null)
-        .client2Ucn("NEW-UCN2")
-        .client2Postcode(null)
-        .client2GenderCode("NEW-G2")
-        .client2EthnicityCode(null)
-        .client2DisabilityCode("NEW-D2")
-        .client2IsLegallyAided(false)
-        .build();
+    final Client entity =
+        Client.builder()
+            .clientForename("NewForename")
+            .clientSurname("NewSurname")
+            .clientDateOfBirth(newDob1)
+            .uniqueClientNumber(null)
+            .clientPostcode("NEW-PC")
+            .genderCode(null)
+            .ethnicityCode("NEW-E")
+            .disabilityCode(null)
+            .isLegallyAided(true)
+            .clientTypeCode("NEW-TYPE")
+            .homeOfficeClientNumber(null)
+            .claReferenceNumber("NEW-CLA")
+            .claExemptionCode(null)
+            .client2Forename("New2F")
+            .client2Surname(null)
+            .client2DateOfBirth(null)
+            .client2Ucn("NEW-UCN2")
+            .client2Postcode(null)
+            .client2GenderCode("NEW-G2")
+            .client2EthnicityCode(null)
+            .client2DisabilityCode("NEW-D2")
+            .client2IsLegallyAided(false)
+            .build();
 
     mapper.updateClaimFieldsFromClient(entity, fields);
 

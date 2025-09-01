@@ -28,8 +28,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
 @WebMvcTest(SubmissionController.class)
-@ImportAutoConfiguration(exclude = {org.springframework.boot.autoconfigure.security.servlet
-                                 .SecurityAutoConfiguration.class})
+@ImportAutoConfiguration(
+    exclude = {
+      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
+    })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class SubmissionControllerTest {
   private static final String SUBMISSIONS_URI = API_URI_PREFIX + "/submissions";
@@ -43,16 +45,21 @@ class SubmissionControllerTest {
     UUID id = UUID.randomUUID();
     when(submissionService.createSubmission(any(SubmissionPost.class))).thenReturn(id);
 
-    String body = "{"
-        + "\"submission_id\": \"" + id + "\","
-        + "\"bulk_submission_id\": \"" + UUID.randomUUID() + "\","
-        + "\"office_account_number\": \"12345\","
-        + "\"submission_period\": \"2025-07\","
-        + "\"area_of_law\": \"crime\","
-        + "\"status\": \"CREATED\","
-        + "\"is_nil_submission\": false,"
-        + "\"number_of_claims\": 1"
-        + "}";
+    String body =
+        "{"
+            + "\"submission_id\": \""
+            + id
+            + "\","
+            + "\"bulk_submission_id\": \""
+            + UUID.randomUUID()
+            + "\","
+            + "\"office_account_number\": \"12345\","
+            + "\"submission_period\": \"2025-07\","
+            + "\"area_of_law\": \"crime\","
+            + "\"status\": \"CREATED\","
+            + "\"is_nil_submission\": false,"
+            + "\"number_of_claims\": 1"
+            + "}";
 
     mockMvc
         .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content(body))
@@ -66,12 +73,17 @@ class SubmissionControllerTest {
     mockMvc
         .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content("{ }"))
         .andExpect(status().isBadRequest())
-        .andExpect(content().string("{"
-            + "\"type\":\"about:blank\","
-            + "\"title\":\"Bad Request\","
-            + "\"status\":400,"
-            + "\"detail\":\"Invalid request content.\","
-            + "\"instance\":\"" + SUBMISSIONS_URI + "\"}"));
+        .andExpect(
+            content()
+                .string(
+                    "{"
+                        + "\"type\":\"about:blank\","
+                        + "\"title\":\"Bad Request\","
+                        + "\"status\":400,"
+                        + "\"detail\":\"Invalid request content.\","
+                        + "\"instance\":\""
+                        + SUBMISSIONS_URI
+                        + "\"}"));
 
     verify(submissionService, never()).createSubmission(any());
   }

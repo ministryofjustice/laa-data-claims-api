@@ -1,9 +1,16 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.util.ResourceUtils.getFile;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.File;
+import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,21 +20,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFile
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
-import java.io.File;
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.util.ResourceUtils.getFile;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
-
 public class BulkSubmissionXmlConverterTests {
 
   ObjectMapper objectMapper;
 
   BulkSubmissionXmlConverter bulkSubmissionXmlConverter;
 
-  private static final String OUTCOMES_INPUT_FILE = "classpath:test_upload_files/xml/outcomes_with_client.xml";
+  private static final String OUTCOMES_INPUT_FILE =
+      "classpath:test_upload_files/xml/outcomes_with_client.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
 

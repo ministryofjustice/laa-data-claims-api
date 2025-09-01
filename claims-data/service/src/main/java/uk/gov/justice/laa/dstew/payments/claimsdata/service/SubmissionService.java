@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
@@ -17,19 +18,20 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Respon
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
-/**
- * Service containing business logic for handling submissions.
- */
+/** Service containing business logic for handling submissions. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubmissionService implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+public class SubmissionService
+    implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
+  private final ValidationErrorLogRepository validationErrorLogRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -66,8 +68,7 @@ public class SubmissionService implements AbstractEntityLookup<Submission, Submi
   public GetSubmission200Response getSubmission(UUID id) {
     Submission submission = requireEntity(id);
 
-    List<GetSubmission200ResponseClaimsInner> claims =
-        claimService.getClaimsForSubmission(id);
+    List<GetSubmission200ResponseClaimsInner> claims = claimService.getClaimsForSubmission(id);
 
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
@@ -99,5 +100,16 @@ public class SubmissionService implements AbstractEntityLookup<Submission, Submi
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
+
+    if (submissionPatch.getValidationErrors() != null
+        && !submissionPatch.getValidationErrors().isEmpty()) {
+      submissionPatch
+          .getValidationErrors()
+          .forEach(
+              error -> {
+                ValidationErrorLog log = submissionMapper.toValidationErrorLog(error, submission);
+                validationErrorLogRepository.save(log);
+              });
+    }
   }
 }

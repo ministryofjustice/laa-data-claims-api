@@ -9,4 +9,3 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 public interface ClientRepository extends JpaRepository<Client, UUID> {
   Optional<Client> findByClaimId(UUID claimId);
 }
-

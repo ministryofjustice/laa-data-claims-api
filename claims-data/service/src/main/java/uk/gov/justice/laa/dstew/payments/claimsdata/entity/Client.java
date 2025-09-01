@@ -19,9 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Entity representing client details linked to a claim.
- */
+/** Entity representing client details linked to a claim. */
 @Getter
 @Setter
 @Builder
@@ -104,4 +102,3 @@ public class Client {
   @Column(nullable = false)
   private Instant updatedOn;
 }
-

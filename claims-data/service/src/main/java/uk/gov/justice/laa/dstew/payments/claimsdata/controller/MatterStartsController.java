@@ -13,9 +13,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
-/**
- * Controller for handling matter starts requests.
- */
+/** Controller for handling matter starts requests. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -24,8 +22,8 @@ public class MatterStartsController implements MatterStartsApi {
   private final MatterStartService matterStartService;
 
   @Override
-  public ResponseEntity<CreateMatterStart201Response> createMatterStart(UUID id,
-      MatterStartPost matterStartsPost) {
+  public ResponseEntity<CreateMatterStart201Response> createMatterStart(
+      UUID id, MatterStartPost matterStartsPost) {
     UUID matterStartId = matterStartService.createMatterStart(id, matterStartsPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
@@ -38,7 +36,8 @@ public class MatterStartsController implements MatterStartsApi {
 
   @Override
   public ResponseEntity<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartId) {
-    return matterStartService.getMatterStart(submissionId, matterStartId)
+    return matterStartService
+        .getMatterStart(submissionId, matterStartId)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }

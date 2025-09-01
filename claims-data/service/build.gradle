@@ -2,6 +2,7 @@ plugins {
     id 'io.freefair.lombok' version '8.13.1'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
+    id("com.diffplug.spotless") version "7.2.1"
 }
 
 test {
@@ -70,4 +71,14 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+}
+
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        importOrder()
+        removeUnusedImports()
+        cleanthat()
+        googleJavaFormat()
+    }
 }

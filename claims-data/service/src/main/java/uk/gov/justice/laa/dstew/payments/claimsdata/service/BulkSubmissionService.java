@@ -24,7 +24,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmission, BulkSubmissionRepository, BulkSubmissionNotFoundException> {
+public class BulkSubmissionService
+    implements AbstractEntityLookup<
+        BulkSubmission, BulkSubmissionRepository, BulkSubmissionNotFoundException> {
 
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
@@ -41,17 +43,16 @@ public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmissio
   }
 
   /**
-   * Processes a bulk submission from the provided multipart file and returns a response with
-   * the bulk submission ID and the list of submission IDs.
+   * Processes a bulk submission from the provided multipart file and returns a response with the
+   * bulk submission ID and the list of submission IDs.
    *
    * @param file the multipart file containing bulk submission data; must not be null.
    * @return a {@link CreateBulkSubmission201Response} object containing the ID of the bulk
-   *         submission and the list of submitted ids (NOTE: we should only get one submission within the bulk).
+   *     submission and the list of submitted ids (NOTE: we should only get one submission within
+   *     the bulk).
    */
   public CreateBulkSubmission201Response submitBulkSubmissionFile(
-      @NotNull String userId,
-      @NotNull MultipartFile file
-  ) {
+      @NotNull String userId, @NotNull MultipartFile file) {
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
 
     BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder = BulkSubmission.builder();
@@ -92,8 +93,8 @@ public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmissio
     BulkSubmission bulkSubmission = requireEntity(id);
 
     return new GetBulkSubmission200Response()
-            .bulkSubmissionId(id)
-            .status(bulkSubmission.getStatus())
-            .details(bulkSubmission.getData());
+        .bulkSubmissionId(id)
+        .status(bulkSubmission.getStatus())
+        .details(bulkSubmission.getData());
   }
 }

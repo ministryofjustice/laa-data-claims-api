@@ -11,22 +11,20 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/** Entity representing a matter start linked to a submission. */
+/** Entity representing a validation error linked to a submission and optionally a claim. */
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "matter_start")
-public class MatterStart {
+@Table(name = "validation_error_log")
+public class ValidationErrorLog {
 
   @Id private UUID id;
 
@@ -35,16 +33,19 @@ public class MatterStart {
   @JoinColumn(name = "submission_id", nullable = false)
   private Submission submission;
 
-  private String scheduleReference;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "claim_id")
+  private Claim claim;
 
-  private String categoryCode;
+  @NotNull
+  @Column(nullable = false)
+  private String errorCode;
 
-  private String procurementAreaCode;
+  @NotNull
+  @Column(nullable = false)
+  private String errorDescription;
 
-  private String accessPointCode;
-
-  private String deliveryLocation;
-
+  @NotNull
   @Column(nullable = false)
   private String createdByUserId;
 
