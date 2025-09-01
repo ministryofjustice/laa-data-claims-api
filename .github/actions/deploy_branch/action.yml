@@ -66,6 +66,7 @@ runs:
       shell: bash
       env:
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        ECR_REGION: ${{ inputs.ecr-region }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         GIT_SHA: ${{ github.sha }}
         KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
@@ -100,6 +101,7 @@ runs:
           --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
           --set ingress.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
+          --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m

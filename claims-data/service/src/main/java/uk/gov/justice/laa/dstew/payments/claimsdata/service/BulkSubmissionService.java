@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,8 @@ public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmissio
 
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
-  private final BulkSubmissionMapper submissionMapper;
+  private final BulkSubmissionMapper bulkSubmissionMapper;
+  private final BulkSubmissionPublisherService bulkSubmissionPublisherService;
 
   @Override
   public BulkSubmissionRepository lookup() {
@@ -63,9 +65,12 @@ public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmissio
 
     bulkSubmissionRepository.save(bulkSubmission);
 
+    UUID newSubmissionId = UUID.randomUUID();
+
+    bulkSubmissionPublisherService.publish(bulkSubmission.getId(), List.of(newSubmissionId));
     return new CreateBulkSubmission201Response()
         .bulkSubmissionId(bulkSubmission.getId())
-        .submissionIds(Collections.singletonList(UUID.randomUUID()));
+        .submissionIds(Collections.singletonList(newSubmissionId));
   }
 
   /**
@@ -78,7 +83,7 @@ public class BulkSubmissionService implements AbstractEntityLookup<BulkSubmissio
   public GetBulkSubmission200ResponseDetails getBulkSubmissionDetails(MultipartFile file) {
     FileSubmission fileSubmission = bulkSubmissionFileService.convert(file);
 
-    return submissionMapper.toBulkSubmissionDetails(fileSubmission);
+    return bulkSubmissionMapper.toBulkSubmissionDetails(fileSubmission);
   }
 
   /**

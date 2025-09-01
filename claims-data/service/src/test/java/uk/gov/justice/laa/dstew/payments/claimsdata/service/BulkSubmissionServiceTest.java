@@ -31,6 +31,10 @@ class BulkSubmissionServiceTest {
     @Mock
     BulkSubmissionRepository bulkSubmissionRepository;
 
+    @SuppressWarnings("unused") //This is needed by the bulkSubmissionService
+    @Mock
+    BulkSubmissionPublisherService bulkSubmissionPublisherService;
+
     @Mock
     BulkSubmissionMapper bulkSubmissionMapper;
 
@@ -39,7 +43,7 @@ class BulkSubmissionServiceTest {
     BulkSubmissionService bulkSubmissionService;
 
     @Test
-    @DisplayName("Returns the bulk submission details")
+    @DisplayName("Uploads a bulk submission file")
     void submitBulkSubmissionFile() {
         // Setup and mock
         MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
