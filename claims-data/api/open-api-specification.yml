@@ -654,6 +654,8 @@ components:
       type: object
       description: Claim details
       properties:
+        id:
+          type: string
         status:
           $ref: "#/components/schemas/ClaimStatus"
         schedule_reference:
