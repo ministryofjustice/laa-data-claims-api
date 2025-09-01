@@ -2,6 +2,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -112,16 +115,12 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().validationErrors(java.util.List.of("ERR1"));
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
-    when(submissionMapper.toValidationErrorLog(
-            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(entity)))
+    when(submissionMapper.toValidationErrorLog(anyString(), eq(entity)))
         .thenReturn(new ValidationErrorLog());
 
     submissionService.updateSubmission(id, patch);
 
-    verify(submissionMapper)
-        .toValidationErrorLog(
-            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(entity));
-    verify(validationErrorLogRepository)
-        .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
+    verify(submissionMapper).toValidationErrorLog(anyString(), eq(entity));
+    verify(validationErrorLogRepository).save(any(ValidationErrorLog.class));
   }
 }

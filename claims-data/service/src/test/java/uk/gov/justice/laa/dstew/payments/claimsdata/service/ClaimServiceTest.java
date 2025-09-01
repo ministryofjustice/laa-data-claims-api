@@ -2,6 +2,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -147,8 +150,7 @@ class ClaimServiceTest {
     final ClaimFields result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
-    verify(clientMapper, never())
-        .updateClaimFieldsFromClient(org.mockito.Mockito.any(), org.mockito.Mockito.eq(fields));
+    verify(clientMapper, never()).updateClaimFieldsFromClient(any(), eq(fields));
   }
 
   @Test
@@ -224,16 +226,13 @@ class ClaimServiceTest {
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationErrorLog(
-            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim)))
+    when(claimMapper.toValidationErrorLog(anyString(), eq(claim)))
         .thenReturn(new ValidationErrorLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper, org.mockito.Mockito.times(2))
-        .toValidationErrorLog(
-            org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(claim));
+    verify(claimMapper, org.mockito.Mockito.times(2)).toValidationErrorLog(anyString(), eq(claim));
     verify(validationErrorLogRepository, org.mockito.Mockito.times(2))
-        .save(org.mockito.ArgumentMatchers.any(ValidationErrorLog.class));
+        .save(any(ValidationErrorLog.class));
   }
 }

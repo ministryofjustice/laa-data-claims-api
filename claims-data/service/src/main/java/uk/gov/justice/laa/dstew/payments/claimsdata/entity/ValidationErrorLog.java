@@ -53,7 +53,7 @@ public class ValidationErrorLog {
   @Column(nullable = false)
   private Instant createdOn;
 
-  @Column private String updatedByUserId;
+  private String updatedByUserId;
 
   @UpdateTimestamp
   @Column(nullable = false)
