@@ -55,13 +55,8 @@ public class SubmissionController implements SubmissionsApi {
       LocalDate submittedDateTo,
       Pageable pageable) {
 
-    return ResponseEntity.ok(submissionService
-        .getSubmissionsResultSet(
-            offices,
-            submissionId,
-            submittedDateFrom,
-            submittedDateTo,
-            pageable)
-    );
+    return ResponseEntity.ok(
+        submissionService.getSubmissionsResultSet(
+            offices, submissionId, submittedDateFrom, submittedDateTo, pageable));
   }
 }

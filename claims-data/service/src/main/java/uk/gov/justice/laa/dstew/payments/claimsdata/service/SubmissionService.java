@@ -120,14 +120,18 @@ public class SubmissionService
   }
 
   /**
-   * Returns all the existing submissions filtered by some parameters and paginated in a {@link SubmissionsResultSet}.
+   * Returns all the existing submissions filtered by some parameters and paginated in a {@link
+   * SubmissionsResultSet}.
    *
    * @param offices a mandatory list of office codes to filter submissions by
    * @param submissionId an optional identifier to filter submissions by
-   * @param submittedDateFrom an optional end date to filter submissions created on or after this date
-   * @param submittedDateTo an optional end date to filter submissions created on or before this date
+   * @param submittedDateFrom an optional end date to filter submissions created on or after this
+   *     date
+   * @param submittedDateTo an optional end date to filter submissions created on or before this
+   *     date
    * @param pageable a pageable object to yield the paginated submission results
-   * @return the paginated result set with all submissions that satisfy the filtering criteria above.
+   * @return the paginated result set with all submissions that satisfy the filtering criteria
+   *     above.
    */
   @Transactional(readOnly = true)
   public SubmissionsResultSet getSubmissionsResultSet(
@@ -135,23 +139,18 @@ public class SubmissionService
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
-      Pageable pageable
-  ) {
+      Pageable pageable) {
 
     if (offices == null || offices.isEmpty()) {
       throw new IllegalArgumentException("Missing offices list");
     }
 
-    Page<Submission> page = submissionRepository.findAll(
-        SubmissionSpecification.filterBy(
-            offices,
-            submissionId,
-            submittedDateFrom,
-            submittedDateTo),
-        pageable);
+    Page<Submission> page =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(
+                offices, submissionId, submittedDateFrom, submittedDateTo),
+            pageable);
 
     return submissionsResultSetMapper.toSubmissionsResultSet(page);
   }
-
-
 }
