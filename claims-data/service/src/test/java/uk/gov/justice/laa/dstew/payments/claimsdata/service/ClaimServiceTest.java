@@ -81,8 +81,7 @@ class ClaimServiceTest {
         Arguments.of(Client.builder().clientDateOfBirth("01/01/1980").build()),
         Arguments.of(Client.builder().client2Forename("TestName").build()),
         Arguments.of(Client.builder().client2Surname("TestSurname").build()),
-        Arguments.of(Client.builder().client2DateOfBirth("12/12/1083").build())
-    );
+        Arguments.of(Client.builder().client2DateOfBirth("12/12/1083").build()));
   }
 
   @Test
