@@ -9,7 +9,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +39,7 @@ public class Client {
 
   private String clientSurname;
 
-  private LocalDate clientDateOfBirth;
+  private String clientDateOfBirth;
 
   private String uniqueClientNumber;
 
@@ -69,7 +68,7 @@ public class Client {
   private String client2Surname;
 
   @Column(name = "client_2_date_of_birth")
-  private LocalDate client2DateOfBirth;
+  private String client2DateOfBirth;
 
   @Column(name = "client_2_ucn")
   private String client2Ucn;

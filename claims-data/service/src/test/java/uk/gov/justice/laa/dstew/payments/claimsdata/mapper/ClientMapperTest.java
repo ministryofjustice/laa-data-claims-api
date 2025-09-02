@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,14 +29,12 @@ class ClientMapperTest {
 
   @Test
   void toClient_mapsAllFields() {
-    final LocalDate dob1 = LocalDate.of(1990, 5, 20);
-    final LocalDate dob2 = LocalDate.of(1992, 7, 15);
 
     final ClaimPost post =
         new ClaimPost()
             .clientForename("John")
             .clientSurname("Doe")
-            .clientDateOfBirth(dob1)
+            .clientDateOfBirth("20/05/1990")
             .uniqueClientNumber("UCN-123")
             .clientPostcode("AB1 2CD")
             .genderCode("M")
@@ -50,7 +47,7 @@ class ClientMapperTest {
             .claExemptionCode("EX-22")
             .client2Forename("Jane")
             .client2Surname("Roe")
-            .client2DateOfBirth(dob2)
+            .client2DateOfBirth("15/07/1992")
             .client2Ucn("UCN-456")
             .client2Postcode("EF3 4GH")
             .client2GenderCode("F")
@@ -63,7 +60,7 @@ class ClientMapperTest {
     assertNotNull(client);
     assertEquals("John", client.getClientForename());
     assertEquals("Doe", client.getClientSurname());
-    assertEquals(dob1, client.getClientDateOfBirth());
+    assertEquals("20/05/1990", client.getClientDateOfBirth());
     assertEquals("UCN-123", client.getUniqueClientNumber());
     assertEquals("AB1 2CD", client.getClientPostcode());
     assertEquals("M", client.getGenderCode());
@@ -76,7 +73,7 @@ class ClientMapperTest {
     assertEquals("EX-22", client.getClaExemptionCode());
     assertEquals("Jane", client.getClient2Forename());
     assertEquals("Roe", client.getClient2Surname());
-    assertEquals(dob2, client.getClient2DateOfBirth());
+    assertEquals("15/07/1992", client.getClient2DateOfBirth());
     assertEquals("UCN-456", client.getClient2Ucn());
     assertEquals("EF3 4GH", client.getClient2Postcode());
     assertEquals("F", client.getClient2GenderCode());
@@ -98,12 +95,11 @@ class ClientMapperTest {
 
   @Test
   void updateClaimFieldsFromClient_updatesOnlyNonNullFields() {
-    final LocalDate initialDob = LocalDate.of(1980, 1, 1);
     final ClaimFields fields =
         ClaimFields.builder()
             .clientForename("OldForename")
             .clientSurname("OldSurname")
-            .clientDateOfBirth(initialDob)
+            .clientDateOfBirth("01/01/1980")
             .uniqueClientNumber("OLD-UCN")
             .clientPostcode("OLD-PC")
             .genderCode("OLD-G")
@@ -116,7 +112,7 @@ class ClientMapperTest {
             .claExemptionCode("OLD-EX")
             .client2Forename("Old2F")
             .client2Surname("Old2S")
-            .client2DateOfBirth(LocalDate.of(1985, 2, 2))
+            .client2DateOfBirth("02/02/1985")
             .client2Ucn("OLD-UCN2")
             .client2Postcode("OLD-PC2")
             .client2GenderCode("OLD-G2")
@@ -125,12 +121,11 @@ class ClientMapperTest {
             .client2IsLegallyAided(true)
             .build();
 
-    final LocalDate newDob1 = LocalDate.of(1999, 9, 9);
     final Client entity =
         Client.builder()
             .clientForename("NewForename")
             .clientSurname("NewSurname")
-            .clientDateOfBirth(newDob1)
+            .clientDateOfBirth("09/09/1999")
             .uniqueClientNumber(null)
             .clientPostcode("NEW-PC")
             .genderCode(null)
@@ -156,7 +151,7 @@ class ClientMapperTest {
 
     assertEquals("NewForename", fields.getClientForename());
     assertEquals("NewSurname", fields.getClientSurname());
-    assertEquals(newDob1, fields.getClientDateOfBirth());
+    assertEquals("09/09/1999", fields.getClientDateOfBirth());
     assertEquals("OLD-UCN", fields.getUniqueClientNumber());
     assertEquals("NEW-PC", fields.getClientPostcode());
     assertEquals("OLD-G", fields.getGenderCode());
@@ -169,7 +164,7 @@ class ClientMapperTest {
     assertEquals("OLD-EX", fields.getClaExemptionCode());
     assertEquals("New2F", fields.getClient2Forename());
     assertEquals("Old2S", fields.getClient2Surname());
-    assertEquals(LocalDate.of(1985, 2, 2), fields.getClient2DateOfBirth());
+    assertEquals("02/02/1985", fields.getClient2DateOfBirth());
     assertEquals("NEW-UCN2", fields.getClient2Ucn());
     assertEquals("OLD-PC2", fields.getClient2Postcode());
     assertEquals("NEW-G2", fields.getClient2GenderCode());

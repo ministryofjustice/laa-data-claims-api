@@ -9,7 +9,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -58,11 +57,11 @@ public class Claim {
 
   @NotNull
   @Column(nullable = false)
-  private LocalDate caseStartDate;
+  private String caseStartDate;
 
   @NotNull
   @Column(nullable = false)
-  private LocalDate caseConcludedDate;
+  private String caseConcludedDate;
 
   @NotNull
   @Column(nullable = false)
@@ -80,7 +79,7 @@ public class Claim {
 
   private String deliveryLocation;
 
-  private LocalDate representationOrderDate;
+  private String representationOrderDate;
 
   private Integer suspectsDefendantsCount;
 

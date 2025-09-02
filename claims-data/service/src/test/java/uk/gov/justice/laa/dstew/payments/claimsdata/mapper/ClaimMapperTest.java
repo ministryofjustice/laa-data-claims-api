@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,8 +39,8 @@ class ClaimMapperTest {
             .lineNumber(5)
             .caseReferenceNumber("CASE001")
             .uniqueFileNumber("UFN123")
-            .caseStartDate(LocalDate.now())
-            .caseConcludedDate(LocalDate.now().plusDays(1))
+            .caseStartDate("01/01/2020")
+            .caseConcludedDate("02/01/2020")
             .matterTypeCode("MTC")
             .crimeMatterTypeCode("CMTC")
             .feeSchemeCode("FSC")
@@ -49,7 +48,7 @@ class ClaimMapperTest {
             .procurementAreaCode("PAC")
             .accessPointCode("APC")
             .deliveryLocation("DEL")
-            .representationOrderDate(LocalDate.now().minusDays(2))
+            .representationOrderDate("01/01/2020")
             .suspectsDefendantsCount(3)
             .policeStationCourtAttendancesCount(4)
             .policeStationCourtPrisonId("PSCPI")
@@ -113,8 +112,8 @@ class ClaimMapperTest {
             .lineNumber(5)
             .caseReferenceNumber("CASE001")
             .uniqueFileNumber("UFN123")
-            .caseStartDate(LocalDate.now())
-            .caseConcludedDate(LocalDate.now().plusDays(1))
+            .caseStartDate("01/01/2020")
+            .caseConcludedDate("02/01/2020")
             .matterTypeCode("MTC")
             .crimeMatterTypeCode("CMTC")
             .feeSchemeCode("FSC")
@@ -122,7 +121,7 @@ class ClaimMapperTest {
             .procurementAreaCode("PAC")
             .accessPointCode("APC")
             .deliveryLocation("DEL")
-            .representationOrderDate(LocalDate.now().minusDays(2))
+            .representationOrderDate("01/01/2020")
             .suspectsDefendantsCount(3)
             .policeStationCourtAttendancesCount(4)
             .policeStationCourtPrisonId("PSCPI")
