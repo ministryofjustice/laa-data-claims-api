@@ -33,7 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish api models package
-        run: ./gradlew :claims-data:api:publish
+        run: ./gradlew :claims-data:api:publish -Pversion=${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
