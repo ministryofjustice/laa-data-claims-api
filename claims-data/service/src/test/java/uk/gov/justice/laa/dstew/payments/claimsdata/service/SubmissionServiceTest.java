@@ -7,22 +7,29 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
@@ -33,8 +40,13 @@ class SubmissionServiceTest {
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
   @Mock private ValidationErrorLogRepository validationErrorLogRepository;
+  @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
 
   @InjectMocks private SubmissionService submissionService;
+
+  private final static LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
+  private final static LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
+  private final static List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
 
   @Test
   void shouldCreateSubmission() {
@@ -122,5 +134,77 @@ class SubmissionServiceTest {
 
     verify(submissionMapper).toValidationErrorLog(anyString(), eq(entity));
     verify(validationErrorLogRepository).save(any(ValidationErrorLog.class));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenOfficesIsMissing_shouldThrowSubmissionBadRequestException() {
+    assertThrows(
+        SubmissionBadRequestException.class,
+        () ->
+            submissionService.getSubmissionsResultSet(
+                null,
+                SUBMISSION_ID.toString(),
+                SUBMITTED_DATE_FROM,
+                SUBMITTED_DATE_TO,
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenOfficesIsEmpty_shouldThrowSubmissionBadRequestException() {
+    assertThrows(
+        SubmissionBadRequestException.class,
+        () ->
+            submissionService.getSubmissionsResultSet(
+                Collections.emptyList(),
+                SUBMISSION_ID.toString(),
+                SUBMITTED_DATE_FROM,
+                SUBMITTED_DATE_TO,
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+    Page<Submission> resultPage = new PageImpl<>(Collections.singletonList(new Submission()));
+    when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedNonEmptyResultSet =
+        new SubmissionsResultSet().content(Collections.singletonList(new SubmissionFields()));
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(expectedNonEmptyResultSet);
+
+    var actualResultSet =
+        submissionService.getSubmissionsResultSet(
+            OFFICE_CODES,
+            SUBMISSION_ID.toString(),
+            SUBMITTED_DATE_FROM,
+            SUBMITTED_DATE_TO,
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
+    assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenFiltersDoNotMatchData_shouldReturnEmptyResultSet() {
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedEmptyResultSet = new SubmissionsResultSet();
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(expectedEmptyResultSet);
+
+    var actualResultSet =
+        submissionService.getSubmissionsResultSet(
+            OFFICE_CODES,
+            SUBMISSION_ID.toString(),
+            SUBMITTED_DATE_FROM,
+            SUBMITTED_DATE_TO,
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
+    assertThat(actualResultSet.getContent()).isEmpty();
   }
 }
