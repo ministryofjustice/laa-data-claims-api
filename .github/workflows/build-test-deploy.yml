@@ -32,7 +32,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload JAR artifact
+      - name: Publish api models package
+        run: ./gradlew :claims-data:api:publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload service JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: service-jar
