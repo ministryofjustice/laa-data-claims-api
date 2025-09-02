@@ -11,11 +11,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -142,7 +143,7 @@ public class SubmissionService
       Pageable pageable) {
 
     if (offices == null || offices.isEmpty()) {
-      throw new IllegalArgumentException("Missing offices list");
+      throw new SubmissionBadRequestException("Missing offices list");
     }
 
     Page<Submission> page =

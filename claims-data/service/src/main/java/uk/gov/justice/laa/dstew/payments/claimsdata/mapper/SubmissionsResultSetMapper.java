@@ -1,9 +1,8 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata;
+package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 
