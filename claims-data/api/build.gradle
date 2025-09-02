@@ -56,6 +56,15 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
     ]
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'data-claims-api-models'
+        }
+    }
+}
+
 compileJava.dependsOn 'openApiGenerate'
 
 clean {
