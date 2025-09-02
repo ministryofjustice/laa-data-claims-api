@@ -1,5 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+
+import java.time.ZoneOffset;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,13 +17,6 @@ import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-
-import java.time.ZoneOffset;
-import java.util.Collections;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionsResultSetMapperImplTest {

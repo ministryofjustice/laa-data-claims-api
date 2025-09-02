@@ -44,9 +44,9 @@ class SubmissionServiceTest {
 
   @InjectMocks private SubmissionService submissionService;
 
-  private final static LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
-  private final static LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
-  private final static List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
+  private static final LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
+  private static final LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
+  private static final List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
 
   @Test
   void shouldCreateSubmission() {

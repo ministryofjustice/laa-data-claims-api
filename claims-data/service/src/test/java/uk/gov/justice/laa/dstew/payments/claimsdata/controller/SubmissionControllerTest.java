@@ -1,5 +1,16 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -16,18 +27,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
-
 @WebMvcTest(SubmissionController.class)
 @ImportAutoConfiguration(
     exclude = {
@@ -37,7 +36,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 class SubmissionControllerTest {
   private static final String SUBMISSIONS_URI = API_URI_PREFIX + "/submissions";
 
-  private final static ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Autowired private MockMvc mockMvc;
 
