@@ -15,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 /** Controller for handling claims requests. */
@@ -50,6 +51,17 @@ public class ClaimController implements ClaimsApi {
       String uniqueClientNumber,
       ClaimStatus status) {
     // TODO: Implement get claims endpoint
+    return ResponseEntity.ok(Collections.emptyList());
+  }
+
+  @Override
+  public ResponseEntity<List<ClaimResponse>> searchClaims(
+      List<SubmissionStatus> submissionStatus,
+      String feeCode,
+      List<ClaimStatus> claimStatus,
+      String uniqueFileNumber,
+      String uniqueClientNumber) {
+    // TODO: Implement search claims endpoint
     return ResponseEntity.ok(Collections.emptyList());
   }
 
