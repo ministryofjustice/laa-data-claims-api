@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -42,7 +43,7 @@ public final class SubmissionSpecification {
       Predicate predicate = cb.and(root.get("officeAccountNumber").in(offices));
 
       if (StringUtils.hasText(submissionId)) {
-        predicate = cb.and(predicate, cb.equal(root.get("id"), submissionId));
+        predicate = cb.and(predicate, cb.equal(root.get("id"), UUID.fromString(submissionId)));
       }
 
       if (submittedDateFrom != null) {

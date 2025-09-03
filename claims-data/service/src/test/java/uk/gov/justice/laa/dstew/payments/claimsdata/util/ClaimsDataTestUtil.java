@@ -25,6 +25,7 @@ public class ClaimsDataTestUtil {
   public static final String AREA_OF_LAW = "CIVIL";
   public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
   public static final String SUBMISSION_PERIOD = "APR-24";
+  public static final String USER_ID = "12345";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -40,8 +40,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFile
 class BulkSubmissionControllerTest {
 
   private static final String BULK_SUBMISSIONS_URI = API_URI_PREFIX + "/bulk-submissions";
-  private static final String USER_ID = "12345";
-  private static final UUID SUBMISSION_ID = UUID.randomUUID();
 
   @InjectMocks private BulkSubmissionController bulkSubmissionController;
 
