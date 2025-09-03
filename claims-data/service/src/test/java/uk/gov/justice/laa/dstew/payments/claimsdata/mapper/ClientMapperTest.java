@@ -13,8 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 
 @ExtendWith(MockitoExtension.class)
 class ClientMapperTest {
@@ -86,21 +86,21 @@ class ClientMapperTest {
   }
 
   @Test
-  void updateClaimFieldsFromClient_nullEntity_noChange() {
-    final ClaimFields fields =
-        ClaimFields.builder().clientForename("Keep").clientSurname("Same").build();
+  void updateClaimResponseFromClient_nullEntity_noChange() {
+    final ClaimResponse fields =
+        ClaimResponse.builder().clientForename("Keep").clientSurname("Same").build();
 
-    mapper.updateClaimFieldsFromClient(null, fields);
+    mapper.updateClaimResponseFromClient(null, fields);
 
     assertEquals("Keep", fields.getClientForename());
     assertEquals("Same", fields.getClientSurname());
   }
 
   @Test
-  void updateClaimFieldsFromClient_updatesOnlyNonNullFields() {
+  void updateClaimFieldsFromClient_updatesOnlyNonNullResponse() {
     final LocalDate initialDob = LocalDate.of(1980, 1, 1);
-    final ClaimFields fields =
-        ClaimFields.builder()
+    final ClaimResponse fields =
+        ClaimResponse.builder()
             .clientForename("OldForename")
             .clientSurname("OldSurname")
             .clientDateOfBirth(initialDob)
@@ -152,7 +152,7 @@ class ClientMapperTest {
             .client2IsLegallyAided(false)
             .build();
 
-    mapper.updateClaimFieldsFromClient(entity, fields);
+    mapper.updateClaimResponseFromClient(entity, fields);
 
     assertEquals("NewForename", fields.getClientForename());
     assertEquals("NewSurname", fields.getClientSurname());

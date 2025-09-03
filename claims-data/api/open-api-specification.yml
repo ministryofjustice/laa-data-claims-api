@@ -289,7 +289,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Claim'
+                  $ref: '#/components/schemas/ClaimResponse'
         '400':
           description: 'Bad request'
         '401':
@@ -488,33 +488,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: submission details
-                allOf:
-                  - $ref: '#/components/schemas/SubmissionFields'
-                properties:
-                  claims:
-                    type: array
-                    description: List of claims (ID + status) for this submission
-                    items:
-                      type: object
-                      description: Claim UUID and status
-                      properties:
-                        claim_id:
-                          type: string
-                          format: uuid
-                        status:
-                          type: string
-                          enum:
-                            - READY_TO_PROCESS
-                            - VALID
-                            - INVALID
-                  matter_starts:
-                    type: array
-                    description: List of matter start IDs for this submission
-                    items:
-                      type: string
-                      format: uuid
+                $ref: '#/components/schemas/SubmissionResponse'
         '400':
           description: 'Bad request'
         '401':
@@ -554,7 +528,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Claim'
+                $ref: '#/components/schemas/ClaimResponse'
         '400':
           description: 'Bad request'
         '401':
@@ -613,7 +587,7 @@ components:
         - REPLACED
     SubmissionPost:
       allOf:
-        - $ref: '#/components/schemas/SubmissionFields'
+        - $ref: '#/components/schemas/Submission'
       required:
         - submission_id
         - bulk_submission_id
@@ -623,7 +597,7 @@ components:
         - status
     SubmissionPatch:
       allOf:
-        - $ref: '#/components/schemas/SubmissionFields'
+        - $ref: '#/components/schemas/Submission'
       type: object
       properties:
         validation_errors:
@@ -639,7 +613,32 @@ components:
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED
-    SubmissionFields:
+    SubmissionClaim:
+      type: object
+      description: Claim UUID and status
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+    SubmissionResponse:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+        - type: object
+          properties:
+            claims:
+              type: array
+              description: List of claims (ID + status) for this submission
+              items:
+                $ref: '#/components/schemas/SubmissionClaim'
+            matter_starts:
+              type: array
+              description: List of matter start IDs for this submission
+              items:
+                type: string
+                format: uuid
+    Submission:
       type: object
       description: submission details
       properties:
@@ -687,11 +686,11 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/SubmissionFields'
+            $ref: '#/components/schemas/Submission'
 
     ClaimPost:
       allOf:
-        - $ref: '#/components/schemas/Claim'
+        - $ref: '#/components/schemas/ClaimResponse'
       required:
         - status
         - schedule_reference
@@ -704,7 +703,7 @@ components:
         - outcome_code
     ClaimPatch:
       allOf:
-        - $ref: '#/components/schemas/Claim'
+        - $ref: '#/components/schemas/ClaimResponse'
       type: object
       properties:
         validation_errors:
@@ -719,10 +718,10 @@ components:
         - VALID
         - INVALID
       description: |
-        System-maintained processing status indicator that tracks the validation lifecycle of a 
+        System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
 
-    Claim:
+    ClaimResponse:
       type: object
       description: Claim details
       properties:

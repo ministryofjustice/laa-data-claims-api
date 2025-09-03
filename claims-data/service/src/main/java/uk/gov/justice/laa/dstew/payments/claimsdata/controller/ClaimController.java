@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,9 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
@@ -34,9 +37,20 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
-  public ResponseEntity<ClaimFields> getClaim(UUID submissionId, UUID claimId) {
-    ClaimFields fields = claimService.getClaim(submissionId, claimId);
-    return ResponseEntity.ok(fields);
+  public ResponseEntity<ClaimResponse> getClaim(UUID submissionId, UUID claimId) {
+    ClaimResponse claimResponse = claimService.getClaim(submissionId, claimId);
+    return ResponseEntity.ok(claimResponse);
+  }
+
+  @Override
+  public ResponseEntity<List<ClaimResponse>> getClaims(
+      UUID id,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      ClaimStatus status) {
+    // TODO: Implement get claims endpoint
+    return ResponseEntity.ok(Collections.emptyList());
   }
 
   @Override
