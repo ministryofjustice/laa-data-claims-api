@@ -12,7 +12,7 @@ repositories {
 //Remove the line below when the laa-ccms-spring-boot-gradle-plugin is upgraded
 ext['tomcat.version'] = '10.1.44'
 // Upgrade to fix CVE-2025-55163
-ext['netty.version'] = '4.1.124.Final'
+ext['netty.version'] = '4.1.125.Final'
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
