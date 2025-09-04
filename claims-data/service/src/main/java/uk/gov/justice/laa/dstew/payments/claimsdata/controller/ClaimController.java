@@ -44,23 +44,14 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
-  public ResponseEntity<List<ClaimResponse>> getClaims(
-      UUID id,
+  public ResponseEntity<List<ClaimResponse>> searchClaims(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatus,
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
-      ClaimStatus status) {
-    // TODO: Implement get claims endpoint
-    return ResponseEntity.ok(Collections.emptyList());
-  }
-
-  @Override
-  public ResponseEntity<List<ClaimResponse>> searchClaims(
-      List<SubmissionStatus> submissionStatus,
-      String feeCode,
-      List<ClaimStatus> claimStatus,
-      String uniqueFileNumber,
-      String uniqueClientNumber) {
+      List<ClaimStatus> claimStatus) {
     // TODO: Implement search claims endpoint
     return ResponseEntity.ok(Collections.emptyList());
   }
