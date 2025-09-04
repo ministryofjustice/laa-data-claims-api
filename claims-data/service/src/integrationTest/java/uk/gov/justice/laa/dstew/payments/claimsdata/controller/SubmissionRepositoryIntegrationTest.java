@@ -10,21 +10,15 @@ import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -45,7 +39,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
 @Testcontainers
 @Slf4j
 @DisplayName("SubmissionRepository Integration Test")
-public class SubmissionRepositoryIntegrationTest {
+public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   private static final UUID SUBMISSION_1_ID = UUID.randomUUID();
   private static final UUID SUBMISSION_2_ID = UUID.randomUUID();
@@ -54,33 +48,18 @@ public class SubmissionRepositoryIntegrationTest {
       LocalDate.of(2025, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final Instant TENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
+  private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
 
   @Autowired private SubmissionRepository submissionRepository;
 
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
-  @Container @ServiceConnection
-  public static final PostgreSQLContainer<?> postgresContainer =
-      new PostgreSQLContainer<>("postgres:latest");
-
   private Submission submission1;
   private Submission submission2;
-
-  @BeforeAll
-  static void beforeAll() {
-    postgresContainer.start();
-  }
 
   @AfterAll
   static void afterAll() {
     postgresContainer.stop();
-  }
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
-    registry.add("spring.datasource.username", postgresContainer::getUsername);
-    registry.add("spring.datasource.password", postgresContainer::getPassword);
   }
 
   /**
@@ -117,7 +96,6 @@ public class SubmissionRepositoryIntegrationTest {
             .isNilSubmission(false)
             .numberOfClaims(5)
             .createdByUserId(USER_ID)
-            .createdOn(FIRST_JANUARY_2025)
             .build();
     submission2 =
         Submission.builder()
@@ -132,7 +110,6 @@ public class SubmissionRepositoryIntegrationTest {
             .isNilSubmission(true)
             .numberOfClaims(3)
             .createdByUserId(USER_ID)
-            .createdOn(TENTH_APRIL_2024)
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));
@@ -152,18 +129,29 @@ public class SubmissionRepositoryIntegrationTest {
   @Test
   @DisplayName("Should only get one Submission for the matching office")
   void shouldOnlyGetOneSubmissionForTheMatchingOffice() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(List.of("office1", "office5"), null, null, null),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
   }
 
   @Test
   @DisplayName("Should get two Submissions for the matching offices")
   void shouldGetTwoSubmissionsForTheMatchingOffices() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -171,13 +159,23 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
-    assertThat(result.getContent().get(1)).usingRecursiveComparison().isEqualTo(submission2);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
+    assertThat(result.getContent().get(1))
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission2);
   }
 
   @Test
   @DisplayName("Should only get one Submission for the matching id")
   void shouldOnlyGetOneSubmissionForTheMatchingId() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -185,7 +183,10 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
   }
 
   @Test
@@ -203,6 +204,10 @@ public class SubmissionRepositoryIntegrationTest {
   @Test
   @DisplayName("Should only get one Submission for the matching submitted date from")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateFrom() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -210,12 +215,19 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
   }
 
   @Test
   @DisplayName("Should only get one Submission for the matching submitted date from inclusive")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateFromInclusive() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -223,12 +235,19 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
   }
 
   @Test
   @DisplayName("Should only get one Submission for the matching submitted date to")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateTo() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -236,12 +255,19 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission2);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission2);
   }
 
   @Test
   @DisplayName("Should only get one Submission for the matching submitted date to inclusive")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateToInclusive() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -249,12 +275,19 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission2);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission2);
   }
 
   @Test
   @DisplayName("Should get two Submissions for the matching submitted date in between")
   void shouldGetTwoSubmissionsForTheMatchingSubmittedDateInBetween() {
+    submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submissionRepository.saveAll(List.of(submission1, submission2));
+
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
@@ -265,8 +298,14 @@ public class SubmissionRepositoryIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    assertThat(result.getContent().getFirst()).usingRecursiveComparison().isEqualTo(submission1);
-    assertThat(result.getContent().get(1)).usingRecursiveComparison().isEqualTo(submission2);
+    assertThat(result.getContent().getFirst())
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission1);
+    assertThat(result.getContent().get(1))
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission2);
   }
 
   @Test

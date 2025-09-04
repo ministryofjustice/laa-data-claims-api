@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /** Entity representing a submission associated with a bulk submission. */
@@ -60,11 +62,13 @@ public class Submission {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
   private String updatedByUserId;
 
+  @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
 }
