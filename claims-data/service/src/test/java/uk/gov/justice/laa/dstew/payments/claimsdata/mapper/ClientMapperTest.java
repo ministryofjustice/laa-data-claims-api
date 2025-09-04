@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,7 +62,7 @@ class ClientMapperTest {
     assertNotNull(client);
     assertEquals("John", client.getClientForename());
     assertEquals("Doe", client.getClientSurname());
-    assertEquals("20/05/1990", client.getClientDateOfBirth());
+    assertEquals("1990-05-20", client.getClientDateOfBirth().toString());
     assertEquals("UCN-123", client.getUniqueClientNumber());
     assertEquals("AB1 2CD", client.getClientPostcode());
     assertEquals("M", client.getGenderCode());
@@ -73,7 +75,9 @@ class ClientMapperTest {
     assertEquals("EX-22", client.getClaExemptionCode());
     assertEquals("Jane", client.getClient2Forename());
     assertEquals("Roe", client.getClient2Surname());
-    assertEquals("15/07/1992", client.getClient2DateOfBirth());
+    assertEquals(
+        "15/07/1992",
+        client.getClient2DateOfBirth().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
     assertEquals("UCN-456", client.getClient2Ucn());
     assertEquals("EF3 4GH", client.getClient2Postcode());
     assertEquals("F", client.getClient2GenderCode());
@@ -125,7 +129,7 @@ class ClientMapperTest {
         Client.builder()
             .clientForename("NewForename")
             .clientSurname("NewSurname")
-            .clientDateOfBirth("09/09/1999")
+            .clientDateOfBirth(LocalDate.of(1999, 9, 9))
             .uniqueClientNumber(null)
             .clientPostcode("NEW-PC")
             .genderCode(null)
@@ -151,7 +155,7 @@ class ClientMapperTest {
 
     assertEquals("NewForename", fields.getClientForename());
     assertEquals("NewSurname", fields.getClientSurname());
-    assertEquals("09/09/1999", fields.getClientDateOfBirth());
+    assertEquals("1999-09-09", fields.getClientDateOfBirth());
     assertEquals("OLD-UCN", fields.getUniqueClientNumber());
     assertEquals("NEW-PC", fields.getClientPostcode());
     assertEquals("OLD-G", fields.getGenderCode());

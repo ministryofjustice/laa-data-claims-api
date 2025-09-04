@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,11 +59,13 @@ public class Claim {
 
   @NotNull
   @Column(nullable = false)
-  private String caseStartDate;
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+  private LocalDate caseStartDate;
 
   @NotNull
   @Column(nullable = false)
-  private String caseConcludedDate;
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+  private LocalDate caseConcludedDate;
 
   @NotNull
   @Column(nullable = false)
@@ -79,7 +83,8 @@ public class Claim {
 
   private String deliveryLocation;
 
-  private String representationOrderDate;
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+  private LocalDate representationOrderDate;
 
   private Integer suspectsDefendantsCount;
 

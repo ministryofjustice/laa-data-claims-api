@@ -89,8 +89,8 @@ class ClaimControllerTest {
             .lineNumber(42)
             .caseReferenceNumber("CRN-777")
             .uniqueFileNumber("UFN-777")
-            .caseStartDate("2025-06-01")
-            .caseConcludedDate("2025-06-30")
+            .caseStartDate("01/06/2025")
+            .caseConcludedDate("30/06/2025")
             .matterTypeCode("MAT77")
             .outcomeCode("OUT77");
     when(claimService.getClaim(submissionId, claimId)).thenReturn(claimFields);

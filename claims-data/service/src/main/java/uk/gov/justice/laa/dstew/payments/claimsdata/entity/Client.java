@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,7 +41,8 @@ public class Client {
 
   private String clientSurname;
 
-  private String clientDateOfBirth;
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+  private LocalDate clientDateOfBirth;
 
   private String uniqueClientNumber;
 
@@ -68,7 +71,8 @@ public class Client {
   private String client2Surname;
 
   @Column(name = "client_2_date_of_birth")
-  private String client2DateOfBirth;
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+  private LocalDate client2DateOfBirth;
 
   @Column(name = "client_2_ucn")
   private String client2Ucn;

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,8 +73,12 @@ class ClaimMapperTest {
     assertEquals(post.getLineNumber(), entity.getLineNumber());
     assertEquals(post.getCaseReferenceNumber(), entity.getCaseReferenceNumber());
     assertEquals(post.getUniqueFileNumber(), entity.getUniqueFileNumber());
-    assertEquals(post.getCaseStartDate(), entity.getCaseStartDate());
-    assertEquals(post.getCaseConcludedDate(), entity.getCaseConcludedDate());
+    assertEquals(
+        post.getCaseStartDate(),
+        entity.getCaseStartDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+    assertEquals(
+        post.getCaseConcludedDate(),
+        entity.getCaseConcludedDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
     assertEquals(post.getMatterTypeCode(), entity.getMatterTypeCode());
     assertEquals(post.getCrimeMatterTypeCode(), entity.getCrimeMatterTypeCode());
     assertEquals(post.getFeeSchemeCode(), entity.getFeeSchemeCode());
@@ -80,7 +86,9 @@ class ClaimMapperTest {
     assertEquals(post.getProcurementAreaCode(), entity.getProcurementAreaCode());
     assertEquals(post.getAccessPointCode(), entity.getAccessPointCode());
     assertEquals(post.getDeliveryLocation(), entity.getDeliveryLocation());
-    assertEquals(post.getRepresentationOrderDate(), entity.getRepresentationOrderDate());
+    assertEquals(
+        post.getRepresentationOrderDate(),
+        entity.getRepresentationOrderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
     assertEquals(post.getSuspectsDefendantsCount(), entity.getSuspectsDefendantsCount());
     assertEquals(
         post.getPoliceStationCourtAttendancesCount(),
@@ -112,8 +120,8 @@ class ClaimMapperTest {
             .lineNumber(5)
             .caseReferenceNumber("CASE001")
             .uniqueFileNumber("UFN123")
-            .caseStartDate("01/01/2020")
-            .caseConcludedDate("02/01/2020")
+            .caseStartDate(LocalDate.now())
+            .caseConcludedDate(LocalDate.now().plusDays(1))
             .matterTypeCode("MTC")
             .crimeMatterTypeCode("CMTC")
             .feeSchemeCode("FSC")
@@ -121,7 +129,7 @@ class ClaimMapperTest {
             .procurementAreaCode("PAC")
             .accessPointCode("APC")
             .deliveryLocation("DEL")
-            .representationOrderDate("01/01/2020")
+            .representationOrderDate(LocalDate.now().minusDays(2))
             .suspectsDefendantsCount(3)
             .policeStationCourtAttendancesCount(4)
             .policeStationCourtPrisonId("PSCPI")
@@ -145,8 +153,8 @@ class ClaimMapperTest {
     assertEquals(entity.getLineNumber(), fields.getLineNumber());
     assertEquals(entity.getCaseReferenceNumber(), fields.getCaseReferenceNumber());
     assertEquals(entity.getUniqueFileNumber(), fields.getUniqueFileNumber());
-    assertEquals(entity.getCaseStartDate(), fields.getCaseStartDate());
-    assertEquals(entity.getCaseConcludedDate(), fields.getCaseConcludedDate());
+    assertEquals(entity.getCaseStartDate().toString(), fields.getCaseStartDate());
+    assertEquals(entity.getCaseConcludedDate().toString(), fields.getCaseConcludedDate());
     assertEquals(entity.getMatterTypeCode(), fields.getMatterTypeCode());
     assertEquals(entity.getCrimeMatterTypeCode(), fields.getCrimeMatterTypeCode());
     assertEquals(entity.getFeeSchemeCode(), fields.getFeeSchemeCode());
@@ -154,7 +162,8 @@ class ClaimMapperTest {
     assertEquals(entity.getProcurementAreaCode(), fields.getProcurementAreaCode());
     assertEquals(entity.getAccessPointCode(), fields.getAccessPointCode());
     assertEquals(entity.getDeliveryLocation(), fields.getDeliveryLocation());
-    assertEquals(entity.getRepresentationOrderDate(), fields.getRepresentationOrderDate());
+    assertEquals(
+        entity.getRepresentationOrderDate().toString(), fields.getRepresentationOrderDate());
     assertEquals(entity.getSuspectsDefendantsCount(), fields.getSuspectsDefendantsCount());
     assertEquals(
         entity.getPoliceStationCourtAttendancesCount(),

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,10 +79,10 @@ class ClaimServiceTest {
     return Stream.of(
         Arguments.of(Client.builder().clientForename("John").build()),
         Arguments.of(Client.builder().clientSurname("Smith").build()),
-        Arguments.of(Client.builder().clientDateOfBirth("01/01/1980").build()),
+        Arguments.of(Client.builder().clientDateOfBirth(LocalDate.of(1980, 1, 1)).build()),
         Arguments.of(Client.builder().client2Forename("TestName").build()),
         Arguments.of(Client.builder().client2Surname("TestSurname").build()),
-        Arguments.of(Client.builder().client2DateOfBirth("12/12/1083").build()));
+        Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
   }
 
   @Test
