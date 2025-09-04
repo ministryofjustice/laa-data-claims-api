@@ -23,8 +23,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
 @WebMvcTest(SubmissionController.class)
@@ -91,8 +91,8 @@ class SubmissionControllerTest {
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
     UUID id = UUID.randomUUID();
-    GetSubmission200Response response =
-        new GetSubmission200Response()
+    SubmissionResponse response =
+        new SubmissionResponse()
             .submissionId(id)
             .bulkSubmissionId(UUID.randomUUID())
             .officeAccountNumber("12345")

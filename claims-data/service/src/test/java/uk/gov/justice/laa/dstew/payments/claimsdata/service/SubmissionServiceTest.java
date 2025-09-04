@@ -19,9 +19,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
@@ -73,7 +73,7 @@ class SubmissionServiceTest {
     when(matterStartService.getMatterStartIdsForSubmission(submissionId))
         .thenReturn(java.util.List.of());
 
-    GetSubmission200Response result = submissionService.getSubmission(submissionId);
+    SubmissionResponse result = submissionService.getSubmission(submissionId);
 
     assertThat(result.getSubmissionId()).isEqualTo(submissionId);
   }

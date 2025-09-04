@@ -8,10 +8,10 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 
 /** MapStruct mapper for converting between claim models and entities. */
 @Mapper(
@@ -32,16 +32,16 @@ public interface ClaimMapper {
   @Mapping(target = "updatedOn", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
-  Claim toSubmissionClaim(ClaimPost claimPost);
+  Claim toClaim(ClaimPost claimPost);
 
-  /** Map a {@link Claim} entity to {@link ClaimFields}. */
+  /** Map a {@link Claim} entity to {@link ClaimResponse}. */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
-  ClaimFields toClaimFields(Claim entity);
+  ClaimResponse toClaimResponse(Claim entity);
 
-  /** Map a {@link Claim} to summary response model. */
+  /** Map a {@link SubmissionClaim} to summary response model. */
   @Mapping(target = "claimId", source = "id")
-  GetSubmission200ResponseClaimsInner toGetSubmission200ResponseClaimsInner(Claim entity);
+  SubmissionClaim toSubmissionClaim(Claim entity);
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

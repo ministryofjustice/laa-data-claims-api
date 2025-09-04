@@ -10,9 +10,9 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 
 /** MapStruct mapper for converting between API models and Submission entities. */
 @Mapper(
@@ -35,14 +35,14 @@ public interface SubmissionMapper {
   Submission toSubmission(SubmissionPost submissionPost);
 
   /**
-   * Map a {@link Submission} entity to {@link SubmissionFields} view model.
+   * Map a {@link Submission} entity to {@link SubmissionResponse} view model.
    *
    * @param submission the entity
-   * @return mapped {@link SubmissionFields}
+   * @return mapped {@link SubmissionResponse}
    */
   @Mapping(target = "submissionId", source = "id")
   @Mapping(target = "submitted", source = "createdOn")
-  SubmissionFields toSubmissionFields(Submission submission);
+  SubmissionResponse toSubmissionResponse(Submission submission);
 
   /**
    * Converts an instant to a LocalDate.
