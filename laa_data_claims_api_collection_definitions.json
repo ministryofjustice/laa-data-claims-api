@@ -1,0 +1,435 @@
+{
+  "info": {
+    "name": "LAA Data Claims API",
+    "description": "This API allows bulk submission and claim management for the LAA Data Stewardship Payments project.",
+    "version": "0.0.1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "{{url}}",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "{{api_key}}",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "submissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bulkSubmissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "claimId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "matterStartId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Bulk Submissions",
+      "item": [
+        {
+          "name": "Create Bulk Submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "The submission file to be uploaded (CSV or XML format)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/bulk-submissions?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "bulk-submissions"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "description": "The user ID of the user performing the bulk submission"
+                }
+              ]
+            },
+            "description": "Upload a file (as multipart/form-data) containing data related to a submission. The file is converted into a JSON document and stored in the bulk_submission table."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('bulkSubmissionId', responseJson.bulk_submission_id);",
+                  "    if (responseJson.submission_ids && responseJson.submission_ids.length > 0) {",
+                  "        pm.collectionVariables.set('submissionId', responseJson.submission_ids[0]);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Bulk Submission",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/bulk-submissions/{{bulkSubmissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "bulk-submissions", "{{bulkSubmissionId}}"]
+            },
+            "description": "Returns the raw JSON document stored in the bulk_submission table, identified by its UUID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Submissions",
+      "item": [
+        {
+          "name": "Create Submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submission_id\": \"{{$guid}}\",\n  \"bulk_submission_id\": \"{{bulkSubmissionId}}\",\n  \"office_account_number\": \"12345678\",\n  \"submission_period\": \"2025-07\",\n  \"area_of_law\": \"crime\",\n  \"status\": \"CREATED\",\n  \"schedule_number\": \"1\",\n  \"is_nil_submission\": false,\n  \"number_of_claims\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions"]
+            },
+            "description": "Creates a new submission record associated with a bulk submission."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('submissionId', responseJson.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Submissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions?offices=12345678&submissionId={{submissionId}}&submittedDateFrom=2025-01-01&submittedDateTo=2025-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions"],
+              "query": [
+                {
+                  "key": "offices",
+                  "value": "12345678",
+                  "description": "Filter by list of office account numbers (required)"
+                },
+                {
+                  "key": "submissionId",
+                  "value": "{{submissionId}}",
+                  "description": "Filter by submission ID (optional)"
+                },
+                {
+                  "key": "submittedDateFrom",
+                  "value": "2025-01-01",
+                  "description": "Filter submissions submitted from this date (optional)"
+                },
+                {
+                  "key": "submittedDateTo",
+                  "value": "2025-12-31",
+                  "description": "Filter submissions submitted up to this date (optional)"
+                }
+              ]
+            },
+            "description": "Return claim submissions by office account numbers (mandatory), submissionId, submittedDateFrom, submittedDateTo"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Submission by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}"]
+            },
+            "description": "Returns the submission details along with associated claims (ID and status only) and matter starts (IDs only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Submission Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VALIDATION_SUCCEEDED\",\n  \"validation_errors\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}"]
+            },
+            "description": "Updates the status field of an existing submission identified by its ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "item": [
+        {
+          "name": "Create Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"READY_TO_PROCESS\",\n  \"schedule_reference\": \"SCH001\",\n  \"line_number\": 1,\n  \"case_reference_number\": \"CASE123456\",\n  \"unique_file_number\": \"UFN123456\",\n  \"case_start_date\": \"2025-01-01\",\n  \"case_concluded_date\": \"2025-01-31\",\n  \"matter_type_code\": \"MT001\",\n  \"outcome_code\": \"OC001\",\n  \"client_forename\": \"John\",\n  \"client_surname\": \"Doe\",\n  \"client_date_of_birth\": \"1900-01-01\",\n  \"unique_client_number\": \"UCN123456\",\n  \"client_postcode\": \"SW1A 1AA\",\n  \"gender_code\": \"M\",\n  \"ethnicity_code\": \"W1\",\n  \"disability_code\": \"00\",\n  \"is_legally_aided\": true,\n  \"total_value\": 1500.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}/claims",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}", "claims"]
+            },
+            "description": "Adds a claim to the specified submission ID."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('claimId', responseJson.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Claim",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}/claims/{{claimId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}", "claims", "{{claimId}}"]
+            },
+            "description": "Returns the details of a specific claim associated with a submission."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Claim",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VALID\",\n  \"validation_errors\": [],\n  \"total_value\": 1750.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}/claims/{{claimId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}", "claims", "{{claimId}}"]
+            },
+            "description": "Partially update a claim within a submission. Only fields provided in the request will be updated."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Matter Starts",
+      "item": [
+        {
+          "name": "Create Matter Start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schedule_reference\": \"SCH001\",\n  \"category_code\": \"CAT001\",\n  \"procurement_area\": \"PA001\",\n  \"access_point\": \"AP001\",\n  \"delivery_location\": \"London\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}/matter-starts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}", "matter-starts"]
+            },
+            "description": "Adds a Matter Start record to the submission with the specified ID."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('matterStartId', responseJson.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Matter Start",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/submissions/{{submissionId}}/matter-starts/{{matterStartId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "submissions", "{{submissionId}}", "matter-starts", "{{matterStartId}}"]
+            },
+            "description": "Returns a Matter Start record belonging to the submission with the specified ID."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
