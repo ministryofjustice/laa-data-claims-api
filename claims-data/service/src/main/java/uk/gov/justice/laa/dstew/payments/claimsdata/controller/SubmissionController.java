@@ -54,7 +54,9 @@ public class SubmissionController implements SubmissionsApi {
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
       Pageable pageable) {
-    // TODO: DSTEW-318:Implement Search endpoint for claim submissions
-    return ResponseEntity.ok(new SubmissionsResultSet());
+
+    return ResponseEntity.ok(
+        submissionService.getSubmissionsResultSet(
+            offices, submissionId, submittedDateFrom, submittedDateTo, pageable));
   }
 }
