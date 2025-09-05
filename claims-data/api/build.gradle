@@ -21,13 +21,6 @@ dependencies {
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
 }
 
-dependencyManagement {
-    imports {
-        // Upgrade to fix vulnerabilities in netty
-        mavenBom('io.netty:netty-bom:4.2.5.Final')
-    }
-}
-
 sourceSets.main.java.srcDirs += ['generated/src/main/java']
 
 checkstyleMain.exclude "*"
