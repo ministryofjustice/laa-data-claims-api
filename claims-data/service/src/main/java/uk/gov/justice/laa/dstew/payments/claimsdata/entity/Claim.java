@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -58,10 +59,12 @@ public class Claim {
 
   @NotNull
   @Column(nullable = false)
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseStartDate;
 
   @NotNull
   @Column(nullable = false)
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseConcludedDate;
 
   @NotNull
@@ -80,6 +83,7 @@ public class Claim {
 
   private String deliveryLocation;
 
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate representationOrderDate;
 
   private Integer suspectsDefendantsCount;

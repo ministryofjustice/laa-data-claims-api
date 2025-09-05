@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 
@@ -29,7 +28,7 @@ public class ClaimsDataTestUtil {
         .matterType("matterType")
         .feeCode("feeCode")
         .caseRefNumber("caseRefNumber")
-        .caseStartDate(LocalDate.of(2000, 1, 1))
+        .caseStartDate("01/01/2000")
         .caseId("caseId")
         .caseStageLevel("caseStageLevel")
         .ufn("ufn")
@@ -37,7 +36,7 @@ public class ClaimsDataTestUtil {
         .accessPoint("accessPoint")
         .clientForename("clientForename")
         .clientSurname("clientSurname")
-        .clientDateOfBirth(LocalDate.of(2000, 1, 2))
+        .clientDateOfBirth("02/01/2000")
         .ucn("ucn")
         .claRefNumber("claRefNumber")
         .claExemption("claExemption")
@@ -45,7 +44,7 @@ public class ClaimsDataTestUtil {
         .ethnicity("ethnicity")
         .disability("disability")
         .clientPostCode("clientPostCode")
-        .workConcludedDate(LocalDate.of(2000, 1, 3))
+        .workConcludedDate("03/01/2000")
         .adviceTime(1)
         .travelTime(2)
         .waitingTime(3)
@@ -73,7 +72,7 @@ public class ClaimsDataTestUtil {
         .substantiveHearing(Boolean.FALSE)
         .hoInterview("hoInterview")
         .hoUcn("hoUcn")
-        .transferDate(LocalDate.of(2000, 1, 4))
+        .transferDate("04/01/2000")
         .detentionTravelWaitingCosts(new BigDecimal("0.09"))
         .deliveryLocation("deliveryLocation")
         .priorAuthorityRef("priorAuthorityRef")
@@ -91,11 +90,11 @@ public class ClaimsDataTestUtil {
         .noOfClients(6)
         .noOfSurgeryClients(7)
         .ircSurgery("ircSurgery")
-        .surgeryDate(LocalDate.of(2000, 1, 5))
+        .surgeryDate("05/01/2000")
         .lineNumber("lineNumber")
         .crimeMatterType("crimeMatterType")
         .feeScheme("feeScheme")
-        .repOrderDate(LocalDate.of(2000, 1, 6))
+        .repOrderDate("06/01/2000")
         .noOfSuspects(8)
         .noOfPoliceStation(9)
         .policeStation("policeStation")
@@ -112,7 +111,7 @@ public class ClaimsDataTestUtil {
         .clientLegallyAided("clientLegallyAided")
         .client2Forename("client2Forename")
         .client2Surname("client2Surname")
-        .client2DateOfBirth(LocalDate.of(2000, 1, 7))
+        .client2DateOfBirth("07/01/2000")
         .client2Ucn("client2Ucn")
         .client2PostCode("client2PostCode")
         .client2Gender("client2Gender")
@@ -128,7 +127,7 @@ public class ClaimsDataTestUtil {
         .localAuthorityNumber("localAuthorityNumber")
         .paNumber("paNumber")
         .excessTravelCosts(new BigDecimal("0.10"))
-        .medConcludedDate(LocalDate.of(2000, 1, 8));
+        .medConcludedDate("08/01/2000");
   }
 
   public static BulkSubmissionMatterStart getBulkSubmissionMatterStart() {

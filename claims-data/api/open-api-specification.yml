@@ -680,12 +680,10 @@ components:
           type: string
         case_start_date:
           type: string
-          format: date
-          description: Date the case was started (format YYYY-MM-DD)
+          description: Date the case was started (format DD/MM/YYYY)
         case_concluded_date:
           type: string
-          format: date
-          description: Date the case was concluded (format YYYY-MM-DD)
+          description: Date the case was concluded (format DD/MM/YYYY)
         matter_type_code:
           type: string
         crime_matter_type_code:
@@ -702,8 +700,7 @@ components:
           type: string
         representation_order_date:
           type: string
-          format: date
-          description: Date the rep order was created (format YYYY-MM-DD)
+          description: Date the rep order was created (format DD/MM/YYYY)
         suspects_defendants_count:
           type: integer
         police_station_court_attendances_count:
@@ -738,8 +735,7 @@ components:
           type: string
         client_date_of_birth:
           type: string
-          format: date
-          description: Client's date of birth (format YYYY-MM-DD)
+          description: Client's date of birth (format DD/MM/YYYY)
         unique_client_number:
           type: string
         client_postcode:
@@ -766,8 +762,7 @@ components:
           type: string
         client_2_date_of_birth:
           type: string
-          format: date
-          description: Client 2's date of birth (format YYYY-MM-DD)
+          description: Client 2's date of birth (format DD/MM/YYYY)
         client_2_ucn:
           type: string
         client_2_postcode:
@@ -806,8 +801,7 @@ components:
           type: string
         transfer_date:
           type: string
-          format: date
-          description: Transfer Date (format YYYY-MM-DD)
+          description: Transfer Date (format DD/MM/YYYY)
         exemption_criteria_satisfied:
           type: string
         exceptional_case_funding_reference:
@@ -864,8 +858,7 @@ components:
           type: boolean
         surgery_date:
           type: string
-          format: date
-          description: Surgery Date (format YYYY-MM-DD)
+          description: Surgery Date (format DD/MM/YYYY)
         surgery_clients_count:
           type: integer
         surgery_matters_count:
@@ -909,7 +902,6 @@ components:
           type: string
         caseStartDate:
           type: string
-          format: date
         caseId:
           type: string
         caseStageLevel:
@@ -926,7 +918,6 @@ components:
           type: string
         clientDateOfBirth:
           type: string
-          format: date
         ucn:
           type: string
         claRefNumber:
@@ -943,7 +934,6 @@ components:
           type: string
         workConcludedDate:
           type: string
-          format: date
         adviceTime:
           type: integer
         travelTime:
@@ -1008,7 +998,6 @@ components:
           type: string
         transferDate:
           type: string
-          format: date
         detentionTravelWaitingCosts:
           type: number
           format: bigDecimal
@@ -1046,7 +1035,6 @@ components:
           type: string
         surgeryDate:
           type: string
-          format: date
         lineNumber:
           type: string
         crimeMatterType:
@@ -1055,7 +1043,6 @@ components:
           type: string
         repOrderDate:
           type: string
-          format: date
         noOfSuspects:
           type: integer
         noOfPoliceStation:
@@ -1090,7 +1077,6 @@ components:
           type: string
         client2DateOfBirth:
           type: string
-          format: date
         client2Ucn:
           type: string
         client2PostCode:
@@ -1124,7 +1110,6 @@ components:
           format: bigDecimal
         medConcludedDate:
           type: string
-          format: date
     MatterStartPost:
       allOf:
         - $ref: '#/components/schemas/MatterStartFields'
