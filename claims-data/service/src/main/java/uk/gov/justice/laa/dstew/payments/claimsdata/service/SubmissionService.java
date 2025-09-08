@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -90,7 +91,7 @@ public class SubmissionService
         .previousSubmissionId(submission.getPreviousSubmissionId())
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
-        .submitted(LocalDate.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
+        .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
         .matterStarts(matterStartIds);
   }

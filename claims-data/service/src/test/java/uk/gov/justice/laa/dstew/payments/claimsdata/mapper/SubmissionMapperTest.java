@@ -1,9 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,8 @@ class SubmissionMapperTest {
   @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
 
   @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+
+  @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
   @Test
   void shouldMapToSubmissionEntity() {
@@ -60,7 +63,7 @@ class SubmissionMapperTest {
             .areaOfLaw("crime")
             .isNilSubmission(false)
             .numberOfClaims(2)
-            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneId.systemDefault()).toInstant())
+            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
             .build();
 
     SubmissionFields result = submissionMapper.toSubmissionFields(submission);
@@ -68,7 +71,7 @@ class SubmissionMapperTest {
     assertThat(result.getSubmissionId()).isEqualTo(id);
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
     assertThat(result.getSubmissionPeriod()).isEqualTo("2025-07");
-    assertThat(result.getSubmitted()).isEqualTo(LocalDate.of(2025, 5, 20));
+    assertThat(result.getSubmitted()).isEqualTo(SUBMITTED_DATE);
   }
 
   @Test
