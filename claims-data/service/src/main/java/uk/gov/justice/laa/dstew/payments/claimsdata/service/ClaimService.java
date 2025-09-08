@@ -16,10 +16,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundExcep
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -60,7 +60,7 @@ public class ClaimService
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
 
-    Claim claim = claimMapper.toSubmissionClaim(claimPost);
+    Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(UUID.randomUUID());
     claim.setSubmission(submission);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
@@ -84,16 +84,16 @@ public class ClaimService
    *
    * @param submissionId submission identifier
    * @param claimId claim identifier
-   * @return populated claim fields
+   * @return populated claim response
    */
   @Transactional(readOnly = true)
-  public ClaimFields getClaim(UUID submissionId, UUID claimId) {
+  public ClaimResponse getClaim(UUID submissionId, UUID claimId) {
     Claim claim = requireClaim(submissionId, claimId);
-    ClaimFields fields = claimMapper.toClaimFields(claim);
+    ClaimResponse response = claimMapper.toClaimResponse(claim);
     clientRepository
         .findByClaimId(claimId)
-        .ifPresent(client -> clientMapper.updateClaimFieldsFromClient(client, fields));
-    return fields;
+        .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, response));
+    return response;
   }
 
   /**
@@ -127,9 +127,9 @@ public class ClaimService
    * @return list of claim summary records
    */
   @Transactional(readOnly = true)
-  public List<GetSubmission200ResponseClaimsInner> getClaimsForSubmission(UUID submissionId) {
+  public List<SubmissionClaim> getClaimsForSubmission(UUID submissionId) {
     return claimRepository.findBySubmissionId(submissionId).stream()
-        .map(claimMapper::toGetSubmission200ResponseClaimsInner)
+        .map(claimMapper::toSubmissionClaim)
         .toList();
   }
 

@@ -30,9 +30,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
@@ -102,8 +102,8 @@ class SubmissionControllerTest {
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
     UUID id = UUID.randomUUID();
-    GetSubmission200Response response =
-        new GetSubmission200Response()
+    SubmissionResponse response =
+        new SubmissionResponse()
             .submissionId(id)
             .bulkSubmissionId(UUID.randomUUID())
             .officeAccountNumber("12345")
@@ -137,8 +137,8 @@ class SubmissionControllerTest {
 
   @Test
   void getSubmissions_returnsSubmissionDetails() throws Exception {
-    var submissionFields = new SubmissionFields();
-    var expected = new SubmissionsResultSet().content(List.of(submissionFields));
+    var submissionBase = new SubmissionBase();
+    var expected = new SubmissionsResultSet().content(List.of(submissionBase));
 
     when(submissionService.getSubmissionsResultSet(
             anyList(),

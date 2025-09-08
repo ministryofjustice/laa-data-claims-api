@@ -59,7 +59,7 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
 compileJava.dependsOn 'openApiGenerate'
 
 clean {
-    delete "$rootDir/laa-data-claims-api/generated"
+    delete "$projectDir/generated"
 }
 
 // disable for overall project when running a build

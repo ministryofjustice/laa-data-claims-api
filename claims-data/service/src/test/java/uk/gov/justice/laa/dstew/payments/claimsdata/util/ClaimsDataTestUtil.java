@@ -11,7 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 public class ClaimsDataTestUtil {
@@ -189,8 +189,8 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static SubmissionFields getSubmissionFields() {
-    return SubmissionFields.builder()
+  public static SubmissionBase getSubmissionBase() {
+    return SubmissionBase.builder()
         .submissionId(ClaimsDataTestUtil.SUBMISSION_ID)
         .bulkSubmissionId(ClaimsDataTestUtil.BULK_SUBMISSION_ID)
         .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)

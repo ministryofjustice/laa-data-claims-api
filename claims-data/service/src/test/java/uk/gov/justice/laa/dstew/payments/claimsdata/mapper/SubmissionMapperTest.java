@@ -13,7 +13,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 
@@ -52,7 +52,7 @@ class SubmissionMapperTest {
   }
 
   @Test
-  void shouldMapToSubmissionFields() {
+  void shouldMapToSubmissionBase() {
     UUID id = UUID.randomUUID();
     Submission submission =
         Submission.builder()
@@ -66,7 +66,7 @@ class SubmissionMapperTest {
             .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
             .build();
 
-    SubmissionFields result = submissionMapper.toSubmissionFields(submission);
+    SubmissionBase result = submissionMapper.toSubmissionBase(submission);
 
     assertThat(result.getSubmissionId()).isEqualTo(id);
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
