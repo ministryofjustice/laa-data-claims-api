@@ -620,8 +620,9 @@ components:
           type: integer
           description: Number of claims in this submission.
         submitted:
-          type: date
-          description: Date the submission was submitted
+          type: string
+          format: date-time
+          description: Date and time the submission was submitted
     SubmissionsResultSet:
       allOf:
         - $ref: "#/components/schemas/page"

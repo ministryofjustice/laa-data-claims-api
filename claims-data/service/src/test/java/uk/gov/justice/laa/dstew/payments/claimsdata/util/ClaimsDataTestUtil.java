@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -19,7 +19,7 @@ public class ClaimsDataTestUtil {
   public static final String API_URI_PREFIX = "/api/v0";
   public static final UUID SUBMISSION_ID = UUID.randomUUID();
   public static final UUID BULK_SUBMISSION_ID = UUID.randomUUID();
-  public static final LocalDate SUBMITTED_DATE = LocalDate.now(ZoneOffset.UTC);
+  public static final OffsetDateTime SUBMITTED_DATE = OffsetDateTime.now(ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
   public static final String AREA_OF_LAW = "CIVIL";
   public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
