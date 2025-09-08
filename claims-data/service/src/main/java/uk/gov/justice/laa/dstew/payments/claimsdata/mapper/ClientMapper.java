@@ -38,6 +38,7 @@ public interface ClientMapper {
    * @param entity client entity
    * @param fields claim fields to populate
    */
+  @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateClaimFieldsFromClient(Client entity, @MappingTarget ClaimFields fields);
 }
