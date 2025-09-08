@@ -204,8 +204,7 @@ class ClaimServiceTest {
     final Claim claim = Claim.builder().build();
     final GetSubmission200ResponseClaimsInner inner = new GetSubmission200ResponseClaimsInner();
 
-    when(claimRepository.findBySubmissionIdOrderByLineNumberAsc(submissionId))
-        .thenReturn(List.of(claim));
+    when(claimRepository.findBySubmissionId(submissionId)).thenReturn(List.of(claim));
     when(claimMapper.toGetSubmission200ResponseClaimsInner(claim)).thenReturn(inner);
 
     final List<GetSubmission200ResponseClaimsInner> result =

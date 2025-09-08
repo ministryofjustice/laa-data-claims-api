@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import java.time.ZoneOffset;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,7 +64,7 @@ class SubmissionsResultSetMapperImplTest {
         .isEqualTo(expectedSubmission.getIsNilSubmission());
     assertThat(actualSubmission.getNumberOfClaims())
         .isEqualTo(expectedSubmission.getNumberOfClaims());
-    assertThat(actualSubmission.getSubmitted().atStartOfDay().toInstant(ZoneOffset.UTC))
+    assertThat(actualSubmission.getSubmitted().toInstant())
         .isEqualTo(expectedSubmission.getCreatedOn());
   }
 }
