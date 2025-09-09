@@ -37,12 +37,12 @@ class SubmissionsResultSetMapperImplTest {
   }
 
   @Test
-  void submissionListToSubmissionFieldsList_shouldReturnSubmissionData() {
+  void submissionListToSubmissionBaseList_shouldReturnSubmissionData() {
     var expectedSubmission = ClaimsDataTestUtil.getSubmission();
     Page<Submission> page = new PageImpl<>(Collections.singletonList(expectedSubmission));
 
-    var submissionFields = ClaimsDataTestUtil.getSubmissionFields();
-    when(submissionMapper.toSubmissionFields(expectedSubmission)).thenReturn(submissionFields);
+    var submissionBase = ClaimsDataTestUtil.getSubmissionBase();
+    when(submissionMapper.toSubmissionBase(expectedSubmission)).thenReturn(submissionBase);
 
     var submissionsResultSet = mapper.toSubmissionsResultSet(page);
     var actualSubmission = submissionsResultSet.getContent().getFirst();

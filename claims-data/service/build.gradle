@@ -30,7 +30,7 @@ jacocoTestCoverageVerification {
 // to avoid snyk warning that stops the build
 //Remove the line below when the laa-ccms-spring-boot-gradle-plugin is upgraded
 ext['tomcat.version'] = '10.1.44'
-// Upgrade to fix CVE-2025-55163
+// Upgrade to fix CVE-2025-58056
 ext['netty.version'] = '4.1.125.Final'
 ext['commons-lang3.version'] = '3.18.0'
 

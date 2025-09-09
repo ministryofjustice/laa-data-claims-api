@@ -18,10 +18,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
@@ -73,14 +73,14 @@ public class SubmissionService
    * @return submission response model
    */
   @Transactional(readOnly = true)
-  public GetSubmission200Response getSubmission(UUID id) {
+  public SubmissionResponse getSubmission(UUID id) {
     Submission submission = requireEntity(id);
 
-    List<GetSubmission200ResponseClaimsInner> claims = claimService.getClaimsForSubmission(id);
+    List<SubmissionClaim> claims = claimService.getClaimsForSubmission(id);
 
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
-    return new GetSubmission200Response()
+    return new SubmissionResponse()
         .submissionId(submission.getId())
         .bulkSubmissionId(submission.getBulkSubmissionId())
         .officeAccountNumber(submission.getOfficeAccountNumber())

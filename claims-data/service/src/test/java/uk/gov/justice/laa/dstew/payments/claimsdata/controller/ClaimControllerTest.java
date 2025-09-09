@@ -22,9 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
@@ -82,8 +82,8 @@ class ClaimControllerTest {
   void getClaim_returnsClaimDetails() throws Exception {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
-    final ClaimFields claimFields =
-        new ClaimFields()
+    final ClaimResponse claimFields =
+        new ClaimResponse()
             .status(ClaimStatus.VALID)
             .scheduleReference("SCH-777")
             .lineNumber(42)

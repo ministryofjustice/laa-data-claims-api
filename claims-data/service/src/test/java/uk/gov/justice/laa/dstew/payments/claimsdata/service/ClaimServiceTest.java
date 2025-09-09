@@ -30,10 +30,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundExcep
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200ResponseClaimsInner;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -59,7 +59,7 @@ class ClaimServiceTest {
     final Claim claim = Claim.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
-    when(claimMapper.toSubmissionClaim(post)).thenReturn(claim);
+    when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(client);
 
     final UUID id = claimService.createClaim(submissionId, post);
@@ -94,7 +94,7 @@ class ClaimServiceTest {
     final Client emptyClient = Client.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
-    when(claimMapper.toSubmissionClaim(post)).thenReturn(claim);
+    when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(emptyClient);
 
     final UUID id = claimService.createClaim(submissionId, post);
@@ -121,18 +121,18 @@ class ClaimServiceTest {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
     final Claim claim = Claim.builder().id(claimId).build();
-    final ClaimFields fields = new ClaimFields();
+    final ClaimResponse fields = new ClaimResponse();
     final Client client = Client.builder().clientForename("John").build();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toClaimFields(claim)).thenReturn(fields);
+    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
 
-    final ClaimFields result = claimService.getClaim(submissionId, claimId);
+    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
-    verify(clientMapper).updateClaimFieldsFromClient(client, fields);
+    verify(clientMapper).updateClaimResponseFromClient(client, fields);
   }
 
   @Test
@@ -140,17 +140,17 @@ class ClaimServiceTest {
     final UUID submissionId = UUID.randomUUID();
     final UUID claimId = UUID.randomUUID();
     final Claim claim = Claim.builder().id(claimId).build();
-    final ClaimFields fields = new ClaimFields();
+    final ClaimResponse fields = new ClaimResponse();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toClaimFields(claim)).thenReturn(fields);
+    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
-    final ClaimFields result = claimService.getClaim(submissionId, claimId);
+    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
-    verify(clientMapper, never()).updateClaimFieldsFromClient(any(), eq(fields));
+    verify(clientMapper, never()).updateClaimResponseFromClient(any(), eq(fields));
   }
 
   @Test
@@ -202,13 +202,12 @@ class ClaimServiceTest {
   void shouldGetClaimsForSubmission() {
     final UUID submissionId = UUID.randomUUID();
     final Claim claim = Claim.builder().build();
-    final GetSubmission200ResponseClaimsInner inner = new GetSubmission200ResponseClaimsInner();
+    final SubmissionClaim inner = new SubmissionClaim();
 
     when(claimRepository.findBySubmissionId(submissionId)).thenReturn(List.of(claim));
-    when(claimMapper.toGetSubmission200ResponseClaimsInner(claim)).thenReturn(inner);
+    when(claimMapper.toSubmissionClaim(claim)).thenReturn(inner);
 
-    final List<GetSubmission200ResponseClaimsInner> result =
-        claimService.getClaimsForSubmission(submissionId);
+    final List<SubmissionClaim> result = claimService.getClaimsForSubmission(submissionId);
 
     assertThat(result).containsExactly(inner);
   }

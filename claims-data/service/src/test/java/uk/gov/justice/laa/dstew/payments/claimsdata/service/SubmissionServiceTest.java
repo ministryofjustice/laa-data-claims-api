@@ -29,7 +29,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
@@ -85,7 +90,7 @@ class SubmissionServiceTest {
     when(matterStartService.getMatterStartIdsForSubmission(submissionId))
         .thenReturn(java.util.List.of());
 
-    GetSubmission200Response result = submissionService.getSubmission(submissionId);
+    SubmissionResponse result = submissionService.getSubmission(submissionId);
 
     assertThat(result.getSubmissionId()).isEqualTo(submissionId);
   }
@@ -169,7 +174,7 @@ class SubmissionServiceTest {
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new SubmissionsResultSet().content(Collections.singletonList(new SubmissionFields()));
+        new SubmissionsResultSet().content(Collections.singletonList(new SubmissionBase()));
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedNonEmptyResultSet);
 

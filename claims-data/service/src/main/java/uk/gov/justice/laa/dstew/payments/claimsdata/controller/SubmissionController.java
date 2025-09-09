@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.SubmissionsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateSubmission201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
@@ -36,8 +36,8 @@ public class SubmissionController implements SubmissionsApi {
   }
 
   @Override
-  public ResponseEntity<GetSubmission200Response> getSubmission(UUID id) {
-    GetSubmission200Response response = submissionService.getSubmission(id);
+  public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
+    SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
   }
 
