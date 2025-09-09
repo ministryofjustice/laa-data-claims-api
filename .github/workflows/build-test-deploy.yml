@@ -40,8 +40,11 @@ jobs:
 
       - name: Publish api models package
         run: |
-          commit=$(git rev-parse --short HEAD)
-          ./gradlew :claims-data:api:publish -Pversion=$commit
+          version=$(git rev-parse --short HEAD)
+          if [ "${{ github.event_name }}" = "pull_request" ]
+            version=${version}-SNAPSHOT
+          fi
+          ./gradlew :claims-data:api:publish -Pversion=version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
