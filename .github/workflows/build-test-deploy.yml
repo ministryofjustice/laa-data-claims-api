@@ -44,7 +44,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             version=${version}-SNAPSHOT
           fi
-          ./gradlew :claims-data:api:publish -Pversion=version
+          ./gradlew :claims-data:api:publish -Pversion=$version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
