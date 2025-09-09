@@ -39,7 +39,9 @@ jobs:
         run: ./gradlew integrationTest --tests '*IntegrationTest'
 
       - name: Publish api models package
-        run: ./gradlew :claims-data:api:publish -Pversion=${{ github.sha }}
+        run: |
+          commit=$(git rev-parse --short HEAD)
+          ./gradlew :claims-data:api:publish -Pversion=$commit
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
