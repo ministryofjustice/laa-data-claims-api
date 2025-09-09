@@ -41,7 +41,7 @@ jobs:
       - name: Publish api models package
         run: |
           version=$(git rev-parse --short HEAD)
-          if [ "${{ github.event_name }}" = "pull_request" ]
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             version=${version}-SNAPSHOT
           fi
           ./gradlew :claims-data:api:publish -Pversion=version
