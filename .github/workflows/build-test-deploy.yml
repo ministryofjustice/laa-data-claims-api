@@ -32,6 +32,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Test coverage verification
+        run: ./gradlew jacocoTestCoverageVerification
+
+      - name: Integration test
+        run: ./gradlew integrationTest --tests '*IntegrationTest'
+
       - name: Publish api models package
         run: ./gradlew :claims-data:api:publish -Pversion=${{ github.sha }}
         env:
@@ -43,17 +49,6 @@ jobs:
           name: service-jar
           path: claims-data/service/build/libs/*.jar
           retention-days: 1
-
-      - name: Test coverage verification
-        run: ./gradlew jacocoTestCoverageVerification
-
-      - name: Integration test
-        run: ./gradlew integrationTest --tests '*IntegrationTest'
-
-      - name: Publish package
-        run: ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload checkstyle report for claims-data
         if: always()
