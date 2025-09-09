@@ -242,11 +242,12 @@ paths:
                 $ref: '#/components/schemas/SubmissionsResultSet'
   /api/v0/claims:
     get:
-      operationId: searchClaims
+      operationId: getClaims
+      x-spring-paginated: true
       tags:
         - Claims
-      summary: Search for claims
-      description: Search for claims within a submission, filtering on certain fields.
+      summary: Get claims
+      description: Get claims for an office, filtering on certain fields.
       parameters:
         - name: office_code
           in: query
@@ -262,7 +263,7 @@ paths:
             type: string
           description: |
             Unique system-generated identifier for each submission
-        - name: submission_status
+        - name: submission_statuses
           in: query
           required: false
           schema:
@@ -289,7 +290,7 @@ paths:
           schema:
             type: string
           description: Unique Client Number assigned to the client
-        - name: claim_status
+        - name: claim_statuses
           in: query
           required: false
           schema:

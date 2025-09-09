@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -44,14 +45,15 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
-  public ResponseEntity<ClaimResultSet> searchClaims(
+  public ResponseEntity<ClaimResultSet> getClaims(
       String officeCode,
       String submissionId,
-      List<SubmissionStatus> submissionStatus,
+      List<SubmissionStatus> submissionStatuses,
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
-      List<ClaimStatus> claimStatus) {
+      List<ClaimStatus> claimStatuses,
+      Pageable pageable) {
     // TODO: Implement search claims endpoint https://dsdmoj.atlassian.net/browse/DSTEW-350
     return ResponseEntity.ok(new ClaimResultSet());
   }
