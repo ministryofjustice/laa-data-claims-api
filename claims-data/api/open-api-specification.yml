@@ -821,7 +821,7 @@ components:
           description: Client's date of birth (format DD/MM/YYYY)
         unique_client_number:
           type: string
-        client_post_code:
+        client_postcode:
           type: string
         gender_code:
           type: string
@@ -848,7 +848,7 @@ components:
           description: Client 2's date of birth (format DD/MM/YYYY)
         client_2_ucn:
           type: string
-        client_2_post_code:
+        client_2_postcode:
           type: string
         client_2_gender_code:
           type: string
@@ -1012,7 +1012,7 @@ components:
           type: string
         disability:
           type: string
-        client_post_code:
+        client_postcode:
           type: string
         work_concluded_date:
           type: string
@@ -1160,7 +1160,7 @@ components:
           type: string
         client2_ucn:
           type: string
-        client2_post_code:
+        client2_postcode:
           type: string
         client2_gender:
           type: string

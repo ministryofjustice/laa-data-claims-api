@@ -38,7 +38,7 @@ class ClientMapperTest {
             .clientSurname("Doe")
             .clientDateOfBirth("20/05/1990")
             .uniqueClientNumber("UCN-123")
-            .clientPostCode("AB1 2CD")
+            .clientPostcode("AB1 2CD")
             .genderCode("M")
             .ethnicityCode("ETH1")
             .disabilityCode("DIS1")
@@ -51,7 +51,7 @@ class ClientMapperTest {
             .client2Surname("Roe")
             .client2DateOfBirth("15/07/1992")
             .client2Ucn("UCN-456")
-            .client2PostCode("EF3 4GH")
+            .client2Postcode("EF3 4GH")
             .client2GenderCode("F")
             .client2EthnicityCode("ETH2")
             .client2DisabilityCode("DIS2")
@@ -64,7 +64,7 @@ class ClientMapperTest {
     assertEquals("Doe", client.getClientSurname());
     assertEquals("1990-05-20", client.getClientDateOfBirth().toString());
     assertEquals("UCN-123", client.getUniqueClientNumber());
-    assertEquals("AB1 2CD", client.getClientPostCode());
+    assertEquals("AB1 2CD", client.getClientPostcode());
     assertEquals("M", client.getGenderCode());
     assertEquals("ETH1", client.getEthnicityCode());
     assertEquals("DIS1", client.getDisabilityCode());
@@ -105,7 +105,7 @@ class ClientMapperTest {
             .clientSurname("OldSurname")
             .clientDateOfBirth("01/01/1980")
             .uniqueClientNumber("OLD-UCN")
-            .clientPostCode("OLD-PC")
+            .clientPostcode("OLD-PC")
             .genderCode("OLD-G")
             .ethnicityCode("OLD-E")
             .disabilityCode("OLD-D")
@@ -118,7 +118,7 @@ class ClientMapperTest {
             .client2Surname("Old2S")
             .client2DateOfBirth("02/02/1985")
             .client2Ucn("OLD-UCN2")
-            .client2PostCode("OLD-PC2")
+            .client2Postcode("OLD-PC2")
             .client2GenderCode("OLD-G2")
             .client2EthnicityCode("OLD-E2")
             .client2DisabilityCode("OLD-D2")
@@ -131,7 +131,7 @@ class ClientMapperTest {
             .clientSurname("NewSurname")
             .clientDateOfBirth(LocalDate.of(1999, 9, 9))
             .uniqueClientNumber(null)
-            .clientPostCode("NEW-PC")
+            .clientPostcode("NEW-PC")
             .genderCode(null)
             .ethnicityCode("NEW-E")
             .disabilityCode(null)
@@ -157,7 +157,7 @@ class ClientMapperTest {
     assertEquals("NewSurname", fields.getClientSurname());
     assertEquals("1999-09-09", fields.getClientDateOfBirth());
     assertEquals("OLD-UCN", fields.getUniqueClientNumber());
-    assertEquals("NEW-PC", fields.getClientPostCode());
+    assertEquals("NEW-PC", fields.getClientPostcode());
     assertEquals("OLD-G", fields.getGenderCode());
     assertEquals("NEW-E", fields.getEthnicityCode());
     assertEquals("OLD-D", fields.getDisabilityCode());
@@ -170,7 +170,7 @@ class ClientMapperTest {
     assertEquals("Old2S", fields.getClient2Surname());
     assertEquals("02/02/1985", fields.getClient2DateOfBirth());
     assertEquals("NEW-UCN2", fields.getClient2Ucn());
-    assertEquals("OLD-PC2", fields.getClient2PostCode());
+    assertEquals("OLD-PC2", fields.getClient2Postcode());
     assertEquals("NEW-G2", fields.getClient2GenderCode());
     assertEquals("OLD-E2", fields.getClient2EthnicityCode());
     assertEquals("NEW-D2", fields.getClient2DisabilityCode());
