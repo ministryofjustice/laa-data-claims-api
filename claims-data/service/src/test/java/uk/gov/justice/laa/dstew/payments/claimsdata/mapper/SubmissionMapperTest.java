@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
 import java.time.LocalDate;
@@ -93,8 +94,8 @@ class SubmissionMapperTest {
     ValidationErrorLog log = submissionMapper.toValidationErrorLog("ERR1", submission);
 
     assertThat(log.getId()).isNotNull();
-    assertThat(log.getSubmission()).isEqualTo(submission);
-    assertThat(log.getClaim()).isNull();
+    assertEquals(submission.getId(), log.getSubmissionId());
+    assertThat(log.getClaimId()).isNull();
     assertThat(log.getErrorCode()).isEqualTo("ERR1");
     assertThat(log.getErrorDescription()).isEqualTo("ERR1");
     assertThat(log.getCreatedByUserId()).isEqualTo("todo");
