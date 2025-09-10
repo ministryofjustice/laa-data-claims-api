@@ -21,6 +21,14 @@ public class ValidationErrorService {
   private final ValidationErrorLogRepository repository;
   private final ValidationErrorMapper mapper;
 
+  /**
+   * Retrieves validation errors by submission and claim IDs with pagination.
+   *
+   * @param submissionId the ID of the submission
+   * @param claimId the ID of the claim
+   * @param pageable pagination details
+   * @return a response containing paginated validation errors
+   */
   public GetValidationErrors200Response getValidationErrors(
       UUID submissionId, UUID claimId, Pageable pageable) {
     log.info("Fetching validation errors for submissionId={}, claimId={}", submissionId, claimId);
