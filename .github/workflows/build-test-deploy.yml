@@ -32,23 +32,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: service-jar
-          path: claims-data/service/build/libs/*.jar
-          retention-days: 1
-
       - name: Test coverage verification
         run: ./gradlew jacocoTestCoverageVerification
 
       - name: Integration test
         run: ./gradlew integrationTest --tests '*IntegrationTest'
 
-      - name: Publish package
-        run: ./gradlew publish
+      - name: Publish api models package
+        run: |
+          version=$(git rev-parse --short HEAD)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            version=${version}-SNAPSHOT
+          fi
+          ./gradlew :claims-data:api:publish -Pversion=$version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload service JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-jar
+          path: claims-data/service/build/libs/*.jar
+          retention-days: 1
 
       - name: Upload checkstyle report for claims-data
         if: always()
