@@ -269,7 +269,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/SubmissionStatus"
+              $ref: "#/components/schemas/submission_status"
         - name: fee_code
           in: query
           required: false
@@ -296,7 +296,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/ClaimStatus"
+              $ref: "#/components/schemas/claim_status"
       responses:
         '200':
           description: Claims retrieved successfully
@@ -382,7 +382,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: #/components/schemas/MatterStartPost
+              $ref: '#/components/schemas/matter_start_post'
       responses:
         '201':
           description: Matter Start created successfully
@@ -543,7 +543,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClaimResponse'
+                $ref: '#/components/schemas/claim_response'
         '400':
           description: 'Bad request'
         '401':
@@ -602,7 +602,7 @@ components:
         - REPLACED
     SubmissionPost:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
       required:
         - submission_id
         - bulk_submission_id
@@ -612,7 +612,7 @@ components:
         - status
     SubmissionPatch:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
       type: object
       properties:
         validation_errors:
@@ -638,10 +638,10 @@ components:
           type: string
           format: uuid
         status:
-          $ref: "#/components/schemas/ClaimStatus"
+          $ref: "#/components/schemas/claim_status"
     SubmissionResponse:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
         - type: object
           properties:
             claims:
@@ -655,7 +655,7 @@ components:
               items:
                 type: string
                 format: uuid
-    SubmissionBase:
+    submission_base:
       type: object
       description: submission details
       properties:
@@ -703,11 +703,11 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/SubmissionBase'
+            $ref: '#/components/schemas/submission_base'
 
     claim_post:
       allOf:
-        - $ref: '#/components/schemas/ClaimResponse'
+        - $ref: '#/components/schemas/claim_response'
       required:
         - status
         - schedule_reference
@@ -720,7 +720,7 @@ components:
         - outcome_code
     ClaimPatch:
       allOf:
-        - $ref: '#/components/schemas/ClaimResponse'
+        - $ref: '#/components/schemas/claim_response'
       type: object
       properties:
         validation_errors:
@@ -744,8 +744,8 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/ClaimResponse'
-    ClaimResponse:
+            $ref: '#/components/schemas/claim_response'
+    claim_response:
       type: object
       description: Claim details
       properties:
@@ -821,7 +821,7 @@ components:
           description: Client's date of birth (format DD/MM/YYYY)
         unique_client_number:
           type: string
-        client_postcode:
+        client_post_code:
           type: string
         gender_code:
           type: string
@@ -848,7 +848,7 @@ components:
           description: Client 2's date of birth (format DD/MM/YYYY)
         client_2_ucn:
           type: string
-        client_2_postcode:
+        client_2_post_code:
           type: string
         client_2_gender_code:
           type: string
@@ -1012,7 +1012,7 @@ components:
           type: string
         disability:
           type: string
-        client_postcode:
+        client_post_code:
           type: string
         work_concluded_date:
           type: string
@@ -1042,7 +1042,7 @@ components:
           format: bigDecimal
         vat_indicator:
           type: boolean
-        london_non_london_rate:
+        london_nonlondon_rate:
           type: boolean
         client_type:
           type: string
@@ -1061,7 +1061,7 @@ components:
           type: integer
         type_of_advice:
           type: string
-        is_postal_application_accepted:
+        postal_appl_accp:
           type: boolean
         schedule_ref:
           type: string
@@ -1174,7 +1174,7 @@ components:
           type: string
         standard_fee_cat:
           type: string
-        is_client_2_postal_application_accepted:
+        client_2_postal_appl_accp:
           type: string
         costs_damages_recovered:
           type: string

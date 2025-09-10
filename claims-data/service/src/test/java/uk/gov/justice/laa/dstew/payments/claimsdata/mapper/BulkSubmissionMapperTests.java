@@ -23,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
-public class BulkSubmissionMapperTests {
+class BulkSubmissionMapperTests {
 
   @InjectMocks
   private final BulkSubmissionMapper bulkSubmissionMapper = new BulkSubmissionMapperImpl();
@@ -87,7 +87,7 @@ public class BulkSubmissionMapperTests {
                     "outcomeCode",
                     "N",
                     "claimType",
-                    "0.08",
+                    "8",
                     "typeOfAdvice",
                     "Y",
                     "scheduleRef",
@@ -95,7 +95,7 @@ public class BulkSubmissionMapperTests {
                     "cmrhTelephone",
                     "aitHearingCentre",
                     "N",
-                    "hoInterview",
+                    "8",
                     "hoUcn",
                     "04/01/2000",
                     "0.09",
@@ -220,7 +220,7 @@ public class BulkSubmissionMapperTests {
                             "outcomeCode",
                             "N",
                             "claimType",
-                            "0.08",
+                            "8",
                             "typeOfAdvice",
                             "Y",
                             "scheduleRef",
@@ -228,7 +228,7 @@ public class BulkSubmissionMapperTests {
                             "cmrhTelephone",
                             "aitHearingCentre",
                             "N",
-                            "hoInterview",
+                            "8",
                             "hoUcn",
                             "04/01/2000",
                             "0.09",
