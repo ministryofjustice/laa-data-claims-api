@@ -7,8 +7,8 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 
 /** MapStruct mapper for converting between client models and entities. */
 @Mapper(
@@ -33,11 +33,12 @@ public interface ClientMapper {
   Client toClient(ClaimPost claimPost);
 
   /**
-   * Map client entity values onto claim fields.
+   * Map client entity values onto claim response.
    *
    * @param entity client entity
-   * @param fields claim fields to populate
+   * @param claim claim response to populate
    */
+  @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  void updateClaimFieldsFromClient(Client entity, @MappingTarget ClaimFields fields);
+  void updateClaimResponseFromClient(Client entity, @MappingTarget ClaimResponse claim);
 }

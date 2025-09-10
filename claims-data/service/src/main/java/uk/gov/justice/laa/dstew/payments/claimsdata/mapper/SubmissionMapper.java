@@ -1,8 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -10,14 +10,15 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 
 /** MapStruct mapper for converting between API models and Submission entities. */
 @Mapper(
     componentModel = "spring",
-    uses = GlobalStringMapper.class,
+    uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
     imports = {java.util.UUID.class})
 public interface SubmissionMapper {
   /**
@@ -35,23 +36,25 @@ public interface SubmissionMapper {
   Submission toSubmission(SubmissionPost submissionPost);
 
   /**
-   * Map a {@link Submission} entity to {@link SubmissionFields} view model.
+   * Map a {@link Submission} entity to {@link SubmissionResponse} view model.
    *
    * @param submission the entity
-   * @return mapped {@link SubmissionFields}
+   * @return mapped {@link SubmissionResponse}
    */
   @Mapping(target = "submissionId", source = "id")
   @Mapping(target = "submitted", source = "createdOn")
-  SubmissionFields toSubmissionFields(Submission submission);
+  SubmissionBase toSubmissionBase(Submission submission);
 
   /**
-   * Converts an instant to a LocalDate.
+   * Converts an Instant to a String.
    *
    * @param instant the instant to convert
-   * @return the converted LocalDate
+   * @return the formatted String
    */
-  default LocalDate mapInstantToLocalDate(Instant instant) {
-    return instant != null ? instant.atZone(ZoneId.systemDefault()).toLocalDate() : null;
+  default String mapInstantToString(Instant instant) {
+    return instant != null
+        ? DateTimeFormatter.ofPattern("dd/MM/yyyy").format(instant.atZone(ZoneId.systemDefault()))
+        : null;
   }
 
   /**

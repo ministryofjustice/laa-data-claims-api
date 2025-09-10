@@ -1,12 +1,31 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import java.util.UUID;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v0";
+  public static final UUID SUBMISSION_ID = UUID.randomUUID();
+  public static final UUID BULK_SUBMISSION_ID = UUID.randomUUID();
+  public static final OffsetDateTime SUBMITTED_DATE =
+      OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
+  public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
+  public static final String AREA_OF_LAW = "CIVIL";
+  public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
+  public static final String SUBMISSION_PERIOD = "APR-24";
+  public static final String USER_ID = "12345";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
@@ -152,5 +171,37 @@ public class ClaimsDataTestUtil {
     expectedDetails.matterStarts(expectedMatterStarts);
 
     return expectedDetails;
+  }
+
+  public static Submission getSubmission() {
+    return Submission.builder()
+        .id(SUBMISSION_ID)
+        .bulkSubmissionId(BULK_SUBMISSION_ID)
+        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+        .submissionPeriod(SUBMISSION_PERIOD)
+        .areaOfLaw(AREA_OF_LAW)
+        .status(SubmissionStatus.CREATED)
+        .scheduleNumber(SCHEDULE_NUMBER)
+        .previousSubmissionId(SUBMISSION_ID)
+        .isNilSubmission(false)
+        .numberOfClaims(5)
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .build();
+  }
+
+  public static SubmissionBase getSubmissionBase() {
+    return SubmissionBase.builder()
+        .submissionId(ClaimsDataTestUtil.SUBMISSION_ID)
+        .bulkSubmissionId(ClaimsDataTestUtil.BULK_SUBMISSION_ID)
+        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+        .submissionPeriod(SUBMISSION_PERIOD)
+        .areaOfLaw(AREA_OF_LAW)
+        .status(SubmissionStatus.CREATED)
+        .scheduleNumber(SCHEDULE_NUMBER)
+        .previousSubmissionId(ClaimsDataTestUtil.SUBMISSION_ID)
+        .isNilSubmission(false)
+        .numberOfClaims(5)
+        .submitted(ClaimsDataTestUtil.SUBMITTED_DATE)
+        .build();
   }
 }

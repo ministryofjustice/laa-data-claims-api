@@ -1,9 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +13,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 
@@ -22,6 +23,8 @@ class SubmissionMapperTest {
   @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
 
   @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+
+  @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
   @Test
   void shouldMapToSubmissionEntity() {
@@ -49,7 +52,7 @@ class SubmissionMapperTest {
   }
 
   @Test
-  void shouldMapToSubmissionFields() {
+  void shouldMapToSubmissionBase() {
     UUID id = UUID.randomUUID();
     Submission submission =
         Submission.builder()
@@ -60,15 +63,15 @@ class SubmissionMapperTest {
             .areaOfLaw("crime")
             .isNilSubmission(false)
             .numberOfClaims(2)
-            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneId.systemDefault()).toInstant())
+            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
             .build();
 
-    SubmissionFields result = submissionMapper.toSubmissionFields(submission);
+    SubmissionBase result = submissionMapper.toSubmissionBase(submission);
 
     assertThat(result.getSubmissionId()).isEqualTo(id);
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
     assertThat(result.getSubmissionPeriod()).isEqualTo("2025-07");
-    assertThat(result.getSubmitted()).isEqualTo(LocalDate.of(2025, 5, 20));
+    assertThat(result.getSubmitted()).isEqualTo(SUBMITTED_DATE);
   }
 
   @Test

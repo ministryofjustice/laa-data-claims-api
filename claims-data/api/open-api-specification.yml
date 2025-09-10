@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: "3.0.0"
 info:
   version: 0.0.1
   title: LAA Data Claims API
@@ -239,8 +239,79 @@ paths:
           content:
             application/json:
               schema:
-                  $ref: '#/components/schemas/SubmissionsResultSet'
-
+                $ref: '#/components/schemas/SubmissionsResultSet'
+  /api/v0/claims:
+    get:
+      operationId: getClaims
+      x-spring-paginated: true
+      tags:
+        - Claims
+      summary: Get claims
+      description: Get claims for an office, filtering on certain fields.
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+        - name: submission_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Unique system-generated identifier for each submission
+        - name: submission_statuses
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/SubmissionStatus"
+        - name: fee_code
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Alphanumeric code identifying the specific fee type or category applicable to the claim 
+            under the relevant Legal Aid Agency fee scheme
+        - name: unique_file_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Provider's unique case reference number for controlled work billing
+        - name: unique_client_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Client Number assigned to the client
+        - name: claim_statuses
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/ClaimStatus"
+      responses:
+        '200':
+          description: Claims retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResultSet'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
   /api/v0/submissions/{id}/claims:
     post:
       operationId: createClaim
@@ -432,33 +503,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: submission details
-                allOf:
-                  - $ref: '#/components/schemas/SubmissionFields'
-                properties:
-                  claims:
-                    type: array
-                    description: List of claims (ID + status) for this submission
-                    items:
-                      type: object
-                      description: Claim UUID and status
-                      properties:
-                        claim_id:
-                          type: string
-                          format: uuid
-                        status:
-                          type: string
-                          enum:
-                            - READY_TO_PROCESS
-                            - VALID
-                            - INVALID
-                  matter_starts:
-                    type: array
-                    description: List of matter start IDs for this submission
-                    items:
-                      type: string
-                      format: uuid
+                $ref: '#/components/schemas/SubmissionResponse'
         '400':
           description: 'Bad request'
         '401':
@@ -498,7 +543,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/claim_fields'
+                $ref: '#/components/schemas/ClaimResponse'
         '400':
           description: 'Bad request'
         '401':
@@ -557,7 +602,7 @@ components:
         - REPLACED
     SubmissionPost:
       allOf:
-        - $ref: '#/components/schemas/SubmissionFields'
+        - $ref: '#/components/schemas/SubmissionBase'
       required:
         - submission_id
         - bulk_submission_id
@@ -567,7 +612,7 @@ components:
         - status
     SubmissionPatch:
       allOf:
-        - $ref: '#/components/schemas/SubmissionFields'
+        - $ref: '#/components/schemas/SubmissionBase'
       type: object
       properties:
         validation_errors:
@@ -583,7 +628,34 @@ components:
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED
-    SubmissionFields:
+      description: |
+        Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
+    SubmissionClaim:
+      type: object
+      description: Claim UUID and status
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+    SubmissionResponse:
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
+          properties:
+            claims:
+              type: array
+              description: List of claims (ID + status) for this submission
+              items:
+                $ref: '#/components/schemas/SubmissionClaim'
+            matter_starts:
+              type: array
+              description: List of matter start IDs for this submission
+              items:
+                type: string
+                format: uuid
+    SubmissionBase:
       type: object
       description: submission details
       properties:
@@ -620,8 +692,9 @@ components:
           type: integer
           description: Number of claims in this submission.
         submitted:
-          type: date
-          description: Date the submission was submitted
+          type: string
+          format: date-time
+          description: Date and time the submission was submitted
     SubmissionsResultSet:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -630,11 +703,11 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/SubmissionFields'
+            $ref: '#/components/schemas/SubmissionBase'
 
     claim_post:
       allOf:
-        - $ref: '#/components/schemas/claim_fields'
+        - $ref: '#/components/schemas/ClaimResponse'
       required:
         - status
         - schedule_reference
@@ -647,7 +720,7 @@ components:
         - outcome_code
     ClaimPatch:
       allOf:
-        - $ref: '#/components/schemas/claim_fields'
+        - $ref: '#/components/schemas/ClaimResponse'
       type: object
       properties:
         validation_errors:
@@ -660,8 +733,19 @@ components:
         - READY_TO_PROCESS
         - VALID
         - INVALID
-
-    claim_fields:
+      description: |
+        System-maintained processing status indicator that tracks the validation lifecycle of a
+        claim record from initial submission through to final approval or rejection.
+    ClaimResultSet:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/ClaimResponse'
+    ClaimResponse:
       type: object
       description: Claim details
       properties:

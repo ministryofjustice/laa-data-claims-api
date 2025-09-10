@@ -26,8 +26,8 @@ class ClaimMapperTest {
   @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
 
   @Test
-  void toSubmissionClaim_nullInput_returnsNull() {
-    assertNull(mapper.toSubmissionClaim(null));
+  void toClaim_nullInput_returnsNull() {
+    assertNull(mapper.toClaim(null));
   }
 
   @Test
@@ -63,7 +63,7 @@ class ClaimMapperTest {
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC");
 
-    final Claim entity = mapper.toSubmissionClaim(post);
+    final Claim entity = mapper.toClaim(post);
 
     assertNotNull(entity);
     assertEquals(post.getIsDutySolicitor(), entity.getDutySolicitor());
@@ -105,12 +105,12 @@ class ClaimMapperTest {
   }
 
   @Test
-  void toClaimFields_nullInput_returnsNull() {
-    assertNull(mapper.toClaimFields(null));
+  void toClaimResponse_nullInput_returnsNull() {
+    assertNull(mapper.toClaimResponse(null));
   }
 
   @Test
-  void toClaimFields_mapsAllFields() {
+  void toClaimFields_mapsAllResponse() {
     final Claim entity =
         Claim.builder()
             .dutySolicitor(true)
@@ -143,7 +143,7 @@ class ClaimMapperTest {
             .referralSource("REFSRC")
             .build();
 
-    final ClaimFields fields = mapper.toClaimFields(entity);
+    final ClaimResponse fields = mapper.toClaimResponse(entity);
 
     assertNotNull(fields);
     assertEquals(entity.getDutySolicitor(), fields.getIsDutySolicitor());
@@ -182,22 +182,20 @@ class ClaimMapperTest {
   }
 
   @Test
-  void toGetSubmission200ResponseClaimsInner_nullInput_returnsNull() {
-    assertNull(mapper.toGetSubmission200ResponseClaimsInner(null));
+  void toSubmissionClaim_nullInput_returnsNull() {
+    assertNull(mapper.toSubmissionClaim(null));
   }
 
   @Test
-  void toGetSubmission200ResponseClaimsInner_mapsFields() {
+  void toSubmissionClaim_mapsFields() {
     final UUID id = UUID.randomUUID();
     final Claim entity = Claim.builder().id(id).status("READY_TO_PROCESS").build();
 
-    final GetSubmission200ResponseClaimsInner response =
-        mapper.toGetSubmission200ResponseClaimsInner(entity);
+    final SubmissionClaim response = mapper.toSubmissionClaim(entity);
 
     assertNotNull(response);
     assertEquals(id, response.getClaimId());
-    assertEquals(
-        GetSubmission200ResponseClaimsInner.StatusEnum.READY_TO_PROCESS, response.getStatus());
+    assertEquals(ClaimStatus.READY_TO_PROCESS, response.getStatus());
   }
 
   @Test

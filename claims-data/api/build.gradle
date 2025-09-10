@@ -56,10 +56,19 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
     ]
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'data-claims-api-models'
+        }
+    }
+}
+
 compileJava.dependsOn 'openApiGenerate'
 
 clean {
-    delete "$rootDir/laa-data-claims-api/generated"
+    delete "$projectDir/generated"
 }
 
 // disable for overall project when running a build
