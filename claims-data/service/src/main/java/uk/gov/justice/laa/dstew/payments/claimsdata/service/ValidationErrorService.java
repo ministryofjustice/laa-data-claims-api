@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationErrorMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetValidationErrors200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationErrorsResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
 
 /** Service containing business logic for handling validation errors. */
@@ -29,7 +29,7 @@ public class ValidationErrorService {
    * @param pageable pagination details
    * @return a response containing paginated validation errors
    */
-  public GetValidationErrors200Response getValidationErrors(
+  public ValidationErrorsResponse getValidationErrors(
       UUID submissionId, UUID claimId, Pageable pageable) {
     log.info("Fetching validation errors for submissionId={}, claimId={}", submissionId, claimId);
 
@@ -39,6 +39,6 @@ public class ValidationErrorService {
 
     Page<ValidationErrorLog> page = repository.findAll(Example.of(example), pageable);
 
-    return mapper.toGetValidationErrors200Response(page);
+    return mapper.toValidationErrorsResponse(page);
   }
 }

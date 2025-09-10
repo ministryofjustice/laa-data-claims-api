@@ -615,18 +615,11 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Submission found
+          description: Validations errors found
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/page"
-                type: 'object'
-                properties:
-                  content:
-                    type: 'array'
-                    items:
-                      $ref: '#/components/schemas/ValidationErrorFields'
+                $ref: '#/components/schemas/ValidationErrorsResponse'
 components:
   schemas:
     BulkSubmissionStatus:
@@ -692,6 +685,15 @@ components:
               items:
                 type: string
                 format: uuid
+    ValidationErrorsResponse:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/ValidationErrorFields'
     SubmissionBase:
       type: object
       description: submission details
