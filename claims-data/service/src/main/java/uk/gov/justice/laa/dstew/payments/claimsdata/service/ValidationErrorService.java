@@ -39,6 +39,16 @@ public class ValidationErrorService {
 
     Page<ValidationErrorLog> page = repository.findAll(Example.of(example), pageable);
 
-    return mapper.toValidationErrorsResponse(page);
+    ValidationErrorsResponse response = mapper.toValidationErrorsResponse(page);
+    response.setTotalClaims(getTotalUniqueClaimsWithErrors(submissionId, claimId));
+
+    return response;
+  }
+
+  private int getTotalUniqueClaimsWithErrors(UUID submissionId, UUID claimId) {
+    if (claimId != null) {
+      return 1;
+    }
+    return (int) repository.countDistinctClaimIdsBySubmissionId(submissionId);
   }
 }

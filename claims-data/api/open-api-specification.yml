@@ -601,7 +601,7 @@ paths:
       parameters:
         - name: submission-id
           in: query
-          required: false
+          required: true
           description: ID of the submission
           schema:
             type: string
@@ -694,6 +694,10 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/ValidationErrorFields'
+        total_claims:
+          type: integer
+          description: The total number of unique claims that have validation errors
+
     SubmissionBase:
       type: object
       description: submission details
