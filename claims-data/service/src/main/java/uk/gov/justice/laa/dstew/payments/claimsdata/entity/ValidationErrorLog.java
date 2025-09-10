@@ -2,10 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
@@ -29,13 +26,11 @@ public class ValidationErrorLog {
   @Id private UUID id;
 
   @NotNull
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "submission_id", nullable = false)
-  private Submission submission;
+  @Column(name = "submission_id", nullable = false)
+  private UUID submissionId;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "claim_id")
-  private Claim claim;
+  @Column(name = "claim_id")
+  private UUID claimId;
 
   @NotNull
   @Column(nullable = false)

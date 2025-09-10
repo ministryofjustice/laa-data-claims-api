@@ -34,12 +34,18 @@ public interface ClaimMapper {
   @Mapping(target = "youthCourt", source = "isYouthCourt")
   Claim toClaim(ClaimPost claimPost);
 
-  /** Map a {@link Claim} entity to {@link ClaimResponse}. */
+  /**
+   * Map a {@link Claim} entity to {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse}.
+   */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
   ClaimResponse toClaimResponse(Claim entity);
 
-  /** Map a {@link SubmissionClaim} to summary response model. */
+  /**
+   * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary
+   * response model.
+   */
   @Mapping(target = "claimId", source = "id")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
@@ -57,8 +63,8 @@ public interface ClaimMapper {
 
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(UUID.randomUUID())")
-  @Mapping(target = "submission", source = "claim.submission")
-  @Mapping(target = "claim", source = "claim")
+  @Mapping(target = "submissionId", source = "claim.submission.id")
+  @Mapping(target = "claimId", source = "claim.id")
   @Mapping(target = "errorCode", source = "error")
   @Mapping(target = "errorDescription", source = "error")
   @Mapping(target = "createdByUserId", constant = "todo")
