@@ -5,4 +5,8 @@ public class BulkSubmissionQueuePublishException extends RuntimeException {
   public BulkSubmissionQueuePublishException(String message) {
     super(message);
   }
+
+  public BulkSubmissionQueuePublishException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

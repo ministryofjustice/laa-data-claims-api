@@ -40,6 +40,7 @@ public class SubmissionService
   private final MatterStartService matterStartService;
   private final ValidationErrorLogRepository validationErrorLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
+  private final SubmissionEventPublisherService submissionEventPublisherService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -63,6 +64,8 @@ public class SubmissionService
     submission.setCreatedByUserId("todo");
 
     submissionRepository.save(submission);
+    submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
+
     return submission.getId();
   }
 

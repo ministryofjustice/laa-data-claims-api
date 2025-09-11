@@ -30,7 +30,7 @@ class BulkSubmissionServiceTest {
 
   @SuppressWarnings("unused") // This is needed by the bulkSubmissionService
   @Mock
-  BulkSubmissionPublisherService bulkSubmissionPublisherService;
+  SubmissionEventPublisherService submissionEventPublisherService;
 
   @Mock BulkSubmissionMapper bulkSubmissionMapper;
 

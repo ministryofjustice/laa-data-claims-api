@@ -32,7 +32,7 @@ public class BulkSubmissionService
   private final BulkSubmissionFileService bulkSubmissionFileService;
   private final BulkSubmissionRepository bulkSubmissionRepository;
   private final BulkSubmissionMapper bulkSubmissionMapper;
-  private final BulkSubmissionPublisherService bulkSubmissionPublisherService;
+  private final SubmissionEventPublisherService submissionEventPublisherService;
 
   @Override
   public BulkSubmissionRepository lookup() {
@@ -68,7 +68,8 @@ public class BulkSubmissionService
 
     UUID newSubmissionId = UUID.randomUUID();
 
-    bulkSubmissionPublisherService.publish(bulkSubmission.getId(), List.of(newSubmissionId));
+    submissionEventPublisherService.publishBulkSubmissionEvent(
+        bulkSubmission.getId(), List.of(newSubmissionId));
     return new CreateBulkSubmission201Response()
         .bulkSubmissionId(bulkSubmission.getId())
         .submissionIds(Collections.singletonList(newSubmissionId));
