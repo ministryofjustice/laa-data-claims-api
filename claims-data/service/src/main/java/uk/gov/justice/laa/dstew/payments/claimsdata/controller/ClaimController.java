@@ -54,8 +54,16 @@ public class ClaimController implements ClaimsApi {
       String uniqueClientNumber,
       List<ClaimStatus> claimStatuses,
       Pageable pageable) {
-    // TODO: Implement search claims endpoint https://dsdmoj.atlassian.net/browse/DSTEW-350
-    return ResponseEntity.ok(new ClaimResultSet());
+    return ResponseEntity.ok(
+        claimService.getClaimResultSet(
+            officeCode,
+            submissionId,
+            submissionStatuses,
+            feeCode,
+            uniqueFileNumber,
+            uniqueClientNumber,
+            claimStatuses,
+            pageable));
   }
 
   @Override

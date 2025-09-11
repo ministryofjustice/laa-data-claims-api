@@ -68,7 +68,7 @@ class ClaimMapperTest {
     assertNotNull(entity);
     assertEquals(post.getIsDutySolicitor(), entity.getDutySolicitor());
     assertEquals(post.getIsYouthCourt(), entity.getYouthCourt());
-    assertEquals(post.getStatus().name(), entity.getStatus());
+    assertEquals(post.getStatus(), entity.getStatus());
     assertEquals(post.getScheduleReference(), entity.getScheduleReference());
     assertEquals(post.getLineNumber(), entity.getLineNumber());
     assertEquals(post.getCaseReferenceNumber(), entity.getCaseReferenceNumber());
@@ -115,7 +115,7 @@ class ClaimMapperTest {
         Claim.builder()
             .dutySolicitor(true)
             .youthCourt(false)
-            .status(ClaimStatus.READY_TO_PROCESS.getValue())
+            .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference("SCH123")
             .lineNumber(5)
             .caseReferenceNumber("CASE001")
@@ -189,7 +189,7 @@ class ClaimMapperTest {
   @Test
   void toSubmissionClaim_mapsFields() {
     final UUID id = UUID.randomUUID();
-    final Claim entity = Claim.builder().id(id).status("READY_TO_PROCESS").build();
+    final Claim entity = Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).build();
 
     final SubmissionClaim response = mapper.toSubmissionClaim(entity);
 
@@ -211,7 +211,7 @@ class ClaimMapperTest {
         Claim.builder()
             .dutySolicitor(false)
             .youthCourt(false)
-            .status("OLD")
+            .status(ClaimStatus.INVALID)
             .scheduleReference("OLD_SCH")
             .build();
 
@@ -226,7 +226,7 @@ class ClaimMapperTest {
 
     assertTrue(entity.getDutySolicitor());
     assertTrue(entity.getYouthCourt());
-    assertEquals("READY_TO_PROCESS", entity.getStatus());
+    assertEquals(ClaimStatus.READY_TO_PROCESS, entity.getStatus());
     assertEquals("NEW_SCH", entity.getScheduleReference());
   }
 
