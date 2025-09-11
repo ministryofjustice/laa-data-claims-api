@@ -1,22 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
@@ -91,13 +93,21 @@ class SubmissionMapperTest {
   void toValidationErrorLog_mapsFields() {
     Submission submission = Submission.builder().id(UUID.randomUUID()).build();
 
-    ValidationErrorLog log = submissionMapper.toValidationErrorLog("ERR1", submission);
+    final ValidationMessagePatch patch =
+        new ValidationMessagePatch()
+            .type("ERROR")
+            .source("SYSTEM")
+            .displayMessage("A display message")
+            .technicalMessage("A technical message");
+
+    ValidationMessageLog log = submissionMapper.toValidationMessageLog(patch, submission);
 
     assertThat(log.getId()).isNotNull();
     assertEquals(submission.getId(), log.getSubmissionId());
     assertThat(log.getClaimId()).isNull();
-    assertThat(log.getErrorCode()).isEqualTo("ERR1");
-    assertThat(log.getErrorDescription()).isEqualTo("ERR1");
-    assertThat(log.getCreatedByUserId()).isEqualTo("todo");
+    Assertions.assertEquals("ERROR", log.getType());
+    Assertions.assertEquals("SYSTEM", log.getSource());
+    Assertions.assertEquals("A display message", log.getDisplayMessage());
+    Assertions.assertEquals("A technical message", log.getTechnicalMessage());
   }
 }

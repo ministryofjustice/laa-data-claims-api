@@ -590,14 +590,14 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
-  /api/v0/validation-errors:
+  /api/v0/validation-messages:
     get:
-      operationId: getValidationErrors
+      operationId: getValidationMessages
       x-spring-paginated: true
       tags:
-        - Validation Errors
-      summary: Gets all validation errors
-      description: Returns all the validation errors
+        - Validation Messages
+      summary: Gets all validation messages
+      description: Returns all the validation messages
       parameters:
         - name: submission-id
           in: query
@@ -613,13 +613,25 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: type
+          in: query
+          required: false
+          description: type of the validation message
+          schema:
+            type: string
+        - name: source
+          in: query
+          required: false
+          description: where the validation message origniated
+          schema:
+            type: string
       responses:
         '200':
-          description: Validations errors found
+          description: Validations messages found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationErrorsResponse'
+                $ref: '#/components/schemas/ValidationMessagesResponse'
 components:
   schemas:
     BulkSubmissionStatus:
@@ -645,10 +657,10 @@ components:
         - $ref: '#/components/schemas/SubmissionBase'
       type: object
       properties:
-        validation_errors:
+        validation_messages:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/ValidationMessagePatch'
     SubmissionStatus:
       type: string
       enum:
@@ -685,7 +697,7 @@ components:
               items:
                 type: string
                 format: uuid
-    ValidationErrorsResponse:
+    ValidationMessagesResponse:
       allOf:
         - $ref: "#/components/schemas/page"
       type: 'object'
@@ -693,7 +705,7 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/ValidationErrorFields'
+            $ref: '#/components/schemas/ValidationMessageFields'
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
@@ -766,10 +778,10 @@ components:
         - $ref: '#/components/schemas/ClaimResponse'
       type: object
       properties:
-        validation_errors:
+        validation_messages:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/ValidationMessagePatch'
     ClaimStatus:
       type: string
       enum:
@@ -1256,9 +1268,21 @@ components:
           type: string
         delivery_location:
           type: string
-    ValidationErrorFields:
+    ValidationMessagePatch:
       type: object
-      description: Validation error for a claim
+      description: Validation message
+      properties:
+        type:
+          type: string
+        source:
+          type: string
+        display_message:
+          type: string
+        technical_message:
+          type: string
+    ValidationMessageFields:
+      type: object
+      description: Validation message
       properties:
         id:
           type: string
@@ -1269,7 +1293,11 @@ components:
         claim_id:
           type: string
           format: uuid
-        error_description:
+        type:
+          type: string
+        source:
+          type: string
+        display_message:
           type: string
     page:
       type: 'object'
