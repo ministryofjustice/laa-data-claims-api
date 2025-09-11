@@ -108,7 +108,7 @@ paths:
                 type: object
                 description: The JSON object representing the `bulk_submission` stored in the corresponding table with bulk submission id and status
                 properties:
-                  bulkSubmissionId:
+                  bulk_submission_id:
                     type: string
                     format: uuid
                     description: UUID of the bulk submission.
@@ -128,22 +128,22 @@ paths:
                         type: object
                         description: The details of the bulk submission schedule
                         properties:
-                          submissionPeriod:
+                          submission_period:
                             type: string
-                          areaOfLaw:
+                          area_of_law:
                             type: string
-                          scheduleNum:
+                          schedule_num:
                             type: string
                       outcomes:
                         type: array
                         description: List of outcome objects for the bulk submission
                         items:
-                          $ref: '#/components/schemas/BulkSubmissionOutcome'
-                      matterStarts:
+                          $ref: '#/components/schemas/bulk_submission_outcome'
+                      matter_starts:
                         type: array
                         description: List of matter start objects for the bulk submission
                         items:
-                          $ref: '#/components/schemas/BulkSubmissionMatterStart'
+                          $ref: '#/components/schemas/bulk_submission_matter_start'
 
         '400':
           description: 'Bad request'
@@ -173,7 +173,7 @@ paths:
         '201':
           description: Submission created successfully.
           headers:
-            Location:
+            location:
               description: URI of the created submission resource.
               schema:
                 type: string
@@ -269,7 +269,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/SubmissionStatus"
+              $ref: "#/components/schemas/submission_status"
         - name: fee_code
           in: query
           required: false
@@ -296,7 +296,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/components/schemas/ClaimStatus"
+              $ref: "#/components/schemas/claim_status"
       responses:
         '200':
           description: Claims retrieved successfully
@@ -332,12 +332,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimPost'
+              $ref: '#/components/schemas/claim_post'
       responses:
         '201':
           description: Claim created successfully
           headers:
-            Location:
+            location:
               description: URI of the created claim resource
               schema:
                 type: string
@@ -382,12 +382,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MatterStartPost'
+              $ref: '#/components/schemas/matter_start_post'
       responses:
         '201':
           description: Matter Start created successfully
           headers:
-            Location:
+            location:
               description: URI of the newly created Matter Start
               schema:
                 type: string
@@ -437,7 +437,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MatterStartGet'
+                $ref: '#/components/schemas/matter_start_get'
         '400':
           description: 'Bad request'
         '401':
@@ -543,7 +543,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClaimResponse'
+                $ref: '#/components/schemas/claim_response'
         '400':
           description: 'Bad request'
         '401':
@@ -632,7 +632,7 @@ components:
         - REPLACED
     SubmissionPost:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
       required:
         - submission_id
         - bulk_submission_id
@@ -642,14 +642,14 @@ components:
         - status
     SubmissionPatch:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
       type: object
       properties:
         validation_errors:
           type: array
           items:
             type: string
-    SubmissionStatus:
+    submission_status:
       type: string
       enum:
         - CREATED
@@ -668,10 +668,10 @@ components:
           type: string
           format: uuid
         status:
-          $ref: "#/components/schemas/ClaimStatus"
+          $ref: "#/components/schemas/claim_status"
     SubmissionResponse:
       allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
+        - $ref: '#/components/schemas/submission_base'
         - type: object
           properties:
             claims:
@@ -698,7 +698,7 @@ components:
           type: integer
           description: The total number of unique claims that have validation errors
 
-    SubmissionBase:
+    submission_base:
       type: object
       description: submission details
       properties:
@@ -720,7 +720,7 @@ components:
           type: string
           description: Area of law (e.g., "crime", "civil").
         status:
-          $ref: "#/components/schemas/SubmissionStatus"
+          $ref: "#/components/schemas/submission_status"
         schedule_number:
           type: string
           description: Optional schedule number.
@@ -746,11 +746,11 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/SubmissionBase'
+            $ref: '#/components/schemas/submission_base'
 
-    ClaimPost:
+    claim_post:
       allOf:
-        - $ref: '#/components/schemas/ClaimResponse'
+        - $ref: '#/components/schemas/claim_response'
       required:
         - status
         - schedule_reference
@@ -763,14 +763,14 @@ components:
         - outcome_code
     ClaimPatch:
       allOf:
-        - $ref: '#/components/schemas/ClaimResponse'
+        - $ref: '#/components/schemas/claim_response'
       type: object
       properties:
         validation_errors:
           type: array
           items:
             type: string
-    ClaimStatus:
+    claim_status:
       type: string
       enum:
         - READY_TO_PROCESS
@@ -787,15 +787,15 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/ClaimResponse'
-    ClaimResponse:
+            $ref: '#/components/schemas/claim_response'
+    claim_response:
       type: object
       description: Claim details
       properties:
         id:
           type: string
         status:
-          $ref: "#/components/schemas/ClaimStatus"
+          $ref: "#/components/schemas/claim_status"
         schedule_reference:
           type: string
         line_number:
@@ -961,7 +961,8 @@ components:
         is_london_rate:
           type: boolean
         adjourned_hearing_fee_amount:
-          type: number
+          type: integer
+          description: "Note: actually stores the number of times the hearing was adjourned"
         is_additional_travel_payment:
           type: boolean
         costs_damages_recovered_amount:
@@ -998,57 +999,57 @@ components:
         is_substantive_hearing:
           type: boolean
         ho_interview:
-          type: string
+          type: integer
+          description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
-    BulkSubmissionMatterStart:
+    bulk_submission_matter_start:
       type: object
       description: matter start details for a bulk submission
       properties:
-        scheduleRef:
+        schedule_ref:
           type: string
-        categoryCode:
+        category_code:
           type: string
-        procurementArea:
+        procurement_area:
           type: string
-        accessPoint:
+        access_point:
           type: string
-        deliveryLocation:
+        delivery_location:
           type: string
-
-    BulkSubmissionOutcome:
+    bulk_submission_outcome:
       type: object
       description: bulk submission outcome details
       properties:
-        matterType:
+        matter_type:
           type: string
-        feeCode:
+        fee_code:
           type: string
-        caseRefNumber:
+        case_ref_number:
           type: string
-        caseStartDate:
+        case_start_date:
           type: string
-        caseId:
+        case_id:
           type: string
-        caseStageLevel:
+        case_stage_level:
           type: string
         ufn:
           type: string
-        procurementArea:
+        procurement_area:
           type: string
-        accessPoint:
+        access_point:
           type: string
-        clientForename:
+        client_forename:
           type: string
-        clientSurname:
+        client_surname:
           type: string
-        clientDateOfBirth:
+        client_date_of_birth:
           type: string
         ucn:
           type: string
-        claRefNumber:
+        cla_ref_number:
           type: string
-        claExemption:
+        cla_exemption:
           type: string
         gender:
           type: string
@@ -1056,193 +1057,195 @@ components:
           type: string
         disability:
           type: string
-        clientPostCode:
+        client_post_code:
           type: string
-        workConcludedDate:
+        work_concluded_date:
           type: string
-        adviceTime:
+        advice_time:
           type: integer
-        travelTime:
+        travel_time:
           type: integer
-        waitingTime:
+        waiting_time:
           type: integer
-        profitCost:
+        profit_cost:
           type: number
           format: bigDecimal
-        valueOfCosts:
+        value_of_costs:
           type: number
           format: bigDecimal
-        disbursementsAmount:
+        disbursements_amount:
           type: number
           format: bigDecimal
-        counselCost:
+        counsel_cost:
           type: number
           format: bigDecimal
-        disbursementsVat:
+        disbursements_vat:
           type: number
           format: bigDecimal
-        travelWaitingCosts:
+        travel_waiting_costs:
           type: number
           format: bigDecimal
-        vatIndicator:
+        vat_indicator:
           type: boolean
-        londonNonlondonRate:
+        london_nonlondon_rate:
           type: boolean
-        clientType:
+        client_type:
           type: string
-        toleranceIndicator:
+        tolerance_indicator:
           type: boolean
-        travelCosts:
+        travel_costs:
           type: number
           format: bigDecimal
-        outcomeCode:
+        outcome_code:
           type: string
-        legacyCase:
+        legacy_case:
           type: boolean
-        claimType:
+        claim_type:
           type: string
-        adjournedHearingFee:
+        adjourned_hearing_fee:
+          type: integer
+          description: "Note: actually stores the number of times the hearing was adjourned"
+        type_of_advice:
+          type: string
+        postal_appl_accp:
+          type: boolean
+        schedule_ref:
+          type: string
+        cmrh_oral:
+          type: string
+        cmrh_telephone:
+          type: string
+        ait_hearing_centre:
+          type: string
+        substantive_hearing:
+          type: boolean
+        ho_interview:
+          type: integer
+          description: "Number of Home Office Interviews"
+        ho_ucn:
+          type: string
+        transfer_date:
+          type: string
+        detention_travel_waiting_costs:
           type: number
           format: bigDecimal
-        typeOfAdvice:
+        delivery_location:
           type: string
-        postalApplAccp:
+        prior_authority_ref:
+          type: string
+        jr_form_filling:
+          type: string
+        additional_travel_payment:
           type: boolean
-        scheduleRef:
+        meetings_attended:
           type: string
-        cmrhOral:
-          type: string
-        cmrhTelephone:
-          type: string
-        aitHearingCentre:
-          type: string
-        substantiveHearing:
-          type: boolean
-        hoInterview:
-          type: string
-        hoUcn:
-          type: string
-        transferDate:
-          type: string
-        detentionTravelWaitingCosts:
-          type: number
-          format: bigDecimal
-        deliveryLocation:
-          type: string
-        priorAuthorityRef:
-          type: string
-        jrFormFilling:
-          type: string
-        additionalTravelPayment:
-          type: boolean
-        meetingsAttended:
-          type: string
-        medicalReportsClaimed:
+        medical_reports_claimed:
           type: integer
-        desiAccRep:
+        desi_acc_rep:
           type: integer
-        mhtRefNumber:
+          description: "designated accredited representative"
+        mht_ref_number:
           type: string
-        stageReached:
+        stage_reached:
           type: string
-        followOnWork:
+        follow_on_work:
           type: string
-        nationalRefMechanismAdvice:
+        national_ref_mechanism_advice:
           type: string
-        exemptionCriteriaSatisfied:
+        exemption_criteria_satisfied:
           type: string
-        exclCaseFundingRef:
+        excl_case_funding_ref:
           type: string
-        noOfClients:
+        no_of_clients:
           type: integer
-        noOfSurgeryClients:
+        no_of_surgery_clients:
           type: integer
-        ircSurgery:
+        irc_surgery:
           type: string
-        surgeryDate:
+        surgery_date:
           type: string
-        lineNumber:
+        line_number:
           type: string
-        crimeMatterType:
+        crime_matter_type:
           type: string
-        feeScheme:
+        fee_scheme:
           type: string
-        repOrderDate:
+        rep_order_date:
           type: string
-        noOfSuspects:
+        no_of_suspects:
           type: integer
-        noOfPoliceStation:
+        no_of_police_station:
           type: integer
-        policeStation:
+        police_station:
           type: string
-        dsccNumber:
+        dscc_number:
           type: string
-        maatId:
+        maat_id:
           type: string
-        prisonLawPriorApproval:
+        prison_law_prior_approval:
           type: string
-        dutySolicitor:
+        duty_solicitor:
           type: string
-        youthCourt:
+        youth_court:
           type: string
-        schemeId:
+        scheme_id:
           type: string
-        numberOfMediationSessions:
+        number_of_mediation_sessions:
           type: integer
-        mediationTime:
+        mediation_time:
           type: integer
         outreach:
           type: string
         referral:
           type: string
-        clientLegallyAided:
+        client_legally_aided:
           type: string
-        client2Forename:
+        client2_forename:
           type: string
-        client2Surname:
+        client2_surname:
           type: string
-        client2DateOfBirth:
+        client2_date_of_birth:
           type: string
-        client2Ucn:
+        client2_ucn:
           type: string
-        client2PostCode:
+        client2_post_code:
           type: string
-        client2Gender:
+        client2_gender:
           type: string
-        client2Ethnicity:
+        client2_ethnicity:
           type: string
-        client2Disability:
+        client2_disability:
           type: string
-        client2LegallyAided:
+        client2_legally_aided:
           type: string
-        uniqueCaseId:
+        unique_case_id:
           type: string
-        standardFeeCat:
+        standard_fee_cat:
           type: string
-        client2PostalApplAccp:
+        client_2_postal_appl_accp:
           type: string
-        costsDamagesRecovered:
+        costs_damages_recovered:
           type: string
-        eligibleClient:
+        eligible_client:
           type: string
-        courtLocation:
+        court_location:
           type: string
-        localAuthorityNumber:
+        local_authority_number:
           type: string
-        paNumber:
+        pa_number:
           type: string
-        excessTravelCosts:
+        excess_travel_costs:
           type: number
           format: bigDecimal
-        medConcludedDate:
+        med_concluded_date:
           type: string
-    MatterStartPost:
+    matter_start_post:
       allOf:
-        - $ref: '#/components/schemas/MatterStartFields'
-    MatterStartGet:
+      - $ref: '#/components/schemas/matter_start_fields'
+    matter_start_get:
       allOf:
-        - $ref: '#/components/schemas/MatterStartFields'
-    MatterStartFields:
+      - $ref: '#/components/schemas/matter_start_fields'
+    matter_start_fields:
       type: object
       description: Matter start for a submission
       properties:
