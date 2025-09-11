@@ -590,6 +590,36 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
+  /api/v0/validation-errors:
+    get:
+      operationId: getValidationErrors
+      x-spring-paginated: true
+      tags:
+        - Validation Errors
+      summary: Gets all validation errors
+      description: Returns all the validation errors
+      parameters:
+        - name: submission-id
+          in: query
+          required: true
+          description: ID of the submission
+          schema:
+            type: string
+            format: uuid
+        - name: claim-id
+          in: query
+          required: false
+          description: ID of the claim
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Validations errors found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorsResponse'
 components:
   schemas:
     BulkSubmissionStatus:
@@ -655,6 +685,19 @@ components:
               items:
                 type: string
                 format: uuid
+    ValidationErrorsResponse:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/ValidationErrorFields'
+        total_claims:
+          type: integer
+          description: The total number of unique claims that have validation errors
+
     submission_base:
       type: object
       description: submission details
@@ -1210,6 +1253,21 @@ components:
         access_point_code:
           type: string
         delivery_location:
+          type: string
+    ValidationErrorFields:
+      type: object
+      description: Validation error for a claim
+      properties:
+        id:
+          type: string
+          format: uuid
+        submission_id:
+          type: string
+          format: uuid
+        claim_id:
+          type: string
+          format: uuid
+        error_description:
           type: string
     page:
       type: 'object'
