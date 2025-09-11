@@ -105,8 +105,7 @@ class SubmissionEventPublisherServiceTest {
     SendMessageRequest sentRequest = captor.getValue();
 
     assertThat(sentRequest.queueUrl()).isEqualTo(queueUrl);
-    assertThat(sentRequest.messageBody())
-        .contains(submissionId.toString());
+    assertThat(sentRequest.messageBody()).contains(submissionId.toString());
 
     MessageAttributeValue expectedAttributeValue =
         MessageAttributeValue.builder()
