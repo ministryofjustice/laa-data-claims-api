@@ -962,6 +962,7 @@ components:
           type: boolean
         adjourned_hearing_fee_amount:
           type: integer
+          description: "Note: actually stores the number of times the hearing was adjourned"
         is_additional_travel_payment:
           type: boolean
         costs_damages_recovered_amount:
@@ -999,6 +1000,7 @@ components:
           type: boolean
         ho_interview:
           type: integer
+          description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
     bulk_submission_matter_start:
@@ -1102,6 +1104,7 @@ components:
           type: string
         adjourned_hearing_fee:
           type: integer
+          description: "Note: actually stores the number of times the hearing was adjourned"
         type_of_advice:
           type: string
         postal_appl_accp:
@@ -1118,6 +1121,7 @@ components:
           type: boolean
         ho_interview:
           type: integer
+          description: "Number of Home Office Interviews"
         ho_ucn:
           type: string
         transfer_date:
