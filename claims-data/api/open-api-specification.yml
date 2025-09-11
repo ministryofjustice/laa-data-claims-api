@@ -1143,6 +1143,7 @@ components:
           type: integer
         desi_acc_rep:
           type: integer
+          description: "designated accredited representative"
         mht_ref_number:
           type: string
         stage_reached:
