@@ -20,7 +20,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationMessageService;
 
@@ -50,8 +50,8 @@ class ValidationControllerTest {
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 10);
 
-    ValidationMessageFields message =
-        new ValidationMessageFields()
+    ValidationMessageBase message =
+        new ValidationMessageBase()
             .id(messageId)
             .type(type)
             .source(source)
@@ -89,8 +89,8 @@ class ValidationControllerTest {
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 5);
 
-    ValidationMessageFields message =
-        new ValidationMessageFields()
+    ValidationMessageBase message =
+        new ValidationMessageBase()
             .id(messageId)
             .type(type)
             .source(source)

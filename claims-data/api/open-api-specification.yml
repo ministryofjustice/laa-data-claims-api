@@ -705,7 +705,7 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/ValidationMessageFields'
+            $ref: '#/components/schemas/ValidationMessageBase'
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
@@ -1280,7 +1280,7 @@ components:
           type: string
         technical_message:
           type: string
-    ValidationMessageFields:
+    ValidationMessageBase:
       type: object
       description: Validation message
       properties:
