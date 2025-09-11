@@ -2,30 +2,39 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 
 @WebMvcTest(ClaimController.class)
@@ -37,6 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired private MockMvc mockMvc;
 
@@ -130,5 +140,44 @@ class ClaimControllerTest {
         .andExpect(status().isNoContent());
 
     verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
+  }
+
+  @Test
+  void getClaims_returnsClaimDetails() throws Exception {
+    var claimResponse = new ClaimResponse();
+    var expected = new ClaimResultSet().content(List.of(claimResponse));
+
+    when(claimService.getClaimResultSet(
+            anyString(),
+            anyString(),
+            anyList(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyList(),
+            any(Pageable.class)))
+        .thenReturn(expected);
+
+    String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+
+    mockMvc
+        .perform(
+            get(API_URI_PREFIX + "/claims")
+                .queryParam("office_code", "office_123")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam(
+                    "submission_statuses",
+                    String.valueOf(SubmissionStatus.CREATED),
+                    String.valueOf(SubmissionStatus.REPLACED))
+                .queryParam("fee_code", "fee_123")
+                .queryParam("unique_file_number", "UFN_123")
+                .queryParam("unique_client_number", "UCN_123")
+                .queryParam(
+                    "claim_statuses",
+                    String.valueOf(ClaimStatus.VALID),
+                    String.valueOf(ClaimStatus.INVALID))
+                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+        .andExpect(status().isOk())
+        .andExpect(content().json(jsonContent));
   }
 }
