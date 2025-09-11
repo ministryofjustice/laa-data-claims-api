@@ -29,7 +29,7 @@ public final class ClaimSpecification {
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
    * parameters. The resulting specification can be used to dynamically generate predicates for
-   * querying claim.
+   * querying claims.
    *
    * @param officeCode a mandatory string representing an office code to filter claims by
    * @param submissionId an optional identifier to filter claims by
@@ -82,22 +82,28 @@ public final class ClaimSpecification {
         predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
       }
 
-      // Join with Client
+      // Filter on Client fields
       if (StringUtils.hasText(uniqueClientNumber)) {
         // Subquery to check existence of matching clients
         assert query != null;
-        Subquery<Client> clientSubquery = query.subquery(Client.class);
-        Root<Client> clientRoot = clientSubquery.from(Client.class);
-        clientSubquery
-            .select(clientRoot.get("id"))
-            .where(
-                cb.equal(clientRoot.get("claim"), root),
-                cb.equal(clientRoot.get("uniqueClientNumber"), uniqueClientNumber));
+        Subquery<Client> clientSubquery = getClientSubquery(uniqueClientNumber, root, query, cb);
 
         predicates.add(cb.exists(clientSubquery));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));
     };
+  }
+
+  private static Subquery<Client> getClientSubquery(
+      String uniqueClientNumber, Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+    Subquery<Client> clientSubquery = query.subquery(Client.class);
+    Root<Client> clientRoot = clientSubquery.from(Client.class);
+    clientSubquery
+        .select(clientRoot.get("id"))
+        .where(
+            cb.equal(clientRoot.get("claim"), root),
+            cb.equal(clientRoot.get("uniqueClientNumber"), uniqueClientNumber));
+    return clientSubquery;
   }
 }

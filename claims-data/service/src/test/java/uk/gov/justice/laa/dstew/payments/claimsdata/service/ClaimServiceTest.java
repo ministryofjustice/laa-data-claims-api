@@ -1,18 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,23 +8,53 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -47,6 +64,7 @@ class ClaimServiceTest {
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ClaimResultSetMapper claimResultSetMapper;
 
   @InjectMocks private ClaimService claimService;
 
@@ -235,5 +253,86 @@ class ClaimServiceTest {
     verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
     verify(claimRepository).save(claim);
     verify(claimMapper).toValidationMessageLog(message1, claim);
+  }
+
+  @Test
+  void getClaimResultSet_whenOfficeCodeIsMissing_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSet(
+                null,
+                SUBMISSION_ID.toString(),
+                List.of(SubmissionStatus.CREATED),
+                FEE_CODE,
+                UNIQUE_FILE_NUMBER,
+                UNIQUE_CLIENT_NUMBER,
+                List.of(ClaimStatus.READY_TO_PROCESS),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_whenOfficeCodeIsEmptyString_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSet(
+                "",
+                SUBMISSION_ID.toString(),
+                List.of(SubmissionStatus.CREATED),
+                FEE_CODE,
+                UNIQUE_FILE_NUMBER,
+                UNIQUE_CLIENT_NUMBER,
+                List.of(ClaimStatus.READY_TO_PROCESS),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(new Claim()));
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedNonEmptyResultSet =
+        new ClaimResultSet().content(Collections.singletonList(new ClaimResponse()));
+    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSet(
+            OFFICE_ACCOUNT_NUMBER,
+            SUBMISSION_ID.toString(),
+            List.of(SubmissionStatus.CREATED),
+            FEE_CODE,
+            UNIQUE_FILE_NUMBER,
+            UNIQUE_CLIENT_NUMBER,
+            List.of(ClaimStatus.READY_TO_PROCESS),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
+    assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  @Test
+  void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
+    Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedEmptyResultSet = new ClaimResultSet();
+    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSet(
+            OFFICE_ACCOUNT_NUMBER,
+            SUBMISSION_ID.toString(),
+            List.of(SubmissionStatus.CREATED),
+            FEE_CODE,
+            UNIQUE_FILE_NUMBER,
+            UNIQUE_CLIENT_NUMBER,
+            List.of(ClaimStatus.READY_TO_PROCESS),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
+    assertThat(actualResultSet.getContent()).isEmpty();
   }
 }
