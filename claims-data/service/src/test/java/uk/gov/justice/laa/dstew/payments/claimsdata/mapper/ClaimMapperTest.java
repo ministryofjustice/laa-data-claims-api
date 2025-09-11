@@ -238,8 +238,8 @@ class ClaimMapperTest {
     final ValidationErrorLog log = mapper.toValidationErrorLog("ERR1", claim);
 
     assertNotNull(log.getId());
-    assertEquals(submission, log.getSubmission());
-    assertEquals(claim, log.getClaim());
+    assertEquals(submission.getId(), log.getSubmissionId());
+    assertEquals(claim.getId(), log.getClaimId());
     assertEquals("ERR1", log.getErrorCode());
     assertEquals("ERR1", log.getErrorDescription());
   }
