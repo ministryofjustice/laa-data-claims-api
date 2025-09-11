@@ -8,36 +8,25 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.PostgresTestConfig;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 
-@ActiveProfiles("test")
-@Testcontainers
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import({SqsTestConfig.class, PostgresTestConfig.class})
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class BulkSubmissionControllerIntegrationTest {
+@TestInstance(Lifecycle.PER_CLASS)
+public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 

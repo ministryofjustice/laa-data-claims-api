@@ -5,31 +5,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.PostgresTestConfig;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 
-@ActiveProfiles("test")
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@Testcontainers
-@Slf4j
-@Import({SqsTestConfig.class, PostgresTestConfig.class})
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class ClaimControllerIntegrationTest {
+public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 

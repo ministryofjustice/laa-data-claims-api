@@ -8,20 +8,14 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.PostgresTestConfig;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
@@ -35,14 +29,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * SubmissionSpecification} and used by the {@link SubmissionRepository}.
  */
-@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import({SqsTestConfig.class, PostgresTestConfig.class})
-@AutoConfigureMockMvc
-@Testcontainers
-@Slf4j
+@TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("SubmissionRepository Integration Test")
-public class SubmissionRepositoryIntegrationTest {
+public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   private static final UUID SUBMISSION_1_ID = UUID.randomUUID();
   private static final UUID SUBMISSION_2_ID = UUID.randomUUID();
