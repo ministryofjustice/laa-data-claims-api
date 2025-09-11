@@ -78,7 +78,7 @@ public class Client {
   private String client2Ucn;
 
   @Column(name = "client_2_postcode")
-  private String client2PostCode;
+  private String client2Postcode;
 
   @Column(name = "client_2_gender_code")
   private String client2GenderCode;

@@ -79,7 +79,7 @@ class ClientMapperTest {
         "15/07/1992",
         client.getClient2DateOfBirth().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
     assertEquals("UCN-456", client.getClient2Ucn());
-    assertEquals("EF3 4GH", client.getClient2PostCode());
+    assertEquals("EF3 4GH", client.getClient2Postcode());
     assertEquals("F", client.getClient2GenderCode());
     assertEquals("ETH2", client.getClient2EthnicityCode());
     assertEquals("DIS2", client.getClient2DisabilityCode());
@@ -144,7 +144,7 @@ class ClientMapperTest {
             .client2Surname(null)
             .client2DateOfBirth(null)
             .client2Ucn("NEW-UCN2")
-            .client2PostCode(null)
+            .client2Postcode(null)
             .client2GenderCode("NEW-G2")
             .client2EthnicityCode(null)
             .client2DisabilityCode("NEW-D2")

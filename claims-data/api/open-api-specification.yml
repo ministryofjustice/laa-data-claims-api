@@ -1012,7 +1012,7 @@ components:
           type: string
         disability:
           type: string
-        client_postcode:
+        client_post_code:
           type: string
         work_concluded_date:
           type: string
@@ -1160,7 +1160,7 @@ components:
           type: string
         client2_ucn:
           type: string
-        client2_postcode:
+        client2_post_code:
           type: string
         client2_gender:
           type: string
