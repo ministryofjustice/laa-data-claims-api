@@ -19,9 +19,9 @@ public class SqsTestConfig {
 
   @Bean(destroyMethod = "stop")
   public static LocalStackContainer localStack() {
-    LocalStackContainer localStack = new LocalStackContainer(
-        DockerImageName.parse("localstack/localstack:3.2"))
-        .withServices(SQS);
+    LocalStackContainer localStack =
+        new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2"))
+            .withServices(SQS);
 
     localStack.start(); // start it before the SqsClient bean is created
     return localStack;
@@ -36,12 +36,7 @@ public class SqsTestConfig {
         .region(Region.of(localStack.getRegion()))
         .credentialsProvider(
             StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(
-                    localStack.getAccessKey(),
-                    localStack.getSecretKey()
-                )
-            )
-        )
+                AwsBasicCredentials.create(localStack.getAccessKey(), localStack.getSecretKey())))
         .build();
   }
 }

@@ -1,6 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentCaptor.forClass;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,28 +16,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
 @ExtendWith(MockitoExtension.class)
 class BulkSubmissionPublisherServiceTest {
 
-  @Mock
-  private SqsClient sqsClient;
+  @Mock private SqsClient sqsClient;
 
   @InjectMocks
-  private BulkSubmissionPublisherService bulkSubmissionPublisherService; // replace with your actual class name
+  private BulkSubmissionPublisherService
+      bulkSubmissionPublisherService; // replace with your actual class name
 
   @BeforeEach
   void setUp() {
-    bulkSubmissionPublisherService = new BulkSubmissionPublisherService(
-        sqsClient,
-        new ObjectMapper()
-    );
+    bulkSubmissionPublisherService =
+        new BulkSubmissionPublisherService(sqsClient, new ObjectMapper());
   }
 
   @Test

@@ -28,11 +28,11 @@ class BulkSubmissionServiceTest {
 
   @Mock BulkSubmissionRepository bulkSubmissionRepository;
 
-  @SuppressWarnings("unused") //This is needed by the bulkSubmissionService
-    @Mock
-    BulkSubmissionPublisherService bulkSubmissionPublisherService;
+  @SuppressWarnings("unused") // This is needed by the bulkSubmissionService
+  @Mock
+  BulkSubmissionPublisherService bulkSubmissionPublisherService;
 
-    @Mock BulkSubmissionMapper bulkSubmissionMapper;
+  @Mock BulkSubmissionMapper bulkSubmissionMapper;
 
   @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 

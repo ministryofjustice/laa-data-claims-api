@@ -36,8 +36,7 @@ public class ClaimControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @Autowired
-  private BulkSubmissionRepository bulkSubmissionRepository;
+  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   @Container @ServiceConnection
   public static final PostgreSQLContainer<?> postgresContainer =
@@ -48,8 +47,10 @@ public class ClaimControllerIntegrationTest {
   // must match application-test.yml for test-runner token
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
-  //TODO: DSTEW-321 add more scenarios & add sql scripts to populate db with test data
-  @ParameterizedTest(name = """
+  // TODO: DSTEW-321 add more scenarios & add sql scripts to populate db with test data
+  @ParameterizedTest(
+      name =
+          """
       GIVEN submissionId={0} and claimId={1}
       WHEN requesting a claim
       THEN the response status is {2}
