@@ -17,7 +17,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 @Profile("test")
 public class SqsTestConfig {
 
-  @Bean(destroyMethod = "stop")
+  @Bean
   public static LocalStackContainer localStack() {
     LocalStackContainer localStack =
         new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2"))
