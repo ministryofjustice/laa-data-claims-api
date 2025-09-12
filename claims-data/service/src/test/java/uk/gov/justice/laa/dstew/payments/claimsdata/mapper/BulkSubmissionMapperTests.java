@@ -23,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
-public class BulkSubmissionMapperTests {
+class BulkSubmissionMapperTests {
 
   @InjectMocks
   private final BulkSubmissionMapper bulkSubmissionMapper = new BulkSubmissionMapperImpl();
@@ -68,7 +68,7 @@ public class BulkSubmissionMapperTests {
                     "gender",
                     "ethnicity",
                     "disability",
-                    "clientPostCode",
+                    "clientPostcode",
                     "03/01/2000",
                     "1",
                     "2",
@@ -87,7 +87,7 @@ public class BulkSubmissionMapperTests {
                     "outcomeCode",
                     "N",
                     "claimType",
-                    "0.08",
+                    "8",
                     "typeOfAdvice",
                     "Y",
                     "scheduleRef",
@@ -95,7 +95,7 @@ public class BulkSubmissionMapperTests {
                     "cmrhTelephone",
                     "aitHearingCentre",
                     "N",
-                    "hoInterview",
+                    "8",
                     "hoUcn",
                     "04/01/2000",
                     "0.09",
@@ -138,7 +138,7 @@ public class BulkSubmissionMapperTests {
                     "client2Surname",
                     "07/01/2000",
                     "client2Ucn",
-                    "client2PostCode",
+                    "client2Postcode",
                     "client2Gender",
                     "client2Ethnicity",
                     "client2Disability",
@@ -201,7 +201,7 @@ public class BulkSubmissionMapperTests {
                             "gender",
                             "ethnicity",
                             "disability",
-                            "clientPostCode",
+                            "clientPostcode",
                             "03/01/2000",
                             "1",
                             "2",
@@ -220,7 +220,7 @@ public class BulkSubmissionMapperTests {
                             "outcomeCode",
                             "N",
                             "claimType",
-                            "0.08",
+                            "8",
                             "typeOfAdvice",
                             "Y",
                             "scheduleRef",
@@ -228,7 +228,7 @@ public class BulkSubmissionMapperTests {
                             "cmrhTelephone",
                             "aitHearingCentre",
                             "N",
-                            "hoInterview",
+                            "8",
                             "hoUcn",
                             "04/01/2000",
                             "0.09",
@@ -271,7 +271,7 @@ public class BulkSubmissionMapperTests {
                             "client2Surname",
                             "07/01/2000",
                             "client2Ucn",
-                            "client2PostCode",
+                            "client2Postcode",
                             "client2Gender",
                             "client2Ethnicity",
                             "client2Disability",
