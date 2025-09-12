@@ -12,16 +12,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-/** Entity representing a validation error linked to a submission and optionally a claim. */
+/** Entity representing a validation message linked to a submission and optionally a claim. */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "validation_error_log")
-public class ValidationErrorLog {
+@Table(name = "validation_message_log")
+public class ValidationMessageLog {
 
   @Id private UUID id;
 
@@ -34,23 +33,20 @@ public class ValidationErrorLog {
 
   @NotNull
   @Column(nullable = false)
-  private String errorCode;
+  private String type;
 
   @NotNull
   @Column(nullable = false)
-  private String errorDescription;
+  private String source;
 
   @NotNull
-  @Column(nullable = false)
-  private String createdByUserId;
+  @Column(name = "display_message", nullable = false)
+  private String displayMessage;
+
+  @Column(name = "technical_message")
+  private String technicalMessage;
 
   @CreationTimestamp
-  @Column(nullable = false)
+  @Column(name = "created_on", nullable = false, updatable = false)
   private Instant createdOn;
-
-  private String updatedByUserId;
-
-  @UpdateTimestamp
-  @Column(nullable = false)
-  private Instant updatedOn;
 }

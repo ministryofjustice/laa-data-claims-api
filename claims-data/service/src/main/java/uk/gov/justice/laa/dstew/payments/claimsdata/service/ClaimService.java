@@ -11,7 +11,7 @@ import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
@@ -23,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /** Service containing business logic for handling claims. */
@@ -37,7 +37,7 @@ public class ClaimService
   private final ClientRepository clientRepository;
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
-  private final ValidationErrorLogRepository validationErrorLogRepository;
+  private final ValidationMessageLogRepository validationMessageLogRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -109,13 +109,14 @@ public class ClaimService
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
 
-    if (claimPatch.getValidationErrors() != null && !claimPatch.getValidationErrors().isEmpty()) {
+    if (claimPatch.getValidationMessages() != null
+        && !claimPatch.getValidationMessages().isEmpty()) {
       claimPatch
-          .getValidationErrors()
+          .getValidationMessages()
           .forEach(
-              error -> {
-                ValidationErrorLog log = claimMapper.toValidationErrorLog(error, claim);
-                validationErrorLogRepository.save(log);
+              message -> {
+                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(log);
               });
     }
   }

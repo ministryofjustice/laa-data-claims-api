@@ -13,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
@@ -24,7 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
@@ -38,7 +38,7 @@ public class SubmissionService
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
-  private final ValidationErrorLogRepository validationErrorLogRepository;
+  private final ValidationMessageLogRepository validationMessageLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
 
   @Override
@@ -109,14 +109,15 @@ public class SubmissionService
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
 
-    if (submissionPatch.getValidationErrors() != null
-        && !submissionPatch.getValidationErrors().isEmpty()) {
+    if (submissionPatch.getValidationMessages() != null
+        && !submissionPatch.getValidationMessages().isEmpty()) {
       submissionPatch
-          .getValidationErrors()
+          .getValidationMessages()
           .forEach(
-              error -> {
-                ValidationErrorLog log = submissionMapper.toValidationErrorLog(error, submission);
-                validationErrorLogRepository.save(log);
+              message -> {
+                ValidationMessageLog log =
+                    submissionMapper.toValidationMessageLog(message, submission);
+                validationMessageLogRepository.save(log);
               });
     }
   }

@@ -7,19 +7,19 @@ import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationErrorMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationErrorsResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationMessageMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
 /** Service containing business logic for handling validation errors. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ValidationErrorService {
+public class ValidationMessageService {
 
-  private final ValidationErrorLogRepository repository;
-  private final ValidationErrorMapper mapper;
+  private final ValidationMessageLogRepository repository;
+  private final ValidationMessageMapper mapper;
 
   /**
    * Retrieves validation errors by submission and claim IDs with pagination.
@@ -29,17 +29,19 @@ public class ValidationErrorService {
    * @param pageable pagination details
    * @return a response containing paginated validation errors
    */
-  public ValidationErrorsResponse getValidationErrors(
-      UUID submissionId, UUID claimId, Pageable pageable) {
+  public ValidationMessagesResponse getValidationErrors(
+      UUID submissionId, UUID claimId, String type, String source, Pageable pageable) {
     log.info("Fetching validation errors for submissionId={}, claimId={}", submissionId, claimId);
 
-    ValidationErrorLog example = new ValidationErrorLog();
+    ValidationMessageLog example = new ValidationMessageLog();
     example.setSubmissionId(submissionId);
     example.setClaimId(claimId);
+    example.setType(type);
+    example.setSource(source);
 
-    Page<ValidationErrorLog> page = repository.findAll(Example.of(example), pageable);
+    Page<ValidationMessageLog> page = repository.findAll(Example.of(example), pageable);
 
-    ValidationErrorsResponse response = mapper.toValidationErrorsResponse(page);
+    ValidationMessagesResponse response = mapper.toValidationMessagesResponse(page);
     response.setTotalClaims(getTotalUniqueClaimsWithErrors(submissionId, claimId));
 
     return response;
