@@ -58,7 +58,7 @@ dependencies {
     implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.10.3'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
     implementation "software.amazon.awssdk:sqs"
-    implementation 'software.amazon.awssdk:sts:2.31.78'
+    implementation 'software.amazon.awssdk:sts'
 
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
