@@ -622,7 +622,7 @@ paths:
         - name: source
           in: query
           required: false
-          description: where the validation message origniated
+          description: where the validation message originated
           schema:
             type: string
       responses:
