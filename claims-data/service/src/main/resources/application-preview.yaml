@@ -3,9 +3,11 @@ spring:
     url: ${DB_URL}
     username: "postgres"
     password: ${DB_PASSWORD}
-  flyway:
-    enabled: true
-
+aws:
+  region: ${AWS_REGION}
+  sqs:
+    endpoint: ""
+    queue-name: ${QUEUE_NAME}
 laa:
   springboot.starter.auth:
     authentication-header: "Authorization"

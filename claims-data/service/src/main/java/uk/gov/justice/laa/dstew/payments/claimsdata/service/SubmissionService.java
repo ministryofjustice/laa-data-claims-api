@@ -22,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
@@ -40,6 +41,7 @@ public class SubmissionService
   private final MatterStartService matterStartService;
   private final ValidationErrorLogRepository validationErrorLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
+  private final SubmissionEventPublisherService submissionEventPublisherService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -108,6 +110,10 @@ public class SubmissionService
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
+
+    if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_VALIDATION) {
+      submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
+    }
 
     if (submissionPatch.getValidationErrors() != null
         && !submissionPatch.getValidationErrors().isEmpty()) {
