@@ -35,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
@@ -133,7 +134,7 @@ class SubmissionServiceTest {
 
     final ValidationMessagePatch messagePatch =
         new ValidationMessagePatch()
-            .type("ERROR")
+            .type(ValidationMessageType.ERROR)
             .source("SYSTEM")
             .displayMessage("A display message")
             .technicalMessage("A technical message");

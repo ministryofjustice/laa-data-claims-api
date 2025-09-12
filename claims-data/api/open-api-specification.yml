@@ -660,7 +660,7 @@ components:
         validation_messages:
           type: array
           items:
-            $ref: '#/components/schemas/ValidationMessagePatch'
+            $ref: '#/components/schemas/validation_message_patch'
     submission_status:
       type: string
       enum:
@@ -705,7 +705,7 @@ components:
         content:
           type: 'array'
           items:
-            $ref: '#/components/schemas/ValidationMessageBase'
+            $ref: '#/components/schemas/validation_message_base'
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
@@ -781,7 +781,7 @@ components:
         validation_messages:
           type: array
           items:
-            $ref: '#/components/schemas/ValidationMessagePatch'
+            $ref: '#/components/schemas/validation_message_patch'
     claim_status:
       type: string
       enum:
@@ -1271,19 +1271,19 @@ components:
           type: string
         delivery_location:
           type: string
-    ValidationMessagePatch:
+    validation_message_patch:
       type: object
       description: Validation message
       properties:
         type:
-          type: string
+          $ref: "#/components/schemas/validation_message_type"
         source:
           type: string
         display_message:
           type: string
         technical_message:
           type: string
-    ValidationMessageBase:
+    validation_message_base:
       type: object
       description: Validation message
       properties:
@@ -1297,11 +1297,18 @@ components:
           type: string
           format: uuid
         type:
-          type: string
+          $ref: "#/components/schemas/validation_message_type"
         source:
           type: string
         display_message:
           type: string
+    validation_message_type:
+      type: string
+      enum:
+        - ERROR
+        - WARNING
+      description: |
+        The type of validation message, indicating its severity or nature.
     page:
       type: 'object'
       properties:

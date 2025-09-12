@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
@@ -95,7 +96,7 @@ class SubmissionMapperTest {
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()
-            .type("ERROR")
+            .type(ValidationMessageType.ERROR)
             .source("SYSTEM")
             .displayMessage("A display message")
             .technicalMessage("A technical message");

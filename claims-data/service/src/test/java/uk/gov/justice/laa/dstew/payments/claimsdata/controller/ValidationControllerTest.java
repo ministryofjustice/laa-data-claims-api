@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationMessageService;
 
@@ -53,7 +54,7 @@ class ValidationControllerTest {
     ValidationMessageBase message =
         new ValidationMessageBase()
             .id(messageId)
-            .type(type)
+            .type(ValidationMessageType.ERROR)
             .source(source)
             .displayMessage("A display message");
 
@@ -92,7 +93,7 @@ class ValidationControllerTest {
     ValidationMessageBase message =
         new ValidationMessageBase()
             .id(messageId)
-            .type(type)
+            .type(ValidationMessageType.ERROR)
             .source(source)
             .displayMessage("Missing required field");
 
