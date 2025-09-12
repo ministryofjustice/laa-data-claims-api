@@ -22,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
@@ -64,8 +65,6 @@ public class SubmissionService
     submission.setCreatedByUserId("todo");
 
     submissionRepository.save(submission);
-    submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
-
     return submission.getId();
   }
 
@@ -111,6 +110,10 @@ public class SubmissionService
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
+
+    if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_VALIDATION) {
+      submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
+    }
 
     if (submissionPatch.getValidationErrors() != null
         && !submissionPatch.getValidationErrors().isEmpty()) {
