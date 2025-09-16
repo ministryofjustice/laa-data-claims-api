@@ -1,12 +1,19 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
+import java.net.URI;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 
 /**
  * Configuration class for creating and configuring an Amazon SQS client. This class is annotated
@@ -25,10 +32,23 @@ public class SqsConfig {
    * @return a configured {@link SqsClient} instance.
    */
   @Bean
-  public SqsClient sqsClient(@Value("${aws.region}") String region) {
-    return SqsClient.builder()
-        .region(Region.of(region))
-        .credentialsProvider(DefaultCredentialsProvider.builder().build())
-        .build();
+  public SqsClient sqsClient(
+      @Value("${aws.region}") String region,
+      @Value("${aws.sqs.endpoint:}") Optional<String> endpoint,
+      Environment environment) {
+
+    SqsClientBuilder builder = SqsClient.builder().region(Region.of(region));
+
+    if (environment.acceptsProfiles(Profiles.of("default"))) {
+      // Local dev: LocalStack endpoint + dummy creds
+      builder.credentialsProvider(
+          StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
+      endpoint.ifPresent(e -> builder.endpointOverride(URI.create(e)));
+    } else {
+      // Deployed envs (main, preview): real AWS
+      builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
+    }
+
+    return builder.build();
   }
 }
