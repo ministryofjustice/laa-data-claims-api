@@ -8,18 +8,14 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
@@ -33,11 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * SubmissionSpecification} and used by the {@link SubmissionRepository}.
  */
-@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@Testcontainers
-@Slf4j
+@TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("SubmissionRepository Integration Test")
 public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
 
@@ -56,11 +48,6 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
   private Submission submission1;
   private Submission submission2;
-
-  @AfterAll
-  static void afterAll() {
-    postgresContainer.stop();
-  }
 
   /**
    * This is to set the testing data such as the bulk submission and the corresponding submissions

@@ -47,6 +47,7 @@ class SubmissionServiceTest {
   @Mock private SubmissionMapper submissionMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
+  @Mock private SubmissionEventPublisherService submissionEventPublisherService;
 
   @InjectMocks private SubmissionService submissionService;
 

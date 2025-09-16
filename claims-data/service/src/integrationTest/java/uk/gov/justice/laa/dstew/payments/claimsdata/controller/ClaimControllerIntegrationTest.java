@@ -5,34 +5,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import uk.gov.justice.laa.dstew.payments.claimsdata.ClaimsDataApplication;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 
-@ActiveProfiles("test")
-@SpringBootTest(classes = ClaimsDataApplication.class)
-@AutoConfigureMockMvc
-@Transactional
-@Testcontainers
-@Slf4j
-public class ClaimControllerIntegrationTest {
+public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @Container @ServiceConnection
-  public static final PostgreSQLContainer<?> postgresContainer =
-      new PostgreSQLContainer<>("postgres:latest");
+  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   private static final String AUTHORIZATION_HEADER = "Authorization";
 
@@ -51,7 +34,7 @@ public class ClaimControllerIntegrationTest {
     // submissionId, claimId, expectedStatus
     "32765fbb-b258-4c20-a212-b68085843590, 49c5bc98-9b64-4f34-a2f6-861f06c1b95a, 404",
   })
-  void shouldRequestClaim_withStatus(UUID submissionId, UUID claimId, int expectedStatus)
+  void shouldRequestClaimWithStatus(UUID submissionId, UUID claimId, int expectedStatus)
       throws Exception {
     mockMvc
         .perform(

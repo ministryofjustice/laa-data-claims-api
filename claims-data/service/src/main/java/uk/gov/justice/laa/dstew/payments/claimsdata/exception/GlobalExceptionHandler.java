@@ -74,6 +74,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * The handler for BulkSubmissionQueuePublishException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(BulkSubmissionQueuePublishException.class)
+  public ResponseEntity<String> handleBulkSubmissionQueuePublishException(
+      BulkSubmissionQueuePublishException exception) {
+    return ResponseEntity.internalServerError().body(exception.getMessage());
+  }
+
+  /**
    * The handler for Exception.
    *
    * @param exception the exception

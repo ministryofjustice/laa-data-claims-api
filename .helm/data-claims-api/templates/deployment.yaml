@@ -34,7 +34,7 @@ spec:
             httpGet:
               path: /actuator/health
               port: http
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
           readinessProbe:
             httpGet:
               path: /actuator/health
@@ -65,8 +65,15 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: unprotected-uris
+            - name: QUEUE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: sqs-queue-name
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
+            - name: AWS_REGION
+              value: {{ .Values.aws.region | quote }}

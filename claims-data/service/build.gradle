@@ -56,6 +56,9 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.10.3'
+    implementation platform("software.amazon.awssdk:bom:2.32.22")
+    implementation "software.amazon.awssdk:sqs"
+    implementation 'software.amazon.awssdk:sts'
 
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
@@ -64,9 +67,9 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:postgresql'
+    testImplementation "org.testcontainers:localstack:1.20.1"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'

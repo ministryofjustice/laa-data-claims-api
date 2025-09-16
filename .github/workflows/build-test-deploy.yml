@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
-          path: claims-data-service/build/reports/checkstyle
+          path: claims-data/service/build/reports/checkstyle
           retention-days: 14
 
       - name: Upload test report for claims-data
@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: claims-data-service/build/reports/tests
+          path: claims-data/service/build/reports/tests
           retention-days: 14
 
       - name: Upload jacoco coverage report for claims-data
@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-coverage-report
-          path: claims-data-service/build/reports/jacoco
+          path: claims-data/service/build/reports/jacoco
           retention-days: 14
 
   vulnerability-scan-app:

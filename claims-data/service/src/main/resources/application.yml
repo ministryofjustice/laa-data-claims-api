@@ -21,6 +21,13 @@ spring:
       hibernate:
         default_schema: claims
 
+# Local connection details for dev, overridden in other envs
+aws:
+  region: us-east-1
+  sqs:
+    endpoint: http://localhost:4566  # LocalStack default
+    queue-name: claims-api-queue
+
 javers:
   sqlSchema: javers
 
