@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -23,7 +24,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
@@ -84,7 +89,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
         Claim.builder()
             .id(CLAIM_ID_1)
             .submission(submission)
-            .status(ClaimStatus.INVALID.toString())
+            .status(ClaimStatus.INVALID)
             .scheduleReference("SCHED-001")
             .lineNumber(1)
             .caseReferenceNumber("CASE-001")
@@ -101,7 +106,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
         Claim.builder()
             .id(CLAIM_ID_2)
             .submission(submission)
-            .status(ClaimStatus.VALID.toString())
+            .status(ClaimStatus.VALID)
             .scheduleReference("SCHED-002")
             .lineNumber(2)
             .caseReferenceNumber("CASE-002")
@@ -191,11 +196,9 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     assertThat(message.getDisplayMessage()).isEqualTo(displayMessage);
   }
 
-  private static Stream<org.junit.jupiter.params.provider.Arguments> validationTypeProvider() {
+  private static Stream<Arguments> validationTypeProvider() {
     return Stream.of(
-        org.junit.jupiter.params.provider.Arguments.of(
-            ValidationMessageType.ERROR, CLAIM_ID_1, "Missing case reference"),
-        org.junit.jupiter.params.provider.Arguments.of(
-            ValidationMessageType.WARNING, CLAIM_ID_2, "Missing UFN"));
+        Arguments.of(ValidationMessageType.ERROR, CLAIM_ID_1, "Missing case reference"),
+        Arguments.of(ValidationMessageType.WARNING, CLAIM_ID_2, "Missing UFN"));
   }
 }
