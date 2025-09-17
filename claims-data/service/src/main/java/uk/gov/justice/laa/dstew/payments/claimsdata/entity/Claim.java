@@ -3,6 +3,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -19,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /** Entity representing a claim linked to a submission. */
 @Getter
@@ -39,7 +42,8 @@ public class Claim {
 
   @NotNull
   @Column(nullable = false)
-  private String status;
+  @Enumerated(EnumType.STRING)
+  private ClaimStatus status;
 
   @NotNull
   @Column(nullable = false)

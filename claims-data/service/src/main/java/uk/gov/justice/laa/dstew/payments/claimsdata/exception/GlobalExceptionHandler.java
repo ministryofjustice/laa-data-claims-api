@@ -74,6 +74,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * The handler for ClaimBadRequestException.
+   *
+   * @param ex the ClaimBadRequestException encountered during claim processing endpoints
+   * @return a ResponseEntity containing the HTTP Bad Request status and the exception message.
+   */
+  @ExceptionHandler(ClaimBadRequestException.class)
+  public ResponseEntity<String> handleClaimBadRequestException(ClaimBadRequestException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
+
+  /**
    * The handler for BulkSubmissionQueuePublishException.
    *
    * @param exception the exception

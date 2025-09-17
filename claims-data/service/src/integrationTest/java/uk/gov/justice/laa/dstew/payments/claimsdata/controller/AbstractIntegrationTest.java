@@ -6,12 +6,11 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 
+/** This is used to isolate the common configuration for integration testing in a single class. */
 @ActiveProfiles("test")
 @SpringBootTest
-@Testcontainers
 @Import(SqsTestConfig.class)
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {

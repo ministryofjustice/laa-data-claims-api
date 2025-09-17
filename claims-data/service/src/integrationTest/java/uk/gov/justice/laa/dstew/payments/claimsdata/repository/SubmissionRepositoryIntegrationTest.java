@@ -1,13 +1,15 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_3_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,9 +34,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
 @DisplayName("SubmissionRepository Integration Test")
 public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
 
-  private static final UUID SUBMISSION_1_ID = UUID.randomUUID();
-  private static final UUID SUBMISSION_2_ID = UUID.randomUUID();
-  private static final UUID SUBMISSION_3_ID = UUID.randomUUID();
   private static final Instant FIRST_JANUARY_2025 =
       LocalDate.of(2025, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final Instant TENTH_APRIL_2024 =
@@ -52,9 +51,10 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
   /**
    * This is to set the testing data such as the bulk submission and the corresponding submissions
-   * which will be saved in the test container's database for the execution of the integration
-   * tests. This callback method gets executed before every test method. This will ensure that each
-   * test runs with an empty and clean database and circumvent any kind of test pollution.
+   * which will be saved in the shared test container's database for the execution of the
+   * integration tests. This callback method gets executed before every test method. This will
+   * ensure that each test runs with an empty and clean database and circumvent any kind of test
+   * pollution.
    */
   @BeforeEach
   public void setup() {

@@ -1,13 +1,18 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
@@ -18,7 +23,14 @@ public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v0";
   public static final UUID SUBMISSION_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_1_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_2_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_3_ID = UUID.randomUUID();
   public static final UUID BULK_SUBMISSION_ID = UUID.randomUUID();
+  public static final UUID CLAIM_1_ID = UUID.randomUUID();
+  public static final UUID CLAIM_2_ID = UUID.randomUUID();
+  public static final UUID CLIENT_1_ID = UUID.randomUUID();
+  public static final UUID CLIENT_2_ID = UUID.randomUUID();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -26,6 +38,21 @@ public class ClaimsDataTestUtil {
   public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
   public static final String SUBMISSION_PERIOD = "APR-24";
   public static final String USER_ID = "12345";
+  public static final String FEE_CODE = "FEE_123";
+  public static final String UNIQUE_FILE_NUMBER = "UFN_123";
+  public static final String UNIQUE_CLIENT_NUMBER = "UCN_123";
+  public static final String MATTER_TYPE_CODE = "MTC_123";
+  public static final Integer LINE_NUMBER = 123;
+  public static final String CASE_REFERENCE = "CASE_123";
+  public static final String PROCURAMENT_AREA_CODE = "PAC_123";
+  public static final String ACCESS_POINT_CODE = "APC_123";
+  public static final String DELIVERY_LOCATION = "London";
+  public static final String CLIENT_FORENAME = "Forename";
+  public static final String CLIENT_SURNAME = "Surname";
+  public static final String CLIENT_DOB = "1980-12-12";
+  public static final String CLIENT_POSTCODE = "AB12 1AA";
+  public static final String CLIENT_TYPE_CODE = "CT_CODE_123";
+  public static final String HOME_OFFICE_CLIENT_NUMBER = "HOC_123";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
@@ -191,17 +218,76 @@ public class ClaimsDataTestUtil {
 
   public static SubmissionBase getSubmissionBase() {
     return SubmissionBase.builder()
-        .submissionId(ClaimsDataTestUtil.SUBMISSION_ID)
-        .bulkSubmissionId(ClaimsDataTestUtil.BULK_SUBMISSION_ID)
+        .submissionId(SUBMISSION_ID)
+        .bulkSubmissionId(BULK_SUBMISSION_ID)
         .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
         .scheduleNumber(SCHEDULE_NUMBER)
-        .previousSubmissionId(ClaimsDataTestUtil.SUBMISSION_ID)
+        .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
-        .submitted(ClaimsDataTestUtil.SUBMITTED_DATE)
+        .submitted(SUBMITTED_DATE)
+        .build();
+  }
+
+  public static Claim.ClaimBuilder getClaimBuilder() {
+    return Claim.builder()
+        .id(CLAIM_1_ID)
+        .submission(getSubmission())
+        .scheduleReference(SCHEDULE_NUMBER)
+        .caseReferenceNumber(CASE_REFERENCE)
+        .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+        .lineNumber(LINE_NUMBER)
+        .matterTypeCode(MATTER_TYPE_CODE)
+        .caseStartDate(LocalDate.now().minusDays(365))
+        .caseConcludedDate(LocalDate.now().minusDays(30))
+        .feeCode(FEE_CODE)
+        .status(ClaimStatus.READY_TO_PROCESS)
+        .procurementAreaCode(PROCURAMENT_AREA_CODE)
+        .accessPointCode(ACCESS_POINT_CODE)
+        .deliveryLocation(DELIVERY_LOCATION)
+        .createdByUserId(USER_ID)
+        .createdOn(SUBMITTED_DATE.toInstant());
+  }
+
+  public static Client.ClientBuilder getClientBuilder() {
+    return Client.builder()
+        .id(CLIENT_1_ID)
+        .claim(getClaimBuilder().build())
+        .clientForename(CLIENT_FORENAME)
+        .clientSurname(CLIENT_SURNAME)
+        .clientDateOfBirth(LocalDate.parse(CLIENT_DOB))
+        .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+        .clientPostcode(CLIENT_POSTCODE)
+        .isLegallyAided(true)
+        .clientTypeCode(CLIENT_TYPE_CODE)
+        .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
+        .createdByUserId(USER_ID)
+        .createdOn(SUBMITTED_DATE.toInstant());
+  }
+
+  public static ClaimResponse getClaimResponse() {
+    return ClaimResponse.builder()
+        .id(String.valueOf(CLAIM_1_ID))
+        .scheduleReference(SCHEDULE_NUMBER)
+        .caseReferenceNumber(CASE_REFERENCE)
+        .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+        .caseStartDate(String.valueOf(LocalDate.now().minusDays(365)))
+        .caseConcludedDate(String.valueOf(LocalDate.now().minusDays(30)))
+        .feeCode(FEE_CODE)
+        .procurementAreaCode(PROCURAMENT_AREA_CODE)
+        .accessPointCode(ACCESS_POINT_CODE)
+        .deliveryLocation(DELIVERY_LOCATION)
+        .clientForename(CLIENT_FORENAME)
+        .clientSurname(CLIENT_SURNAME)
+        .clientDateOfBirth(CLIENT_DOB)
+        .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+        .clientPostcode(CLIENT_POSTCODE)
+        .isLegallyAided(true)
+        .clientTypeCode(CLIENT_TYPE_CODE)
+        .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
         .build();
   }
 }

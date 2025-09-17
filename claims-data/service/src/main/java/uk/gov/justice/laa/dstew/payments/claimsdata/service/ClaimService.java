@@ -5,6 +5,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -12,18 +14,24 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 
 /** Service containing business logic for handling claims. */
@@ -38,6 +46,7 @@ public class ClaimService
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ClaimResultSetMapper claimResultSetMapper;
 
   @Override
   public SubmissionRepository lookup() {
@@ -150,5 +159,50 @@ public class ClaimService
         || StringUtils.hasText(client.getClient2Forename())
         || StringUtils.hasText(client.getClient2Surname())
         || client.getClient2DateOfBirth() != null;
+  }
+
+  /**
+   * Returns all the existing claims filtered by some parameters and paginated in a {@link
+   * ClaimResultSet}.
+   *
+   * @param officeCode a mandatory string representing an office code to filter claims by
+   * @param submissionId an optional identifier to filter claims by
+   * @param submissionStatuses an optional list of submission statuses to filter claims by
+   * @param feeCode an optional string representing a fee code to filter claims by
+   * @param uniqueFileNumber the optional unique file number associated to the claim to filter
+   *     claims by
+   * @param uniqueClientNumber the optional unique client number associated to the claim to filter
+   *     claims by
+   * @param claimStatuses an optional list of claim statuses to filter claims by
+   * @param pageable a pageable object to yield the paginated claims results
+   * @return the paginated result set with all claims that satisfy the filtering criteria above.
+   */
+  public ClaimResultSet getClaimResultSet(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      List<ClaimStatus> claimStatuses,
+      Pageable pageable) {
+
+    if (!StringUtils.hasText(officeCode)) {
+      throw new ClaimBadRequestException("Missing office code");
+    }
+
+    Page<Claim> page =
+        claimRepository.findAll(
+            ClaimSpecification.filterBy(
+                officeCode,
+                submissionId,
+                submissionStatuses,
+                feeCode,
+                uniqueFileNumber,
+                uniqueClientNumber,
+                claimStatuses),
+            pageable);
+
+    return claimResultSetMapper.toClaimResultSet(page);
   }
 }

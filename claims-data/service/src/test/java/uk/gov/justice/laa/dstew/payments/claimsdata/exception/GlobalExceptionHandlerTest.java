@@ -73,6 +73,19 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("Handle ClaimBadRequestException")
+  void handleClaimBadRequestException_returnsBadRequestStatusAndErrorMessage() {
+    ResponseEntity<String> result =
+        globalExceptionHandler.handleClaimBadRequestException(
+            new ClaimBadRequestException("Missing arguments"));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(BAD_REQUEST);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody()).isEqualTo("Missing arguments");
+  }
+
+  @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
     ResponseEntity<String> result =
         globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
