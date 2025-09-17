@@ -7,11 +7,12 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
 /** MapStruct mapper for converting between claim models and entities. */
 @Mapper(
@@ -65,8 +66,9 @@ public interface ClaimMapper {
   @Mapping(target = "id", expression = "java(UUID.randomUUID())")
   @Mapping(target = "submissionId", source = "claim.submission.id")
   @Mapping(target = "claimId", source = "claim.id")
-  @Mapping(target = "errorCode", source = "error")
-  @Mapping(target = "errorDescription", source = "error")
-  @Mapping(target = "createdByUserId", constant = "todo")
-  ValidationErrorLog toValidationErrorLog(String error, Claim claim);
+  @Mapping(target = "displayMessage", source = "message.displayMessage")
+  @Mapping(target = "technicalMessage", source = "message.technicalMessage")
+  @Mapping(target = "type", source = "message.type")
+  @Mapping(target = "source", source = "message.source")
+  ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 }

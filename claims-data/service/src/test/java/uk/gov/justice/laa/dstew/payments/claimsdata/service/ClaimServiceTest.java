@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -25,7 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
@@ -34,10 +33,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -46,7 +46,7 @@ class ClaimServiceTest {
   @Mock private ClientRepository clientRepository;
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
-  @Mock private ValidationErrorLogRepository validationErrorLogRepository;
+  @Mock private ValidationMessageLogRepository validationMessageLogRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -221,17 +221,19 @@ class ClaimServiceTest {
             .id(claimId)
             .submission(Submission.builder().id(submissionId).build())
             .build();
-    final ClaimPatch patch = new ClaimPatch().validationErrors(java.util.List.of("ERR1", "ERR2"));
+    final ClaimPatch patch = new ClaimPatch();
+    final ValidationMessagePatch message1 = new ValidationMessagePatch();
+    patch.setValidationMessages(List.of(message1));
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationErrorLog(anyString(), eq(claim)))
-        .thenReturn(new ValidationErrorLog());
+    when(claimMapper.toValidationMessageLog(message1, claim))
+        .thenReturn(new ValidationMessageLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper, org.mockito.Mockito.times(2)).toValidationErrorLog(anyString(), eq(claim));
-    verify(validationErrorLogRepository, org.mockito.Mockito.times(2))
-        .save(any(ValidationErrorLog.class));
+    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    verify(claimRepository).save(claim);
+    verify(claimMapper).toValidationMessageLog(message1, claim);
   }
 }

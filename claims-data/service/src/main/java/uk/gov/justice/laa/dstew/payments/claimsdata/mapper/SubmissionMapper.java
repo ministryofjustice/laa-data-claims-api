@@ -9,11 +9,12 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
 /** MapStruct mapper for converting between API models and Submission entities. */
 @Mapper(
@@ -73,12 +74,14 @@ public interface SubmissionMapper {
   @Mapping(target = "errorMessages", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
-  /** Map a validation error string to a ValidationErrorLog. */
+  /** Map a validation message string to a ValidationMessageLog. */
   @Mapping(target = "id", expression = "java(UUID.randomUUID())")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "claimId", ignore = true)
-  @Mapping(target = "errorCode", source = "error")
-  @Mapping(target = "errorDescription", source = "error")
-  @Mapping(target = "createdByUserId", constant = "todo")
-  ValidationErrorLog toValidationErrorLog(String error, Submission submission);
+  @Mapping(target = "displayMessage", source = "message.displayMessage")
+  @Mapping(target = "technicalMessage", source = "message.technicalMessage")
+  @Mapping(target = "type", source = "message.type")
+  @Mapping(target = "source", source = "message.source")
+  ValidationMessageLog toValidationMessageLog(
+      ValidationMessagePatch message, Submission submission);
 }

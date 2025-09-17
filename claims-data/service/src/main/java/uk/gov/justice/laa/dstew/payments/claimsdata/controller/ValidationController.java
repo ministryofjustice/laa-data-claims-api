@@ -6,23 +6,29 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.justice.laa.dstew.payments.claimsdata.api.ValidationErrorsApi;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationErrorsResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationErrorService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.api.ValidationMessagesApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationMessageService;
 
 /** Controller for handling validation errors. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-public class ValidationController implements ValidationErrorsApi {
+public class ValidationController implements ValidationMessagesApi {
 
-  private final ValidationErrorService validationErrorService;
+  private final ValidationMessageService validationMessageService;
 
   @Override
-  public ResponseEntity<ValidationErrorsResponse> getValidationErrors(
-      final UUID submissionId, final UUID claimId, final Pageable pageable) {
+  public ResponseEntity<ValidationMessagesResponse> getValidationMessages(
+      final UUID submissionId,
+      final UUID claimId,
+      final ValidationMessageType type,
+      final String source,
+      final Pageable pageable) {
 
     return ResponseEntity.ok(
-        validationErrorService.getValidationErrors(submissionId, claimId, pageable));
+        validationMessageService.getValidationErrors(
+            submissionId, claimId, type, source, pageable));
   }
 }

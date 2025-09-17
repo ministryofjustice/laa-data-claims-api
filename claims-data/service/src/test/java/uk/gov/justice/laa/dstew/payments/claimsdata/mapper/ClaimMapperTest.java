@@ -15,8 +15,14 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimMapperTest {
@@ -231,16 +237,25 @@ class ClaimMapperTest {
   }
 
   @Test
-  void toValidationErrorLog_mapsFields() {
+  void toValidationMessageLog_mapsFields() {
     final Submission submission = Submission.builder().id(UUID.randomUUID()).build();
     final Claim claim = Claim.builder().id(UUID.randomUUID()).submission(submission).build();
 
-    final ValidationErrorLog log = mapper.toValidationErrorLog("ERR1", claim);
+    final ValidationMessagePatch patch =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.ERROR)
+            .source("SYSTEM")
+            .displayMessage("A display message")
+            .technicalMessage("A technical message");
+
+    final ValidationMessageLog log = mapper.toValidationMessageLog(patch, claim);
 
     assertNotNull(log.getId());
     assertEquals(submission.getId(), log.getSubmissionId());
     assertEquals(claim.getId(), log.getClaimId());
-    assertEquals("ERR1", log.getErrorCode());
-    assertEquals("ERR1", log.getErrorDescription());
+    assertEquals(ValidationMessageType.ERROR, log.getType());
+    assertEquals("SYSTEM", log.getSource());
+    assertEquals("A display message", log.getDisplayMessage());
+    assertEquals("A technical message", log.getTechnicalMessage());
   }
 }

@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,7 +23,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationErrorLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
@@ -35,8 +34,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationErrorLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
@@ -44,7 +45,7 @@ class SubmissionServiceTest {
   @Mock private ClaimService claimService;
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
-  @Mock private ValidationErrorLogRepository validationErrorLogRepository;
+  @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
 
@@ -131,15 +132,24 @@ class SubmissionServiceTest {
   void shouldUpdateSubmissionAndLogValidationErrors() {
     UUID id = UUID.randomUUID();
     Submission entity = Submission.builder().id(id).build();
-    SubmissionPatch patch = new SubmissionPatch().validationErrors(java.util.List.of("ERR1"));
+
+    final ValidationMessagePatch messagePatch =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.ERROR)
+            .source("SYSTEM")
+            .displayMessage("A display message")
+            .technicalMessage("A technical message");
+
+    SubmissionPatch patch =
+        new SubmissionPatch().validationMessages(java.util.List.of(messagePatch));
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
-    when(submissionMapper.toValidationErrorLog(anyString(), eq(entity)))
-        .thenReturn(new ValidationErrorLog());
+    when(submissionMapper.toValidationMessageLog(any(), eq(entity)))
+        .thenReturn(new ValidationMessageLog());
 
     submissionService.updateSubmission(id, patch);
 
-    verify(submissionMapper).toValidationErrorLog(anyString(), eq(entity));
-    verify(validationErrorLogRepository).save(any(ValidationErrorLog.class));
+    verify(submissionMapper).toValidationMessageLog(any(), eq(entity));
+    verify(validationMessageLogRepository).save(any(ValidationMessageLog.class));
   }
 
   @Test

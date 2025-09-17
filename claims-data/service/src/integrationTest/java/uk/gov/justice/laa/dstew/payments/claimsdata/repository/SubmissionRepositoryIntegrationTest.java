@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
@@ -16,13 +16,12 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 
 /**
@@ -42,9 +41,11 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
 
-  @Autowired private SubmissionRepository submissionRepository;
-
+  @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
+  @Autowired private SubmissionRepository submissionRepository;
+  @Autowired private ClaimRepository claimRepository;
+  @Autowired private ClientRepository clientRepository;
 
   private Submission submission1;
   private Submission submission2;
@@ -57,6 +58,9 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
    */
   @BeforeEach
   public void setup() {
+    validationMessageLogRepository.deleteAll();
+    clientRepository.deleteAll();
+    claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
 
