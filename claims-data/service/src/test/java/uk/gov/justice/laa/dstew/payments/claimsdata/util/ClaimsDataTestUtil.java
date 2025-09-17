@@ -12,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
@@ -22,9 +23,14 @@ public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v0";
   public static final UUID SUBMISSION_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_1_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_2_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_3_ID = UUID.randomUUID();
   public static final UUID BULK_SUBMISSION_ID = UUID.randomUUID();
-  public static final UUID CLAIM_ID = UUID.randomUUID();
-  public static final UUID CLIENT_ID = UUID.randomUUID();
+  public static final UUID CLAIM_1_ID = UUID.randomUUID();
+  public static final UUID CLAIM_2_ID = UUID.randomUUID();
+  public static final UUID CLIENT_1_ID = UUID.randomUUID();
+  public static final UUID CLIENT_2_ID = UUID.randomUUID();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -35,6 +41,8 @@ public class ClaimsDataTestUtil {
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";
   public static final String UNIQUE_CLIENT_NUMBER = "UCN_123";
+  public static final String MATTER_TYPE_CODE = "MTC_123";
+  public static final Integer LINE_NUMBER = 123;
   public static final String CASE_REFERENCE = "CASE_123";
   public static final String PROCURAMENT_AREA_CODE = "PAC_123";
   public static final String ACCESS_POINT_CODE = "APC_123";
@@ -224,27 +232,30 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static Claim getClaimForSubmission(Submission submission) {
+  public static Claim.ClaimBuilder getClaimBuilder() {
     return Claim.builder()
-        .id(CLAIM_ID)
-        .submission(submission)
+        .id(CLAIM_1_ID)
+        .submission(getSubmission())
         .scheduleReference(SCHEDULE_NUMBER)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+        .lineNumber(LINE_NUMBER)
+        .matterTypeCode(MATTER_TYPE_CODE)
         .caseStartDate(LocalDate.now().minusDays(365))
         .caseConcludedDate(LocalDate.now().minusDays(30))
         .feeCode(FEE_CODE)
+        .status(ClaimStatus.READY_TO_PROCESS)
         .procurementAreaCode(PROCURAMENT_AREA_CODE)
         .accessPointCode(ACCESS_POINT_CODE)
         .deliveryLocation(DELIVERY_LOCATION)
-        .createdOn(SUBMITTED_DATE.toInstant())
-        .build();
+        .createdByUserId(USER_ID)
+        .createdOn(SUBMITTED_DATE.toInstant());
   }
 
-  public static Client getClientForClaim(Claim claim) {
+  public static Client.ClientBuilder getClientBuilder() {
     return Client.builder()
-        .id(CLIENT_ID)
-        .claim(claim)
+        .id(CLIENT_1_ID)
+        .claim(getClaimBuilder().build())
         .clientForename(CLIENT_FORENAME)
         .clientSurname(CLIENT_SURNAME)
         .clientDateOfBirth(LocalDate.parse(CLIENT_DOB))
@@ -253,12 +264,13 @@ public class ClaimsDataTestUtil {
         .isLegallyAided(true)
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
-        .build();
+        .createdByUserId(USER_ID)
+        .createdOn(SUBMITTED_DATE.toInstant());
   }
 
   public static ClaimResponse getClaimResponse() {
     return ClaimResponse.builder()
-        .id(String.valueOf(CLAIM_ID))
+        .id(String.valueOf(CLAIM_1_ID))
         .scheduleReference(SCHEDULE_NUMBER)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)

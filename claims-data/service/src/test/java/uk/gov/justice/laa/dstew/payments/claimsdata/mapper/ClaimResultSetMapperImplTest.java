@@ -38,9 +38,8 @@ class ClaimResultSetMapperImplTest {
 
   @Test
   void toClaimResultSet_shouldReturnClaimData() {
-    var expectedClaim =
-        ClaimsDataTestUtil.getClaimForSubmission(ClaimsDataTestUtil.getSubmission());
-    var expectedClient = ClaimsDataTestUtil.getClientForClaim(expectedClaim);
+    var expectedClaim = ClaimsDataTestUtil.getClaimBuilder().build();
+    var expectedClient = ClaimsDataTestUtil.getClientBuilder().claim(expectedClaim).build();
 
     Page<Claim> page = new PageImpl<>(Collections.singletonList(expectedClaim));
 
