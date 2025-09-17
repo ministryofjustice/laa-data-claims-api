@@ -10,6 +10,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 public interface ValidationMessageLogRepository extends JpaRepository<ValidationMessageLog, UUID> {
 
   @Query(
-      "SELECT COUNT(DISTINCT v.claimId) FROM ValidationMessageLog v WHERE v.submissionId = :submissionId")
-  long countDistinctClaimIdsBySubmissionId(@Param("submissionId") UUID submissionId);
+      "SELECT COUNT(DISTINCT v.claimId) "
+          + "FROM ValidationMessageLog v "
+          + "WHERE v.submissionId = :submissionId "
+          + "AND (:type IS NULL OR v.type = :type)")
+  long countDistinctClaimIdsBySubmissionIdAndType(
+      @Param("submissionId") UUID submissionId, @Param("type") String type);
 }

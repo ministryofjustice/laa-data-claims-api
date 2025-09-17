@@ -42,15 +42,15 @@ public class ValidationMessageService {
     Page<ValidationMessageLog> page = repository.findAll(Example.of(example), pageable);
 
     ValidationMessagesResponse response = mapper.toValidationMessagesResponse(page);
-    response.setTotalClaims(getTotalUniqueClaimsWithErrors(submissionId, claimId));
+    response.setTotalClaims(getTotalUniqueClaimsWithErrors(submissionId, claimId, type));
 
     return response;
   }
 
-  private int getTotalUniqueClaimsWithErrors(UUID submissionId, UUID claimId) {
+  private int getTotalUniqueClaimsWithErrors(UUID submissionId, UUID claimId, String type) {
     if (claimId != null) {
       return 1;
     }
-    return (int) repository.countDistinctClaimIdsBySubmissionId(submissionId);
+    return (int) repository.countDistinctClaimIdsBySubmissionIdAndType(submissionId, type);
   }
 }

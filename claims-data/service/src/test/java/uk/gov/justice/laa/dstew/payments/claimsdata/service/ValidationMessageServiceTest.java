@@ -60,7 +60,7 @@ class ValidationMessageServiceTest {
 
     when(repository.findAll(any(Example.class), eq(pageable))).thenReturn(page);
     when(mapper.toValidationMessagesResponse(page)).thenReturn(mappedResponse);
-    when(repository.countDistinctClaimIdsBySubmissionId(submissionId)).thenReturn(3L);
+    when(repository.countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), anyString())).thenReturn(3L);
 
     ValidationMessagesResponse result =
         service.getValidationErrors(submissionId, null, "WARNING", "USER", pageable);
@@ -69,7 +69,7 @@ class ValidationMessageServiceTest {
     assertThat(result.getTotalClaims()).isEqualTo(3);
     verify(repository).findAll(any(Example.class), eq(pageable));
     verify(mapper).toValidationMessagesResponse(page);
-    verify(repository).countDistinctClaimIdsBySubmissionId(submissionId);
+    verify(repository).countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), anyString());
     verifyNoMoreInteractions(repository, mapper);
   }
 }
