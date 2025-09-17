@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ValidationMessagesApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationMessageService;
 
@@ -22,7 +23,7 @@ public class ValidationController implements ValidationMessagesApi {
   public ResponseEntity<ValidationMessagesResponse> getValidationMessages(
       final UUID submissionId,
       final UUID claimId,
-      final String type,
+      final ValidationMessageType type,
       final String source,
       final Pageable pageable) {
 

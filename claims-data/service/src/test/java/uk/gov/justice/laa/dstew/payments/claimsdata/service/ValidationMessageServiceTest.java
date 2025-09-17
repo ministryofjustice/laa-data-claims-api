@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationMessageMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
@@ -40,7 +41,8 @@ class ValidationMessageServiceTest {
     when(mapper.toValidationMessagesResponse(page)).thenReturn(mappedResponse);
 
     ValidationMessagesResponse result =
-        service.getValidationErrors(submissionId, claimId, "ERROR", "SYSTEM", pageable);
+        service.getValidationErrors(
+            submissionId, claimId, ValidationMessageType.ERROR, "SYSTEM", pageable);
 
     assertThat(result).isSameAs(mappedResponse);
     assertThat(result.getTotalClaims()).isEqualTo(1);
@@ -60,16 +62,18 @@ class ValidationMessageServiceTest {
 
     when(repository.findAll(any(Example.class), eq(pageable))).thenReturn(page);
     when(mapper.toValidationMessagesResponse(page)).thenReturn(mappedResponse);
-    when(repository.countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), anyString())).thenReturn(3L);
+    when(repository.countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), any()))
+        .thenReturn(3L);
 
     ValidationMessagesResponse result =
-        service.getValidationErrors(submissionId, null, "WARNING", "USER", pageable);
+        service.getValidationErrors(
+            submissionId, null, ValidationMessageType.WARNING, "USER", pageable);
 
     assertThat(result).isSameAs(mappedResponse);
     assertThat(result.getTotalClaims()).isEqualTo(3);
     verify(repository).findAll(any(Example.class), eq(pageable));
     verify(mapper).toValidationMessagesResponse(page);
-    verify(repository).countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), anyString());
+    verify(repository).countDistinctClaimIdsBySubmissionIdAndType(eq(submissionId), any());
     verifyNoMoreInteractions(repository, mapper);
   }
 }

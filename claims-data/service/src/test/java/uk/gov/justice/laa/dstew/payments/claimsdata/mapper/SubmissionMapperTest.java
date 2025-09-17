@@ -106,7 +106,7 @@ class SubmissionMapperTest {
     assertThat(log.getId()).isNotNull();
     assertEquals(submission.getId(), log.getSubmissionId());
     assertThat(log.getClaimId()).isNull();
-    Assertions.assertEquals("ERROR", log.getType());
+    Assertions.assertEquals(ValidationMessageType.ERROR, log.getType());
     Assertions.assertEquals("SYSTEM", log.getSource());
     Assertions.assertEquals("A display message", log.getDisplayMessage());
     Assertions.assertEquals("A technical message", log.getTechnicalMessage());

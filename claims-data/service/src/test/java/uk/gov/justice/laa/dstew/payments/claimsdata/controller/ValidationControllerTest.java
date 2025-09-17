@@ -62,7 +62,7 @@ class ValidationControllerTest {
         new ValidationMessagesResponse().totalElements(1).content(List.of(message));
 
     when(validationMessageService.getValidationErrors(
-            submissionId, claimId, type, source, pageable))
+            submissionId, claimId, ValidationMessageType.ERROR, source, pageable))
         .thenReturn(response);
 
     String jsonContent = objectMapper.writeValueAsString(response);
@@ -100,7 +100,8 @@ class ValidationControllerTest {
     ValidationMessagesResponse response =
         new ValidationMessagesResponse().totalElements(1).content(List.of(message));
 
-    when(validationMessageService.getValidationErrors(submissionId, null, type, source, pageable))
+    when(validationMessageService.getValidationErrors(
+            submissionId, null, ValidationMessageType.ERROR, source, pageable))
         .thenReturn(response);
 
     String jsonContent = objectMapper.writeValueAsString(response);

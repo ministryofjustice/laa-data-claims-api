@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationMessageMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
@@ -30,7 +31,11 @@ public class ValidationMessageService {
    * @return a response containing paginated validation errors
    */
   public ValidationMessagesResponse getValidationErrors(
-      UUID submissionId, UUID claimId, String type, String source, Pageable pageable) {
+      UUID submissionId,
+      UUID claimId,
+      ValidationMessageType type,
+      String source,
+      Pageable pageable) {
     log.info("Fetching validation errors for submissionId={}, claimId={}", submissionId, claimId);
 
     ValidationMessageLog example = new ValidationMessageLog();
@@ -47,7 +52,8 @@ public class ValidationMessageService {
     return response;
   }
 
-  private int getTotalUniqueClaimsWithErrors(UUID submissionId, UUID claimId, String type) {
+  private int getTotalUniqueClaimsWithErrors(
+      UUID submissionId, UUID claimId, ValidationMessageType type) {
     if (claimId != null) {
       return 1;
     }

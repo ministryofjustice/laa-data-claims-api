@@ -253,7 +253,7 @@ class ClaimMapperTest {
     assertNotNull(log.getId());
     assertEquals(submission.getId(), log.getSubmissionId());
     assertEquals(claim.getId(), log.getClaimId());
-    assertEquals("ERROR", log.getType());
+    assertEquals(ValidationMessageType.ERROR, log.getType());
     assertEquals("SYSTEM", log.getSource());
     assertEquals("A display message", log.getDisplayMessage());
     assertEquals("A technical message", log.getTechnicalMessage());

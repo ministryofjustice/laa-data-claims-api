@@ -618,7 +618,7 @@ paths:
           required: false
           description: type of the validation message
           schema:
-            type: string
+            $ref: '#/components/schemas/validation_message_type'
         - name: source
           in: query
           required: false

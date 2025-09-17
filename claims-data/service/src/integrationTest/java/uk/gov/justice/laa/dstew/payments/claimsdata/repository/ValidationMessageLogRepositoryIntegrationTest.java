@@ -141,7 +141,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
                 VALIDATION_ID_1,
                 SUBMISSION_ID,
                 CLAIM_ID_1,
-                ValidationMessageType.ERROR.toString(),
+                ValidationMessageType.ERROR,
                 "SYSTEM",
                 "Missing case reference",
                 "Field `caseReferenceNumber` is required",
@@ -150,7 +150,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
                 VALIDATION_ID_2,
                 SUBMISSION_ID,
                 CLAIM_ID_2,
-                ValidationMessageType.WARNING.toString(),
+                ValidationMessageType.WARNING,
                 "SYSTEM",
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
@@ -176,7 +176,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     ValidationMessageLog probe = new ValidationMessageLog();
     probe.setSubmissionId(SUBMISSION_ID);
     probe.setClaimId(claimId);
-    probe.setType(type.toString());
+    probe.setType(type);
     probe.setSource("SYSTEM");
 
     Page<ValidationMessageLog> result =
@@ -186,7 +186,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     var message = result.getContent().getFirst();
     assertThat(message.getClaimId()).isEqualTo(claimId);
     assertThat(message.getSubmissionId()).isEqualTo(SUBMISSION_ID);
-    assertThat(message.getType()).isEqualTo(type.toString());
+    assertThat(message.getType()).isEqualTo(type);
     assertThat(message.getSource()).isEqualTo("SYSTEM");
     assertThat(message.getDisplayMessage()).isEqualTo(displayMessage);
   }

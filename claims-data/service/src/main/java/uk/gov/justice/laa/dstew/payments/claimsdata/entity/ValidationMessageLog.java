@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /** Entity representing a validation message linked to a submission and optionally a claim. */
 @Getter
@@ -33,7 +36,8 @@ public class ValidationMessageLog {
 
   @NotNull
   @Column(nullable = false)
-  private String type;
+  @Enumerated(EnumType.STRING)
+  private ValidationMessageType type;
 
   @NotNull
   @Column(nullable = false)
