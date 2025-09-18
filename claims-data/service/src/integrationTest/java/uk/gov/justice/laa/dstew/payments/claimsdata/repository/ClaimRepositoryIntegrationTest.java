@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLIENT_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
@@ -9,10 +10,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +82,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     var bulkSubmission =
         BulkSubmission.builder()
+            .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
@@ -123,7 +125,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     claim2 = ClaimsDataTestUtil.getClaimBuilder().id(CLAIM_2_ID).submission(submission1).build();
     claim3 =
         Claim.builder()
-            .id(UUID.randomUUID())
+            .id(Generators.timeBasedEpochGenerator().generate())
             .submission(submission3)
             .scheduleReference("OFF_333/CIVIL")
             .caseReferenceNumber("CASE_333")
@@ -144,7 +146,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     client2.setId(CLIENT_2_ID);
     client3 =
         Client.builder()
-            .id(UUID.randomUUID())
+            .id(Generators.timeBasedEpochGenerator().generate())
             .claim(claim3)
             .uniqueClientNumber("UCN_333")
             .createdByUserId(USER_ID)
@@ -160,7 +162,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         claimRepository.findAll(
             ClaimSpecification.filterBy(
                 "office_test",
-                UUID.randomUUID().toString(),
+                Generators.timeBasedEpochGenerator().generate().toString(),
                 List.of(SubmissionStatus.REPLACED),
                 "fee-code",
                 "unique-file-number",

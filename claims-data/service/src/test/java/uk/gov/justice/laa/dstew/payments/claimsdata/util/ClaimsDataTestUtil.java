@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
+import com.fasterxml.uuid.Generators;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -22,15 +23,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v0";
-  public static final UUID SUBMISSION_ID = UUID.randomUUID();
-  public static final UUID SUBMISSION_1_ID = UUID.randomUUID();
-  public static final UUID SUBMISSION_2_ID = UUID.randomUUID();
-  public static final UUID SUBMISSION_3_ID = UUID.randomUUID();
-  public static final UUID BULK_SUBMISSION_ID = UUID.randomUUID();
-  public static final UUID CLAIM_1_ID = UUID.randomUUID();
-  public static final UUID CLAIM_2_ID = UUID.randomUUID();
-  public static final UUID CLIENT_1_ID = UUID.randomUUID();
-  public static final UUID CLIENT_2_ID = UUID.randomUUID();
+  public static final UUID SUBMISSION_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID SUBMISSION_1_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID SUBMISSION_2_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID SUBMISSION_3_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID BULK_SUBMISSION_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID CLAIM_1_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID CLAIM_2_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID CLIENT_1_ID = Generators.timeBasedEpochGenerator().generate();
+  public static final UUID CLIENT_2_ID = Generators.timeBasedEpochGenerator().generate();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";

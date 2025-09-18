@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
+import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +54,7 @@ class SubmissionControllerTest {
 
   @Test
   void createSubmission_returnsCreatedStatusAndLocationHeader() throws Exception {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     when(submissionService.createSubmission(any(SubmissionPost.class))).thenReturn(id);
 
     String body =
@@ -62,7 +63,7 @@ class SubmissionControllerTest {
             + id
             + "\","
             + "\"bulk_submission_id\": \""
-            + UUID.randomUUID()
+            + Generators.timeBasedEpochGenerator().generate()
             + "\","
             + "\"office_account_number\": \"12345\","
             + "\"submission_period\": \"2025-07\","
@@ -101,11 +102,11 @@ class SubmissionControllerTest {
 
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     SubmissionResponse response =
         new SubmissionResponse()
             .submissionId(id)
-            .bulkSubmissionId(UUID.randomUUID())
+            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw("CIVIL")
@@ -122,7 +123,7 @@ class SubmissionControllerTest {
 
   @Test
   void updateSubmission_returnsNoContent() throws Exception {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     String body = "{\"schedule_number\":\"123\"}";
 
     mockMvc

@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -54,8 +55,8 @@ class ClaimControllerTest {
 
   @Test
   void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
-    final UUID submissionId = UUID.randomUUID();
-    final UUID claimId = UUID.randomUUID();
+    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
     when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
 
     final String body =
@@ -90,8 +91,8 @@ class ClaimControllerTest {
 
   @Test
   void getClaim_returnsClaimDetails() throws Exception {
-    final UUID submissionId = UUID.randomUUID();
-    final UUID claimId = UUID.randomUUID();
+    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
     final ClaimResponse claimFields =
         new ClaimResponse()
             .status(ClaimStatus.VALID)
@@ -125,8 +126,8 @@ class ClaimControllerTest {
 
   @Test
   void updateClaim_returnsNoContent() throws Exception {
-    final UUID submissionId = UUID.randomUUID();
-    final UUID claimId = UUID.randomUUID();
+    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
     final String body = "{ \"status\": \"INVALID\" }";
 
     mockMvc

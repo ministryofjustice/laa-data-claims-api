@@ -20,7 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 @Mapper(
     componentModel = "spring",
     uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
-    imports = {java.util.UUID.class})
+    imports = {com.fasterxml.uuid.Generators.class})
 public interface SubmissionMapper {
   /**
    * Map a {@link SubmissionPost} to a {@link Submission} entity.
@@ -75,7 +75,7 @@ public interface SubmissionMapper {
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
   /** Map a validation message string to a ValidationMessageLog. */
-  @Mapping(target = "id", expression = "java(UUID.randomUUID())")
+  @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "claimId", ignore = true)
   @Mapping(target = "displayMessage", source = "message.displayMessage")

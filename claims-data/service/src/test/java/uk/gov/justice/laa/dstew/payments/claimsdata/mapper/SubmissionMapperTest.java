@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
+import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -32,8 +33,8 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionEntity() {
-    UUID id = UUID.randomUUID();
-    UUID bulkId = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID bulkId = Generators.timeBasedEpochGenerator().generate();
     SubmissionPost post =
         new SubmissionPost()
             .submissionId(id)
@@ -57,11 +58,11 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionBase() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     Submission submission =
         Submission.builder()
             .id(id)
-            .bulkSubmissionId(UUID.randomUUID())
+            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw("crime")
@@ -92,7 +93,8 @@ class SubmissionMapperTest {
 
   @Test
   void toValidationErrorLog_mapsFields() {
-    Submission submission = Submission.builder().id(UUID.randomUUID()).build();
+    Submission submission =
+        Submission.builder().id(Generators.timeBasedEpochGenerator().generate()).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.uuid.Generators;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -85,7 +85,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Returns the bulk submission")
   void returnsBulkSubmission() {
-    var id = UUID.randomUUID();
+    var id = Generators.timeBasedEpochGenerator().generate();
     var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
     var expectedBulkSubmission = new BulkSubmission();
     expectedBulkSubmission.setId(id);
@@ -107,7 +107,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
   void shouldThrowWhenBulkSubmissionNotFound() {
-    var id = UUID.randomUUID();
+    var id = Generators.timeBasedEpochGenerator().generate();
     when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(

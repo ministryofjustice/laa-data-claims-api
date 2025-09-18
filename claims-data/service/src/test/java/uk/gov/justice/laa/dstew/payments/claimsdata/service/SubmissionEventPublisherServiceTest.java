@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +42,9 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_BulkSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sqs queue
-    UUID bulkSubmissionId = UUID.randomUUID();
-    UUID submissionId1 = UUID.randomUUID();
-    UUID submissionId2 = UUID.randomUUID();
+    UUID bulkSubmissionId = Generators.timeBasedEpochGenerator().generate();
+    UUID submissionId1 = Generators.timeBasedEpochGenerator().generate();
+    UUID submissionId2 = Generators.timeBasedEpochGenerator().generate();
 
     String queueName = "test-queue";
     String queueUrl = "http://localhost:4566/000000000000/" + queueName;
@@ -85,7 +86,7 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_ValidateSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sqs queue
-    UUID submissionId = UUID.randomUUID();
+    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
 
     String queueName = "test-queue";
     String queueUrl = "http://localhost:4566/000000000000/" + queueName;

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +41,7 @@ class MatterStartServiceTest {
 
     @Test
     void shouldCreateMatterStart() {
-      final UUID submissionId = UUID.randomUUID();
+      final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
       final Submission submission = Submission.builder().id(submissionId).build();
       final MatterStartPost request = new MatterStartPost();
       final MatterStart matterStart = MatterStart.builder().build();
@@ -61,7 +62,7 @@ class MatterStartServiceTest {
 
     @Test
     void shouldThrowWhenSubmissionNotFound() {
-      final UUID missingSubmissionId = UUID.randomUUID();
+      final UUID missingSubmissionId = Generators.timeBasedEpochGenerator().generate();
       final MatterStartPost request = new MatterStartPost();
 
       when(submissionRepository.findById(missingSubmissionId)).thenReturn(Optional.empty());
@@ -78,8 +79,9 @@ class MatterStartServiceTest {
 
     @Test
     void shouldGetMatterStartIdsForSubmission() {
-      final UUID submissionId = UUID.randomUUID();
-      final MatterStart ms = MatterStart.builder().id(UUID.randomUUID()).build();
+      final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+      final MatterStart ms =
+          MatterStart.builder().id(Generators.timeBasedEpochGenerator().generate()).build();
 
       when(matterStartRepository.findBySubmissionId(submissionId)).thenReturn(List.of(ms));
 
@@ -97,8 +99,8 @@ class MatterStartServiceTest {
     @DisplayName("Should return matter start")
     void shouldReturnMatterStart() {
       // Given
-      final UUID submissionId = UUID.randomUUID();
-      final UUID matterStartsId = UUID.randomUUID();
+      final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+      final UUID matterStartsId = Generators.timeBasedEpochGenerator().generate();
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.of(MatterStart.builder().id(matterStartsId).build()));
       MatterStartGet expected =
@@ -115,8 +117,8 @@ class MatterStartServiceTest {
     @DisplayName("Should return empty")
     void shouldReturnEmpty() {
       // Given
-      final UUID submissionId = UUID.randomUUID();
-      final UUID matterStartsId = UUID.randomUUID();
+      final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+      final UUID matterStartsId = Generators.timeBasedEpochGenerator().generate();
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.empty());
       // When

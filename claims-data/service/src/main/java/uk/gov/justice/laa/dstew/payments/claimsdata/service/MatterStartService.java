@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,7 +52,7 @@ public class MatterStartService
     Submission submission = requireEntity(submissionId);
 
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
-    matterStart.setId(UUID.randomUUID());
+    matterStart.setId(Generators.timeBasedEpochGenerator().generate());
     matterStart.setSubmission(submission);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     matterStart.setCreatedByUserId("todo");

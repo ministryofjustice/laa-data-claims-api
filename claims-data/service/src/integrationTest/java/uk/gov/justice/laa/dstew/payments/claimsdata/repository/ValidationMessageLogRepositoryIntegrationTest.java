@@ -1,8 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import com.fasterxml.uuid.Generators;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,11 +41,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @DisplayName("ValidationMessageLogRepository Integration Test")
 public class ValidationMessageLogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
-  private static final UUID SUBMISSION_ID = UUID.randomUUID();
-  private static final UUID CLAIM_ID_1 = UUID.randomUUID();
-  private static final UUID CLAIM_ID_2 = UUID.randomUUID();
-  private static final UUID VALIDATION_ID_1 = UUID.randomUUID();
-  private static final UUID VALIDATION_ID_2 = UUID.randomUUID();
+  private static final UUID SUBMISSION_ID = Generators.timeBasedEpochGenerator().generate();
+  private static final UUID CLAIM_ID_1 = Generators.timeBasedEpochGenerator().generate();
+  private static final UUID CLAIM_ID_2 = Generators.timeBasedEpochGenerator().generate();
+  private static final UUID VALIDATION_ID_1 = Generators.timeBasedEpochGenerator().generate();
+  private static final UUID VALIDATION_ID_2 = Generators.timeBasedEpochGenerator().generate();
   private static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
 
@@ -63,6 +65,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
 
     var bulkSubmission =
         BulkSubmission.builder()
+            .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
@@ -124,7 +127,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     clientRepository.saveAll(
         List.of(
             Client.builder()
-                .id(UUID.randomUUID())
+                .id(Generators.timeBasedEpochGenerator().generate())
                 .claim(claim1)
                 .clientForename("Alice")
                 .clientSurname("Smith")
@@ -132,7 +135,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
                 .createdOn(CREATED_ON)
                 .build(),
             Client.builder()
-                .id(UUID.randomUUID())
+                .id(Generators.timeBasedEpochGenerator().generate())
                 .claim(claim2)
                 .clientForename("Bob")
                 .clientSurname("Jones")

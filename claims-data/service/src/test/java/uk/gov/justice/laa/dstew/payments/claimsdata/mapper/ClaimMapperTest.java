@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -194,7 +195,7 @@ class ClaimMapperTest {
 
   @Test
   void toSubmissionClaim_mapsFields() {
-    final UUID id = UUID.randomUUID();
+    final UUID id = Generators.timeBasedEpochGenerator().generate();
     final Claim entity = Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).build();
 
     final SubmissionClaim response = mapper.toSubmissionClaim(entity);
@@ -238,8 +239,13 @@ class ClaimMapperTest {
 
   @Test
   void toValidationMessageLog_mapsFields() {
-    final Submission submission = Submission.builder().id(UUID.randomUUID()).build();
-    final Claim claim = Claim.builder().id(UUID.randomUUID()).submission(submission).build();
+    final Submission submission =
+        Submission.builder().id(Generators.timeBasedEpochGenerator().generate()).build();
+    final Claim claim =
+        Claim.builder()
+            .id(Generators.timeBasedEpochGenerator().generate())
+            .submission(submission)
+            .build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

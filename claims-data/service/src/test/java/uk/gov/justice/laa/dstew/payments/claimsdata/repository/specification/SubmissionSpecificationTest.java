@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.uuid.Generators;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -43,7 +44,7 @@ class SubmissionSpecificationTest {
   @Test
   @DisplayName("should build specification with submissionId")
   void shouldBuildSpecificationWithSubmissionId() {
-    UUID submissionId = UUID.randomUUID();
+    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
 
     Specification<Submission> spec =
         SubmissionSpecification.filterBy(List.of("OFFICE1"), submissionId.toString(), null, null);

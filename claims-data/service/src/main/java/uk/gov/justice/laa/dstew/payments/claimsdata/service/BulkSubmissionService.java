@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import com.fasterxml.uuid.Generators;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.List;
@@ -62,11 +63,12 @@ public class BulkSubmissionService
     bulkSubmissionBuilder.data(bulkSubmissionDetails);
     bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING);
     bulkSubmissionBuilder.createdByUserId(userId);
+    bulkSubmissionBuilder.id(Generators.timeBasedEpochGenerator().generate());
     BulkSubmission bulkSubmission = bulkSubmissionBuilder.build();
 
     bulkSubmissionRepository.save(bulkSubmission);
 
-    UUID newSubmissionId = UUID.randomUUID();
+    UUID newSubmissionId = Generators.timeBasedEpochGenerator().generate();
 
     submissionEventPublisherService.publishBulkSubmissionEvent(
         bulkSubmission.getId(), List.of(newSubmissionId));

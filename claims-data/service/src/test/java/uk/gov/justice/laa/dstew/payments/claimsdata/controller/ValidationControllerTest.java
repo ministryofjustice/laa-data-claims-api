@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -44,9 +45,9 @@ class ValidationControllerTest {
   @Test
   @DisplayName("should return validation messages when submission id and claim id are provided")
   void getValidationMessages_returnsValidationMessagesWithClaimId() throws Exception {
-    UUID submissionId = UUID.randomUUID();
-    UUID claimId = UUID.randomUUID();
-    UUID messageId = UUID.randomUUID();
+    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    UUID messageId = Generators.timeBasedEpochGenerator().generate();
     String type = "ERROR";
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 10);
@@ -84,8 +85,8 @@ class ValidationControllerTest {
   @Test
   @DisplayName("should return validation messages when only submission id is provided")
   void getValidationMessages_returnsValidationMessagesWithoutClaimId() throws Exception {
-    UUID submissionId = UUID.randomUUID();
-    UUID messageId = UUID.randomUUID();
+    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    UUID messageId = Generators.timeBasedEpochGenerator().generate();
     String type = "ERROR";
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 5);

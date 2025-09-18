@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
+import com.fasterxml.uuid.Generators;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -57,7 +58,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldCreateSubmission() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).build();
 
@@ -72,11 +73,11 @@ class SubmissionServiceTest {
 
   @Test
   void shouldGetSubmission() {
-    UUID submissionId = UUID.randomUUID();
+    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
     Submission entity =
         Submission.builder()
             .id(submissionId)
-            .bulkSubmissionId(UUID.randomUUID())
+            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
             .officeAccountNumber("123-ABC")
             .submissionPeriod("APR-2024")
             .areaOfLaw("CIVIL")
@@ -99,7 +100,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnGet() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
     assertThrows(SubmissionNotFoundException.class, () -> submissionService.getSubmission(id));
@@ -107,7 +108,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldUpdateSubmission() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().scheduleNumber("456");
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
@@ -120,7 +121,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     SubmissionPatch patch = new SubmissionPatch();
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
@@ -130,7 +131,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldUpdateSubmissionAndLogValidationErrors() {
-    UUID id = UUID.randomUUID();
+    UUID id = Generators.timeBasedEpochGenerator().generate();
     Submission entity = Submission.builder().id(id).build();
 
     final ValidationMessagePatch messagePatch =

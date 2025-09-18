@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -30,8 +31,8 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should return validation errors for given submissionId and claimId")
   void shouldReturnValidationErrorsForClaim() {
-    final UUID submissionId = UUID.randomUUID();
-    final UUID claimId = UUID.randomUUID();
+    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
     final Pageable pageable = PageRequest.of(0, 10);
     final ValidationMessageLog logEntity = new ValidationMessageLog();
     final Page<ValidationMessageLog> page = new PageImpl<>(List.of(logEntity));
@@ -54,7 +55,7 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should return validation errors and count distinct claims when claimId is null")
   void shouldReturnValidationErrorsAndCountDistinctClaims() {
-    final UUID submissionId = UUID.randomUUID();
+    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
     final Pageable pageable = PageRequest.of(0, 5);
     final ValidationMessageLog logEntity = new ValidationMessageLog();
     final Page<ValidationMessageLog> page = new PageImpl<>(List.of(logEntity));
