@@ -87,7 +87,8 @@ runs:
           export SPRING_PROFILE="main"
         else
           export SPRING_PROFILE="preview"
-          helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnami/postgresql \
+          # Using Bitnami legacy with PostgreSQL 17.2 (specified in values.yaml)
+          helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
             -f .helm/bitnami_postgres/values.yaml \
             --namespace ${KUBE_NAMESPACE} \
             --install --wait --timeout=10m
