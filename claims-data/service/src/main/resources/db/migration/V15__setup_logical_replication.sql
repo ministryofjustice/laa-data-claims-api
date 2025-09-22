@@ -1,0 +1,2 @@
+
+CREATE PUBLICATION publication_for_report_service FOR TABLE submission;
