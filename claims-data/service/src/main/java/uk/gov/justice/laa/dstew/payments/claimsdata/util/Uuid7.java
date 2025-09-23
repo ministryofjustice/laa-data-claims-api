@@ -3,9 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 import com.fasterxml.uuid.Generators;
 import java.util.UUID;
 
-/**
- * This is used to generate UUIDs version 7 based on timestamp values.
- */
+/** This is used to generate UUIDs version 7 based on timestamp values. */
 public final class Uuid7 {
 
   public Uuid7() {
