@@ -51,6 +51,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * The handler for BulkSubmissionNotFoundException.
+   *
+   * @param ex the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(BulkSubmissionNotFoundException.class)
+  public ResponseEntity<String> handleBulkSubmissionNotFound(BulkSubmissionNotFoundException ex) {
+    return ResponseEntity.status(NOT_FOUND).body(ex.getMessage());
+  }
+
+  /**
    * The handler for SubmissionNotFoundException.
    *
    * @param exception the exception
