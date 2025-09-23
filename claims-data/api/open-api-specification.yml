@@ -829,7 +829,7 @@ components:
           type: string
         fee_scheme_code:
           type: string
-        fee_code: # Should this go under a FeeCalculationResponse
+        fee_code:
           type: string
         procurement_area_code:
           type: string
@@ -856,7 +856,7 @@ components:
           type: boolean
         is_youth_court:
           type: boolean
-        scheme_id:  # Should this go under a FeeCalculationResponse
+        scheme_id:
           type: string
         mediation_sessions_count:
           type: integer
@@ -953,19 +953,19 @@ components:
           type: integer
         waiting_time:
           type: integer
-        net_profit_costs_amount:  # Should this go under a FeeCalculationResponse
+        net_profit_costs_amount:
           type: number
         net_disbursement_amount:
           type: number
-        net_counsel_costs_amount: # Should this go under a FeeCalculationResponse
+        net_counsel_costs_amount:
           type: number
-        disbursements_vat_amount: # Should this go under a FeeCalculationResponse
+        disbursements_vat_amount:
           type: number
-        travel_waiting_costs_amount: # Should this go under a FeeCalculationResponse
+        travel_waiting_costs_amount:
           type: number
-        net_waiting_costs_amount: # Should this go under a FeeCalculationResponse
+        net_waiting_costs_amount:
           type: number
-        is_vat_applicable: # Should this go under a FeeCalculationResponse
+        is_vat_applicable:
           type: boolean
         is_tolerance_applicable:
           type: boolean
@@ -1003,9 +1003,9 @@ components:
           type: integer
         surgery_matters_count:
           type: integer
-        cmrh_oral_count: # Should this go under a BoltOnType
+        cmrh_oral_count:
           type: integer
-        cmrh_telephone_count: # Should this go under a BoltOnType
+        cmrh_telephone_count:
           type: integer
         ait_hearing_centre_code:
           type: string
@@ -1073,7 +1073,6 @@ components:
           type: number
         bolt_on_details:
           $ref: "#/components/schemas/bolt_on_patch"
-
     bolt_on_patch:
       type: object
       description: Bolt on details
