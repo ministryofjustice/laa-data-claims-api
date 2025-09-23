@@ -20,7 +20,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.*;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
@@ -115,7 +119,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldGetBulkSubmissionById() throws Exception {
     // given: a bulk submission is saved to the database
-    GetBulkSubmission200ResponseDetails bulkSubmission200ResponseDetails =
+    var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
             .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome())
@@ -142,7 +146,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // then: response body contains bulk_submission_id, status and details
     String responseBody = result.getResponse().getContentAsString();
 
-    GetBulkSubmission200Response getBulkSubmission200Response =
+    var getBulkSubmission200Response =
         OBJECT_MAPPER.readValue(responseBody, GetBulkSubmission200Response.class);
     assertThat(getBulkSubmission200Response.getBulkSubmissionId())
         .isEqualTo(savedBulkSubmission.getId());
