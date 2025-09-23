@@ -776,6 +776,7 @@ components:
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
+        - $ref: '#/components/schemas/fee_calculation_response'
       type: object
       properties:
         validation_messages:
@@ -828,7 +829,7 @@ components:
           type: string
         fee_scheme_code:
           type: string
-        fee_code:
+        fee_code: # Should this go under a FeeCalculationResponse
           type: string
         procurement_area_code:
           type: string
@@ -855,7 +856,7 @@ components:
           type: boolean
         is_youth_court:
           type: boolean
-        scheme_id:
+        scheme_id:  # Should this go under a FeeCalculationResponse
           type: string
         mediation_sessions_count:
           type: integer
@@ -952,19 +953,19 @@ components:
           type: integer
         waiting_time:
           type: integer
-        net_profit_costs_amount:
+        net_profit_costs_amount:  # Should this go under a FeeCalculationResponse
           type: number
         net_disbursement_amount:
           type: number
-        net_counsel_costs_amount:
+        net_counsel_costs_amount: # Should this go under a FeeCalculationResponse
           type: number
-        disbursements_vat_amount:
+        disbursements_vat_amount: # Should this go under a FeeCalculationResponse
           type: number
-        travel_waiting_costs_amount:
+        travel_waiting_costs_amount: # Should this go under a FeeCalculationResponse
           type: number
-        net_waiting_costs_amount:
+        net_waiting_costs_amount: # Should this go under a FeeCalculationResponse
           type: number
-        is_vat_applicable:
+        is_vat_applicable: # Should this go under a FeeCalculationResponse
           type: boolean
         is_tolerance_applicable:
           type: boolean
@@ -1002,9 +1003,9 @@ components:
           type: integer
         surgery_matters_count:
           type: integer
-        cmrh_oral_count:
+        cmrh_oral_count: # Should this go under a BoltOnType
           type: integer
-        cmrh_telephone_count:
+        cmrh_telephone_count: # Should this go under a BoltOnType
           type: integer
         ait_hearing_centre_code:
           type: string
@@ -1015,6 +1016,91 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
+    fee_calculation_response:
+      type: object
+      description: Fee calculation response from the Fee Scheme Platform
+      properties:
+        calculated_fee_detail_id:
+          type: string
+          format: uuid
+        claim_summary_fee_id:
+          type: string
+          format: uuid
+        claim_id:
+          type: string
+          format: uuid
+        fee_code:
+          type: string
+        fee_code_description:
+          type: string
+        fee_type:
+          $ref: "#/components/schemas/fee_calculation_type"
+        category_of_law:
+          type: string
+        total_amount:
+          type: number
+        vat_indicator:
+          type: boolean
+        vat_rate_applied:
+          type: number
+        calculated_vat_amount:
+          type: number
+        disbursement_amount:
+          type: number
+        requested_net_disbursement_amount:
+          type: number
+        disbursement_vat_amount:
+          type: number
+        hourly_total_amount:
+          type: number
+        fixed_fee_amount:
+          type: number
+        net_profit_costs_amount:
+          type: number
+        requested_net_profit_costs_amount:
+          type: number
+        net_cost_of_counsel_amount:
+          type: number
+        net_travel_costs_amount:
+          type: number
+        net_waiting_costs_amount:
+          type: number
+        detention_and_waiting_costs_amount:
+          type: number
+        jr_form_filling_amount:
+          type: number
+        travel_and_waiting_costs_amount:
+          type: number
+        bolt_on_details:
+          $ref: "#/components/schemas/bolt_on_patch"
+
+    bolt_on_patch:
+      type: object
+      description: Bolt on details
+      properties:
+        bolt_on_total_fee_amount:
+          type: number
+        bolt_on_adjourned_hearing_count:
+          type: integer
+        bolt_on_adjourned_hearing_fee:
+          type: number
+        bolt_on_cmrh_telephone_count:
+          type: integer
+        bolt_on_cmrh_telephone_fee:
+          type: number
+        bolt_on_cmrh_oral_count:
+          type: integer
+        bolt_on_cmrh_oral_fee:
+          type: number
+        bolt_on_home_office_interview_count:
+          type: integer
+        bolt_on_home_office_interview_fee:
+          type: number
+        escape_case_flag:
+          type: boolean
+        scheme_id:
+          type: string
+
     bulk_submission_matter_start:
       type: object
       description: matter start details for a bulk submission
@@ -1309,6 +1395,14 @@ components:
         - WARNING
       description: |
         The type of validation message, indicating its severity or nature.
+    fee_calculation_type:
+      type: string
+      enum:
+        - HOURLY
+        - FIXED
+        - DISBURSEMENT_ONLY
+      description: |
+        The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
     page:
       type: 'object'
       properties:
