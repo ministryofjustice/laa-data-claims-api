@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
-import com.fasterxml.uuid.Generators;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
@@ -58,7 +58,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldCreateSubmission() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).build();
 
@@ -73,11 +73,11 @@ class SubmissionServiceTest {
 
   @Test
   void shouldGetSubmission() {
-    UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    UUID submissionId = Uuid7.timeBasedUuid();
     Submission entity =
         Submission.builder()
             .id(submissionId)
-            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
+            .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("123-ABC")
             .submissionPeriod("APR-2024")
             .areaOfLaw("CIVIL")
@@ -100,7 +100,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnGet() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
     assertThrows(SubmissionNotFoundException.class, () -> submissionService.getSubmission(id));
@@ -108,7 +108,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldUpdateSubmission() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().scheduleNumber("456");
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
@@ -121,7 +121,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     SubmissionPatch patch = new SubmissionPatch();
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
@@ -131,7 +131,7 @@ class SubmissionServiceTest {
 
   @Test
   void shouldUpdateSubmissionAndLogValidationErrors() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
 
     final ValidationMessagePatch messagePatch =

@@ -17,7 +17,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
-import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(SubmissionController.class)
 @ImportAutoConfiguration(
@@ -54,7 +54,7 @@ class SubmissionControllerTest {
 
   @Test
   void createSubmission_returnsCreatedStatusAndLocationHeader() throws Exception {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     when(submissionService.createSubmission(any(SubmissionPost.class))).thenReturn(id);
 
     String body =
@@ -63,7 +63,7 @@ class SubmissionControllerTest {
             + id
             + "\","
             + "\"bulk_submission_id\": \""
-            + Generators.timeBasedEpochGenerator().generate()
+            + Uuid7.timeBasedUuid()
             + "\","
             + "\"office_account_number\": \"12345\","
             + "\"submission_period\": \"2025-07\","
@@ -102,11 +102,11 @@ class SubmissionControllerTest {
 
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     SubmissionResponse response =
         new SubmissionResponse()
             .submissionId(id)
-            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
+            .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw("CIVIL")
@@ -123,7 +123,7 @@ class SubmissionControllerTest {
 
   @Test
   void updateSubmission_returnsNoContent() throws Exception {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     String body = "{\"schedule_number\":\"123\"}";
 
     mockMvc

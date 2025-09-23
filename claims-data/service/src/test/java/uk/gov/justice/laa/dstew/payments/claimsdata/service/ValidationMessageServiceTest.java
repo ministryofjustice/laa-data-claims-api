@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationMessageMapp
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class ValidationMessageServiceTest {
@@ -31,8 +31,8 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should return validation errors for given submissionId and claimId")
   void shouldReturnValidationErrorsForClaim() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 10);
     final ValidationMessageLog logEntity = new ValidationMessageLog();
     final Page<ValidationMessageLog> page = new PageImpl<>(List.of(logEntity));
@@ -55,7 +55,7 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should return validation errors and count distinct claims when claimId is null")
   void shouldReturnValidationErrorsAndCountDistinctClaims() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 5);
     final ValidationMessageLog logEntity = new ValidationMessageLog();
     final Page<ValidationMessageLog> page = new PageImpl<>(List.of(logEntity));

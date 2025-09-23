@@ -17,7 +17,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
-import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -37,6 +36,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(ClaimController.class)
 @ImportAutoConfiguration(
@@ -55,8 +55,8 @@ class ClaimControllerTest {
 
   @Test
   void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
 
     final String body =
@@ -91,8 +91,8 @@ class ClaimControllerTest {
 
   @Test
   void getClaim_returnsClaimDetails() throws Exception {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimResponse claimFields =
         new ClaimResponse()
             .status(ClaimStatus.VALID)
@@ -126,8 +126,8 @@ class ClaimControllerTest {
 
   @Test
   void updateClaim_returnsNoContent() throws Exception {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final String body = "{ \"status\": \"INVALID\" }";
 
     mockMvc

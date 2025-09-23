@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
-import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -21,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
@@ -33,8 +33,8 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionEntity() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
-    UUID bulkId = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
+    UUID bulkId = Uuid7.timeBasedUuid();
     SubmissionPost post =
         new SubmissionPost()
             .submissionId(id)
@@ -58,11 +58,11 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionBase() {
-    UUID id = Generators.timeBasedEpochGenerator().generate();
+    UUID id = Uuid7.timeBasedUuid();
     Submission submission =
         Submission.builder()
             .id(id)
-            .bulkSubmissionId(Generators.timeBasedEpochGenerator().generate())
+            .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw("crime")
@@ -93,8 +93,7 @@ class SubmissionMapperTest {
 
   @Test
   void toValidationErrorLog_mapsFields() {
-    Submission submission =
-        Submission.builder().id(Generators.timeBasedEpochGenerator().generate()).build();
+    Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

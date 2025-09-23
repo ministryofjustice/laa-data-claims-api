@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import com.fasterxml.uuid.Generators;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
@@ -63,12 +63,12 @@ public class BulkSubmissionService
     bulkSubmissionBuilder.data(bulkSubmissionDetails);
     bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING);
     bulkSubmissionBuilder.createdByUserId(userId);
-    bulkSubmissionBuilder.id(Generators.timeBasedEpochGenerator().generate());
+    bulkSubmissionBuilder.id(Uuid7.timeBasedUuid());
     BulkSubmission bulkSubmission = bulkSubmissionBuilder.build();
 
     bulkSubmissionRepository.save(bulkSubmission);
 
-    UUID newSubmissionId = Generators.timeBasedEpochGenerator().generate();
+    UUID newSubmissionId = Uuid7.timeBasedUuid();
 
     submissionEventPublisherService.publishBulkSubmissionEvent(
         bulkSubmission.getId(), List.of(newSubmissionId));

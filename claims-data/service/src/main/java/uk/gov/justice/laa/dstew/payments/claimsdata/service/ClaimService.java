@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import com.fasterxml.uuid.Generators;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -34,6 +33,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling claims. */
 @Service
@@ -71,7 +71,7 @@ public class ClaimService
     Submission submission = requireEntity(submissionId);
 
     Claim claim = claimMapper.toClaim(claimPost);
-    claim.setId(Generators.timeBasedEpochGenerator().generate());
+    claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     claim.setCreatedByUserId("todo");
@@ -79,7 +79,7 @@ public class ClaimService
 
     Client client = clientMapper.toClient(claimPost);
     if (hasClientData(client)) {
-      client.setId(Generators.timeBasedEpochGenerator().generate());
+      client.setId(Uuid7.timeBasedUuid());
       client.setClaim(claim);
       //  TODO: DSTEW-323 replace with the actual user ID/name when available
       client.setCreatedByUserId("todo");

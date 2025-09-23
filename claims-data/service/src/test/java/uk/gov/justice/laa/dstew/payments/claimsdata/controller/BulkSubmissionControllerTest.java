@@ -14,7 +14,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.uuid.Generators;
 import java.io.IOException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission20
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 
 @ExtendWith(SpringExtension.class)
@@ -81,7 +81,7 @@ class BulkSubmissionControllerTest {
     @DisplayName("Should return 201 response")
     void shouldReturn201Response() throws IOException {
       CreateBulkSubmission201Response expected = new CreateBulkSubmission201Response();
-      expected.setBulkSubmissionId(Generators.timeBasedEpochGenerator().generate());
+      expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
       when(bulkSubmissionService.submitBulkSubmissionFile(any(), any())).thenReturn(expected);
@@ -173,7 +173,7 @@ class BulkSubmissionControllerTest {
     @Test
     @DisplayName("Should return 200 response")
     void shouldReturn200Response() {
-      UUID id = Generators.timeBasedEpochGenerator().generate();
+      UUID id = Uuid7.timeBasedUuid();
 
       var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
 

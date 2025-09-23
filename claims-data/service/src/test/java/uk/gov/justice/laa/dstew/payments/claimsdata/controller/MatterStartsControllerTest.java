@@ -9,7 +9,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.uuid.Generators;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +25,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(MatterStartsController.class)
 @ImportAutoConfiguration(
@@ -45,8 +45,8 @@ class MatterStartsControllerTest {
 
     @Test
     void createMatterStart_returnsCreatedStatusAndLocationHeader() throws Exception {
-      final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-      final UUID matterStartId = Generators.timeBasedEpochGenerator().generate();
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID matterStartId = Uuid7.timeBasedUuid();
       when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartPost.class)))
           .thenReturn(matterStartId);
 
@@ -90,8 +90,8 @@ class MatterStartsControllerTest {
     @DisplayName("Should return 200 response")
     void shouldReturn200() throws JsonProcessingException {
       // Given
-      UUID id = Generators.timeBasedEpochGenerator().generate();
-      UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+      UUID id = Uuid7.timeBasedUuid();
+      UUID submissionId = Uuid7.timeBasedUuid();
       Optional<MatterStartGet> expected =
           Optional.of(new MatterStartGet().categoryCode("Category"));
       when(matterStartService.getMatterStart(submissionId, id)).thenReturn(expected);

@@ -10,7 +10,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
-import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -36,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
  * This contains integration tests to verify the filtering logic implemented in the {@link
@@ -125,7 +125,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     claim2 = ClaimsDataTestUtil.getClaimBuilder().id(CLAIM_2_ID).submission(submission1).build();
     claim3 =
         Claim.builder()
-            .id(Generators.timeBasedEpochGenerator().generate())
+            .id(Uuid7.timeBasedUuid())
             .submission(submission3)
             .scheduleReference("OFF_333/CIVIL")
             .caseReferenceNumber("CASE_333")
@@ -146,7 +146,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     client2.setId(CLIENT_2_ID);
     client3 =
         Client.builder()
-            .id(Generators.timeBasedEpochGenerator().generate())
+            .id(Uuid7.timeBasedUuid())
             .claim(claim3)
             .uniqueClientNumber("UCN_333")
             .createdByUserId(USER_ID)
@@ -162,7 +162,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         claimRepository.findAll(
             ClaimSpecification.filterBy(
                 "office_test",
-                Generators.timeBasedEpochGenerator().generate().toString(),
+                Uuid7.timeBasedUuid().toString(),
                 List.of(SubmissionStatus.REPLACED),
                 "fee-code",
                 "unique-file-number",

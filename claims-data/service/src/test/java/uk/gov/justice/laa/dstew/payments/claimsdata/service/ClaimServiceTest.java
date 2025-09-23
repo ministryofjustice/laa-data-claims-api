@@ -14,7 +14,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
-import com.fasterxml.uuid.Generators;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +54,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -71,7 +71,7 @@ class ClaimServiceTest {
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
   void shouldCreateClaimAndClient(Client client) {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
@@ -105,7 +105,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
@@ -124,7 +124,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnCreate() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final ClaimPost post = new ClaimPost();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
@@ -136,8 +136,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaim() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final Client client = Client.builder().clientForename("John").build();
@@ -155,8 +155,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimWithoutClient() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
 
@@ -173,8 +173,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimNotFound() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -187,8 +187,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldUpdateClaim() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimPatch patch = new ClaimPatch();
 
@@ -203,8 +203,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimNotFoundOnUpdate() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimPatch patch = new ClaimPatch();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
@@ -218,7 +218,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimsForSubmission() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().build();
     final SubmissionClaim inner = new SubmissionClaim();
 
@@ -232,8 +232,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldUpdateClaimAndLogValidationErrors() {
-    final UUID submissionId = Generators.timeBasedEpochGenerator().generate();
-    final UUID claimId = Generators.timeBasedEpochGenerator().generate();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim =
         Claim.builder()
             .id(claimId)
