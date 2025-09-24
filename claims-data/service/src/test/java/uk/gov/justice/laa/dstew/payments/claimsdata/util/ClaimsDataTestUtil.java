@@ -9,15 +9,7 @@ import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 
 public class ClaimsDataTestUtil {
 
@@ -292,5 +284,60 @@ public class ClaimsDataTestUtil {
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
         .build();
+  }
+
+  public static ClaimPost createClaimPost() {
+    return new ClaimPost()
+        .clientForename("John")
+        .clientSurname("Doe")
+        .clientDateOfBirth("20/05/1990")
+        .uniqueClientNumber("UCN-123")
+        .clientPostcode("AB1 2CD")
+        .genderCode("M")
+        .ethnicityCode("ETH1")
+        .disabilityCode("DIS1")
+        .isLegallyAided(true)
+        .clientTypeCode("TYPE-A")
+        .homeOfficeClientNumber("HO-999")
+        .claReferenceNumber("CLA-111")
+        .claExemptionCode("EX-22")
+        .client2Forename("Jane")
+        .client2Surname("Roe")
+        .client2DateOfBirth("15/07/1992")
+        .client2Ucn("UCN-456")
+        .client2Postcode("EF3 4GH")
+        .client2GenderCode("F")
+        .client2EthnicityCode("ETH2")
+        .client2DisabilityCode("DIS2")
+        .client2IsLegallyAided(false)
+        .isDutySolicitor(true)
+        .isYouthCourt(false)
+        .status(ClaimStatus.READY_TO_PROCESS)
+        .scheduleReference("SCH123")
+        .lineNumber(5)
+        .caseReferenceNumber("CASE001")
+        .uniqueFileNumber("UFN123")
+        .caseStartDate("01/01/2020")
+        .caseConcludedDate("02/01/2020")
+        .matterTypeCode("MTC")
+        .crimeMatterTypeCode("CMTC")
+        .feeSchemeCode("FSC")
+        .feeCode("FC")
+        .procurementAreaCode("PAC")
+        .accessPointCode("APC")
+        .deliveryLocation("DEL")
+        .representationOrderDate("01/01/2020")
+        .suspectsDefendantsCount(3)
+        .policeStationCourtAttendancesCount(4)
+        .policeStationCourtPrisonId("PSCPI")
+        .dsccNumber("DSCC123")
+        .maatId("987654321L")
+        .prisonLawPriorApprovalNumber("PLPAN")
+        .schemeId("12")
+        .mediationSessionsCount(2)
+        .mediationTimeMinutes(90)
+        .outreachLocation("OUTLOC")
+        .referralSource("REFSRC")
+        .outcomeCode("outcomeCode");
   }
 }
