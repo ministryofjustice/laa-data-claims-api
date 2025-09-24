@@ -279,7 +279,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MvcResult result =
         mockMvc
             .perform(
-                get("/api/v0/bulk-submissions/{id}", savedBulkSubmission.getId().toString())
+                get(GET_BULK_SUBMISSION_ENDPOINT, savedBulkSubmission.getId().toString())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
