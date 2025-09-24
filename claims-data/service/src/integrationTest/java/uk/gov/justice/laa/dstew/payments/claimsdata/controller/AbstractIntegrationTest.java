@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** This is used to isolate the common configuration for integration testing in a single class. */
 @ActiveProfiles("test")
@@ -29,17 +30,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {
 
-  protected static final UUID SUBMISSION_ID = UUID.randomUUID();
-  protected static final UUID CLAIM_ID_1 = UUID.randomUUID();
-  protected static final UUID CLAIM_ID_2 = UUID.randomUUID();
-  protected static final UUID VALIDATION_ID_1 = UUID.randomUUID();
-  protected static final UUID VALIDATION_ID_2 = UUID.randomUUID();
+  protected static final UUID CLAIM_ID_1 = Uuid7.timeBasedUuid();
+  protected static final UUID CLAIM_ID_2 = Uuid7.timeBasedUuid();
+  protected static final UUID VALIDATION_ID_1 = Uuid7.timeBasedUuid();
+  protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
-  protected static final String AUTHORIZATION_HEADER = "Authorization";
-
-  // must match application-test.yml for test-runner token
-  protected static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -66,6 +62,7 @@ public abstract class AbstractIntegrationTest {
 
     var bulkSubmission =
         BulkSubmission.builder()
+            .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
@@ -127,7 +124,7 @@ public abstract class AbstractIntegrationTest {
     clientRepository.saveAll(
         List.of(
             Client.builder()
-                .id(UUID.randomUUID())
+                .id(Uuid7.timeBasedUuid())
                 .claim(claim1)
                 .clientForename("Alice")
                 .clientSurname("Smith")
@@ -135,7 +132,7 @@ public abstract class AbstractIntegrationTest {
                 .createdOn(CREATED_ON)
                 .build(),
             Client.builder()
-                .id(UUID.randomUUID())
+                .id(Uuid7.timeBasedUuid())
                 .claim(claim2)
                 .clientForename("Bob")
                 .clientSurname("Jones")
