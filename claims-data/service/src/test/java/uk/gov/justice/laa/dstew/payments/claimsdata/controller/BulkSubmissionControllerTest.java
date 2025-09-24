@@ -37,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission20
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 
 @ExtendWith(SpringExtension.class)
@@ -80,7 +81,7 @@ class BulkSubmissionControllerTest {
     @DisplayName("Should return 201 response")
     void shouldReturn201Response() throws IOException {
       CreateBulkSubmission201Response expected = new CreateBulkSubmission201Response();
-      expected.setBulkSubmissionId(UUID.randomUUID());
+      expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
       when(bulkSubmissionService.submitBulkSubmissionFile(any(), any())).thenReturn(expected);
@@ -172,7 +173,7 @@ class BulkSubmissionControllerTest {
     @Test
     @DisplayName("Should return 200 response")
     void shouldReturn200Response() {
-      UUID id = UUID.randomUUID();
+      UUID id = Uuid7.timeBasedUuid();
 
       var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
 

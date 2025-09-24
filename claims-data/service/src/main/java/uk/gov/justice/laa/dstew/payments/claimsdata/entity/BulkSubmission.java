@@ -5,8 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -34,9 +32,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 @Entity
 @Table(name = "bulk_submission")
 public class BulkSubmission {
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
+
+  @Id private UUID id;
 
   @NotNull
   @Type(JsonBinaryType.class)

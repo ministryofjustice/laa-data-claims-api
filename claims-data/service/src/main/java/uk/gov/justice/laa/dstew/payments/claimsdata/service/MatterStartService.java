@@ -17,6 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling matter starts. */
 @Service
@@ -51,7 +52,7 @@ public class MatterStartService
     Submission submission = requireEntity(submissionId);
 
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
-    matterStart.setId(UUID.randomUUID());
+    matterStart.setId(Uuid7.timeBasedUuid());
     matterStart.setSubmission(submission);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     matterStart.setCreatedByUserId("todo");
