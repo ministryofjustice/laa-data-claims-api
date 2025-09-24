@@ -53,6 +53,9 @@ public class ClaimsDataTestUtil {
   public static final String CLIENT_POSTCODE = "AB12 1AA";
   public static final String CLIENT_TYPE_CODE = "CT_CODE_123";
   public static final String HOME_OFFICE_CLIENT_NUMBER = "HOC_123";
+  // must match application-test.yml for test-runner token
+  public static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
+  public static final String AUTHORIZATION_HEADER = "Authorization";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");

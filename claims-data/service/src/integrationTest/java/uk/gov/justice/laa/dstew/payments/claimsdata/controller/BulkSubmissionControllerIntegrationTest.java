@@ -6,11 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -34,20 +33,19 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String FILE = "file";
   private static final String TEXT_CSV = "text/csv";
-  private static final String CREATE_BULK_SUBMISSION_ENDPOINT = "/api/v0/bulk-submissions";
+  private static final String POST_BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions";
+  private static final String GET_BULK_SUBMISSION_ENDPOINT =
+      API_URI_PREFIX + "/bulk-submissions/{id}";
   private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
   private static final String TEST_USER = "test-user";
   private static final String USER_ID_PARAM = "userId";
-  private static final String AUTHORIZATION_HEADER = "Authorization";
-
-  // must match application-test.yml for test-runner token
-  private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -87,7 +85,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MvcResult result =
         mockMvc
             .perform(
-                multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
                     .file(file)
                     .param(USER_ID_PARAM, TEST_USER)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -136,7 +134,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // unauthorized status.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
@@ -155,7 +153,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // when: calling the POST endpoint, then: it should return an unsupported media type status.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -165,7 +163,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldReturnUnsupportedMediaTypeForCreateSubmissionWhenTheContentTypeIsNotSupported()
       throws Exception {
-    // given: given: a fake file
+    // given: a fake file
     ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
 
     MockMultipartFile file =
@@ -175,7 +173,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // when: calling the POST endpoint, then: it should return an unsupported media type status.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -184,13 +182,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   void shouldReturnBadRequestForCreateSubmissionWhenTheFileIsEmpty() throws Exception {
-    // given: given: an empty file
+    // given: an empty file
     MockMultipartFile file = new MockMultipartFile(FILE, "empty-file.csv", TEXT_CSV, new byte[0]);
 
     // when: calling the POST endpoint, then: it should return a bad request.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -199,7 +197,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   void shouldReturnErrorForCreateSubmissionWhenTheCsvHasAnUnexpectedColumn() throws Exception {
-    // given: given: a file with an incorrect column name
+    // given: a file with an incorrect column name
     ClassPathResource resource =
         new ClassPathResource("test_upload_files/invalid/outcomes-incorrect-column-name.csv");
 
@@ -209,7 +207,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // when: calling the POST endpoint, then: it should return an internal server error.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -219,7 +217,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMissingOfficeHeader() throws Exception {
-    // given: given: a file with an incorrect column name
+    // given: a file with an incorrect column name
     ClassPathResource resource =
         new ClassPathResource("test_upload_files/invalid/outcomes-missing-office.csv");
 
@@ -229,7 +227,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // when: calling the POST endpoint, then: it should return an internal server error.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -238,9 +236,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
-  void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMalformedWitInconsistentNoOfColumns()
+  void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMalformedWithInconsistentNoOfColumns()
       throws Exception {
-    // given: given: a file with an incorrect column name
+    // given: a file with an inconsistent no of columns
     ClassPathResource resource = new ClassPathResource("test_upload_files/invalid/malformed.csv");
 
     MockMultipartFile file =
@@ -249,7 +247,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // when: calling the POST endpoint, then: it should return an internal server error.
     mockMvc
         .perform(
-            multipart(CREATE_BULK_SUBMISSION_ENDPOINT)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -268,6 +266,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
         BulkSubmission.builder()
+            .id(Uuid7.timeBasedUuid())
             .data(bulkSubmission200ResponseDetails)
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
@@ -279,7 +278,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MvcResult result =
         mockMvc
             .perform(
-                get("/api/v0/bulk-submissions/{id}", savedBulkSubmission.getId().toString())
+                get(GET_BULK_SUBMISSION_ENDPOINT, savedBulkSubmission.getId().toString())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -306,7 +305,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // status.
     mockMvc
         .perform(
-            get("/api/v0/bulk-submissions/{id}", UUID.randomUUID())
+            get(GET_BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
         .andExpect(status().isUnauthorized());
   }
@@ -314,12 +313,11 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldReturnNotFoundForGetBulkSubmissionWhenItDoesNotExist() throws Exception {
     // when: calling the GET endpoint with a random ID, it should return not found.
-    var bulkSubmissionId = UUID.randomUUID();
     mockMvc
         .perform(
-            get("/api/v0/bulk-submissions/{id}", bulkSubmissionId)
+            get(GET_BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
-        .andExpect(content().string(format("No entity found with id: %s", bulkSubmissionId)));
+        .andExpect(content().string(format("No entity found with id: %s", BULK_SUBMISSION_ID)));
   }
 }
