@@ -23,13 +23,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -42,6 +38,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
+
+  @Autowired private ClaimRepository claimRepository;
+
+  @Autowired private MatterStartRepository matterStartRepository;
 
   @Autowired private SqsClient sqsClient;
 
@@ -82,7 +82,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     bulkSubmission =
         BulkSubmission.builder()
-            .id(UUID.randomUUID())
+            .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
@@ -102,14 +102,46 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .scheduleNumber("office1/CIVIL")
             .previousSubmissionId(SUBMISSION_1_ID)
             .isNilSubmission(false)
-            .numberOfClaims(5)
+            .numberOfClaims(0)
             .createdByUserId(USER_ID)
             .build();
     submission = submissionRepository.save(submission);
   }
 
   @Test
-  void shouldGetSubmissions_Returns200() throws Exception {
+  void getSubmission_Returns200() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/submissions/{id}", submission.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var submissionResult =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionResponse.class);
+
+    assertThat(submissionResult.getSubmissionId()).isEqualTo(submission.getId());
+    assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
+    assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
+
+    claimRepository.deleteAll();
+    matterStartRepository.deleteAll();
+  }
+
+  @Test
+  void getSubmission_ReturnsNotFound() throws Exception {
+    mockMvc
+        .perform(
+            get(API_URI_PREFIX + "/submissions/{id}", UUID.randomUUID())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound())
+        .andReturn();
+  }
+
+  @Test
+  void getSubmissions_Returns200() throws Exception {
     MvcResult result =
         mockMvc
             .perform(
@@ -129,7 +161,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
-  void shouldNotGetSubmissions_NoOffices_BadRequest() throws Exception {
+  void getSubmissions_NoOffices_BadRequest() throws Exception {
     mockMvc
         .perform(
             get(API_URI_PREFIX + "/submissions").header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
