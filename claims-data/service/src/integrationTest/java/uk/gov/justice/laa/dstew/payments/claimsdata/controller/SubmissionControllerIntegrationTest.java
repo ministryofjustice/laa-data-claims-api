@@ -82,6 +82,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     bulkSubmission =
         BulkSubmission.builder()
+            .id(UUID.randomUUID())
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(USER_ID)
