@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
@@ -32,8 +33,8 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionEntity() {
-    UUID id = UUID.randomUUID();
-    UUID bulkId = UUID.randomUUID();
+    UUID id = Uuid7.timeBasedUuid();
+    UUID bulkId = Uuid7.timeBasedUuid();
     SubmissionPost post =
         new SubmissionPost()
             .submissionId(id)
@@ -57,11 +58,11 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionBase() {
-    UUID id = UUID.randomUUID();
+    UUID id = Uuid7.timeBasedUuid();
     Submission submission =
         Submission.builder()
             .id(id)
-            .bulkSubmissionId(UUID.randomUUID())
+            .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw("crime")
@@ -92,7 +93,7 @@ class SubmissionMapperTest {
 
   @Test
   void toValidationErrorLog_mapsFields() {
-    Submission submission = Submission.builder().id(UUID.randomUUID()).build();
+    Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()
