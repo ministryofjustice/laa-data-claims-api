@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
@@ -11,10 +12,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -106,6 +104,53 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .createdByUserId(USER_ID)
             .build();
     submission = submissionRepository.save(submission);
+  }
+
+  @AfterAll
+  void close() {
+    submissionRepository.deleteAll();
+    bulkSubmissionRepository.deleteAll();
+    validationMessageLogRepository.deleteAll();
+    claimRepository.deleteAll();
+    matterStartRepository.deleteAll();
+  }
+
+  @Test
+  void postSubmission_shouldCreate() throws Exception {
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submission.getId())
+            .bulkSubmissionId(submission.getBulkSubmissionId())
+            .officeAccountNumber("office1")
+            .submissionPeriod("JAN-25")
+            .areaOfLaw("CIVIL")
+            .status(SubmissionStatus.CREATED)
+            .build();
+
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/submissions")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated());
+
+    Submission createdSubmission = submissionRepository.findById(submission.getId()).orElseThrow();
+
+    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo("office1");
+    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
+  }
+
+  @Test
+  void postSubmission_shouldReturnBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/submissions")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(new SubmissionPost())))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
