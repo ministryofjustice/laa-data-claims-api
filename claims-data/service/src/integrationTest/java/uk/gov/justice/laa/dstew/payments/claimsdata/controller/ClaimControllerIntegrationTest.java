@@ -169,7 +169,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnNotBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
+  void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
     setupClaimsTestData();
 
