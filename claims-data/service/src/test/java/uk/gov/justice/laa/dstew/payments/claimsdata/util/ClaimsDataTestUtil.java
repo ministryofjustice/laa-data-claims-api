@@ -35,7 +35,7 @@ public class ClaimsDataTestUtil {
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
   public static final String AREA_OF_LAW = "CIVIL";
-  public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
+  public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CIVIL";
   public static final String SUBMISSION_PERIOD = "APR-24";
   public static final String USER_ID = "12345";
   public static final String FEE_CODE = "FEE_123";
@@ -208,7 +208,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .scheduleNumber(SCHEDULE_NUMBER)
+        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
@@ -224,7 +224,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .scheduleNumber(SCHEDULE_NUMBER)
+        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
@@ -236,7 +236,7 @@ public class ClaimsDataTestUtil {
     return Claim.builder()
         .id(CLAIM_1_ID)
         .submission(getSubmission())
-        .scheduleReference(SCHEDULE_NUMBER)
+        .scheduleReference(CRIME_SCHEDULE_NUMBER)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
         .lineNumber(LINE_NUMBER)
@@ -271,7 +271,7 @@ public class ClaimsDataTestUtil {
   public static ClaimResponse getClaimResponse() {
     return ClaimResponse.builder()
         .id(String.valueOf(CLAIM_1_ID))
-        .scheduleReference(SCHEDULE_NUMBER)
+        .scheduleReference(CRIME_SCHEDULE_NUMBER)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
         .caseStartDate(String.valueOf(LocalDate.now().minusDays(365)))
