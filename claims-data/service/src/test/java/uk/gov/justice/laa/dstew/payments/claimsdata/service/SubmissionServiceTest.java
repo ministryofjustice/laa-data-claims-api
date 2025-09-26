@@ -82,7 +82,7 @@ class SubmissionServiceTest {
             .submissionPeriod("APR-2024")
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
-            .scheduleNumber("SCH-123")
+            .crimeScheduleNumber("SCH-123")
             .previousSubmissionId(submissionId)
             .isNilSubmission(false)
             .numberOfClaims(10)
@@ -110,7 +110,7 @@ class SubmissionServiceTest {
   void shouldUpdateSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
-    SubmissionPatch patch = new SubmissionPatch().scheduleNumber("456");
+    SubmissionPatch patch = new SubmissionPatch().crimeScheduleNumber("456");
     when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);

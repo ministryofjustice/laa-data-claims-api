@@ -742,9 +742,9 @@ components:
           description: Area of law (e.g., "crime", "civil").
         status:
           $ref: "#/components/schemas/submission_status"
-        schedule_number:
+        crime_schedule_number:
           type: string
-          description: Optional schedule number.
+          description: Optional crime schedule number.
         previous_submission_id:
           type: string
           format: uuid
