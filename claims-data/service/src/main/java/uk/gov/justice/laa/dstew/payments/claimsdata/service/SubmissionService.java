@@ -89,7 +89,7 @@ public class SubmissionService
         .submissionPeriod(submission.getSubmissionPeriod())
         .areaOfLaw(submission.getAreaOfLaw())
         .status(submission.getStatus())
-        .scheduleNumber(submission.getScheduleNumber())
+        .crimeScheduleNumber(submission.getCrimeScheduleNumber())
         .previousSubmissionId(submission.getPreviousSubmissionId())
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
