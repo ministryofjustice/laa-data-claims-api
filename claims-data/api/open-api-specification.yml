@@ -1365,6 +1365,19 @@ components:
           type: string
         delivery_location:
           type: string
+        mediation_type:
+          $ref: "#/components/schemas/mediation_type"
+    mediation_type:
+      type: string
+      enum:
+        - "MDCS Child Only Sole"
+        - "MDCC Child Only Co"
+        - "MDPS Property & Finance Sole"
+        - "MDPC Property & Finance Co"
+        - "MDAS All Issues Sole"
+        - "MDAC All Issues Co"
+      description: |
+        The type of mediation for matter start.
     validation_message_patch:
       type: object
       description: Validation message
