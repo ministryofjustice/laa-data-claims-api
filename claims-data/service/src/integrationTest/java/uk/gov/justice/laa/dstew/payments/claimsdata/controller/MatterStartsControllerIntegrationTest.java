@@ -8,11 +8,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,9 +54,9 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @BeforeEach
   void setup() {
-      matterStartRepository.deleteAll();
-      submissionRepository.deleteAll();
-      bulkSubmissionRepository.deleteAll();
+    matterStartRepository.deleteAll();
+    submissionRepository.deleteAll();
+    bulkSubmissionRepository.deleteAll();
 
     // creating some data on DB
     BulkSubmission bulkSubmission =
@@ -154,24 +153,32 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     matterStart.setUpdatedOn(Instant.now());
 
     matterStartRepository.save(matterStart);
-    MvcResult mvcResult = mockMvc
+    MvcResult mvcResult =
+        mockMvc
             .perform(
-                    get(API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}", submission.getId(), matterStart.getId())
-                            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                get(
+                        API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}",
+                        submission.getId(),
+                        matterStart.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
 
-    MatterStartGet result = OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), MatterStartGet.class);
+    MatterStartGet result =
+        OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), MatterStartGet.class);
     assertThat(result.getCategoryCode()).isEqualTo(matterStart.getCategoryCode());
   }
 
   @Test
   void getMatterStart_shouldReturnNotFound() throws Exception {
     mockMvc
-            .perform(
-                    get(API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}", submission.getId(), UUID.randomUUID())
-                            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isNotFound())
-            .andReturn();
+        .perform(
+            get(
+                    API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}",
+                    submission.getId(),
+                    UUID.randomUUID())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound())
+        .andReturn();
   }
 }
