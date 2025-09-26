@@ -78,6 +78,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     bulkSubmissionRepository.deleteAll();
     validationMessageLogRepository.deleteAll();
 
+    // creating some data on DB
     bulkSubmission =
         BulkSubmission.builder()
             .id(BULK_SUBMISSION_ID)
@@ -108,6 +109,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @AfterAll
   void close() {
+    // delete everything from DB
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
     validationMessageLogRepository.deleteAll();
@@ -117,6 +119,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void postSubmission_shouldCreate() throws Exception {
+    // given: a SubmissionPost payload
     submissionRepository.deleteAll();
     SubmissionPost submissionPost =
         SubmissionPost.builder()
@@ -128,6 +131,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .status(SubmissionStatus.CREATED)
             .build();
 
+    // when: calling POST endpoint for submissions
     mockMvc
         .perform(
             post(API_URI_PREFIX + "/submissions")
@@ -138,12 +142,14 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     Submission createdSubmission = submissionRepository.findById(submission.getId()).orElseThrow();
 
+    // then: submission is correctly created
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo("office1");
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
   }
 
   @Test
   void postSubmission_shouldReturnBadRequest() throws Exception {
+    // when: calling post endpoint without a valid payload, should return bad request
     mockMvc
         .perform(
             post(API_URI_PREFIX + "/submissions")
@@ -155,6 +161,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getSubmission_Returns200() throws Exception {
+    // when: calling get endpoint with and ID
     MvcResult result =
         mockMvc
             .perform(
@@ -167,6 +174,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         OBJECT_MAPPER.readValue(
             result.getResponse().getContentAsString(), SubmissionResponse.class);
 
+    // then: submission is correctly retrieved
     assertThat(submissionResult.getSubmissionId()).isEqualTo(submission.getId());
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
@@ -177,6 +185,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getSubmission_ReturnsNotFound() throws Exception {
+    // when: calling get endpoint without a valid ID, should return not found
     mockMvc
         .perform(
             get(API_URI_PREFIX + "/submissions/{id}", UUID.randomUUID())
@@ -187,6 +196,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getSubmissions_Returns200() throws Exception {
+    // when: calling get all submissions endpoint with a valid office
     MvcResult result =
         mockMvc
             .perform(
@@ -198,6 +208,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     String responseBody = result.getResponse().getContentAsString();
 
+    // then: submissions are correctly retrieved
     var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
     assertThat(submissionsResultSet.getContent().getFirst().getSubmissionId())
         .isEqualTo(submission.getId());
@@ -207,6 +218,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getSubmissions_NoOffices_BadRequest() throws Exception {
+    // when: calling get all submissions endpoint without an office, should return bad request
     mockMvc
         .perform(
             get(API_URI_PREFIX + "/submissions").header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -216,8 +228,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void updateSubmission_shouldUpdate() throws Exception {
+    // given: a Submission patch payload with the changes to make
     SubmissionPatch patch = SubmissionPatch.builder().areaOfLaw("PENAL").build();
 
+    // when: calling the patch endpoint
     mockMvc
         .perform(
             patch(API_URI_PREFIX + "/submissions/{id}", submission.getId().toString())
@@ -227,15 +241,18 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
+    // then: should update the submission
     Submission updated = submissionRepository.findById(submission.getId()).orElseThrow();
     assertThat(updated.getAreaOfLaw()).isEqualTo("PENAL");
   }
 
   @Test
   void updateSubmission_shouldPublishValidationEventAndUpdate() throws Exception {
+    // given: a submission patch payload changing the status to READY_FOR_VALIDATION
     SubmissionPatch patch =
         SubmissionPatch.builder().status(SubmissionStatus.READY_FOR_VALIDATION).build();
 
+    // when: calling the patch endpoint
     mockMvc
         .perform(
             patch(API_URI_PREFIX + "/submissions/{id}", submission.getId().toString())
@@ -245,6 +262,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
+    // then: should update and send validation event
     Submission updated = submissionRepository.findById(submission.getId()).orElseThrow();
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_VALIDATION);
 
@@ -258,6 +276,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void updateSubmission_shouldHandleValidationMessages() throws Exception {
+    // given: a submission patch with validation messages
     ValidationMessagePatch messagePatch =
         ValidationMessagePatch.builder()
             .type(ValidationMessageType.WARNING)
@@ -268,6 +287,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     SubmissionPatch patch =
         SubmissionPatch.builder().validationMessages(List.of(messagePatch)).build();
 
+    // when: calling the patch endpoint
     mockMvc
         .perform(
             patch(API_URI_PREFIX + "/submissions/{id}", submission.getId().toString())
@@ -277,6 +297,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
+    // then: should save new validation messages
     List<ValidationMessageLog> logs = validationMessageLogRepository.findAll();
     assertThat(logs).hasSize(1);
     assertThat(logs.getFirst().getDisplayMessage()).isEqualTo("DISPLAY_MESSAGE");
@@ -287,8 +308,11 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void updateSubmission_shouldReturnNotFound() throws Exception {
+    // given: a submission patch payload
     SubmissionPatch patch =
         SubmissionPatch.builder().status(SubmissionStatus.READY_FOR_VALIDATION).build();
+
+    // when: calling patch endpoint without a valid submission ID, should return Not Found
     mockMvc
         .perform(
             patch(API_URI_PREFIX + "/submissions/{id}", UUID.randomUUID())
@@ -301,8 +325,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void updateSubmission_shouldReturnBadRequest() throws Exception {
+    // given: and invalid JSON payload
     String invalidJson = "{ \"status\": \"INVALID_ENUM\" }";
 
+    // when: calling the patch endpoint, should return Bad Request
     mockMvc
         .perform(
             patch(API_URI_PREFIX + "/submissions/{id}", submission.getId())
