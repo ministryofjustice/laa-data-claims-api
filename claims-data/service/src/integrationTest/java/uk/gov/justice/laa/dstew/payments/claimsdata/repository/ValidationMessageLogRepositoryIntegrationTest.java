@@ -82,7 +82,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
             .submissionPeriod("SEP-25")
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
-            .scheduleNumber("OFFICE-001/CIVIL")
+            .crimeScheduleNumber("OFFICE-001/CIVIL")
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .build();
