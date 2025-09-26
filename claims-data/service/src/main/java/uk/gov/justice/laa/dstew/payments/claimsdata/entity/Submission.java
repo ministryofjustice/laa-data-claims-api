@@ -51,6 +51,10 @@ public class Submission {
 
   private String crimeScheduleNumber;
 
+  private String civilSubmissionReference;
+
+  private String mediationSubmissionReference;
+
   private UUID previousSubmissionId;
 
   private Boolean isNilSubmission;

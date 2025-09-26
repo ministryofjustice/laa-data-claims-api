@@ -90,6 +90,8 @@ public class SubmissionService
         .areaOfLaw(submission.getAreaOfLaw())
         .status(submission.getStatus())
         .crimeScheduleNumber(submission.getCrimeScheduleNumber())
+        .civilSubmissionReference(submission.getCivilSubmissionReference())
+        .mediationSubmissionReference(submission.getMediationSubmissionReference())
         .previousSubmissionId(submission.getPreviousSubmissionId())
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
