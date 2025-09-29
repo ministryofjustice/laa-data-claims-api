@@ -74,10 +74,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @BeforeEach
   void setup() {
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
-    validationMessageLogRepository.deleteAll();
-
     // creating some data on DB
     bulkSubmission =
         BulkSubmission.builder()
@@ -107,7 +103,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     submission = submissionRepository.save(submission);
   }
 
-  @AfterAll
+  @AfterEach
   void close() {
     // delete everything from DB
     submissionRepository.deleteAll();
