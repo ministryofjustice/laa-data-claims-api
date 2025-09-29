@@ -97,7 +97,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(responseBody).contains("bulk_submission_id");
     assertThat(responseBody).contains("submission_ids");
 
-    // then: database has persisted entity
+    // then: the database has a persisted entity
     List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
     assertThat(submissions).hasSize(1);
     BulkSubmission saved = submissions.getFirst();
@@ -163,7 +163,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldReturnUnsupportedMediaTypeForCreateSubmissionWhenTheContentTypeIsNotSupported()
       throws Exception {
-    // given: a fake file
+    // given: a file with an unsupported content type
     ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
 
     MockMultipartFile file =
@@ -204,35 +204,35 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
-    // when: calling the POST endpoint, then: it should return an internal server error.
+    // when: calling the POST endpoint, then: it should return a bad request.
     mockMvc
         .perform(
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isInternalServerError())
-        .andExpect(content().string("An unexpected application error has occurred."));
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("Failed to parse csv bulk submission file"));
   }
 
   @Test
   void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMissingOfficeHeader() throws Exception {
-    // given: a file with an incorrect column name
+    // given: a file with a missing Office header
     ClassPathResource resource =
         new ClassPathResource("test_upload_files/invalid/outcomes-missing-office.csv");
 
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
-    // when: calling the POST endpoint, then: it should return an internal server error.
+    // when: calling the POST endpoint, then: it should return a bad request.
     mockMvc
         .perform(
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isInternalServerError())
-        .andExpect(content().string("An unexpected application error has occurred."));
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("Office missing from csv bulk submission file"));
   }
 
   @Test
@@ -244,15 +244,16 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
-    // when: calling the POST endpoint, then: it should return an internal server error.
+    // when: calling the POST endpoint, then: it should return a bad request.
     mockMvc
         .perform(
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isInternalServerError())
-        .andExpect(content().string("An unexpected application error has occurred."));
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            content().string("Failed to parse bulk submission file header: OFFICE;account="));
   }
 
   @Test
