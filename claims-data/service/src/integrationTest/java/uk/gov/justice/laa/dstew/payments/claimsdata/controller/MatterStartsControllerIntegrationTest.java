@@ -117,6 +117,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void postMatterStart_shouldReturnNotFound() throws Exception {
+    // when: calling POST endpoint with invalid submission ID, should return Not Found
     MatterStartPost matterStartPost = MatterStartPost.builder().categoryCode("CAT1").build();
     mockMvc
         .perform(
@@ -130,6 +131,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void postMatterStart_shouldReturnBadRequest() throws Exception {
+    // when: calling POST endpoint with invalid payload, should return Bad Request
     String invalidJson = "{ \"status\": \"INVALID_ENUM\" }";
     mockMvc
         .perform(

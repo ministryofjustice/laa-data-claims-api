@@ -89,6 +89,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @Test
   void getValidationMessages_shouldReturn200() throws Exception {
+    // given: a submission with Validation Messages associated is created on DB
     ValidationMessageLog log = new ValidationMessageLog();
     log.setId(Uuid7.timeBasedUuid());
     log.setSubmissionId(submission.getId());
@@ -98,6 +99,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     log.setCreatedOn(Instant.now());
     validationMessageLogRepository.save(log);
 
+    // when: calling GET endpoint with a valid submission id
     MvcResult mvcResult =
         mockMvc
             .perform(
@@ -107,6 +109,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
             .andExpect(status().isOk())
             .andReturn();
 
+    // then: the response data matches the values on the DB validation message
     ValidationMessagesResponse response =
         OBJECT_MAPPER.readValue(
             mvcResult.getResponse().getContentAsString(), ValidationMessagesResponse.class);
