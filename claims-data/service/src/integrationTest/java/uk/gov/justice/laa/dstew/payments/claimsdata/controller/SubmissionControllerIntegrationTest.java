@@ -106,11 +106,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @AfterEach
   void close() {
     // delete everything from DB
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
-    validationMessageLogRepository.deleteAll();
+    clientRepository.deleteAll();
     claimRepository.deleteAll();
     matterStartRepository.deleteAll();
+    validationMessageLogRepository.deleteAll();
+    submissionRepository.deleteAll();
+    bulkSubmissionRepository.deleteAll();
   }
 
   @Test
