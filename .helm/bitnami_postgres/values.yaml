@@ -3,26 +3,11 @@ auth:
   postgresPassword: ""        # Let Bitnami auto-generate password
   usePasswordFiles: true      # Required when letting Helm generate password
 
-replication:
-  enabled: true
-  user: "replicator"
-  password: "replicatorpass"
-
 primary:
   persistence:
     enabled: true
     size: 8Gi
     storageClass: ""
-  extendedConfiguration: |
-    wal_level = logical
-    max_wal_senders = 10
-    max_replication_slots = 10
-    shared_preload_libraries = 'pgoutput'
-  pgHbaConfiguration: |
-    # Allow SSL connections from anywhere
-    hostssl    all             all             0.0.0.0/0              md5
-    # Allow non-SSL too (useful for local Docker tests)
-    host       all             all             0.0.0.0/0              md5
 
 serviceAccount:
   create: false            # Do not create a new service account
