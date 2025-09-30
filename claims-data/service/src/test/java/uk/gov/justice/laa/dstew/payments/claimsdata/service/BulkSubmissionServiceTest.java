@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class BulkSubmissionServiceTest {
@@ -85,7 +85,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Returns the bulk submission")
   void returnsBulkSubmission() {
-    var id = UUID.randomUUID();
+    var id = Uuid7.timeBasedUuid();
     var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
     var expectedBulkSubmission = new BulkSubmission();
     expectedBulkSubmission.setId(id);
@@ -107,7 +107,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
   void shouldThrowWhenBulkSubmissionNotFound() {
-    var id = UUID.randomUUID();
+    var id = Uuid7.timeBasedUuid();
     when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(

@@ -37,6 +37,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handles any file-conversion-related exceptions by returning an HTTP 400 Bad Request status with
+   * the corresponding error message from the exception.
+   *
+   * @param ex the BulkSubmissionFileReadException encountered during validation
+   * @return a ResponseEntity containing the HTTP Bad Request status and the exception message
+   */
+  @ExceptionHandler(BulkSubmissionFileReadException.class)
+  public ResponseEntity<String> handleFileReadException(BulkSubmissionFileReadException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
+
+  /**
    * Handles validation-related exceptions by returning a HTTP 400 Bad Request status with the
    * corresponding error message from the exception.
    *
@@ -48,6 +60,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<String> handleUnsupportedMediaTypeValidationException(
       BulkSubmissionInvalidFileException ex) {
     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ex.getMessage());
+  }
+
+  /**
+   * The handler for BulkSubmissionNotFoundException.
+   *
+   * @param ex the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(BulkSubmissionNotFoundException.class)
+  public ResponseEntity<String> handleBulkSubmissionNotFound(BulkSubmissionNotFoundException ex) {
+    return ResponseEntity.status(NOT_FOUND).body(ex.getMessage());
   }
 
   /**

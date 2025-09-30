@@ -1,9 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,6 +20,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
@@ -23,21 +29,31 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
+
+  private static final String FILE = "file";
+  private static final String TEXT_CSV = "text/csv";
+  private static final String POST_BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions";
+  private static final String GET_BULK_SUBMISSION_ENDPOINT =
+      API_URI_PREFIX + "/bulk-submissions/{id}";
+  private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
+  private static final String TEST_USER = "test-user";
+  private static final String USER_ID_PARAM = "userId";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired private MockMvc mockMvc;
 
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   @Autowired private SqsClient sqsClient;
-
-  private static final String AUTHORIZATION_HEADER = "Authorization";
-
-  // must match application-test.yml for test-runner token
-  private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -46,6 +62,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @BeforeAll
   void setup() {
+    bulkSubmissionRepository.deleteAll();
 
     // create the queue if it doesn't exist
     sqsClient.createQueue(builder -> builder.queueName(queueName));
@@ -59,19 +76,18 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldSaveSubmissionToDatabaseAndPublishMessage() throws Exception {
     // given: a fake file
-    ClassPathResource resource = new ClassPathResource("test_upload_files/csv/outcomes.csv");
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
 
     MockMultipartFile file =
-        new MockMultipartFile(
-            "file", resource.getFilename(), "text/csv", resource.getInputStream());
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
     // when: calling the POST endpoint with the file
     MvcResult result =
         mockMvc
             .perform(
-                multipart("/api/v0/bulk-submissions")
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
                     .file(file)
-                    .param("userId", "test-user")
+                    .param(USER_ID_PARAM, TEST_USER)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isCreated())
             .andReturn();
@@ -81,11 +97,11 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(responseBody).contains("bulk_submission_id");
     assertThat(responseBody).contains("submission_ids");
 
-    // then: database has persisted entity
+    // then: the database has a persisted entity
     List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
     assertThat(submissions).hasSize(1);
     BulkSubmission saved = submissions.getFirst();
-    assertThat(saved.getCreatedByUserId()).isEqualTo("test-user");
+    assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
     assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
 
     // then: SQS has received a message
@@ -104,5 +120,205 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .queueUrl(this.queueUrl)
             .receiptHandle(receiveResp.messages().getFirst().receiptHandle())
             .build());
+  }
+
+  @Test
+  void shouldReturnUnauthorizedForCreateSubmissionWhenAuthHeaderIsInvalid() throws Exception {
+    // given: a fake file
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint with an invalid auth token, then: it should return an
+    // unauthorized status.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void shouldReturnUnsupportedMediaTypeForCreateSubmissionWhenTheFileExtensionIsNotSupported()
+      throws Exception {
+    // given: an unsupported media type
+    ClassPathResource resource = new ClassPathResource("test_upload_files/invalid/unsupported.doc");
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return an unsupported media type status.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isUnsupportedMediaType());
+  }
+
+  @Test
+  void shouldReturnUnsupportedMediaTypeForCreateSubmissionWhenTheContentTypeIsNotSupported()
+      throws Exception {
+    // given: a file with an unsupported content type
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+
+    MockMultipartFile file =
+        new MockMultipartFile(
+            FILE, resource.getFilename(), "application/json", resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return an unsupported media type status.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isUnsupportedMediaType());
+  }
+
+  @Test
+  void shouldReturnBadRequestForCreateSubmissionWhenTheFileIsEmpty() throws Exception {
+    // given: an empty file
+    MockMultipartFile file = new MockMultipartFile(FILE, "empty-file.csv", TEXT_CSV, new byte[0]);
+
+    // when: calling the POST endpoint, then: it should return a bad request.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnErrorForCreateSubmissionWhenTheCsvHasAnUnexpectedColumn() throws Exception {
+    // given: a file with an incorrect column name
+    ClassPathResource resource =
+        new ClassPathResource("test_upload_files/invalid/outcomes-incorrect-column-name.csv");
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return a bad request.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("Failed to parse csv bulk submission file"));
+  }
+
+  @Test
+  void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMissingOfficeHeader() throws Exception {
+    // given: a file with a missing Office header
+    ClassPathResource resource =
+        new ClassPathResource("test_upload_files/invalid/outcomes-missing-office.csv");
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return a bad request.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("Office missing from csv bulk submission file"));
+  }
+
+  @Test
+  void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMalformedWithInconsistentNoOfColumns()
+      throws Exception {
+    // given: a file with an inconsistent no of columns
+    ClassPathResource resource = new ClassPathResource("test_upload_files/invalid/malformed.csv");
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return a bad request.
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            content().string("Failed to parse bulk submission file header: OFFICE;account="));
+  }
+
+  @Test
+  void shouldGetBulkSubmissionById() throws Exception {
+    // given: a bulk submission is saved to the database
+    var bulkSubmission200ResponseDetails =
+        new GetBulkSubmission200ResponseDetails()
+            .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
+            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome())
+            .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
+            .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
+    var bulkSubmission =
+        BulkSubmission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .data(bulkSubmission200ResponseDetails)
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    BulkSubmission savedBulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
+
+    // when: calling the GET endpoint with the ID
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_BULK_SUBMISSION_ENDPOINT, savedBulkSubmission.getId().toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains bulk_submission_id, status and details
+    String responseBody = result.getResponse().getContentAsString();
+
+    var getBulkSubmission200Response =
+        OBJECT_MAPPER.readValue(responseBody, GetBulkSubmission200Response.class);
+    assertThat(getBulkSubmission200Response.getBulkSubmissionId())
+        .isEqualTo(savedBulkSubmission.getId());
+    assertThat(getBulkSubmission200Response.getStatus())
+        .isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    assertThat(getBulkSubmission200Response.getDetails())
+        .isEqualTo(bulkSubmission200ResponseDetails);
+
+    // clean up the test-data
+    bulkSubmissionRepository.delete(bulkSubmission);
+  }
+
+  @Test
+  void shouldReturnUnauthorizedForGetBulkSubmissionWhenAuthHeaderIsInvalid() throws Exception {
+    // when: calling the GET endpoint with an invalid auth token, it should return unauthorized
+    // status.
+    mockMvc
+        .perform(
+            get(GET_BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void shouldReturnNotFoundForGetBulkSubmissionWhenItDoesNotExist() throws Exception {
+    // when: calling the GET endpoint with a random ID, it should return not found.
+    mockMvc
+        .perform(
+            get(GET_BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string(format("No entity found with id: %s", BULK_SUBMISSION_ID)));
   }
 }

@@ -19,7 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = GlobalStringMapper.class,
-    imports = {java.util.UUID.class})
+    imports = {com.fasterxml.uuid.Generators.class})
 public interface ClaimMapper {
 
   // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using
@@ -63,7 +63,7 @@ public interface ClaimMapper {
   void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
 
   /** Map a validation error string to a ValidationErrorLog. */
-  @Mapping(target = "id", expression = "java(UUID.randomUUID())")
+  @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "submissionId", source = "claim.submission.id")
   @Mapping(target = "claimId", source = "claim.id")
   @Mapping(target = "displayMessage", source = "message.displayMessage")

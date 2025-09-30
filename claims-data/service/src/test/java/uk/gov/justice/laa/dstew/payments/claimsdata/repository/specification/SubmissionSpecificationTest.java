@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class SubmissionSpecificationTest {
 
@@ -43,7 +44,7 @@ class SubmissionSpecificationTest {
   @Test
   @DisplayName("should build specification with submissionId")
   void shouldBuildSpecificationWithSubmissionId() {
-    UUID submissionId = UUID.randomUUID();
+    UUID submissionId = Uuid7.timeBasedUuid();
 
     Specification<Submission> spec =
         SubmissionSpecification.filterBy(List.of("OFFICE1"), submissionId.toString(), null, null);

@@ -24,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ValidationMessageService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(ValidationController.class)
 @ImportAutoConfiguration(
@@ -44,9 +45,9 @@ class ValidationControllerTest {
   @Test
   @DisplayName("should return validation messages when submission id and claim id are provided")
   void getValidationMessages_returnsValidationMessagesWithClaimId() throws Exception {
-    UUID submissionId = UUID.randomUUID();
-    UUID claimId = UUID.randomUUID();
-    UUID messageId = UUID.randomUUID();
+    UUID submissionId = Uuid7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    UUID messageId = Uuid7.timeBasedUuid();
     String type = "ERROR";
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 10);
@@ -84,8 +85,8 @@ class ValidationControllerTest {
   @Test
   @DisplayName("should return validation messages when only submission id is provided")
   void getValidationMessages_returnsValidationMessagesWithoutClaimId() throws Exception {
-    UUID submissionId = UUID.randomUUID();
-    UUID messageId = UUID.randomUUID();
+    UUID submissionId = Uuid7.timeBasedUuid();
+    UUID messageId = Uuid7.timeBasedUuid();
     String type = "ERROR";
     String source = "SYSTEM";
     Pageable pageable = PageRequest.of(0, 5);

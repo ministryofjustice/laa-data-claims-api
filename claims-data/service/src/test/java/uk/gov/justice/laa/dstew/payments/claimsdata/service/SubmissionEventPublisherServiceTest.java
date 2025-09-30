@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,9 +42,9 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_BulkSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sqs queue
-    UUID bulkSubmissionId = UUID.randomUUID();
-    UUID submissionId1 = UUID.randomUUID();
-    UUID submissionId2 = UUID.randomUUID();
+    UUID bulkSubmissionId = Uuid7.timeBasedUuid();
+    UUID submissionId1 = Uuid7.timeBasedUuid();
+    UUID submissionId2 = Uuid7.timeBasedUuid();
 
     String queueName = "test-queue";
     String queueUrl = "http://localhost:4566/000000000000/" + queueName;
@@ -85,7 +86,7 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_ValidateSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sqs queue
-    UUID submissionId = UUID.randomUUID();
+    UUID submissionId = Uuid7.timeBasedUuid();
 
     String queueName = "test-queue";
     String queueUrl = "http://localhost:4566/000000000000/" + queueName;
