@@ -33,6 +33,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -51,6 +52,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
@@ -65,6 +67,7 @@ class ClaimServiceTest {
   @Mock private ClientMapper clientMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private ClaimResultSetMapper claimResultSetMapper;
+  @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -75,10 +78,12 @@ class ClaimServiceTest {
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
+    final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(client);
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
 
     final UUID id = claimService.createClaim(submissionId, post);
 
@@ -89,8 +94,14 @@ class ClaimServiceTest {
     assertThat(client.getClaim()).isSameAs(claim);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(client.getCreatedByUserId()).isEqualTo("todo");
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(claimSummaryFee.getClaim()).isSameAs(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo("todo");
     verify(claimRepository).save(claim);
     verify(clientRepository).save(client);
+    verify(claimSummaryFeeRepository).save(claimSummaryFee);
   }
 
   public static Stream<Arguments> getClientTestingArguments() {
@@ -110,10 +121,12 @@ class ClaimServiceTest {
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
     final Client emptyClient = Client.builder().build();
+    final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(emptyClient);
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
 
     final UUID id = claimService.createClaim(submissionId, post);
 

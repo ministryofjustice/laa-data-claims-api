@@ -10,7 +10,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -27,7 +29,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
@@ -48,6 +52,8 @@ public class ClaimService
   private final ClientMapper clientMapper;
   private final ValidationMessageLogRepository validationMessageLogRepository;
   private final ClaimResultSetMapper claimResultSetMapper;
+  private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -76,6 +82,13 @@ public class ClaimService
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     claim.setCreatedByUserId("todo");
     claimRepository.save(claim);
+
+    ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
+    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setClaim(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    claimSummaryFee.setCreatedByUserId("todo");
+    claimSummaryFeeRepository.save(claimSummaryFee);
 
     Client client = clientMapper.toClient(claimPost);
     if (hasClientData(client)) {
@@ -119,6 +132,16 @@ public class ClaimService
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
 
+    // If we have calculated fee details from the FSP as part of this patch, save them.
+    if (claimPatch.getFeeCalculationResponse() != null) {
+      CalculatedFeeDetail calculatedFeeDetail =
+          claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
+      calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
+      calculatedFeeDetail.setClaim(claim);
+      calculatedFeeDetail.setCreatedByUserId("todo");
+      calculatedFeeDetailRepository.save(calculatedFeeDetail);
+    }
+
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
       claimPatch
@@ -129,6 +152,15 @@ public class ClaimService
                 validationMessageLogRepository.save(log);
               });
     }
+  }
+
+  protected ClaimSummaryFee requireClaimSummaryFee(Claim claim) {
+    return claimSummaryFeeRepository
+        .findByClaim(claim)
+        .orElseThrow(
+            () ->
+                new ClaimNotFoundException(
+                    String.format("No summary fee for claim %s", claim.getId())));
   }
 
   /**
