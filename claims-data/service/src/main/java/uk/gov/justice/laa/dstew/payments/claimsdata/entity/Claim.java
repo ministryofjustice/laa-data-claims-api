@@ -45,16 +45,12 @@ public class Claim {
   @Enumerated(EnumType.STRING)
   private ClaimStatus status;
 
-  @NotNull
-  @Column(nullable = false)
   private String scheduleReference;
 
   @NotNull
   @Column(nullable = false)
   private Integer lineNumber;
 
-  @NotNull
-  @Column(nullable = false)
   private String caseReferenceNumber;
 
   @NotNull
