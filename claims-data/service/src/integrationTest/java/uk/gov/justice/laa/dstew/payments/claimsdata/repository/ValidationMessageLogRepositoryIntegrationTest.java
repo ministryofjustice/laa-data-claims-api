@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -66,7 +66,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
 
   private static Stream<Arguments> validationTypeProvider() {
     return Stream.of(
-        Arguments.of(ValidationMessageType.ERROR, CLAIM_ID_1, "Missing case reference"),
-        Arguments.of(ValidationMessageType.WARNING, CLAIM_ID_2, "Missing UFN"));
+        Arguments.of(ValidationMessageType.ERROR, CLAIM_1_ID, "Missing case reference"),
+        Arguments.of(ValidationMessageType.WARNING, CLAIM_2_ID, "Missing UFN"));
   }
 }
