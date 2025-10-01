@@ -86,6 +86,8 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
         }
       }
+    } catch (IllegalArgumentException e) {
+      throw new BulkSubmissionFileReadException("Failed to parse csv bulk submission file", e);
     } catch (IOException e) {
       throw new BulkSubmissionFileReadException("Failed to read csv bulk submission file", e);
     }
