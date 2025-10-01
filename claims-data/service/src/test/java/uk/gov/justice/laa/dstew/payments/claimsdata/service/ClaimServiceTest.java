@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
@@ -32,6 +33,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
@@ -39,6 +41,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -48,14 +51,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,6 +74,7 @@ class ClaimServiceTest {
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private ClaimResultSetMapper claimResultSetMapper;
   @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -227,6 +234,51 @@ class ClaimServiceTest {
         .isInstanceOf(ClaimNotFoundException.class)
         .hasMessageContaining(claimId.toString())
         .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
+  void shouldUpdateCalculatedFeeDetails() {
+    final Submission submission = ClaimsDataTestUtil.getSubmission();
+    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    final ClaimPatch patch = new ClaimPatch();
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    patch.setFeeCalculationResponse(feeCalculationPatch);
+    patch.setValidationMessages(Collections.emptyList());
+
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setClaim(claim);
+    when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+        .thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.of(claimSummaryFee));
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+    when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(calculatedFeeDetail);
+
+    claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    verify(claimRepository).save(claim);
+    verify(calculatedFeeDetailRepository).save(calculatedFeeDetail);
+  }
+
+  @Test
+  void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
+    final ClaimPatch patch = new ClaimPatch();
+    final Submission submission = ClaimsDataTestUtil.getSubmission();
+    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    patch.setFeeCalculationResponse(feeCalculationPatch);
+
+    when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+        .thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.empty());
+
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+    when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(calculatedFeeDetail);
+
+    assertThatThrownBy(() -> claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch))
+        .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
+        .hasMessageContaining(CLAIM_1_ID.toString());
   }
 
   @Test

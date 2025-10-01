@@ -18,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -159,7 +160,7 @@ public class ClaimService
         .findByClaim(claim)
         .orElseThrow(
             () ->
-                new ClaimNotFoundException(
+                new ClaimSummaryFeeNotFoundException(
                     String.format("No summary fee for claim %s", claim.getId())));
   }
 
