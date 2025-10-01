@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.http.MediaType;
@@ -42,13 +41,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve a claim for a given submissionId and a claimId
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_ID_1)
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -56,14 +56,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the claim response
     String responseBody = result.getResponse().getContentAsString();
     var claimResponse = OBJECT_MAPPER.readValue(responseBody, ClaimResponse.class);
-    assertThat(claimResponse.getId()).isEqualTo(CLAIM_ID_1.toString());
+    assertThat(claimResponse.getId()).isEqualTo(CLAIM_1_ID.toString());
   }
 
   @Test
   void shouldReturnUnauthorizedWhenAnInvalidAuthTokenIsSupplied() throws Exception {
     mockMvc
         .perform(
-            get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_ID_1)
+            get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
         .andExpect(status().isUnauthorized());
   }
@@ -91,14 +91,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(responseBody, CreateClaim201Response.class);
     assertThat(createClaim201Response.getId()).isNotNull();
 
-    Optional<Claim> savedClaim = claimRepository.findById(createClaim201Response.getId());
+    Claim savedClaim = claimRepository.findById(createClaim201Response.getId()).get();
 
-    assertThat(savedClaim.isPresent()).isTrue();
-    assertThat(savedClaim.get().getSubmission().getId()).isEqualTo(SUBMISSION_ID);
-    assertThat(savedClaim.get().getCaseReferenceNumber())
-        .isEqualTo(claimPost.getCaseReferenceNumber());
-    assertThat(savedClaim.get().getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
-    assertThat(savedClaim.get().getFeeCode()).isEqualTo(claimPost.getFeeCode());
+    assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
+    assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
+    assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
+    assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
   }
 
   @Test
@@ -116,7 +114,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
     final ClaimPost claimPost = createClaimPost();
-    // when: calling the POST endpoint with an incorrect body, 401 should be returned
+    // when: calling the POST endpoint with an invalid token, 401 should be returned
     mockMvc
         .perform(
             post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
@@ -129,7 +127,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode("FEE-CODE-2");
     claimPatch.setTotalValue(BigDecimal.valueOf(1000));
@@ -137,24 +136,24 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_ID_1)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 
     // then: the database contains the amended claim data
-    Optional<Claim> updatedClaim = claimRepository.findById(CLAIM_ID_1);
+    Claim updatedClaim = claimRepository.findById(CLAIM_1_ID).get();
 
-    assertThat(updatedClaim.isPresent()).isTrue();
-    assertThat(updatedClaim.get().getFeeCode()).isEqualTo("FEE-CODE-2");
-    assertThat(updatedClaim.get().getTotalValue()).isEqualTo(BigDecimal.valueOf(1000));
+    assertThat(updatedClaim.getFeeCode()).isEqualTo("FEE-CODE-2");
+    assertThat(updatedClaim.getTotalValue()).isEqualTo(BigDecimal.valueOf(1000));
   }
 
   @Test
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
     ClaimPatch claimPatch = new ClaimPatch();
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
@@ -171,13 +170,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the PATCH endpoint to update the claim with an incorrect body, 400 should be
     // returned.
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_ID_1)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content("")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -187,7 +187,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code
     MvcResult result =
@@ -204,14 +205,15 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(2);
     assertThat(claimResultSet.getContent()).hasSize(2);
-    assertThat(claimResultSet.getContent().get(0).getId()).isEqualTo(CLAIM_ID_1.toString());
-    assertThat(claimResultSet.getContent().get(1).getId()).isEqualTo(CLAIM_ID_2.toString());
+    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_1_ID.toString());
+    assertThat(claimResultSet.getContent().get(1).getId()).isEqualTo(CLAIM_2_ID.toString());
   }
 
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -230,13 +232,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
-    assertThat(claimResultSet.getContent().get(0).getId()).isEqualTo(CLAIM_ID_2.toString());
+    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
   }
 
   @Test
   void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
     // given: required claims exist in the database
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
     // be returned.
@@ -252,7 +255,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
     // given: required claims exist in the database with OFFICE-001 code
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
     MvcResult result =

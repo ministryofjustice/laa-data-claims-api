@@ -30,8 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {
 
-  protected static final UUID CLAIM_ID_1 = Uuid7.timeBasedUuid();
-  protected static final UUID CLAIM_ID_2 = Uuid7.timeBasedUuid();
   protected static final UUID VALIDATION_ID_1 = Uuid7.timeBasedUuid();
   protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
@@ -85,11 +83,10 @@ public abstract class AbstractIntegrationTest {
     return submissionRepository.save(submission);
   }
 
-  public void setupClaimsTestData() {
-    var submission = setupSubmissionTestData();
+  public void setupClaimsTestData(Submission submission) {
     var claim1 =
         Claim.builder()
-            .id(CLAIM_ID_1)
+            .id(CLAIM_1_ID)
             .submission(submission)
             .status(ClaimStatus.INVALID)
             .scheduleReference("SCHED-001")
@@ -106,7 +103,7 @@ public abstract class AbstractIntegrationTest {
 
     var claim2 =
         Claim.builder()
-            .id(CLAIM_ID_2)
+            .id(CLAIM_2_ID)
             .submission(submission)
             .status(ClaimStatus.VALID)
             .scheduleReference("SCHED-002")
@@ -145,14 +142,15 @@ public abstract class AbstractIntegrationTest {
 
   public void setupValidationMessageLogTestData() {
     validationMessageLogRepository.deleteAll();
-    setupClaimsTestData();
+    var submission = setupSubmissionTestData();
+    setupClaimsTestData(submission);
 
     validationMessageLogRepository.saveAll(
         List.of(
             new ValidationMessageLog(
                 VALIDATION_ID_1,
                 SUBMISSION_ID,
-                CLAIM_ID_1,
+                CLAIM_1_ID,
                 ValidationMessageType.ERROR,
                 "SYSTEM",
                 "Missing case reference",
@@ -161,7 +159,7 @@ public abstract class AbstractIntegrationTest {
             new ValidationMessageLog(
                 VALIDATION_ID_2,
                 SUBMISSION_ID,
-                CLAIM_ID_2,
+                CLAIM_2_ID,
                 ValidationMessageType.WARNING,
                 "SYSTEM",
                 "Missing UFN",
