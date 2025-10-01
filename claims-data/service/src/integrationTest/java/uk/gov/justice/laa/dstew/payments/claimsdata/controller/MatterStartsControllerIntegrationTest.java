@@ -45,6 +45,11 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   // must match application-test.yml for test-runner token
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
+  public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
+
+  public static final String GET_MATTER_STARTS_URI =
+      "/submissions/{submissionId}/matter-starts/{msId}";
+
   private Submission submission;
 
   @BeforeAll
@@ -102,7 +107,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     // when: calling POST endpoint for matter starts
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions/{submissionId}/matter-starts", submission.getId())
+            post(API_URI_PREFIX + POST_MATTER_START_URI, submission.getId())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(matterStartPost)))
@@ -110,9 +115,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
         .andReturn();
 
     // then: matter starts is correctly created
-    List<MatterStart> saved = matterStartRepository.findBySubmissionId(submission.getId());
-    assertThat(saved.size()).isEqualTo(1);
-    assertThat(saved.getFirst().getCategoryCode()).isEqualTo("CAT1");
+    List<MatterStart> savedMatterStarts =
+        matterStartRepository.findBySubmissionId(submission.getId());
+    assertThat(savedMatterStarts.size()).isEqualTo(1);
+    assertThat(savedMatterStarts.getFirst().getCategoryCode()).isEqualTo("CAT1");
   }
 
   @Test
@@ -121,7 +127,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MatterStartPost matterStartPost = MatterStartPost.builder().categoryCode("CAT1").build();
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions/{submissionId}/matter-starts", UUID.randomUUID())
+            post(API_URI_PREFIX + POST_MATTER_START_URI, UUID.randomUUID())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(matterStartPost)))
@@ -135,7 +141,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     String invalidJson = "{ \"status\": \"INVALID_ENUM\" }";
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions/{submissionId}/matter-starts", submission.getId())
+            post(API_URI_PREFIX + POST_MATTER_START_URI, submission.getId())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
@@ -149,7 +155,11 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MatterStart matterStart = new MatterStart();
     matterStart.setId(Uuid7.timeBasedUuid());
     matterStart.setSubmission(submissionRepository.findById(submission.getId()).orElseThrow());
+    matterStart.setScheduleReference("REF1");
     matterStart.setCategoryCode("CAT1");
+    matterStart.setProcurementAreaCode("AREA1");
+    matterStart.setAccessPointCode("ACCESS1");
+    matterStart.setDeliveryLocation("LONDON");
     matterStart.setCreatedByUserId("user1");
     matterStart.setCreatedOn(Instant.now());
     matterStart.setUpdatedOn(Instant.now());
@@ -158,27 +168,25 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MvcResult mvcResult =
         mockMvc
             .perform(
-                get(
-                        API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}",
-                        submission.getId(),
-                        matterStart.getId())
+                get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission.getId(), matterStart.getId())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
 
     MatterStartGet result =
         OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), MatterStartGet.class);
+    assertThat(result.getScheduleReference()).isEqualTo(matterStart.getScheduleReference());
     assertThat(result.getCategoryCode()).isEqualTo(matterStart.getCategoryCode());
+    assertThat(result.getProcurementAreaCode()).isEqualTo(matterStart.getProcurementAreaCode());
+    assertThat(result.getAccessPointCode()).isEqualTo(matterStart.getAccessPointCode());
+    assertThat(result.getDeliveryLocation()).isEqualTo(matterStart.getDeliveryLocation());
   }
 
   @Test
   void getMatterStart_shouldReturnNotFound() throws Exception {
     mockMvc
         .perform(
-            get(
-                    API_URI_PREFIX + "/submissions/{submissionId}/matter-starts/{msId}",
-                    submission.getId(),
-                    UUID.randomUUID())
+            get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission.getId(), UUID.randomUUID())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
         .andReturn();
