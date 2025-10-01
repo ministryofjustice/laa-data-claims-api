@@ -28,7 +28,7 @@ public class ClaimsDataTestUtil {
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
   public static final String AREA_OF_LAW = "CIVIL";
   public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
-  public static final String SUBMISSION_PERIOD = "APR-24";
+  public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";
@@ -48,6 +48,7 @@ public class ClaimsDataTestUtil {
   // must match application-test.yml for test-runner token
   public static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
   public static final String AUTHORIZATION_HEADER = "Authorization";
+  public static final String SCHEDULE_REFERENCE = "SCH123";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
@@ -313,7 +314,7 @@ public class ClaimsDataTestUtil {
         .isDutySolicitor(true)
         .isYouthCourt(false)
         .status(ClaimStatus.READY_TO_PROCESS)
-        .scheduleReference("SCH123")
+        .scheduleReference(SCHEDULE_REFERENCE)
         .lineNumber(5)
         .caseReferenceNumber("CASE001")
         .uniqueFileNumber("UFN123")

@@ -195,7 +195,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "OFFICE-001")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -221,7 +221,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "OFFICE-001")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
                     .param("unique_file_number", "UFN-002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
@@ -246,7 +246,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             get(GET_CLAIMS_ENDPOINT)
-                .param("office_code_unknown", "OFFICE-001")
+                .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
                 .param("unknown-parameter", "UFN-002")
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
@@ -254,7 +254,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
-    // given: required claims exist in the database with OFFICE-001 code
+    // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
     var submission = setupSubmissionTestData();
     setupClaimsTestData(submission);
 
