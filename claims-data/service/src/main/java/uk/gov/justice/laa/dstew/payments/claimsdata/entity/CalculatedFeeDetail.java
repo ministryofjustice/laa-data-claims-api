@@ -13,7 +13,10 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -23,6 +26,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 @Getter
 @Setter
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "calculated_fee_detail", schema = "claims")
 public class CalculatedFeeDetail {
 
