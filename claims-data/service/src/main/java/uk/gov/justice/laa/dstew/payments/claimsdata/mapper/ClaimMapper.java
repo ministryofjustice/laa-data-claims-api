@@ -84,12 +84,6 @@ public interface ClaimMapper {
   @Mapping(target = "updatedOn", ignore = true)
   ClaimSummaryFee toClaimSummaryFee(ClaimPost claimPost);
 
-  /** Update an existing {@link ClaimSummaryFee} from a {@link ClaimPatch}. */
-  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
-  void updateClaimSummaryFeeFromPatch(
-      ClaimPatch claimPatch, @MappingTarget ClaimSummaryFee claimSummaryFee);
-
   /** Map a fee calculation response string to a calculated fee detail. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "claimSummaryFee", ignore = true)
