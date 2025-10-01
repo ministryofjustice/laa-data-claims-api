@@ -9,7 +9,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -75,32 +74,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @BeforeEach
   void setup() {
     // creating some data on DB
-    bulkSubmission =
-        BulkSubmission.builder()
-            .id(BULK_SUBMISSION_ID)
-            .data(new GetBulkSubmission200ResponseDetails())
-            .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
-            .createdOn(Instant.now())
-            .updatedOn(Instant.now())
-            .build();
-    bulkSubmissionRepository.save(bulkSubmission);
-
-    submission =
-        Submission.builder()
-            .id(SUBMISSION_1_ID)
-            .bulkSubmissionId(bulkSubmission.getId())
-            .officeAccountNumber("office1")
-            .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
-            .status(SubmissionStatus.CREATED)
-            .scheduleNumber("office1/CIVIL")
-            .previousSubmissionId(SUBMISSION_1_ID)
-            .isNilSubmission(false)
-            .numberOfClaims(0)
-            .createdByUserId(USER_ID)
-            .build();
-    submission = submissionRepository.save(submission);
+    submission = setupSubmissionTestData();
   }
 
   @AfterEach
@@ -122,7 +96,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         SubmissionPost.builder()
             .submissionId(submission.getId())
             .bulkSubmissionId(submission.getBulkSubmissionId())
-            .officeAccountNumber("office1")
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
             .submissionPeriod("JAN-25")
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
@@ -140,7 +114,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     Submission createdSubmission = submissionRepository.findById(submission.getId()).orElseThrow();
 
     // then: submission is correctly created
-    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo("office1");
+    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
   }
 
@@ -198,7 +172,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         mockMvc
             .perform(
                 get(API_URI_PREFIX + "/submissions")
-                    .param("offices", "office1")
+                    .param("offices", OFFICE_ACCOUNT_NUMBER)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
