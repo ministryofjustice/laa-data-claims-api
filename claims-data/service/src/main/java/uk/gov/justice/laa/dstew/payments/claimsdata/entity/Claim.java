@@ -57,13 +57,9 @@ public class Claim {
   @Column(nullable = false)
   private String uniqueFileNumber;
 
-  @NotNull
-  @Column(nullable = false)
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseStartDate;
 
-  @NotNull
-  @Column(nullable = false)
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseConcludedDate;
 

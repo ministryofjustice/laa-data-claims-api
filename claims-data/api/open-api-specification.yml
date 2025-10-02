@@ -773,8 +773,6 @@ components:
         - status
         - line_number
         - unique_file_number
-        - case_start_date
-        - case_concluded_date
         - matter_type_code
         - outcome_code
     ClaimPatch:
