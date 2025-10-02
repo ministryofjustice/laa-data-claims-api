@@ -64,7 +64,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
 
@@ -120,7 +120,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
                 .content(OBJECT_MAPPER.writeValueAsString(claimPost))
                 .contentType(MediaType.APPLICATION_JSON)
-                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
 
