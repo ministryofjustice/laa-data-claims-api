@@ -51,7 +51,7 @@ public abstract class AbstractIntegrationTest {
     postgresContainer.start();
   }
 
-  public Submission setupSubmissionTestData() {
+  public Submission getSubmissionTestData() {
     clientRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
@@ -84,7 +84,7 @@ public abstract class AbstractIntegrationTest {
     return submissionRepository.save(submission);
   }
 
-  public void setupClaimsTestData(Submission submission) {
+  public void createClaimsTestData(Submission submission) {
     var claim1 =
         Claim.builder()
             .id(CLAIM_1_ID)
@@ -143,8 +143,8 @@ public abstract class AbstractIntegrationTest {
 
   public void setupValidationMessageLogTestData() {
     validationMessageLogRepository.deleteAll();
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     validationMessageLogRepository.saveAll(
         List.of(
