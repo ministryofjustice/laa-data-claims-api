@@ -142,7 +142,7 @@ public abstract class AbstractIntegrationTest {
                 .build()));
   }
 
-  public void setupValidationMessageLogTestData() {
+  public void createValidationMessageLogTestData() {
     validationMessageLogRepository.deleteAll();
     var submission = getSubmissionTestData();
     createClaimsTestData(submission);
