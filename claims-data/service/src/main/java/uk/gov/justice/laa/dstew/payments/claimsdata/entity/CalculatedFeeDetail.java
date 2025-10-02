@@ -53,7 +53,7 @@ public class CalculatedFeeDetail {
 
   private String categoryOfLaw;
 
-  private String totalAmount;
+  private BigDecimal totalAmount;
 
   private Boolean vatIndicator;
 

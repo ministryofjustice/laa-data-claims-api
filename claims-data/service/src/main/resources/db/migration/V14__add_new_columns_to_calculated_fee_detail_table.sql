@@ -8,7 +8,7 @@ DROP COLUMN calculated_fee_status;
 ALTER TABLE calculated_fee_detail
 ADD COLUMN fee_code_description TEXT,
 ADD COLUMN category_of_law TEXT,
-ADD COLUMN total_amount TEXT,
+ADD COLUMN total_amount NUMERIC,
 ADD COLUMN vat_indicator BOOLEAN,
 ADD COLUMN vat_rate_applied NUMERIC,
 ADD COLUMN calculated_vat_amount NUMERIC,

@@ -301,31 +301,7 @@ class ClaimMapperTest {
   void toCalculatedFeeDetail_mapsAllFields() {
     final BoltOnPatch boltOnPatch = getBoltOnPatch();
 
-    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
-    feeCalculationPatch.calculatedFeeDetailId("FEE_DETAIL_ID");
-    feeCalculationPatch.claimSummaryFeeId(Uuid7.timeBasedUuid());
-    feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
-    feeCalculationPatch.feeCode("FEE_CODE");
-    feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
-    feeCalculationPatch.feeType(FeeCalculationType.DISBURSEMENT_ONLY);
-    feeCalculationPatch.categoryOfLaw("CRIME");
-    feeCalculationPatch.totalAmount(new BigDecimal("768.45"));
-    feeCalculationPatch.vatIndicator(true);
-    feeCalculationPatch.vatRateApplied(new BigDecimal("20.00"));
-    feeCalculationPatch.calculatedVatAmount(new BigDecimal("155.07"));
-    feeCalculationPatch.disbursementAmount(new BigDecimal("345.26"));
-    feeCalculationPatch.requestedNetDisbursementAmount(new BigDecimal("546.12"));
-    feeCalculationPatch.disbursementVatAmount(new BigDecimal("25.00"));
-    feeCalculationPatch.hourlyTotalAmount(new BigDecimal("65.00"));
-    feeCalculationPatch.fixedFeeAmount(new BigDecimal("345.07"));
-    feeCalculationPatch.netProfitCostsAmount(new BigDecimal("245.07"));
-    feeCalculationPatch.requestedNetProfitCostsAmount(new BigDecimal("615.56"));
-    feeCalculationPatch.netCostOfCounselAmount(new BigDecimal("156.78"));
-    feeCalculationPatch.netTravelCostsAmount(new BigDecimal("365.87"));
-    feeCalculationPatch.netWaitingCostsAmount(new BigDecimal("274.25"));
-    feeCalculationPatch.detentionAndWaitingCostsAmount(new BigDecimal("347.63"));
-    feeCalculationPatch.jrFormFillingAmount(new BigDecimal("612.98"));
-    feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
+    final FeeCalculationPatch feeCalculationPatch = getFeeCalculationPatch();
     feeCalculationPatch.boltOnDetails(boltOnPatch);
 
     final CalculatedFeeDetail calculatedFeeDetail =
@@ -339,8 +315,7 @@ class ClaimMapperTest {
     assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
     assertThat(calculatedFeeDetail.getCategoryOfLaw())
         .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
-    // TODO: total_amount needs to be a NUMERIC and not TEXT on the entity?
-    // assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
     assertThat(calculatedFeeDetail.getVatIndicator())
         .isEqualTo(feeCalculationPatch.getVatIndicator());
     assertThat(calculatedFeeDetail.getVatRateApplied())
@@ -420,31 +395,7 @@ class ClaimMapperTest {
 
   @Test
   void toCalculatedFeeDetail_withNullBoltOnPatch_mapsAllFieldsButBoltOnPatch() {
-    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
-    feeCalculationPatch.calculatedFeeDetailId("FEE_DETAIL_ID");
-    feeCalculationPatch.claimSummaryFeeId(Uuid7.timeBasedUuid());
-    feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
-    feeCalculationPatch.feeCode("FEE_CODE");
-    feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
-    feeCalculationPatch.feeType(FeeCalculationType.DISBURSEMENT_ONLY);
-    feeCalculationPatch.categoryOfLaw("CRIME");
-    feeCalculationPatch.totalAmount(new BigDecimal("768.45"));
-    feeCalculationPatch.vatIndicator(true);
-    feeCalculationPatch.vatRateApplied(new BigDecimal("20.00"));
-    feeCalculationPatch.calculatedVatAmount(new BigDecimal("155.07"));
-    feeCalculationPatch.disbursementAmount(new BigDecimal("345.26"));
-    feeCalculationPatch.requestedNetDisbursementAmount(new BigDecimal("546.12"));
-    feeCalculationPatch.disbursementVatAmount(new BigDecimal("25.00"));
-    feeCalculationPatch.hourlyTotalAmount(new BigDecimal("65.00"));
-    feeCalculationPatch.fixedFeeAmount(new BigDecimal("345.07"));
-    feeCalculationPatch.netProfitCostsAmount(new BigDecimal("245.07"));
-    feeCalculationPatch.requestedNetProfitCostsAmount(new BigDecimal("615.56"));
-    feeCalculationPatch.netCostOfCounselAmount(new BigDecimal("156.78"));
-    feeCalculationPatch.netTravelCostsAmount(new BigDecimal("365.87"));
-    feeCalculationPatch.netWaitingCostsAmount(new BigDecimal("274.25"));
-    feeCalculationPatch.detentionAndWaitingCostsAmount(new BigDecimal("347.63"));
-    feeCalculationPatch.jrFormFillingAmount(new BigDecimal("612.98"));
-    feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
+    final FeeCalculationPatch feeCalculationPatch = getFeeCalculationPatch();
 
     final CalculatedFeeDetail calculatedFeeDetail =
         mapper.toCalculatedFeeDetail(feeCalculationPatch);
@@ -457,8 +408,7 @@ class ClaimMapperTest {
     assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
     assertThat(calculatedFeeDetail.getCategoryOfLaw())
         .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
-    // TODO: total_amount needs to be a NUMERIC and not TEXT on the entity?
-    // assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
     assertThat(calculatedFeeDetail.getVatIndicator())
         .isEqualTo(feeCalculationPatch.getVatIndicator());
     assertThat(calculatedFeeDetail.getVatRateApplied())
@@ -504,5 +454,34 @@ class ClaimMapperTest {
     assertNull(calculatedFeeDetail.getBoltOnHomeOfficeInterviewFee());
     assertNull(calculatedFeeDetail.getEscapeCaseFlag());
     assertNull(calculatedFeeDetail.getSchemeId());
+  }
+
+  private static FeeCalculationPatch getFeeCalculationPatch() {
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    feeCalculationPatch.calculatedFeeDetailId("FEE_DETAIL_ID");
+    feeCalculationPatch.claimSummaryFeeId(Uuid7.timeBasedUuid());
+    feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
+    feeCalculationPatch.feeCode("FEE_CODE");
+    feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
+    feeCalculationPatch.feeType(FeeCalculationType.DISBURSEMENT_ONLY);
+    feeCalculationPatch.categoryOfLaw("CRIME");
+    feeCalculationPatch.totalAmount(new BigDecimal("768.45"));
+    feeCalculationPatch.vatIndicator(true);
+    feeCalculationPatch.vatRateApplied(new BigDecimal("20.00"));
+    feeCalculationPatch.calculatedVatAmount(new BigDecimal("155.07"));
+    feeCalculationPatch.disbursementAmount(new BigDecimal("345.26"));
+    feeCalculationPatch.requestedNetDisbursementAmount(new BigDecimal("546.12"));
+    feeCalculationPatch.disbursementVatAmount(new BigDecimal("25.00"));
+    feeCalculationPatch.hourlyTotalAmount(new BigDecimal("65.00"));
+    feeCalculationPatch.fixedFeeAmount(new BigDecimal("345.07"));
+    feeCalculationPatch.netProfitCostsAmount(new BigDecimal("245.07"));
+    feeCalculationPatch.requestedNetProfitCostsAmount(new BigDecimal("615.56"));
+    feeCalculationPatch.netCostOfCounselAmount(new BigDecimal("156.78"));
+    feeCalculationPatch.netTravelCostsAmount(new BigDecimal("365.87"));
+    feeCalculationPatch.netWaitingCostsAmount(new BigDecimal("274.25"));
+    feeCalculationPatch.detentionAndWaitingCostsAmount(new BigDecimal("347.63"));
+    feeCalculationPatch.jrFormFillingAmount(new BigDecimal("612.98"));
+    feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
+    return feeCalculationPatch;
   }
 }
