@@ -35,7 +35,6 @@ public abstract class AbstractIntegrationTest {
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
   protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
-
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired protected ValidationMessageLogRepository validationMessageLogRepository;
