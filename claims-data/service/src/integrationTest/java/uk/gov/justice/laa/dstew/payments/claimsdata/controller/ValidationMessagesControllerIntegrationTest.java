@@ -4,23 +4,15 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_3_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Instant;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -28,20 +20,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @Autowired private MockMvc mockMvc;
 
-  @Autowired private SubmissionRepository submissionRepository;
-
-  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
-
-//  @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   private Submission submission;
-
-  @BeforeAll
-  void initialSetup() {
-    OBJECT_MAPPER.registerModule(new JavaTimeModule());
-  }
 
   @BeforeEach()
   void setup() {

@@ -6,8 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
@@ -31,19 +29,12 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @Autowired private MatterStartRepository matterStartRepository;
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 
   public static final String GET_MATTER_STARTS_URI =
       "/submissions/{submissionId}/matter-starts/{msId}";
 
   private Submission submission;
-
-  @BeforeAll
-  void initialSetup() {
-    OBJECT_MAPPER.registerModule(new JavaTimeModule());
-  }
 
   @BeforeEach
   void setup() {
@@ -105,7 +96,8 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   @Transactional
   void getMatterStart_shouldReturn200() throws Exception {
     // given: a MatterStart created on DB
-    MatterStart matterStart = MatterStart.builder()
+    MatterStart matterStart =
+        MatterStart.builder()
             .id(Uuid7.timeBasedUuid())
             .submission(submissionRepository.findById(submission.getId()).orElseThrow())
             .scheduleReference("REF1")
@@ -140,6 +132,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void getMatterStart_shouldReturnNotFound() throws Exception {
+    // when: calling GET endpoint with invalid matter start ID, should return not found
     mockMvc
         .perform(
             get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission.getId(), UUID.randomUUID())
