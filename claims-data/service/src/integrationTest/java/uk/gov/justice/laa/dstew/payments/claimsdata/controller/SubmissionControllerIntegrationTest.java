@@ -74,7 +74,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @BeforeEach
   void setup() {
     // creating some data on DB
-    submission = setupSubmissionTestData();
+    submission = getSubmissionTestData();
   }
 
   @AfterEach

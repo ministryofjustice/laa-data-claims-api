@@ -41,8 +41,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve a claim for a given submissionId and a claimId
     MvcResult result =
@@ -71,7 +71,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldSaveAClaimToDatabase() throws Exception {
     // given: submission test data exists in the database
-    setupSubmissionTestData();
+    getSubmissionTestData();
     final ClaimPost claimPost = createClaimPost();
 
     // when: calling the POST endpoint with the ClaimPost
@@ -127,8 +127,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode("FEE-CODE-2");
     claimPatch.setTotalValue(BigDecimal.valueOf(1000));
@@ -152,8 +152,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
     ClaimPatch claimPatch = new ClaimPatch();
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
@@ -170,8 +170,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the PATCH endpoint to update the claim with an incorrect body, 400 should be
     // returned.
@@ -187,8 +187,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code
     MvcResult result =
@@ -212,8 +212,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -238,8 +238,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
     // given: required claims exist in the database
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
     // be returned.
@@ -255,8 +255,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
-    var submission = setupSubmissionTestData();
-    setupClaimsTestData(submission);
+    var submission = getSubmissionTestData();
+    createClaimsTestData(submission);
 
     // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
     MvcResult result =
