@@ -315,7 +315,8 @@ class ClaimMapperTest {
     assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
     assertThat(calculatedFeeDetail.getCategoryOfLaw())
         .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
-    assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getTotalAmount())
+        .isEqualTo(feeCalculationPatch.getTotalAmount());
     assertThat(calculatedFeeDetail.getVatIndicator())
         .isEqualTo(feeCalculationPatch.getVatIndicator());
     assertThat(calculatedFeeDetail.getVatRateApplied())
@@ -408,7 +409,8 @@ class ClaimMapperTest {
     assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
     assertThat(calculatedFeeDetail.getCategoryOfLaw())
         .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
-    assertThat(calculatedFeeDetail.getTotalAmount()).isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getTotalAmount())
+        .isEqualTo(feeCalculationPatch.getTotalAmount());
     assertThat(calculatedFeeDetail.getVatIndicator())
         .isEqualTo(feeCalculationPatch.getVatIndicator());
     assertThat(calculatedFeeDetail.getVatRateApplied())
