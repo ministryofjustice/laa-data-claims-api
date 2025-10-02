@@ -18,13 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -32,18 +29,9 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @Autowired private MockMvc mockMvc;
 
-  @Autowired private SubmissionRepository submissionRepository;
-
-  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
-
   @Autowired private MatterStartRepository matterStartRepository;
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  private static final String AUTHORIZATION_HEADER = "Authorization";
-
-  // must match application-test.yml for test-runner token
-  private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 
@@ -60,43 +48,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   @BeforeEach
   void setup() {
     matterStartRepository.deleteAll();
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
-
-    // creating some data on DB
-    BulkSubmission bulkSubmission =
-        BulkSubmission.builder()
-            .id(BULK_SUBMISSION_ID)
-            .data(new GetBulkSubmission200ResponseDetails())
-            .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
-            .createdOn(Instant.now())
-            .updatedOn(Instant.now())
-            .build();
-    bulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
-
-    submission =
-        Submission.builder()
-            .id(SUBMISSION_3_ID)
-            .bulkSubmissionId(bulkSubmission.getId())
-            .officeAccountNumber("office3")
-            .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
-            .status(SubmissionStatus.CREATED)
-            .scheduleNumber("office3/CIVIL")
-            .previousSubmissionId(SUBMISSION_3_ID)
-            .isNilSubmission(false)
-            .numberOfClaims(0)
-            .createdByUserId(USER_ID)
-            .build();
-    submission = submissionRepository.save(submission);
-  }
-
-  @AfterEach
-  void close() {
-    matterStartRepository.deleteAll();
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
+    submission = getSubmissionTestData();
   }
 
   @Test
@@ -152,19 +104,22 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   @Test
   @Transactional
   void getMatterStart_shouldReturn200() throws Exception {
-    MatterStart matterStart = new MatterStart();
-    matterStart.setId(Uuid7.timeBasedUuid());
-    matterStart.setSubmission(submissionRepository.findById(submission.getId()).orElseThrow());
-    matterStart.setScheduleReference("REF1");
-    matterStart.setCategoryCode("CAT1");
-    matterStart.setProcurementAreaCode("AREA1");
-    matterStart.setAccessPointCode("ACCESS1");
-    matterStart.setDeliveryLocation("LONDON");
-    matterStart.setCreatedByUserId("user1");
-    matterStart.setCreatedOn(Instant.now());
-    matterStart.setUpdatedOn(Instant.now());
-
+    // given: a MatterStart created on DB
+    MatterStart matterStart = MatterStart.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(submissionRepository.findById(submission.getId()).orElseThrow())
+            .scheduleReference("REF1")
+            .categoryCode("CAT1")
+            .procurementAreaCode("AREA1")
+            .accessPointCode("ACCESS1")
+            .deliveryLocation("LONDON")
+            .createdByUserId("user1")
+            .createdOn(Instant.now())
+            .updatedOn(Instant.now())
+            .build();
     matterStartRepository.save(matterStart);
+
+    // when: calling GET endpoint with a valid submission and matter start ID
     MvcResult mvcResult =
         mockMvc
             .perform(
@@ -173,6 +128,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
             .andExpect(status().isOk())
             .andReturn();
 
+    // then: matter start is correctly retrieved
     MatterStartGet result =
         OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), MatterStartGet.class);
     assertThat(result.getScheduleReference()).isEqualTo(matterStart.getScheduleReference());

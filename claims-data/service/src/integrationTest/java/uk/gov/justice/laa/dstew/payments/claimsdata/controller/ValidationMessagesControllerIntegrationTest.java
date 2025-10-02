@@ -32,14 +32,9 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
-  @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
+//  @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  private static final String AUTHORIZATION_HEADER = "Authorization";
-
-  // must match application-test.yml for test-runner token
-  private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
   private Submission submission;
 
@@ -50,41 +45,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @BeforeEach()
   void setup() {
-
-    // creating some data on DB
-    BulkSubmission bulkSubmission =
-        BulkSubmission.builder()
-            .id(BULK_SUBMISSION_ID)
-            .data(new GetBulkSubmission200ResponseDetails())
-            .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
-            .createdOn(Instant.now())
-            .updatedOn(Instant.now())
-            .build();
-    bulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
-
-    submission =
-        Submission.builder()
-            .id(SUBMISSION_3_ID)
-            .bulkSubmissionId(bulkSubmission.getId())
-            .officeAccountNumber("office3")
-            .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
-            .status(SubmissionStatus.CREATED)
-            .scheduleNumber("office3/CIVIL")
-            .previousSubmissionId(SUBMISSION_3_ID)
-            .isNilSubmission(false)
-            .numberOfClaims(0)
-            .createdByUserId(USER_ID)
-            .build();
-    submission = submissionRepository.save(submission);
-  }
-
-  @AfterEach
-  void cleanup() {
-    validationMessageLogRepository.deleteAll();
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
+    submission = getSubmissionTestData();
   }
 
   @Test
@@ -119,5 +80,6 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     assertThat(msg.getType()).isEqualTo(ValidationMessageType.ERROR);
     assertThat(msg.getSource()).isEqualTo("SOURCE1");
     assertThat(msg.getDisplayMessage()).isEqualTo("MESSAGE1");
+    validationMessageLogRepository.deleteAll();
   }
 }
