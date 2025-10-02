@@ -70,6 +70,16 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: sqs-queue-name
+            - name: REPORTING_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: reporting-username
+            - name: REPORTING_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: reporting-password
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
