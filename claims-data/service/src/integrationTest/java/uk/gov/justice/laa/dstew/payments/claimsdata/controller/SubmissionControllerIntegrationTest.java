@@ -318,9 +318,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         mockMvc
             .perform(
                 get(API_URI_PREFIX + "/submissions")
-                    .param("offices", "office1")
-                    .param("areaOfLaw", "CIVIL")
-                    .param("submissionPeriod", "JAN-25")
+                    .param("offices", OFFICE_ACCOUNT_NUMBER)
+                    .param("areaOfLaw", AREA_OF_LAW)
+                    .param("submissionPeriod", SUBMISSION_PERIOD)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -329,9 +329,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: submissions are correctly retrieved
     var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
-    assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo("CIVIL");
+    assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(submissionsResultSet.getContent().getFirst().getSubmissionPeriod())
-        .isEqualTo("JAN-25");
+        .isEqualTo(SUBMISSION_PERIOD);
     assertThat(submissionsResultSet.getContent().getFirst().getStatus())
         .isEqualTo(SubmissionStatus.CREATED);
   }
