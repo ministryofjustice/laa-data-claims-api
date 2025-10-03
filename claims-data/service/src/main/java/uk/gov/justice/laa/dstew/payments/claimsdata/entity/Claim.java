@@ -45,29 +45,19 @@ public class Claim {
   @Enumerated(EnumType.STRING)
   private ClaimStatus status;
 
-  @NotNull
-  @Column(nullable = false)
   private String scheduleReference;
 
   @NotNull
   @Column(nullable = false)
   private Integer lineNumber;
 
-  @NotNull
-  @Column(nullable = false)
   private String caseReferenceNumber;
 
-  @NotNull
-  @Column(nullable = false)
   private String uniqueFileNumber;
 
-  @NotNull
-  @Column(nullable = false)
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseStartDate;
 
-  @NotNull
-  @Column(nullable = false)
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseConcludedDate;
 
