@@ -202,7 +202,7 @@ paths:
       tags:
         - Submissions
       summary: get claim submissions
-      description: Return claim submissions by office account numbers (mandatory), submissionId, submittedDateFrom, submittedDateTo
+      description: Return claim submissions by office account numbers (mandatory), submissionId, submittedDateFrom, submittedDateTo, areaOfLaw, submissionPeriod
       parameters:
         - name: offices
           in: query
@@ -232,6 +232,18 @@ paths:
             type: string
             format: date
           description: Filter submissions submitted up to this date (inclusive)
+        - name: areaOfLaw
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by area of law
+        - name: submissionPeriod
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission period
 
       responses:
         '200':
