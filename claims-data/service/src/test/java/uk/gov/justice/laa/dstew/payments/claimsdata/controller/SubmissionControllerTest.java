@@ -1,9 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,6 +18,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -133,7 +132,7 @@ class SubmissionControllerTest {
                 .content(body))
         .andExpect(status().isNoContent());
 
-    verify(submissionService).updateSubmission(org.mockito.ArgumentMatchers.eq(id), any());
+    verify(submissionService).updateSubmission(eq(id), any());
   }
 
   @Test
@@ -146,6 +145,8 @@ class SubmissionControllerTest {
             anyString(),
             any(LocalDate.class),
             any(LocalDate.class),
+            anyString(),
+            anyString(),
             any(Pageable.class)))
         .thenReturn(expected);
 
@@ -158,8 +159,49 @@ class SubmissionControllerTest {
                 .queryParam("submissionId", String.valueOf(SUBMISSION_ID))
                 .queryParam("submittedDateFrom", String.valueOf(LocalDate.of(2025, 1, 1)))
                 .queryParam("submittedDateTo", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam("areaOfLaw", "CIVIL")
+                .queryParam("submissionPeriod", "2205-19")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk())
         .andExpect(content().json(jsonContent));
+  }
+
+  @DisplayName("should call submission service with right arguments")
+  @Test
+  void getSubmissions_callsSubmissionServiceWithRightArguments() throws Exception {
+
+    var submissionBase = new SubmissionBase();
+    var expected = new SubmissionsResultSet().content(List.of(submissionBase));
+
+    when(submissionService.getSubmissionsResultSet(
+            anyList(),
+            anyString(),
+            any(LocalDate.class),
+            any(LocalDate.class),
+            anyString(),
+            anyString(),
+            any(Pageable.class)))
+        .thenReturn(expected);
+    mockMvc
+        .perform(
+            get(SUBMISSIONS_URI)
+                .queryParam("offices", "office1", "office2", "office3")
+                .queryParam("submissionId", String.valueOf(SUBMISSION_ID))
+                .queryParam("submittedDateFrom", String.valueOf(LocalDate.of(2025, 1, 1)))
+                .queryParam("submittedDateTo", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam("areaOfLaw", "CIVIL")
+                .queryParam("submissionPeriod", "2205-19")
+                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+        .andExpect(status().isOk());
+
+    verify(submissionService)
+        .getSubmissionsResultSet(
+            eq(List.of("office1", "office2", "office3")),
+            eq(String.valueOf(SUBMISSION_ID)),
+            eq(LocalDate.of(2025, 1, 1)),
+            eq(LocalDate.of(2025, 12, 31)),
+            eq("CIVIL"),
+            eq("2205-19"),
+            eq(Pageable.ofSize(20).withPage(0)));
   }
 }

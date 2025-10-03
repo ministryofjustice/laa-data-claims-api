@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
@@ -61,7 +62,35 @@ public final class SubmissionSpecification {
 
         predicate = cb.and(predicate, cb.lessThanOrEqualTo(root.get("createdOn"), endOfTheDay));
       }
+
       return predicate;
     };
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for filtering {@link Submission} area of law equal to.
+   *
+   * @param areaOfLaw an optional identifier to filter by area of law
+   * @return a JPA {@code Specification}
+   */
+  public static Specification<Submission> areaOfLawEqual(final String areaOfLaw) {
+    return (root, query, cb) ->
+        Optional.ofNullable(areaOfLaw).isPresent()
+            ? cb.equal(root.get("areaOfLaw"), areaOfLaw)
+            : cb.conjunction();
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for filtering {@link Submission} submission period equal
+   * to.
+   *
+   * @param submissionPeriod an optional identifier to filter by the submission period
+   * @return a JPA {@code Specification}
+   */
+  public static Specification<Submission> submissionPeriodEqual(final String submissionPeriod) {
+    return (root, query, cb) ->
+        Optional.ofNullable(submissionPeriod).isPresent()
+            ? cb.equal(root.get("submissionPeriod"), submissionPeriod)
+            : cb.conjunction();
   }
 }

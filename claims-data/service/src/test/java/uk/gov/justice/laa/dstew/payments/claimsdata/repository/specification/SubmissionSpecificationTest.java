@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -112,5 +114,60 @@ class SubmissionSpecificationTest {
     Predicate result = spec.toPredicate(root, query, cb);
 
     assertThat(result).isNotNull();
+  }
+
+  @DisplayName("should return equals predicate when  area of code is present")
+  @Test
+  void areaOfLaw() {
+    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual("CIVIL");
+
+    Predicate withAreaOfCode = Mockito.mock(Predicate.class);
+
+    Mockito.when(root.get("areaOfLaw"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq("CIVIL"))).thenReturn(withAreaOfCode);
+
+    var actualResults = spec.toPredicate(root, query, cb);
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return  predicate when area of code is not present")
+  @Test
+  void areaOfLawAbsent() {
+    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual(null);
+
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return equals predicate when  submissionPeriod is present")
+  @Test
+  void submissionPeriod() {
+    Specification<Submission> spec = SubmissionSpecification.submissionPeriodEqual("2025-09-01");
+
+    Predicate withDate = Mockito.mock(Predicate.class);
+
+    Mockito.when(root.get("submissionPeriod"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq("2025-09-01"))).thenReturn(withDate);
+    var actualResults = spec.toPredicate(root, query, cb);
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return  predicate when submissionPeriod is not present")
+  @Test
+  void submissionPeriodAbsent() {
+
+    Specification<Submission> spec = SubmissionSpecification.submissionPeriodEqual(null);
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
+
+    assertThat(actualResults).isNotNull();
   }
 }

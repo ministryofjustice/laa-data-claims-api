@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
@@ -314,5 +315,77 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
+  }
+
+  @DisplayName(
+      "Should return result if area of law,submission period and office account number matches match the existing database")
+  @Test
+  void areaOfLawAndSubmissionPeriod() {
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(List.of("office1"), null, null, null)
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+    assertThat(actualResults.getContent())
+        .extracting("areaOfLaw", "submissionPeriod", "officeAccountNumber")
+        .isEqualTo((List.of(tuple("CIVIL", "JAN-25", "office1"))));
+  }
+
+  @DisplayName("Should not return result if area of law does not match the existing database")
+  @Test
+  void areaOfLawAndSubmissionPeriodNotMatch() {
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(List.of("office1"), null, null, null)
+                .and(SubmissionSpecification.areaOfLawEqual("INVALID_CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(0);
+  }
+
+  @DisplayName("Should not return result if submission period does not match the existing database")
+  @Test
+  void submissionPeriodNotMatch() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(List.of("office1"), null, null, null)
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(0);
+  }
+
+  @DisplayName("Should  return result even if area of law is null")
+  @Test
+  void areaOfLawIsNull() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(List.of("office1"), null, null, null)
+                .and(SubmissionSpecification.areaOfLawEqual(null))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @DisplayName("Should  return result even if submission period is null")
+  @Test
+  void submissionPeriodIsNull() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterBy(List.of("office1"), null, null, null)
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual(null)),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
   }
 }

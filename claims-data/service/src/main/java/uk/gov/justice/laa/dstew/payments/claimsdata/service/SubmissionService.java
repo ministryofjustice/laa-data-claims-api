@@ -148,6 +148,8 @@ public class SubmissionService
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
+      String areaOfLaw,
+      String submissionPeriod,
       Pageable pageable) {
 
     if (offices == null || offices.isEmpty()) {
@@ -157,7 +159,9 @@ public class SubmissionService
     Page<Submission> page =
         submissionRepository.findAll(
             SubmissionSpecification.filterBy(
-                offices, submissionId, submittedDateFrom, submittedDateTo),
+                    offices, submissionId, submittedDateFrom, submittedDateTo)
+                .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
+                .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod)),
             pageable);
 
     return submissionsResultSetMapper.toSubmissionsResultSet(page);
