@@ -1,4 +1,4 @@
--- V15__remove_mandatory_claim_fields.sql
+-- V16__remove_mandatory_claim_fields.sql
 
 ALTER TABLE claim
 ALTER COLUMN unique_file_number DROP NOT NULL;

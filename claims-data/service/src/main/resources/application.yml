@@ -11,6 +11,7 @@ spring:
     schemas: claims, javers
     create-schemas: true
     enabled: true
+    out-of-order: true
 
   jpa:
     show-sql: false
