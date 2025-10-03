@@ -124,7 +124,7 @@ class SubmissionControllerTest {
   @Test
   void updateSubmission_returnsNoContent() throws Exception {
     UUID id = Uuid7.timeBasedUuid();
-    String body = "{\"schedule_number\":\"123\"}";
+    String body = "{\"crime_schedule_number\":\"123\"}";
 
     mockMvc
         .perform(
