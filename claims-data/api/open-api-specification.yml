@@ -766,7 +766,6 @@ components:
       required:
         - status
         - line_number
-        - case_concluded_date
         - matter_type_code
     ClaimPatch:
       allOf:

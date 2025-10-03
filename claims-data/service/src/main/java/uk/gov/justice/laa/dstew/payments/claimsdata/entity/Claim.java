@@ -58,8 +58,6 @@ public class Claim {
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseStartDate;
 
-  @NotNull
-  @Column(nullable = false)
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
   private LocalDate caseConcludedDate;
 
