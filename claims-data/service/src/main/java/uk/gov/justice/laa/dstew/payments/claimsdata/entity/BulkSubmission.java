@@ -59,6 +59,8 @@ public class BulkSubmission {
 
   private String updatedByUserId;
 
+  private String authorisedOffices;
+
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
