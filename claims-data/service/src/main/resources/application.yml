@@ -11,7 +11,10 @@ spring:
     schemas: claims, javers
     create-schemas: true
     enabled: true
-
+    out-of-order: true
+    placeholders:
+      reporting_username: "reporting_user"
+      reporting_password: "reporting_password"
   jpa:
     show-sql: false
     generate-ddl: false
