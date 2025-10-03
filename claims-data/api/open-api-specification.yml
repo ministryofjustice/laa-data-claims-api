@@ -771,9 +771,10 @@ components:
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
-        - $ref: '#/components/schemas/fee_calculation_response'
       type: object
       properties:
+        fee_calculation_response:
+          $ref: '#/components/schemas/fee_calculation_patch'
         validation_messages:
           type: array
           items:
@@ -1011,13 +1012,12 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
-    fee_calculation_response:
+    fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform
       properties:
         calculated_fee_detail_id:
           type: string
-          format: uuid
         claim_summary_fee_id:
           type: string
           format: uuid
