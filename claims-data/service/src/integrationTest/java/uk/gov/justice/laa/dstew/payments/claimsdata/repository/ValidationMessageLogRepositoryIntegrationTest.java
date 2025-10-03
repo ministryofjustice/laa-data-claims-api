@@ -27,7 +27,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
 
   @BeforeEach
   void setup() {
-    setupValidationMessageLogTestData();
+    createValidationMessageLogTestData();
   }
 
   @Test

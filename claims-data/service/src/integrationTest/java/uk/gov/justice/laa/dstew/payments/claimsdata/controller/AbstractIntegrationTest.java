@@ -34,7 +34,7 @@ public abstract class AbstractIntegrationTest {
   protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
-
+  protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired protected ValidationMessageLogRepository validationMessageLogRepository;
@@ -141,7 +141,7 @@ public abstract class AbstractIntegrationTest {
                 .build()));
   }
 
-  public void setupValidationMessageLogTestData() {
+  public void createValidationMessageLogTestData() {
     validationMessageLogRepository.deleteAll();
     var submission = getSubmissionTestData();
     createClaimsTestData(submission);
