@@ -73,10 +73,11 @@ public class BulkSubmissionService
             .createdByUserId(userId)
             .authorisedOffices(String.join(",", offices));
 
-    String officeCode = Optional.ofNullable(bulkSubmissionDetails)
-        .map(GetBulkSubmission200ResponseDetails::getOffice)
-        .map(GetBulkSubmission200ResponseDetailsOffice::getAccount)
-        .orElse(null);
+    String officeCode =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getOffice)
+            .map(GetBulkSubmission200ResponseDetailsOffice::getAccount)
+            .orElse(null);
 
     // Validation: check if file's office is in authorised list
     if (officeCode == null || !offices.contains(officeCode)) {
