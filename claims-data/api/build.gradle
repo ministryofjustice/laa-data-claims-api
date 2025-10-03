@@ -33,6 +33,17 @@ openApiGenerate {
     apiPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.api"
     invokerPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.invoker"
     modelPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.model"
+    
+    // Handle custom format: bigDecimal by mapping it to BigDecimal
+    // This prevents the "Unknown format" warnings
+    typeMappings = [
+            "number+bigDecimal": "BigDecimal"
+    ]
+    
+    importMappings = [
+            "BigDecimal": "java.math.BigDecimal"
+    ]
+    
     configOptions = [
             generateBuilders    : "true",
             interfaceOnly       : "true", // This will only generate interfaces, not implementations
