@@ -78,7 +78,7 @@ public abstract class AbstractIntegrationTest {
             .submissionPeriod(SUBMISSION_PERIOD)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
-            .scheduleNumber(SCHEDULE_NUMBER)
+            .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .numberOfClaims(0)

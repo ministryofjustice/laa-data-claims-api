@@ -58,7 +58,6 @@ public class ClaimsDataTestUtil {
   // must match application-test.yml for test-runner token
   public static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
   public static final String AUTHORIZATION_HEADER = "Authorization";
-  public static final String SCHEDULE_REFERENCE = "SCH123";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
