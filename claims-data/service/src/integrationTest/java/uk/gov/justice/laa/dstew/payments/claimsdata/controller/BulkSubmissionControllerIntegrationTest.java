@@ -137,7 +137,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
-                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
 
@@ -307,7 +307,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     mockMvc
         .perform(
             get(GET_BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
-                .header(AUTHORIZATION_HEADER, "INVALID_AUTH_TOKEN"))
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
 

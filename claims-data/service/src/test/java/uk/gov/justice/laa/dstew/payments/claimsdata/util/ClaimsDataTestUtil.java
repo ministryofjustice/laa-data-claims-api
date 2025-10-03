@@ -9,15 +9,7 @@ import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 
 public class ClaimsDataTestUtil {
 
@@ -36,7 +28,7 @@ public class ClaimsDataTestUtil {
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
   public static final String AREA_OF_LAW = "CIVIL";
   public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
-  public static final String SUBMISSION_PERIOD = "APR-24";
+  public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";
@@ -56,6 +48,7 @@ public class ClaimsDataTestUtil {
   // must match application-test.yml for test-runner token
   public static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
   public static final String AUTHORIZATION_HEADER = "Authorization";
+  public static final String SCHEDULE_REFERENCE = "SCH123";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
@@ -292,5 +285,60 @@ public class ClaimsDataTestUtil {
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
         .build();
+  }
+
+  public static ClaimPost createClaimPost() {
+    return new ClaimPost()
+        .clientForename("John")
+        .clientSurname("Doe")
+        .clientDateOfBirth("20/05/1990")
+        .uniqueClientNumber("UCN-123")
+        .clientPostcode("AB1 2CD")
+        .genderCode("M")
+        .ethnicityCode("ETH1")
+        .disabilityCode("DIS1")
+        .isLegallyAided(true)
+        .clientTypeCode("TYPE-A")
+        .homeOfficeClientNumber("HO-999")
+        .claReferenceNumber("CLA-111")
+        .claExemptionCode("EX-22")
+        .client2Forename("Jane")
+        .client2Surname("Roe")
+        .client2DateOfBirth("15/07/1992")
+        .client2Ucn("UCN-456")
+        .client2Postcode("EF3 4GH")
+        .client2GenderCode("F")
+        .client2EthnicityCode("ETH2")
+        .client2DisabilityCode("DIS2")
+        .client2IsLegallyAided(false)
+        .isDutySolicitor(true)
+        .isYouthCourt(false)
+        .status(ClaimStatus.READY_TO_PROCESS)
+        .scheduleReference(SCHEDULE_REFERENCE)
+        .lineNumber(5)
+        .caseReferenceNumber("CASE001")
+        .uniqueFileNumber("UFN123")
+        .caseStartDate("01/01/2020")
+        .caseConcludedDate("02/01/2020")
+        .matterTypeCode("MTC")
+        .crimeMatterTypeCode("CMTC")
+        .feeSchemeCode("FSC")
+        .feeCode("FC")
+        .procurementAreaCode("PAC")
+        .accessPointCode("APC")
+        .deliveryLocation("DEL")
+        .representationOrderDate("01/01/2020")
+        .suspectsDefendantsCount(3)
+        .policeStationCourtAttendancesCount(4)
+        .policeStationCourtPrisonId("PSCPI")
+        .dsccNumber("DSCC123")
+        .maatId("987654321L")
+        .prisonLawPriorApprovalNumber("PLPAN")
+        .schemeId("12")
+        .mediationSessionsCount(2)
+        .mediationTimeMinutes(90)
+        .outreachLocation("OUTLOC")
+        .referralSource("REFSRC")
+        .outcomeCode("outcomeCode");
   }
 }
