@@ -1,10 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -13,16 +15,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,36 +47,7 @@ class ClaimMapperTest {
 
   @Test
   void toSubmissionClaim_mapsAllFields() {
-    final ClaimPost post =
-        new ClaimPost()
-            .isDutySolicitor(true)
-            .isYouthCourt(false)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .scheduleReference("SCH123")
-            .lineNumber(5)
-            .caseReferenceNumber("CASE001")
-            .uniqueFileNumber("UFN123")
-            .caseStartDate("01/01/2020")
-            .caseConcludedDate("02/01/2020")
-            .matterTypeCode("MTC")
-            .crimeMatterTypeCode("CMTC")
-            .feeSchemeCode("FSC")
-            .feeCode("FC")
-            .procurementAreaCode("PAC")
-            .accessPointCode("APC")
-            .deliveryLocation("DEL")
-            .representationOrderDate("01/01/2020")
-            .suspectsDefendantsCount(3)
-            .policeStationCourtAttendancesCount(4)
-            .policeStationCourtPrisonId("PSCPI")
-            .dsccNumber("DSCC123")
-            .maatId("987654321L")
-            .prisonLawPriorApprovalNumber("PLPAN")
-            .schemeId("12")
-            .mediationSessionsCount(2)
-            .mediationTimeMinutes(90)
-            .outreachLocation("OUTLOC")
-            .referralSource("REFSRC");
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
 
     final Claim entity = mapper.toClaim(post);
 
@@ -258,5 +237,253 @@ class ClaimMapperTest {
     assertEquals("SYSTEM", log.getSource());
     assertEquals("A display message", log.getDisplayMessage());
     assertEquals("A technical message", log.getTechnicalMessage());
+  }
+
+  @Test
+  void toClaimSummaryFee_mapsAllFields() {
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+
+    final ClaimSummaryFee claimSummaryFee = mapper.toClaimSummaryFee(post);
+
+    assertThat(claimSummaryFee.getAdviceTime()).isEqualTo(post.getAdviceTime());
+    assertThat(claimSummaryFee.getTravelTime()).isEqualTo(post.getTravelTime());
+    assertThat(claimSummaryFee.getWaitingTime()).isEqualTo(post.getWaitingTime());
+    assertThat(claimSummaryFee.getNetProfitCostsAmount()).isEqualTo(post.getNetProfitCostsAmount());
+    assertThat(claimSummaryFee.getNetDisbursementAmount())
+        .isEqualTo(post.getNetDisbursementAmount());
+    assertThat(claimSummaryFee.getNetCounselCostsAmount())
+        .isEqualTo(post.getNetCounselCostsAmount());
+    assertThat(claimSummaryFee.getDisbursementsVatAmount())
+        .isEqualTo(post.getDisbursementsVatAmount());
+    assertThat(claimSummaryFee.getTravelWaitingCostsAmount())
+        .isEqualTo(post.getTravelWaitingCostsAmount());
+    assertThat(claimSummaryFee.getNetWaitingCostsAmount())
+        .isEqualTo(post.getNetWaitingCostsAmount());
+    assertThat(claimSummaryFee.getIsVatApplicable()).isEqualTo(post.getIsVatApplicable());
+    assertThat(claimSummaryFee.getIsToleranceApplicable())
+        .isEqualTo(post.getIsToleranceApplicable());
+    assertThat(claimSummaryFee.getPriorAuthorityReference())
+        .isEqualTo(post.getPriorAuthorityReference());
+    assertThat(claimSummaryFee.getIsLondonRate()).isEqualTo(post.getIsLondonRate());
+    assertThat(claimSummaryFee.getAdjournedHearingFeeAmount())
+        .isEqualTo(post.getAdjournedHearingFeeAmount());
+    assertThat(claimSummaryFee.getIsAdditionalTravelPayment())
+        .isEqualTo(post.getIsAdditionalTravelPayment());
+    assertThat(claimSummaryFee.getCostsDamagesRecoveredAmount())
+        .isEqualTo(post.getCostsDamagesRecoveredAmount());
+    assertThat(claimSummaryFee.getMeetingsAttendedCode()).isEqualTo(post.getMeetingsAttendedCode());
+    assertThat(claimSummaryFee.getDetentionTravelWaitingCostsAmount())
+        .isEqualTo(post.getDetentionTravelWaitingCostsAmount());
+    assertThat(claimSummaryFee.getJrFormFillingAmount()).isEqualTo(post.getJrFormFillingAmount());
+    assertThat(claimSummaryFee.getIsEligibleClient()).isEqualTo(post.getIsEligibleClient());
+    assertThat(claimSummaryFee.getCourtLocationCode()).isEqualTo(post.getCourtLocationCode());
+    assertThat(claimSummaryFee.getAdviceTypeCode()).isEqualTo(post.getAdviceTypeCode());
+    assertThat(claimSummaryFee.getMedicalReportsCount()).isEqualTo(post.getMedicalReportsCount());
+    assertThat(claimSummaryFee.getIsIrcSurgery()).isEqualTo(post.getIsIrcSurgery());
+    assertThat(claimSummaryFee.getSurgeryDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+        .isEqualTo(post.getSurgeryDate());
+    assertThat(claimSummaryFee.getSurgeryClientsCount()).isEqualTo(post.getSurgeryClientsCount());
+    assertThat(claimSummaryFee.getSurgeryMattersCount()).isEqualTo(post.getSurgeryMattersCount());
+    assertThat(claimSummaryFee.getCmrhOralCount()).isEqualTo(post.getCmrhOralCount());
+    assertThat(claimSummaryFee.getCmrhTelephoneCount()).isEqualTo(post.getCmrhTelephoneCount());
+    assertThat(claimSummaryFee.getAitHearingCentreCode()).isEqualTo(post.getAitHearingCentreCode());
+    assertThat(claimSummaryFee.getIsSubstantiveHearing()).isEqualTo(post.getIsSubstantiveHearing());
+    assertThat(claimSummaryFee.getHoInterview()).isEqualTo(post.getHoInterview());
+    assertThat(claimSummaryFee.getLocalAuthorityNumber()).isEqualTo(post.getLocalAuthorityNumber());
+  }
+
+  @Test
+  void toClaimSummaryFee_nullPost_noChanges() {
+    assertNull(mapper.toClaimSummaryFee(null));
+  }
+
+  @Test
+  void toCalculatedFeeDetail_mapsAllFields() {
+    final BoltOnPatch boltOnPatch = getBoltOnPatch();
+
+    final FeeCalculationPatch feeCalculationPatch = getFeeCalculationPatch();
+    feeCalculationPatch.boltOnDetails(boltOnPatch);
+
+    final CalculatedFeeDetail calculatedFeeDetail =
+        mapper.toCalculatedFeeDetail(feeCalculationPatch);
+
+    // test CalculatedFeeDetail fields
+    assertNotNull(calculatedFeeDetail.getId());
+    assertThat(calculatedFeeDetail.getFeeCode()).isEqualTo(feeCalculationPatch.getFeeCode());
+    assertThat(calculatedFeeDetail.getFeeCodeDescription())
+        .isEqualTo(feeCalculationPatch.getFeeCodeDescription());
+    assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
+    assertThat(calculatedFeeDetail.getCategoryOfLaw())
+        .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
+    assertThat(calculatedFeeDetail.getTotalAmount())
+        .isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getVatIndicator())
+        .isEqualTo(feeCalculationPatch.getVatIndicator());
+    assertThat(calculatedFeeDetail.getVatRateApplied())
+        .isEqualTo(feeCalculationPatch.getVatRateApplied());
+    assertThat(calculatedFeeDetail.getCalculatedVatAmount())
+        .isEqualTo(feeCalculationPatch.getCalculatedVatAmount());
+    assertThat(calculatedFeeDetail.getDisbursementAmount())
+        .isEqualTo(feeCalculationPatch.getDisbursementAmount());
+    assertThat(calculatedFeeDetail.getRequestedNetDisbursementAmount())
+        .isEqualTo(feeCalculationPatch.getRequestedNetDisbursementAmount());
+    assertThat(calculatedFeeDetail.getDisbursementVatAmount())
+        .isEqualTo(feeCalculationPatch.getDisbursementVatAmount());
+    assertThat(calculatedFeeDetail.getHourlyTotalAmount())
+        .isEqualTo(feeCalculationPatch.getHourlyTotalAmount());
+    assertThat(calculatedFeeDetail.getFixedFeeAmount())
+        .isEqualTo(feeCalculationPatch.getFixedFeeAmount());
+    assertThat(calculatedFeeDetail.getNetProfitCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetProfitCostsAmount());
+    assertThat(calculatedFeeDetail.getRequestedNetProfitCostsAmount())
+        .isEqualTo(feeCalculationPatch.getRequestedNetProfitCostsAmount());
+    assertThat(calculatedFeeDetail.getNetCostOfCounselAmount())
+        .isEqualTo(feeCalculationPatch.getNetCostOfCounselAmount());
+    assertThat(calculatedFeeDetail.getNetTravelCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetTravelCostsAmount());
+    assertThat(calculatedFeeDetail.getNetWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetWaitingCostsAmount());
+    assertThat(calculatedFeeDetail.getDetentionAndWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getDetentionAndWaitingCostsAmount());
+    assertThat(calculatedFeeDetail.getJrFormFillingAmount())
+        .isEqualTo(feeCalculationPatch.getJrFormFillingAmount());
+    assertThat(calculatedFeeDetail.getTravelAndWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getTravelAndWaitingCostsAmount());
+
+    // Test fields from BoltOnPatch
+    assertThat(calculatedFeeDetail.getBoltOnTotalFeeAmount())
+        .isEqualTo(boltOnPatch.getBoltOnTotalFeeAmount());
+    assertThat(calculatedFeeDetail.getBoltOnAdjournedHearingCount())
+        .isEqualTo(boltOnPatch.getBoltOnAdjournedHearingCount());
+    assertThat(calculatedFeeDetail.getBoltOnAdjournedHearingFee())
+        .isEqualTo(boltOnPatch.getBoltOnAdjournedHearingFee());
+    assertThat(calculatedFeeDetail.getBoltOnCmrhTelephoneCount())
+        .isEqualTo(boltOnPatch.getBoltOnCmrhTelephoneCount());
+    assertThat(calculatedFeeDetail.getBoltOnCmrhTelephoneFee())
+        .isEqualTo(boltOnPatch.getBoltOnCmrhTelephoneFee());
+    assertThat(calculatedFeeDetail.getBoltOnCmrhOralCount())
+        .isEqualTo(boltOnPatch.getBoltOnCmrhOralCount());
+    assertThat(calculatedFeeDetail.getBoltOnCmrhOralFee())
+        .isEqualTo(boltOnPatch.getBoltOnCmrhOralFee());
+    assertThat(calculatedFeeDetail.getBoltOnHomeOfficeInterviewCount())
+        .isEqualTo(boltOnPatch.getBoltOnHomeOfficeInterviewCount());
+    assertThat(calculatedFeeDetail.getBoltOnHomeOfficeInterviewFee())
+        .isEqualTo(boltOnPatch.getBoltOnHomeOfficeInterviewFee());
+    assertThat(calculatedFeeDetail.getEscapeCaseFlag()).isEqualTo(boltOnPatch.getEscapeCaseFlag());
+    assertThat(calculatedFeeDetail.getSchemeId()).isEqualTo(boltOnPatch.getSchemeId());
+  }
+
+  private static BoltOnPatch getBoltOnPatch() {
+    final BoltOnPatch boltOnPatch = new BoltOnPatch();
+    boltOnPatch.boltOnTotalFeeAmount(new BigDecimal("345.07"));
+    boltOnPatch.boltOnAdjournedHearingCount(4);
+    boltOnPatch.boltOnAdjournedHearingFee(new BigDecimal("145.90"));
+    boltOnPatch.boltOnCmrhTelephoneCount(0);
+    boltOnPatch.boltOnCmrhTelephoneFee(new BigDecimal("25.12"));
+    boltOnPatch.boltOnCmrhOralCount(5);
+    boltOnPatch.boltOnCmrhOralFee(new BigDecimal("44.59"));
+    boltOnPatch.boltOnHomeOfficeInterviewCount(7);
+    boltOnPatch.boltOnHomeOfficeInterviewFee(new BigDecimal("945.23"));
+    boltOnPatch.escapeCaseFlag(true);
+    boltOnPatch.schemeId("SCHEME_ID");
+    return boltOnPatch;
+  }
+
+  @Test
+  void toCalculatedFeeDetail_nullPatch_noChanges() {
+    assertNull(mapper.toCalculatedFeeDetail(null));
+  }
+
+  @Test
+  void toCalculatedFeeDetail_withNullBoltOnPatch_mapsAllFieldsButBoltOnPatch() {
+    final FeeCalculationPatch feeCalculationPatch = getFeeCalculationPatch();
+
+    final CalculatedFeeDetail calculatedFeeDetail =
+        mapper.toCalculatedFeeDetail(feeCalculationPatch);
+
+    // test CalculatedFeeDetail fields
+    assertNotNull(calculatedFeeDetail.getId());
+    assertThat(calculatedFeeDetail.getFeeCode()).isEqualTo(feeCalculationPatch.getFeeCode());
+    assertThat(calculatedFeeDetail.getFeeCodeDescription())
+        .isEqualTo(feeCalculationPatch.getFeeCodeDescription());
+    assertThat(calculatedFeeDetail.getFeeType()).isEqualTo(feeCalculationPatch.getFeeType());
+    assertThat(calculatedFeeDetail.getCategoryOfLaw())
+        .isEqualTo(feeCalculationPatch.getCategoryOfLaw());
+    assertThat(calculatedFeeDetail.getTotalAmount())
+        .isEqualTo(feeCalculationPatch.getTotalAmount());
+    assertThat(calculatedFeeDetail.getVatIndicator())
+        .isEqualTo(feeCalculationPatch.getVatIndicator());
+    assertThat(calculatedFeeDetail.getVatRateApplied())
+        .isEqualTo(feeCalculationPatch.getVatRateApplied());
+    assertThat(calculatedFeeDetail.getCalculatedVatAmount())
+        .isEqualTo(feeCalculationPatch.getCalculatedVatAmount());
+    assertThat(calculatedFeeDetail.getDisbursementAmount())
+        .isEqualTo(feeCalculationPatch.getDisbursementAmount());
+    assertThat(calculatedFeeDetail.getRequestedNetDisbursementAmount())
+        .isEqualTo(feeCalculationPatch.getRequestedNetDisbursementAmount());
+    assertThat(calculatedFeeDetail.getDisbursementVatAmount())
+        .isEqualTo(feeCalculationPatch.getDisbursementVatAmount());
+    assertThat(calculatedFeeDetail.getHourlyTotalAmount())
+        .isEqualTo(feeCalculationPatch.getHourlyTotalAmount());
+    assertThat(calculatedFeeDetail.getFixedFeeAmount())
+        .isEqualTo(feeCalculationPatch.getFixedFeeAmount());
+    assertThat(calculatedFeeDetail.getNetProfitCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetProfitCostsAmount());
+    assertThat(calculatedFeeDetail.getRequestedNetProfitCostsAmount())
+        .isEqualTo(feeCalculationPatch.getRequestedNetProfitCostsAmount());
+    assertThat(calculatedFeeDetail.getNetCostOfCounselAmount())
+        .isEqualTo(feeCalculationPatch.getNetCostOfCounselAmount());
+    assertThat(calculatedFeeDetail.getNetTravelCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetTravelCostsAmount());
+    assertThat(calculatedFeeDetail.getNetWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getNetWaitingCostsAmount());
+    assertThat(calculatedFeeDetail.getDetentionAndWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getDetentionAndWaitingCostsAmount());
+    assertThat(calculatedFeeDetail.getJrFormFillingAmount())
+        .isEqualTo(feeCalculationPatch.getJrFormFillingAmount());
+    assertThat(calculatedFeeDetail.getTravelAndWaitingCostsAmount())
+        .isEqualTo(feeCalculationPatch.getTravelAndWaitingCostsAmount());
+
+    // Test fields from BoltOnPatch are null
+    assertNull(calculatedFeeDetail.getBoltOnTotalFeeAmount());
+    assertNull(calculatedFeeDetail.getBoltOnAdjournedHearingCount());
+    assertNull(calculatedFeeDetail.getBoltOnAdjournedHearingFee());
+    assertNull(calculatedFeeDetail.getBoltOnCmrhTelephoneCount());
+    assertNull(calculatedFeeDetail.getBoltOnCmrhTelephoneFee());
+    assertNull(calculatedFeeDetail.getBoltOnCmrhOralCount());
+    assertNull(calculatedFeeDetail.getBoltOnCmrhOralFee());
+    assertNull(calculatedFeeDetail.getBoltOnHomeOfficeInterviewCount());
+    assertNull(calculatedFeeDetail.getBoltOnHomeOfficeInterviewFee());
+    assertNull(calculatedFeeDetail.getEscapeCaseFlag());
+    assertNull(calculatedFeeDetail.getSchemeId());
+  }
+
+  private static FeeCalculationPatch getFeeCalculationPatch() {
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    feeCalculationPatch.calculatedFeeDetailId("FEE_DETAIL_ID");
+    feeCalculationPatch.claimSummaryFeeId(Uuid7.timeBasedUuid());
+    feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
+    feeCalculationPatch.feeCode("FEE_CODE");
+    feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
+    feeCalculationPatch.feeType(FeeCalculationType.DISBURSEMENT_ONLY);
+    feeCalculationPatch.categoryOfLaw("CRIME");
+    feeCalculationPatch.totalAmount(new BigDecimal("768.45"));
+    feeCalculationPatch.vatIndicator(true);
+    feeCalculationPatch.vatRateApplied(new BigDecimal("20.00"));
+    feeCalculationPatch.calculatedVatAmount(new BigDecimal("155.07"));
+    feeCalculationPatch.disbursementAmount(new BigDecimal("345.26"));
+    feeCalculationPatch.requestedNetDisbursementAmount(new BigDecimal("546.12"));
+    feeCalculationPatch.disbursementVatAmount(new BigDecimal("25.00"));
+    feeCalculationPatch.hourlyTotalAmount(new BigDecimal("65.00"));
+    feeCalculationPatch.fixedFeeAmount(new BigDecimal("345.07"));
+    feeCalculationPatch.netProfitCostsAmount(new BigDecimal("245.07"));
+    feeCalculationPatch.requestedNetProfitCostsAmount(new BigDecimal("615.56"));
+    feeCalculationPatch.netCostOfCounselAmount(new BigDecimal("156.78"));
+    feeCalculationPatch.netTravelCostsAmount(new BigDecimal("365.87"));
+    feeCalculationPatch.netWaitingCostsAmount(new BigDecimal("274.25"));
+    feeCalculationPatch.detentionAndWaitingCostsAmount(new BigDecimal("347.63"));
+    feeCalculationPatch.jrFormFillingAmount(new BigDecimal("612.98"));
+    feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
+    return feeCalculationPatch;
   }
 }

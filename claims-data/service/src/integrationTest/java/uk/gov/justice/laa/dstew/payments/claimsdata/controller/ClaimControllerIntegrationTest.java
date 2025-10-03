@@ -72,7 +72,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldSaveAClaimToDatabase() throws Exception {
     // given: submission test data exists in the database
     getSubmissionTestData();
-    final ClaimPost claimPost = createClaimPost();
+    final ClaimPost claimPost = getClaimPost();
 
     // when: calling the POST endpoint with the ClaimPost
     MvcResult result =
@@ -113,7 +113,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
-    final ClaimPost claimPost = createClaimPost();
+    final ClaimPost claimPost = getClaimPost();
     // when: calling the POST endpoint with an invalid token, 401 should be returned
     mockMvc
         .perform(

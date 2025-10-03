@@ -41,6 +41,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired protected SubmissionRepository submissionRepository;
   @Autowired protected ClaimRepository claimRepository;
+  @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
   @Autowired protected MockMvc mockMvc;
 
@@ -53,6 +54,7 @@ public abstract class AbstractIntegrationTest {
 
   public Submission getSubmissionTestData() {
     clientRepository.deleteAll();
+    claimSummaryFeeRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();

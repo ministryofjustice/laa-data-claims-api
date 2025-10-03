@@ -6,11 +6,14 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
@@ -71,4 +74,47 @@ public interface ClaimMapper {
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
+
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "claim", ignore = true)
+  @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "updatedOn", ignore = true)
+  ClaimSummaryFee toClaimSummaryFee(ClaimPost claimPost);
+
+  /** Map a fee calculation response string to a calculated fee detail. */
+  @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
+  @Mapping(target = "claimSummaryFee", ignore = true)
+  @Mapping(target = "claim", ignore = true)
+  @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "updatedOn", ignore = true)
+  @Mapping(target = "feeCode", source = "response.feeCode")
+  @Mapping(target = "boltOnTotalFeeAmount", source = "response.boltOnDetails.boltOnTotalFeeAmount")
+  @Mapping(
+      target = "boltOnAdjournedHearingCount",
+      source = "response.boltOnDetails.boltOnAdjournedHearingCount")
+  @Mapping(
+      target = "boltOnAdjournedHearingFee",
+      source = "response.boltOnDetails.boltOnAdjournedHearingFee")
+  @Mapping(
+      target = "boltOnCmrhTelephoneCount",
+      source = "response.boltOnDetails.boltOnCmrhTelephoneCount")
+  @Mapping(
+      target = "boltOnCmrhTelephoneFee",
+      source = "response.boltOnDetails.boltOnCmrhTelephoneFee")
+  @Mapping(target = "boltOnCmrhOralCount", source = "response.boltOnDetails.boltOnCmrhOralCount")
+  @Mapping(target = "boltOnCmrhOralFee", source = "response.boltOnDetails.boltOnCmrhOralFee")
+  @Mapping(
+      target = "boltOnHomeOfficeInterviewCount",
+      source = "response.boltOnDetails.boltOnHomeOfficeInterviewCount")
+  @Mapping(
+      target = "boltOnHomeOfficeInterviewFee",
+      source = "response.boltOnDetails.boltOnHomeOfficeInterviewFee")
+  @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
+  @Mapping(target = "schemeId", source = "response.boltOnDetails.schemeId")
+  CalculatedFeeDetail toCalculatedFeeDetail(FeeCalculationPatch response);
 }
