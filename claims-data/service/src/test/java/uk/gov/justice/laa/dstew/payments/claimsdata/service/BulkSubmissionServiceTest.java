@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,11 +45,16 @@ class BulkSubmissionServiceTest {
     String userId = "test-user-id";
     GetBulkSubmission200ResponseDetails mockDetails =
         mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockOffice.getAccount()).thenReturn("TEST");
+
     doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
 
     // Test
     CreateBulkSubmission201Response response =
-        bulkSubmissionService.submitBulkSubmissionFile(userId, file);
+        bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST"));
 
     // Assert
     assertNotNull(response);

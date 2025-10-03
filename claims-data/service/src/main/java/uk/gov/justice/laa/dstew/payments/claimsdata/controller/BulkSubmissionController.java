@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +29,13 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
 
   @Override
   public ResponseEntity<CreateBulkSubmission201Response> createBulkSubmission(
-      String userId, MultipartFile file) {
+      final String userId, final List<String> offices, final MultipartFile file) {
     // Validate file
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
     CreateBulkSubmission201Response bulkSubmissionResponse =
-        bulkSubmissionService.submitBulkSubmissionFile(userId, file);
+        bulkSubmissionService.submitBulkSubmissionFile(userId, file, offices);
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/api/v0/submissions/{id}")

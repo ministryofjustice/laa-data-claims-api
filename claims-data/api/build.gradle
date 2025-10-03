@@ -19,6 +19,7 @@ dependencies {
     implementation 'org.springframework.data:spring-data-commons'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'org.projectlombok:lombok:1.18.38'
 }
 
 sourceSets.main.java.srcDirs += ['generated/src/main/java']

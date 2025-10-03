@@ -33,6 +33,14 @@ paths:
           description: The user ID of the user performing the bulk submission
           schema:
             type: string
+        - name: offices
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            description: List of office account numbers
       requestBody:
         required: true
         content:
@@ -642,6 +650,7 @@ components:
         - PARSING_FAILED
         - VALIDATION_FAILED
         - REPLACED
+        - UNAUTHORISED
     SubmissionPost:
       allOf:
         - $ref: '#/components/schemas/submission_base'

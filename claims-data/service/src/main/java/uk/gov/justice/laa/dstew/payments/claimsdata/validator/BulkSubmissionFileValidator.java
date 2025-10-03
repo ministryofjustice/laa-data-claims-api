@@ -11,7 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionVali
  *
  * @author Jamie Briggs
  * @see MultipartFile
- * @see uk.gov.justice.laa.dstew.payments.claimsdata.exception.GlobalExceptionHandler
+ * @see uk.gov.justice.laa.dstew.payments.claimsdata.exception.DataClaimsExceptionHandler
  */
 @Component
 public class BulkSubmissionFileValidator {
