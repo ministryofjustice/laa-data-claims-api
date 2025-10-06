@@ -31,7 +31,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionInvalidFileException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.GlobalExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DataClaimsExceptionHandler;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
@@ -66,7 +66,7 @@ class BulkSubmissionControllerTest {
     mockMvc =
         MockMvcTester.create(
                 standaloneSetup(bulkSubmissionController)
-                    .setControllerAdvice(new GlobalExceptionHandler())
+                    .setControllerAdvice(new DataClaimsExceptionHandler())
                     .build())
             .withHttpMessageConverters(singletonList(mappingJackson2HttpMessageConverter));
     mockMultipartFile =
@@ -84,14 +84,16 @@ class BulkSubmissionControllerTest {
       expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
-      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any())).thenReturn(expected);
+      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any()))
+          .thenReturn(expected);
 
       // Perform POST with multipart file
       assertThat(
               mockMvc.perform(
                   multipart(BULK_SUBMISSIONS_URI)
                       .file("file", mockMultipartFile.getBytes())
-                      .param("userId", USER_ID)))
+                      .param("userId", USER_ID)
+                      .param("offices", "OFFICE1,OFFICE2")))
           .hasStatus(201)
           .hasHeader(
               "Location",
@@ -113,10 +115,11 @@ class BulkSubmissionControllerTest {
               mockMvc.perform(
                   multipart(BULK_SUBMISSIONS_URI)
                       .file("file", mockMultipartFile.getBytes())
-                      .param("userId", USER_ID)))
+                      .param("userId", USER_ID)
+                      .param("offices", "OFFICE1,OFFICE2")))
           .hasStatus(400)
           .bodyText()
-          .isEqualTo("This error was found");
+          .contains("This error was found");
     }
 
     @Test
@@ -147,7 +150,8 @@ class BulkSubmissionControllerTest {
               mockMvc.perform(
                   multipart(BULK_SUBMISSIONS_URI)
                       .file("file", mockMultipartFile.getBytes())
-                      .param("userId", USER_ID)))
+                      .param("userId", USER_ID)
+                      .param("offices", "OFFICE1,OFFICE2")))
           .hasStatus(415)
           .bodyText()
           .contains("Unsupported media type");

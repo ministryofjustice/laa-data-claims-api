@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -12,15 +13,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.laa.springboot.exception.ApplicationException;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
@@ -55,25 +59,56 @@ public class BulkSubmissionService
    *     the bulk).
    */
   public CreateBulkSubmission201Response submitBulkSubmissionFile(
-      @NotNull String userId, @NotNull MultipartFile file) {
+      @NotNull String userId, @NotNull MultipartFile file, final List<String> offices)
+      throws ApplicationException {
+
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
 
-    BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder = BulkSubmission.builder();
+    UUID bulkSubmissionId = Uuid7.timeBasedUuid();
 
-    bulkSubmissionBuilder.data(bulkSubmissionDetails);
-    bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING);
-    bulkSubmissionBuilder.createdByUserId(userId);
-    bulkSubmissionBuilder.id(Uuid7.timeBasedUuid());
-    BulkSubmission bulkSubmission = bulkSubmissionBuilder.build();
+    BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder =
+        BulkSubmission.builder()
+            .id(bulkSubmissionId)
+            .data(bulkSubmissionDetails)
+            .createdByUserId(userId)
+            .authorisedOffices(String.join(",", offices));
 
-    bulkSubmissionRepository.save(bulkSubmission);
+    String officeCode =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getOffice)
+            .map(GetBulkSubmission200ResponseDetailsOffice::getAccount)
+            .orElse(null);
+
+    // Validation: check if file's office is in authorised list
+    if (officeCode == null || !offices.contains(officeCode)) {
+      String errorMessage =
+          "User does not have authorisation to submit for office "
+              + officeCode
+              + ". Please verify your office code and access permissions.";
+
+      BulkSubmission unauthorised =
+          bulkSubmissionBuilder
+              .status(BulkSubmissionStatus.UNAUTHORISED)
+              .errorCode("OFFICE_UNAUTHORISED")
+              .errorDescription(errorMessage)
+              .build();
+
+      bulkSubmissionRepository.save(unauthorised);
+
+      throw new BulkSubmissionOfficeAuthorisationException(errorMessage);
+    }
+
+    BulkSubmission authorised =
+        bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING).build();
+
+    bulkSubmissionRepository.save(authorised);
 
     UUID newSubmissionId = Uuid7.timeBasedUuid();
-
     submissionEventPublisherService.publishBulkSubmissionEvent(
-        bulkSubmission.getId(), List.of(newSubmissionId));
+        authorised.getId(), List.of(newSubmissionId));
+
     return new CreateBulkSubmission201Response()
-        .bulkSubmissionId(bulkSubmission.getId())
+        .bulkSubmissionId(authorised.getId())
         .submissionIds(Collections.singletonList(newSubmissionId));
   }
 
