@@ -111,8 +111,8 @@ class SubmissionControllerTest {
             .submissionPeriod("2025-07")
             .areaOfLaw("CIVIL")
             .isNilSubmission(false)
-            .claims(java.util.List.of())
-            .matterStarts(java.util.List.of());
+            .claims(List.of())
+            .matterStarts(List.of());
     when(submissionService.getSubmission(id)).thenReturn(response);
 
     mockMvc
@@ -124,7 +124,7 @@ class SubmissionControllerTest {
   @Test
   void updateSubmission_returnsNoContent() throws Exception {
     UUID id = Uuid7.timeBasedUuid();
-    String body = "{\"schedule_number\":\"123\"}";
+    String body = "{\"crime_schedule_number\":\"123\"}";
 
     mockMvc
         .perform(

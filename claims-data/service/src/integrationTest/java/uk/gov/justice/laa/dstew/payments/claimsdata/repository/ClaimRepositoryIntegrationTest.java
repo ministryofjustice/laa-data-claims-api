@@ -1,14 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLIENT_2_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_3_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -127,8 +120,6 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         Claim.builder()
             .id(Uuid7.timeBasedUuid())
             .submission(submission3)
-            .scheduleReference("OFF_333/CIVIL")
-            .caseReferenceNumber("CASE_333")
             .uniqueFileNumber("UFN_333")
             .lineNumber(333)
             .matterTypeCode("MTC_333")
@@ -226,6 +217,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         .usingRecursiveComparison()
         .ignoringFields(IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
         .isEqualTo(claim3);
+    assertThat(result.getContent().getFirst().getCaseReferenceNumber()).isNull();
+    assertThat(result.getContent().getFirst().getScheduleReference()).isNull();
   }
 
   @Test
@@ -270,6 +263,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         .ignoringFields(
             "id", IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
         .isEqualTo(actualClaim2);
+    assertThat(actualClaim1.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+    assertThat(actualClaim1.getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
   }
 
   /**

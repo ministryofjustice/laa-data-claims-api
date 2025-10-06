@@ -49,7 +49,11 @@ public class Submission {
   @Enumerated(EnumType.STRING)
   private SubmissionStatus status;
 
-  private String scheduleNumber;
+  private String crimeScheduleNumber;
+
+  private String civilSubmissionReference;
+
+  private String mediationSubmissionReference;
 
   private UUID previousSubmissionId;
 

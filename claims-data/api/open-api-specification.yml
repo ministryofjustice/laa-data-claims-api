@@ -742,9 +742,15 @@ components:
           description: Area of law (e.g., "crime", "civil").
         status:
           $ref: "#/components/schemas/submission_status"
-        schedule_number:
+        crime_schedule_number:
           type: string
-          description: Optional schedule number.
+          description: Optional crime schedule number.
+        civil_submission_reference:
+          type: string
+          description: Optional civil submission reference.
+        mediation_submission_reference:
+          type: string
+          description: Optional mediation submission reference.
         previous_submission_id:
           type: string
           format: uuid
@@ -1359,6 +1365,19 @@ components:
           type: string
         delivery_location:
           type: string
+        mediation_type:
+          $ref: "#/components/schemas/mediation_type"
+    mediation_type:
+      type: string
+      enum:
+        - "MDCS Child Only Sole"
+        - "MDCC Child Only Co"
+        - "MDPS Property & Finance Sole"
+        - "MDPC Property & Finance Co"
+        - "MDAS All Issues Sole"
+        - "MDAC All Issues Co"
+      description: |
+        The type of mediation for matter start.
     validation_message_patch:
       type: object
       description: Validation message

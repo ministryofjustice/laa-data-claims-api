@@ -36,7 +36,7 @@ public class ClaimsDataTestUtil {
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
   public static final String AREA_OF_LAW = "CIVIL";
-  public static final String SCHEDULE_NUMBER = "OFF_123/CIVIL";
+  public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
   public static final String FEE_CODE = "FEE_123";
@@ -45,7 +45,8 @@ public class ClaimsDataTestUtil {
   public static final String MATTER_TYPE_CODE = "MTC_123";
   public static final Integer LINE_NUMBER = 123;
   public static final String CASE_REFERENCE = "CASE_123";
-  public static final String PROCURAMENT_AREA_CODE = "PAC_123";
+  public static final String SCHEDULE_REFERENCE = "SCH_123";
+  public static final String PROCUREMENT_AREA_CODE = "PAC_123";
   public static final String ACCESS_POINT_CODE = "APC_123";
   public static final String DELIVERY_LOCATION = "London";
   public static final String CLIENT_FORENAME = "Forename";
@@ -57,7 +58,6 @@ public class ClaimsDataTestUtil {
   // must match application-test.yml for test-runner token
   public static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
   public static final String AUTHORIZATION_HEADER = "Authorization";
-  public static final String SCHEDULE_REFERENCE = "SCH123";
 
   public ClaimsDataTestUtil() {
     throw new IllegalStateException("Cannot instantiate utility class");
@@ -213,7 +213,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .scheduleNumber(SCHEDULE_NUMBER)
+        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
@@ -229,7 +229,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .scheduleNumber(SCHEDULE_NUMBER)
+        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
@@ -241,7 +241,7 @@ public class ClaimsDataTestUtil {
     return Claim.builder()
         .id(CLAIM_1_ID)
         .submission(getSubmission())
-        .scheduleReference(SCHEDULE_NUMBER)
+        .scheduleReference(SCHEDULE_REFERENCE)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
         .lineNumber(LINE_NUMBER)
@@ -250,7 +250,7 @@ public class ClaimsDataTestUtil {
         .caseConcludedDate(LocalDate.now().minusDays(30))
         .feeCode(FEE_CODE)
         .status(ClaimStatus.READY_TO_PROCESS)
-        .procurementAreaCode(PROCURAMENT_AREA_CODE)
+        .procurementAreaCode(PROCUREMENT_AREA_CODE)
         .accessPointCode(ACCESS_POINT_CODE)
         .deliveryLocation(DELIVERY_LOCATION)
         .createdByUserId(USER_ID)
@@ -276,13 +276,13 @@ public class ClaimsDataTestUtil {
   public static ClaimResponse getClaimResponse() {
     return ClaimResponse.builder()
         .id(String.valueOf(CLAIM_1_ID))
-        .scheduleReference(SCHEDULE_NUMBER)
+        .scheduleReference(SCHEDULE_REFERENCE)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
         .caseStartDate(String.valueOf(LocalDate.now().minusDays(365)))
         .caseConcludedDate(String.valueOf(LocalDate.now().minusDays(30)))
         .feeCode(FEE_CODE)
-        .procurementAreaCode(PROCURAMENT_AREA_CODE)
+        .procurementAreaCode(PROCUREMENT_AREA_CODE)
         .accessPointCode(ACCESS_POINT_CODE)
         .deliveryLocation(DELIVERY_LOCATION)
         .clientForename(CLIENT_FORENAME)
