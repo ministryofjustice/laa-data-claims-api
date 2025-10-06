@@ -765,14 +765,8 @@ components:
         - $ref: '#/components/schemas/claim_response'
       required:
         - status
-        - schedule_reference
         - line_number
-        - case_reference_number
-        - unique_file_number
-        - case_start_date
-        - case_concluded_date
         - matter_type_code
-        - outcome_code
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
