@@ -158,8 +158,10 @@ public class SubmissionService
 
     Page<Submission> page =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                    offices, submissionId, submittedDateFrom, submittedDateTo)
+            SubmissionSpecification.filterByOfficeAccountNumberIn(offices)
+                .and(SubmissionSpecification.submissionIdEquals(submissionId))
+                .and(SubmissionSpecification.createdOnOrAfter(submittedDateFrom))
+                .and(SubmissionSpecification.createdOnOrBefore(submittedDateTo))
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
                 .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod)),
             pageable);

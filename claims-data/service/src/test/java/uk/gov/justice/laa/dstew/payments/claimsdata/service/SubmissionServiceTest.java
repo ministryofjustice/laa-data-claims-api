@@ -35,7 +35,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
@@ -241,12 +240,6 @@ class SubmissionServiceTest {
 
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
-
-    Specification<Submission> spec =
-        SubmissionSpecification.filterBy(
-                OFFICE_CODES, SUBMISSION_ID.toString(), SUBMITTED_DATE_FROM, SUBMITTED_DATE_TO)
-            .and(SubmissionSpecification.areaOfLawEqual(AREA_OF_LAW))
-            .and(SubmissionSpecification.submissionPeriodEqual(SUBMISSION_PERIOD));
 
     when(submissionsResultSetMapper.toSubmissionsResultSet(eq(resultPage)))
         .thenReturn(new SubmissionsResultSet());

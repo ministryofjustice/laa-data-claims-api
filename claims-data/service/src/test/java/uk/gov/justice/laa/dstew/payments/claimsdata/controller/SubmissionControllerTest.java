@@ -34,6 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(SubmissionController.class)
@@ -156,11 +157,11 @@ class SubmissionControllerTest {
         .perform(
             get(SUBMISSIONS_URI)
                 .queryParam("offices", String.valueOf(List.of("office1", "office2", "office3")))
-                .queryParam("submissionId", String.valueOf(SUBMISSION_ID))
-                .queryParam("submittedDateFrom", String.valueOf(LocalDate.of(2025, 1, 1)))
-                .queryParam("submittedDateTo", String.valueOf(LocalDate.of(2025, 12, 31)))
-                .queryParam("areaOfLaw", "CIVIL")
-                .queryParam("submissionPeriod", "2205-19")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
+                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam("area_of_law", "CIVIL")
+                .queryParam("submission_period", "2205-19")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk())
         .andExpect(content().json(jsonContent));
@@ -170,7 +171,7 @@ class SubmissionControllerTest {
   @Test
   void getSubmissions_callsSubmissionServiceWithRightArguments() throws Exception {
 
-    var submissionBase = new SubmissionBase();
+    var submissionBase = ClaimsDataTestUtil.getSubmissionBase();
     var expected = new SubmissionsResultSet().content(List.of(submissionBase));
 
     when(submissionService.getSubmissionsResultSet(
@@ -186,11 +187,11 @@ class SubmissionControllerTest {
         .perform(
             get(SUBMISSIONS_URI)
                 .queryParam("offices", "office1", "office2", "office3")
-                .queryParam("submissionId", String.valueOf(SUBMISSION_ID))
-                .queryParam("submittedDateFrom", String.valueOf(LocalDate.of(2025, 1, 1)))
-                .queryParam("submittedDateTo", String.valueOf(LocalDate.of(2025, 12, 31)))
-                .queryParam("areaOfLaw", "CIVIL")
-                .queryParam("submissionPeriod", "2205-19")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
+                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam("area_of_law", "CIVIL")
+                .queryParam("submission_period", "2205-19")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk());
 

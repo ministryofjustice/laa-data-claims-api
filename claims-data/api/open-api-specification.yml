@@ -212,33 +212,33 @@ paths:
             items:
               type: string
             description: Filter by list of office account numbers
-        - name: submissionId
+        - name: submission_id
           in: query
           required: false
           schema:
             type: string
           description: Filter by submission ID
-        - name: submittedDateFrom
+        - name: submitted_date_from
           in: query
           required: false
           schema:
             type: string
             format: date
           description: Filter submissions submitted from this date (inclusive)
-        - name: submittedDateTo
+        - name: submitted_date_to
           in: query
           required: false
           schema:
             type: string
             format: date
           description: Filter submissions submitted up to this date (inclusive)
-        - name: areaOfLaw
+        - name: area_of_law
           in: query
           required: false
           schema:
             type: string
           description: Filter by area of law
-        - name: submissionPeriod
+        - name: submission_period
           in: query
           required: false
           schema:
