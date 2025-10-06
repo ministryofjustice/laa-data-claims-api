@@ -10,6 +10,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,16 +86,17 @@ class SubmissionServiceTest {
             .submissionPeriod("APR-2024")
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
-            .scheduleNumber("SCH-123")
+            .crimeScheduleNumber("SCH-123")
+            .civilSubmissionReference("CIVIL-SUB-123")
+            .mediationSubmissionReference("MEDIATION-SUB-123")
             .previousSubmissionId(submissionId)
             .isNilSubmission(false)
             .numberOfClaims(10)
             .createdOn(Instant.now())
             .build();
-    when(submissionRepository.findById(submissionId)).thenReturn(java.util.Optional.of(entity));
-    when(claimService.getClaimsForSubmission(submissionId)).thenReturn(java.util.List.of());
-    when(matterStartService.getMatterStartIdsForSubmission(submissionId))
-        .thenReturn(java.util.List.of());
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(submissionId)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(submissionId)).thenReturn(List.of());
 
     SubmissionResponse result = submissionService.getSubmission(submissionId);
 
@@ -101,7 +106,7 @@ class SubmissionServiceTest {
   @Test
   void shouldThrowWhenSubmissionNotFoundOnGet() {
     UUID id = Uuid7.timeBasedUuid();
-    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
+    when(submissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(SubmissionNotFoundException.class, () -> submissionService.getSubmission(id));
   }
@@ -110,8 +115,24 @@ class SubmissionServiceTest {
   void shouldUpdateSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
-    SubmissionPatch patch = new SubmissionPatch().scheduleNumber("456");
-    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
+    SubmissionPatch patch = new SubmissionPatch().crimeScheduleNumber("456");
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  void shouldUpdateSubmissionWithCivilAndMediationSubmissionReferences() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionPatch patch =
+        new SubmissionPatch()
+            .civilSubmissionReference("CIVIL-123")
+            .mediationSubmissionReference("MED-123");
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -123,7 +144,7 @@ class SubmissionServiceTest {
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPatch patch = new SubmissionPatch();
-    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.empty());
+    when(submissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(
         SubmissionNotFoundException.class, () -> submissionService.updateSubmission(id, patch));
@@ -141,9 +162,8 @@ class SubmissionServiceTest {
             .displayMessage("A display message")
             .technicalMessage("A technical message");
 
-    SubmissionPatch patch =
-        new SubmissionPatch().validationMessages(java.util.List.of(messagePatch));
-    when(submissionRepository.findById(id)).thenReturn(java.util.Optional.of(entity));
+    SubmissionPatch patch = new SubmissionPatch().validationMessages(List.of(messagePatch));
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
     when(submissionMapper.toValidationMessageLog(any(), eq(entity)))
         .thenReturn(new ValidationMessageLog());
 

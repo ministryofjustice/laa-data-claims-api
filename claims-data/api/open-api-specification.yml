@@ -33,6 +33,14 @@ paths:
           description: The user ID of the user performing the bulk submission
           schema:
             type: string
+        - name: offices
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            description: List of office account numbers
       requestBody:
         required: true
         content:
@@ -654,6 +662,7 @@ components:
         - PARSING_FAILED
         - VALIDATION_FAILED
         - REPLACED
+        - UNAUTHORISED
     SubmissionPost:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -745,9 +754,15 @@ components:
           description: Area of law (e.g., "crime", "civil").
         status:
           $ref: "#/components/schemas/submission_status"
-        schedule_number:
+        crime_schedule_number:
           type: string
-          description: Optional schedule number.
+          description: Optional crime schedule number.
+        civil_submission_reference:
+          type: string
+          description: Optional civil submission reference.
+        mediation_submission_reference:
+          type: string
+          description: Optional mediation submission reference.
         previous_submission_id:
           type: string
           format: uuid
@@ -777,20 +792,15 @@ components:
         - $ref: '#/components/schemas/claim_response'
       required:
         - status
-        - schedule_reference
         - line_number
-        - case_reference_number
-        - unique_file_number
-        - case_start_date
-        - case_concluded_date
         - matter_type_code
-        - outcome_code
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
-        - $ref: '#/components/schemas/fee_calculation_response'
       type: object
       properties:
+        fee_calculation_response:
+          $ref: '#/components/schemas/fee_calculation_patch'
         validation_messages:
           type: array
           items:
@@ -1028,13 +1038,12 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
-    fee_calculation_response:
+    fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform
       properties:
         calculated_fee_detail_id:
           type: string
-          format: uuid
         claim_summary_fee_id:
           type: string
           format: uuid
@@ -1368,6 +1377,19 @@ components:
           type: string
         delivery_location:
           type: string
+        mediation_type:
+          $ref: "#/components/schemas/mediation_type"
+    mediation_type:
+      type: string
+      enum:
+        - "MDCS Child Only Sole"
+        - "MDCC Child Only Co"
+        - "MDPS Property & Finance Sole"
+        - "MDPC Property & Finance Co"
+        - "MDAS All Issues Sole"
+        - "MDAC All Issues Co"
+      description: |
+        The type of mediation for matter start.
     validation_message_patch:
       type: object
       description: Validation message

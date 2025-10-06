@@ -15,6 +15,7 @@ spring:
     placeholders:
       reporting_username: "reporting_user"
       reporting_password: "reporting_password"
+
   jpa:
     show-sql: false
     generate-ddl: false

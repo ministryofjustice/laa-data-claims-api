@@ -1,10 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
-import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
@@ -46,6 +44,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
   private static final String TEST_USER = "test-user";
   private static final String USER_ID_PARAM = "userId";
+  private static final String OFFICES_PARAM = "offices";
+  // has to match the office in the outcomes.csv file
+  private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -62,6 +63,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @BeforeAll
   void setup() {
+    submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
 
     // create the queue if it doesn't exist
@@ -88,6 +90,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
                 multipart(POST_BULK_SUBMISSION_ENDPOINT)
                     .file(file)
                     .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isCreated())
             .andReturn();
@@ -137,6 +140,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, TEST_OFFICE)
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
@@ -156,6 +160,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, TEST_OFFICE)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isUnsupportedMediaType());
   }
@@ -176,6 +181,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, TEST_OFFICE)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isUnsupportedMediaType());
   }
@@ -191,6 +197,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             multipart(POST_BULK_SUBMISSION_ENDPOINT)
                 .file(file)
                 .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, TEST_OFFICE)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
   }
@@ -205,14 +212,21 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
     // when: calling the POST endpoint, then: it should return a bad request.
-    mockMvc
-        .perform(
-            multipart(POST_BULK_SUBMISSION_ENDPOINT)
-                .file(file)
-                .param(USER_ID_PARAM, TEST_USER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest())
-        .andExpect(content().string("Failed to parse csv bulk submission file"));
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo("Failed to parse csv bulk submission file");
+    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
   }
 
   @Test
@@ -225,14 +239,21 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
     // when: calling the POST endpoint, then: it should return a bad request.
-    mockMvc
-        .perform(
-            multipart(POST_BULK_SUBMISSION_ENDPOINT)
-                .file(file)
-                .param(USER_ID_PARAM, TEST_USER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest())
-        .andExpect(content().string("Office missing from csv bulk submission file"));
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo("Office missing from csv bulk submission file");
+    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
   }
 
   @Test
@@ -245,15 +266,21 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
 
     // when: calling the POST endpoint, then: it should return a bad request.
-    mockMvc
-        .perform(
-            multipart(POST_BULK_SUBMISSION_ENDPOINT)
-                .file(file)
-                .param(USER_ID_PARAM, TEST_USER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest())
-        .andExpect(
-            content().string("Failed to parse bulk submission file header: OFFICE;account="));
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo("Failed to parse bulk submission file header: OFFICE;account=");
+    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
   }
 
   @Test
@@ -314,11 +341,48 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Test
   void shouldReturnNotFoundForGetBulkSubmissionWhenItDoesNotExist() throws Exception {
     // when: calling the GET endpoint with a random ID, it should return not found.
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
+    assertThat(json.get("httpStatus").asInt()).isEqualTo(404);
+  }
+
+  @Test
+  void shouldStoreUnauthorisedSubmissionWhenOfficeCodeDoesNotMatch() throws Exception {
+    // given: a CSV with office code that doesn't match the provided param
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: submitting the file with mismatched authorised office
     mockMvc
         .perform(
-            get(GET_BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, "n/a")
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isNotFound())
-        .andExpect(content().string(format("No entity found with id: %s", BULK_SUBMISSION_ID)));
+        .andExpect(status().isForbidden());
+
+    // then: data is still persisted in DB with UNAUTHORISED status
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+
+    BulkSubmission saved = submissions.getFirst();
+    assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.UNAUTHORISED);
+    assertThat(saved.getErrorCode()).isEqualTo("OFFICE_UNAUTHORISED");
+    assertThat(saved.getErrorDescription()).contains("User does not have authorisation");
+    assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
+
+    // clean up the test-data
+    bulkSubmissionRepository.deleteAll();
   }
 }

@@ -41,6 +41,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired protected SubmissionRepository submissionRepository;
   @Autowired protected ClaimRepository claimRepository;
+  @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
   @Autowired protected MockMvc mockMvc;
 
@@ -53,6 +54,7 @@ public abstract class AbstractIntegrationTest {
 
   public Submission getSubmissionTestData() {
     clientRepository.deleteAll();
+    claimSummaryFeeRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
@@ -76,7 +78,7 @@ public abstract class AbstractIntegrationTest {
             .submissionPeriod(SUBMISSION_PERIOD)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
-            .scheduleNumber(SCHEDULE_NUMBER)
+            .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .numberOfClaims(0)
