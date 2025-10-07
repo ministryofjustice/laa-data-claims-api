@@ -35,6 +35,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -56,6 +57,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
@@ -75,6 +77,7 @@ class ClaimServiceTest {
   @Mock private ClaimResultSetMapper claimResultSetMapper;
   @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Mock private ClaimCaseRepository claimCaseRepository;
 
   @InjectMocks private ClaimService claimService;
 
@@ -86,11 +89,13 @@ class ClaimServiceTest {
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
     final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
+    final ClaimCase claimCase = ClaimCase.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(client);
     when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
+    when(claimMapper.toClaimCase(post)).thenReturn(claimCase);
 
     final UUID id = claimService.createClaim(submissionId, post);
 
@@ -102,13 +107,16 @@ class ClaimServiceTest {
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(client.getCreatedByUserId()).isEqualTo("todo");
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo("todo");
     assertThat(claimSummaryFee.getClaim()).isSameAs(claim);
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(claimCase.getClaim()).isSameAs(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(claimCase.getCreatedByUserId()).isEqualTo("todo");
     verify(claimRepository).save(claim);
     verify(clientRepository).save(client);
     verify(claimSummaryFeeRepository).save(claimSummaryFee);
+    verify(claimCaseRepository).save(claimCase);
   }
 
   public static Stream<Arguments> getClientTestingArguments() {
@@ -129,11 +137,13 @@ class ClaimServiceTest {
     final Claim claim = Claim.builder().build();
     final Client emptyClient = Client.builder().build();
     final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
+    final ClaimCase claimCase = ClaimCase.builder().build();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
     when(claimMapper.toClaim(post)).thenReturn(claim);
     when(clientMapper.toClient(post)).thenReturn(emptyClient);
     when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
+    when(claimMapper.toClaimCase(post)).thenReturn(claimCase);
 
     final UUID id = claimService.createClaim(submissionId, post);
 

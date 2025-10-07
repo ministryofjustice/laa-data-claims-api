@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -31,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
@@ -55,6 +57,7 @@ public class ClaimService
   private final ClaimResultSetMapper claimResultSetMapper;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  private final ClaimCaseRepository claimCaseRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -90,6 +93,13 @@ public class ClaimService
     //  TODO: DSTEW-323 replace with the actual user ID/name when available
     claimSummaryFee.setCreatedByUserId("todo");
     claimSummaryFeeRepository.save(claimSummaryFee);
+
+    ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
+    claimCase.setId(Uuid7.timeBasedUuid());
+    claimCase.setClaim(claim);
+    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    claimCase.setCreatedByUserId("todo");
+    claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);
     if (hasClientData(client)) {
