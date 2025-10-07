@@ -92,6 +92,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .isNilSubmission(false)
             .numberOfClaims(5)
             .createdByUserId(USER_ID)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
     submission2 =
         Submission.builder()
@@ -106,6 +107,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .isNilSubmission(true)
             .numberOfClaims(3)
             .createdByUserId(USER_ID)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));

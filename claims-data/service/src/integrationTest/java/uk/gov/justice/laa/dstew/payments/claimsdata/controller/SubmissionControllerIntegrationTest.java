@@ -100,6 +100,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionPeriod("JAN-25")
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
 
     // when: calling POST endpoint for submissions

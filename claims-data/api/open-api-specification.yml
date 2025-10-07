@@ -673,6 +673,7 @@ components:
         - submission_period
         - area_of_law
         - status
+        - provider_user_id
     SubmissionPatch:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -752,6 +753,9 @@ components:
         area_of_law:
           type: string
           description: Area of law (e.g., "crime", "civil").
+        provider_user_id:
+          type: string
+          description: The id of the provider user who created this submission (copied from bulk submission).
         status:
           $ref: "#/components/schemas/submission_status"
         crime_schedule_number:

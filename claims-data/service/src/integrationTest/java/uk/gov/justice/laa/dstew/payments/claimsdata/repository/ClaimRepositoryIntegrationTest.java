@@ -91,6 +91,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
             .createdByUserId(USER_ID)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
     submission2 =
         Submission.builder()
@@ -101,6 +102,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CRIME")
             .status(SubmissionStatus.READY_FOR_VALIDATION)
             .createdByUserId(USER_ID)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
     submission3 =
         Submission.builder()
@@ -111,6 +113,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CRIME")
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .build();
     submissionRepository.saveAll(List.of(submission1, submission2, submission3));
 

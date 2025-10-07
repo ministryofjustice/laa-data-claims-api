@@ -39,6 +39,7 @@ public class ClaimsDataTestUtil {
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
+  public static final String BULK_SUBMISSION_CREATED_BY_USER_ID = "a-provider-user-id";
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";
   public static final String UNIQUE_CLIENT_NUMBER = "UCN_123";
