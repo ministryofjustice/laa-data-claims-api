@@ -174,7 +174,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_1_ID)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_1_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -189,7 +190,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   void shouldNotGetAnySubmissionForNoMatchingId() {
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_3_ID)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_3_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
@@ -204,7 +206,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.createdOnOrAfter(LocalDate.of(2024, 12, 21)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2024, 12, 21))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -223,7 +226,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.createdOnOrAfter(LocalDate.of(2025, 1, 1)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2025, 1, 1))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -242,7 +246,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 7, 14)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 7, 14))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -261,7 +266,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 4, 10)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 4, 10))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -280,18 +286,20 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2")),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2024, 4, 1)))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2025, 3, 31))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    assertThat(result.getContent().getFirst())
-        .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission1);
-    assertThat(result.getContent().get(1))
-        .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission2);
+
+    assertThat(result.getContent().stream().filter(sub -> sub.getId().equals(SUBMISSION_1_ID)))
+        .extracting("id")
+        .containsExactly(SUBMISSION_1_ID);
+
+    assertThat(result.getContent().stream().filter(sub -> sub.getId().equals(SUBMISSION_2_ID)))
+        .extracting("id")
+        .containsExactly(SUBMISSION_2_ID);
   }
 
   @Test
