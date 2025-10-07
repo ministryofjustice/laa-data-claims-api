@@ -373,6 +373,205 @@ class ClaimMapperTest {
     assertThat(calculatedFeeDetail.getSchemeId()).isEqualTo(boltOnPatch.getSchemeId());
   }
 
+  @Test
+  void updateClaimResponseFromClaimSummaryFee_mapsFields() {
+    final ClaimSummaryFee summaryFee = new ClaimSummaryFee();
+    summaryFee.setAdviceTime(10);
+    summaryFee.setTravelTime(20);
+    summaryFee.setWaitingTime(30);
+    summaryFee.setNetProfitCostsAmount(new BigDecimal("123.45"));
+    summaryFee.setNetDisbursementAmount(new BigDecimal("67.89"));
+    summaryFee.setNetCounselCostsAmount(new BigDecimal("10.11"));
+    summaryFee.setDisbursementsVatAmount(new BigDecimal("12.34"));
+    summaryFee.setTravelWaitingCostsAmount(new BigDecimal("15.67"));
+    summaryFee.setNetWaitingCostsAmount(new BigDecimal("18.90"));
+    summaryFee.setIsVatApplicable(Boolean.TRUE);
+    summaryFee.setIsToleranceApplicable(Boolean.FALSE);
+    summaryFee.setPriorAuthorityReference("PA-123");
+    summaryFee.setIsLondonRate(Boolean.TRUE);
+    summaryFee.setAdjournedHearingFeeAmount(5);
+    summaryFee.setIsAdditionalTravelPayment(Boolean.FALSE);
+    summaryFee.setCostsDamagesRecoveredAmount(new BigDecimal("21.00"));
+    summaryFee.setMeetingsAttendedCode("MEET1");
+    summaryFee.setDetentionTravelWaitingCostsAmount(new BigDecimal("22.00"));
+    summaryFee.setJrFormFillingAmount(new BigDecimal("23.00"));
+    summaryFee.setIsEligibleClient(Boolean.TRUE);
+    summaryFee.setCourtLocationCode("COURT01");
+    summaryFee.setAdviceTypeCode("ADVICE01");
+    summaryFee.setMedicalReportsCount(3);
+    summaryFee.setIsIrcSurgery(Boolean.TRUE);
+    summaryFee.setSurgeryDate(LocalDate.of(2025, 1, 2));
+    summaryFee.setSurgeryClientsCount(4);
+    summaryFee.setSurgeryMattersCount(5);
+    summaryFee.setCmrhOralCount(6);
+    summaryFee.setCmrhTelephoneCount(7);
+    summaryFee.setAitHearingCentreCode("AITHC01");
+    summaryFee.setIsSubstantiveHearing(Boolean.FALSE);
+    summaryFee.setHoInterview(8);
+    summaryFee.setLocalAuthorityNumber("LA-001");
+
+    final ClaimResponse claimResponse = new ClaimResponse();
+
+    mapper.updateClaimResponseFromClaimSummaryFee(summaryFee, claimResponse);
+
+    assertThat(claimResponse.getAdviceTime()).isEqualTo(10);
+    assertThat(claimResponse.getTravelTime()).isEqualTo(20);
+    assertThat(claimResponse.getWaitingTime()).isEqualTo(30);
+    assertThat(claimResponse.getNetProfitCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("123.45"));
+    assertThat(claimResponse.getNetDisbursementAmount())
+        .isEqualByComparingTo(new BigDecimal("67.89"));
+    assertThat(claimResponse.getNetCounselCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("10.11"));
+    assertThat(claimResponse.getDisbursementsVatAmount())
+        .isEqualByComparingTo(new BigDecimal("12.34"));
+    assertThat(claimResponse.getTravelWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("15.67"));
+    assertThat(claimResponse.getNetWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("18.90"));
+    assertThat(claimResponse.getIsVatApplicable()).isTrue();
+    assertThat(claimResponse.getIsToleranceApplicable()).isFalse();
+    assertThat(claimResponse.getPriorAuthorityReference()).isEqualTo("PA-123");
+    assertThat(claimResponse.getIsLondonRate()).isTrue();
+    assertThat(claimResponse.getAdjournedHearingFeeAmount()).isEqualTo(5);
+    assertThat(claimResponse.getIsAdditionalTravelPayment()).isFalse();
+    assertThat(claimResponse.getDetentionTravelWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("22.00"));
+    assertThat(claimResponse.getSurgeryDate()).isEqualTo("2025-01-02");
+    assertThat(claimResponse.getIsSubstantiveHearing()).isFalse();
+    assertThat(claimResponse.getLocalAuthorityNumber()).isEqualTo("LA-001");
+    assertThat(claimResponse.getMeetingsAttendedCode()).isEqualTo("MEET1");
+  }
+
+  @Test
+  void updateClaimResponseFromCalculatedFeeDetail_createsNestedResponseWhenMissing() {
+    final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+    feeDetail.setClaim(claim);
+    feeDetail.setFeeCode("FEE001");
+    feeDetail.setFeeCodeDescription("Fee description");
+    feeDetail.setFeeType(FeeCalculationType.DISBURSEMENT_ONLY);
+    feeDetail.setCategoryOfLaw("LAW");
+    feeDetail.setTotalAmount(new BigDecimal("100.00"));
+    feeDetail.setVatIndicator(Boolean.TRUE);
+    feeDetail.setVatRateApplied(new BigDecimal("20.00"));
+    feeDetail.setCalculatedVatAmount(new BigDecimal("20.00"));
+    feeDetail.setDisbursementAmount(new BigDecimal("10.00"));
+    feeDetail.setRequestedNetDisbursementAmount(new BigDecimal("9.00"));
+    feeDetail.setDisbursementVatAmount(new BigDecimal("1.00"));
+    feeDetail.setHourlyTotalAmount(new BigDecimal("50.00"));
+    feeDetail.setFixedFeeAmount(new BigDecimal("30.00"));
+    feeDetail.setNetProfitCostsAmount(new BigDecimal("40.00"));
+    feeDetail.setRequestedNetProfitCostsAmount(new BigDecimal("35.00"));
+    feeDetail.setNetCostOfCounselAmount(new BigDecimal("25.00"));
+    feeDetail.setNetTravelCostsAmount(new BigDecimal("15.00"));
+    feeDetail.setNetWaitingCostsAmount(new BigDecimal("5.00"));
+    feeDetail.setDetentionAndWaitingCostsAmount(new BigDecimal("3.00"));
+    feeDetail.setJrFormFillingAmount(new BigDecimal("2.00"));
+    feeDetail.setTravelAndWaitingCostsAmount(new BigDecimal("4.00"));
+    feeDetail.setBoltOnTotalFeeAmount(new BigDecimal("6.00"));
+    feeDetail.setBoltOnAdjournedHearingCount(1);
+    feeDetail.setBoltOnAdjournedHearingFee(new BigDecimal("1.50"));
+    feeDetail.setBoltOnCmrhTelephoneCount(2);
+    feeDetail.setBoltOnCmrhTelephoneFee(new BigDecimal("2.50"));
+    feeDetail.setBoltOnCmrhOralCount(3);
+    feeDetail.setBoltOnCmrhOralFee(new BigDecimal("3.50"));
+    feeDetail.setBoltOnHomeOfficeInterviewCount(4);
+    feeDetail.setBoltOnHomeOfficeInterviewFee(new BigDecimal("4.50"));
+    feeDetail.setEscapeCaseFlag(Boolean.TRUE);
+    feeDetail.setSchemeId("SCHEME-01");
+
+    final ClaimResponse claimResponse = new ClaimResponse();
+
+    mapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, claimResponse);
+
+    final FeeCalculationPatch feeCalculationResponse = claimResponse.getFeeCalculationResponse();
+    assertNotNull(feeCalculationResponse);
+    assertThat(feeCalculationResponse.getClaimId()).isEqualTo(claim.getId());
+    assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("FEE001");
+    assertThat(feeCalculationResponse.getFeeCodeDescription()).isEqualTo("Fee description");
+    assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISBURSEMENT_ONLY);
+    assertThat(feeCalculationResponse.getCategoryOfLaw()).isEqualTo("LAW");
+    assertThat(feeCalculationResponse.getTotalAmount())
+        .isEqualByComparingTo(new BigDecimal("100.00"));
+    assertThat(feeCalculationResponse.getVatIndicator()).isTrue();
+    assertThat(feeCalculationResponse.getVatRateApplied())
+        .isEqualByComparingTo(new BigDecimal("20.00"));
+    assertThat(feeCalculationResponse.getCalculatedVatAmount())
+        .isEqualByComparingTo(new BigDecimal("20.00"));
+    assertThat(feeCalculationResponse.getDisbursementAmount())
+        .isEqualByComparingTo(new BigDecimal("10.00"));
+    assertThat(feeCalculationResponse.getRequestedNetDisbursementAmount())
+        .isEqualByComparingTo(new BigDecimal("9.00"));
+    assertThat(feeCalculationResponse.getDisbursementVatAmount())
+        .isEqualByComparingTo(new BigDecimal("1.00"));
+    assertThat(feeCalculationResponse.getHourlyTotalAmount())
+        .isEqualByComparingTo(new BigDecimal("50.00"));
+    assertThat(feeCalculationResponse.getFixedFeeAmount())
+        .isEqualByComparingTo(new BigDecimal("30.00"));
+    assertThat(feeCalculationResponse.getNetProfitCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("40.00"));
+    assertThat(feeCalculationResponse.getRequestedNetProfitCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("35.00"));
+    assertThat(feeCalculationResponse.getNetCostOfCounselAmount())
+        .isEqualByComparingTo(new BigDecimal("25.00"));
+    assertThat(feeCalculationResponse.getNetTravelCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("15.00"));
+    assertThat(feeCalculationResponse.getNetWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(feeCalculationResponse.getDetentionAndWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("3.00"));
+    assertThat(feeCalculationResponse.getJrFormFillingAmount())
+        .isEqualByComparingTo(new BigDecimal("2.00"));
+    assertThat(feeCalculationResponse.getTravelAndWaitingCostsAmount())
+        .isEqualByComparingTo(new BigDecimal("4.00"));
+
+    final BoltOnPatch boltOnDetails = feeCalculationResponse.getBoltOnDetails();
+    assertNotNull(boltOnDetails);
+    assertThat(boltOnDetails.getBoltOnTotalFeeAmount())
+        .isEqualByComparingTo(new BigDecimal("6.00"));
+    assertThat(boltOnDetails.getBoltOnAdjournedHearingCount()).isEqualTo(1);
+    assertThat(boltOnDetails.getBoltOnAdjournedHearingFee())
+        .isEqualByComparingTo(new BigDecimal("1.50"));
+    assertThat(boltOnDetails.getBoltOnCmrhTelephoneCount()).isEqualTo(2);
+    assertThat(boltOnDetails.getBoltOnCmrhTelephoneFee())
+        .isEqualByComparingTo(new BigDecimal("2.50"));
+    assertThat(boltOnDetails.getBoltOnCmrhOralCount()).isEqualTo(3);
+    assertThat(boltOnDetails.getBoltOnCmrhOralFee()).isEqualByComparingTo(new BigDecimal("3.50"));
+    assertThat(boltOnDetails.getBoltOnHomeOfficeInterviewCount()).isEqualTo(4);
+    assertThat(boltOnDetails.getBoltOnHomeOfficeInterviewFee())
+        .isEqualByComparingTo(new BigDecimal("4.50"));
+    assertThat(boltOnDetails.getEscapeCaseFlag()).isTrue();
+    assertThat(boltOnDetails.getSchemeId()).isEqualTo("SCHEME-01");
+  }
+
+  @Test
+  void updateClaimResponseFromCalculatedFeeDetail_reusesExistingNestedObjects() {
+    final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+    feeDetail.setClaim(claim);
+    feeDetail.setFeeCode("NEW-CODE");
+    feeDetail.setBoltOnTotalFeeAmount(new BigDecimal("12.34"));
+    feeDetail.setSchemeId("NEW-SCHEME");
+
+    final FeeCalculationPatch existingResponse = new FeeCalculationPatch().feeCode("OLD-CODE");
+    final BoltOnPatch existingBoltOn = new BoltOnPatch().schemeId("OLD-SCHEME");
+    existingResponse.setBoltOnDetails(existingBoltOn);
+
+    final ClaimResponse claimResponse =
+        new ClaimResponse().feeCalculationResponse(existingResponse);
+
+    mapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, claimResponse);
+
+    assertThat(claimResponse.getFeeCalculationResponse()).isSameAs(existingResponse);
+    assertThat(claimResponse.getFeeCalculationResponse().getBoltOnDetails())
+        .isSameAs(existingBoltOn);
+    assertThat(existingResponse.getFeeCode()).isEqualTo("NEW-CODE");
+    assertThat(existingBoltOn.getSchemeId()).isEqualTo("NEW-SCHEME");
+    assertThat(existingBoltOn.getBoltOnTotalFeeAmount())
+        .isEqualByComparingTo(new BigDecimal("12.34"));
+  }
+
   private static BoltOnPatch getBoltOnPatch() {
     final BoltOnPatch boltOnPatch = new BoltOnPatch();
     boltOnPatch.boltOnTotalFeeAmount(new BigDecimal("345.07"));
