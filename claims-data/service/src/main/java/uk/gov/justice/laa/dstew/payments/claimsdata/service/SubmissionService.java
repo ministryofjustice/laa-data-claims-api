@@ -161,7 +161,7 @@ public class SubmissionService
     Page<Submission> page =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(offices)
-                .and(SubmissionSpecification.submissionIdEquals(submissionId))
+                .and(SubmissionSpecification.submissionIdEqualTo(submissionId))
                 .and(SubmissionSpecification.createdOnOrAfter(submittedDateFrom))
                 .and(SubmissionSpecification.createdOnOrBefore(submittedDateTo))
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))

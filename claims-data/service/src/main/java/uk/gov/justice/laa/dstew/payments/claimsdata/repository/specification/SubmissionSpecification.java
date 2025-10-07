@@ -40,7 +40,7 @@ public final class SubmissionSpecification {
    * @param submissionId an optional String
    * @return a JPA {@code Specification}
    */
-  public static Specification<Submission> submissionIdEquals(final String submissionId) {
+  public static Specification<Submission> submissionIdEqualTo(final String submissionId) {
     return (root, query, cb) ->
         Optional.ofNullable(submissionId).isPresent()
             ? cb.equal(root.get("id"), UUID.fromString(submissionId))

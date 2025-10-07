@@ -48,7 +48,7 @@ class SubmissionSpecificationTest {
   void shouldBuildSpecificationWithSubmissionId() {
     UUID submissionId = Uuid7.timeBasedUuid();
     Specification<Submission> spec =
-        SubmissionSpecification.submissionIdEquals(submissionId.toString());
+        SubmissionSpecification.submissionIdEqualTo(submissionId.toString());
 
     Predicate withSubmissionId = Mockito.mock(Predicate.class);
 
@@ -63,7 +63,7 @@ class SubmissionSpecificationTest {
   @DisplayName("should return predicate when submission id not present")
   @Test
   void shouldBuildSpecificationWithoutSubmissionIdWhenNull() {
-    Specification<Submission> spec = SubmissionSpecification.submissionIdEquals(null);
+    Specification<Submission> spec = SubmissionSpecification.submissionIdEqualTo(null);
 
     Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
     var actualResults = spec.toPredicate(root, query, cb);
@@ -104,7 +104,7 @@ class SubmissionSpecificationTest {
   }
 
   @DisplayName(
-      "should return less than equals predicate when for Date on or before Created on date")
+      "should return Specification to filter submissions created on or before a provided date")
   @Test
   void shouldBuildSpecificationWithCreatedOnDateBefore() {
     LocalDate date = LocalDate.of(2025, 9, 1);
@@ -124,7 +124,7 @@ class SubmissionSpecificationTest {
     assertThat(actualResults).isNotNull();
   }
 
-  @DisplayName("should return predicate when when for Date on or before is null")
+  @DisplayName("should return conjunction predicate when provided date is null")
   @Test
   void shouldBuildSpecificationWithCreatedOnDateBeforeWhenNull() {
     Specification<Submission> spec = SubmissionSpecification.createdOnOrBefore(null);
@@ -152,7 +152,7 @@ class SubmissionSpecificationTest {
     assertThat(actualResults).isNotNull();
   }
 
-  @DisplayName("should return predicate when area of code is not present")
+  @DisplayName("should return conjunction predicate when area of code is null")
   @Test
   void shouldBuildSpecificationWithoutAreaOfLawWhenNull() {
     Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual(null);

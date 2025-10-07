@@ -175,7 +175,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
-                .and(SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_1_ID))),
+                .and(SubmissionSpecification.submissionIdEqualTo(String.valueOf(SUBMISSION_1_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -191,7 +191,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     Page<Submission> result =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
-                .and(SubmissionSpecification.submissionIdEquals(String.valueOf(SUBMISSION_3_ID))),
+                .and(SubmissionSpecification.submissionIdEqualTo(String.valueOf(SUBMISSION_3_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
