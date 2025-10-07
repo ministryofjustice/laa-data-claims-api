@@ -2,22 +2,22 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -53,9 +53,12 @@ class SubmissionServiceTest {
 
   @InjectMocks private SubmissionService submissionService;
 
+  @Captor private ArgumentCaptor<Specification> submissionSpecificationArgumentCaptor;
   private static final LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
   private static final LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
   private static final List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
+  private static final String AREA_OF_LAW = "CIVIL";
+  private static final String SUBMISSION_PERIOD = "2025-07";
 
   @Test
   void shouldCreateSubmission() {
@@ -180,6 +183,8 @@ class SubmissionServiceTest {
                 SUBMISSION_ID.toString(),
                 SUBMITTED_DATE_FROM,
                 SUBMITTED_DATE_TO,
+                AREA_OF_LAW,
+                SUBMISSION_PERIOD,
                 Pageable.unpaged()));
   }
 
@@ -193,6 +198,8 @@ class SubmissionServiceTest {
                 SUBMISSION_ID.toString(),
                 SUBMITTED_DATE_FROM,
                 SUBMITTED_DATE_TO,
+                AREA_OF_LAW,
+                SUBMISSION_PERIOD,
                 Pageable.unpaged()));
   }
 
@@ -213,6 +220,8 @@ class SubmissionServiceTest {
             SUBMISSION_ID.toString(),
             SUBMITTED_DATE_FROM,
             SUBMITTED_DATE_TO,
+            AREA_OF_LAW,
+            SUBMISSION_PERIOD,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
@@ -236,9 +245,38 @@ class SubmissionServiceTest {
             SUBMISSION_ID.toString(),
             SUBMITTED_DATE_FROM,
             SUBMITTED_DATE_TO,
+            AREA_OF_LAW,
+            SUBMISSION_PERIOD,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
     assertThat(actualResultSet.getContent()).isEmpty();
+  }
+
+  @DisplayName("Should call findAll with  Specification area of law and submission period")
+  @Test
+  void getSubmissionsResultSet_shouldCallFindAllWithSpecification() {
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    when(submissionsResultSetMapper.toSubmissionsResultSet(eq(resultPage)))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        Pageable.ofSize(10).withPage(0));
+
+    verify(submissionRepository)
+        .findAll(
+            submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+
+    assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }
 }

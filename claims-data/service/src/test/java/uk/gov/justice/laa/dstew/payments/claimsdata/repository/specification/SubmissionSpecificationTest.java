@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -29,7 +31,7 @@ class SubmissionSpecificationTest {
   @DisplayName("should build specification with only mandatory offices")
   void shouldBuildSpecificationWithOnlyMandatoryOffices() {
     Specification<Submission> spec =
-        SubmissionSpecification.filterBy(List.of("OFFICE1", "OFFICE2"), null, null, null);
+        SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("OFFICE1", "OFFICE2"));
 
     Predicate officePredicate = Mockito.mock(Predicate.class);
     Mockito.when(root.get("officeAccountNumber"))
@@ -41,76 +43,151 @@ class SubmissionSpecificationTest {
     assertThat(result).isNotNull();
   }
 
+  @DisplayName("should return equals predicate when submission id present")
   @Test
-  @DisplayName("should build specification with submissionId")
   void shouldBuildSpecificationWithSubmissionId() {
     UUID submissionId = Uuid7.timeBasedUuid();
-
     Specification<Submission> spec =
-        SubmissionSpecification.filterBy(List.of("OFFICE1"), submissionId.toString(), null, null);
+        SubmissionSpecification.submissionIdEqualTo(submissionId.toString());
 
-    Predicate base = Mockito.mock(Predicate.class);
-    Predicate withId = Mockito.mock(Predicate.class);
+    Predicate withSubmissionId = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("officeAccountNumber"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
     Mockito.when(root.get("id")).thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.and(Mockito.any())).thenReturn(base);
-    Mockito.when(cb.equal(Mockito.any(), Mockito.eq(submissionId))).thenReturn(withId);
-    Mockito.when(cb.and(base, withId)).thenReturn(withId);
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq(submissionId))).thenReturn(withSubmissionId);
 
-    Predicate result = spec.toPredicate(root, query, cb);
+    var actualResults = spec.toPredicate(root, query, cb);
 
-    assertThat(result).isNotNull();
+    assertThat(actualResults).isNotNull();
   }
 
+  @DisplayName("should return predicate when submission id not present")
   @Test
-  @DisplayName("should build specification with submittedDateFrom")
-  void shouldBuildSpecificationWithSubmittedDateFrom() {
-    LocalDate submittedDateFrom = LocalDate.of(2025, 1, 1);
+  void shouldBuildSpecificationWithoutSubmissionIdWhenNull() {
+    Specification<Submission> spec = SubmissionSpecification.submissionIdEqualTo(null);
 
-    Specification<Submission> spec =
-        SubmissionSpecification.filterBy(List.of("OFFICE1"), null, submittedDateFrom, null);
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
 
-    Predicate base = Mockito.mock(Predicate.class);
-    Predicate withDate = Mockito.mock(Predicate.class);
-
-    Mockito.when(root.get("officeAccountNumber"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(root.get("createdOn"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.and(Mockito.any())).thenReturn(base);
-    Mockito.when(cb.greaterThanOrEqualTo(Mockito.any(), Mockito.eq(submittedDateFrom)))
-        .thenReturn(withDate);
-    Mockito.when(cb.and(base, withDate)).thenReturn(withDate);
-
-    Predicate result = spec.toPredicate(root, query, cb);
-
-    assertThat(result).isNotNull();
+    assertThat(actualResults).isNotNull();
   }
 
+  @DisplayName("should greater than or equals predicate for Date on or after Created on date")
   @Test
-  @DisplayName("should build specification with submittedDateTo including end of day adjustment")
-  void shouldBuildSpecificationWithSubmittedDateTo() {
-    LocalDate submittedDateTo = LocalDate.of(2025, 9, 1);
+  void shouldBuildSpecificationWithCreatedOnDate() {
 
-    Specification<Submission> spec =
-        SubmissionSpecification.filterBy(List.of("OFFICE1"), null, null, submittedDateTo);
+    LocalDate date = LocalDate.of(2025, 9, 1);
+    Specification<Submission> spec = SubmissionSpecification.createdOnOrAfter(date);
 
-    Predicate base = Mockito.mock(Predicate.class);
-    Predicate withDate = Mockito.mock(Predicate.class);
+    Predicate mockedDatePredicate = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("officeAccountNumber"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
     Mockito.when(root.get("createdOn"))
         .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.and(Mockito.any())).thenReturn(base);
-    Mockito.when(cb.lessThanOrEqualTo(Mockito.any(), Mockito.any(LocalDateTime.class)))
-        .thenReturn(withDate);
-    Mockito.when(cb.and(base, withDate)).thenReturn(withDate);
+    Mockito.when(cb.greaterThanOrEqualTo(Mockito.any(), Mockito.eq(date)))
+        .thenReturn(mockedDatePredicate);
 
-    Predicate result = spec.toPredicate(root, query, cb);
+    var actualResults = spec.toPredicate(root, query, cb);
 
-    assertThat(result).isNotNull();
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return predicate when date on or after is null")
+  @Test
+  void shouldBuildSpecificationWithCreatedOnDateWhenNull() {
+    Specification<Submission> spec = SubmissionSpecification.createdOnOrAfter(null);
+
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).greaterThanOrEqualTo(Mockito.any(), Mockito.any(LocalDateTime.class));
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName(
+      "should return Specification to filter submissions created on or before a provided date")
+  @Test
+  void shouldBuildSpecificationWithCreatedOnDateBefore() {
+    LocalDate date = LocalDate.of(2025, 9, 1);
+    Specification<Submission> spec = SubmissionSpecification.createdOnOrBefore(date);
+
+    Predicate mockedDatePredicate = Mockito.mock(Predicate.class);
+
+    Mockito.when(root.get("createdOn"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(
+            cb.lessThanOrEqualTo(
+                Mockito.any(), Mockito.eq(date.plusDays(1).atStartOfDay().minusSeconds(1))))
+        .thenReturn(mockedDatePredicate);
+
+    var actualResults = spec.toPredicate(root, query, cb);
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return conjunction predicate when provided date is null")
+  @Test
+  void shouldBuildSpecificationWithCreatedOnDateBeforeWhenNull() {
+    Specification<Submission> spec = SubmissionSpecification.createdOnOrBefore(null);
+
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).lessThanOrEqualTo(Mockito.any(), Mockito.any(LocalDateTime.class));
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return equals predicate when area of code is present")
+  @Test
+  void shouldBuildSpecificationWithAreaOfLaw() {
+    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual("CIVIL");
+
+    Predicate withAreaOfCode = Mockito.mock(Predicate.class);
+
+    Mockito.when(root.get("areaOfLaw"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq("CIVIL"))).thenReturn(withAreaOfCode);
+
+    var actualResults = spec.toPredicate(root, query, cb);
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return conjunction predicate when area of code is null")
+  @Test
+  void shouldBuildSpecificationWithoutAreaOfLawWhenNull() {
+    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual(null);
+
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return equals predicate when submissionPeriod is present")
+  @Test
+  void shouldBuildSpecificationWithSubmissionPeriod() {
+    Specification<Submission> spec = SubmissionSpecification.submissionPeriodEqual("2025-09-01");
+
+    Predicate withDate = Mockito.mock(Predicate.class);
+
+    Mockito.when(root.get("submissionPeriod"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq("2025-09-01"))).thenReturn(withDate);
+    var actualResults = spec.toPredicate(root, query, cb);
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return predicate when submissionPeriod is not present")
+  @Test
+  void shouldBuildSpecificationWithoutSubmissionPeriodWhenNull() {
+
+    Specification<Submission> spec = SubmissionSpecification.submissionPeriodEqual(null);
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
+
+    assertThat(actualResults).isNotNull();
   }
 }

@@ -309,4 +309,30 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isBadRequest())
         .andReturn();
   }
+
+  @DisplayName("Should return result with area of law and submission period")
+  @Test
+  void shouldReturnResultWithAreaOfLawAndSubmissionPeriod() throws Exception {
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/submissions")
+                    .param("offices", OFFICE_ACCOUNT_NUMBER)
+                    .param("areaOfLaw", AREA_OF_LAW)
+                    .param("submissionPeriod", SUBMISSION_PERIOD)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    String responseBody = result.getResponse().getContentAsString();
+
+    // then: submissions are correctly retrieved
+    var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
+    assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+    assertThat(submissionsResultSet.getContent().getFirst().getSubmissionPeriod())
+        .isEqualTo(SUBMISSION_PERIOD);
+    assertThat(submissionsResultSet.getContent().getFirst().getStatus())
+        .isEqualTo(SubmissionStatus.CREATED);
+  }
 }
