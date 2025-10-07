@@ -81,7 +81,7 @@ public abstract class AbstractIntegrationTest {
             .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
             .build();
     return submissionRepository.save(submission);

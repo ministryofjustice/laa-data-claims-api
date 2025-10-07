@@ -117,6 +117,32 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // then: submission is correctly created
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
+    assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
+  }
+
+  @Test
+  void postSubmission_shouldReturnBadRequest_WhenProviderUserIdIsNull() throws Exception {
+    // given: a SubmissionPost payload with null providerUserId
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submission.getId())
+            .bulkSubmissionId(submission.getBulkSubmissionId())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod("JAN-25")
+            .areaOfLaw("CIVIL")
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(null)
+            .build();
+
+    // when: calling POST endpoint for submissions, should return a bad request.
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/submissions")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -150,6 +176,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(submissionResult.getSubmissionId()).isEqualTo(submission.getId());
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
+    assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
 
     claimRepository.deleteAll();
     matterStartRepository.deleteAll();
@@ -182,10 +209,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: submissions are correctly retrieved
     var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
-    assertThat(submissionsResultSet.getContent().getFirst().getSubmissionId())
-        .isEqualTo(submission.getId());
-    assertThat(submissionsResultSet.getContent().getFirst().getStatus())
-        .isEqualTo(SubmissionStatus.CREATED);
+    SubmissionBase submissionBase = submissionsResultSet.getContent().getFirst();
+    assertThat(submissionBase.getSubmissionId()).isEqualTo(submission.getId());
+    assertThat(submissionBase.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(submissionBase.getProviderUserId()).isEqualTo(submission.getProviderUserId());
   }
 
   @Test

@@ -71,7 +71,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdOn(TENTH_APRIL_2024)
             .updatedOn(FIRST_JANUARY_2025)
             .build();
@@ -92,7 +92,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .isNilSubmission(false)
             .numberOfClaims(5)
             .createdByUserId(USER_ID)
-            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .build();
     submission2 =
         Submission.builder()
@@ -107,7 +107,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .isNilSubmission(true)
             .numberOfClaims(3)
             .createdByUserId(USER_ID)
-            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));

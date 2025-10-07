@@ -122,6 +122,9 @@ paths:
                     description: UUID of the bulk submission.
                   status:
                     $ref: "#/components/schemas/BulkSubmissionStatus"
+                  created_by_user_id:
+                    type: string
+                    description: The user ID of the user who created the bulk submission.
                   details:
                     type: object
                     description: The object storing all the details of the bulk submission
