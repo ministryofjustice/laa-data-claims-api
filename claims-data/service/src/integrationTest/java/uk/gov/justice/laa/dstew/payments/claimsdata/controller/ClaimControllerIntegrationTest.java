@@ -57,6 +57,19 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     String responseBody = result.getResponse().getContentAsString();
     var claimResponse = OBJECT_MAPPER.readValue(responseBody, ClaimResponse.class);
     assertThat(claimResponse.getId()).isEqualTo(CLAIM_1_ID.toString());
+    assertThat(claimResponse.getClientForename()).isEqualTo("Alice");
+    assertThat(claimResponse.getAdviceTime()).isEqualTo(120);
+    assertThat(claimResponse.getTravelTime()).isEqualTo(45);
+    assertThat(claimResponse.getIsLondonRate()).isTrue();
+
+    var feeCalculationResponse = claimResponse.getFeeCalculationResponse();
+    assertThat(feeCalculationResponse).isNotNull();
+    assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("CALC-FEE-1");
+    assertThat(feeCalculationResponse.getTotalAmount()).isEqualByComparingTo("125");
+    assertThat(feeCalculationResponse.getVatIndicator()).isTrue();
+    assertThat(feeCalculationResponse.getBoltOnDetails()).isNotNull();
+    assertThat(feeCalculationResponse.getBoltOnDetails().getBoltOnTotalFeeAmount())
+        .isEqualByComparingTo("12");
   }
 
   @Test

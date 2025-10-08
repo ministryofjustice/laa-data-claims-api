@@ -63,8 +63,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @BeforeAll
   void setup() {
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
+    clearIntegrationData();
 
     // create the queue if it doesn't exist
     sqsClient.createQueue(builder -> builder.queueName(queueName));
