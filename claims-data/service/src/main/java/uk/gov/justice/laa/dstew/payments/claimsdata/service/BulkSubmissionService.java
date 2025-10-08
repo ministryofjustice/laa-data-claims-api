@@ -138,6 +138,7 @@ public class BulkSubmissionService
     return new GetBulkSubmission200Response()
         .bulkSubmissionId(id)
         .status(bulkSubmission.getStatus())
+        .createdByUserId(bulkSubmission.getCreatedByUserId())
         .details(bulkSubmission.getData());
   }
 }

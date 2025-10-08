@@ -70,7 +70,8 @@ class SubmissionControllerTest {
             + "\"area_of_law\": \"crime\","
             + "\"status\": \"CREATED\","
             + "\"is_nil_submission\": false,"
-            + "\"number_of_claims\": 1"
+            + "\"number_of_claims\": 1,"
+            + "\"provider_user_id\": \"a-provider-user-id\""
             + "}";
 
     mockMvc

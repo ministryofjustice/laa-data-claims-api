@@ -296,7 +296,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .id(Uuid7.timeBasedUuid())
             .data(bulkSubmission200ResponseDetails)
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdOn(Instant.now())
             .build();
     BulkSubmission savedBulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
@@ -321,6 +321,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
     assertThat(getBulkSubmission200Response.getDetails())
         .isEqualTo(bulkSubmission200ResponseDetails);
+    assertThat(getBulkSubmission200Response.getCreatedByUserId())
+        .isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
 
     // clean up the test-data
     bulkSubmissionRepository.delete(bulkSubmission);

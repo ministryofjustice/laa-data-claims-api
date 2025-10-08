@@ -73,7 +73,7 @@ public abstract class AbstractIntegrationTest {
             .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdOn(CREATED_ON)
             .updatedOn(CREATED_ON)
             .build();
@@ -90,6 +90,7 @@ public abstract class AbstractIntegrationTest {
             .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
             .build();
     return submissionRepository.save(submission);

@@ -97,7 +97,8 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .matterStarts(matterStartIds);
+        .matterStarts(matterStartIds)
+        .providerUserId(submission.getProviderUserId());
   }
 
   /**

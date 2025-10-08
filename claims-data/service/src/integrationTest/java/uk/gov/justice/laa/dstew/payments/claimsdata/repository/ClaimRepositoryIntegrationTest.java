@@ -74,7 +74,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .createdByUserId(USER_ID)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdOn(LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC))
             .build();
     bulkSubmissionRepository.save(bulkSubmission);
@@ -87,6 +87,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
             .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .build();
     submission2 =
         Submission.builder()
@@ -97,6 +98,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CRIME")
             .status(SubmissionStatus.READY_FOR_VALIDATION)
             .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .build();
     submission3 =
         Submission.builder()
@@ -107,6 +109,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             .areaOfLaw("CRIME")
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
             .build();
     submissionRepository.saveAll(List.of(submission1, submission2, submission3));
 
