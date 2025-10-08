@@ -135,7 +135,9 @@ public class ClaimService
         .ifPresent(
             feeDetail ->
                 claimMapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, response));
-
+    claimCaseRepository
+        .findByClaimId(claimId)
+        .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
     return response;
   }
 
@@ -272,6 +274,11 @@ public class ClaimService
                 feeDetail ->
                     claimMapper.updateClaimResponseFromCalculatedFeeDetail(
                         feeDetail, claimResponse));
+        claimCaseRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                claimCase ->
+                    claimMapper.updateClaimResponseFromClaimCase(claimCase, claimResponse));
       }
     }
     return response;

@@ -159,4 +159,8 @@ public interface ClaimMapper {
   @Mapping(target = "updatedByUserId", ignore = true)
   @Mapping(target = "updatedOn", ignore = true)
   ClaimCase toClaimCase(ClaimPost claimPost);
+
+  @Mapping(target = "id", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateClaimResponseFromClaimCase(ClaimCase entity, @MappingTarget ClaimResponse claim);
 }
