@@ -1,42 +1,57 @@
--- V20: Fix the error from V19 migration
--- V19 failed because it tried to add a NOT NULL column to a table with existing data
--- This migration cleans up and properly adds the provider_user_id column
+-- V20: Safely handle provider_user_id column addition
+-- This migration only runs if V19 succeeded but we need to ensure the column is properly configured
+-- If V19 failed, the application configuration will handle the repair
 
--- Step 1: Remove the failed V19 migration from flyway history
--- This allows migrations to continue past the failure
-DELETE FROM flyway_schema_history WHERE version = '19';
-
--- Step 2: Check if column exists and handle appropriately
--- Only add the column if it doesn't exist
+-- Only proceed if the column exists (meaning V19 at least partially succeeded)
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    -- Check if provider_user_id column exists
+    IF EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'claims' 
         AND table_name = 'submission' 
         AND column_name = 'provider_user_id'
     ) THEN
-        -- Column doesn't exist, safe to add it
-        ALTER TABLE submission ADD COLUMN provider_user_id TEXT;
+        -- Column exists, ensure it's properly populated and configured
+        
+        -- Make it nullable first if it's NOT NULL (in case V19 partially succeeded)
+        BEGIN
+            ALTER TABLE submission ALTER COLUMN provider_user_id DROP NOT NULL;
+        EXCEPTION
+            WHEN OTHERS THEN
+                -- Column might already be nullable, continue
+                NULL;
+        END;
+        
+        -- Populate any missing values
+        UPDATE submission s
+        SET provider_user_id = (
+            SELECT bs.created_by_user_id
+            FROM bulk_submission bs
+            WHERE bs.id = s.bulk_submission_id
+        )
+        WHERE provider_user_id IS NULL;
+        
+        -- Now make it NOT NULL
+        ALTER TABLE submission ALTER COLUMN provider_user_id SET NOT NULL;
+        
+        RAISE NOTICE 'V20: Successfully configured provider_user_id column';
     ELSE
-        -- Column exists but might be NOT NULL (causing the original error)
-        -- Make it nullable first so we can populate it safely
-        ALTER TABLE submission ALTER COLUMN provider_user_id DROP NOT NULL;
+        -- Column doesn't exist, V19 completely failed
+        -- Add the column properly
+        ALTER TABLE submission ADD COLUMN provider_user_id TEXT;
+        
+        -- Populate it
+        UPDATE submission s
+        SET provider_user_id = (
+            SELECT bs.created_by_user_id
+            FROM bulk_submission bs
+            WHERE bs.id = s.bulk_submission_id
+        );
+        
+        -- Make it NOT NULL
+        ALTER TABLE submission ALTER COLUMN provider_user_id SET NOT NULL;
+        
+        RAISE NOTICE 'V20: Added and configured provider_user_id column';
     END IF;
 END $$;
-
--- Step 4: Populate the column with data from bulk_submission
-UPDATE submission s
-SET provider_user_id = (
-    SELECT bs.created_by_user_id
-    FROM bulk_submission bs
-    WHERE bs.id = s.bulk_submission_id
-);
-
--- Step 5: Handle any rows where bulk_submission_id doesn't match
-UPDATE submission 
-SET provider_user_id = 'unknown_user' 
-WHERE provider_user_id IS NULL;
-
--- Step 6: Now make the column NOT NULL (safe because all rows have values)
-ALTER TABLE submission ALTER COLUMN provider_user_id SET NOT NULL;
