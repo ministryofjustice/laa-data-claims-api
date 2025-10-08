@@ -60,11 +60,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
    */
   @BeforeEach
   public void setup() {
-    validationMessageLogRepository.deleteAll();
-    clientRepository.deleteAll();
-    claimRepository.deleteAll();
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
+    clearIntegrationData();
 
     var bulkSubmission =
         BulkSubmission.builder()

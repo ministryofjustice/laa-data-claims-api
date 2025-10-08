@@ -4,12 +4,14 @@ import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -117,4 +119,34 @@ public interface ClaimMapper {
   @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
   @Mapping(target = "schemeId", source = "response.boltOnDetails.schemeId")
   CalculatedFeeDetail toCalculatedFeeDetail(FeeCalculationPatch response);
+
+  @Mapping(target = "id", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateClaimResponseFromClaimSummaryFee(
+      ClaimSummaryFee entity, @MappingTarget ClaimResponse claim);
+
+  @Mapping(
+      target = "feeCalculationResponse",
+      source = "entity",
+      qualifiedByName = "updateFeeCalculationResponseFromCalculatedFeeDetail")
+  @BeanMapping(
+      nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+      ignoreByDefault = true)
+  void updateClaimResponseFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity, @MappingTarget ClaimResponse claim);
+
+  @Named("updateFeeCalculationResponseFromCalculatedFeeDetail")
+  @Mapping(target = "claimId", source = "claim.id")
+  @Mapping(
+      target = "boltOnDetails",
+      source = "entity",
+      qualifiedByName = "updateBoltOnDetailsFromCalculatedFeeDetail")
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateFeeCalculationResponseFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity, @MappingTarget FeeCalculationPatch feeCalculationResponse);
+
+  @Named("updateBoltOnDetailsFromCalculatedFeeDetail")
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateBoltOnDetailsFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity, @MappingTarget BoltOnPatch boltOnDetails);
 }

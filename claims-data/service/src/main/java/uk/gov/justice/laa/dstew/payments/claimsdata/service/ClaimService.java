@@ -117,6 +117,15 @@ public class ClaimService
     clientRepository
         .findByClaimId(claimId)
         .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, response));
+    claimSummaryFeeRepository
+        .findByClaimId(claimId)
+        .ifPresent(fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, response));
+    calculatedFeeDetailRepository
+        .findByClaimId(claimId)
+        .ifPresent(
+            feeDetail ->
+                claimMapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, response));
+
     return response;
   }
 
@@ -237,6 +246,24 @@ public class ClaimService
                 claimStatuses),
             pageable);
 
-    return claimResultSetMapper.toClaimResultSet(page);
+    ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+    for (ClaimResponse claimResponse : response.getContent()) {
+      if (claimResponse.getId() != null) {
+        clientRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, claimResponse));
+        claimSummaryFeeRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, claimResponse));
+        calculatedFeeDetailRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                feeDetail ->
+                    claimMapper.updateClaimResponseFromCalculatedFeeDetail(
+                        feeDetail, claimResponse));
+      }
+    }
+    return response;
   }
 }

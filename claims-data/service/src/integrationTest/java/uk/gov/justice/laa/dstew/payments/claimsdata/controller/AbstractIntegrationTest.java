@@ -43,6 +43,8 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClaimRepository claimRepository;
   @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
+  @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected MockMvc mockMvc;
 
   @ServiceConnection
@@ -52,12 +54,19 @@ public abstract class AbstractIntegrationTest {
     postgresContainer.start();
   }
 
-  public Submission getSubmissionTestData() {
+  protected void clearIntegrationData() {
+    validationMessageLogRepository.deleteAll();
+    calculatedFeeDetailRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
+    matterStartRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+  }
+
+  public Submission getSubmissionTestData() {
+    clearIntegrationData();
 
     var bulkSubmission =
         BulkSubmission.builder()
@@ -87,6 +96,8 @@ public abstract class AbstractIntegrationTest {
   }
 
   public void createClaimsTestData(Submission submission) {
+    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+
     var claim1 =
         Claim.builder()
             .id(CLAIM_1_ID)
@@ -122,6 +133,171 @@ public abstract class AbstractIntegrationTest {
             .build();
 
     claimRepository.saveAll(List.of(claim1, claim2));
+
+    var summaryFee1 =
+        ClaimSummaryFee.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim1)
+            .adviceTime(120)
+            .travelTime(45)
+            .waitingTime(30)
+            .netProfitCostsAmount(BigDecimal.valueOf(250))
+            .netDisbursementAmount(BigDecimal.valueOf(40))
+            .netCounselCostsAmount(BigDecimal.valueOf(35))
+            .disbursementsVatAmount(BigDecimal.valueOf(8))
+            .travelWaitingCostsAmount(BigDecimal.valueOf(15))
+            .netWaitingCostsAmount(BigDecimal.valueOf(12))
+            .isVatApplicable(true)
+            .isToleranceApplicable(false)
+            .priorAuthorityReference("PA-REF-001")
+            .isLondonRate(true)
+            .adjournedHearingFeeAmount(2)
+            .isAdditionalTravelPayment(true)
+            .costsDamagesRecoveredAmount(BigDecimal.valueOf(75))
+            .meetingsAttendedCode("MEET-A")
+            .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(11))
+            .jrFormFillingAmount(BigDecimal.valueOf(9))
+            .isEligibleClient(true)
+            .courtLocationCode("CRT-001")
+            .adviceTypeCode("ADV-001")
+            .medicalReportsCount(2)
+            .isIrcSurgery(false)
+            .surgeryDate(LocalDate.of(2025, 7, 15))
+            .surgeryClientsCount(3)
+            .surgeryMattersCount(1)
+            .cmrhOralCount(1)
+            .cmrhTelephoneCount(0)
+            .aitHearingCentreCode("AIT-001")
+            .isSubstantiveHearing(true)
+            .hoInterview(1)
+            .localAuthorityNumber("LA-001")
+            .createdByUserId(USER_ID)
+            .createdOn(createdDateTime)
+            .build();
+
+    var summaryFee2 =
+        ClaimSummaryFee.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim2)
+            .adviceTime(60)
+            .travelTime(30)
+            .waitingTime(15)
+            .netProfitCostsAmount(BigDecimal.valueOf(150))
+            .netDisbursementAmount(BigDecimal.valueOf(25))
+            .netCounselCostsAmount(BigDecimal.valueOf(20))
+            .disbursementsVatAmount(BigDecimal.valueOf(5))
+            .travelWaitingCostsAmount(BigDecimal.valueOf(10))
+            .netWaitingCostsAmount(BigDecimal.valueOf(6))
+            .isVatApplicable(false)
+            .isToleranceApplicable(true)
+            .priorAuthorityReference("PA-REF-002")
+            .isLondonRate(false)
+            .adjournedHearingFeeAmount(1)
+            .isAdditionalTravelPayment(false)
+            .costsDamagesRecoveredAmount(BigDecimal.valueOf(50))
+            .meetingsAttendedCode("MEET-B")
+            .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(7))
+            .jrFormFillingAmount(BigDecimal.valueOf(4))
+            .isEligibleClient(false)
+            .courtLocationCode("CRT-002")
+            .adviceTypeCode("ADV-002")
+            .medicalReportsCount(1)
+            .isIrcSurgery(true)
+            .surgeryDate(LocalDate.of(2025, 7, 20))
+            .surgeryClientsCount(2)
+            .surgeryMattersCount(2)
+            .cmrhOralCount(0)
+            .cmrhTelephoneCount(2)
+            .aitHearingCentreCode("AIT-002")
+            .isSubstantiveHearing(false)
+            .hoInterview(2)
+            .localAuthorityNumber("LA-002")
+            .createdByUserId(USER_ID)
+            .createdOn(createdDateTime)
+            .build();
+
+    claimSummaryFeeRepository.saveAll(List.of(summaryFee1, summaryFee2));
+
+    calculatedFeeDetailRepository.saveAll(
+        List.of(
+            CalculatedFeeDetail.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claimSummaryFee(summaryFee1)
+                .claim(claim1)
+                .feeCode("CALC-FEE-1")
+                .feeType(FeeCalculationType.DISBURSEMENT_ONLY)
+                .feeCodeDescription("Calculated fee for claim 1")
+                .categoryOfLaw("IMMIGRATION")
+                .totalAmount(BigDecimal.valueOf(125))
+                .vatIndicator(true)
+                .vatRateApplied(new BigDecimal("0.20"))
+                .calculatedVatAmount(BigDecimal.valueOf(25))
+                .disbursementAmount(BigDecimal.valueOf(15))
+                .requestedNetDisbursementAmount(BigDecimal.valueOf(13))
+                .disbursementVatAmount(BigDecimal.valueOf(2))
+                .hourlyTotalAmount(BigDecimal.valueOf(60))
+                .fixedFeeAmount(BigDecimal.valueOf(40))
+                .netProfitCostsAmount(BigDecimal.valueOf(80))
+                .requestedNetProfitCostsAmount(BigDecimal.valueOf(70))
+                .netCostOfCounselAmount(BigDecimal.valueOf(35))
+                .netTravelCostsAmount(BigDecimal.valueOf(20))
+                .netWaitingCostsAmount(BigDecimal.valueOf(10))
+                .detentionAndWaitingCostsAmount(BigDecimal.valueOf(5))
+                .jrFormFillingAmount(BigDecimal.valueOf(3))
+                .travelAndWaitingCostsAmount(BigDecimal.valueOf(7))
+                .boltOnTotalFeeAmount(BigDecimal.valueOf(12))
+                .boltOnAdjournedHearingCount(1)
+                .boltOnAdjournedHearingFee(new BigDecimal("2.5"))
+                .boltOnCmrhTelephoneCount(2)
+                .boltOnCmrhTelephoneFee(new BigDecimal("3.5"))
+                .boltOnCmrhOralCount(1)
+                .boltOnCmrhOralFee(new BigDecimal("4.5"))
+                .boltOnHomeOfficeInterviewCount(1)
+                .boltOnHomeOfficeInterviewFee(new BigDecimal("6.5"))
+                .escapeCaseFlag(false)
+                .schemeId("SCHEME-1")
+                .createdByUserId(USER_ID)
+                .createdOn(createdDateTime)
+                .build(),
+            CalculatedFeeDetail.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claimSummaryFee(summaryFee2)
+                .claim(claim2)
+                .feeCode("CALC-FEE-2")
+                .feeType(FeeCalculationType.FIXED)
+                .feeCodeDescription("Calculated fee for claim 2")
+                .categoryOfLaw("CRIME")
+                .totalAmount(BigDecimal.valueOf(95))
+                .vatIndicator(false)
+                .vatRateApplied(BigDecimal.ZERO)
+                .calculatedVatAmount(BigDecimal.ZERO)
+                .disbursementAmount(BigDecimal.valueOf(12))
+                .requestedNetDisbursementAmount(BigDecimal.valueOf(10))
+                .disbursementVatAmount(BigDecimal.valueOf(1))
+                .hourlyTotalAmount(BigDecimal.valueOf(40))
+                .fixedFeeAmount(BigDecimal.valueOf(30))
+                .netProfitCostsAmount(BigDecimal.valueOf(55))
+                .requestedNetProfitCostsAmount(BigDecimal.valueOf(50))
+                .netCostOfCounselAmount(BigDecimal.valueOf(18))
+                .netTravelCostsAmount(BigDecimal.valueOf(12))
+                .netWaitingCostsAmount(BigDecimal.valueOf(5))
+                .detentionAndWaitingCostsAmount(BigDecimal.valueOf(4))
+                .jrFormFillingAmount(BigDecimal.valueOf(2))
+                .travelAndWaitingCostsAmount(BigDecimal.valueOf(6))
+                .boltOnTotalFeeAmount(BigDecimal.valueOf(9))
+                .boltOnAdjournedHearingCount(0)
+                .boltOnAdjournedHearingFee(BigDecimal.ZERO)
+                .boltOnCmrhTelephoneCount(1)
+                .boltOnCmrhTelephoneFee(new BigDecimal("1.5"))
+                .boltOnCmrhOralCount(0)
+                .boltOnCmrhOralFee(BigDecimal.ZERO)
+                .boltOnHomeOfficeInterviewCount(0)
+                .boltOnHomeOfficeInterviewFee(BigDecimal.ZERO)
+                .escapeCaseFlag(true)
+                .schemeId("SCHEME-2")
+                .createdByUserId(USER_ID)
+                .createdOn(createdDateTime)
+                .build()));
 
     clientRepository.saveAll(
         List.of(

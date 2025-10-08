@@ -161,16 +161,23 @@ class ClaimServiceTest {
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final Client client = Client.builder().clientForename("John").build();
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
+    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
+    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+        .thenReturn(Optional.of(calculatedFeeDetail));
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
     verify(clientMapper).updateClaimResponseFromClient(client, fields);
+    verify(claimMapper).updateClaimResponseFromClaimSummaryFee(claimSummaryFee, fields);
+    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
   }
 
   @Test
@@ -184,11 +191,58 @@ class ClaimServiceTest {
         .thenReturn(Optional.of(claim));
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
     assertThat(result).isSameAs(fields);
     verify(clientMapper, never()).updateClaimResponseFromClient(any(), eq(fields));
+  }
+
+  @Test
+  void shouldGetClaimWithoutClaimSummaryFee() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimResponse fields = new ClaimResponse();
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+        .thenReturn(Optional.of(calculatedFeeDetail));
+
+    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+    verify(claimMapper, never()).updateClaimResponseFromClaimSummaryFee(any(), eq(fields));
+    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
+  }
+
+  @Test
+  void shouldGetClaimWithoutCalculatedFeeDetail() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimResponse fields = new ClaimResponse();
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
+    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+
+    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+    verify(claimMapper).updateClaimResponseFromClaimSummaryFee(claimSummaryFee, fields);
+    verify(claimMapper, never()).updateClaimResponseFromCalculatedFeeDetail(any(), eq(fields));
   }
 
   @Test

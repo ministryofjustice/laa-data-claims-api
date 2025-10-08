@@ -789,7 +789,7 @@ components:
 
     claim_post:
       allOf:
-        - $ref: '#/components/schemas/claim_response'
+        - $ref: '#/components/schemas/claim_base'
       required:
         - status
         - line_number
@@ -797,14 +797,12 @@ components:
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
-      type: object
-      properties:
-        fee_calculation_response:
-          $ref: '#/components/schemas/fee_calculation_patch'
-        validation_messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/validation_message_patch'
+        - type: object
+          properties:
+            validation_messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/validation_message_patch'
     claim_status:
       type: string
       enum:
@@ -823,7 +821,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
-    claim_response:
+    claim_base:
       type: object
       description: Claim details
       properties:
@@ -1038,6 +1036,13 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
+    claim_response:
+      allOf:
+        - $ref: '#/components/schemas/claim_base'
+        - type: object
+          properties:
+            fee_calculation_response:
+              $ref: '#/components/schemas/fee_calculation_patch'
     fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform

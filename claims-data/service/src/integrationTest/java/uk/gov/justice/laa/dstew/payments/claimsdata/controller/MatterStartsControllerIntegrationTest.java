@@ -38,7 +38,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @BeforeEach
   void setup() {
-    matterStartRepository.deleteAll();
+    clearIntegrationData();
     submission = getSubmissionTestData();
   }
 

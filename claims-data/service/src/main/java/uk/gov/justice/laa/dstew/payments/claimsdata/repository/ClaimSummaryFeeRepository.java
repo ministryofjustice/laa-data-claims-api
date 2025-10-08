@@ -10,5 +10,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 /** Repository for handling CRUD operations on claim summary fee records. */
 @Repository
 public interface ClaimSummaryFeeRepository extends JpaRepository<ClaimSummaryFee, UUID> {
+  Optional<ClaimSummaryFee> findByClaimId(UUID claimId);
+
   Optional<ClaimSummaryFee> findByClaim(Claim claim);
 }
