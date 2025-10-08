@@ -83,15 +83,13 @@ public class ClaimService
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    claim.setCreatedByUserId("todo");
+    claim.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimRepository.save(claim);
 
     ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    claimSummaryFee.setCreatedByUserId("todo");
+    claimSummaryFee.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimSummaryFeeRepository.save(claimSummaryFee);
 
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
@@ -105,8 +103,7 @@ public class ClaimService
     if (hasClientData(client)) {
       client.setId(Uuid7.timeBasedUuid());
       client.setClaim(claim);
-      //  TODO: DSTEW-323 replace with the actual user ID/name when available
-      client.setCreatedByUserId("todo");
+      client.setCreatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
     }
 
@@ -160,7 +157,7 @@ public class ClaimService
           claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId("todo");
+      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
 

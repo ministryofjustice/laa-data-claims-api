@@ -54,8 +54,7 @@ public class MatterStartService
     MatterStart matterStart = matterStartMapper.toMatterStart(request);
     matterStart.setId(Uuid7.timeBasedUuid());
     matterStart.setSubmission(submission);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    matterStart.setCreatedByUserId("todo");
+    matterStart.setCreatedByUserId(request.getCreatedByUserId());
     matterStartRepository.save(matterStart);
     return matterStart.getId();
   }

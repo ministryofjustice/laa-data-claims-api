@@ -8,6 +8,12 @@ import org.aspectj.lang.annotation.Before;
 import org.javers.core.Javers;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 
 /**
  * An aspect responsible for auditing changes to entities using Javers. This aspect intercepts save
@@ -23,7 +29,6 @@ public class JaversAuditingAspect {
     this.javers = javers;
   }
 
-  // TODO: replace with the actual user ID/name when available, as per DSTEW-88
   private static final String API_USER = "api-user";
 
   /**
@@ -39,7 +44,7 @@ public class JaversAuditingAspect {
       returning = "result")
   public void auditSave(JoinPoint joinPoint, Object result) {
     if (result != null) {
-      javers.commit(API_USER, result);
+      javers.commit(getApiUser(joinPoint), result);
     }
   }
 
@@ -61,7 +66,23 @@ public class JaversAuditingAspect {
     Object repo = joinPoint.getTarget();
     if (repo instanceof JpaRepository rawRepo) {
       Optional<?> entity = rawRepo.findById(id);
-      entity.ifPresent(e -> javers.commitShallowDelete(API_USER, e));
+      entity.ifPresent(e -> javers.commitShallowDelete(getApiUser(joinPoint), e));
     }
+  }
+
+  private String getApiUser(JoinPoint joinPoint) {
+    Object[] args = joinPoint.getArgs();
+    if (args == null || args.length == 0) {
+      throw new IllegalArgumentException("No arguments provided to save method");
+    }
+    return switch (args[0]) {
+      case Submission s -> s.getCreatedByUserId();
+      case Claim c -> c.getCreatedByUserId();
+      case MatterStart m -> m.getCreatedByUserId();
+      case Client cl -> cl.getCreatedByUserId();
+      case CalculatedFeeDetail cfd -> cfd.getCreatedByUserId();
+      case ClaimSummaryFee csf -> csf.getCreatedByUserId();
+      default -> API_USER;
+    };
   }
 }

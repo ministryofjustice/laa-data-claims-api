@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SYSTEM_USER_ID;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +45,7 @@ class MatterStartServiceTest {
       final UUID submissionId = Uuid7.timeBasedUuid();
       final Submission submission = Submission.builder().id(submissionId).build();
       final MatterStartPost request = new MatterStartPost();
+      request.setCreatedByUserId(SYSTEM_USER_ID);
       final MatterStart matterStart = MatterStart.builder().build();
 
       when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
@@ -54,8 +56,7 @@ class MatterStartServiceTest {
       assertThat(id).isNotNull();
       assertThat(matterStart.getId()).isEqualTo(id);
       assertThat(matterStart.getSubmission()).isSameAs(submission);
-      //  TODO: DSTEW-323 replace with the actual user ID/name when available
-      assertThat(matterStart.getCreatedByUserId()).isEqualTo("todo");
+      assertThat(matterStart.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
       verify(matterStartRepository).save(matterStart);
       verify(matterStartMapper).toMatterStart(request);
     }
