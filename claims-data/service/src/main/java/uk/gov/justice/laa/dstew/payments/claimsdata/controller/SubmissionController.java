@@ -53,10 +53,17 @@ public class SubmissionController implements SubmissionsApi {
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
+      String areaOfLaw,
+      String submissionPeriod,
       Pageable pageable) {
-
     return ResponseEntity.ok(
         submissionService.getSubmissionsResultSet(
-            offices, submissionId, submittedDateFrom, submittedDateTo, pageable));
+            offices,
+            submissionId,
+            submittedDateFrom,
+            submittedDateTo,
+            areaOfLaw,
+            submissionPeriod,
+            pageable));
   }
 }

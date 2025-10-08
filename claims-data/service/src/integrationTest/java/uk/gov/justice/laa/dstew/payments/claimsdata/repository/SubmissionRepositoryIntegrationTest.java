@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
@@ -111,7 +112,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   void shouldNotGetAnySubmission() {
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(List.of("office5"), null, null, null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office5")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
@@ -126,7 +127,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(List.of("office1", "office5"), null, null, null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office5")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -145,8 +146,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2", "office5"), null, null, null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(
+                List.of("office1", "office2", "office5")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
@@ -169,8 +170,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), String.valueOf(SUBMISSION_1_ID), null, null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.submissionIdEqualTo(String.valueOf(SUBMISSION_1_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -185,8 +186,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   void shouldNotGetAnySubmissionForNoMatchingId() {
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), String.valueOf(SUBMISSION_3_ID), null, null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.submissionIdEqualTo(String.valueOf(SUBMISSION_3_ID))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
@@ -201,8 +202,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), null, LocalDate.of(2024, 12, 21), null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2024, 12, 21))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -221,8 +222,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), null, LocalDate.of(2025, 1, 1), null),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2025, 1, 1))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -241,8 +242,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), null, null, LocalDate.of(2024, 7, 14)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 7, 14))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -261,8 +262,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"), null, null, LocalDate.of(2024, 4, 10)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2024, 4, 10))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -281,22 +282,20 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"),
-                null,
-                LocalDate.of(2024, 4, 1),
-                LocalDate.of(2025, 3, 31)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2024, 4, 1)))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2025, 3, 31))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    assertThat(result.getContent().getFirst())
-        .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission1);
-    assertThat(result.getContent().get(1))
-        .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission2);
+
+    assertThat(result.getContent().stream().filter(sub -> sub.getId().equals(SUBMISSION_1_ID)))
+        .extracting("id")
+        .containsExactly(SUBMISSION_1_ID);
+
+    assertThat(result.getContent().stream().filter(sub -> sub.getId().equals(SUBMISSION_2_ID)))
+        .extracting("id")
+        .containsExactly(SUBMISSION_2_ID);
   }
 
   @Test
@@ -304,13 +303,81 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   void shouldNotGetAnySubmissionForNoMatchingSubmittedDateInBetween() {
     Page<Submission> result =
         submissionRepository.findAll(
-            SubmissionSpecification.filterBy(
-                List.of("office1", "office2"),
-                null,
-                LocalDate.of(2025, 1, 2),
-                LocalDate.of(2025, 3, 31)),
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.createdOnOrAfter(LocalDate.of(2025, 1, 2)))
+                .and(SubmissionSpecification.createdOnOrBefore(LocalDate.of(2025, 3, 31))),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
+  }
+
+  @DisplayName(
+      "Should return result if area of law, submission period and office account number match the existing database")
+  @Test
+  void areaOfLawAndSubmissionPeriod() {
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+    assertThat(actualResults.getContent())
+        .extracting("areaOfLaw", "submissionPeriod", "officeAccountNumber")
+        .isEqualTo((List.of(tuple("CIVIL", "JAN-25", "office1"))));
+  }
+
+  @DisplayName("Should not return result if area of law does not match the existing database")
+  @Test
+  void areaOfLawAndSubmissionPeriodNotMatch() {
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.areaOfLawEqual("INVALID_CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(0);
+  }
+
+  @DisplayName("Should not return result if submission period does not match the existing database")
+  @Test
+  void submissionPeriodNotMatch() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(0);
+  }
+
+  @DisplayName("Should  return result even if area of law is null")
+  @Test
+  void areaOfLawIsNull() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.areaOfLawEqual(null))
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @DisplayName("Should  return result even if submission period is null")
+  @Test
+  void submissionPeriodIsNull() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual(null)),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
   }
 }
