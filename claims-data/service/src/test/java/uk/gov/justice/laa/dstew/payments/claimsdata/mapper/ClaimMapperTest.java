@@ -17,6 +17,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -655,6 +656,42 @@ class ClaimMapperTest {
     assertNull(calculatedFeeDetail.getBoltOnHomeOfficeInterviewFee());
     assertNull(calculatedFeeDetail.getEscapeCaseFlag());
     assertNull(calculatedFeeDetail.getSchemeId());
+  }
+
+  @Test
+  void toClaimCase_mapsAllFields() {
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+
+    final ClaimCase claimCase = mapper.toClaimCase(post);
+
+    assertThat(claimCase.getCaseId()).isEqualTo(post.getCaseId());
+    assertThat(claimCase.getUniqueCaseId()).isEqualTo(post.getUniqueCaseId());
+    assertThat(claimCase.getCaseStageCode()).isEqualTo(post.getCaseStageCode());
+    assertThat(claimCase.getStageReachedCode()).isEqualTo(post.getStageReachedCode());
+    assertThat(claimCase.getStandardFeeCategoryCode()).isEqualTo(post.getStandardFeeCategoryCode());
+    assertThat(claimCase.getOutcomeCode()).isEqualTo(post.getOutcomeCode());
+    assertThat(claimCase.getDesignatedAccreditedRepresentativeCode())
+        .isEqualTo(post.getDesignatedAccreditedRepresentativeCode());
+    assertThat(claimCase.getIsPostalApplicationAccepted())
+        .isEqualTo(post.getIsPostalApplicationAccepted());
+    assertThat(claimCase.getIsClient2PostalApplicationAccepted())
+        .isEqualTo(post.getIsClient2PostalApplicationAccepted());
+    assertThat(claimCase.getMentalHealthTribunalReference())
+        .isEqualTo(post.getMentalHealthTribunalReference());
+    assertThat(claimCase.getIsNrmAdvice()).isEqualTo(post.getIsNrmAdvice());
+    assertThat(claimCase.getFollowOnWork()).isEqualTo(post.getFollowOnWork());
+    assertThat(claimCase.getTransferDate().format(DateTimeFormatter.ofPattern("d/M/yyyy")))
+        .isEqualTo(post.getTransferDate());
+    assertThat(claimCase.getExemptionCriteriaSatisfied())
+        .isEqualTo(post.getExemptionCriteriaSatisfied());
+    assertThat(claimCase.getExceptionalCaseFundingReference())
+        .isEqualTo(post.getExceptionalCaseFundingReference());
+    assertThat(claimCase.getIsLegacyCase()).isEqualTo(post.getIsLegacyCase());
+  }
+
+  @Test
+  void toClaimCase_nullPost_noChanges() {
+    assertNull(mapper.toClaimCase(null));
   }
 
   private static FeeCalculationPatch getFeeCalculationPatch() {

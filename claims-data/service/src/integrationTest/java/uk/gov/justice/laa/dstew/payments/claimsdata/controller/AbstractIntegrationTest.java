@@ -45,6 +45,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClientRepository clientRepository;
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired protected MatterStartRepository matterStartRepository;
+  @Autowired protected ClaimCaseRepository claimCaseRepository;
   @Autowired protected MockMvc mockMvc;
 
   @ServiceConnection
@@ -57,6 +58,7 @@ public abstract class AbstractIntegrationTest {
   protected void clearIntegrationData() {
     validationMessageLogRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
     matterStartRepository.deleteAll();
@@ -315,6 +317,53 @@ public abstract class AbstractIntegrationTest {
                 .claim(claim2)
                 .clientForename("Bob")
                 .clientSurname("Jones")
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimCaseRepository.saveAll(
+        List.of(
+            ClaimCase.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claim1)
+                .caseId("CASE_ID_1")
+                .uniqueCaseId("UC_ID_1")
+                .caseStageCode("CASE_STAGE_CODE")
+                .stageReachedCode("STAGE_REACHED_CODE")
+                .standardFeeCategoryCode("STD_FEE_CAT_CODE_1")
+                .outcomeCode("OUTCOME_CODE_1")
+                .designatedAccreditedRepresentativeCode("DAR_CODE_1")
+                .isPostalApplicationAccepted(true)
+                .isClient2PostalApplicationAccepted(true)
+                .mentalHealthTribunalReference("MHT_REF_1")
+                .isNrmAdvice(true)
+                .followOnWork("FOLLOW_1")
+                .transferDate(LocalDate.of(2025, 7, 20))
+                .exemptionCriteriaSatisfied("ALL")
+                .exceptionalCaseFundingReference("ECF_REF_1")
+                .isLegacyCase(true)
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build(),
+            ClaimCase.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claim2)
+                .caseId("CASE_ID_2")
+                .uniqueCaseId("UC_ID_2")
+                .caseStageCode("CASE_STAGE_CODE")
+                .stageReachedCode("STAGE_REACHED_CODE")
+                .standardFeeCategoryCode("STD_FEE_CAT_CODE_2")
+                .outcomeCode("OUTCOME_CODE_2")
+                .designatedAccreditedRepresentativeCode("DAR_CODE_2")
+                .isPostalApplicationAccepted(false)
+                .isClient2PostalApplicationAccepted(false)
+                .mentalHealthTribunalReference("MHT_REF_2")
+                .isNrmAdvice(false)
+                .followOnWork("FOLLOW_2")
+                .transferDate(LocalDate.of(2025, 10, 20))
+                .exemptionCriteriaSatisfied("ALL")
+                .exceptionalCaseFundingReference("ECF_REF_2")
+                .isLegacyCase(false)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build()));

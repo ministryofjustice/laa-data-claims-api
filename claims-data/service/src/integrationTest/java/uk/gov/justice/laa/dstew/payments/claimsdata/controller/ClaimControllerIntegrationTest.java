@@ -61,6 +61,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(claimResponse.getAdviceTime()).isEqualTo(120);
     assertThat(claimResponse.getTravelTime()).isEqualTo(45);
     assertThat(claimResponse.getIsLondonRate()).isTrue();
+    assertThat(claimResponse.getCaseId()).isEqualTo("CASE_ID_1");
+    assertThat(claimResponse.getUniqueCaseId()).isEqualTo("UC_ID_1");
+    assertThat(claimResponse.getOutcomeCode()).isEqualTo("OUTCOME_CODE_1");
 
     var feeCalculationResponse = claimResponse.getFeeCalculationResponse();
     assertThat(feeCalculationResponse).isNotNull();
