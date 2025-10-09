@@ -49,7 +49,7 @@ public class JaversAuditingAspect {
   public void auditSave(JoinPoint joinPoint, Object result) {
     if (result != null) {
       String apiUser = getApiUser(joinPoint.getArgs()[0]);
-      log.debug("Auditing save operation for entity {}, by user:{}", result, apiUser);
+      log.debug("Auditing save operation for entity {}, by user: {}", result, apiUser);
       javers.commit(apiUser, result);
     }
   }
@@ -77,8 +77,6 @@ public class JaversAuditingAspect {
   }
 
   private String getApiUser(Object entityType) {
-    log.debug("Entity type: {}", entityType);
-
     return switch (entityType) {
       case BulkSubmission bs -> bs.getCreatedByUserId();
       case Submission s -> s.getCreatedByUserId();

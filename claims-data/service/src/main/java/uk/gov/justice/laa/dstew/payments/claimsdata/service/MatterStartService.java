@@ -44,17 +44,17 @@ public class MatterStartService
    * Create a matter start for a submission.
    *
    * @param submissionId submission identifier
-   * @param request request payload
+   * @param matterStartPost request payload
    * @return identifier of the created matter start
    */
   @Transactional
-  public UUID createMatterStart(UUID submissionId, MatterStartPost request) {
+  public UUID createMatterStart(UUID submissionId, MatterStartPost matterStartPost) {
     Submission submission = requireEntity(submissionId);
 
-    MatterStart matterStart = matterStartMapper.toMatterStart(request);
+    MatterStart matterStart = matterStartMapper.toMatterStart(matterStartPost);
     matterStart.setId(Uuid7.timeBasedUuid());
     matterStart.setSubmission(submission);
-    matterStart.setCreatedByUserId(request.getCreatedByUserId());
+    matterStart.setCreatedByUserId(matterStartPost.getCreatedByUserId());
     matterStartRepository.save(matterStart);
     return matterStart.getId();
   }
