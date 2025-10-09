@@ -72,7 +72,7 @@ class SubmissionControllerTest {
             + "\"is_nil_submission\": false,"
             + "\"number_of_claims\": 1,"
             + "\"provider_user_id\": \"a-provider-user-id\","
-            + "\"created_by_user_id\":\"SYSTEM_PARSER\""
+            + "\"created_by_user_id\":\"test-user\""
             + "}";
 
     mockMvc

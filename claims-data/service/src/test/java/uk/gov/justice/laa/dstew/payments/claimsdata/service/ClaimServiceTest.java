@@ -82,7 +82,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
-    post.setCreatedByUserId(SYSTEM_USER_ID);
+    post.setCreatedByUserId(API_USER_ID);
     final Claim claim = Claim.builder().build();
     final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
     final ClaimCase claimCase = ClaimCase.builder().build();
@@ -97,14 +97,14 @@ class ClaimServiceTest {
 
     assertThat(id).isNotNull();
     assertThat(claim.getId()).isEqualTo(id);
-    assertThat(claim.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
+    assertThat(claim.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(client.getClaim()).isSameAs(claim);
-    assertThat(client.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
-    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
+    assertThat(client.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(claimSummaryFee.getClaim()).isSameAs(claim);
-    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(claimCase.getClaim()).isSameAs(claim);
-    assertThat(claimCase.getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
+    assertThat(claimCase.getCreatedByUserId()).isEqualTo(API_USER_ID);
     verify(claimRepository).save(claim);
     verify(clientRepository).save(client);
     verify(claimSummaryFeeRepository).save(claimSummaryFee);

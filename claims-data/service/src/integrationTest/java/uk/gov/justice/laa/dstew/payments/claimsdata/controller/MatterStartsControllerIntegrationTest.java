@@ -46,7 +46,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   void postMatterStart_shouldCreate() throws Exception {
     // given: a MatterStart Post payload
     MatterStartPost matterStartPost =
-        MatterStartPost.builder().createdByUserId(SYSTEM_USER_ID).categoryCode("CAT1").build();
+        MatterStartPost.builder().createdByUserId(API_USER_ID).categoryCode("CAT1").build();
 
     // when: calling POST endpoint for matter starts
     mockMvc
@@ -63,7 +63,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
         matterStartRepository.findBySubmissionId(submission.getId());
     assertThat(savedMatterStarts.size()).isEqualTo(1);
     assertThat(savedMatterStarts.getFirst().getCategoryCode()).isEqualTo("CAT1");
-    assertThat(savedMatterStarts.getFirst().getCreatedByUserId()).isEqualTo(SYSTEM_USER_ID);
+    assertThat(savedMatterStarts.getFirst().getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
 
   @Test

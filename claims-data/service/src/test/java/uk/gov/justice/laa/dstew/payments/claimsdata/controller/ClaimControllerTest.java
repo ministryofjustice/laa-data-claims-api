@@ -70,7 +70,7 @@ class ClaimControllerTest {
             + "\"case_concluded_date\":\"2025-07-31\","
             + "\"matter_type_code\":\"MAT01\","
             + "\"outcome_code\":\"OUT01\","
-            + "\"created_by_user_id\":\"SYSTEM_PARSER\""
+            + "\"created_by_user_id\":\"test-user\""
             + "}";
 
     mockMvc
