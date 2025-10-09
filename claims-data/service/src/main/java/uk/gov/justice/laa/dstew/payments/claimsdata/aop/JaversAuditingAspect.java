@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.aop;
 
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -8,6 +9,7 @@ import org.aspectj.lang.annotation.Before;
 import org.javers.core.Javers;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -20,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
  * and delete operations in the specified repository package and commits changes to Javers for
  * auditing.
  */
+@Slf4j
 @Aspect
 @Component
 public class JaversAuditingAspect {
@@ -44,7 +47,9 @@ public class JaversAuditingAspect {
       returning = "result")
   public void auditSave(JoinPoint joinPoint, Object result) {
     if (result != null) {
-      javers.commit(getApiUser(joinPoint), result);
+      String apiUser = getApiUser(joinPoint.getArgs()[0]);
+      log.debug("Auditing save operation for entity {}, by user:{}", result, apiUser);
+      javers.commit(apiUser, result);
     }
   }
 
@@ -66,16 +71,15 @@ public class JaversAuditingAspect {
     Object repo = joinPoint.getTarget();
     if (repo instanceof JpaRepository rawRepo) {
       Optional<?> entity = rawRepo.findById(id);
-      entity.ifPresent(e -> javers.commitShallowDelete(getApiUser(joinPoint), e));
+      entity.ifPresent(e -> javers.commitShallowDelete(getApiUser(joinPoint.getArgs()[0]), e));
     }
   }
 
-  private String getApiUser(JoinPoint joinPoint) {
-    Object[] args = joinPoint.getArgs();
-    if (args == null || args.length == 0) {
-      throw new IllegalArgumentException("No arguments provided to save method");
-    }
-    return switch (args[0]) {
+  private String getApiUser(Object entityType) {
+    log.debug("Entity type: {}", entityType);
+
+    return switch (entityType) {
+      case BulkSubmission bs -> bs.getCreatedByUserId();
       case Submission s -> s.getCreatedByUserId();
       case Claim c -> c.getCreatedByUserId();
       case MatterStart m -> m.getCreatedByUserId();
