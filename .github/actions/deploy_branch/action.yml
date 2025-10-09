@@ -74,10 +74,9 @@ runs:
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
         ingress_name="$RELEASE_NAME-data-claims-api"
-        release_host="$RELEASE_NAME-$KUBE_NAMESPACE.cloud-platform.service.justice.gov.uk"
+        release_host="$RELEASE_NAME-$KUBE_NAMESPACE.internal-non-prod.cloud-platform.service.justice.gov.uk"
         identifier="$ingress_name-$KUBE_NAMESPACE-green"
         branch_name=${{ steps.extract_release_name.outputs.branch-name }}
-        LAA_IPS=$(curl -s https://raw.githubusercontent.com/ministryofjustice/laa-ip-allowlist/main/cidrs.txt | tr -d ' ' | tr '\n' ',' | sed 's/,/\\,/g' | sed 's/\\,$//')
 
         echo "Deploying commit: $GIT_SHA under release name: $RELEASE_NAME to $release_host..."
 
@@ -98,9 +97,8 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
-          --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
-          --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
-          --set ingress.hosts="{$release_host}" \
+          --set ingressInternal.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$identifier" \
+          --set ingressInternal.hosts="{$release_host}" \
           --set spring.profile="$SPRING_PROFILE" \
           --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \

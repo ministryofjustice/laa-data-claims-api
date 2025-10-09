@@ -15,6 +15,14 @@ service:
   type: ClusterIP
   port: 8080
 
-ingress:
-  enabled: false
+# ingress:
+#   enabled: false
 
+ingressInternal:
+  enabled: true
+  className: internal
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-laa-data-claims-api-prod-green"
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+  hosts: 
+    - host: "laa-data-claims-api.internal.cloud-platform.service.justice.gov.uk"
