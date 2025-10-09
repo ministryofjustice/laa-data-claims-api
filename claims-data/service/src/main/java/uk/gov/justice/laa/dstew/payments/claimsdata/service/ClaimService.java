@@ -95,8 +95,7 @@ public class ClaimService
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
     claimCase.setId(Uuid7.timeBasedUuid());
     claimCase.setClaim(claim);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    claimCase.setCreatedByUserId("todo");
+    claimCase.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);

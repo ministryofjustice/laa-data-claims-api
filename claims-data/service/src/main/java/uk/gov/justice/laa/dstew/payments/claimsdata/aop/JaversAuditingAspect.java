@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
@@ -86,6 +87,7 @@ public class JaversAuditingAspect {
       case Client cl -> cl.getCreatedByUserId();
       case CalculatedFeeDetail cfd -> cfd.getCreatedByUserId();
       case ClaimSummaryFee csf -> csf.getCreatedByUserId();
+      case ClaimCase cc -> cc.getCreatedByUserId();
       default -> API_USER;
     };
   }
