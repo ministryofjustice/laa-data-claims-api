@@ -77,6 +77,7 @@ public class JaversAuditingAspect {
   }
 
   private String getApiUser(Object entityType) {
+
     return switch (entityType) {
       case BulkSubmission bs -> bs.getCreatedByUserId();
       case Submission s -> s.getCreatedByUserId();
