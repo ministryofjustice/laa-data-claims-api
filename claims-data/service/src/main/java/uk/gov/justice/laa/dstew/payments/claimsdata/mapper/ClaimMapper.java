@@ -1,5 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -47,7 +50,17 @@ public interface ClaimMapper {
    */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "submissionId", source = "submission.id")
+  @Mapping(
+      target = "submissionSubmitted",
+      source = "submission.createdOn",
+      qualifiedByName = "toSubmissionDate")
   ClaimResponse toClaimResponse(Claim entity);
+
+  @Named("toSubmissionDate")
+  default LocalDate toSubmissionDate(Instant instant) {
+    return LocalDate.ofInstant(instant, ZoneId.systemDefault());
+  }
 
   /**
    * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary

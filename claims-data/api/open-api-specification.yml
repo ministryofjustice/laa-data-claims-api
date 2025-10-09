@@ -839,6 +839,8 @@ components:
       properties:
         id:
           type: string
+        submission_id:
+          type: string
         status:
           $ref: "#/components/schemas/claim_status"
         schedule_reference:
@@ -1048,6 +1050,10 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
+        submission_submitted:
+          type: string
+          format: date
+          description: Date and time the submission was submitted
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
