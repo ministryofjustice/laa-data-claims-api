@@ -8,12 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -87,6 +82,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
+    post.setCreatedByUserId(API_USER_ID);
     final Claim claim = Claim.builder().build();
     final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
     final ClaimCase claimCase = ClaimCase.builder().build();
@@ -101,18 +97,14 @@ class ClaimServiceTest {
 
     assertThat(id).isNotNull();
     assertThat(claim.getId()).isEqualTo(id);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    assertThat(claim.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(claim.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(client.getClaim()).isSameAs(claim);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    assertThat(client.getCreatedByUserId()).isEqualTo("todo");
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
+    assertThat(client.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(claimSummaryFee.getClaim()).isSameAs(claim);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(claimSummaryFee.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(claimCase.getClaim()).isSameAs(claim);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    assertThat(claimCase.getCreatedByUserId()).isEqualTo("todo");
+    assertThat(claimCase.getCreatedByUserId()).isEqualTo(API_USER_ID);
     verify(claimRepository).save(claim);
     verify(clientRepository).save(client);
     verify(claimSummaryFeeRepository).save(claimSummaryFee);

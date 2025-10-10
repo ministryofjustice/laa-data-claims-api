@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.aop;
 
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -8,12 +9,21 @@ import org.aspectj.lang.annotation.Before;
 import org.javers.core.Javers;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 
 /**
  * An aspect responsible for auditing changes to entities using Javers. This aspect intercepts save
  * and delete operations in the specified repository package and commits changes to Javers for
  * auditing.
  */
+@Slf4j
 @Aspect
 @Component
 public class JaversAuditingAspect {
@@ -23,7 +33,6 @@ public class JaversAuditingAspect {
     this.javers = javers;
   }
 
-  // TODO: replace with the actual user ID/name when available, as per DSTEW-88
   private static final String API_USER = "api-user";
 
   /**
@@ -39,7 +48,9 @@ public class JaversAuditingAspect {
       returning = "result")
   public void auditSave(JoinPoint joinPoint, Object result) {
     if (result != null) {
-      javers.commit(API_USER, result);
+      String apiUser = getApiUser(joinPoint.getArgs()[0]);
+      log.debug("Auditing save operation for entity {}, by user: {}", result, apiUser);
+      javers.commit(apiUser, result);
     }
   }
 
@@ -61,7 +72,22 @@ public class JaversAuditingAspect {
     Object repo = joinPoint.getTarget();
     if (repo instanceof JpaRepository rawRepo) {
       Optional<?> entity = rawRepo.findById(id);
-      entity.ifPresent(e -> javers.commitShallowDelete(API_USER, e));
+      entity.ifPresent(e -> javers.commitShallowDelete(getApiUser(joinPoint.getArgs()[0]), e));
     }
+  }
+
+  private String getApiUser(Object entityType) {
+
+    return switch (entityType) {
+      case BulkSubmission bs -> bs.getCreatedByUserId();
+      case Submission s -> s.getCreatedByUserId();
+      case Claim c -> c.getCreatedByUserId();
+      case MatterStart m -> m.getCreatedByUserId();
+      case Client cl -> cl.getCreatedByUserId();
+      case CalculatedFeeDetail cfd -> cfd.getCreatedByUserId();
+      case ClaimSummaryFee csf -> csf.getCreatedByUserId();
+      case ClaimCase cc -> cc.getCreatedByUserId();
+      default -> API_USER;
+    };
   }
 }

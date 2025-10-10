@@ -677,6 +677,7 @@ components:
         - area_of_law
         - status
         - provider_user_id
+        - created_by_user_id
     SubmissionPatch:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -784,6 +785,9 @@ components:
           type: string
           format: date-time
           description: Date and time the submission was submitted
+        created_by_user_id:
+          type: string
+          description: The id of the user who created the submission.
     SubmissionsResultSet:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -801,6 +805,7 @@ components:
         - status
         - line_number
         - matter_type_code
+        - created_by_user_id
     ClaimPatch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
@@ -1043,6 +1048,9 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
+        created_by_user_id:
+          type: string
+          description: The id of the user who created the claim.
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1391,6 +1399,9 @@ components:
           type: string
         mediation_type:
           $ref: "#/components/schemas/mediation_type"
+        created_by_user_id:
+          type: string
+          description: The id of the user who created the matter start.
     mediation_type:
       type: string
       enum:

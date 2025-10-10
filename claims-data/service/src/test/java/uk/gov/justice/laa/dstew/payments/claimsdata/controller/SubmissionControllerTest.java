@@ -71,7 +71,8 @@ class SubmissionControllerTest {
             + "\"status\": \"CREATED\","
             + "\"is_nil_submission\": false,"
             + "\"number_of_claims\": 1,"
-            + "\"provider_user_id\": \"a-provider-user-id\""
+            + "\"provider_user_id\": \"a-provider-user-id\","
+            + "\"created_by_user_id\":\"test-user\""
             + "}";
 
     mockMvc

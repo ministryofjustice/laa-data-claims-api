@@ -96,6 +96,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .areaOfLaw("CIVIL")
             .status(SubmissionStatus.CREATED)
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
             .build();
 
     // when: calling POST endpoint for submissions
@@ -113,6 +114,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
+    assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
 
   @Test

@@ -61,8 +61,7 @@ public class SubmissionService
    */
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
-    //  TODO: DSTEW-323 replace with the actual user ID/name when available
-    submission.setCreatedByUserId("todo");
+    submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
 
     submissionRepository.save(submission);
     return submission.getId();

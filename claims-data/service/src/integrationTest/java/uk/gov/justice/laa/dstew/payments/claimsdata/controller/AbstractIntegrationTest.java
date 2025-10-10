@@ -90,7 +90,7 @@ public abstract class AbstractIntegrationTest {
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
-            .createdByUserId(USER_ID)
+            .createdByUserId(API_USER_ID)
             .createdOn(CREATED_ON)
             .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
