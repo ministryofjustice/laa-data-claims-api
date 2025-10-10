@@ -40,7 +40,6 @@ public class JaversAuditingAspect {
    * is run after the successful execution of the save method in any of the classes in the specified
    * repository package. It uses Javers to save it in the audit log table (jv_snapshot)
    *
-   * @param joinPoint the join point providing reflective access to the intercepted method
    * @param result the result of the save operation, representing the saved entity
    */
   @AfterReturning(

@@ -15,8 +15,7 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void findByClaimId_returnsCalculatedFeeDetail() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     var result = calculatedFeeDetailRepository.findByClaimId(CLAIM_1_ID);
 
@@ -30,8 +29,7 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = calculatedFeeDetailRepository.findByClaimId(unknownClaimId);

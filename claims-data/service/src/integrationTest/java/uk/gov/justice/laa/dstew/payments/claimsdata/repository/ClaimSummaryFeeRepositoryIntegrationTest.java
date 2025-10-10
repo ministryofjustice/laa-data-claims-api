@@ -16,8 +16,7 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void findByClaimId_returnsSummaryFee() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     var result = claimSummaryFeeRepository.findByClaimId(CLAIM_1_ID);
 
@@ -30,8 +29,7 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void findByClaim_returnsSummaryFee() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     var claim = claimRepository.findById(CLAIM_2_ID).orElseThrow();
     var result = claimSummaryFeeRepository.findByClaim(claim);
@@ -42,8 +40,7 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = claimSummaryFeeRepository.findByClaimId(unknownClaimId);
