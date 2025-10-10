@@ -41,14 +41,13 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve a claim for a given submissionId and a claimId
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -144,8 +143,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode("FEE-CODE-2");
     claimPatch.setTotalValue(BigDecimal.valueOf(1000));
@@ -153,7 +151,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                 .contentType(MediaType.APPLICATION_JSON))
@@ -169,8 +167,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
     ClaimPatch claimPatch = new ClaimPatch();
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
@@ -187,8 +184,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the PATCH endpoint to update the claim with an incorrect body, 400 should be
     // returned.
@@ -204,15 +200,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims for an office_code
     MvcResult result =
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("office_code", "office1")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -220,17 +215,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(2);
-    assertThat(claimResultSet.getContent()).hasSize(2);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
+    assertThat(claimResultSet.getContent()).hasSize(3);
     assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_1_ID.toString());
     assertThat(claimResultSet.getContent().get(1).getId()).isEqualTo(CLAIM_2_ID.toString());
+    assertThat(claimResultSet.getContent().get(2).getId()).isEqualTo(CLAIM_4_ID.toString());
   }
 
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -238,7 +233,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("office_code", "office1")
                     .param("unique_file_number", "UFN-002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
@@ -255,8 +250,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
     // given: required claims exist in the database
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
     // be returned.
@@ -272,8 +266,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
     MvcResult result =

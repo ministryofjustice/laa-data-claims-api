@@ -313,6 +313,12 @@ paths:
           schema:
             type: string
           description: Unique Client Number assigned to the client
+        - name: unique_case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Case Id assigned to the claim case
         - name: claim_statuses
           in: query
           required: false

@@ -6,12 +6,18 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_3_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CRIME_SCHEDULE_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.MATTER_TYPE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SCHEDULE_REFERENCE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_PERIOD;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
@@ -83,6 +89,14 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClaimCaseRepository claimCaseRepository;
   @Autowired protected MockMvc mockMvc;
 
+  private BulkSubmission bulkSubmission;
+  private Submission submission1;
+  private Submission submission2;
+  public Claim claim1;
+  public Claim claim2;
+  public Claim claim3;
+  public Claim claim4;
+
   @BeforeAll
   static void beforeAll() {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
@@ -107,10 +121,8 @@ public abstract class AbstractIntegrationTest {
     bulkSubmissionRepository.deleteAll();
   }
 
-  public Submission getSubmissionTestData() {
-    clearIntegrationData();
-
-    var bulkSubmission =
+  void createBulkSubmission() {
+    bulkSubmission =
         BulkSubmission.builder()
             .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
@@ -120,6 +132,11 @@ public abstract class AbstractIntegrationTest {
             .updatedOn(CREATED_ON)
             .build();
     bulkSubmissionRepository.save(bulkSubmission);
+  }
+
+  public Submission getSubmissionTestData() {
+    clearIntegrationData();
+    createBulkSubmission();
 
     var submission =
         Submission.builder()
@@ -138,17 +155,48 @@ public abstract class AbstractIntegrationTest {
     return submissionRepository.save(submission);
   }
 
-  public void createClaimsTestData(Submission submission) {
-    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+  void createSubmissionsData() {
+    clearIntegrationData();
+    createBulkSubmission();
 
-    var claim1 =
+    submission1 =
+        Submission.builder()
+            .id(SUBMISSION_1_ID)
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber("office1")
+            .submissionPeriod("JAN-25")
+            .areaOfLaw("CIVIL")
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .build();
+    submission2 =
+        Submission.builder()
+            .id(SUBMISSION_2_ID)
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber("office2")
+            .submissionPeriod("APR-24")
+            .areaOfLaw("CRIME")
+            .status(SubmissionStatus.VALIDATION_SUCCEEDED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .build();
+
+    submissionRepository.saveAll(List.of(submission1, submission2));
+  }
+
+  public void createClaimsTestData() {
+    createSubmissionsData();
+    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+    claim1 =
         Claim.builder()
             .id(CLAIM_1_ID)
-            .submission(submission)
-            .status(ClaimStatus.INVALID)
+            .submission(submission1)
+            .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference(SCHEDULE_REFERENCE)
             .lineNumber(1)
             .caseReferenceNumber(CASE_REFERENCE)
+            .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
             .caseStartDate(LocalDate.of(2025, 8, 1))
             .caseConcludedDate(LocalDate.of(2025, 8, 10))
@@ -158,10 +206,10 @@ public abstract class AbstractIntegrationTest {
             .totalValue(BigDecimal.valueOf(100))
             .build();
 
-    var claim2 =
+    claim2 =
         Claim.builder()
             .id(CLAIM_2_ID)
-            .submission(submission)
+            .submission(submission1)
             .status(ClaimStatus.VALID)
             .scheduleReference("SCHED-002")
             .lineNumber(2)
@@ -174,8 +222,38 @@ public abstract class AbstractIntegrationTest {
             .createdOn(CREATED_ON)
             .totalValue(BigDecimal.valueOf(200))
             .build();
-
-    claimRepository.saveAll(List.of(claim1, claim2));
+    claim3 =
+        Claim.builder()
+            .id(CLAIM_3_ID)
+            .submission(submission2)
+            .uniqueFileNumber("UFN_333")
+            .lineNumber(333)
+            .matterTypeCode("MTC_333")
+            .caseStartDate(LocalDate.now().minusDays(365))
+            .caseConcludedDate(LocalDate.now().minusDays(30))
+            .feeCode("FEE_333")
+            .status(ClaimStatus.INVALID)
+            .createdByUserId(USER_ID)
+            .createdOn(SUBMITTED_DATE.toInstant())
+            .build();
+    claim4 =
+        Claim.builder()
+            .id(CLAIM_4_ID)
+            .submission(submission1)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .scheduleReference(SCHEDULE_REFERENCE)
+            .lineNumber(1)
+            .caseReferenceNumber(CASE_REFERENCE)
+            .feeCode(FEE_CODE)
+            .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+            .caseStartDate(LocalDate.of(2025, 8, 1))
+            .caseConcludedDate(LocalDate.of(2025, 8, 10))
+            .matterTypeCode(MATTER_TYPE_CODE)
+            .createdByUserId(USER_ID)
+            .createdOn(CREATED_ON)
+            .totalValue(BigDecimal.valueOf(100))
+            .build();
+    claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
 
     var summaryFee1 =
         ClaimSummaryFee.builder()
@@ -349,14 +427,16 @@ public abstract class AbstractIntegrationTest {
                 .claim(claim1)
                 .clientForename("Alice")
                 .clientSurname("Smith")
+                .uniqueClientNumber("UCN_111")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build(),
             Client.builder()
                 .id(Uuid7.timeBasedUuid())
-                .claim(claim2)
+                .claim(claim3)
                 .clientForename("Bob")
                 .clientSurname("Jones")
+                .uniqueClientNumber("UCN_333")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build()));
@@ -387,7 +467,7 @@ public abstract class AbstractIntegrationTest {
                 .build(),
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
-                .claim(claim2)
+                .claim(claim3)
                 .caseId("CASE_ID_2")
                 .uniqueCaseId("UC_ID_2")
                 .caseStageCode("CASE_STAGE_CODE")
@@ -411,14 +491,13 @@ public abstract class AbstractIntegrationTest {
 
   public void createValidationMessageLogTestData() {
     validationMessageLogRepository.deleteAll();
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     validationMessageLogRepository.saveAll(
         List.of(
             new ValidationMessageLog(
                 VALIDATION_ID_1,
-                SUBMISSION_ID,
+                SUBMISSION_1_ID,
                 CLAIM_1_ID,
                 ValidationMessageType.ERROR,
                 "SYSTEM",
@@ -427,7 +506,7 @@ public abstract class AbstractIntegrationTest {
                 CREATED_ON),
             new ValidationMessageLog(
                 VALIDATION_ID_2,
-                SUBMISSION_ID,
+                SUBMISSION_1_ID,
                 CLAIM_2_ID,
                 ValidationMessageType.WARNING,
                 "SYSTEM",
