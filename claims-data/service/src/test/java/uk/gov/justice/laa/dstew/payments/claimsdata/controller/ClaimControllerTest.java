@@ -156,6 +156,7 @@ class ClaimControllerTest {
             anyString(),
             anyString(),
             anyString(),
+            anyString(),
             anyList(),
             any(Pageable.class)))
         .thenReturn(expected);
@@ -174,6 +175,7 @@ class ClaimControllerTest {
                 .queryParam("fee_code", "fee_123")
                 .queryParam("unique_file_number", "UFN_123")
                 .queryParam("unique_client_number", "UCN_123")
+                .queryParam("unique_case_id", "UC_ID_123")
                 .queryParam(
                     "claim_statuses",
                     String.valueOf(ClaimStatus.VALID),

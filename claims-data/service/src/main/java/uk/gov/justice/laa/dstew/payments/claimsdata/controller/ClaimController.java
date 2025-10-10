@@ -52,6 +52,7 @@ public class ClaimController implements ClaimsApi {
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
+      String uniqueCaseId,
       List<ClaimStatus> claimStatuses,
       Pageable pageable) {
     return ResponseEntity.ok(
@@ -62,6 +63,7 @@ public class ClaimController implements ClaimsApi {
             feeCode,
             uniqueFileNumber,
             uniqueClientNumber,
+            uniqueCaseId,
             claimStatuses,
             pageable));
   }
