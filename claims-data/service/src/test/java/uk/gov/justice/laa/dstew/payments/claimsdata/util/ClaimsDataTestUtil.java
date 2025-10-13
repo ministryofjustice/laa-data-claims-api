@@ -296,7 +296,7 @@ public class ClaimsDataTestUtil {
         .isLegallyAided(true)
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
-        .submissionSubmitted(SUBMITTED_DATE.toLocalDate())
+        .submissionPeriod(SUBMISSION_PERIOD)
         .build();
   }
 

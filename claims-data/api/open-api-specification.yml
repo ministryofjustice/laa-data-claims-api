@@ -1050,10 +1050,9 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
-        submission_submitted:
+        submission_period:
           type: string
-          format: date
-          description: Date and time the submission was submitted
+          description: Submission period (e.g., "2025-07").
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.

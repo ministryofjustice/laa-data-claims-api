@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -100,7 +99,6 @@ class ClaimMapperTest {
   @Test
   void toClaimFields_mapsAllResponse() {
     UUID submissionId = Uuid7.timeBasedUuid();
-    LocalDate createdOnDate = LocalDate.of(2025, 5, 20);
     final Claim entity =
         Claim.builder()
             .dutySolicitor(true)
@@ -131,11 +129,7 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
-            .submission(
-                Submission.builder()
-                    .id(submissionId)
-                    .createdOn(createdOnDate.atStartOfDay(ZoneOffset.UTC).toInstant())
-                    .build())
+            .submission(Submission.builder().id(submissionId).submissionPeriod("APR-2025").build())
             .build();
 
     final ClaimResponse fields = mapper.toClaimResponse(entity);
@@ -175,7 +169,7 @@ class ClaimMapperTest {
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
     assertEquals(entity.getTotalValue(), fields.getTotalValue());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
-    assertEquals(createdOnDate, fields.getSubmissionSubmitted());
+    assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
   }
 
   @Test
