@@ -278,6 +278,7 @@ public class ClaimsDataTestUtil {
   public static ClaimResponse getClaimResponse() {
     return ClaimResponse.builder()
         .id(String.valueOf(CLAIM_1_ID))
+        .submissionId(String.valueOf(SUBMISSION_ID))
         .scheduleReference(SCHEDULE_REFERENCE)
         .caseReferenceNumber(CASE_REFERENCE)
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
@@ -295,6 +296,7 @@ public class ClaimsDataTestUtil {
         .isLegallyAided(true)
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
+        .submissionPeriod(SUBMISSION_PERIOD)
         .build();
   }
 
