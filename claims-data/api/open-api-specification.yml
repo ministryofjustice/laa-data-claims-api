@@ -753,7 +753,7 @@ components:
           description: The office account number.
         submission_period:
           type: string
-          description: Submission period (e.g., "2025-07").
+          description: Submission period (e.g., "JUL-2025").
         area_of_law:
           type: string
           description: Area of law (e.g., "crime", "civil").
@@ -1052,7 +1052,7 @@ components:
           type: string
         submission_period:
           type: string
-          description: Submission period (e.g., "2025-07").
+          description: Submission period (e.g., "JUL-2025").
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
