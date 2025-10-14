@@ -1,14 +1,18 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -21,9 +25,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStarterResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -36,6 +44,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 class MatterStartsControllerTest {
 
   @Autowired private MockMvcTester mockMvc;
+
+  @Autowired private MockMvc mockMvcTest;
 
   @MockitoBean private MatterStartService matterStartService;
 
@@ -107,6 +117,55 @@ class MatterStartsControllerTest {
           .hasStatusOk()
           .bodyJson()
           .isLenientlyEqualTo(mapper.writeValueAsString(expected.get()));
+    }
+  }
+
+  @Nested
+  class GetAllMatterStartsForSubmission {
+
+    @DisplayName("Should call service once and return list of matter starter")
+    @Test
+    void shouldCallServiceOnceAndReturnListOfMatterStarter() throws Exception {
+      var submissionId = Uuid7.timeBasedUuid();
+      MatterStartGet matterStartGet = new MatterStartGet().categoryCode("Category");
+      MatterStarterResultSet matterStarterResultSet =
+          MatterStarterResultSet.builder()
+              .submissionId(submissionId)
+              .matterStarts(List.of(matterStartGet))
+              .build();
+      when(matterStartService.getAllMatterStartsForSubmission(submissionId))
+          .thenReturn(matterStarterResultSet);
+
+      ObjectMapper mapper = new ObjectMapper();
+      var actualResult =
+          mockMvcTest
+              .perform(get(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId))
+              .andExpect(MockMvcResultMatchers.status().isOk())
+              .andReturn();
+      assertThat(actualResult.getResponse().getContentAsString())
+          .isEqualTo(mapper.writeValueAsString(matterStarterResultSet));
+      verify(matterStartService).getAllMatterStartsForSubmission(eq(submissionId));
+    }
+
+    @DisplayName("Should return 404 when submission not found")
+    @Test
+    void shouldReturn404WhenSubmissionNotFound() throws Exception {
+      var submissionId = Uuid7.timeBasedUuid();
+      when(matterStartService.getAllMatterStartsForSubmission(submissionId))
+          .thenThrow(new SubmissionNotFoundException("No entity found with id:" + submissionId));
+
+      mockMvcTest
+          .perform(get(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId))
+          .andExpect(MockMvcResultMatchers.status().isNotFound())
+          .andExpect(
+              result ->
+                  assertInstanceOf(
+                      SubmissionNotFoundException.class, result.getResolvedException()))
+          .andExpect(
+              result ->
+                  assertThat(Objects.requireNonNull(result.getResolvedException()).getMessage())
+                      .isEqualTo("No entity found with id:" + submissionId))
+          .andReturn();
     }
   }
 }
