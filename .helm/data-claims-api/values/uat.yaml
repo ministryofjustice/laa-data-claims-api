@@ -27,6 +27,13 @@ ingress:
       SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-uat"
   hosts: []
 
+ingressInternal:
+  enabled: true
+  className: internal-non-prod
+  annotations:
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+  hosts: []
+
 resources:
   limits:
     cpu: 500m

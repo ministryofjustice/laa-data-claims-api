@@ -18,6 +18,15 @@ service:
 ingress:
   enabled: false
 
+ingressInternal:
+  enabled: true
+  className: internal-non-prod
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-internal-laa-data-claims-api-staging-green"
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+  hosts: 
+    - "laa-data-claims-api-staging.internal-non-prod.cloud-platform.service.justice.gov.uk"
+
 resources:
   limits:
     cpu: 500m
