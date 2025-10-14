@@ -29,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 public final class ClaimSpecification {
 
   private static final String NOT_NULL_QUERY_MESSAGE = "Query must not be null";
+
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
    * parameters. The resulting specification can be used to dynamically generate predicates for
