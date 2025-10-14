@@ -30,6 +30,8 @@ public class ClaimsDataTestUtil {
   public static final UUID BULK_SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_1_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_2_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_3_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_2_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
@@ -44,6 +46,7 @@ public class ClaimsDataTestUtil {
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";
   public static final String UNIQUE_CLIENT_NUMBER = "UCN_123";
+  public static final String UNIQUE_CASE_ID = "UC_ID_123";
   public static final String MATTER_TYPE_CODE = "MTC_123";
   public static final Integer LINE_NUMBER = 123;
   public static final String CASE_REFERENCE = "CASE_123";

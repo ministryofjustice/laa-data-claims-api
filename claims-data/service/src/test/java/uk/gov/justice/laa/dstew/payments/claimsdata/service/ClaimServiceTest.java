@@ -8,7 +8,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CASE_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -416,6 +423,7 @@ class ClaimServiceTest {
                 FEE_CODE,
                 UNIQUE_FILE_NUMBER,
                 UNIQUE_CLIENT_NUMBER,
+                UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
                 Pageable.unpaged()));
   }
@@ -432,6 +440,7 @@ class ClaimServiceTest {
                 FEE_CODE,
                 UNIQUE_FILE_NUMBER,
                 UNIQUE_CLIENT_NUMBER,
+                UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
                 Pageable.unpaged()));
   }
@@ -454,6 +463,7 @@ class ClaimServiceTest {
             FEE_CODE,
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
+            UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
             Pageable.ofSize(10).withPage(0));
 
@@ -478,6 +488,7 @@ class ClaimServiceTest {
             FEE_CODE,
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
+            UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
             Pageable.ofSize(10).withPage(0));
 

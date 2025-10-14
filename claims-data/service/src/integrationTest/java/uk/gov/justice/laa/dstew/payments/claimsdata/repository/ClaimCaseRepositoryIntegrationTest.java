@@ -16,8 +16,7 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   void findByClaimId_returnsClaimCase() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     var result = claimCaseRepository.findByClaimId(CLAIM_1_ID);
 
@@ -31,8 +30,7 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    var submission = getSubmissionTestData();
-    createClaimsTestData(submission);
+    createClaimsTestData();
 
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = claimCaseRepository.findByClaimId(unknownClaimId);

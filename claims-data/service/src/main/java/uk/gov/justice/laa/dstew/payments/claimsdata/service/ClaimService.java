@@ -235,6 +235,7 @@ public class ClaimService
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
+      String uniqueCaseId,
       List<ClaimStatus> claimStatuses,
       Pageable pageable) {
 
@@ -251,6 +252,7 @@ public class ClaimService
                 feeCode,
                 uniqueFileNumber,
                 uniqueClientNumber,
+                uniqueCaseId,
                 claimStatuses),
             pageable);
 
