@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -27,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
  */
 public final class ClaimSpecification {
 
+  private static final String NOT_NULL_QUERY_MESSAGE = "Query must not be null";
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
    * parameters. The resulting specification can be used to dynamically generate predicates for
@@ -88,7 +90,7 @@ public final class ClaimSpecification {
       // Filter on Client fields
       if (StringUtils.hasText(uniqueClientNumber)) {
         // Subquery to check existence of matching clients
-        assert query != null;
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
         Subquery<Client> clientSubquery = getClientSubquery(uniqueClientNumber, root, query, cb);
 
         predicates.add(cb.exists(clientSubquery));
@@ -97,7 +99,7 @@ public final class ClaimSpecification {
       // Filter on Claim Case fields
       if (StringUtils.hasText(uniqueCaseId)) {
         // Subquery to check existence of matching claim cases
-        assert query != null;
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
         Subquery<ClaimCase> claimCaseSubquery = getClaimCaseSubquery(uniqueCaseId, root, query, cb);
 
         predicates.add(cb.exists(claimCaseSubquery));
