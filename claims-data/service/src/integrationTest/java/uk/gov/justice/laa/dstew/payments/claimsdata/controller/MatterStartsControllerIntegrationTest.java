@@ -12,9 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -24,8 +22,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTest {
-
-  @Autowired private MockMvc mockMvc;
 
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 

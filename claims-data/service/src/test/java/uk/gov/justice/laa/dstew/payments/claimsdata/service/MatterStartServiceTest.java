@@ -144,9 +144,9 @@ class MatterStartServiceTest {
       verify(matterStartMapper, times(0)).toMatterStartGet(any());
     }
 
-    @DisplayName("Should return list of Matter Start for a valid submission id")
+    @DisplayName("Should return list of Matter Starts for a valid submission id")
     @Test
-    void shouldReturnListMatterStartForValidSubmissionId() {
+    void shouldReturnListMatterStartsForValidSubmissionId() {
       var submissionId = Uuid7.timeBasedUuid();
       var matterStartEntity = MatterStart.builder().id(Uuid7.timeBasedUuid()).build();
       when(submissionRepository.findById(submissionId))
@@ -167,9 +167,9 @@ class MatterStartServiceTest {
     }
 
     @DisplayName(
-        "Should return empty list of Matter Start when submission id has no associated matter starts")
+        "Should return empty list of Matter Starts when submission id has no associated matter starts")
     @Test
-    void shouldReturnEmptyListOfMatterStart() {
+    void shouldReturnEmptyListOfMatterStarts() {
       var submissionId = Uuid7.timeBasedUuid();
       when(submissionRepository.findById(submissionId))
           .thenReturn(Optional.of(Submission.builder().id(submissionId).build()));
