@@ -1,12 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
-import org.mapstruct.NullValuePropertyMappingStrategy;
-import org.mapstruct.ReportingPolicy;
+import org.mapstruct.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -25,18 +19,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = GlobalStringMapper.class,
-    imports = {com.fasterxml.uuid.Generators.class})
+    imports = {com.fasterxml.uuid.Generators.class},
+    config = AuditFieldsMapper.class)
 public interface ClaimMapper {
 
   // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using
   // these)
   /** Map a {@link ClaimPost} to a {@link Claim} entity. */
-  @Mapping(target = "id", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsAndIdClaim")
   @Mapping(target = "submission", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
   Claim toClaim(ClaimPost claimPost);
@@ -60,12 +51,8 @@ public interface ClaimMapper {
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsClaimPatch")
   @Mapping(target = "submission", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
   void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
@@ -81,22 +68,15 @@ public interface ClaimMapper {
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsClaimSummaryFee")
   @Mapping(target = "claim", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
   ClaimSummaryFee toClaimSummaryFee(ClaimPost claimPost);
 
   /** Map a fee calculation response string to a calculated fee detail. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "claimSummaryFee", ignore = true)
   @Mapping(target = "claim", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsCalculatedFeeDetail")
   @Mapping(target = "feeCode", source = "response.feeCode")
   @Mapping(target = "boltOnTotalFeeAmount", source = "response.boltOnDetails.boltOnTotalFeeAmount")
   @Mapping(
@@ -154,12 +134,8 @@ public interface ClaimMapper {
       CalculatedFeeDetail entity, @MappingTarget BoltOnPatch boltOnDetails);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsClaimCase")
   @Mapping(target = "claim", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
   ClaimCase toClaimCase(ClaimPost claimPost);
 
   @Mapping(target = "id", ignore = true)

@@ -3,11 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
@@ -20,7 +16,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 @Mapper(
     componentModel = "spring",
     uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
-    imports = {com.fasterxml.uuid.Generators.class})
+    imports = {com.fasterxml.uuid.Generators.class},
+    config = AuditFieldsMapper.class)
 public interface SubmissionMapper {
   /**
    * Map a {@link SubmissionPost} to a {@link Submission} entity.
@@ -29,10 +26,7 @@ public interface SubmissionMapper {
    * @return mapped {@link Submission} entity
    */
   @Mapping(target = "id", source = "submissionId")
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsSubmission")
   @Mapping(target = "errorMessages", ignore = true)
   Submission toSubmission(SubmissionPost submissionPost);
 
@@ -66,11 +60,7 @@ public interface SubmissionMapper {
    * @param entity the entity to update
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsAndIdSubmission")
   @Mapping(target = "errorMessages", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
