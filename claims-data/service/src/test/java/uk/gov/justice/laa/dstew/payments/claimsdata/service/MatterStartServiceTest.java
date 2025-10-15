@@ -178,7 +178,7 @@ class MatterStartServiceTest {
 
       var actualMatterStarts = matterStartService.getAllMatterStartsForSubmission(submissionId);
 
-      verify(matterStartMapper, times(0)).toMatterStartGet(any());
+      verify(matterStartMapper, never()).toMatterStartGet(any());
 
       assertThat(actualMatterStarts.getSubmissionId()).isEqualTo(submissionId);
       assertThat(actualMatterStarts.getMatterStarts()).hasSize(0);

@@ -11,7 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.api.MatterStartsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateMatterStart201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStarterResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 
 /** Controller for handling matter starts requests. */
@@ -44,7 +44,7 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
-  public ResponseEntity<MatterStarterResultSet> getAllMatterStartsForSubmission(UUID id) {
+  public ResponseEntity<MatterStartResultSet> getAllMatterStartsForSubmission(UUID id) {
     return ResponseEntity.ok(matterStartService.getAllMatterStartsForSubmission(id));
   }
 }

@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStarterResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -42,6 +42,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
     })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class MatterStartsControllerTest {
+
+  private static final String GET_ALL_MATTERS_URI =
+      API_URI_PREFIX + "/submissions/{id}/matter-starts";
+  private static final String GET_MATTER_STARTS_URI = GET_ALL_MATTERS_URI + "/{matter-start-id}";
 
   @Autowired private MockMvcTester mockMvc;
 
@@ -73,7 +77,7 @@ class MatterStartsControllerTest {
       assertThat(
               mockMvc
                   .post()
-                  .uri(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId)
+                  .uri(GET_ALL_MATTERS_URI, submissionId)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(body))
           .hasStatus(HttpStatus.CREATED)
@@ -107,13 +111,7 @@ class MatterStartsControllerTest {
       when(matterStartService.getMatterStart(submissionId, id)).thenReturn(expected);
       // When
       ObjectMapper mapper = new ObjectMapper();
-      assertThat(
-              mockMvc
-                  .get()
-                  .uri(
-                      API_URI_PREFIX + "/submissions/{id}/matter-starts/{matter-start-id}",
-                      submissionId,
-                      id))
+      assertThat(mockMvc.get().uri(GET_MATTER_STARTS_URI, submissionId, id))
           .hasStatusOk()
           .bodyJson()
           .isLenientlyEqualTo(mapper.writeValueAsString(expected.get()));
@@ -128,8 +126,8 @@ class MatterStartsControllerTest {
     void shouldCallServiceOnceAndReturnListOfMatterStarter() throws Exception {
       var submissionId = Uuid7.timeBasedUuid();
       MatterStartGet matterStartGet = new MatterStartGet().categoryCode("Category");
-      MatterStarterResultSet matterStarterResultSet =
-          MatterStarterResultSet.builder()
+      MatterStartResultSet matterStarterResultSet =
+          MatterStartResultSet.builder()
               .submissionId(submissionId)
               .matterStarts(List.of(matterStartGet))
               .build();
@@ -139,7 +137,7 @@ class MatterStartsControllerTest {
       ObjectMapper mapper = new ObjectMapper();
       var actualResult =
           mockMvcTest
-              .perform(get(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId))
+              .perform(get(GET_ALL_MATTERS_URI, submissionId))
               .andExpect(MockMvcResultMatchers.status().isOk())
               .andReturn();
       assertThat(actualResult.getResponse().getContentAsString())
@@ -155,7 +153,7 @@ class MatterStartsControllerTest {
           .thenThrow(new SubmissionNotFoundException("No entity found with id:" + submissionId));
 
       mockMvcTest
-          .perform(get(API_URI_PREFIX + "/submissions/{id}/matter-starts", submissionId))
+          .perform(get(GET_ALL_MATTERS_URI, submissionId))
           .andExpect(MockMvcResultMatchers.status().isNotFound())
           .andExpect(
               result ->

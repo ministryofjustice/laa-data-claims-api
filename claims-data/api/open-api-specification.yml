@@ -435,9 +435,9 @@ paths:
       operationId: getAllMatterStartsForSubmission
       tags:
         - Matter Starts
-      summary: Returns all Matter Start for a given Submission ID
+      summary: Returns all Matter Starts for a given Submission ID
       description: |
-        Returns all Matter Start record belonging to the submission with the specified ID.
+        Returns all Matter Start records belonging to the submission with the specified ID.
       parameters:
         - name: id
           in: path
@@ -448,11 +448,11 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Returns all Matter Start for a Submission ID
+          description: Returns all Matter Starts for a Submission ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/matter_starter_result_set'
+                $ref: '#/components/schemas/matter_start_result_set'
         '400':
           description: 'Bad request'
         '401':
@@ -460,7 +460,7 @@ paths:
         '403':
           description: 'Forbidden'
         '404':
-          description: 'Submission ID does not exist'
+          description: 'Submission ID not found'
         '500':
           description: 'Internal server error'
   /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
@@ -865,9 +865,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
-    matter_starter_result_set:
-      allOf:
-        - $ref: "#/components/schemas/page"
+    matter_start_result_set:
       type: 'object'
       properties:
         submission_id:

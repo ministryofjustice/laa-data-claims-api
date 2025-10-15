@@ -14,7 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStarterResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
@@ -94,12 +94,12 @@ public class MatterStartService
    * @return a result set of matter starts, or empty if none exist
    */
   @Transactional(readOnly = true)
-  public MatterStarterResultSet getAllMatterStartsForSubmission(final UUID submissionId) {
+  public MatterStartResultSet getAllMatterStartsForSubmission(final UUID submissionId) {
     requireEntity(submissionId);
     final List<MatterStart> matterStartEntity =
         matterStartRepository.findBySubmissionId(submissionId);
 
-    return MatterStarterResultSet.builder()
+    return MatterStartResultSet.builder()
         .submissionId(submissionId)
         .matterStarts(matterStartEntity.stream().map(matterStartMapper::toMatterStartGet).toList())
         .build();

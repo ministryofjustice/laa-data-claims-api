@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -31,10 +32,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 
-  public static final String GET_MATTER_STARTS_URI =
-      "/submissions/{submissionId}/matter-starts/{msId}";
   private static final String GET_ALL_MATTER_STARTS_URI =
       "/submissions/{submissionId}/matter-starts";
+
+  public static final String GET_MATTER_STARTS_URI = GET_ALL_MATTER_STARTS_URI + "/{msId}";
 
   private Submission submission;
 
@@ -155,7 +156,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
       var matterStartEntity =
           MatterStart.builder()
               .id(Uuid7.timeBasedUuid())
-              .submission(submissionRepository.findById(submission.getId()).orElseThrow())
+              .submission(
+                  submissionRepository
+                      .findById(ClaimsDataTestUtil.getSubmission().getId())
+                      .orElseThrow())
               .scheduleReference("REF1")
               .categoryCode("CAT1")
               .procurementAreaCode("AREA1")
@@ -190,16 +194,14 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
                    "mediation_type":"MDAC All Issues Co",
                    "created_by_user_id":"user1"
                    }
-                 ],
-              "total_pages":null,
-              "total_elements":null,
-              "number":null,
-              "size":null
+                 ]
               }
               """;
 
       assertThat(OBJECT_MAPPER.readTree(mvcResult.getResponse().getContentAsString()))
-          .isEqualTo(OBJECT_MAPPER.readTree(String.format(expectedResults, submission.getId())));
+          .isEqualTo(
+              OBJECT_MAPPER.readTree(
+                  String.format(expectedResults, ClaimsDataTestUtil.getSubmission().getId())));
     }
 
     @DisplayName("Status 400: when a submission ID with an invalid format (non-UUID)")
