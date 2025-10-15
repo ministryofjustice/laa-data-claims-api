@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -27,8 +26,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
-
-  @Autowired private MatterStartRepository matterStartRepository;
 
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 
