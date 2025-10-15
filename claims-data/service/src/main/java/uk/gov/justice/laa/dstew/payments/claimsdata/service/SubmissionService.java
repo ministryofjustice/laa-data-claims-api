@@ -140,6 +140,7 @@ public class SubmissionService
    *     date
    * @param submittedDateTo an optional end date to filter submissions created on or before this
    *     date
+   * @param submissionStatuses an optional list of submission statuses to filter submissions by
    * @param pageable a pageable object to yield the paginated submission results
    * @return the paginated result set with all submissions that satisfy the filtering criteria
    *     above.
@@ -152,6 +153,7 @@ public class SubmissionService
       LocalDate submittedDateTo,
       String areaOfLaw,
       String submissionPeriod,
+      List<SubmissionStatus> submissionStatuses,
       Pageable pageable) {
 
     if (offices == null || offices.isEmpty()) {
@@ -165,7 +167,8 @@ public class SubmissionService
                 .and(SubmissionSpecification.createdOnOrAfter(submittedDateFrom))
                 .and(SubmissionSpecification.createdOnOrBefore(submittedDateTo))
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
-                .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod)),
+                .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod))
+                .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
             pageable);
 
     return submissionsResultSetMapper.toSubmissionsResultSet(page);
