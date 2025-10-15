@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -26,6 +28,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
  */
 public final class ClaimSpecification {
 
+  private static final String NOT_NULL_QUERY_MESSAGE = "Query must not be null";
+
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
    * parameters. The resulting specification can be used to dynamically generate predicates for
@@ -39,6 +43,7 @@ public final class ClaimSpecification {
    *     claims by
    * @param uniqueClientNumber the optional unique client number associated to the claim to filter
    *     claims by
+   * @param uniqueCaseId the optional unique case id associated to the claim to filter * claims by
    * @param claimStatuses an optional list of claim statuses to filter claims by
    * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
    *     predicates
@@ -50,6 +55,7 @@ public final class ClaimSpecification {
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
+      String uniqueCaseId,
       List<ClaimStatus> claimStatuses) {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
@@ -85,10 +91,19 @@ public final class ClaimSpecification {
       // Filter on Client fields
       if (StringUtils.hasText(uniqueClientNumber)) {
         // Subquery to check existence of matching clients
-        assert query != null;
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
         Subquery<Client> clientSubquery = getClientSubquery(uniqueClientNumber, root, query, cb);
 
         predicates.add(cb.exists(clientSubquery));
+      }
+
+      // Filter on Claim Case fields
+      if (StringUtils.hasText(uniqueCaseId)) {
+        // Subquery to check existence of matching claim cases
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
+        Subquery<ClaimCase> claimCaseSubquery = getClaimCaseSubquery(uniqueCaseId, root, query, cb);
+
+        predicates.add(cb.exists(claimCaseSubquery));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));
@@ -105,5 +120,17 @@ public final class ClaimSpecification {
             cb.equal(clientRoot.get("claim"), root),
             cb.equal(clientRoot.get("uniqueClientNumber"), uniqueClientNumber));
     return clientSubquery;
+  }
+
+  private static Subquery<ClaimCase> getClaimCaseSubquery(
+      String uniqueCaseId, Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+    Subquery<ClaimCase> claimCaseSubquery = query.subquery(ClaimCase.class);
+    Root<ClaimCase> claimCaseRoot = claimCaseSubquery.from(ClaimCase.class);
+    claimCaseSubquery
+        .select(claimCaseRoot.get("id"))
+        .where(
+            cb.equal(claimCaseRoot.get("claim"), root),
+            cb.equal(claimCaseRoot.get("uniqueCaseId"), uniqueCaseId));
+    return claimCaseSubquery;
   }
 }
