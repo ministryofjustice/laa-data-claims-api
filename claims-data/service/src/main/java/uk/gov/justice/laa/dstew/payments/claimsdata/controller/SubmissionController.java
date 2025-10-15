@@ -15,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateSubmission201Res
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
@@ -55,6 +56,7 @@ public class SubmissionController implements SubmissionsApi {
       LocalDate submittedDateTo,
       String areaOfLaw,
       String submissionPeriod,
+      List<SubmissionStatus> submissionStatuses,
       Pageable pageable) {
     return ResponseEntity.ok(
         submissionService.getSubmissionsResultSet(
@@ -64,6 +66,7 @@ public class SubmissionController implements SubmissionsApi {
             submittedDateTo,
             areaOfLaw,
             submissionPeriod,
+            submissionStatuses,
             pageable));
   }
 }

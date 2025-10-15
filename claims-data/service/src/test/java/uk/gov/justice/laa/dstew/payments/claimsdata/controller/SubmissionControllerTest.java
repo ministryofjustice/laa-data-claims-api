@@ -32,6 +32,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -150,6 +151,7 @@ class SubmissionControllerTest {
             any(LocalDate.class),
             anyString(),
             anyString(),
+            anyList(),
             any(Pageable.class)))
         .thenReturn(expected);
 
@@ -164,6 +166,10 @@ class SubmissionControllerTest {
                 .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
                 .queryParam("area_of_law", "CIVIL")
                 .queryParam("submission_period", "2205-19")
+                .queryParam(
+                    "submission_statuses",
+                    String.valueOf(SubmissionStatus.CREATED),
+                    String.valueOf(SubmissionStatus.READY_FOR_VALIDATION))
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk())
         .andExpect(content().json(jsonContent));
@@ -183,6 +189,7 @@ class SubmissionControllerTest {
             any(LocalDate.class),
             anyString(),
             anyString(),
+            anyList(),
             any(Pageable.class)))
         .thenReturn(expected);
     mockMvc
@@ -194,6 +201,7 @@ class SubmissionControllerTest {
                 .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
                 .queryParam("area_of_law", "CIVIL")
                 .queryParam("submission_period", "2205-19")
+                .queryParam("submission_statuses", "CREATED", "READY_FOR_VALIDATION")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk());
 
@@ -205,6 +213,7 @@ class SubmissionControllerTest {
             eq(LocalDate.of(2025, 12, 31)),
             eq("CIVIL"),
             eq("2205-19"),
+            eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
             eq(Pageable.ofSize(20).withPage(0)));
   }
 }

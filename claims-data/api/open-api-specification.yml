@@ -255,6 +255,14 @@ paths:
           schema:
             type: string
           description: Filter by submission period
+        - name: submission_statuses
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/submission_status"
+          description: Filter by submission statuses
 
       responses:
         '200':
