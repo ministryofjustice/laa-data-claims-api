@@ -313,6 +313,12 @@ paths:
           schema:
             type: string
           description: Unique Client Number assigned to the client
+        - name: unique_case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Case Id assigned to the claim case
         - name: claim_statuses
           in: query
           required: false
@@ -785,7 +791,7 @@ components:
           description: The office account number.
         submission_period:
           type: string
-          description: Submission period (e.g., "2025-07").
+          description: Submission period (e.g., "JUL-2025").
         area_of_law:
           type: string
           description: Area of law (e.g., "crime", "civil").
@@ -881,6 +887,8 @@ components:
       description: Claim details
       properties:
         id:
+          type: string
+        submission_id:
           type: string
         status:
           $ref: "#/components/schemas/claim_status"
@@ -1091,6 +1099,9 @@ components:
           description: "Number of Home Office Interviews"
         local_authority_number:
           type: string
+        submission_period:
+          type: string
+          description: Submission period (e.g., "JUL-2025").
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.

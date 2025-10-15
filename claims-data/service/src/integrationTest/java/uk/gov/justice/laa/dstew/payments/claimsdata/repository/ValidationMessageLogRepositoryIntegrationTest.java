@@ -35,7 +35,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   void shouldCountDistinctClaimIdsBySubmissionId() {
     long count =
         validationMessageLogRepository.countDistinctClaimIdsBySubmissionIdAndType(
-            SUBMISSION_ID, null);
+            SUBMISSION_1_ID, null);
     assertThat(count).isEqualTo(2L);
   }
 
@@ -47,7 +47,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     Pageable pageable = PageRequest.of(0, 10);
 
     ValidationMessageLog probe = new ValidationMessageLog();
-    probe.setSubmissionId(SUBMISSION_ID);
+    probe.setSubmissionId(SUBMISSION_1_ID);
     probe.setClaimId(claimId);
     probe.setType(type);
     probe.setSource("SYSTEM");
@@ -58,7 +58,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     assertThat(result.getTotalElements()).isEqualTo(1);
     var message = result.getContent().getFirst();
     assertThat(message.getClaimId()).isEqualTo(claimId);
-    assertThat(message.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(message.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(message.getType()).isEqualTo(type);
     assertThat(message.getSource()).isEqualTo("SYSTEM");
     assertThat(message.getDisplayMessage()).isEqualTo(displayMessage);

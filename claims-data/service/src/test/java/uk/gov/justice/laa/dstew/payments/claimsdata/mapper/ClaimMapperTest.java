@@ -98,6 +98,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimFields_mapsAllResponse() {
+    UUID submissionId = Uuid7.timeBasedUuid();
     final Claim entity =
         Claim.builder()
             .dutySolicitor(true)
@@ -128,6 +129,7 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .submission(Submission.builder().id(submissionId).submissionPeriod("APR-2025").build())
             .build();
 
     final ClaimResponse fields = mapper.toClaimResponse(entity);
@@ -166,6 +168,8 @@ class ClaimMapperTest {
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
     assertEquals(entity.getTotalValue(), fields.getTotalValue());
+    assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
+    assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
   }
 
   @Test

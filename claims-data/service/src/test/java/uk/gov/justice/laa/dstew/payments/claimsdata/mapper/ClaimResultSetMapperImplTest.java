@@ -1,8 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_PERIOD;
 
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,9 @@ class ClaimResultSetMapperImplTest {
         .isEqualTo(expectedClaim.getAccessPointCode());
     assertThat(actualClaimResponse.getDeliveryLocation())
         .isEqualTo(expectedClaim.getDeliveryLocation());
+    assertThat(actualClaimResponse.getSubmissionId())
+        .isEqualTo(expectedClaim.getSubmission().getId().toString());
+    assertThat(actualClaimResponse.getSubmissionPeriod()).isEqualTo(SUBMISSION_PERIOD);
 
     // Verify Client attributes in the actual claim response
     assertThat(actualClaimResponse.getClientForename())
