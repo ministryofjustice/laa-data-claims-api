@@ -12,27 +12,23 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTest {
 
-  @Autowired private MockMvc mockMvc;
-
-  @Autowired private MatterStartRepository matterStartRepository;
-
   public static final String POST_MATTER_START_URI = "/submissions/{submissionId}/matter-starts";
 
-  public static final String GET_MATTER_STARTS_URI =
-      "/submissions/{submissionId}/matter-starts/{msId}";
+  private static final String GET_ALL_MATTER_STARTS_URI =
+      "/submissions/{submissionId}/matter-starts";
+
+  public static final String GET_MATTER_STARTS_URI = GET_ALL_MATTER_STARTS_URI + "/{msId}";
 
   private Submission submission;
 
@@ -141,5 +137,87 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
         .andReturn();
+  }
+
+  @Nested
+  class GetAllMatterStartsForSubmission {
+    @DisplayName("Status 200: when a valid submission ID exists in the system")
+    @Test
+    @Transactional
+    void getAllMatterStart_shouldReturnOK() throws Exception {
+      var submission = ClaimsDataTestUtil.getSubmission();
+      var matterStartEntity =
+          MatterStart.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(submission)
+              .scheduleReference("REF1")
+              .categoryCode("CAT1")
+              .procurementAreaCode("AREA1")
+              .accessPointCode("ACCESS1")
+              .deliveryLocation("LONDON")
+              .createdByUserId("user1")
+              .mediationType(MediationType.MDAC_ALL_ISSUES_CO)
+              .createdOn(Instant.now())
+              .updatedOn(Instant.now())
+              .build();
+      matterStartRepository.save(matterStartEntity);
+
+      MvcResult mvcResult =
+          mockMvc
+              .perform(
+                  get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission.getId())
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var expectedResults =
+          """
+              {
+              "submission_id":"%s",
+              "matter_starts":[
+                   {
+                   "schedule_reference":"REF1",
+                   "category_code":"CAT1",
+                   "procurement_area_code":"AREA1",
+                   "access_point_code":"ACCESS1",
+                   "delivery_location":"LONDON",
+                   "mediation_type":"MDAC All Issues Co",
+                   "created_by_user_id":"user1"
+                   }
+                 ]
+              }
+              """;
+
+      assertThat(OBJECT_MAPPER.readTree(mvcResult.getResponse().getContentAsString()))
+          .isEqualTo(OBJECT_MAPPER.readTree(String.format(expectedResults, submission.getId())));
+    }
+
+    @DisplayName("Status 400: when a submission ID with an invalid format (non-UUID)")
+    @Test
+    void getAllMatterStart_shouldReturnBadRequest() throws Exception {
+      mockMvc
+          .perform(
+              get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, "invalid-submission_id_format")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    @DisplayName("Status 404: when a submission ID does not exist in the database")
+    @Test
+    void getAllMatterStart_shouldReturnNotFound() throws Exception {
+      mockMvc
+          .perform(
+              get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, UUID.randomUUID())
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isNotFound());
+    }
+
+    @DisplayName("Status 401: when endpoint is accessed without proper authentication")
+    @Test
+    void getAllMatterStart_shouldReturnUnauthorized() throws Exception {
+      mockMvc
+          .perform(get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission.getId()))
+          .andExpect(status().isUnauthorized());
+    }
   }
 }
