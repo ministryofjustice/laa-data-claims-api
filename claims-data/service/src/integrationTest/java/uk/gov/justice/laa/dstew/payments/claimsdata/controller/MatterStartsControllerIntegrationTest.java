@@ -151,15 +151,12 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     @DisplayName("Status 200: when a valid submission ID exists in the system")
     @Test
     @Transactional
-    void getAllMatterStarter_shouldReturnOK() throws Exception {
-
+    void getAllMatterStart_shouldReturnOK() throws Exception {
+      var submission = ClaimsDataTestUtil.getSubmission();
       var matterStartEntity =
           MatterStart.builder()
               .id(Uuid7.timeBasedUuid())
-              .submission(
-                  submissionRepository
-                      .findById(ClaimsDataTestUtil.getSubmission().getId())
-                      .orElseThrow())
+              .submission(submission)
               .scheduleReference("REF1")
               .categoryCode("CAT1")
               .procurementAreaCode("AREA1")
@@ -199,14 +196,12 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
               """;
 
       assertThat(OBJECT_MAPPER.readTree(mvcResult.getResponse().getContentAsString()))
-          .isEqualTo(
-              OBJECT_MAPPER.readTree(
-                  String.format(expectedResults, ClaimsDataTestUtil.getSubmission().getId())));
+          .isEqualTo(OBJECT_MAPPER.readTree(String.format(expectedResults, submission.getId())));
     }
 
     @DisplayName("Status 400: when a submission ID with an invalid format (non-UUID)")
     @Test
-    void getAllMatterStarter_shouldReturnBadRequest() throws Exception {
+    void getAllMatterStart_shouldReturnBadRequest() throws Exception {
       mockMvc
           .perform(
               get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, "invalid-submission_id_format")
@@ -216,7 +211,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
     @DisplayName("Status 404: when a submission ID does not exist in the database")
     @Test
-    void getAllMatterStarter_shouldReturnNotFound() throws Exception {
+    void getAllMatterStart_shouldReturnNotFound() throws Exception {
       mockMvc
           .perform(
               get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, UUID.randomUUID())
@@ -226,7 +221,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
     @DisplayName("Status 401: when endpoint is accessed without proper authentication")
     @Test
-    void getAllMatterStarter_shouldReturnUnauthorized() throws Exception {
+    void getAllMatterStart_shouldReturnUnauthorized() throws Exception {
       mockMvc
           .perform(get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission.getId()))
           .andExpect(status().isUnauthorized());

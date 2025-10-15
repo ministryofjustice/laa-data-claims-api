@@ -121,18 +121,18 @@ class MatterStartsControllerTest {
   @Nested
   class GetAllMatterStartsForSubmission {
 
-    @DisplayName("Should call service once and return list of matter starter")
+    @DisplayName("Should call service once and return list of matter start")
     @Test
-    void shouldCallServiceOnceAndReturnListOfMatterStarter() throws Exception {
+    void shouldCallServiceOnceAndReturnListOfMatterStart() throws Exception {
       var submissionId = Uuid7.timeBasedUuid();
       MatterStartGet matterStartGet = new MatterStartGet().categoryCode("Category");
-      MatterStartResultSet matterStarterResultSet =
+      MatterStartResultSet matterStartResultSet =
           MatterStartResultSet.builder()
               .submissionId(submissionId)
               .matterStarts(List.of(matterStartGet))
               .build();
       when(matterStartService.getAllMatterStartsForSubmission(submissionId))
-          .thenReturn(matterStarterResultSet);
+          .thenReturn(matterStartResultSet);
 
       ObjectMapper mapper = new ObjectMapper();
       var actualResult =
@@ -141,7 +141,7 @@ class MatterStartsControllerTest {
               .andExpect(MockMvcResultMatchers.status().isOk())
               .andReturn();
       assertThat(actualResult.getResponse().getContentAsString())
-          .isEqualTo(mapper.writeValueAsString(matterStarterResultSet));
+          .isEqualTo(mapper.writeValueAsString(matterStartResultSet));
       verify(matterStartService).getAllMatterStartsForSubmission(eq(submissionId));
     }
 
