@@ -6,10 +6,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -185,6 +185,7 @@ class SubmissionServiceTest {
                 SUBMITTED_DATE_TO,
                 AREA_OF_LAW,
                 SUBMISSION_PERIOD,
+                SUBMISSION_STATUSES,
                 Pageable.unpaged()));
   }
 
@@ -200,6 +201,7 @@ class SubmissionServiceTest {
                 SUBMITTED_DATE_TO,
                 AREA_OF_LAW,
                 SUBMISSION_PERIOD,
+                SUBMISSION_STATUSES,
                 Pageable.unpaged()));
   }
 
@@ -222,6 +224,7 @@ class SubmissionServiceTest {
             SUBMITTED_DATE_TO,
             AREA_OF_LAW,
             SUBMISSION_PERIOD,
+            SUBMISSION_STATUSES,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
@@ -247,6 +250,7 @@ class SubmissionServiceTest {
             SUBMITTED_DATE_TO,
             AREA_OF_LAW,
             SUBMISSION_PERIOD,
+            SUBMISSION_STATUSES,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
@@ -271,6 +275,7 @@ class SubmissionServiceTest {
         SUBMITTED_DATE_TO,
         AREA_OF_LAW,
         SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
         Pageable.ofSize(10).withPage(0));
 
     verify(submissionRepository)

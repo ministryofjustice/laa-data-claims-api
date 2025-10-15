@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /**
  * This class provide basic filtering logic to query {@link Submission} entities using JPA {@link
@@ -98,6 +99,22 @@ public final class SubmissionSpecification {
     return (root, query, cb) ->
         Optional.ofNullable(submissionPeriod).isPresent()
             ? cb.equal(root.get("submissionPeriod"), submissionPeriod)
+            : cb.conjunction();
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for filtering {@link Submission} by submission status
+   * in.
+   *
+   * @param submissionStatuses an optional list of {@link SubmissionStatus} to filter by the
+   *     submission status
+   * @return a JPA {@code Specification}
+   */
+  public static Specification<Submission> submissionStatusIn(
+      List<SubmissionStatus> submissionStatuses) {
+    return (root, query, cb) ->
+        Optional.ofNullable(submissionStatuses).isPresent() && !submissionStatuses.isEmpty()
+            ? cb.and(root.get("status").in(submissionStatuses))
             : cb.conjunction();
   }
 }
