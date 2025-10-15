@@ -26,3 +26,10 @@ ingressInternal:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
   hosts: 
     - "laa-data-claims-api.internal.cloud-platform.service.justice.gov.uk"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
