@@ -2,18 +2,24 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_3_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -37,12 +43,6 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   private static final Instant TENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
-
-  @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
-  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
-  @Autowired private SubmissionRepository submissionRepository;
-  @Autowired private ClaimRepository claimRepository;
-  @Autowired private ClientRepository clientRepository;
 
   private Submission submission1;
   private Submission submission2;
@@ -93,7 +93,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .officeAccountNumber("office2")
             .submissionPeriod("APR-24")
             .areaOfLaw("CRIME")
-            .status(SubmissionStatus.CREATED)
+            .status(SubmissionStatus.REPLACED)
             .crimeScheduleNumber("office2/CRIME")
             .previousSubmissionId(SUBMISSION_2_ID)
             .isNilSubmission(true)
@@ -372,6 +372,63 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual(null)),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("Should not get any Submission for no matching statuses")
+  void shouldNotGetAnySubmissionForNoMatchingStatuses() {
+    Page<Submission> result =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(
+                    SubmissionSpecification.submissionStatusIn(
+                        List.of(SubmissionStatus.VALIDATION_FAILED))),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(result.getContent()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Should get only one Submission if matching statuses")
+  void shouldGetOnlyOneSubmissionForMatchingStatuses() {
+    Page<Submission> result =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1", "office2"))
+                .and(SubmissionSpecification.submissionStatusIn(SUBMISSION_STATUSES)),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    assertThat(result.getContent().getFirst().getId()).isEqualTo(submission1.getId());
+  }
+
+  @DisplayName("Should return result even if submission statuses is null")
+  @Test
+  void shouldStillGetSubmissionWhenStatusesFiltersIsNull() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.submissionStatusIn(null))
+                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.submissionPeriodEqual(null)),
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @DisplayName("Should return result even if submission statuses is empty")
+  @Test
+  void shouldStillGetSubmissionWhenStatusesFiltersIsEmpty() {
+
+    var actualResults =
+        submissionRepository.findAll(
+            SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
+                .and(SubmissionSpecification.submissionStatusIn(Collections.emptyList()))
                 .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
