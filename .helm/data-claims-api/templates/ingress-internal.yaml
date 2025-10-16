@@ -1,0 +1,47 @@
+{{- if .Values.ingressInternal.enabled -}}
+
+{{- $fullName := include "data-claims-api.fullname" . -}}
+
+{{- if and .Values.ingressInternal.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingressInternal.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingressInternal.annotations "kubernetes.io/ingress.class" .Values.ingressInternal.className}}
+  {{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-internal
+  labels:
+    app: {{ template "data-claims-api.name" . }}
+    chart: {{ template "data-claims-api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  {{- with .Values.ingressInternal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressInternal.className }}
+  {{- if .Values.ingressInternal.tls }}
+  tls:
+    {{- range .Values.ingressInternal.tls }}
+    {{- range .hosts }}
+    - hosts:
+      - {{ .domain | quote }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingressInternal.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
