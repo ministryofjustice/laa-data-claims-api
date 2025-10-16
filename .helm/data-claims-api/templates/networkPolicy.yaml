@@ -7,7 +7,6 @@ spec:
   podSelector:
     matchLabels:
       app: {{ template "data-claims-api.name" . }}
-      release: {{ .Release.Name }}
   policyTypes:
     - Ingress
   ingress:
