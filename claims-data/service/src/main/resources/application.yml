@@ -44,10 +44,12 @@ info:
 
 management:
   # specify actuator endpoints to enable
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info, prometheus
 
   # show detailed health status
   endpoint:

@@ -18,3 +18,26 @@ service:
 ingress:
   enabled: false
 
+ingressInternal:
+  enabled: true
+  className: internal
+  annotations:
+    external-dns.alpha.kubernetes.io/set-identifier: "laa-data-claims-api-internal-laa-data-claims-api-prod-green"
+    external-dns.alpha.kubernetes.io/aws-weight: "100"
+  hosts: 
+    - "laa-data-claims-api.internal.cloud-platform.service.justice.gov.uk"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1G
+  requests:
+    cpu: 25m
+    memory: 1G
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70

@@ -1,0 +1,1 @@
+ALTER PUBLICATION claims_reporting_service_pub ADD TABLE bulk_submission;
