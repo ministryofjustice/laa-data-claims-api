@@ -56,6 +56,7 @@ public interface ClaimMapper {
    * response model.
    */
   @Mapping(target = "claimId", source = "id")
+  @Mapping(target = "calculatedTotalAmount", source = "totalValue")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */

@@ -180,13 +180,16 @@ class ClaimMapperTest {
   @Test
   void toSubmissionClaim_mapsFields() {
     final UUID id = Uuid7.timeBasedUuid();
-    final Claim entity = Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).build();
+    final var totalValue = new BigDecimal("123.45");
+    final Claim entity =
+        Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).totalValue(totalValue).build();
 
     final SubmissionClaim response = mapper.toSubmissionClaim(entity);
 
     assertNotNull(response);
     assertEquals(id, response.getClaimId());
     assertEquals(ClaimStatus.READY_TO_PROCESS, response.getStatus());
+    assertEquals(totalValue, response.getCalculatedTotalAmount());
   }
 
   @Test

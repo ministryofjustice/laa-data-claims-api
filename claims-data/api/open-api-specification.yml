@@ -753,6 +753,8 @@ components:
           format: uuid
         status:
           $ref: "#/components/schemas/claim_status"
+        calculated_total_amount:
+          type: number
     SubmissionResponse:
       allOf:
         - $ref: '#/components/schemas/submission_base'
