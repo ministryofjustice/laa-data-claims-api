@@ -1,8 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -189,5 +191,33 @@ class SubmissionSpecificationTest {
     verify(cb, times(0)).equal(Mockito.any(), Mockito.any());
 
     assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return no predicate when submission statuses is null")
+  @Test
+  void shouldBuildSpecificationWithSubmissionStatusesWhenNull() {
+    Specification<Submission> spec = SubmissionSpecification.submissionStatusIn(null);
+
+    Mockito.when(cb.conjunction()).thenReturn(Mockito.mock(Predicate.class));
+    var actualResults = spec.toPredicate(root, query, cb);
+    verify(cb, never()).in(Mockito.any());
+
+    assertThat(actualResults).isNotNull();
+  }
+
+  @DisplayName("should return and predicate when submission statuses is not null")
+  @Test
+  void shouldBuildSpecificationWithSubmissionStatusesNotNull() {
+    Specification<Submission> spec =
+        SubmissionSpecification.submissionStatusIn(SUBMISSION_STATUSES);
+
+    Predicate submissionStatusesPredicate = Mockito.mock(Predicate.class);
+    Mockito.when(root.get("status"))
+        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(cb.and(Mockito.any())).thenReturn(submissionStatusesPredicate);
+
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    assertThat(result).isNotNull();
   }
 }
