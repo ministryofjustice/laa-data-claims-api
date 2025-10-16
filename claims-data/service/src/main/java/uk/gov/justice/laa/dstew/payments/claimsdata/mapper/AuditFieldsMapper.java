@@ -2,9 +2,20 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import org.mapstruct.MapperConfig;
 import org.mapstruct.Mapping;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 
+/** MapStruct config for common mappings of audit fields. * */
 @MapperConfig
 public interface AuditFieldsMapper {
 
