@@ -2,5 +2,9 @@ Application hosts
 
 URL(s):
 {{- range .Values.ingress.hosts }}
-  https://{{ . }}
+  External hostname: https://{{ . }}
+{{- end }}
+
+{{- range .Values.ingressInternal.hosts }}
+  Internal hostname: https://{{ . }}
 {{- end }}
