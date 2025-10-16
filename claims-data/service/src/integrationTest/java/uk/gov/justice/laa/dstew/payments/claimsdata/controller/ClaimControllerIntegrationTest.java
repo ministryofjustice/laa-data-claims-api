@@ -106,9 +106,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(responseBody, CreateClaim201Response.class);
     assertThat(createClaim201Response.getId()).isNotNull();
 
-    Claim savedClaim = claimRepository.findById(createClaim201Response.getId()).orElseThrow(
-        () -> new RuntimeException("Claim not found")
-    );
+    Claim savedClaim =
+        claimRepository
+            .findById(createClaim201Response.getId())
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
     assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
@@ -160,16 +161,18 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isNoContent());
 
     // then: the database contains the amended claim data
-    Claim updatedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow(
-        () -> new RuntimeException("Claim not found")
-    );
+    Claim updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
   }
 
   @Test
-  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimIdWithFeeCalculationDetails() throws Exception {
+  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimIdWithFeeCalculationDetails()
+      throws Exception {
     // given: required claims exist in the database
     createClaimsTestData();
     BigDecimal totalValue = new BigDecimal("123.45");
@@ -191,9 +194,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isNoContent());
 
     // then: the database contains the amended claim data
-    Claim updatedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow(
-        () -> new RuntimeException("Claim not found")
-    );
+    Claim updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getTotalValue()).isEqualTo(totalValue);
