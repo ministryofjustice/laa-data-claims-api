@@ -30,10 +30,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     config = AuditFieldsMapper.class)
 public interface ClaimMapper {
 
-  // TODO: DSTEW-323 isolate common @Mapping annotations in one place (6 methods are currently using
-  // these)
   /** Map a {@link ClaimPost} to a {@link Claim} entity. */
-  @InheritConfiguration(name = "ignoreAuditFieldsAndIdClaim")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
@@ -58,7 +56,7 @@ public interface ClaimMapper {
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsClaimPatch")
+  @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
@@ -75,7 +73,7 @@ public interface ClaimMapper {
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsClaimSummaryFee")
+  @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "claim", ignore = true)
   ClaimSummaryFee toClaimSummaryFee(ClaimPost claimPost);
 
@@ -83,7 +81,7 @@ public interface ClaimMapper {
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "claimSummaryFee", ignore = true)
   @Mapping(target = "claim", ignore = true)
-  @InheritConfiguration(name = "ignoreAuditFieldsCalculatedFeeDetail")
+  @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "feeCode", source = "response.feeCode")
   @Mapping(target = "boltOnTotalFeeAmount", source = "response.boltOnDetails.boltOnTotalFeeAmount")
   @Mapping(
@@ -141,7 +139,7 @@ public interface ClaimMapper {
       CalculatedFeeDetail entity, @MappingTarget BoltOnPatch boltOnDetails);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsClaimCase")
+  @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "claim", ignore = true)
   ClaimCase toClaimCase(ClaimPost claimPost);
 

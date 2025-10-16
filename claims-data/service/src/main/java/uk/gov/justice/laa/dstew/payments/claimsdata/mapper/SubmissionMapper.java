@@ -31,7 +31,7 @@ public interface SubmissionMapper {
    * @return mapped {@link Submission} entity
    */
   @Mapping(target = "id", source = "submissionId")
-  @InheritConfiguration(name = "ignoreAuditFieldsSubmission")
+  @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "errorMessages", ignore = true)
   Submission toSubmission(SubmissionPost submissionPost);
 
@@ -65,7 +65,7 @@ public interface SubmissionMapper {
    * @param entity the entity to update
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsAndIdSubmission")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "errorMessages", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 

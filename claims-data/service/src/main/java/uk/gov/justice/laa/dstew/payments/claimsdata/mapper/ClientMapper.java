@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import org.mapstruct.BeanMapping;
+import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -24,12 +25,8 @@ public interface ClientMapper {
    * @return mapped client entity
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(target = "id", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "claim", ignore = true)
-  @Mapping(target = "createdByUserId", ignore = true)
-  @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
-  @Mapping(target = "updatedOn", ignore = true)
   Client toClient(ClaimPost claimPost);
 
   /**

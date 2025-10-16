@@ -15,7 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 public interface MatterStartMapper {
 
   /** Map a {@link MatterStartPost} to a {@link MatterStart} entity. */
-  @InheritConfiguration(name = "ignoreAuditFieldsAndIdMatterStart")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "submission", ignore = true)
   MatterStart toMatterStart(MatterStartPost request);
 
