@@ -208,13 +208,16 @@ class ClaimMapperTest {
             .status(ClaimStatus.INVALID)
             .scheduleReference("OLD_SCH")
             .build();
-
+    final BigDecimal totalValue = new BigDecimal("123.45");
+    final FeeCalculationPatch feeCalculationPatch =
+        FeeCalculationPatch.builder().claimId(entity.getId()).totalAmount(totalValue).build();
     final ClaimPatch patch =
         new ClaimPatch()
             .isDutySolicitor(true)
             .isYouthCourt(true)
             .status(ClaimStatus.READY_TO_PROCESS)
-            .scheduleReference("NEW_SCH");
+            .scheduleReference("NEW_SCH")
+            .feeCalculationResponse(feeCalculationPatch);
 
     mapper.updateSubmissionClaimFromPatch(patch, entity);
 
@@ -222,6 +225,7 @@ class ClaimMapperTest {
     assertTrue(entity.getYouthCourt());
     assertEquals(ClaimStatus.READY_TO_PROCESS, entity.getStatus());
     assertEquals("NEW_SCH", entity.getScheduleReference());
+    assertEquals(totalValue, entity.getTotalValue());
   }
 
   @Test

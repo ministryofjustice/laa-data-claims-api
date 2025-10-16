@@ -69,7 +69,8 @@ public interface ClaimMapper {
   @Mapping(target = "updatedOn", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
-  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
+  @Mapping(target = "totalValue", source = "feeCalculationResponse.totalAmount")
+  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim claim);
 
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
