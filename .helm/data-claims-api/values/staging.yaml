@@ -29,8 +29,15 @@ ingressInternal:
 
 resources:
   limits:
-    cpu: 500m
+    cpu: 1000m
     memory: 1G
   requests:
-    cpu: 10m
-    memory: 125Mi
+    cpu: 25m
+    memory: 1G
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70
