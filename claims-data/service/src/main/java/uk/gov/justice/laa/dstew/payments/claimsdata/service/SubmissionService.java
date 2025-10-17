@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -35,6 +36,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 @Slf4j
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+  private static final short DECIMAL_PLACES = 2;
+
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
@@ -96,7 +99,10 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(submissionRepository.getCalculatedTotalAmount(id))
+        .calculatedTotalAmount(
+            submissionRepository
+                .getCalculatedTotalAmount(id)
+                .setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
         .matterStarts(matterStartIds)
         .providerUserId(submission.getProviderUserId());
   }
