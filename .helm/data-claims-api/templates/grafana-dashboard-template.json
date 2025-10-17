@@ -1436,6 +1436,7 @@
     "LAA",
     "DSTEW",
     "Claims",
+    "{{ .Chart.Name }}",
     "{{ .Release.Namespace }}",
     "{{ .Release.Name }}"
   ],
