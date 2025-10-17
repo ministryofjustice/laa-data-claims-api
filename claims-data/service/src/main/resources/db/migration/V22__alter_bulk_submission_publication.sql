@@ -3,7 +3,6 @@ ALTER PUBLICATION claims_reporting_service_pub
 
 ALTER PUBLICATION claims_reporting_service_pub
     ADD TABLE claims.bulk_submission (
-      COLUMNS (
         id,
         status,
         error_code,
@@ -12,5 +11,4 @@ ALTER PUBLICATION claims_reporting_service_pub
         created_on,
         updated_by_user_id,
         updated_on
-      )
     );
