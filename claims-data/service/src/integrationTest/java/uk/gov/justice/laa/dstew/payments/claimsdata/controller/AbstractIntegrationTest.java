@@ -169,6 +169,7 @@ public abstract class AbstractIntegrationTest {
             .status(SubmissionStatus.CREATED)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
+            .numberOfClaims(0)
             .build();
     submission2 =
         Submission.builder()
