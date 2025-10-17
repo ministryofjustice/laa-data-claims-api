@@ -156,11 +156,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getSubmission_Returns200() throws Exception {
+    createClaimsTestData();
+
     // when: calling get endpoint with and ID
     MvcResult result =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + "/submissions/{id}", submission.getId())
+                get(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -170,13 +172,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             result.getResponse().getContentAsString(), SubmissionResponse.class);
 
     // then: submission is correctly retrieved
-    assertThat(submissionResult.getSubmissionId()).isEqualTo(submission.getId());
+    assertThat(submissionResult.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
     assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
-
-    claimRepository.deleteAll();
-    matterStartRepository.deleteAll();
   }
 
   @Test

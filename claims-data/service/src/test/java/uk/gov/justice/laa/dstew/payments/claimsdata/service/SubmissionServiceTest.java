@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -97,10 +98,13 @@ class SubmissionServiceTest {
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(entity));
     when(claimService.getClaimsForSubmission(submissionId)).thenReturn(List.of());
     when(matterStartService.getMatterStartIdsForSubmission(submissionId)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(submissionId))
+        .thenReturn(new BigDecimal("100.235"));
 
     SubmissionResponse result = submissionService.getSubmission(submissionId);
 
     assertThat(result.getSubmissionId()).isEqualTo(submissionId);
+    assertThat(result.getCalculatedTotalAmount()).isEqualTo(new BigDecimal("100.24"));
   }
 
   @Test
