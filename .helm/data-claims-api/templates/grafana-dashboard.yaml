@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: ""
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name | quote }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace | quote }}
+data:
+  {{ .Release.Name | trunc 12 }}-{{ .Release.Namespace | trunc -10 }}-{{ .Chart.Name | trunc -12 }}-dashboard.json:
+  {{ include "grafana-dashboard-template" . | quote | indent 4 }}
