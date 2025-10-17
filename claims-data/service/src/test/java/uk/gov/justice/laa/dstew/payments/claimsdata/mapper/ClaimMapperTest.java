@@ -180,16 +180,13 @@ class ClaimMapperTest {
   @Test
   void toSubmissionClaim_mapsFields() {
     final UUID id = Uuid7.timeBasedUuid();
-    final var totalValue = new BigDecimal("123.45");
-    final Claim entity =
-        Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).totalValue(totalValue).build();
+    final Claim entity = Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).build();
 
     final SubmissionClaim response = mapper.toSubmissionClaim(entity);
 
     assertNotNull(response);
     assertEquals(id, response.getClaimId());
     assertEquals(ClaimStatus.READY_TO_PROCESS, response.getStatus());
-    assertEquals(totalValue, response.getCalculatedTotalAmount());
   }
 
   @Test
@@ -208,16 +205,13 @@ class ClaimMapperTest {
             .status(ClaimStatus.INVALID)
             .scheduleReference("OLD_SCH")
             .build();
-    final BigDecimal totalValue = new BigDecimal("123.45");
-    final FeeCalculationPatch feeCalculationPatch =
-        FeeCalculationPatch.builder().claimId(entity.getId()).totalAmount(totalValue).build();
+
     final ClaimPatch patch =
         new ClaimPatch()
             .isDutySolicitor(true)
             .isYouthCourt(true)
             .status(ClaimStatus.READY_TO_PROCESS)
-            .scheduleReference("NEW_SCH")
-            .feeCalculationResponse(feeCalculationPatch);
+            .scheduleReference("NEW_SCH");
 
     mapper.updateSubmissionClaimFromPatch(patch, entity);
 
@@ -225,7 +219,6 @@ class ClaimMapperTest {
     assertTrue(entity.getYouthCourt());
     assertEquals(ClaimStatus.READY_TO_PROCESS, entity.getStatus());
     assertEquals("NEW_SCH", entity.getScheduleReference());
-    assertEquals(totalValue, entity.getTotalValue());
   }
 
   @Test

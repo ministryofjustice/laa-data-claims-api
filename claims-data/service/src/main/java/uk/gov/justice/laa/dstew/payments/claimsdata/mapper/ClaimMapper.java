@@ -56,7 +56,6 @@ public interface ClaimMapper {
    * response model.
    */
   @Mapping(target = "claimId", source = "id")
-  @Mapping(target = "calculatedTotalAmount", source = "totalValue")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
@@ -69,8 +68,7 @@ public interface ClaimMapper {
   @Mapping(target = "updatedOn", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
-  @Mapping(target = "totalValue", source = "feeCalculationResponse.totalAmount")
-  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim claim);
+  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
 
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")

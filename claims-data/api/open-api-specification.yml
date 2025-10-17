@@ -753,8 +753,6 @@ components:
           format: uuid
         status:
           $ref: "#/components/schemas/claim_status"
-        calculated_total_amount:
-          type: number
     SubmissionResponse:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -829,6 +827,9 @@ components:
         number_of_claims:
           type: integer
           description: Number of claims in this submission.
+        calculated_total_amount:
+          type: number
+          description: Total amount calculated from the fee details of each claim.
         submitted:
           type: string
           format: date-time
@@ -959,6 +960,9 @@ components:
           type: string
         referral_source:
           type: string
+# NOTE: Do not use total_value field in any mapping, assignment or logic.
+#       This is reserved for future uses when an actual value will be
+#       available from the FSP to be assigned.
         total_value:
           type: number
         client_forename:

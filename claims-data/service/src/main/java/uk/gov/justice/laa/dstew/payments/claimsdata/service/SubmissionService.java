@@ -96,6 +96,7 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
+        .calculatedTotalAmount(submissionRepository.getCalculatedTotalAmount(id))
         .matterStarts(matterStartIds)
         .providerUserId(submission.getProviderUserId());
   }
