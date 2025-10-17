@@ -1,3 +1,5 @@
+{{- if eq .Values.mainReleaseName .Release.Name }}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,3 +14,5 @@ metadata:
 data:
   {{ .Release.Name | trunc 12 }}-{{ .Release.Namespace | trunc -10 }}-{{ .Chart.Name | trunc -12 }}-dashboard.json:
   {{ include "grafana-dashboard-template" . | quote | indent 4 }}
+
+{{- end }}
