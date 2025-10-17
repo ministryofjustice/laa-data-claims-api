@@ -3,7 +3,6 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 2
-mainReleaseName: staging
 
 image:
   repository: null

@@ -1,4 +1,4 @@
-{{- if eq .Values.mainReleaseName .Release.Name }}
+{{- if eq "main" .Release.Name }}
 
 apiVersion: v1
 kind: ConfigMap
