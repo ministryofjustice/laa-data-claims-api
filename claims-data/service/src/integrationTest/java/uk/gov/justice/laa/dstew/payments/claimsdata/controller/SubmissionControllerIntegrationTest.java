@@ -10,6 +10,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -60,6 +62,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @BeforeAll
   void initialSetup() {
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    Locale.setDefault(Locale.UK);
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
 
     // create the queue if it doesn't exist
