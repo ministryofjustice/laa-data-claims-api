@@ -162,9 +162,13 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
-    Pageable sortedPageable =
-        PageRequest.of(
-            pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdOn").descending());
+    // default sorted pageable options
+    Pageable sortedPageable = PageRequest.of(0, 10, Sort.by("createdOn").descending());
+    if (pageable.isPaged()) {
+      sortedPageable =
+          PageRequest.of(
+              pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdOn").descending());
+    }
 
     Page<Submission> page =
         submissionRepository.findAll(
