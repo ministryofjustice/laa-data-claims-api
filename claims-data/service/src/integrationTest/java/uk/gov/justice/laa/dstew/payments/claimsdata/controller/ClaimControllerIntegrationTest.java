@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
-import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.http.MediaType;
@@ -106,7 +105,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(responseBody, CreateClaim201Response.class);
     assertThat(createClaim201Response.getId()).isNotNull();
 
-    Claim savedClaim = claimRepository.findById(createClaim201Response.getId()).get();
+    Claim savedClaim =
+        claimRepository
+            .findById(createClaim201Response.getId())
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
     assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
@@ -145,8 +147,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
     createClaimsTestData();
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode("FEE-CODE-2");
-    claimPatch.setTotalValue(BigDecimal.valueOf(1000));
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -158,10 +160,13 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isNoContent());
 
     // then: the database contains the amended claim data
-    Claim updatedClaim = claimRepository.findById(CLAIM_1_ID).get();
+    Claim updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
-    assertThat(updatedClaim.getFeeCode()).isEqualTo("FEE-CODE-2");
-    assertThat(updatedClaim.getTotalValue()).isEqualTo(BigDecimal.valueOf(1000));
+    assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
+    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
   }
 
   @Test
