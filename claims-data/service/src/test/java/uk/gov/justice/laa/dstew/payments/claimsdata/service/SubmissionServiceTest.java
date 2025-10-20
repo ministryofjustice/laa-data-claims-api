@@ -8,15 +8,19 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
-import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
@@ -31,12 +35,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,32 +75,28 @@ class SubmissionServiceTest {
     verify(submissionRepository).save(entity);
   }
 
-  @Test
-  void shouldGetSubmission() {
-    UUID submissionId = Uuid7.timeBasedUuid();
-    Submission entity =
-        Submission.builder()
-            .id(submissionId)
-            .bulkSubmissionId(Uuid7.timeBasedUuid())
-            .officeAccountNumber("123-ABC")
-            .submissionPeriod("APR-2024")
-            .areaOfLaw("CIVIL")
-            .status(SubmissionStatus.CREATED)
-            .crimeScheduleNumber("SCH-123")
-            .civilSubmissionReference("CIVIL-SUB-123")
-            .mediationSubmissionReference("MEDIATION-SUB-123")
-            .previousSubmissionId(submissionId)
-            .isNilSubmission(false)
-            .numberOfClaims(10)
-            .createdOn(Instant.now())
-            .build();
-    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(entity));
-    when(claimService.getClaimsForSubmission(submissionId)).thenReturn(List.of());
-    when(matterStartService.getMatterStartIdsForSubmission(submissionId)).thenReturn(List.of());
+  @ParameterizedTest
+  @MethodSource("getCalculatedTotalAmountArguments")
+  void shouldGetSubmission(String inputTotalAmount, String expectedTotalAmount) {
+    Submission entity = ClaimsDataTestUtil.getSubmission();
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID))
+        .thenReturn(new BigDecimal(inputTotalAmount));
 
-    SubmissionResponse result = submissionService.getSubmission(submissionId);
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
 
-    assertThat(result.getSubmissionId()).isEqualTo(submissionId);
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getCalculatedTotalAmount()).isEqualTo(new BigDecimal(expectedTotalAmount));
+  }
+
+  private static Stream<Arguments> getCalculatedTotalAmountArguments() {
+    return Stream.of(
+        Arguments.of("1.234", "1.23"),
+        Arguments.of("1.235", "1.24"),
+        Arguments.of("-1.234", "-1.23"),
+        Arguments.of("-1.235", "-1.24"));
   }
 
   @Test
