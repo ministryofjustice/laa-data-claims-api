@@ -47,6 +47,7 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "schedule", source = "office.schedule")
   @Mapping(target = "outcomes", source = "office.schedule.outcomes")
   @Mapping(target = "matterStarts", expression = "java(new ArrayList<>())")
+  @Mapping(target = "immigrationClr", expression = "java(new ArrayList<>())")
   GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(XmlSubmission submission);
 
   /**
@@ -58,6 +59,10 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "matterStarts",
       source = "matterStarts",
+      defaultExpression = "java(new ArrayList<>())")
+  @Mapping(
+      target = "immigrationClr",
+      source = "immigrationClr",
       defaultExpression = "java(new ArrayList<>())")
   GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(CsvSubmission submission);
 
