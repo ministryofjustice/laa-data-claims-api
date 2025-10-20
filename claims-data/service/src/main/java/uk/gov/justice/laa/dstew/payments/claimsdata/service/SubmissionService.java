@@ -9,7 +9,9 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -160,6 +162,10 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
+    Pageable sortedPageable =
+        PageRequest.of(
+            pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdOn").descending());
+
     Page<Submission> page =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(offices)
@@ -169,8 +175,7 @@ public class SubmissionService
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
                 .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod))
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
-            pageable);
-
+            sortedPageable);
     return submissionsResultSetMapper.toSubmissionsResultSet(page);
   }
 }

@@ -19,9 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -49,8 +47,6 @@ class SubmissionServiceTest {
   @Mock private SubmissionMapper submissionMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
-  @Mock private SubmissionEventPublisherService submissionEventPublisherService;
-
   @InjectMocks private SubmissionService submissionService;
 
   @Captor private ArgumentCaptor<Specification> submissionSpecificationArgumentCaptor;
@@ -268,6 +264,8 @@ class SubmissionServiceTest {
     when(submissionsResultSetMapper.toSubmissionsResultSet(eq(resultPage)))
         .thenReturn(new SubmissionsResultSet());
 
+    Pageable pageable = Pageable.ofSize(10).withPage(0);
+
     submissionService.getSubmissionsResultSet(
         OFFICE_CODES,
         SUBMISSION_ID.toString(),
@@ -276,11 +274,16 @@ class SubmissionServiceTest {
         AREA_OF_LAW,
         SUBMISSION_PERIOD,
         SUBMISSION_STATUSES,
-        Pageable.ofSize(10).withPage(0));
+        pageable);
 
     verify(submissionRepository)
         .findAll(
-            submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+            submissionSpecificationArgumentCaptor.capture(),
+            eq(
+                PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    Sort.by("createdOn").descending())));
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }
