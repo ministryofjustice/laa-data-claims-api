@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -86,6 +87,7 @@ public class SubmissionService
 
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
+    var calculatedTotalAmount = submissionRepository.getCalculatedTotalAmount(id);
     return new SubmissionResponse()
         .submissionId(submission.getId())
         .bulkSubmissionId(submission.getBulkSubmissionId())
@@ -102,9 +104,9 @@ public class SubmissionService
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
         .calculatedTotalAmount(
-            submissionRepository
-                .getCalculatedTotalAmount(id)
-                .setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
+            calculatedTotalAmount == null
+                ? BigDecimal.ZERO
+                : calculatedTotalAmount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
         .matterStarts(matterStartIds)
         .providerUserId(submission.getProviderUserId());
   }
