@@ -5,5 +5,6 @@ public enum CsvHeader {
   OFFICE,
   SCHEDULE,
   OUTCOME,
-  MATTERSTARTS
+  MATTERSTARTS,
+  IMMIGRATIONCLR
 }

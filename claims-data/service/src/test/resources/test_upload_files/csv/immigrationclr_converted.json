@@ -1,0 +1,16 @@
+{
+  "office" : {
+    "account" : "0U099L"
+  },
+  "schedule" : {
+    "submissionPeriod" : "APR-2024",
+    "areaOfLaw" : "IMMIGRATION CLR",
+    "scheduleNum" : "0U099L/IMM"
+  },
+  "outcomes" : [ ],
+  "matterStarts" : [ ],
+  "immigrationClr" : [ {
+    "CLR_FIELD" : "value",
+    "ANOTHER_FIELD" : "12345"
+  } ]
+}

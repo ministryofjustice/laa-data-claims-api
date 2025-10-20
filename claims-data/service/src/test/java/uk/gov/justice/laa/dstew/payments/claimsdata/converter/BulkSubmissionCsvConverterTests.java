@@ -5,6 +5,7 @@ import static org.springframework.util.ResourceUtils.getFile;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -34,6 +35,11 @@ public class BulkSubmissionCsvConverterTests {
       "classpath:test_upload_files/csv/matterstarts.csv";
   private static final String MATTERSTARTS_CONVERTED_FILE =
       "classpath:test_upload_files/csv/matterstarts_converted.json";
+
+  private static final String IMMIGRATIONCLR_INPUT_FILE =
+      "classpath:test_upload_files/csv/immigrationclr.csv";
+  private static final String IMMIGRATIONCLR_CONVERTED_FILE =
+      "classpath:test_upload_files/csv/immigrationclr_converted.json";
 
   private static final String ALL_TYPES_INPUT_FILE =
       "classpath:test_upload_files/csv/outcomes_and_matterstarts.csv";
@@ -82,6 +88,12 @@ public class BulkSubmissionCsvConverterTests {
     @DisplayName("Can convert a bulk submission file with matterstarts to csv submission")
     void canConvertMatterStartsToCsvSubmission() throws IOException {
       runTest(MATTERSTARTS_INPUT_FILE, MATTERSTARTS_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission file with immigration clr rows to csv submission")
+    void canConvertImmigrationClrToCsvSubmission() throws IOException {
+      runTest(IMMIGRATIONCLR_INPUT_FILE, IMMIGRATIONCLR_CONVERTED_FILE);
     }
 
     @Test
@@ -157,7 +169,10 @@ public class BulkSubmissionCsvConverterTests {
     File convertedFile = getFile(outputFileName);
     String expected = getContent(convertedFile);
 
-    assertEquals(expected, actual);
+    JsonNode expectedNode = objectMapper.readTree(expected);
+    JsonNode actualNode = objectMapper.readTree(actual);
+
+    assertEquals(expectedNode, actualNode);
   }
 
   @Nested

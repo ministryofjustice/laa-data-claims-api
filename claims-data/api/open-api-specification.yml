@@ -155,6 +155,13 @@ paths:
                         description: List of matter start objects for the bulk submission
                         items:
                           $ref: '#/components/schemas/bulk_submission_matter_start'
+                      immigration_clr:
+                        type: array
+                        description: List of immigration CLR rows captured from the bulk submission
+                        items:
+                          type: object
+                          additionalProperties:
+                            type: string
 
         '400':
           description: 'Bad request'
