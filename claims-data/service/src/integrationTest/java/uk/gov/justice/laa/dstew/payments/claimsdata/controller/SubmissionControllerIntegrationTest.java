@@ -5,10 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService.DECIMAL_PLACES;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -173,6 +175,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: submission is correctly retrieved
     assertThat(submissionResult.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(submissionResult.getCalculatedTotalAmount())
+        .isEqualTo(
+            calculatedFeeDetail1
+                .getTotalAmount()
+                .add(calculatedFeeDetail2.getTotalAmount())
+                .setScale(DECIMAL_PLACES, RoundingMode.HALF_UP));
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
     assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);

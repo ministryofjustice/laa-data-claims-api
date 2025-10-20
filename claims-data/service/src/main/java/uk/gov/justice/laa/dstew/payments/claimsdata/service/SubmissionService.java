@@ -36,7 +36,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 @Slf4j
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
-  private static final short DECIMAL_PLACES = 2;
+  public static final short DECIMAL_PLACES = 2;
 
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
