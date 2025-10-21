@@ -9,11 +9,13 @@ image:
   tag: null
 
 service_account:
-  name: laa-data-claims-api-staging-service-account
+  name: irsa-sqs-laa-data-claims-api-staging
 
 service:
   type: ClusterIP
   port: 8080
+  management:
+    port: 8081
 
 ingress:
   enabled: false

@@ -20,5 +20,6 @@
     "ACCESS_POINT" : "AP00000",
     "CATEGORY_CODE" : "MED",
     "DELIVERY_LOCATION" : "MANCHESTER"
-  } ]
+  } ],
+  "immigrationClr" : [ ]
 }

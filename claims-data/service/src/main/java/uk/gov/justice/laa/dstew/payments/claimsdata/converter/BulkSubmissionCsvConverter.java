@@ -8,7 +8,7 @@ import io.micrometer.common.util.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +45,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     CsvSchedule csvSchedule = null;
     List<CsvOutcome> csvOutcomes = new ArrayList<>();
     List<CsvMatterStarts> csvMatterStarts = new ArrayList<>();
+    List<Map<String, String>> csvImmigrationClr = new ArrayList<>();
 
     try (InputStream fileReader = file.getInputStream()) {
       MappingIterator<List<String>> rowIterator =
@@ -83,6 +84,8 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
           case CsvHeader.MATTERSTARTS ->
               csvMatterStarts.add(
                   objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
+          case CsvHeader.IMMIGRATIONCLR -> csvImmigrationClr.add(Map.copyOf(values));
+
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
         }
       }
@@ -101,7 +104,8 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     }
 
     // parent submission object
-    return new CsvSubmission(csvOffice, csvSchedule, csvOutcomes, csvMatterStarts);
+    return new CsvSubmission(
+        csvOffice, csvSchedule, csvOutcomes, csvMatterStarts, csvImmigrationClr);
   }
 
   /**
@@ -116,7 +120,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
   }
 
   private Map<String, String> getValues(List<String> row, CsvHeader header) {
-    Map<String, String> values = new HashMap<>();
+    Map<String, String> values = new LinkedHashMap<>();
     row.subList(1, row.size())
         .forEach(
             rowValue -> {

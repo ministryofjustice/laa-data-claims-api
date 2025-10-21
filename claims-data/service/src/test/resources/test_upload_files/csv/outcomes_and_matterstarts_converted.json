@@ -118,5 +118,6 @@
     "ACCESS_POINT" : "AP00100",
     "CATEGORY_CODE" : "MED",
     "DELIVERY_LOCATION" : "LONDON"
-  } ]
+  } ],
+  "immigrationClr" : [ ]
 }

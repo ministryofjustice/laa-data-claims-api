@@ -81,7 +81,7 @@ public class CalculatedFeeDetail {
 
   private BigDecimal netWaitingCostsAmount;
 
-  private BigDecimal detentionAndWaitingCostsAmount;
+  private BigDecimal detentionTravelAndWaitingCostsAmount;
 
   private BigDecimal jrFormFillingAmount;
 
@@ -104,6 +104,8 @@ public class CalculatedFeeDetail {
   private Integer boltOnHomeOfficeInterviewCount;
 
   private BigDecimal boltOnHomeOfficeInterviewFee;
+
+  private BigDecimal boltOnSubstantiveHearingFee;
 
   private Boolean escapeCaseFlag;
 

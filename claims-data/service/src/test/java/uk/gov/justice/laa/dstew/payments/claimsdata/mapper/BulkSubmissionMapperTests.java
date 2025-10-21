@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -159,7 +160,8 @@ class BulkSubmissionMapperTests {
                     "procurementArea",
                     "accessPoint",
                     "categoryCode",
-                    "deliveryLocation")));
+                    "deliveryLocation")),
+            List.of(Map.of("CLR_FIELD", "value")));
 
     GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
 
@@ -301,6 +303,8 @@ class BulkSubmissionMapperTests {
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
     var expectedBulkSubmissionOutcome = ClaimsDataTestUtil.getBulkSubmissionOutcome();
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
+    List<Map<String, String>> expectedImmigrationClrRows =
+        includeMatterStarts ? ClaimsDataTestUtil.getImmigrationClrRows() : Collections.emptyList();
 
     List<BulkSubmissionMatterStart> expectedMatterStarts =
         includeMatterStarts ? List.of(expectedBulkSubmissionMatterStart) : Collections.emptyList();
@@ -309,6 +313,7 @@ class BulkSubmissionMapperTests {
         .office(expectedBulkSubmissionOffice)
         .schedule(expectedBulkSubmissionSchedule)
         .outcomes(List.of(expectedBulkSubmissionOutcome))
-        .matterStarts(expectedMatterStarts);
+        .matterStarts(expectedMatterStarts)
+        .immigrationClr(expectedImmigrationClrRows);
   }
 }

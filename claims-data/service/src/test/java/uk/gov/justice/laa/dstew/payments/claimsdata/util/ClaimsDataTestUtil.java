@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
@@ -198,6 +199,10 @@ public class ClaimsDataTestUtil {
         .procurementArea("procurementArea")
         .accessPoint("accessPoint")
         .deliveryLocation("deliveryLocation");
+  }
+
+  public static List<Map<String, String>> getImmigrationClrRows() {
+    return List.of(Map.of("CLR_FIELD", "value"));
   }
 
   public static GetBulkSubmission200ResponseDetails getBulkSubmission200ResponseDetails() {

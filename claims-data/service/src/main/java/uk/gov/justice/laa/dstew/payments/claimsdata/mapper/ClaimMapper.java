@@ -106,6 +106,9 @@ public interface ClaimMapper {
   @Mapping(
       target = "boltOnHomeOfficeInterviewFee",
       source = "response.boltOnDetails.boltOnHomeOfficeInterviewFee")
+  @Mapping(
+      target = "boltOnSubstantiveHearingFee",
+      source = "response.boltOnDetails.boltOnSubstantiveHearingFee")
   @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
   @Mapping(target = "schemeId", source = "response.boltOnDetails.schemeId")
   CalculatedFeeDetail toCalculatedFeeDetail(FeeCalculationPatch response);

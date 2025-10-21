@@ -49,7 +49,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info, prometheus
+        include: health, info, prometheus
 
   # show detailed health status
   endpoint:
