@@ -56,7 +56,7 @@ public interface ClaimMapper {
 
   /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFields")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
@@ -73,7 +73,7 @@ public interface ClaimMapper {
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFields")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "claim", ignore = true)
   ClaimSummaryFee toClaimSummaryFee(ClaimPost claimPost);
 
@@ -139,7 +139,7 @@ public interface ClaimMapper {
       CalculatedFeeDetail entity, @MappingTarget BoltOnPatch boltOnDetails);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFields")
+  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "claim", ignore = true)
   ClaimCase toClaimCase(ClaimPost claimPost);
 
