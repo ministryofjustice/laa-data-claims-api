@@ -20,6 +20,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 
@@ -46,7 +47,8 @@ public class BulkSubmission {
   @Column(nullable = false)
   private BulkSubmissionStatus status;
 
-  private String errorCode;
+  @Enumerated(EnumType.STRING)
+  private BulkSubmissionErrorCode errorCode;
 
   private String errorDescription;
 
