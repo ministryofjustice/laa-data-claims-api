@@ -43,3 +43,6 @@ autoscaling:
   maxReplicas: 8
   targetCPUUtilizationPercentage: 60
   targetMemoryUtilizationPercentage: 70
+
+grafana:
+  enabled: true
