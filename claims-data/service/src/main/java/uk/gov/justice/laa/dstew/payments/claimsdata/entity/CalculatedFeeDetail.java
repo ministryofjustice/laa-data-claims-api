@@ -105,8 +105,6 @@ public class CalculatedFeeDetail {
 
   private BigDecimal boltOnHomeOfficeInterviewFee;
 
-  private Integer boltOnSubstantiveHearingCount;
-
   private BigDecimal boltOnSubstantiveHearingFee;
 
   private Boolean escapeCaseFlag;

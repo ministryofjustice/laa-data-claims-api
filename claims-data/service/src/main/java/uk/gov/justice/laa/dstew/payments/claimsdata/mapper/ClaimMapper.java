@@ -120,9 +120,6 @@ public interface ClaimMapper {
       target = "boltOnHomeOfficeInterviewFee",
       source = "response.boltOnDetails.boltOnHomeOfficeInterviewFee")
   @Mapping(
-      target = "boltOnSubstantiveHearingCount",
-      source = "response.boltOnDetails.boltOnSubstantiveHearingCount")
-  @Mapping(
       target = "boltOnSubstantiveHearingFee",
       source = "response.boltOnDetails.boltOnSubstantiveHearingFee")
   @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
