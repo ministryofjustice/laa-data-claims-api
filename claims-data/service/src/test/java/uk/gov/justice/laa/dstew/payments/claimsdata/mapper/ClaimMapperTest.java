@@ -376,8 +376,6 @@ class ClaimMapperTest {
         .isEqualTo(boltOnPatch.getBoltOnHomeOfficeInterviewFee());
     assertThat(calculatedFeeDetail.getEscapeCaseFlag()).isEqualTo(boltOnPatch.getEscapeCaseFlag());
     assertThat(calculatedFeeDetail.getSchemeId()).isEqualTo(boltOnPatch.getSchemeId());
-    assertThat(calculatedFeeDetail.getBoltOnSubstantiveHearingCount())
-        .isEqualTo(boltOnPatch.getBoltOnSubstantiveHearingCount());
     assertThat(calculatedFeeDetail.getBoltOnSubstantiveHearingFee())
         .isEqualTo(boltOnPatch.getBoltOnSubstantiveHearingFee());
   }
@@ -487,7 +485,6 @@ class ClaimMapperTest {
     feeDetail.setBoltOnCmrhOralFee(new BigDecimal("3.50"));
     feeDetail.setBoltOnHomeOfficeInterviewCount(4);
     feeDetail.setBoltOnHomeOfficeInterviewFee(new BigDecimal("4.50"));
-    feeDetail.setBoltOnSubstantiveHearingCount(5);
     feeDetail.setBoltOnSubstantiveHearingFee(new BigDecimal("7.30"));
     feeDetail.setEscapeCaseFlag(Boolean.TRUE);
     feeDetail.setSchemeId("SCHEME-01");
@@ -552,7 +549,6 @@ class ClaimMapperTest {
     assertThat(boltOnDetails.getBoltOnHomeOfficeInterviewCount()).isEqualTo(4);
     assertThat(boltOnDetails.getBoltOnHomeOfficeInterviewFee())
         .isEqualByComparingTo(new BigDecimal("4.50"));
-    assertThat(boltOnDetails.getBoltOnSubstantiveHearingCount()).isEqualTo(5);
     assertThat(boltOnDetails.getBoltOnSubstantiveHearingFee())
         .isEqualByComparingTo(new BigDecimal("7.30"));
     assertThat(boltOnDetails.getEscapeCaseFlag()).isTrue();
@@ -597,7 +593,6 @@ class ClaimMapperTest {
     boltOnPatch.boltOnCmrhOralFee(new BigDecimal("44.59"));
     boltOnPatch.boltOnHomeOfficeInterviewCount(7);
     boltOnPatch.boltOnHomeOfficeInterviewFee(new BigDecimal("945.23"));
-    boltOnPatch.boltOnSubstantiveHearingCount(9);
     boltOnPatch.boltOnSubstantiveHearingFee(new BigDecimal("1245.45"));
     boltOnPatch.escapeCaseFlag(true);
     boltOnPatch.schemeId("SCHEME_ID");

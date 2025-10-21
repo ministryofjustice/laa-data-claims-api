@@ -1211,8 +1211,6 @@ components:
           type: integer
         bolt_on_home_office_interview_fee:
           type: number
-        bolt_on_substantive_hearing_count:
-          type: integer
         bolt_on_substantive_hearing_fee:
           type: number
         escape_case_flag:
