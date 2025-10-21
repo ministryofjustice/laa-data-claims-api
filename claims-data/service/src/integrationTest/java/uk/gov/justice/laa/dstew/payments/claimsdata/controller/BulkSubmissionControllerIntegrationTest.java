@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -34,7 +33,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -53,10 +51,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Autowired private MockMvc mockMvc;
-
-  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   @Autowired private SqsClient sqsClient;
 
