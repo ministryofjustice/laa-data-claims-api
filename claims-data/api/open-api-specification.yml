@@ -1181,7 +1181,7 @@ components:
           type: number
         net_waiting_costs_amount:
           type: number
-        detention_and_waiting_costs_amount:
+        detention_travel_and_waiting_costs_amount:
           type: number
         jr_form_filling_amount:
           type: number
@@ -1210,6 +1210,10 @@ components:
         bolt_on_home_office_interview_count:
           type: integer
         bolt_on_home_office_interview_fee:
+          type: number
+        bolt_on_substantive_hearing_count:
+          type: integer
+        bolt_on_substantive_hearing_fee:
           type: number
         escape_case_flag:
           type: boolean
