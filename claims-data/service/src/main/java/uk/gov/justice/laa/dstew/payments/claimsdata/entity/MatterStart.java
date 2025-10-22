@@ -48,6 +48,8 @@ public class MatterStart {
 
   private String deliveryLocation;
 
+  private int numberOfMatterStarts;
+
   @Enumerated(EnumType.STRING)
   private MediationType mediationType;
 

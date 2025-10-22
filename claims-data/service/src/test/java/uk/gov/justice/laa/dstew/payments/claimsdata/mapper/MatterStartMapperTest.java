@@ -41,6 +41,7 @@ class MatterStartMapperTest {
               .procurementAreaCode("PA-10")
               .accessPointCode("AP-01")
               .deliveryLocation("DL-XYZ")
+              .numberOfMatterStarts(23)
               .mediationType(MediationType.MDAC_ALL_ISSUES_CO);
 
       final MatterStart result = mapper.toMatterStart(request);
@@ -54,6 +55,7 @@ class MatterStartMapperTest {
             softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
             softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
             softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
+            softly.assertThat(result.getNumberOfMatterStarts()).isEqualTo(23);
             softly
                 .assertThat(result.getMediationType())
                 .isEqualTo(MediationType.MDAC_ALL_ISSUES_CO);
@@ -76,6 +78,7 @@ class MatterStartMapperTest {
               .accessPointCode("AP-01")
               .deliveryLocation("DL-XYZ")
               .mediationType(MediationType.MDAC_ALL_ISSUES_CO)
+              .numberOfMatterStarts(15)
               .build();
 
       final MatterStartGet result = mapper.toMatterStartGet(request);
@@ -88,6 +91,7 @@ class MatterStartMapperTest {
             softly.assertThat(result.getProcurementAreaCode()).isEqualTo("PA-10");
             softly.assertThat(result.getAccessPointCode()).isEqualTo("AP-01");
             softly.assertThat(result.getDeliveryLocation()).isEqualTo("DL-XYZ");
+            softly.assertThat(result.getNumberOfMatterStarts()).isEqualTo(15);
             softly
                 .assertThat(result.getMediationType())
                 .isEqualTo(MediationType.MDAC_ALL_ISSUES_CO);
