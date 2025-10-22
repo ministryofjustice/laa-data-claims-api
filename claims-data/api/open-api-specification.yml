@@ -1535,6 +1535,8 @@ components:
           type: string
         mediation_type:
           $ref: "#/components/schemas/mediation_type"
+        number_of_matter_starts:
+          type: integer
         created_by_user_id:
           type: string
           description: The id of the user who created the matter start.
