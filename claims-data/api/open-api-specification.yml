@@ -121,7 +121,7 @@ paths:
                     format: uuid
                     description: UUID of the bulk submission.
                   status:
-                    $ref: "#/components/schemas/BulkSubmissionStatus"
+                    $ref: "#/components/schemas/bulk_submission_status"
                   created_by_user_id:
                     type: string
                     description: The user ID of the user who created the bulk submission.
@@ -173,6 +173,42 @@ paths:
           description: Bulk submission not found
         '500':
           description: 'Internal server error'
+
+    patch:
+      operationId: updateBulkSubmission
+      tags:
+        - Bulk Submissions
+      summary: Update bulk submission status
+      description: Updates the `status` field of an existing bulk submission identified by its ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the bulk submission to update
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bulk_submission_patch'
+      responses:
+        '204':
+          description: 'Bulk submission status updated successfully'
+          content: { }
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Submission ID not found'
+        '500':
+          description: 'Internal server error'
+
   /api/v0/submissions:
     post:
       operationId: createSubmission
@@ -186,7 +222,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubmissionPost'
+              $ref: '#/components/schemas/submission_post'
       responses:
         '201':
           description: Submission created successfully.
@@ -277,7 +313,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmissionsResultSet'
+                $ref: '#/components/schemas/submissions_result_set'
   /api/v0/claims:
     get:
       operationId: getClaims
@@ -347,7 +383,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClaimResultSet'
+                $ref: '#/components/schemas/claim_result_set'
         '400':
           description: 'Bad request'
         '401':
@@ -543,7 +579,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubmissionPatch'
+              $ref: '#/components/schemas/submission_patch'
       responses:
         '204':
           description: 'Submission status updated successfully'
@@ -579,7 +615,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmissionResponse'
+                $ref: '#/components/schemas/submission_response'
         '400':
           description: 'Bad request'
         '401':
@@ -657,7 +693,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimPatch'
+              $ref: '#/components/schemas/claim_patch'
       responses:
         '204':
           description: Claim updated successfully
@@ -710,7 +746,23 @@ paths:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
 components:
   schemas:
-    BulkSubmissionStatus:
+    bulk_submission_patch:
+      type: object
+      description: bulk submission patch details
+      properties:
+        bulk_submission_id:
+          type: string
+          format: uuid
+          description: UUID of the bulk submission.
+        status:
+          $ref: "#/components/schemas/bulk_submission_status"
+        error_code:
+          $ref: "#/components/schemas/bulk_submission_error_code"
+        error_description:
+          type: string
+        updated_by_user_id:
+          type: string
+    bulk_submission_status:
       type: string
       enum:
         - READY_FOR_PARSING
@@ -719,7 +771,14 @@ components:
         - VALIDATION_FAILED
         - REPLACED
         - UNAUTHORISED
-    SubmissionPost:
+        - VALIDATION_SUCCEEDED
+    bulk_submission_error_code:
+      type: string
+      enum:
+        - P100 # Parsing error
+        - V100 # Validation error
+        - E100 # Other errors
+    submission_post:
       allOf:
         - $ref: '#/components/schemas/submission_base'
       required:
@@ -731,7 +790,7 @@ components:
         - status
         - provider_user_id
         - created_by_user_id
-    SubmissionPatch:
+    submission_patch:
       allOf:
         - $ref: '#/components/schemas/submission_base'
       type: object
@@ -751,7 +810,7 @@ components:
         - REPLACED
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
-    SubmissionClaim:
+    submission_claim:
       type: object
       description: Claim UUID and status
       properties:
@@ -760,7 +819,7 @@ components:
           format: uuid
         status:
           $ref: "#/components/schemas/claim_status"
-    SubmissionResponse:
+    submission_response:
       allOf:
         - $ref: '#/components/schemas/submission_base'
         - type: object
@@ -769,7 +828,7 @@ components:
               type: array
               description: List of claims (ID + status) for this submission
               items:
-                $ref: '#/components/schemas/SubmissionClaim'
+                $ref: '#/components/schemas/submission_claim'
             matter_starts:
               type: array
               description: List of matter start IDs for this submission
@@ -844,7 +903,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.
-    SubmissionsResultSet:
+    submissions_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
       type: 'object'
@@ -862,7 +921,7 @@ components:
         - line_number
         - matter_type_code
         - created_by_user_id
-    ClaimPatch:
+    claim_patch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
         - type: object
@@ -880,7 +939,7 @@ components:
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
-    ClaimResultSet:
+    claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
       type: 'object'
