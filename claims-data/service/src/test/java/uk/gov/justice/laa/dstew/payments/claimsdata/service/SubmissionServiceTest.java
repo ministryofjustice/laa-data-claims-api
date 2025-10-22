@@ -291,13 +291,7 @@ class SubmissionServiceTest {
         pageable);
 
     verify(submissionRepository)
-        .findAll(
-            submissionSpecificationArgumentCaptor.capture(),
-            eq(
-                PageRequest.of(
-                    pageable.getPageNumber(),
-                    pageable.getPageSize(),
-                    Sort.by("createdOn").descending())));
+        .findAll(submissionSpecificationArgumentCaptor.capture(), eq(pageable));
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }
