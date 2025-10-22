@@ -3,6 +3,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
 import java.util.List;
 import java.util.Optional;
@@ -118,5 +120,34 @@ class BulkSubmissionServiceTest {
 
     assertThrows(
         BulkSubmissionNotFoundException.class, () -> bulkSubmissionService.getBulkSubmission(id));
+  }
+
+  @Test
+  @DisplayName("Updates a BulkSubmission")
+  void shouldUpdateBulkSubmission() {
+    BulkSubmission entity = BulkSubmission.builder().id(BULK_SUBMISSION_ID).build();
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .status(BulkSubmissionStatus.VALIDATION_FAILED)
+            .errorCode(BulkSubmissionErrorCode.V100)
+            .errorDescription("This is the error message")
+            .updatedByUserId(API_USER_ID);
+
+    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.of(entity));
+
+    bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch);
+
+    verify(bulkSubmissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
+  void shouldThrowWhenBulkSubmissionNotFoundOnUpdate() {
+    BulkSubmissionPatch patch = new BulkSubmissionPatch();
+    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.empty());
+
+    assertThrows(
+        BulkSubmissionNotFoundException.class,
+        () -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
   }
 }

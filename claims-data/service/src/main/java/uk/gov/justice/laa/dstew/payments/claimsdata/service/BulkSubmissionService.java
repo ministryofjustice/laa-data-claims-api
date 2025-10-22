@@ -15,6 +15,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -89,7 +91,7 @@ public class BulkSubmissionService
       BulkSubmission unauthorised =
           bulkSubmissionBuilder
               .status(BulkSubmissionStatus.UNAUTHORISED)
-              .errorCode("OFFICE_UNAUTHORISED")
+              .errorCode(BulkSubmissionErrorCode.E100)
               .errorDescription(errorMessage)
               .build();
 
@@ -140,5 +142,25 @@ public class BulkSubmissionService
         .status(bulkSubmission.getStatus())
         .createdByUserId(bulkSubmission.getCreatedByUserId())
         .details(bulkSubmission.getData());
+  }
+
+  /**
+   * Update a {@link BulkSubmission} entity identified by the id with the details provided in the
+   * {@link BulkSubmissionPatch} object.
+   *
+   * @param id the identifier of the {@code BulkSubmission} entity being updated
+   * @param bulkSubmissionPatch the object representing the payload of the details to update on the
+   *     bulk submission
+   */
+  @Transactional
+  public void updateBulkSubmission(UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
+    BulkSubmission bulkSubmission = requireEntity(id);
+
+    bulkSubmission.setStatus(bulkSubmissionPatch.getStatus());
+    bulkSubmission.setErrorCode(bulkSubmissionPatch.getErrorCode());
+    bulkSubmission.setErrorDescription(bulkSubmissionPatch.getErrorDescription());
+    bulkSubmission.setUpdatedByUserId(bulkSubmissionPatch.getUpdatedByUserId());
+
+    bulkSubmissionRepository.save(bulkSubmission);
   }
 }

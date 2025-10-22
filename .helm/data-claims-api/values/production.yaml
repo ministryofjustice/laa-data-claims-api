@@ -9,7 +9,7 @@ image:
   tag: null
 
 service_account:
-  name: laa-data-claims-api-prod-service-account
+  name: irsa-sqs-laa-data-claims-api-prod
 
 service:
   type: ClusterIP
@@ -43,3 +43,6 @@ autoscaling:
   maxReplicas: 8
   targetCPUUtilizationPercentage: 60
   targetMemoryUtilizationPercentage: 70
+
+grafana:
+  enabled: true

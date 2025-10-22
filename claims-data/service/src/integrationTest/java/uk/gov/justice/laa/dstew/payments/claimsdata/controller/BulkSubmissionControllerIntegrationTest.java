@@ -3,11 +3,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -15,8 +17,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -26,10 +28,11 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -39,8 +42,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String FILE = "file";
   private static final String TEXT_CSV = "text/csv";
   private static final String POST_BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions";
-  private static final String GET_BULK_SUBMISSION_ENDPOINT =
-      API_URI_PREFIX + "/bulk-submissions/{id}";
+  private static final String BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions/{id}";
   private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
   private static final String TEST_USER = "test-user";
   private static final String USER_ID_PARAM = "userId";
@@ -49,10 +51,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Autowired private MockMvc mockMvc;
-
-  @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
 
   @Autowired private SqsClient sqsClient;
 
@@ -305,7 +303,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_BULK_SUBMISSION_ENDPOINT, savedBulkSubmission.getId().toString())
+                get(BULK_SUBMISSION_ENDPOINT, savedBulkSubmission.getId().toString())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -334,7 +332,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // status.
     mockMvc
         .perform(
-            get(GET_BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+            get(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
@@ -345,7 +343,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isNotFound())
             .andReturn();
@@ -379,11 +377,77 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     BulkSubmission saved = submissions.getFirst();
     assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.UNAUTHORISED);
-    assertThat(saved.getErrorCode()).isEqualTo("OFFICE_UNAUTHORISED");
+    assertThat(saved.getErrorCode()).isEqualTo(BulkSubmissionErrorCode.E100);
     assertThat(saved.getErrorDescription()).contains("User does not have authorisation");
     assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
 
     // clean up the test-data
     bulkSubmissionRepository.deleteAll();
+  }
+
+  @Test
+  void shouldReturnUnauthorizedForPatchBulkSubmissionWhenAuthHeaderIsInvalid() throws Exception {
+    // when: calling the PATCH endpoint with an invalid auth token, it should return unauthorized
+    // status.
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void shouldUpdateBulkSubmissionToDatabase() throws Exception {
+    createBulkSubmission();
+
+    // given: a Bulk Submission patch payload with the changes to make
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .status(BulkSubmissionStatus.VALIDATION_FAILED)
+            .errorCode(BulkSubmissionErrorCode.V100)
+            .errorDescription("This is the error message")
+            .updatedByUserId(API_USER_ID);
+
+    // when: calling the patch endpoint
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent())
+        .andReturn();
+
+    // then: should update the bulk submission
+    BulkSubmission updated = bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow();
+    assertThat(updated)
+        .extracting(
+            BulkSubmission::getStatus,
+            BulkSubmission::getErrorCode,
+            BulkSubmission::getErrorDescription)
+        .containsExactly(
+            BulkSubmissionStatus.VALIDATION_FAILED,
+            BulkSubmissionErrorCode.V100,
+            "This is the error message");
+
+    // clean up the test-data
+    bulkSubmissionRepository.deleteAll();
+  }
+
+  @Test
+  void shouldReturnNotFoundWhenUpdatingNonExistingBulkSubmission() throws Exception {
+    // given: a Bulk Submission patch payload with the changes to make
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATION_FAILED);
+
+    // when: calling the patch endpoint on a random bulk submission
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNotFound())
+        .andReturn();
   }
 }
