@@ -1284,13 +1284,17 @@ components:
         schedule_ref:
           type: string
         category_code:
-          type: string
+          $ref: '#/components/schemas/category_code'
+        mediation_type:
+          $ref: '#/components/schemas/mediation_type'
         procurement_area:
           type: string
         access_point:
           type: string
         delivery_location:
           type: string
+        number_of_matter_starts:
+          type: integer
     bulk_submission_outcome:
       type: object
       description: bulk submission outcome details
@@ -1526,7 +1530,7 @@ components:
         schedule_reference:
           type: string
         category_code:
-          type: string
+          $ref: '#/components/schemas/category_code'
         procurement_area_code:
           type: string
         access_point_code:
@@ -1551,6 +1555,29 @@ components:
         - "MDAC All Issues Co"
       description: |
         The type of mediation for matter start.
+    category_code:
+      type: string
+      enum:
+        - AAP
+        - COM
+        - CON
+        - DEB
+        - EDU
+        - EMP
+        - ELA
+        - HOU
+        - IMMAS
+        - IMMOT
+        - MAT
+        - MED
+        - MHE
+        - MSC
+        - PI
+        - PUB
+        - WB
+        - DISC
+      description: |
+        Category code assigned to a legal aid matter start.
     validation_message_patch:
       type: object
       description: Validation message

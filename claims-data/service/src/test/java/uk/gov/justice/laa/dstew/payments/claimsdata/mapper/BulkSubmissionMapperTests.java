@@ -230,8 +230,10 @@ class BulkSubmissionMapperTests {
                 "scheduleRef",
                 "procurementArea",
                 "accessPoint",
-                "categoryCode",
-                "deliveryLocation")),
+                CategoryCode.HOU,
+                "deliveryLocation",
+                null,
+                "3")),
         List.of(Map.of("CLR_FIELD", "value")));
   }
 

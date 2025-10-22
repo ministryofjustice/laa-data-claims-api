@@ -17,6 +17,10 @@ public interface MatterStartMapper {
   /** Map a {@link MatterStartPost} to a {@link MatterStart} entity. */
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "submission", ignore = true)
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "updatedOn", ignore = true)
   MatterStart toMatterStart(MatterStartPost request);
 
   MatterStartGet toMatterStartGet(MatterStart entity);

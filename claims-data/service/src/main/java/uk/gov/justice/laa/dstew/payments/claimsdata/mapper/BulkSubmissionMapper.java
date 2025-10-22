@@ -333,6 +333,10 @@ public interface BulkSubmissionMapper {
    * @param csvMatterStarts the {@link CsvMatterStarts} to map.
    * @return a mapped {@link BulkSubmissionMatterStart} object.
    */
+  @Mapping(
+      target = "numberOfMatterStarts",
+      expression =
+          "java(parseIntegerField(csvMatterStarts.numberOfMatterStarts(), \"numberOfMatterStarts\"))")
   BulkSubmissionMatterStart toBulkSubmissionMatterStarts(CsvMatterStarts csvMatterStarts);
 
   /**
