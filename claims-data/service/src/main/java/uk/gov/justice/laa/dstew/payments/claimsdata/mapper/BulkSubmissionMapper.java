@@ -1,8 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -20,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
 /** Mapping interface for the mapping of bulk submission objects. */
-@Mapper(componentModel = "spring", uses = GlobalStringMapper.class)
+@Mapper(componentModel = "spring")
 public interface BulkSubmissionMapper {
   /**
    * Maps the given {@code FileSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
@@ -137,6 +140,78 @@ public interface BulkSubmissionMapper {
       target = "additionalTravelPayment",
       source = "additionalTravelPayment",
       qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "adviceTime",
+      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+  @Mapping(
+      target = "travelTime",
+      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+  @Mapping(
+      target = "waitingTime",
+      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+  @Mapping(
+      target = "profitCost",
+      expression = "java(parseBigDecimalField(outcome.profitCost(), \"profitCost\"))")
+  @Mapping(
+      target = "valueOfCosts",
+      expression = "java(parseBigDecimalField(outcome.valueOfCosts(), \"valueOfCosts\"))")
+  @Mapping(
+      target = "disbursementsAmount",
+      expression =
+          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"disbursementsAmount\"))")
+  @Mapping(
+      target = "counselCost",
+      expression = "java(parseBigDecimalField(outcome.counselCost(), \"counselCost\"))")
+  @Mapping(
+      target = "disbursementsVat",
+      expression = "java(parseBigDecimalField(outcome.disbursementsVat(), \"disbursementsVat\"))")
+  @Mapping(
+      target = "travelWaitingCosts",
+      expression =
+          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"travelWaitingCosts\"))")
+  @Mapping(
+      target = "travelCosts",
+      expression = "java(parseBigDecimalField(outcome.travelCosts(), \"travelCosts\"))")
+  @Mapping(
+      target = "adjournedHearingFee",
+      expression =
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"adjournedHearingFee\"))")
+  @Mapping(
+      target = "hoInterview",
+      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+  @Mapping(
+      target = "detentionTravelWaitingCosts",
+      expression =
+          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(), \"detentionTravelWaitingCosts\"))")
+  @Mapping(
+      target = "medicalReportsClaimed",
+      expression =
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+  @Mapping(
+      target = "desiAccRep",
+      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+  @Mapping(
+      target = "noOfClients",
+      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+  @Mapping(
+      target = "noOfSurgeryClients",
+      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+  @Mapping(
+      target = "noOfSuspects",
+      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+  @Mapping(
+      target = "noOfPoliceStation",
+      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+  @Mapping(
+      target = "numberOfMediationSessions",
+      expression =
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+  @Mapping(
+      target = "mediationTime",
+      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+  @Mapping(
+      target = "excessTravelCosts",
+      expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(XmlOutcome outcome);
 
   /**
@@ -178,6 +253,78 @@ public interface BulkSubmissionMapper {
       target = "additionalTravelPayment",
       source = "additionalTravelPayment",
       qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "adviceTime",
+      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+  @Mapping(
+      target = "travelTime",
+      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+  @Mapping(
+      target = "waitingTime",
+      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+  @Mapping(
+      target = "profitCost",
+      expression = "java(parseBigDecimalField(outcome.profitCost(), \"profitCost\"))")
+  @Mapping(
+      target = "valueOfCosts",
+      expression = "java(parseBigDecimalField(outcome.valueOfCosts(), \"valueOfCosts\"))")
+  @Mapping(
+      target = "disbursementsAmount",
+      expression =
+          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"disbursementsAmount\"))")
+  @Mapping(
+      target = "counselCost",
+      expression = "java(parseBigDecimalField(outcome.counselCost(), \"counselCost\"))")
+  @Mapping(
+      target = "disbursementsVat",
+      expression = "java(parseBigDecimalField(outcome.disbursementsVat(), \"disbursementsVat\"))")
+  @Mapping(
+      target = "travelWaitingCosts",
+      expression =
+          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"travelWaitingCosts\"))")
+  @Mapping(
+      target = "travelCosts",
+      expression = "java(parseBigDecimalField(outcome.travelCosts(), \"travelCosts\"))")
+  @Mapping(
+      target = "adjournedHearingFee",
+      expression =
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"adjournedHearingFee\"))")
+  @Mapping(
+      target = "hoInterview",
+      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+  @Mapping(
+      target = "detentionTravelWaitingCosts",
+      expression =
+          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(), \"detentionTravelWaitingCosts\"))")
+  @Mapping(
+      target = "medicalReportsClaimed",
+      expression =
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+  @Mapping(
+      target = "desiAccRep",
+      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+  @Mapping(
+      target = "noOfClients",
+      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+  @Mapping(
+      target = "noOfSurgeryClients",
+      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+  @Mapping(
+      target = "noOfSuspects",
+      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+  @Mapping(
+      target = "noOfPoliceStation",
+      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+  @Mapping(
+      target = "numberOfMediationSessions",
+      expression =
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+  @Mapping(
+      target = "mediationTime",
+      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+  @Mapping(
+      target = "excessTravelCosts",
+      expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 
   /**
@@ -189,10 +336,47 @@ public interface BulkSubmissionMapper {
   BulkSubmissionMatterStart toBulkSubmissionMatterStarts(CsvMatterStarts csvMatterStarts);
 
   /**
-   * Map to a {@link Boolean}.
+   * Map to a {@link java.lang.Integer}.
    *
-   * @param outcomeField the outcome field to map.
-   * @return a boolean representation of the outcome field.
+   * @param value the value to map.
+   * @param fieldName the name of the field being mapped.
+   * @return a BigDecimal representation of the outcome field.
+   */
+  default Integer parseIntegerField(String value, String fieldName) {
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+    try {
+      return Integer.valueOf(value);
+    } catch (NumberFormatException ex) {
+      throw new BulkSubmissionFieldConversionException(fieldName, value, ex);
+    }
+  }
+
+  /**
+   * Map to a {@link BigDecimal}.
+   *
+   * @param value the value to map.
+   * @param fieldName the name of the field being mapped.
+   * @return a BigDecimal representation of the outcome field.
+   */
+  default BigDecimal parseBigDecimalField(String value, String fieldName) {
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+    try {
+      return new BigDecimal(value);
+    } catch (NumberFormatException ex) {
+      throw new BulkSubmissionFieldConversionException(fieldName, value, ex);
+    }
+  }
+
+  /**
+   * Converts outcome field values of "Y" to {@code true}, any other non-null value to {@code
+   * false}, and {@code null} to {@code null}.
+   *
+   * @param outcomeField the outcome field value to convert
+   * @return the corresponding Boolean value
    */
   @Named("outcomeFieldToBoolean")
   default Boolean toBoolean(String outcomeField) {
