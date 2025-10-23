@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
@@ -51,7 +52,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
   void postMatterStart_shouldCreate() throws Exception {
     // given: a MatterStart Post payload
     MatterStartPost matterStartPost =
-        MatterStartPost.builder().createdByUserId(API_USER_ID).categoryCode("CAT1").build();
+        MatterStartPost.builder()
+            .createdByUserId(API_USER_ID)
+            .categoryCode(CategoryCode.AAP)
+            .build();
 
     // when: calling POST endpoint for matter starts
     mockMvc
@@ -67,14 +71,16 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     List<MatterStart> savedMatterStarts =
         matterStartRepository.findBySubmissionId(submission.getId());
     assertThat(savedMatterStarts.size()).isEqualTo(1);
-    assertThat(savedMatterStarts.getFirst().getCategoryCode()).isEqualTo("CAT1");
+    assertThat(savedMatterStarts.getFirst().getCategoryCode())
+        .isEqualTo(CategoryCode.AAP.getValue());
     assertThat(savedMatterStarts.getFirst().getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
 
   @Test
   void postMatterStart_shouldReturnNotFound() throws Exception {
     // when: calling POST endpoint with invalid submission ID, should return Not Found
-    MatterStartPost matterStartPost = MatterStartPost.builder().categoryCode("CAT1").build();
+    MatterStartPost matterStartPost =
+        MatterStartPost.builder().categoryCode(CategoryCode.AAP).build();
     mockMvc
         .perform(
             post(API_URI_PREFIX + POST_MATTER_START_URI, UUID.randomUUID())
@@ -108,7 +114,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
             .id(Uuid7.timeBasedUuid())
             .submission(submissionRepository.findById(submission.getId()).orElseThrow())
             .scheduleReference("REF1")
-            .categoryCode("CAT1")
+            .categoryCode(CategoryCode.AAP.getValue())
             .procurementAreaCode("AREA1")
             .accessPointCode("ACCESS1")
             .deliveryLocation("LONDON")
@@ -131,7 +137,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MatterStartGet result =
         OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), MatterStartGet.class);
     assertThat(result.getScheduleReference()).isEqualTo(matterStart.getScheduleReference());
-    assertThat(result.getCategoryCode()).isEqualTo(matterStart.getCategoryCode());
+    assertThat(result.getCategoryCode()).isEqualTo(CategoryCode.AAP);
     assertThat(result.getProcurementAreaCode()).isEqualTo(matterStart.getProcurementAreaCode());
     assertThat(result.getAccessPointCode()).isEqualTo(matterStart.getAccessPointCode());
     assertThat(result.getDeliveryLocation()).isEqualTo(matterStart.getDeliveryLocation());
@@ -160,7 +166,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
               .id(Uuid7.timeBasedUuid())
               .submission(submission)
               .scheduleReference("REF1")
-              .categoryCode("CAT1")
+              .categoryCode(CategoryCode.AAP.getValue())
               .procurementAreaCode("AREA1")
               .accessPointCode("ACCESS1")
               .deliveryLocation("LONDON")
@@ -187,7 +193,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
               "matter_starts":[
                    {
                    "schedule_reference":"REF1",
-                   "category_code":"CAT1",
+                   "category_code":"AAP",
                    "procurement_area_code":"AREA1",
                    "access_point_code":"ACCESS1",
                    "delivery_location":"LONDON",
