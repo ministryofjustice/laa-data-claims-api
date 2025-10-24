@@ -16,24 +16,14 @@ spec:
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: IfNotPresent
               env:
-                - name: DB_HOST
-                  value: {{ .Values.db.host | quote }}
-                - name: DB_PORT
-                  value: {{ .Values.db.port | default "5432" | quote }}
-                - name: DB_NAME
-                  value: {{ .Values.db.name | quote }}
-                - name: DB_USER
-                  value: {{ .Values.db.user | quote }}
-                - name: DB_PASSWORD
-                  value: {{ .Values.db.password | quote }}
+                {{- include "dbConnectionDetails" . | nindent 16 }}
                 - name: DB_URL
-                  value: "jdbc:postgresql://{{ .Values.db.host }}:{{ .Values.db.port | default "5432" }}/{{ .Values.db.name }}"
-                - name: SPRING_PROFILES_ACTIVE
-                  value: "{{ .Values.spring.profile }},replication-summary"
+                  value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
                 - name: AWS_REGION
                   value: {{ .Values.aws.region | quote }}
               command: ["java", "-jar", "app.jar"]
               args:
+                - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary"
                 - "--replication.summary.enabled=true"
               resources:
                 {{ toYaml .Values.resources | nindent 16 }}
