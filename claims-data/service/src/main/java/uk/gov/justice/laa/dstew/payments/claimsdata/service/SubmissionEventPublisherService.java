@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
@@ -19,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
 
 /** Service responsible for publishing submission events to the Amazon SQS queue. */
+@Profile("!replication-summary-cronjob")
 @Service
 @RequiredArgsConstructor
 public class SubmissionEventPublisherService {

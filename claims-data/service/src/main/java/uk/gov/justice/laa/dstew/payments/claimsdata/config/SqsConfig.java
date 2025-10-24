@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.sqs.SqsClientBuilder;
  * Spring-managed bean for the SQS client. The client is configured for the configured AWS region.
  */
 @Configuration
-@Profile("!test")
+@Profile("!test & !replication-summary-cronjob")
 public class SqsConfig {
 
   /**
