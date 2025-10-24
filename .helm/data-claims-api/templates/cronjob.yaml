@@ -13,7 +13,7 @@ spec:
             - name: {{ .Chart.Name }}
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: IfNotPresent
-
+              command: ["java", "-jar", "app.jar"]
               args:
                 - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary"
                 - "--replication.summary.enabled=true"
