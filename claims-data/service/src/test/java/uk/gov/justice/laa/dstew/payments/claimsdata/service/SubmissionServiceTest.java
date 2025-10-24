@@ -21,7 +21,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -33,10 +36,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -136,6 +143,28 @@ class SubmissionServiceTest {
 
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  void shouldUpdateAllClaimsAsInvalidWhenSubmissionStatusIsValidationFailed() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED);
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    UUID claimId1 = Uuid7.timeBasedUuid();
+    UUID claimId2 = Uuid7.timeBasedUuid();
+    when(claimService.getClaimsForSubmission(id))
+        .thenReturn(
+            List.of(
+                new SubmissionClaim().claimId(claimId1).status(ClaimStatus.VALID),
+                new SubmissionClaim().claimId(claimId2).status(ClaimStatus.VALID)));
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionRepository).save(entity);
+    verify(claimService).updateClaim(id, claimId1, new ClaimPatch().status(ClaimStatus.INVALID));
+    verify(claimService).updateClaim(id, claimId2, new ClaimPatch().status(ClaimStatus.INVALID));
   }
 
   @Test

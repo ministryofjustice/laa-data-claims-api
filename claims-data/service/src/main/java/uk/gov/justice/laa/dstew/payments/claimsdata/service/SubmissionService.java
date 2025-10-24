@@ -20,6 +20,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -124,6 +126,17 @@ public class SubmissionService
 
     if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_VALIDATION) {
       submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
+    }
+
+    if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
+      // mark all claims as INVALID if the submission is marked as validation failed
+      claimService
+          .getClaimsForSubmission(id)
+          .forEach(
+              claim -> {
+                claimService.updateClaim(
+                    id, claim.getClaimId(), new ClaimPatch().status(ClaimStatus.INVALID));
+              });
     }
 
     if (submissionPatch.getValidationMessages() != null
