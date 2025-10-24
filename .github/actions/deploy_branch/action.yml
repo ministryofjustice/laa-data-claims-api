@@ -62,6 +62,15 @@ runs:
       with:
         mask-password: 'true'
 
+    - name: Get replication summary cronjob schedule from secret
+      id: get_schedule
+      shell: bash
+      run: |
+        # Get base64-decoded secret value
+        schedule=$(kubectl get secret laa-data-claims-api-secrets \
+          -o jsonpath='{.data.replication-summary-cronjob-schedule}' | base64 --decode)
+        echo "schedule=$schedule" >> $GITHUB_OUTPUT
+
     - name: Helm deployment of branch
       shell: bash
       env:
@@ -93,11 +102,13 @@ runs:
           helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
             -f .helm/bitnami_postgres/values.yaml \
             --namespace ${KUBE_NAMESPACE} \
+            --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
             --install --wait --timeout=10m
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
+          --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${GIT_SHA}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$external_identifier" \

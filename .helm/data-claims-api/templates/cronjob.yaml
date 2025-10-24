@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "data-claims-api.fullname" . }}
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: {{ .Values.replicationSummary.schedule | default "0 1 * * *" | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: {{ .Chart.Name }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: IfNotPresent
+
+              args:
+                - "--spring.profiles.active={{ .Values.spring.profiles.active }},replication-summary"
+                - "--replication.summary.enabled=true"
+              resources:
+                {{ toYaml .Values.resources | nindent 16 }}
+          restartPolicy: OnFailure
