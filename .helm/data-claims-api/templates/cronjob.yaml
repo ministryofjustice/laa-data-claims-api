@@ -23,7 +23,7 @@ spec:
                   value: {{ .Values.aws.region | quote }}
               command: ["java", "-jar", "app.jar"]
               args:
-                - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary"
+                - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary-cronjob"
                 - "--replication.summary.enabled=true"
               resources:
                 {{ toYaml .Values.resources | nindent 16 }}
