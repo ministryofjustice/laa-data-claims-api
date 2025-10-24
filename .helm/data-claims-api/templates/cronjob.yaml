@@ -15,7 +15,7 @@ spec:
               imagePullPolicy: IfNotPresent
 
               args:
-                - "--spring.profiles.active={{ .Values.spring.profiles.active }},replication-summary"
+                - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary"
                 - "--replication.summary.enabled=true"
               resources:
                 {{ toYaml .Values.resources | nindent 16 }}
