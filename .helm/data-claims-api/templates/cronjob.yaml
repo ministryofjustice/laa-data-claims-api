@@ -19,4 +19,11 @@ spec:
                 - "--replication.summary.enabled=true"
               resources:
                 {{ toYaml .Values.resources | nindent 16 }}
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                seccompProfile:
+                  type: RuntimeDefault
+                capabilities:
+                  drop: ["ALL"]
           restartPolicy: OnFailure
