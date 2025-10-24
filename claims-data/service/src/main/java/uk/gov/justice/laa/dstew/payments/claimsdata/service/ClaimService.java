@@ -281,4 +281,9 @@ public class ClaimService
     }
     return response;
   }
+
+  @Transactional
+  public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
+    return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
 }

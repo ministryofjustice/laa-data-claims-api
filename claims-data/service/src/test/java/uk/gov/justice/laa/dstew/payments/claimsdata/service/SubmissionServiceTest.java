@@ -36,10 +36,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
@@ -151,20 +149,12 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED);
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
-    UUID claimId1 = Uuid7.timeBasedUuid();
-    UUID claimId2 = Uuid7.timeBasedUuid();
-    when(claimService.getClaimsForSubmission(id))
-        .thenReturn(
-            List.of(
-                new SubmissionClaim().claimId(claimId1).status(ClaimStatus.VALID),
-                new SubmissionClaim().claimId(claimId2).status(ClaimStatus.VALID)));
 
     submissionService.updateSubmission(id, patch);
 
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
-    verify(claimService).updateClaim(id, claimId1, new ClaimPatch().status(ClaimStatus.INVALID));
-    verify(claimService).updateClaim(id, claimId2, new ClaimPatch().status(ClaimStatus.INVALID));
+    verify(claimService).updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
   }
 
   @Test
