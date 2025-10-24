@@ -30,7 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.laa.springboot.exception.ApplicationException;
 
 /** Service responsible for handling the processing of bulk submission objects. */
-@Profile("!replication-summary-cronjob")
 @Service
 @Slf4j
 @RequiredArgsConstructor

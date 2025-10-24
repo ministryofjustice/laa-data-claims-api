@@ -21,6 +21,11 @@ spec:
                   value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
                 - name: AWS_REGION
                   value: {{ .Values.aws.region | quote }}
+                - name: QUEUE_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: sqs-queue-name
               command: ["java", "-jar", "app.jar"]
               args:
                 - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary-cronjob"

@@ -20,7 +20,6 @@ import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
 
 /** Service responsible for publishing submission events to the Amazon SQS queue. */
-@Profile("!replication-summary-cronjob")
 @Service
 @RequiredArgsConstructor
 public class SubmissionEventPublisherService {
