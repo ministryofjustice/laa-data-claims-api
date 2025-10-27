@@ -1,9 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -19,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.converter.MediationTypeConverter;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 
 /** Entity representing a matter start linked to a submission. */
@@ -48,7 +48,9 @@ public class MatterStart {
 
   private String deliveryLocation;
 
-  @Enumerated(EnumType.STRING)
+  private int numberOfMatterStarts;
+
+  @Convert(converter = MediationTypeConverter.class)
   private MediationType mediationType;
 
   @Column(nullable = false)

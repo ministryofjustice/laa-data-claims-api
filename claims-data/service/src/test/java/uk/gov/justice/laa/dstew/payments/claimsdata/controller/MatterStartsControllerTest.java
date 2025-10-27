@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
@@ -68,29 +69,30 @@ class MatterStartsControllerTest {
           """
           {
             "schedule_reference": "SCH-123",
-            "category_code": "CAT-01",
+            "category_code": "HOU",
             "procurement_area_code": "PAC-1",
             "access_point_code": "AP-9",
-            "delivery_location": "LOC-77"
+            "delivery_location": "LOC-77",
+            "number_of_matter_starts": 2
           }""";
 
-      assertThat(
-              mockMvc
-                  .post()
-                  .uri(GET_ALL_MATTERS_URI, submissionId)
+      mockMvcTest
+          .perform(
+              post(GET_ALL_MATTERS_URI, submissionId)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(body))
-          .hasStatus(HttpStatus.CREATED)
-          .hasHeader(
-              "Location",
-              "http://localhost"
-                  + API_URI_PREFIX
-                  + "/submissions/"
-                  + submissionId
-                  + "/matter-starts/"
-                  + matterStartId)
-          .bodyJson()
-          .hasPathSatisfying("$.id", id -> assertThat(id).isEqualTo(matterStartId.toString()));
+          .andExpect(MockMvcResultMatchers.status().isCreated())
+          .andExpect(
+              MockMvcResultMatchers.header()
+                  .string(
+                      "Location",
+                      "http://localhost"
+                          + API_URI_PREFIX
+                          + "/submissions/"
+                          + submissionId
+                          + "/matter-starts/"
+                          + matterStartId))
+          .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(matterStartId.toString()));
 
       verify(matterStartService).createMatterStart(eq(submissionId), any(MatterStartPost.class));
     }
@@ -107,7 +109,7 @@ class MatterStartsControllerTest {
       UUID id = Uuid7.timeBasedUuid();
       UUID submissionId = Uuid7.timeBasedUuid();
       Optional<MatterStartGet> expected =
-          Optional.of(new MatterStartGet().categoryCode("Category"));
+          Optional.of(new MatterStartGet().categoryCode(CategoryCode.AAP));
       when(matterStartService.getMatterStart(submissionId, id)).thenReturn(expected);
       // When
       ObjectMapper mapper = new ObjectMapper();
@@ -125,7 +127,7 @@ class MatterStartsControllerTest {
     @Test
     void shouldCallServiceOnceAndReturnListOfMatterStart() throws Exception {
       var submissionId = Uuid7.timeBasedUuid();
-      MatterStartGet matterStartGet = new MatterStartGet().categoryCode("Category");
+      MatterStartGet matterStartGet = new MatterStartGet().categoryCode(CategoryCode.AAP);
       MatterStartResultSet matterStartResultSet =
           MatterStartResultSet.builder()
               .submissionId(submissionId)

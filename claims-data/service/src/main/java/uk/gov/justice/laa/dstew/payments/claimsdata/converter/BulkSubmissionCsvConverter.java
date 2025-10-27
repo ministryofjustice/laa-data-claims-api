@@ -8,15 +8,19 @@ import io.micrometer.common.util.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvBulkSubmissionRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvHeader;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
@@ -82,8 +86,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
               csvOutcomes.add(
                   objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
           case CsvHeader.MATTERSTARTS ->
-              csvMatterStarts.add(
-                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvMatterStarts.class));
+              csvMatterStarts.addAll(toMatterStartRows(csvBulkSubmissionRow.values()));
           case CsvHeader.IMMIGRATIONCLR -> csvImmigrationClr.add(Map.copyOf(values));
 
           default -> log.debug("Unsupported header '{}'", csvBulkSubmissionRow.header());
@@ -106,6 +109,57 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     // parent submission object
     return new CsvSubmission(
         csvOffice, csvSchedule, csvOutcomes, csvMatterStarts, csvImmigrationClr);
+  }
+
+  private List<CsvMatterStarts> toMatterStartRows(Map<String, String> values) {
+    Map<String, String> remainingValues = new LinkedHashMap<>(values);
+    String scheduleRef = remainingValues.remove("SCHEDULE_REF");
+    String procurementArea = remainingValues.remove("PROCUREMENT_AREA");
+    String accessPoint = remainingValues.remove("ACCESS_POINT");
+    String deliveryLocation = remainingValues.remove("DELIVERY_LOCATION");
+    remainingValues.remove("COUNT");
+
+    List<CsvMatterStarts> matterStarts = new ArrayList<>();
+    for (Map.Entry<String, String> entry : remainingValues.entrySet()) {
+      String categoryCodeOrMediationType = entry.getKey();
+      String count = entry.getValue();
+      if (isCategoryCode(categoryCodeOrMediationType)) {
+        CategoryCode categoryCode = CategoryCode.valueOf(categoryCodeOrMediationType);
+        matterStarts.add(
+            new CsvMatterStarts(
+                scheduleRef,
+                procurementArea,
+                accessPoint,
+                categoryCode,
+                deliveryLocation,
+                null,
+                count));
+        continue;
+      }
+
+      MediationType mediationType =
+          findMediationType(categoryCodeOrMediationType)
+              .orElseThrow(
+                  () ->
+                      new BulkSubmissionFileReadException(
+                          "Unsupported matter start category code/mediation type: '%s'"
+                              .formatted(categoryCodeOrMediationType)));
+
+      matterStarts.add(
+          new CsvMatterStarts(
+              scheduleRef,
+              procurementArea,
+              accessPoint,
+              null,
+              deliveryLocation,
+              mediationType,
+              count));
+    }
+    if (matterStarts.isEmpty()) {
+      throw new BulkSubmissionFileReadException(
+          "Matter start row missing category code or mediation type");
+    }
+    return matterStarts;
   }
 
   /**
@@ -147,5 +201,20 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       throw new BulkSubmissionFileReadException(
           "Failed to parse bulk submission file header: %s".formatted(rawHeader), e);
     }
+  }
+
+  private boolean isCategoryCode(String value) {
+    try {
+      CategoryCode.valueOf(value);
+      return true;
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+  }
+
+  private Optional<MediationType> findMediationType(String value) {
+    return Arrays.stream(MediationType.values())
+        .filter(type -> type.name().startsWith(value + "_"))
+        .findFirst();
   }
 }
