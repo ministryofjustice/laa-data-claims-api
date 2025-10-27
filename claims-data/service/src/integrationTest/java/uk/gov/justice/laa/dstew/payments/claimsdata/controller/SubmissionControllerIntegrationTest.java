@@ -13,7 +13,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +26,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.*;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
@@ -366,5 +373,36 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .isEqualTo(SUBMISSION_PERIOD);
     assertThat(submissionsResultSet.getContent().getFirst().getStatus())
         .isEqualTo(SubmissionStatus.CREATED);
+  }
+
+  @Test
+  void updateSubmission_shouldUpdateAllClaimsAsInvalid_WhenSubmissionIsInvalid() throws Exception {
+    createClaimsTestData();
+    // given: a Submission patch payload with the changes to make
+    SubmissionPatch patch =
+        SubmissionPatch.builder()
+            .areaOfLaw("LEGAL HELP")
+            .status(SubmissionStatus.VALIDATION_FAILED)
+            .build();
+    // Verify that Claims are not invalid before patching
+    claimRepository
+        .findBySubmissionId(submission1.getId())
+        .forEach(claim -> assertThat(claim.getStatus()).isNotEqualTo(ClaimStatus.INVALID));
+
+    // when: calling the patch endpoint
+    mockMvc
+        .perform(
+            patch(API_URI_PREFIX + "/submissions/{id}", submission1.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent())
+        .andReturn();
+
+    // then: should update the submission and all claims as invalid
+    Submission updated = submissionRepository.findById(submission1.getId()).orElseThrow();
+    claimRepository
+        .findBySubmissionId(submission1.getId())
+        .forEach(claim -> assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID));
   }
 }
