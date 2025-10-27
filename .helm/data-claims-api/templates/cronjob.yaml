@@ -29,7 +29,6 @@ spec:
               command: ["java", "-jar", "app.jar"]
               args:
                 - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary-cronjob"
-                - "--replication.summary.enabled=true"
               resources:
                 {{ toYaml .Values.resources | nindent 16 }}
               securityContext:
