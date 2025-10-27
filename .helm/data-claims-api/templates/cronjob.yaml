@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "data-claims-api.fullname" . }}
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: {{ .Values.replicationSummary.schedule | default "0 1 * * *" | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: "{{ .Values.service_account.name }}"
+          restartPolicy: OnFailure
+          activeDeadlineSeconds: 600
+          containers:
+            - name: {{ .Chart.Name }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: IfNotPresent
+              env:
+                {{- include "dbConnectionDetails" . | nindent 16 }}
+                - name: DB_URL
+                  value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
+                - name: AWS_REGION
+                  value: {{ .Values.aws.region | quote }}
+                - name: QUEUE_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: sqs-queue-name
+              command: ["java", "-jar", "app.jar"]
+              args:
+                - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary-cronjob"
+              resources:
+                {{ toYaml .Values.resources | nindent 16 }}
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                seccompProfile:
+                  type: RuntimeDefault
+                capabilities:
+                  drop: ["ALL"]

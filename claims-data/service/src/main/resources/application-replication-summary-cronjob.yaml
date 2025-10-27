@@ -1,0 +1,6 @@
+spring:
+  main:
+    web-application-type: none
+replication:
+  summary:
+    enabled: true
