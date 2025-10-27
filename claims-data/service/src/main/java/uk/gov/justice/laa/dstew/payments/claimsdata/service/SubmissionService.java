@@ -125,11 +125,10 @@ public class SubmissionService
 
     if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_VALIDATION) {
       submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
-    }
-
-    if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
-      int result = claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
-      log.debug("Updated {} claims to INVALID status for submission {}", result, id);
+    } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
+      int totalUpdatedClaims =
+          claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
+      log.debug("Updated {} claims to INVALID status for submission {}", totalUpdatedClaims, id);
     }
 
     if (submissionPatch.getValidationMessages() != null
