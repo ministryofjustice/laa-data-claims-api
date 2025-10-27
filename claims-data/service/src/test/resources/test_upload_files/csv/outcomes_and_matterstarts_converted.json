@@ -117,7 +117,9 @@
     "PROCUREMENT_AREA" : "PA0000",
     "ACCESS_POINT" : "AP00100",
     "CATEGORY_CODE" : "MED",
-    "DELIVERY_LOCATION" : "LONDON"
+    "DELIVERY_LOCATION" : "LONDON",
+    "MEDIATION_TYPE":null,
+    "NUMBER_OF_MATTER_STARTS":"5"
   } ],
   "immigrationClr" : [ ]
 }

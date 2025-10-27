@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.MatterStartMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
@@ -102,7 +103,10 @@ class MatterStartServiceTest {
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.of(MatterStart.builder().id(matterStartsId).build()));
       MatterStartGet expected =
-          MatterStartGet.builder().categoryCode("CAT A").categoryCode("Access Code").build();
+          MatterStartGet.builder()
+              .categoryCode(CategoryCode.AAP)
+              .accessPointCode("Access Code")
+              .build();
       when(matterStartMapper.toMatterStartGet(any())).thenReturn(expected);
       // When
       Optional<MatterStartGet> result =

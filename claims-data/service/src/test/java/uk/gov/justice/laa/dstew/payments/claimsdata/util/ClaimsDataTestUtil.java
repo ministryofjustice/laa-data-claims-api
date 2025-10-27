@@ -12,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -195,10 +196,11 @@ public class ClaimsDataTestUtil {
   public static BulkSubmissionMatterStart getBulkSubmissionMatterStart() {
     return new BulkSubmissionMatterStart()
         .scheduleRef("scheduleRef")
-        .categoryCode("categoryCode")
+        .categoryCode(CategoryCode.HOU)
         .procurementArea("procurementArea")
         .accessPoint("accessPoint")
-        .deliveryLocation("deliveryLocation");
+        .deliveryLocation("deliveryLocation")
+        .numberOfMatterStarts(3);
   }
 
   public static List<Map<String, String>> getImmigrationClrRows() {
