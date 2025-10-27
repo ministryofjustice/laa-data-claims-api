@@ -11,6 +11,7 @@ spec:
         spec:
           serviceAccountName: "{{ .Values.service_account.name }}"
           restartPolicy: OnFailure
+          activeDeadlineSeconds: 600
           containers:
             - name: {{ .Chart.Name }}
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
