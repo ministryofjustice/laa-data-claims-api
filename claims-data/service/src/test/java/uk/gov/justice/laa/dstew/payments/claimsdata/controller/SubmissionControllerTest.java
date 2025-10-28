@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
@@ -68,7 +70,7 @@ class SubmissionControllerTest {
             + "\","
             + "\"office_account_number\": \"12345\","
             + "\"submission_period\": \"2025-07\","
-            + "\"area_of_law\": \"crime\","
+            + "\"area_of_law\": \"CRIME_LOWER\","
             + "\"status\": \"CREATED\","
             + "\"is_nil_submission\": false,"
             + "\"number_of_claims\": 1,"
@@ -112,7 +114,7 @@ class SubmissionControllerTest {
             .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
-            .areaOfLaw("CIVIL")
+            .areaOfLaw(AREA_OF_LAW)
             .isNilSubmission(false)
             .claims(List.of())
             .matterStarts(List.of());
@@ -149,7 +151,7 @@ class SubmissionControllerTest {
             anyString(),
             any(LocalDate.class),
             any(LocalDate.class),
-            anyString(),
+            any(BulkSubmissionAreaOfLaw.class),
             anyString(),
             anyList(),
             any(Pageable.class)))
@@ -164,7 +166,7 @@ class SubmissionControllerTest {
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
                 .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
                 .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
-                .queryParam("area_of_law", "CIVIL")
+                .queryParam("area_of_law", String.valueOf(AREA_OF_LAW))
                 .queryParam("submission_period", "2205-19")
                 .queryParam(
                     "submission_statuses",
@@ -187,7 +189,7 @@ class SubmissionControllerTest {
             anyString(),
             any(LocalDate.class),
             any(LocalDate.class),
-            anyString(),
+            any(BulkSubmissionAreaOfLaw.class),
             anyString(),
             anyList(),
             any(Pageable.class)))
@@ -199,7 +201,7 @@ class SubmissionControllerTest {
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
                 .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
                 .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
-                .queryParam("area_of_law", "CIVIL")
+                .queryParam("area_of_law", String.valueOf(AREA_OF_LAW))
                 .queryParam("submission_period", "2205-19")
                 .queryParam("submission_statuses", "CREATED", "READY_FOR_VALIDATION")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
@@ -211,7 +213,7 @@ class SubmissionControllerTest {
             eq(String.valueOf(SUBMISSION_ID)),
             eq(LocalDate.of(2025, 1, 1)),
             eq(LocalDate.of(2025, 12, 31)),
-            eq("CIVIL"),
+            eq(AREA_OF_LAW),
             eq("2205-19"),
             eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
             eq(Pageable.ofSize(20).withPage(0)));

@@ -10,6 +10,7 @@ import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -39,7 +40,7 @@ public class ClaimsDataTestUtil {
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
-  public static final String AREA_OF_LAW = "CIVIL";
+  public static final BulkSubmissionAreaOfLaw AREA_OF_LAW = BulkSubmissionAreaOfLaw.LEGAL_HELP;
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
@@ -78,7 +79,7 @@ public class ClaimsDataTestUtil {
   public static GetBulkSubmission200ResponseDetailsSchedule getBulkSubmissionSchedule() {
     return new GetBulkSubmission200ResponseDetailsSchedule()
         .submissionPeriod("submissionPeriod")
-        .areaOfLaw("areaOfLaw")
+        .areaOfLaw(AREA_OF_LAW)
         .scheduleNum("scheduleNum");
   }
 

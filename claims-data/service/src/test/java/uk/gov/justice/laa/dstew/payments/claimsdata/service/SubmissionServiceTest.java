@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
@@ -66,7 +67,6 @@ class SubmissionServiceTest {
   private static final LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
   private static final LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
   private static final List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
-  private static final String AREA_OF_LAW = "CIVIL";
   private static final String SUBMISSION_PERIOD = "2025-07";
 
   @Test
@@ -163,7 +163,7 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
         new SubmissionPatch()
-            .civilSubmissionReference("CIVIL-123")
+            .civilSubmissionReference("LEGAL-123")
             .mediationSubmissionReference("MED-123");
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
 

@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -75,10 +77,10 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
             .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
+            .areaOfLaw(BulkSubmissionAreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .crimeScheduleNumber("office1/CRIME")
-            .civilSubmissionReference("office1/CIVIL")
+            .civilSubmissionReference("office1/LEGAL")
             .mediationSubmissionReference("office1/MEDIATION")
             .previousSubmissionId(SUBMISSION_1_ID)
             .isNilSubmission(false)
@@ -92,7 +94,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
             .submissionPeriod("APR-24")
-            .areaOfLaw("CRIME")
+            .areaOfLaw(BulkSubmissionAreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.REPLACED)
             .crimeScheduleNumber("office2/CRIME")
             .previousSubmissionId(SUBMISSION_2_ID)
@@ -321,7 +323,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(actualResults.getContent()).hasSize(1);
     assertThat(actualResults.getContent())
         .extracting("areaOfLaw", "submissionPeriod", "officeAccountNumber")
-        .isEqualTo((List.of(tuple("CIVIL", "JAN-25", "office1"))));
+        .isEqualTo((List.of(tuple(AREA_OF_LAW, "JAN-25", "office1"))));
   }
 
   @DisplayName("Should not return result if area of law does not match the existing database")
@@ -330,7 +332,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual("INVALID_CIVIL"))
+                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.MEDIATION))
                 .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
             Pageable.ofSize(10).withPage(0));
 
@@ -344,7 +346,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
             Pageable.ofSize(10).withPage(0));
 
@@ -372,7 +374,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
@@ -414,7 +416,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.submissionStatusIn(null))
-                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
@@ -429,7 +431,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.submissionStatusIn(Collections.emptyList()))
-                .and(SubmissionSpecification.areaOfLawEqual("CIVIL"))
+                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
