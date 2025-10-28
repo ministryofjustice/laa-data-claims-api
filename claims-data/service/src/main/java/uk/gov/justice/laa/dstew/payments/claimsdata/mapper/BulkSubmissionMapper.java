@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -389,4 +391,16 @@ public interface BulkSubmissionMapper {
     }
     return "Y".equals(outcomeField);
   }
+
+  /**
+   * Converts the areaOfLaw string into the corresponding {@link BulkSubmissionAreaOfLaw} enum
+   * value.
+   *
+   * @param areaOfLaw the string to convert
+   * @return the corresponding {@code BulkSubmissionAreaOfLaw} enum value
+   */
+  @ValueMapping(target = "LEGAL_HELP", source = "LEGAL HELP")
+  @ValueMapping(target = "CRIME_LOWER", source = "CRIME LOWER")
+  @ValueMapping(target = "MEDIATION", source = "MEDIATION")
+  BulkSubmissionAreaOfLaw toBulkSubmissionAreaOfLaw(String areaOfLaw);
 }

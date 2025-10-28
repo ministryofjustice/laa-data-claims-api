@@ -5,7 +5,7 @@
   "schedule" : {
     "submissionPeriod" : "MAR-2010",
     "areaOfLaw" : "LEGAL HELP",
-    "scheduleNum" : "0U100A/CIVIL"
+    "scheduleNum" : "0U100A/LEGAL_HELP"
   },
   "outcomes" : [ {
     "matterType" : "IMCB:IRVL",

@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadReque
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -165,7 +166,7 @@ public class SubmissionService
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
-      String areaOfLaw,
+      BulkSubmissionAreaOfLaw areaOfLaw,
       String submissionPeriod,
       List<SubmissionStatus> submissionStatuses,
       Pageable pageable) {

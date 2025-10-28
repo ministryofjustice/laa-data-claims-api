@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
 import java.time.LocalDate;
@@ -10,11 +11,14 @@ import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -31,8 +35,9 @@ class SubmissionMapperTest {
 
   @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
-  @Test
-  void shouldMapToSubmissionEntity() {
+  @ParameterizedTest
+  @EnumSource(BulkSubmissionAreaOfLaw.class)
+  void shouldMapToSubmissionEntity(BulkSubmissionAreaOfLaw areaOfLaw) {
     UUID id = Uuid7.timeBasedUuid();
     UUID bulkId = Uuid7.timeBasedUuid();
     SubmissionPost post =
@@ -41,7 +46,7 @@ class SubmissionMapperTest {
             .bulkSubmissionId(bulkId)
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
-            .areaOfLaw("crime")
+            .areaOfLaw(areaOfLaw)
             .isNilSubmission(false)
             .numberOfClaims(1);
 
@@ -51,7 +56,7 @@ class SubmissionMapperTest {
     assertThat(result.getBulkSubmissionId()).isEqualTo(bulkId);
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
     assertThat(result.getSubmissionPeriod()).isEqualTo("2025-07");
-    assertThat(result.getAreaOfLaw()).isEqualTo("crime");
+    assertThat(result.getAreaOfLaw()).isEqualTo(areaOfLaw);
     assertThat(result.getIsNilSubmission()).isFalse();
     assertThat(result.getNumberOfClaims()).isEqualTo(1);
   }
@@ -65,7 +70,7 @@ class SubmissionMapperTest {
             .bulkSubmissionId(Uuid7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
-            .areaOfLaw("crime")
+            .areaOfLaw(AREA_OF_LAW)
             .isNilSubmission(false)
             .numberOfClaims(2)
             .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
