@@ -87,12 +87,13 @@ class SubmissionMapperTest {
   @Test
   void shouldUpdateSubmissionFromPatch() {
     Submission submission =
-        Submission.builder().crimeScheduleNumber("123").isNilSubmission(false).build();
-    SubmissionPatch patch = new SubmissionPatch().crimeScheduleNumber("456").isNilSubmission(true);
+        Submission.builder().crimeLowerScheduleNumber("123").isNilSubmission(false).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().crimeLowerScheduleNumber("456").isNilSubmission(true);
 
     submissionMapper.updateSubmissionFromPatch(patch, submission);
 
-    assertThat(submission.getCrimeScheduleNumber()).isEqualTo("456");
+    assertThat(submission.getCrimeLowerScheduleNumber()).isEqualTo("456");
     assertThat(submission.getIsNilSubmission()).isTrue();
   }
 

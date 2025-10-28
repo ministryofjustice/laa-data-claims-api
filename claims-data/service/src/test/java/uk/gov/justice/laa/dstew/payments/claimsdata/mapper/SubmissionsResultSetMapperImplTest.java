@@ -56,8 +56,8 @@ class SubmissionsResultSetMapperImplTest {
         .isEqualTo(expectedSubmission.getSubmissionPeriod());
     assertThat(actualSubmission.getAreaOfLaw()).isEqualTo(expectedSubmission.getAreaOfLaw());
     assertThat(actualSubmission.getStatus()).isEqualTo(expectedSubmission.getStatus());
-    assertThat(actualSubmission.getCrimeScheduleNumber())
-        .isEqualTo(expectedSubmission.getCrimeScheduleNumber());
+    assertThat(actualSubmission.getCrimeLowerScheduleNumber())
+        .isEqualTo(expectedSubmission.getCrimeLowerScheduleNumber());
     assertThat(actualSubmission.getPreviousSubmissionId())
         .isEqualTo(expectedSubmission.getPreviousSubmissionId());
     assertThat(actualSubmission.getIsNilSubmission())

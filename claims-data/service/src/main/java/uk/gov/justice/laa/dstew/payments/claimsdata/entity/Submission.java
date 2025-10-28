@@ -51,9 +51,9 @@ public class Submission {
   @Enumerated(EnumType.STRING)
   private SubmissionStatus status;
 
-  private String crimeScheduleNumber;
+  private String crimeLowerScheduleNumber;
 
-  private String civilSubmissionReference;
+  private String legalHelpSubmissionReference;
 
   private String mediationSubmissionReference;
 

@@ -134,7 +134,7 @@ class SubmissionServiceTest {
   void shouldUpdateSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
-    SubmissionPatch patch = new SubmissionPatch().crimeScheduleNumber("456");
+    SubmissionPatch patch = new SubmissionPatch().crimeLowerScheduleNumber("456");
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
@@ -163,7 +163,7 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
         new SubmissionPatch()
-            .civilSubmissionReference("LEGAL-123")
+            .legalHelpSubmissionReference("LEGAL-123")
             .mediationSubmissionReference("MED-123");
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
 
