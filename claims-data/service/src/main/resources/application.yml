@@ -15,6 +15,10 @@ spring:
     placeholders:
       reporting_username: "reporting_user"
       reporting_password: "reporting_password"
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   jpa:
     show-sql: false
