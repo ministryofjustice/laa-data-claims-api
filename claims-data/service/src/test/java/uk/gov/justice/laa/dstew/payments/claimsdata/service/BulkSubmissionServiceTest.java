@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
@@ -49,7 +50,11 @@ class BulkSubmissionServiceTest {
         mock(GetBulkSubmission200ResponseDetails.class);
     GetBulkSubmission200ResponseDetailsOffice mockOffice =
         mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
     when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
     when(mockOffice.getAccount()).thenReturn("TEST");
 
     doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
@@ -73,6 +78,28 @@ class BulkSubmissionServiceTest {
         .extracting(
             BulkSubmission::getCreatedByUserId, BulkSubmission::getData, BulkSubmission::getStatus)
         .containsExactly(userId, mockDetails, BulkSubmissionStatus.READY_FOR_PARSING);
+  }
+
+  @Test
+  @DisplayName("Throws BulkSubmissionAreaOfLawException when the area of law is unknown")
+  void throwsWhenAreaOfLawUnknown() {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getAreaOfLaw()).thenReturn("UNKNOWN");
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+
+    BulkSubmissionAreaOfLawException exception =
+        assertThrows(
+            BulkSubmissionAreaOfLawException.class,
+            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+
+    assertEquals(
+        "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
+        exception.getMessage());
   }
 
   @Test
