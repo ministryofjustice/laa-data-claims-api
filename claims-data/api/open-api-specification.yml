@@ -1621,7 +1621,7 @@ components:
       enum:
         - HOURLY
         - FIXED
-        - DISBURSEMENT_ONLY
+        - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
     page:
