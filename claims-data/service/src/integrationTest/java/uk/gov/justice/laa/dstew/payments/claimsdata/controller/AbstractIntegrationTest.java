@@ -349,7 +349,7 @@ public abstract class AbstractIntegrationTest {
             .claimSummaryFee(summaryFee1)
             .claim(claim1)
             .feeCode("CALC-FEE-1")
-            .feeType(FeeCalculationType.DISBURSEMENT_ONLY)
+            .feeType(FeeCalculationType.DISB_ONLY)
             .feeCodeDescription("Calculated fee for claim 1")
             .categoryOfLaw("IMMIGRATION")
             .totalAmount(BigDecimal.valueOf(125))
