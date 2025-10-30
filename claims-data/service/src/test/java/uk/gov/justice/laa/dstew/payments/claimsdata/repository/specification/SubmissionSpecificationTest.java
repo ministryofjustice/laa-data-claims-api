@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class SubmissionSpecificationTest {
@@ -143,8 +143,8 @@ class SubmissionSpecificationTest {
 
   @DisplayName("should return equals predicate when area of code is present")
   @ParameterizedTest
-  @EnumSource(BulkSubmissionAreaOfLaw.class)
-  void shouldBuildSpecificationWithAreaOfLaw(BulkSubmissionAreaOfLaw areaOfLaw) {
+  @EnumSource(AreaOfLaw.class)
+  void shouldBuildSpecificationWithAreaOfLaw(AreaOfLaw areaOfLaw) {
     Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual(areaOfLaw);
 
     Predicate withAreaOfCode = Mockito.mock(Predicate.class);

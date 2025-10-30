@@ -142,7 +142,7 @@ paths:
                           submission_period:
                             type: string
                           area_of_law:
-                            $ref: "#/components/schemas/bulk_submission_area_of_law"
+                            type: string
                           schedule_num:
                             type: string
                       outcomes:
@@ -290,7 +290,7 @@ paths:
           in: query
           required: false
           schema:
-            $ref: "#/components/schemas/bulk_submission_area_of_law"
+            $ref: "#/components/schemas/area_of_law"
           description: Filter by area of law
         - name: submission_period
           in: query
@@ -772,12 +772,6 @@ components:
         - REPLACED
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
-    bulk_submission_area_of_law:
-      type: string
-      enum:
-        - LEGAL_HELP
-        - CRIME_LOWER
-        - MEDIATION
     bulk_submission_error_code:
       type: string
       enum:
@@ -878,7 +872,7 @@ components:
           type: string
           description: Submission period (e.g., "JUL-2025").
         area_of_law:
-          $ref: "#/components/schemas/bulk_submission_area_of_law"
+          $ref: "#/components/schemas/area_of_law"
         provider_user_id:
           type: string
           description: The id of the provider user who created this submission (copied from bulk submission).

@@ -47,7 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
@@ -168,7 +168,7 @@ public abstract class AbstractIntegrationTest {
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
             .submissionPeriod("JAN-25")
-            .areaOfLaw(BulkSubmissionAreaOfLaw.LEGAL_HELP)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
@@ -180,7 +180,7 @@ public abstract class AbstractIntegrationTest {
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
             .submissionPeriod("APR-24")
-            .areaOfLaw(BulkSubmissionAreaOfLaw.CRIME_LOWER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())

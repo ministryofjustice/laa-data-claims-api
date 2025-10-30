@@ -26,7 +26,7 @@ import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -77,7 +77,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
             .submissionPeriod("JAN-25")
-            .areaOfLaw(BulkSubmissionAreaOfLaw.LEGAL_HELP)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .crimeLowerScheduleNumber("office1/CRIME")
             .legalHelpSubmissionReference("office1/LEGAL")
@@ -94,7 +94,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
             .submissionPeriod("APR-24")
-            .areaOfLaw(BulkSubmissionAreaOfLaw.CRIME_LOWER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.REPLACED)
             .crimeLowerScheduleNumber("office2/CRIME")
             .previousSubmissionId(SUBMISSION_2_ID)
@@ -332,7 +332,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.MEDIATION))
+                .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.MEDIATION))
                 .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
             Pageable.ofSize(10).withPage(0));
 
@@ -346,7 +346,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
+                .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
             Pageable.ofSize(10).withPage(0));
 
@@ -374,7 +374,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     var actualResults =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
-                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
+                .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
@@ -416,7 +416,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.submissionStatusIn(null))
-                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
+                .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
@@ -431,7 +431,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.submissionStatusIn(Collections.emptyList()))
-                .and(SubmissionSpecification.areaOfLawEqual(BulkSubmissionAreaOfLaw.LEGAL_HELP))
+                .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
                 .and(SubmissionSpecification.submissionPeriodEqual(null)),
             Pageable.ofSize(10).withPage(0));
 
