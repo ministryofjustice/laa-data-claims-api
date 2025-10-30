@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /** Entity representing a submission associated with a bulk submission. */
@@ -44,14 +45,15 @@ public class Submission {
 
   @NotNull
   @Column(nullable = false)
-  private String areaOfLaw;
+  @Enumerated(EnumType.STRING)
+  private AreaOfLaw areaOfLaw;
 
   @Enumerated(EnumType.STRING)
   private SubmissionStatus status;
 
-  private String crimeScheduleNumber;
+  private String crimeLowerScheduleNumber;
 
-  private String civilSubmissionReference;
+  private String legalHelpSubmissionReference;
 
   private String mediationSubmissionReference;
 

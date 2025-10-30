@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 
 import java.util.Collections;
 import java.util.List;
@@ -104,7 +105,7 @@ class BulkSubmissionMapperTests {
                 "account",
                 new XmlSchedule(
                     "submissionPeriod",
-                    "areaOfLaw",
+                    AREA_OF_LAW.getValue(),
                     "scheduleNum",
                     List.of(
                         new XmlOutcome(
@@ -223,7 +224,7 @@ class BulkSubmissionMapperTests {
   private CsvSubmission createCsvSubmission(CsvOutcome outcome) {
     return new CsvSubmission(
         new CsvOffice("account"),
-        new CsvSchedule("submissionPeriod", "areaOfLaw", "scheduleNum"),
+        new CsvSchedule("submissionPeriod", AREA_OF_LAW.getValue(), "scheduleNum"),
         List.of(outcome),
         List.of(
             new CsvMatterStarts(

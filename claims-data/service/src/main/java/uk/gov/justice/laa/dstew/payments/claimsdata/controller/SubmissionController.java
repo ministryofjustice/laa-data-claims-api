@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.SubmissionsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -54,7 +55,7 @@ public class SubmissionController implements SubmissionsApi {
       String submissionId,
       LocalDate submittedDateFrom,
       LocalDate submittedDateTo,
-      String areaOfLaw,
+      AreaOfLaw areaOfLaw,
       String submissionPeriod,
       List<SubmissionStatus> submissionStatuses,
       Pageable pageable) {

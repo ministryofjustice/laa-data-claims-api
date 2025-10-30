@@ -102,7 +102,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(submission.getBulkSubmissionId())
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
             .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
+            .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdByUserId(API_USER_ID)
@@ -121,7 +121,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: submission is correctly created
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
-    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo("CIVIL");
+    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
@@ -136,7 +136,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(submission.getBulkSubmissionId())
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
             .submissionPeriod("JAN-25")
-            .areaOfLaw("CIVIL")
+            .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(null)
             .build();
@@ -239,7 +239,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Test
   void updateSubmission_shouldUpdate() throws Exception {
     // given: a Submission patch payload with the changes to make
-    SubmissionPatch patch = SubmissionPatch.builder().areaOfLaw("PENAL").build();
+    SubmissionPatch patch = SubmissionPatch.builder().areaOfLaw(AREA_OF_LAW).build();
 
     // when: calling the patch endpoint
     mockMvc
@@ -253,7 +253,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update the submission
     Submission updated = submissionRepository.findById(submission.getId()).orElseThrow();
-    assertThat(updated.getAreaOfLaw()).isEqualTo("PENAL");
+    assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
   }
 
   @Test
@@ -358,7 +358,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .perform(
                 get(API_URI_PREFIX + "/submissions")
                     .param("offices", OFFICE_ACCOUNT_NUMBER)
-                    .param("areaOfLaw", AREA_OF_LAW)
+                    .param("areaOfLaw", String.valueOf(AREA_OF_LAW))
                     .param("submissionPeriod", SUBMISSION_PERIOD)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
@@ -381,7 +381,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // given: a Submission patch payload with the changes to make
     SubmissionPatch patch =
         SubmissionPatch.builder()
-            .areaOfLaw("LEGAL HELP")
+            .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.VALIDATION_FAILED)
             .build();
     // Verify that Claims are not invalid before patching
