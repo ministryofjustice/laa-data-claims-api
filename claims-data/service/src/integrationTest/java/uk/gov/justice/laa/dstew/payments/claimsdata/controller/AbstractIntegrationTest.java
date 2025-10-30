@@ -481,7 +481,7 @@ public abstract class AbstractIntegrationTest {
                 .caseStageCode("CASE_STAGE_CODE")
                 .stageReachedCode("STAGE_REACHED_CODE")
                 .standardFeeCategoryCode("STD_FEE_CAT_CODE_2")
-                .outcomeCode("OUTCOME_CODE_2")
+                .outcomeCode(null)
                 .designatedAccreditedRepresentativeCode("DAR_CODE_2")
                 .isPostalApplicationAccepted(false)
                 .isClient2PostalApplicationAccepted(false)
