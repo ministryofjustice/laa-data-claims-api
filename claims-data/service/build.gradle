@@ -90,3 +90,17 @@ spotless {
         googleJavaFormat()
     }
 }
+
+tasks.register("checkstyleStaged", Checkstyle) {
+    group = "verification"
+    description = "Runs Checkstyle on staged files only"
+
+    def filesToCheck = project.findProperty("checkstyleFiles")
+    if (filesToCheck != null) {
+        source = files(filesToCheck.split(","))
+    } else {
+        source = sourceSets.main.allJava
+    }
+
+    classpath = sourceSets.main.compileClasspath
+}
