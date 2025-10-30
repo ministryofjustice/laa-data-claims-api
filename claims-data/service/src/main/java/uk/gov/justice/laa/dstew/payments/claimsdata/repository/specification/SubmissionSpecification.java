@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /**
@@ -82,7 +82,7 @@ public final class SubmissionSpecification {
    * @param areaOfLaw an optional identifier to filter by area of law
    * @return a JPA {@code Specification}
    */
-  public static Specification<Submission> areaOfLawEqual(final BulkSubmissionAreaOfLaw areaOfLaw) {
+  public static Specification<Submission> areaOfLawEqual(final AreaOfLaw areaOfLaw) {
     return (root, query, cb) ->
         Optional.ofNullable(areaOfLaw).isPresent()
             ? cb.equal(root.get("areaOfLaw"), areaOfLaw)

@@ -18,7 +18,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionAreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -36,8 +36,8 @@ class SubmissionMapperTest {
   @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
   @ParameterizedTest
-  @EnumSource(BulkSubmissionAreaOfLaw.class)
-  void shouldMapToSubmissionEntity(BulkSubmissionAreaOfLaw areaOfLaw) {
+  @EnumSource(AreaOfLaw.class)
+  void shouldMapToSubmissionEntity(AreaOfLaw areaOfLaw) {
     UUID id = Uuid7.timeBasedUuid();
     UUID bulkId = Uuid7.timeBasedUuid();
     SubmissionPost post =
