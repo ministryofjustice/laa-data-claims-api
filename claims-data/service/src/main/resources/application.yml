@@ -64,6 +64,15 @@ management:
     env:
       enabled: false
 
+resilience4j.ratelimiter:
+  instances:
+    basicLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1m
+      timeoutDuration: 0
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 100
+
 laa:
   springboot.starter.auth:
     authentication-header: "Authorization"

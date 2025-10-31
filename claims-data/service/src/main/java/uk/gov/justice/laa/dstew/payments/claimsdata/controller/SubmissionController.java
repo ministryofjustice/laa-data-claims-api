@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
@@ -7,6 +9,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -37,9 +40,14 @@ public class SubmissionController implements SubmissionsApi {
   }
 
   @Override
+  @RateLimiter(name = "basicLimiter", fallbackMethod = "basicFallback")
   public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
     SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
+  }
+
+  public ResponseEntity<?> basicFallback(UUID id, RequestNotPermitted e) {
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Too many requests");
   }
 
   @Override
