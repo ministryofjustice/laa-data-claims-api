@@ -457,7 +457,7 @@ class ClaimMapperTest {
     feeDetail.setClaim(claim);
     feeDetail.setFeeCode("FEE001");
     feeDetail.setFeeCodeDescription("Fee description");
-    feeDetail.setFeeType(FeeCalculationType.DISBURSEMENT_ONLY);
+    feeDetail.setFeeType(FeeCalculationType.DISB_ONLY);
     feeDetail.setCategoryOfLaw("LAW");
     feeDetail.setTotalAmount(new BigDecimal("100.00"));
     feeDetail.setVatIndicator(Boolean.TRUE);
@@ -498,7 +498,7 @@ class ClaimMapperTest {
     assertThat(feeCalculationResponse.getClaimId()).isEqualTo(claim.getId());
     assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("FEE001");
     assertThat(feeCalculationResponse.getFeeCodeDescription()).isEqualTo("Fee description");
-    assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISBURSEMENT_ONLY);
+    assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISB_ONLY);
     assertThat(feeCalculationResponse.getCategoryOfLaw()).isEqualTo("LAW");
     assertThat(feeCalculationResponse.getTotalAmount())
         .isEqualByComparingTo(new BigDecimal("100.00"));
@@ -711,7 +711,7 @@ class ClaimMapperTest {
     feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
     feeCalculationPatch.feeCode("FEE_CODE");
     feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
-    feeCalculationPatch.feeType(FeeCalculationType.DISBURSEMENT_ONLY);
+    feeCalculationPatch.feeType(FeeCalculationType.DISB_ONLY);
     feeCalculationPatch.categoryOfLaw("CRIME");
     feeCalculationPatch.totalAmount(new BigDecimal("768.45"));
     feeCalculationPatch.vatIndicator(true);

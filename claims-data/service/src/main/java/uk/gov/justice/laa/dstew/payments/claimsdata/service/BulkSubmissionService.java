@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
@@ -23,6 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -65,6 +69,13 @@ public class BulkSubmissionService
       throws ApplicationException {
 
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
+    String areaOfLaw =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getSchedule)
+            .map(GetBulkSubmission200ResponseDetailsSchedule::getAreaOfLaw)
+            .orElse(null);
+
+    validateAreaOfLaw(areaOfLaw);
 
     UUID bulkSubmissionId = Uuid7.timeBasedUuid();
 
@@ -162,5 +173,21 @@ public class BulkSubmissionService
     bulkSubmission.setUpdatedByUserId(bulkSubmissionPatch.getUpdatedByUserId());
 
     bulkSubmissionRepository.save(bulkSubmission);
+  }
+
+  private void validateAreaOfLaw(String areaOfLawValue) {
+    if (areaOfLawValue == null) {
+      throw new BulkSubmissionAreaOfLawException();
+    }
+
+    String trimmedValue = areaOfLawValue.trim();
+    boolean supported =
+        Arrays.stream(AreaOfLaw.values())
+            .map(AreaOfLaw::getValue)
+            .anyMatch(value -> value.equalsIgnoreCase(trimmedValue));
+
+    if (!supported) {
+      throw new BulkSubmissionAreaOfLawException();
+    }
   }
 }

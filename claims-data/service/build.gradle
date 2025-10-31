@@ -29,7 +29,7 @@ jacocoTestCoverageVerification {
 //Overriding tomcat and commons-lang3 versions coming from laa-ccms-spring-boot-gradle-plugin -> spring boot 3.5.3
 // to avoid snyk warning that stops the build
 //Remove the line below when the laa-ccms-spring-boot-gradle-plugin is upgraded
-ext['tomcat.version'] = '10.1.44'
+ext['tomcat.version'] = '10.1.45'
 // Upgrade to fix CVE-2025-58056
 ext['netty.version'] = '4.1.125.Final'
 ext['commons-lang3.version'] = '3.18.0'
@@ -89,4 +89,18 @@ spotless {
         cleanthat()
         googleJavaFormat()
     }
+}
+
+tasks.register("checkstyleStaged", Checkstyle) {
+    group = "verification"
+    description = "Runs Checkstyle on staged files only"
+
+    def filesToCheck = project.findProperty("checkstyleFiles")
+    if (filesToCheck != null) {
+        source = files(filesToCheck.split(","))
+    } else {
+        source = sourceSets.main.allJava
+    }
+
+    classpath = sourceSets.main.compileClasspath
 }

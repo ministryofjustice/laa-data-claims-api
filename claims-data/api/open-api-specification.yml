@@ -847,7 +847,12 @@ components:
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
-
+    area_of_law:
+      type: string
+      enum:
+        - CRIME LOWER
+        - LEGAL HELP
+        - MEDIATION
     submission_base:
       type: object
       description: submission details
@@ -1621,7 +1626,7 @@ components:
       enum:
         - HOURLY
         - FIXED
-        - DISBURSEMENT_ONLY
+        - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
     page:

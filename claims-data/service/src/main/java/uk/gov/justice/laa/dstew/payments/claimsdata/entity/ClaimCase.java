@@ -48,8 +48,6 @@ public class ClaimCase {
 
   private String standardFeeCategoryCode;
 
-  @NotNull
-  @Column(nullable = false)
   private String outcomeCode;
 
   private String designatedAccreditedRepresentativeCode;
