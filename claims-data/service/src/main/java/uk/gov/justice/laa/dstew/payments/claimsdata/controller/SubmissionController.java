@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
@@ -9,7 +11,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -30,6 +31,7 @@ public class SubmissionController implements SubmissionsApi {
   private final SubmissionService submissionService;
 
   @Override
+  @RateLimiter(name = "basicLimiter", fallbackMethod = "createSubmissionFallback")
   public ResponseEntity<CreateSubmission201Response> createSubmission(
       SubmissionPost submissionPost) {
     UUID id = submissionService.createSubmission(submissionPost);
@@ -39,24 +41,36 @@ public class SubmissionController implements SubmissionsApi {
     return ResponseEntity.created(location).body(new CreateSubmission201Response().id(id));
   }
 
+  private ResponseEntity<?> createSubmissionFallback(
+      SubmissionPost submissionPost, RequestNotPermitted e) {
+    return get429Response();
+  }
+
   @Override
-  @RateLimiter(name = "basicLimiter", fallbackMethod = "basicFallback")
+  @RateLimiter(name = "basicLimiter", fallbackMethod = "getSubmissionFallback")
   public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
     SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
   }
 
-  public ResponseEntity<?> basicFallback(UUID id, RequestNotPermitted e) {
-    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Too many requests");
+  private ResponseEntity<?> getSubmissionFallback(UUID id, RequestNotPermitted e) {
+    return get429Response();
   }
 
   @Override
+  @RateLimiter(name = "basicLimiter", fallbackMethod = "updateSubmissionFallback")
   public ResponseEntity<Void> updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     submissionService.updateSubmission(id, submissionPatch);
     return ResponseEntity.noContent().build();
   }
 
+  private ResponseEntity<?> updateSubmissionFallback(
+      UUID id, SubmissionPatch submissionPatch, RequestNotPermitted e) {
+    return get429Response();
+  }
+
   @Override
+  @RateLimiter(name = "basicLimiter", fallbackMethod = "getSubmissionsFallback")
   public ResponseEntity<SubmissionsResultSet> getSubmissions(
       List<String> offices,
       String submissionId,
@@ -76,5 +90,18 @@ public class SubmissionController implements SubmissionsApi {
             submissionPeriod,
             submissionStatuses,
             pageable));
+  }
+
+  private ResponseEntity<?> getSubmissionsFallback(
+      List<String> offices,
+      String submissionId,
+      LocalDate submittedDateFrom,
+      LocalDate submittedDateTo,
+      String areaOfLaw,
+      String submissionPeriod,
+      List<SubmissionStatus> submissionStatuses,
+      Pageable pageable,
+      RequestNotPermitted e) {
+    return get429Response();
   }
 }

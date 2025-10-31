@@ -46,3 +46,12 @@ autoscaling:
 
 grafana:
   enabled: true
+
+resilience4j.ratelimiter:
+  instances:
+    basicLimiter:
+      limitForPeriod: 1000
+      limitRefreshPeriod: 1s
+      timeoutDuration: 0
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 100
