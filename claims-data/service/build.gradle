@@ -64,6 +64,7 @@ dependencies {
     implementation platform("software.amazon.awssdk:bom:2.32.22")
     implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
 
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
