@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +33,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   private final BulkSubmissionFileValidator bulkSubmissionFileValidator;
 
   @Override
+  @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateBulkSubmission201Response> createBulkSubmission(
       final String userId, final List<String> offices, final MultipartFile file) {
     // Validate file
@@ -48,15 +53,21 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   }
 
   @Override
+  @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
     GetBulkSubmission200Response response = bulkSubmissionService.getBulkSubmission(id);
     return ResponseEntity.ok(response);
   }
 
   @Override
+  @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateBulkSubmission(
       UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
     bulkSubmissionService.updateBulkSubmission(id, bulkSubmissionPatch);
     return ResponseEntity.noContent().build();
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }

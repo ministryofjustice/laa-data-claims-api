@@ -66,12 +66,21 @@ management:
 
 resilience4j.ratelimiter:
   instances:
-    basicLimiter:
-      limitForPeriod: 10
-      limitRefreshPeriod: 1m
-      timeoutDuration: 0
-      registerHealthIndicator: true
-      eventConsumerBufferSize: 100
+    submissionRateLimiter:
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
+    claimRateLimiter:
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
+    bulkSubmissionRateLimiter:
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
+    matterStartRateLimiter:
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
+    validationRateLimiter:
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
 
 laa:
   springboot.starter.auth:

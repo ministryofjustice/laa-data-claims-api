@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ public class MatterStartsController implements MatterStartsApi {
   private final MatterStartService matterStartService;
 
   @Override
+  @RateLimiter(name = "matterStartRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateMatterStart201Response> createMatterStart(
       UUID id, MatterStartPost matterStartsPost) {
     UUID matterStartId = matterStartService.createMatterStart(id, matterStartsPost);
@@ -36,6 +41,7 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
+  @RateLimiter(name = "matterStartRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<MatterStartGet> getMatterStart(UUID submissionId, UUID matterStartId) {
     return matterStartService
         .getMatterStart(submissionId, matterStartId)
@@ -44,7 +50,12 @@ public class MatterStartsController implements MatterStartsApi {
   }
 
   @Override
+  @RateLimiter(name = "matterStartRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<MatterStartResultSet> getAllMatterStartsForSubmission(UUID id) {
     return ResponseEntity.ok(matterStartService.getAllMatterStartsForSubmission(id));
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }
