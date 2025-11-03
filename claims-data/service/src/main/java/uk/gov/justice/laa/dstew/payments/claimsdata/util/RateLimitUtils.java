@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+/** Utils class for Rate Limiter implementation. * */
 public final class RateLimitUtils {
 
   public static ResponseEntity<?> get429Response() {
