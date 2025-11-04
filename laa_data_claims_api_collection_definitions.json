@@ -40,6 +40,21 @@
       "key": "matterStartId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "0",
+      "type": "number"
+    },
+    {
+      "key": "size",
+      "value": "20",
+      "type": "number"
+    },
+    {
+      "key": "sort",
+      "value": "id,asc",
+      "type": "string"
     }
   ],
   "auth": {
@@ -84,20 +99,25 @@
                   "type": "file",
                   "src": [],
                   "description": "The submission file to be uploaded (CSV or XML format)"
+                },
+                {
+                  "key": "userId",
+                  "type": "text",
+                  "value": "{{userId}}",
+                  "description": "The user ID of the user performing the bulk submission"
+                },
+                {
+                  "key": "offices",
+                  "type": "text",
+                  "value": "12345678",
+                  "description": "Comma-separated list of office account numbers"
                 }
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v0/bulk-submissions?userId={{userId}}",
+              "raw": "{{baseUrl}}/api/v0/bulk-submissions",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v0", "bulk-submissions"],
-              "query": [
-                {
-                  "key": "userId",
-                  "value": "{{userId}}",
-                  "description": "The user ID of the user performing the bulk submission"
-                }
-              ]
+              "path": ["api", "v0", "bulk-submissions"]
             },
             "description": "Upload a file (as multipart/form-data) containing data related to a submission. The file is converted into a JSON document and stored in the bulk_submission table."
           },
@@ -107,13 +127,16 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const responseJson = pm.response.json();",
-                  "    pm.collectionVariables.set('bulkSubmissionId', responseJson.bulk_submission_id);",
-                  "    if (responseJson.submission_ids && responseJson.submission_ids.length > 0) {",
-                  "        pm.collectionVariables.set('submissionId', responseJson.submission_ids[0]);",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    if (response && response.id) {",
+                  "        pm.collectionVariables.set('bulkSubmissionId', response.id);",
+                  "        if (response.submissionIds && response.submissionIds.length > 0) {",
+                  "            pm.collectionVariables.set('submissionId', response.submissionIds[0]);",
+                  "        }",
                   "    }",
-                  "}"
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -135,7 +158,30 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v0", "bulk-submissions", "{{bulkSubmissionId}}"]
             },
-            "description": "Returns the raw JSON document stored in the bulk_submission table, identified by its UUID."
+            "description": "Retrieves the details of a specific bulk submission by its ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Bulk Submission",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PROCESSED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v0/bulk-submissions/{{bulkSubmissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v0", "bulk-submissions", "{{bulkSubmissionId}}"]
+            },
+            "description": "Updates the status of a bulk submission"
           },
           "response": []
         }
