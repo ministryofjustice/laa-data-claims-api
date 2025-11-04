@@ -5,12 +5,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -29,6 +35,7 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
@@ -36,6 +43,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
+/**
+ * Integration tests for the Bulk Submission Controller. Tests the endpoints for creating,
+ * retrieving and updating bulk submissions, including file upload validation, error handling, and
+ * SQS message publishing. Uses TestContainers for integration testing with actual database and SQS
+ * queue.
+ */
 @TestInstance(Lifecycle.PER_CLASS)
 public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
@@ -44,6 +57,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String POST_BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions";
   private static final String BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions/{id}";
   private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
+  private static final String OUTCOMES_2_CSV = "test_upload_files/csv/outcomes-2.csv";
   private static final String TEST_USER = "test-user";
   private static final String USER_ID_PARAM = "userId";
   private static final String OFFICES_PARAM = "offices";
@@ -59,10 +73,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   private String queueUrl;
 
+  @BeforeEach
+  void beforeEach() {
+    clearIntegrationData();
+  }
+
   @BeforeAll
   void setup() {
-    clearIntegrationData();
-
     // create the queue if it doesn't exist
     sqsClient.createQueue(builder -> builder.queueName(queueName));
 
@@ -100,10 +117,60 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // then: the database has a persisted entity
     List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
     assertThat(submissions).hasSize(1);
-    BulkSubmission saved = submissions.getFirst();
-    assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
-    assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    BulkSubmissionOutcome bulkSubmissionOutcome =
+        savedBulkSubmission.getData().getOutcomes().getFirst();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isTrue();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
 
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @Test
+  void shouldParseTheBooleanFieldsCorrectly() throws Exception {
+    // given: a fake file
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    BulkSubmissionOutcome bulkSubmissionOutcome =
+        savedBulkSubmission.getData().getOutcomes().getFirst();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isFalse();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isFalse();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
+
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  private void verifyIfSqsMessageIsReceived(BulkSubmission saved) {
     // then: SQS has received a message
     ReceiveMessageResponse receiveResp =
         sqsClient.receiveMessage(

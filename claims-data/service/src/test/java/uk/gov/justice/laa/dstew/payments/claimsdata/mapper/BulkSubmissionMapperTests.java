@@ -17,8 +17,15 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
@@ -192,7 +199,7 @@ class BulkSubmissionMapperTests {
                             "11",
                             "outreach",
                             "referral",
-                            "clientLegallyAided",
+                            "Y",
                             "client2Forename",
                             "client2Surname",
                             "07/01/2000",
@@ -204,7 +211,7 @@ class BulkSubmissionMapperTests {
                             "client2LegallyAided",
                             "uniqueCaseId",
                             "standardFeeCat",
-                            "client2PostalApplAccp",
+                            "Y",
                             "costsDamagesRecovered",
                             "eligibleClient",
                             "courtLocation",
@@ -350,7 +357,7 @@ class BulkSubmissionMapperTests {
         mediationTime,
         "outreach",
         "referral",
-        "clientLegallyAided",
+        "Y",
         "client2Forename",
         "client2Surname",
         "07/01/2000",
@@ -362,7 +369,7 @@ class BulkSubmissionMapperTests {
         "client2LegallyAided",
         "uniqueCaseId",
         "standardFeeCat",
-        "client2PostalApplAccp",
+        "Y",
         "costsDamagesRecovered",
         "eligibleClient",
         "courtLocation",
