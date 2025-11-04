@@ -141,6 +141,14 @@ public interface BulkSubmissionMapper {
       source = "additionalTravelPayment",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
+      target = "clientLegallyAided",
+      source = "clientLegallyAided",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "client2PostalApplAccp",
+      source = "client2PostalApplAccp",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
       target = "adviceTime",
       expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
   @Mapping(
@@ -252,6 +260,14 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "additionalTravelPayment",
       source = "additionalTravelPayment",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "clientLegallyAided",
+      source = "clientLegallyAided",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "client2PostalApplAccp",
+      source = "client2PostalApplAccp",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
       target = "adviceTime",
