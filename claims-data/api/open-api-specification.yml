@@ -767,6 +767,7 @@ components:
           type: string
         updated_by_user_id:
           type: string
+
     bulk_submission_status:
       type: string
       enum:
@@ -777,12 +778,14 @@ components:
         - REPLACED
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
+
     bulk_submission_error_code:
       type: string
       enum:
         - P100 # Parsing error
         - V100 # Validation error
         - E100 # Other errors
+
     submission_post:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -795,6 +798,7 @@ components:
         - status
         - provider_user_id
         - created_by_user_id
+
     submission_patch:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -804,6 +808,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/validation_message_patch'
+
     submission_status:
       type: string
       enum:
@@ -815,6 +820,7 @@ components:
         - REPLACED
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
+
     submission_claim:
       type: object
       description: Claim UUID and status
@@ -824,6 +830,7 @@ components:
           format: uuid
         status:
           $ref: "#/components/schemas/claim_status"
+
     submission_response:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -840,6 +847,7 @@ components:
               items:
                 type: string
                 format: uuid
+
     ValidationMessagesResponse:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -852,12 +860,14 @@ components:
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
+
     area_of_law:
       type: string
       enum:
         - CRIME LOWER
         - LEGAL HELP
         - MEDIATION
+
     submission_base:
       type: object
       description: submission details
@@ -913,6 +923,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.
+
     submissions_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -931,6 +942,7 @@ components:
         - line_number
         - matter_type_code
         - created_by_user_id
+
     claim_patch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
@@ -940,6 +952,7 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/validation_message_patch'
+
     claim_status:
       type: string
       enum:
@@ -949,6 +962,7 @@ components:
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
+
     claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -958,6 +972,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
+
     matter_start_result_set:
       type: 'object'
       properties:
@@ -969,6 +984,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/matter_start_get'
+
     claim_base:
       type: object
       description: Claim details
@@ -1195,6 +1211,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
+
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1202,6 +1219,7 @@ components:
           properties:
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+
     fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform
@@ -1258,6 +1276,7 @@ components:
           type: number
         bolt_on_details:
           $ref: "#/components/schemas/bolt_on_patch"
+
     bolt_on_patch:
       type: object
       description: Bolt on details
@@ -1305,6 +1324,7 @@ components:
           type: string
         number_of_matter_starts:
           type: integer
+
     bulk_submission_outcome:
       type: object
       description: bulk submission outcome details
@@ -1527,12 +1547,15 @@ components:
           format: bigDecimal
         med_concluded_date:
           type: string
+
     matter_start_post:
       allOf:
       - $ref: '#/components/schemas/matter_start_fields'
+
     matter_start_get:
       allOf:
       - $ref: '#/components/schemas/matter_start_fields'
+
     matter_start_fields:
       type: object
       description: Matter start for a submission
@@ -1554,6 +1577,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the matter start.
+
     mediation_type:
       type: string
       enum:
@@ -1565,6 +1589,7 @@ components:
         - "MDAC All Issues Co"
       description: |
         The type of mediation for matter start.
+
     category_code:
       type: string
       enum:
@@ -1588,6 +1613,7 @@ components:
         - DISC
       description: |
         Category code assigned to a legal aid matter start.
+
     validation_message_patch:
       type: object
       description: Validation message
@@ -1600,6 +1626,7 @@ components:
           type: string
         technical_message:
           type: string
+
     validation_message_base:
       type: object
       description: Validation message
@@ -1619,6 +1646,7 @@ components:
           type: string
         display_message:
           type: string
+
     validation_message_type:
       type: string
       enum:
@@ -1626,6 +1654,7 @@ components:
         - WARNING
       description: |
         The type of validation message, indicating its severity or nature.
+
     fee_calculation_type:
       type: string
       enum:
@@ -1634,6 +1663,7 @@ components:
         - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+
     page:
       type: 'object'
       properties:
