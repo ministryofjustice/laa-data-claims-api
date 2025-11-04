@@ -31,7 +31,7 @@ public class SubmissionController implements SubmissionsApi {
   private final SubmissionService submissionService;
 
   @Override
-  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "createSubmissionFallback")
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateSubmission201Response> createSubmission(
       SubmissionPost submissionPost) {
     UUID id = submissionService.createSubmission(submissionPost);
@@ -41,32 +41,18 @@ public class SubmissionController implements SubmissionsApi {
     return ResponseEntity.created(location).body(new CreateSubmission201Response().id(id));
   }
 
-  private ResponseEntity<?> createSubmissionFallback(
-      SubmissionPost submissionPost, RequestNotPermitted e) {
-    return get429Response();
-  }
-
   @Override
-  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "getSubmissionFallback")
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
     SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
   }
 
-  private ResponseEntity<?> getSubmissionFallback(UUID id, RequestNotPermitted e) {
-    return get429Response();
-  }
-
   @Override
-  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "updateSubmissionFallback")
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     submissionService.updateSubmission(id, submissionPatch);
     return ResponseEntity.noContent().build();
-  }
-
-  private ResponseEntity<?> updateSubmissionFallback(
-      UUID id, SubmissionPatch submissionPatch, RequestNotPermitted e) {
-    return get429Response();
   }
 
   @Override
@@ -90,19 +76,6 @@ public class SubmissionController implements SubmissionsApi {
             submissionPeriod,
             submissionStatuses,
             pageable));
-  }
-
-  private ResponseEntity<?> getSubmissionsFallback(
-      List<String> offices,
-      String submissionId,
-      LocalDate submittedDateFrom,
-      LocalDate submittedDateTo,
-      String areaOfLaw,
-      String submissionPeriod,
-      List<SubmissionStatus> submissionStatuses,
-      Pageable pageable,
-      RequestNotPermitted e) {
-    return get429Response();
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
