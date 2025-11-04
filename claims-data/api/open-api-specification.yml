@@ -314,6 +314,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/submissions_result_set'
+
   /api/v0/claims:
     get:
       operationId: getClaims
@@ -392,6 +393,7 @@ paths:
           description: 'Forbidden'
         '500':
           description: 'Internal server error'
+
   /api/v0/submissions/{id}/claims:
     post:
       operationId: createClaim
@@ -520,6 +522,7 @@ paths:
           description: 'Submission ID not found'
         '500':
           description: 'Internal server error'
+
   /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
     get:
       operationId: getMatterStart
@@ -702,6 +705,7 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
+
   /api/v0/validation-messages:
     get:
       operationId: getValidationMessages
@@ -744,6 +748,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
+
 components:
   schemas:
     bulk_submission_patch:
