@@ -290,7 +290,7 @@ paths:
           in: query
           required: false
           schema:
-            type: string
+            $ref: "#/components/schemas/area_of_law"
           description: Filter by area of law
         - name: submission_period
           in: query
@@ -872,19 +872,18 @@ components:
           type: string
           description: Submission period (e.g., "JUL-2025").
         area_of_law:
-          type: string
-          description: Area of law (e.g., "crime", "civil").
+          $ref: "#/components/schemas/area_of_law"
         provider_user_id:
           type: string
           description: The id of the provider user who created this submission (copied from bulk submission).
         status:
           $ref: "#/components/schemas/submission_status"
-        crime_schedule_number:
+        crime_lower_schedule_number:
           type: string
-          description: Optional crime schedule number.
-        civil_submission_reference:
+          description: Optional crime lower schedule number.
+        legal_help_submission_reference:
           type: string
-          description: Optional civil submission reference.
+          description: Optional legal help submission reference.
         mediation_submission_reference:
           type: string
           description: Optional mediation submission reference.
@@ -1482,7 +1481,7 @@ components:
         referral:
           type: string
         client_legally_aided:
-          type: string
+          type: boolean
         client2_forename:
           type: string
         client2_surname:
@@ -1506,7 +1505,7 @@ components:
         standard_fee_cat:
           type: string
         client_2_postal_appl_accp:
-          type: string
+          type: boolean
         costs_damages_recovered:
           type: string
         eligible_client:

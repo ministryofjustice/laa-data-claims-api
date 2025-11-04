@@ -48,7 +48,7 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
         """
     INSERT INTO claims.submission (
         id, bulk_submission_id, office_account_number, submission_period, area_of_law, status,
-        crime_schedule_number, previous_submission_id, is_nil_submission, number_of_claims,
+        crime_lower_schedule_number, previous_submission_id, is_nil_submission, number_of_claims,
         error_messages, created_by_user_id, created_on, updated_on, provider_user_id
     ) VALUES
         ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111',
