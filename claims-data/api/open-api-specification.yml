@@ -12,6 +12,8 @@ tags:
     description: Operations related to submissions
   - name: Claims
     description: Operations related to claims
+  - name: Amendment
+    description: Operations related to amending claims
   - name: Matter Starts
     description: Operations related to matter starts
 
@@ -314,6 +316,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/submissions_result_set'
+
   /api/v0/claims:
     get:
       operationId: getClaims
@@ -392,6 +395,63 @@ paths:
           description: 'Forbidden'
         '500':
           description: 'Internal server error'
+
+  /api/v0/validated-claims:
+    get:
+      operationId: getValidatedClaims
+      x-spring-paginated: true
+      tags:
+        - Amendment
+      summary: Get valid claims
+      description: Get the valid claims for an office, filtering on certain fields.
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+        - name: unique_file_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Provider's unique case reference number for controlled work billing
+        - name: unique_client_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Client Number assigned to the client
+        - name: unique_case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Case Id assigned to the claim case
+        - name: submitted
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Claims retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/validated_claim_summary'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+
   /api/v0/submissions/{id}/claims:
     post:
       operationId: createClaim
@@ -520,6 +580,7 @@ paths:
           description: 'Submission ID not found'
         '500':
           description: 'Internal server error'
+
   /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
     get:
       operationId: getMatterStart
@@ -702,6 +763,7 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
+
   /api/v0/validation-messages:
     get:
       operationId: getValidationMessages
@@ -744,6 +806,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
+
 components:
   schemas:
     bulk_submission_patch:
@@ -762,6 +825,7 @@ components:
           type: string
         updated_by_user_id:
           type: string
+
     bulk_submission_status:
       type: string
       enum:
@@ -772,12 +836,14 @@ components:
         - REPLACED
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
+
     bulk_submission_error_code:
       type: string
       enum:
         - P100 # Parsing error
         - V100 # Validation error
         - E100 # Other errors
+
     submission_post:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -790,6 +856,7 @@ components:
         - status
         - provider_user_id
         - created_by_user_id
+
     submission_patch:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -799,6 +866,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/validation_message_patch'
+
     submission_status:
       type: string
       enum:
@@ -810,6 +878,7 @@ components:
         - REPLACED
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
+
     submission_claim:
       type: object
       description: Claim UUID and status
@@ -819,6 +888,7 @@ components:
           format: uuid
         status:
           $ref: "#/components/schemas/claim_status"
+
     submission_response:
       allOf:
         - $ref: '#/components/schemas/submission_base'
@@ -835,6 +905,7 @@ components:
               items:
                 type: string
                 format: uuid
+
     ValidationMessagesResponse:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -847,12 +918,14 @@ components:
         total_claims:
           type: integer
           description: The total number of unique claims that have validation errors
+
     area_of_law:
       type: string
       enum:
         - CRIME LOWER
         - LEGAL HELP
         - MEDIATION
+
     submission_base:
       type: object
       description: submission details
@@ -907,6 +980,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.
+
     submissions_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -925,6 +999,7 @@ components:
         - line_number
         - matter_type_code
         - created_by_user_id
+
     claim_patch:
       allOf:
         - $ref: '#/components/schemas/claim_response'
@@ -934,6 +1009,7 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/validation_message_patch'
+
     claim_status:
       type: string
       enum:
@@ -943,6 +1019,7 @@ components:
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
+
     claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -952,6 +1029,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
+
     matter_start_result_set:
       type: 'object'
       properties:
@@ -963,6 +1041,7 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/matter_start_get'
+
     claim_base:
       type: object
       description: Claim details
@@ -1189,6 +1268,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
+
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1196,6 +1276,7 @@ components:
           properties:
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+
     fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform
@@ -1252,6 +1333,7 @@ components:
           type: number
         bolt_on_details:
           $ref: "#/components/schemas/bolt_on_patch"
+
     bolt_on_patch:
       type: object
       description: Bolt on details
@@ -1299,6 +1381,7 @@ components:
           type: string
         number_of_matter_starts:
           type: integer
+
     bulk_submission_outcome:
       type: object
       description: bulk submission outcome details
@@ -1521,12 +1604,15 @@ components:
           format: bigDecimal
         med_concluded_date:
           type: string
+
     matter_start_post:
       allOf:
       - $ref: '#/components/schemas/matter_start_fields'
+
     matter_start_get:
       allOf:
       - $ref: '#/components/schemas/matter_start_fields'
+
     matter_start_fields:
       type: object
       description: Matter start for a submission
@@ -1548,6 +1634,7 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the matter start.
+
     mediation_type:
       type: string
       enum:
@@ -1559,6 +1646,7 @@ components:
         - "MDAC All Issues Co"
       description: |
         The type of mediation for matter start.
+
     category_code:
       type: string
       enum:
@@ -1582,6 +1670,7 @@ components:
         - DISC
       description: |
         Category code assigned to a legal aid matter start.
+
     validation_message_patch:
       type: object
       description: Validation message
@@ -1594,6 +1683,7 @@ components:
           type: string
         technical_message:
           type: string
+
     validation_message_base:
       type: object
       description: Validation message
@@ -1613,6 +1703,7 @@ components:
           type: string
         display_message:
           type: string
+
     validation_message_type:
       type: string
       enum:
@@ -1620,6 +1711,7 @@ components:
         - WARNING
       description: |
         The type of validation message, indicating its severity or nature.
+
     fee_calculation_type:
       type: string
       enum:
@@ -1628,6 +1720,57 @@ components:
         - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+
+    validated_claim_result_set:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/validated_claim_response'
+
+    validated_claim_response:
+      allOf:
+        - $ref: '#/components/schemas/validated_claim_base'
+        - type: object
+          properties:
+            fee_calculation_response:
+              $ref: '#/components/schemas/fee_calculation_patch'
+            
+    validated_claim_base:
+      type: object
+      properties:
+        id:
+          type: string
+        case_reference_number:
+          type: string
+        unique_file_number:
+          type: string
+        client_surname:
+          type: string
+        unique_client_number:
+          type: string
+        office_code:
+          type: string
+        submittedDate:
+          type: string
+        area_of_law:
+          type: string
+        escape_case_flag:
+          type: boolean
+
+    validated_claim_summary:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/validated_claim_response'
+
     page:
       type: 'object'
       properties:
