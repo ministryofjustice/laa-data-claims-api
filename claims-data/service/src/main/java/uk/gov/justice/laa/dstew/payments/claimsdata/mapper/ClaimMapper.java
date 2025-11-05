@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidatedClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
 /** MapStruct mapper for converting between claim models and entities. */
@@ -116,6 +117,11 @@ public interface ClaimMapper {
   void updateClaimResponseFromClaimSummaryFee(
       ClaimSummaryFee entity, @MappingTarget ClaimResponse claim);
 
+  @Mapping(target = "id", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateValidatedClaimResponseFromClaimSummaryFee(
+      ClaimSummaryFee entity, @MappingTarget ValidatedClaimResponse claim);
+
   @Mapping(
       target = "feeCalculationResponse",
       source = "entity",
@@ -125,6 +131,16 @@ public interface ClaimMapper {
       ignoreByDefault = true)
   void updateClaimResponseFromCalculatedFeeDetail(
       CalculatedFeeDetail entity, @MappingTarget ClaimResponse claim);
+
+  @Mapping(
+      target = "feeCalculationResponse",
+      source = "entity",
+      qualifiedByName = "updateFeeCalculationResponseFromCalculatedFeeDetail")
+  @BeanMapping(
+      nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+      ignoreByDefault = true)
+  void updateValidatedClaimResponseFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity, @MappingTarget ValidatedClaimResponse claim);
 
   @Named("updateFeeCalculationResponseFromCalculatedFeeDetail")
   @Mapping(target = "claimId", source = "claim.id")
@@ -149,4 +165,9 @@ public interface ClaimMapper {
   @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateClaimResponseFromClaimCase(ClaimCase entity, @MappingTarget ClaimResponse claim);
+
+  @Mapping(target = "id", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateValidatedClaimResponseFromClaimCase(
+      ClaimCase entity, @MappingTarget ValidatedClaimResponse claim);
 }

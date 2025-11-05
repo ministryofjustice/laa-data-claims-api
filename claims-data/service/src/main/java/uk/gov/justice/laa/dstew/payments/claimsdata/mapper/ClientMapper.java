@@ -10,6 +10,7 @@ import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidatedClaimResponse;
 
 /** MapStruct mapper for converting between client models and entities. */
 @Mapper(
@@ -38,4 +39,15 @@ public interface ClientMapper {
   @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateClaimResponseFromClient(Client entity, @MappingTarget ClaimResponse claim);
+
+  /**
+   * Map client entity values onto claim response.
+   *
+   * @param entity client entity
+   * @param claim claim response to populate
+   */
+  @Mapping(target = "id", ignore = true)
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  void updateValidatedClaimResponseFromClient(
+      Client entity, @MappingTarget ValidatedClaimResponse claim);
 }

@@ -12,6 +12,8 @@ tags:
     description: Operations related to submissions
   - name: Claims
     description: Operations related to claims
+  - name: Amendment
+    description: Operations related to amending claims
   - name: Matter Starts
     description: Operations related to matter starts
 
@@ -385,6 +387,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/claim_result_set'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+
+  /api/v0/validated-claims:
+    get:
+      operationId: getValidatedClaims
+      x-spring-paginated: true
+      tags:
+        - Amendment
+      summary: Get valid claims
+      description: Get the valid claims for an office, filtering on certain fields.
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+        - name: unique_file_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Provider's unique case reference number for controlled work billing
+        - name: unique_client_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Client Number assigned to the client
+        - name: unique_case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Case Id assigned to the claim case
+        - name: submitted
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Claims retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/validated_claim_summary'
         '400':
           description: 'Bad request'
         '401':
@@ -1663,6 +1721,56 @@ components:
         - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+
+    validated_claim_result_set:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/validated_claim_response'
+
+    validated_claim_response:
+      allOf:
+        - $ref: '#/components/schemas/validated_claim_base'
+        - type: object
+          properties:
+            fee_calculation_response:
+              $ref: '#/components/schemas/fee_calculation_patch'
+            
+    validated_claim_base:
+      type: object
+      properties:
+        id:
+          type: string
+        case_reference_number:
+          type: string
+        unique_file_number:
+          type: string
+        client_surname:
+          type: string
+        unique_client_number:
+          type: string
+        office_code:
+          type: string
+        submittedDate:
+          type: string
+        area_of_law:
+          type: string
+        escape_case_flag:
+          type: boolean
+
+    validated_claim_summary:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/validated_claim_response'
 
     page:
       type: 'object'

@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,6 +84,63 @@ public final class ClaimSpecification {
       if (StringUtils.hasText(feeCode)) {
         predicates.add(cb.and(cb.equal(root.get("feeCode"), feeCode)));
       }
+
+      if (StringUtils.hasText(uniqueFileNumber)) {
+        predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
+      }
+
+      // Filter on Client fields
+      if (StringUtils.hasText(uniqueClientNumber)) {
+        // Subquery to check existence of matching clients
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
+        Subquery<Client> clientSubquery = getClientSubquery(uniqueClientNumber, root, query, cb);
+
+        predicates.add(cb.exists(clientSubquery));
+      }
+
+      // Filter on Claim Case fields
+      if (StringUtils.hasText(uniqueCaseId)) {
+        // Subquery to check existence of matching claim cases
+        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
+        Subquery<ClaimCase> claimCaseSubquery = getClaimCaseSubquery(uniqueCaseId, root, query, cb);
+
+        predicates.add(cb.exists(claimCaseSubquery));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
+   * parameters. The resulting specification can be used to dynamically generate predicates for
+   * querying claims.
+   *
+   * @param officeCode a mandatory string representing an office code to filter claims by
+   * @param uniqueFileNumber the optional unique file number associated to the claim to filter
+   *     claims by
+   * @param uniqueClientNumber the optional unique client number associated to the claim to filter
+   *     claims by
+   * @param uniqueCaseId the optional unique case id associated to the claim to filter * claims by
+   * @param submitted TODO
+   * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
+   *     predicates
+   */
+  public static Specification<Claim> filterBy(
+      String officeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      LocalDate submitted) {
+
+    return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
+      // Join with Submission
+      Join<Claim, Submission> submissionJoin = root.join("submission");
+
+      List<Predicate> predicates = new ArrayList<>();
+
+      // Filter on Submission fields
+      predicates.add(cb.and(cb.equal(submissionJoin.get("officeAccountNumber"), officeCode)));
 
       if (StringUtils.hasText(uniqueFileNumber)) {
         predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
