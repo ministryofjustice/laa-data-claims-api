@@ -58,6 +58,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String BULK_SUBMISSION_ENDPOINT = API_URI_PREFIX + "/bulk-submissions/{id}";
   private static final String OUTCOMES_CSV = "test_upload_files/csv/outcomes.csv";
   private static final String OUTCOMES_2_CSV = "test_upload_files/csv/outcomes-2.csv";
+  private static final String OUTCOMES_3_CSV = "test_upload_files/csv/outcomes-3.csv";
   private static final String TEST_USER = "test-user";
   private static final String USER_ID_PARAM = "userId";
   private static final String OFFICES_PARAM = "offices";
@@ -91,7 +92,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   void shouldSaveSubmissionToDatabaseAndPublishMessage() throws Exception {
-    // given: a fake file
+    // Given:
+    // Below fields are set to "Y" in outcomes.csv
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT=Y,NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
 
     MockMultipartFile file =
@@ -114,7 +117,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(responseBody).contains("bulk_submission_id");
     assertThat(responseBody).contains("submission_ids");
 
-    // then: the database has a persisted entity
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
     List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
     assertThat(submissions).hasSize(1);
     BulkSubmission savedBulkSubmission = submissions.getFirst();
@@ -125,6 +128,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();
     assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isTrue();
     assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isTrue();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isTrue();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isTrue();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isTrue();
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
@@ -132,7 +141,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   void shouldParseTheBooleanFieldsCorrectly() throws Exception {
-    // given: a fake file
+    // Given:
+    // Below fields are set to "N" in outcomes-2.csv
+    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT=N,NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
     ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
 
     MockMultipartFile file =
@@ -155,7 +166,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(responseBody).contains("bulk_submission_id");
     assertThat(responseBody).contains("submission_ids");
 
-    // then: the database has a persisted entity
+    // then: the database has a persisted entity with values as "false" for fields set to "N"
     List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
     assertThat(submissions).hasSize(1);
     BulkSubmission savedBulkSubmission = submissions.getFirst();
@@ -165,6 +176,60 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         savedBulkSubmission.getData().getOutcomes().getFirst();
     assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isFalse();
     assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isFalse();
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isFalse();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isFalse();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isFalse();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isFalse();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isFalse();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isFalse();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
+
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @Test
+  void shouldHandleNullValuesForBooleanFields() throws Exception {
+    // Given:
+    // Below fields are missing in outcomes-3.csv
+    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT,NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_3_CSV);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with null values for missing fields
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    BulkSubmissionOutcome bulkSubmissionOutcome =
+        savedBulkSubmission.getData().getOutcomes().getFirst();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isNull();
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isNull();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isNull();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isNull();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isNull();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isNull();
     assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
 
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
@@ -353,7 +418,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
-            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome())
+            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
             .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =

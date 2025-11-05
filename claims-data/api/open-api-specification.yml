@@ -1433,7 +1433,7 @@ components:
         follow_on_work:
           type: string
         national_ref_mechanism_advice:
-          type: string
+          type: boolean
         exemption_criteria_satisfied:
           type: string
         excl_case_funding_ref:
@@ -1443,7 +1443,7 @@ components:
         no_of_surgery_clients:
           type: integer
         irc_surgery:
-          type: string
+          type: boolean
         surgery_date:
           type: string
         line_number:
@@ -1467,9 +1467,9 @@ components:
         prison_law_prior_approval:
           type: string
         duty_solicitor:
-          type: string
+          type: boolean
         youth_court:
-          type: string
+          type: boolean
         scheme_id:
           type: string
         number_of_mediation_sessions:
@@ -1499,7 +1499,7 @@ components:
         client2_disability:
           type: string
         client2_legally_aided:
-          type: string
+          type: boolean
         unique_case_id:
           type: string
         standard_fee_cat:
@@ -1509,7 +1509,7 @@ components:
         costs_damages_recovered:
           type: string
         eligible_client:
-          type: string
+          type: boolean
         court_location:
           type: string
         local_authority_number:

@@ -50,12 +50,15 @@ class BulkSubmissionMapperTests {
         "Unsupported submission type");
   }
 
-  @Test
-  @DisplayName("Should map csv submission to bulk submission")
-  void shouldMapCsvSubmissionToBulkSubmission() {
-    FileSubmission submission = createCsvSubmission(createCsvOutcome());
+  @ParameterizedTest(
+      name = "Should map csv submission to bulk submission with boolean fields set to: {1}")
+  @CsvSource({"Y,true", "N,false", ","})
+  void shouldMapCsvSubmissionToBulkSubmission(String fieldValue, String expectedValue) {
+    FileSubmission submission = createCsvSubmission(createCsvOutcome(fieldValue));
 
-    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
+    GetBulkSubmission200ResponseDetails expected =
+        getExpectedBulkSubmissionDetails(
+            true, expectedValue == null ? null : Boolean.valueOf(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
@@ -91,7 +94,7 @@ class BulkSubmissionMapperTests {
   void shouldIncludeFieldContextWhenCsvOutcomeNumericConversionFails(
       String fieldName, String invalidValue) {
     FileSubmission submission =
-        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue)));
+        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y"));
 
     BulkSubmissionFieldConversionException exception =
         assertThrows(
@@ -102,9 +105,10 @@ class BulkSubmissionMapperTests {
     assertEquals(invalidValue, exception.getRejectedValue());
   }
 
-  @Test
-  @DisplayName("Should map xml submission to bulk submission")
-  void shouldMapXmlSubmissionToBulkSubmission() {
+  @ParameterizedTest(
+      name = "Should map xml submission to bulk submission with boolean fields set to: {1}")
+  @CsvSource({"Y,true", "N,false", ","})
+  void shouldMapXmlSubmissionToBulkSubmission(String fieldValue, String expectedValue) {
     FileSubmission submission =
         new XmlSubmission(
             null,
@@ -145,22 +149,22 @@ class BulkSubmissionMapperTests {
                             "0.04",
                             "0.05",
                             "0.06",
-                            "Y",
-                            "N",
+                            fieldValue,
+                            fieldValue,
                             "clientType",
-                            "Y",
+                            fieldValue,
                             "0.07",
                             "outcomeCode",
-                            "N",
+                            fieldValue,
                             "claimType",
                             "8",
                             "typeOfAdvice",
-                            "Y",
+                            fieldValue,
                             "scheduleRef",
                             "cmrhOral",
                             "cmrhTelephone",
                             "aitHearingCentre",
-                            "N",
+                            fieldValue,
                             "8",
                             "hoUcn",
                             "04/01/2000",
@@ -168,19 +172,19 @@ class BulkSubmissionMapperTests {
                             "deliveryLocation",
                             "priorAuthorityRef",
                             "jrFormFilling",
-                            "Y",
+                            fieldValue,
                             "meetingsAttended",
                             "4",
                             "5",
                             "mhtRefNumber",
                             "stageReached",
                             "followOnWork",
-                            "nationalRefMechanismAdvice",
+                            fieldValue,
                             "exemptionCriteriaSatisfied",
                             "exclCaseFundingRef",
                             "6",
                             "7",
-                            "ircSurgery",
+                            fieldValue,
                             "05/01/2000",
                             "lineNumber",
                             "crimeMatterType",
@@ -192,14 +196,14 @@ class BulkSubmissionMapperTests {
                             "dsccNumber",
                             "maatId",
                             "prisonLawPriorApproval",
-                            "dutySolicitor",
-                            "youthCourt",
+                            fieldValue,
+                            fieldValue,
                             "schemeId",
                             "10",
                             "11",
                             "outreach",
                             "referral",
-                            "Y",
+                            fieldValue,
                             "client2Forename",
                             "client2Surname",
                             "07/01/2000",
@@ -208,19 +212,21 @@ class BulkSubmissionMapperTests {
                             "client2Gender",
                             "client2Ethnicity",
                             "client2Disability",
-                            "client2LegallyAided",
+                            fieldValue,
                             "uniqueCaseId",
                             "standardFeeCat",
-                            "Y",
+                            fieldValue,
                             "costsDamagesRecovered",
-                            "eligibleClient",
+                            fieldValue,
                             "courtLocation",
                             "localAuthorityNumber",
                             "paNumber",
                             "0.10",
                             "08/01/2000")))));
 
-    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(false);
+    GetBulkSubmission200ResponseDetails expected =
+        getExpectedBulkSubmissionDetails(
+            false, expectedValue == null ? null : Boolean.valueOf(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
@@ -245,11 +251,11 @@ class BulkSubmissionMapperTests {
         List.of(Map.of("CLR_FIELD", "value")));
   }
 
-  private CsvOutcome createCsvOutcome() {
-    return createCsvOutcome(Collections.emptyMap());
+  private CsvOutcome createCsvOutcome(String fieldValue) {
+    return createCsvOutcome(Collections.emptyMap(), fieldValue);
   }
 
-  private CsvOutcome createCsvOutcome(Map<String, String> overrides) {
+  private CsvOutcome createCsvOutcome(Map<String, String> overrides, String fieldValue) {
     String adviceTime = overrides.getOrDefault("adviceTime", "1");
     String travelTime = overrides.getOrDefault("travelTime", "2");
     String waitingTime = overrides.getOrDefault("waitingTime", "3");
@@ -303,22 +309,22 @@ class BulkSubmissionMapperTests {
         counselCost,
         disbursementsVat,
         travelWaitingCosts,
-        "Y",
-        "N",
+        fieldValue,
+        fieldValue,
         "clientType",
-        "Y",
+        fieldValue,
         travelCosts,
         "outcomeCode",
-        "N",
+        fieldValue,
         "claimType",
         adjournedHearingFee,
         "typeOfAdvice",
-        "Y",
+        fieldValue,
         "scheduleRef",
         "cmrhOral",
         "cmrhTelephone",
         "aitHearingCentre",
-        "N",
+        fieldValue,
         hoInterview,
         "hoUcn",
         "04/01/2000",
@@ -326,19 +332,19 @@ class BulkSubmissionMapperTests {
         "deliveryLocation",
         "priorAuthorityRef",
         "jrFormFilling",
-        "Y",
+        fieldValue,
         "meetingsAttended",
         medicalReportsClaimed,
         desiAccRep,
         "mhtRefNumber",
         "stageReached",
         "followOnWork",
-        "nationalRefMechanismAdvice",
+        fieldValue,
         "exemptionCriteriaSatisfied",
         "exclCaseFundingRef",
         noOfClients,
         noOfSurgeryClients,
-        "ircSurgery",
+        fieldValue,
         "05/01/2000",
         "lineNumber",
         "crimeMatterType",
@@ -350,14 +356,14 @@ class BulkSubmissionMapperTests {
         "dsccNumber",
         "maatId",
         "prisonLawPriorApproval",
-        "dutySolicitor",
-        "youthCourt",
+        fieldValue,
+        fieldValue,
         "schemeId",
         numberOfMediationSessions,
         mediationTime,
         "outreach",
         "referral",
-        "Y",
+        fieldValue,
         "client2Forename",
         "client2Surname",
         "07/01/2000",
@@ -366,12 +372,12 @@ class BulkSubmissionMapperTests {
         "client2Gender",
         "client2Ethnicity",
         "client2Disability",
-        "client2LegallyAided",
+        fieldValue,
         "uniqueCaseId",
         "standardFeeCat",
-        "Y",
+        fieldValue,
         "costsDamagesRecovered",
-        "eligibleClient",
+        fieldValue,
         "courtLocation",
         "localAuthorityNumber",
         "paNumber",
@@ -380,10 +386,11 @@ class BulkSubmissionMapperTests {
   }
 
   private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(
-      boolean includeMatterStarts) {
+      boolean includeMatterStarts, Boolean expectedBooleanValue) {
     var expectedBulkSubmissionOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
-    var expectedBulkSubmissionOutcome = ClaimsDataTestUtil.getBulkSubmissionOutcome();
+    var expectedBulkSubmissionOutcome =
+        ClaimsDataTestUtil.getBulkSubmissionOutcome(expectedBooleanValue);
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
     List<Map<String, String>> expectedImmigrationClrRows =
         includeMatterStarts ? ClaimsDataTestUtil.getImmigrationClrRows() : Collections.emptyList();
