@@ -16,9 +16,12 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class SubmissionSpecificationTest {
@@ -139,15 +142,16 @@ class SubmissionSpecificationTest {
   }
 
   @DisplayName("should return equals predicate when area of code is present")
-  @Test
-  void shouldBuildSpecificationWithAreaOfLaw() {
-    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual("CIVIL");
+  @ParameterizedTest
+  @EnumSource(AreaOfLaw.class)
+  void shouldBuildSpecificationWithAreaOfLaw(AreaOfLaw areaOfLaw) {
+    Specification<Submission> spec = SubmissionSpecification.areaOfLawEqual(areaOfLaw);
 
     Predicate withAreaOfCode = Mockito.mock(Predicate.class);
 
     Mockito.when(root.get("areaOfLaw"))
         .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.equal(Mockito.any(), Mockito.eq("CIVIL"))).thenReturn(withAreaOfCode);
+    Mockito.when(cb.equal(Mockito.any(), Mockito.eq(areaOfLaw))).thenReturn(withAreaOfCode);
 
     var actualResults = spec.toPredicate(root, query, cb);
 

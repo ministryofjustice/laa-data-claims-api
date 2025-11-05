@@ -5,7 +5,7 @@
   "schedule" : {
     "submissionPeriod" : "APR-2021",
     "areaOfLaw" : "LEGAL HELP",
-    "scheduleNum" : "0U099L/CIVIL"
+    "scheduleNum" : "0U099L/LEGAL_HELP"
   },
   "outcomes" : [ {
     "matterType" : "IALB:IFRA",

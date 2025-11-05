@@ -10,6 +10,7 @@ import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -39,7 +40,7 @@ public class ClaimsDataTestUtil {
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
-  public static final String AREA_OF_LAW = "CIVIL";
+  public static final AreaOfLaw AREA_OF_LAW = AreaOfLaw.LEGAL_HELP;
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
@@ -78,7 +79,7 @@ public class ClaimsDataTestUtil {
   public static GetBulkSubmission200ResponseDetailsSchedule getBulkSubmissionSchedule() {
     return new GetBulkSubmission200ResponseDetailsSchedule()
         .submissionPeriod("submissionPeriod")
-        .areaOfLaw("areaOfLaw")
+        .areaOfLaw(AREA_OF_LAW.getValue())
         .scheduleNum("scheduleNum");
   }
 
@@ -171,7 +172,7 @@ public class ClaimsDataTestUtil {
         .mediationTime(11)
         .outreach("outreach")
         .referral("referral")
-        .clientLegallyAided("clientLegallyAided")
+        .clientLegallyAided(Boolean.TRUE)
         .client2Forename("client2Forename")
         .client2Surname("client2Surname")
         .client2DateOfBirth("07/01/2000")
@@ -183,7 +184,7 @@ public class ClaimsDataTestUtil {
         .client2LegallyAided("client2LegallyAided")
         .uniqueCaseId("uniqueCaseId")
         .standardFeeCat("standardFeeCat")
-        .client2PostalApplAccp("client2PostalApplAccp")
+        .client2PostalApplAccp(Boolean.TRUE)
         .costsDamagesRecovered("costsDamagesRecovered")
         .eligibleClient("eligibleClient")
         .courtLocation("courtLocation")
@@ -230,7 +231,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
+        .crimeLowerScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
@@ -246,7 +247,7 @@ public class ClaimsDataTestUtil {
         .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.CREATED)
-        .crimeScheduleNumber(CRIME_SCHEDULE_NUMBER)
+        .crimeLowerScheduleNumber(CRIME_SCHEDULE_NUMBER)
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)

@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,8 +17,15 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvMatterStarts;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
@@ -104,7 +112,7 @@ class BulkSubmissionMapperTests {
                 "account",
                 new XmlSchedule(
                     "submissionPeriod",
-                    "areaOfLaw",
+                    AREA_OF_LAW.getValue(),
                     "scheduleNum",
                     List.of(
                         new XmlOutcome(
@@ -191,7 +199,7 @@ class BulkSubmissionMapperTests {
                             "11",
                             "outreach",
                             "referral",
-                            "clientLegallyAided",
+                            "Y",
                             "client2Forename",
                             "client2Surname",
                             "07/01/2000",
@@ -203,7 +211,7 @@ class BulkSubmissionMapperTests {
                             "client2LegallyAided",
                             "uniqueCaseId",
                             "standardFeeCat",
-                            "client2PostalApplAccp",
+                            "Y",
                             "costsDamagesRecovered",
                             "eligibleClient",
                             "courtLocation",
@@ -223,7 +231,7 @@ class BulkSubmissionMapperTests {
   private CsvSubmission createCsvSubmission(CsvOutcome outcome) {
     return new CsvSubmission(
         new CsvOffice("account"),
-        new CsvSchedule("submissionPeriod", "areaOfLaw", "scheduleNum"),
+        new CsvSchedule("submissionPeriod", AREA_OF_LAW.getValue(), "scheduleNum"),
         List.of(outcome),
         List.of(
             new CsvMatterStarts(
@@ -349,7 +357,7 @@ class BulkSubmissionMapperTests {
         mediationTime,
         "outreach",
         "referral",
-        "clientLegallyAided",
+        "Y",
         "client2Forename",
         "client2Surname",
         "07/01/2000",
@@ -361,7 +369,7 @@ class BulkSubmissionMapperTests {
         "client2LegallyAided",
         "uniqueCaseId",
         "standardFeeCat",
-        "client2PostalApplAccp",
+        "Y",
         "costsDamagesRecovered",
         "eligibleClient",
         "courtLocation",
