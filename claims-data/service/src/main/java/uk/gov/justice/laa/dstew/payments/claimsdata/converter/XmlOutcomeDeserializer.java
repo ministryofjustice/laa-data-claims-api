@@ -118,7 +118,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String standardFeeCat = null;
     String client2PostalApplAccp = null;
     String costsDamagesRecovered = null;
-    String eligibleClient = null;
+    String eligibleClientIndicator = null;
     String courtLocation = null;
     String localAuthorityNumber = null;
     String paNumber = null;
@@ -240,7 +240,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "STANDARD_FEE_CAT" -> standardFeeCat = value;
         case "CLIENT2_POSTAL_APPL_ACCP" -> client2PostalApplAccp = value;
         case "COSTS_DAMAGES_RECOVERED" -> costsDamagesRecovered = value;
-        case "ELIGIBLE_CLIENT" -> eligibleClient = value;
+        case "ELIGIBLE_CLIENT_INDICATOR" -> eligibleClientIndicator = value;
         case "COURT_LOCATION" -> courtLocation = value;
         case "LOCAL_AUTHORITY_NUMBER" -> localAuthorityNumber = value;
         case "PA_NUMBER" -> paNumber = value;
@@ -348,7 +348,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         standardFeeCat,
         client2PostalApplAccp,
         costsDamagesRecovered,
-        eligibleClient,
+        eligibleClientIndicator,
         courtLocation,
         localAuthorityNumber,
         paNumber,

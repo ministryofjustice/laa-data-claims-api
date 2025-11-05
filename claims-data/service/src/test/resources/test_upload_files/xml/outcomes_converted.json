@@ -104,7 +104,7 @@
         "standardFeeCat" : null,
         "client2PostalApplAccp" : null,
         "costsDamagesRecovered" : null,
-        "eligibleClient" : null,
+        "eligibleClientIndicator" : null,
         "courtLocation" : null,
         "localAuthorityNumber" : null,
         "paNumber" : null,
