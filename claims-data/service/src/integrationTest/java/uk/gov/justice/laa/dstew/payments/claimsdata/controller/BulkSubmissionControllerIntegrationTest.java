@@ -94,7 +94,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldSaveSubmissionToDatabaseAndPublishMessage() throws Exception {
     // Given:
     // Below fields are set to "Y" in outcomes.csv
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT=Y,NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT=Y,
+    // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
 
     MockMultipartFile file =
@@ -143,7 +144,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldParseTheBooleanFieldsCorrectly() throws Exception {
     // Given:
     // Below fields are set to "N" in outcomes-2.csv
-    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT=N,NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
+    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT=N,
+    // NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
     ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
 
     MockMultipartFile file =
@@ -191,7 +193,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldHandleNullValuesForBooleanFields() throws Exception {
     // Given:
     // Below fields are missing in outcomes-3.csv
-    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT,NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
+    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT,
+    // NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
     ClassPathResource resource = new ClassPathResource(OUTCOMES_3_CSV);
 
     MockMultipartFile file =
