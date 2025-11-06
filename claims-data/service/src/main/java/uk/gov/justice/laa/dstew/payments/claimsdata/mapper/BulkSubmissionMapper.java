@@ -163,7 +163,7 @@ public interface BulkSubmissionMapper {
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
       target = "eligibleClient",
-      source = "eligibleClient",
+      source = "eligibleClientIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
@@ -302,7 +302,7 @@ public interface BulkSubmissionMapper {
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
       target = "eligibleClient",
-      source = "eligibleClient",
+      source = "eligibleClientIndicator",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(

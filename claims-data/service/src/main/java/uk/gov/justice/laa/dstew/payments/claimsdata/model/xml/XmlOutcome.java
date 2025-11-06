@@ -130,7 +130,7 @@ public record XmlOutcome(
     String standardFeeCat,
     String client2PostalApplAccp,
     String costsDamagesRecovered,
-    String eligibleClient,
+    String eligibleClientIndicator,
     String courtLocation,
     String localAuthorityNumber,
     String paNumber,
