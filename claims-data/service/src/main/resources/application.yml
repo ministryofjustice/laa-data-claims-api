@@ -67,8 +67,8 @@ management:
 resilience4j.ratelimiter:
   instances:
     submissionRateLimiter:
-      limitForPeriod: 2
-      limitRefreshPeriod: 1m
+      limitForPeriod: 10000
+      limitRefreshPeriod: 1s
     claimRateLimiter:
       limitForPeriod: 10000
       limitRefreshPeriod: 1s

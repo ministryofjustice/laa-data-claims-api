@@ -59,6 +59,7 @@ resilience4j.ratelimiter:
     submissionRateLimiter:
       limitForPeriod: 3
       limitRefreshPeriod: 1m
+      timeoutDuration: 1s
     claimRateLimiter:
       limitForPeriod: 10000
       limitRefreshPeriod: 1s
