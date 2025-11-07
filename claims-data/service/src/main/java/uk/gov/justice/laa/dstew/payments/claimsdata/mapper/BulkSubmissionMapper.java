@@ -149,6 +149,24 @@ public interface BulkSubmissionMapper {
       source = "client2PostalApplAccp",
       qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
+      target = "dutySolicitor",
+      source = "dutySolicitor",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "nationalRefMechanismAdvice",
+      source = "nationalRefMechanismAdvice",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(target = "ircSurgery", source = "ircSurgery", qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "client2LegallyAided",
+      source = "client2LegallyAided",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "eligibleClient",
+      source = "eligibleClientIndicator",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
       target = "adviceTime",
       expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
   @Mapping(
@@ -269,6 +287,24 @@ public interface BulkSubmissionMapper {
       target = "client2PostalApplAccp",
       source = "client2PostalApplAccp",
       qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "dutySolicitor",
+      source = "dutySolicitor",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "nationalRefMechanismAdvice",
+      source = "nationalRefMechanismAdvice",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(target = "ircSurgery", source = "ircSurgery", qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "client2LegallyAided",
+      source = "client2LegallyAided",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(
+      target = "eligibleClient",
+      source = "eligibleClientIndicator",
+      qualifiedByName = "outcomeFieldToBoolean")
+  @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
   @Mapping(
       target = "adviceTime",
       expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
