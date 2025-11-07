@@ -46,21 +46,3 @@ autoscaling:
 
 grafana:
   enabled: true
-
-resilience4j.ratelimiter:
-  instances:
-    submissionRateLimiter:
-      limitForPeriod: 10000
-      limitRefreshPeriod: 1s
-    claimRateLimiter:
-      limitForPeriod: 10000
-      limitRefreshPeriod: 1s
-    bulkSubmissionRateLimiter:
-      limitForPeriod: 10000
-      limitRefreshPeriod: 1s
-    matterStartRateLimiter:
-      limitForPeriod: 10000
-      limitRefreshPeriod: 1s
-    validationRateLimiter:
-      limitForPeriod: 10000
-      limitRefreshPeriod: 1s
