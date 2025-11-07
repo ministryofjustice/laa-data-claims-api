@@ -87,6 +87,8 @@ paths:
           description: 'Forbidden'
         '415':
           description: 'Unsupported Media Type'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -171,6 +173,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: Bulk submission not found
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -206,6 +210,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Submission ID not found'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -247,6 +253,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -314,6 +322,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/submissions_result_set'
+        '429':
+          description: 'Too many requests'
   /api/v0/claims:
     get:
       operationId: getClaims
@@ -390,6 +400,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
   /api/v0/submissions/{id}/claims:
@@ -437,6 +449,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -486,6 +500,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
     get:
@@ -518,6 +534,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Submission ID not found'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
   /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
@@ -556,6 +574,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -592,6 +612,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Submission ID not found'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -624,6 +646,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Submission ID not found'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -664,6 +688,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: Submission or claim not found
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 
@@ -702,6 +728,8 @@ paths:
           description: Invalid request
         '404':
           description: Submission or claim not found
+        '429':
+          description: 'Too many requests'
   /api/v0/validation-messages:
     get:
       operationId: getValidationMessages
@@ -744,6 +772,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
+        '429':
+          description: 'Too many requests'
 components:
   schemas:
     bulk_submission_patch:
