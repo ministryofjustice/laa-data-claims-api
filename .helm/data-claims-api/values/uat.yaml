@@ -57,7 +57,7 @@ grafana:
 resilience4j.ratelimiter:
   instances:
     submissionRateLimiter:
-      limitForPeriod: 2
+      limitForPeriod: 3
       limitRefreshPeriod: 1m
     claimRateLimiter:
       limitForPeriod: 10000
