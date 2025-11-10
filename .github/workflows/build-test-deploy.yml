@@ -97,6 +97,22 @@ jobs:
           command: code test
           args: --severity-threshold=high
 
+  trivy-scan-image:
+    needs: build-test
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      jar_subproject: 'data-claims-api'
+      image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.build.outputs.published_artifact_version) }}
+      publish: false
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      ecr_repository: ""
+      ecr_region: ""
+      ecr_role_to_assume: ""
+
   vulnerability-scan-docker:
     runs-on: ubuntu-latest
     needs:
