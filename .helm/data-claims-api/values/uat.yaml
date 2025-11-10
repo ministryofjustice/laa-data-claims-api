@@ -35,7 +35,6 @@ ingressInternal:
   className: internal-non-prod
   annotations:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
-    nginx.ingress.kubernetes.io/limit-rpm: "3"
   hosts: []
 
 resources:
