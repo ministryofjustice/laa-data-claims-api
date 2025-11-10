@@ -22,12 +22,12 @@ ingress:
   className: modsec-non-prod
   annotations:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
-    nginx.ingress.kubernetes.io/limit-rpm: "3"
     nginx.ingress.kubernetes.io/enable-modsecurity: "true"
     nginx.ingress.kubernetes.io/modsecurity-snippet: |
       SecRuleEngine On
       SecAction "id:900200,phase:1,nolog,pass,t:none,setvar:tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE"
       SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-uat"
+    nginx.ingress.kubernetes.io/limit-rpm: "3"
   hosts: []
 
 ingressInternal:
@@ -35,6 +35,7 @@ ingressInternal:
   className: internal-non-prod
   annotations:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
+    nginx.ingress.kubernetes.io/limit-rpm: "3"
   hosts: []
 
 resources:
