@@ -79,6 +79,21 @@ jobs:
           path: claims-data/service/build/reports/jacoco
           retention-days: 14
 
+  trivy-scan-image:
+    needs: build-test
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      jar_subproject: 'claims-data'
+      image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.build-test.outputs.published_artifact_version) }}
+      publish: false
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      ecr_repository: ""
+      ecr_region: ""
+      ecr_role_to_assume: ""
 
   vulnerability-scan-app:
     runs-on: ubuntu-latest
@@ -169,22 +184,6 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
-
-  trivy-scan-image:
-    needs: build-test
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@v1
-    permissions:
-      contents: read
-      id-token: write
-    with:
-      jar_subproject: 'claims-data:service'
-      image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.build-test.outputs.published_artifact_version) }}
-      publish: false
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-      ecr_repository: ""
-      ecr_region: ""
-      ecr_role_to_assume: ""
 
   deploy-uat:
     runs-on: ubuntu-latest
