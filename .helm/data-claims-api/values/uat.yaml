@@ -30,7 +30,6 @@ ingress:
     nginx.ingress.kubernetes.io/limit-rpm: "3"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
     nginx.ingress.kubernetes.io/server-snippet: |
-      add_header X-Robots-Tag "noindex, nofollow";
       limit_req_status 429;
 #    nginx.ingress.kubernetes.io/limit-conn-status-code: "429"
 #    nginx.ingress.kubernetes.io/limit-req-status-code: "429"
@@ -44,7 +43,6 @@ ingressInternal:
     nginx.ingress.kubernetes.io/limit-rpm: "3"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
     nginx.ingress.kubernetes.io/server-snippet: |
-      add_header X-Robots-Tag "noindex, nofollow";
       limit_req_status 429;
 #    nginx.ingress.kubernetes.io/limit-conn-status-code: "429"
 #    nginx.ingress.kubernetes.io/limit-req-status-code: "429"
