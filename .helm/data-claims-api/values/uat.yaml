@@ -27,12 +27,12 @@ ingress:
       SecRuleEngine On
       SecAction "id:900200,phase:1,nolog,pass,t:none,setvar:tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE"
       SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-uat"
-    # Rate limiting configuration
-    nginx.ingress.kubernetes.io/limit-rps: "10"
-    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
-    nginx.ingress.kubernetes.io/limit-whitelist: ""
-    nginx.ingress.kubernetes.io/configuration-snippet: |
+    nginx.ingress.kubernetes.io/limit-rpm: "5"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+    nginx.ingress.kubernetes.io/server-snippet: |
       limit_req_status 429;
+#    nginx.ingress.kubernetes.io/limit-conn-status-code: "429"
+#    nginx.ingress.kubernetes.io/limit-req-status-code: "429"
   hosts: []
 
 ingressInternal:
@@ -40,7 +40,7 @@ ingressInternal:
   className: internal-non-prod
   annotations:
     external-dns.alpha.kubernetes.io/aws-weight: "100"
-    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-rpm: "5"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
     nginx.ingress.kubernetes.io/server-snippet: |
       limit_req_status 429;
