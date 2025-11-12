@@ -86,7 +86,7 @@ jobs:
       contents: read
       id-token: write
     with:
-      jar_subproject: 'claims-data'
+      jar_subproject: 'claims-data/service'
       image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.build-test.outputs.published_artifact_version) }}
       publish: false
     secrets:
