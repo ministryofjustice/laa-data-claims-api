@@ -101,7 +101,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -172,7 +172,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='401'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='401'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -247,7 +247,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
