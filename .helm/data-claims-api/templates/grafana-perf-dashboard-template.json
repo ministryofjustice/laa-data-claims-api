@@ -362,7 +362,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}[$__range])\n)",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -375,7 +375,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}[$__range])\n)",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -388,7 +388,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}[$__range])\n)",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -401,7 +401,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}[$__range])\n)",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -505,7 +505,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}[$__range])\n)",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -518,7 +518,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}[$__range])\n)",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -531,7 +531,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}[$__range])\n)",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -544,7 +544,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}[$__range])\n)",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -648,7 +648,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_submission_validation_time{service=~'$service-.*', quantile=\"0.5\"}[$__range])\n)",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -661,7 +661,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_submission_validation_time{service=~'$service-.*', quantile=\"0.9\"}[$__range])\n)",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -674,7 +674,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_submission_validation_time{service=~'$service-.*', quantile=\"0.95\"}[$__range])\n)",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -687,7 +687,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_submission_validation_time{service=~'$service-.*', quantile=\"0.99\"}[$__range])\n)",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -791,7 +791,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.5\"}[$__range])\n)",
+          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -804,7 +804,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.9\"}[$__range])\n)",
+          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -817,7 +817,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.95\"}[$__range])\n)",
+          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -830,7 +830,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.99\"}[$__range])\n)",
+          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
