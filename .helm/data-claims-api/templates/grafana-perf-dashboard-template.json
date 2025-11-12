@@ -362,7 +362,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace='{{ .Release.Namespace }}', service=~'$service-.*', quantile='0.5'}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -375,7 +375,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace='{{ .Release.Namespace }}', service=~'$service-.*', quantile='0.9'}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -388,7 +388,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace='{{ .Release.Namespace }}', service=~'$service-.*', quantile='0.95'}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -401,7 +401,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace='{{ .Release.Namespace }}', service=~'$service-.*', quantile='0.99'}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -505,7 +505,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{service=~'$service-.*', quantile=\"0.5\"}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -518,7 +518,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{service=~'$service-.*', quantile=\"0.9\"}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -531,7 +531,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{service=~'$service-.*', quantile=\"0.95\"}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -544,7 +544,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{service=~'$service-.*', quantile=\"0.99\"}[$__range])\n)",
+          "expr": "max by (quantile) (\n    increase(claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}[$__range])\n)",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -900,7 +900,7 @@
         "h": 7,
         "w": 4,
         "x": 0,
-        "y": 8
+        "y": 25
       },
       "id": 50,
       "options": {
@@ -986,7 +986,7 @@
         "h": 7,
         "w": 4,
         "x": 4,
-        "y": 8
+        "y": 25
       },
       "id": 51,
       "options": {
@@ -1072,7 +1072,7 @@
         "h": 7,
         "w": 4,
         "x": 9,
-        "y": 8
+        "y": 25
       },
       "id": 55,
       "options": {
@@ -1158,7 +1158,7 @@
         "h": 7,
         "w": 4,
         "x": 13,
-        "y": 8
+        "y": 25
       },
       "id": 56,
       "options": {
@@ -1244,7 +1244,7 @@
         "h": 7,
         "w": 4,
         "x": 17,
-        "y": 8
+        "y": 25
       },
       "id": 57,
       "options": {
@@ -1330,7 +1330,7 @@
         "h": 7,
         "w": 4,
         "x": 0,
-        "y": 15
+        "y": 32
       },
       "id": 52,
       "options": {
@@ -1416,7 +1416,7 @@
         "h": 7,
         "w": 4,
         "x": 4,
-        "y": 15
+        "y": 32
       },
       "id": 53,
       "options": {
@@ -1502,7 +1502,7 @@
         "h": 7,
         "w": 4,
         "x": 9,
-        "y": 15
+        "y": 32
       },
       "id": 54,
       "options": {
