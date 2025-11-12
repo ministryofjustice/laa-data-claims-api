@@ -266,7 +266,7 @@
       },
       "id": 58,
       "panels": [],
-      "title": "Validation Times",
+      "title": "Event Service Validation Times",
       "type": "row"
     },
     {
@@ -1573,35 +1573,6 @@
         "refresh": 1,
         "regex": "([^\"]*)-data.*",
         "type": "query"
-      },
-      {
-        "allowCustomValue": false,
-        "current": {
-          "text": [
-            ""
-          ],
-          "value": [
-            ""
-          ]
-        },
-        "description": "Selector for if panels should show per pod values or not",
-        "label": "Per Pod",
-        "multi": true,
-        "name": "perPod",
-        "options": [
-          {
-            "selected": false,
-            "text": "true",
-            "value": "true"
-          },
-          {
-            "selected": false,
-            "text": "false",
-            "value": "false"
-          }
-        ],
-        "query": "true, false",
-        "type": "custom"
       }
     ]
   },
