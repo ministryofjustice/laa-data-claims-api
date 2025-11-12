@@ -332,7 +332,74 @@
           },
           "unit": "s"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "palette-classic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -365,7 +432,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "A"
         },
@@ -378,7 +445,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "B"
         },
@@ -391,7 +458,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "C"
         },
@@ -404,7 +471,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "D"
         }
@@ -475,7 +542,74 @@
           },
           "unit": "s"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "palette-classic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -508,7 +642,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "A"
         },
@@ -521,7 +655,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "B"
         },
@@ -534,7 +668,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "C"
         },
@@ -547,7 +681,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "D"
         }
@@ -618,7 +752,74 @@
           },
           "unit": "s"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "palette-classic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -651,7 +852,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "A"
         },
@@ -664,7 +865,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "B"
         },
@@ -677,7 +878,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "C"
         },
@@ -690,7 +891,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "D"
         }
@@ -761,7 +962,74 @@
           },
           "unit": "s"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "palette-classic"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -794,7 +1062,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "A"
         },
@@ -807,7 +1075,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "B"
         },
@@ -820,7 +1088,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "C"
         },
@@ -833,7 +1101,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{instance}}-{{quantile}}",
           "range": true,
           "refId": "D"
         }
