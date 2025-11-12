@@ -327,7 +327,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$service-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -398,7 +398,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$service-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'4.*'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'4.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -473,7 +473,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$service-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -655,7 +655,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.5'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -668,7 +668,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.9'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -681,7 +681,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.95'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -694,7 +694,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.99'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -865,7 +865,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -878,7 +878,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -891,7 +891,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -904,7 +904,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1075,7 +1075,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1088,7 +1088,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1101,7 +1101,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1114,7 +1114,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1285,7 +1285,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1298,7 +1298,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1311,7 +1311,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1324,7 +1324,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1423,7 +1423,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_submissions_added_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_submissions_added_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1509,7 +1509,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_added_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_added_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1595,7 +1595,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_valid_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_valid_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1681,7 +1681,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_warnings_found_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_warnings_found_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1767,7 +1767,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_invalid_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_invalid_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1853,7 +1853,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_valid_submissions_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_valid_submissions_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1939,7 +1939,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_invalid_submissions_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_invalid_submissions_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -2025,7 +2025,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_submissions_with_errors_total{service=~'$service-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_submissions_with_errors_total{service=~'$helmInstall-.*'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -2060,7 +2060,7 @@
         "definition": "label_values(jvm_memory_max_bytes{namespace=~'laa-data-claims.*'},service)",
         "description": "",
         "label": "Helm install",
-        "name": "service",
+        "name": "helmInstall",
         "options": [],
         "query": {
           "qryType": 1,
