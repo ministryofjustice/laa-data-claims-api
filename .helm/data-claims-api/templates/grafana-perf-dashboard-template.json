@@ -266,7 +266,7 @@
       },
       "id": 49,
       "panels": [],
-      "title": "Event Service Validation Times",
+      "title": "Total submission and claim values",
       "type": "row"
     },
     {
@@ -966,8 +966,6 @@
     "DSTEW",
     "Performance",
     "Claims",
-    "laa-data-claims-api-uat",
-    "story-perf-dash",
     "{{ .Release.Name }}"
   ],
   "templating": {
@@ -977,14 +975,14 @@
           "text": "uat",
           "value": "{{ .Release.Name }}"
         },
-        "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
+        "definition": "label_values(jvm_memory_max_bytes{namespace=~'laa-data-claims.*'},service)",
         "description": "",
         "label": "Helm install",
         "name": "service",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
+          "query": "label_values(jvm_memory_max_bytes{namespace=~'laa-data-claims.*'},service)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
