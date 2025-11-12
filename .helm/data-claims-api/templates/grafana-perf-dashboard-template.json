@@ -432,7 +432,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.5'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "A"
         },
@@ -445,7 +445,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.9'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "B"
         },
@@ -458,7 +458,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.95'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "C"
         },
@@ -471,7 +471,7 @@
           "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$service-.*', quantile='0.99'}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "D"
         }
@@ -642,7 +642,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "A"
         },
@@ -655,7 +655,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "B"
         },
@@ -668,7 +668,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "C"
         },
@@ -681,7 +681,7 @@
           "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "D"
         }
@@ -852,7 +852,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "A"
         },
@@ -865,7 +865,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "B"
         },
@@ -878,7 +878,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "C"
         },
@@ -891,7 +891,7 @@
           "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "D"
         }
@@ -1062,7 +1062,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "A"
         },
@@ -1075,7 +1075,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "B"
         },
@@ -1088,7 +1088,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "C"
         },
@@ -1101,7 +1101,7 @@
           "expr": "claims_event_service_claim_validation_time{service=~'$service-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{instance}}-{{quantile}}",
+          "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
           "range": true,
           "refId": "D"
         }
