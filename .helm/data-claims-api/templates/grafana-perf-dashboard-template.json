@@ -101,7 +101,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
+          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -172,7 +172,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='401'}[$__range])) ",
+          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='401'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -247,7 +247,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
+          "expr": "sum by(instance) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',service=~'$service-data-claims-api.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -266,27 +266,28 @@
     "Performance",
     "Claims",
     "laa-data-claims-api-uat",
-    "story-perf-dash"
+    "story-perf-dash",
+    "{{ .Release.Name }}"
   ],
   "templating": {
     "list": [
       {
         "current": {
-          "text": "main-data-claims-api",
-          "value": "main-data-claims-api"
+          "text": "uat",
+          "value": "{{ .Release.Name }}"
         },
-        "definition": "label_values(jvm_memory_max_bytes{namespace=\"laa-data-claims-api-uat\"},service)",
+        "definition": "label_values(jvm_memory_max_bytes{namespace=~\"laa-data-claims.*\"},service)",
         "description": "",
         "label": "Helm install",
         "name": "service",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(jvm_memory_max_bytes{namespace=\"laa-data-claims-api-uat\"},service)",
+          "query": "label_values(jvm_memory_max_bytes{namespace=~\"laa-data-claims.*\"},service)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
-        "regex": "/.*data-claims-api/",
+        "regex": "([^\"]*)-data.*",
         "type": "query"
       },
       {
