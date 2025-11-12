@@ -2054,10 +2054,10 @@
     "list": [
       {
         "current": {
-          "text": "uat",
+          "text": "main",
           "value": "{{ .Release.Name }}"
         },
-        "definition": "label_values(jvm_memory_max_bytes{namespace=~'laa-data-claims.*'},service)",
+        "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
         "description": "",
         "label": "Helm install",
         "name": "helmInstall",
