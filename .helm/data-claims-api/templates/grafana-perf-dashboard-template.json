@@ -2045,17 +2045,14 @@
     "DSTEW",
     "Performance",
     "Claims",
-    "{{ .Release.Name }}",
-    "{{ .Release.Namespace }}",
-    "{{ .Release.Service }}",
-    "{{ .Chart.Name }}"
+    "{{ .Release.Name }}"
   ],
   "templating": {
     "list": [
       {
         "current": {
-          "text": "main",
-          "value": "{{ .Release.Name }}"
+          "text": "{{ .Values.grafana.mainHelmInstall }}",
+          "value": "{{ .Values.grafana.mainHelmInstall }}"
         },
         "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
         "description": "",

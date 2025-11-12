@@ -53,3 +53,4 @@ autoscaling:
 
 grafana:
   enabled: true
+  mainHelmInstall: uat
