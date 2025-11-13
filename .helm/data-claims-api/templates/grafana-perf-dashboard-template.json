@@ -314,7 +314,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(status) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', uri='/api/v0/bulk-submissions'}[$__range]))",
+          "expr": "sum by(status) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}', uri='/api/v0/bulk-submissions'}[$__range]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -722,7 +722,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.5'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile='0.5'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -735,7 +735,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.9'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile='0.9'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -748,7 +748,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.95'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile='0.95'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -761,7 +761,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile='0.99'}",
+          "expr": "claims_event_service_file_parsing_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile='0.99'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -932,7 +932,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -945,7 +945,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -958,7 +958,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -971,7 +971,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1142,7 +1142,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1155,7 +1155,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1168,7 +1168,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1181,7 +1181,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*uat', service=~'$helmInstall-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace=~'.*stg', service=~'$helmInstall-.*', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
