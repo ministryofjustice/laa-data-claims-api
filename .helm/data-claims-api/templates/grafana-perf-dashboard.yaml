@@ -1,3 +1,6 @@
+{{- if and .Values.grafana.enabled (or (and (contains "uat" .Release.Namespace) (eq .Release.Name "main")) (and (contains "staging" .Release.Namespace)) (and (contains "prod" .Release.Namespace))) }}
+
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -13,3 +16,4 @@ data:
   {{ .Release.Name | trunc 5 }}-perf-{{ .Release.Namespace | trunc -10 }}-{{ .Chart.Name | trunc -12 }}-dashboard.json:
   {{ include "grafana-perf-dashboard-template" . | quote | indent 4 }}
 
+{{- end }}
