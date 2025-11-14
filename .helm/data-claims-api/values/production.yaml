@@ -47,3 +47,9 @@ autoscaling:
 grafana:
   enabled: true
   mainHelmInstall: prod
+  sabc:
+    namespace: laa-submit-a-bulk-claim-prod
+    mainHelmInstall: prod
+  es:
+    namespace: laa-data-claims-event-service-prod
+    mainHelmInstall: prod
