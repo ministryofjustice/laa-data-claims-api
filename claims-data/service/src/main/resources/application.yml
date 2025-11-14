@@ -64,6 +64,24 @@ management:
     env:
       enabled: false
 
+resilience4j.ratelimiter:
+  instances:
+    submissionRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+    claimRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+    bulkSubmissionRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+    matterStartRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+    validationRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+
 laa:
   springboot.starter.auth:
     authentication-header: "Authorization"

@@ -122,6 +122,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // then: submission is correctly created
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
@@ -190,6 +191,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .setScale(DECIMAL_PLACES, RoundingMode.HALF_UP));
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
+
     assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
   }
 
@@ -368,6 +370,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: submissions are correctly retrieved
     var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
+
     assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(submissionsResultSet.getContent().getFirst().getSubmissionPeriod())
         .isEqualTo(SUBMISSION_PERIOD);

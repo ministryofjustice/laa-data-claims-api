@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
@@ -28,6 +32,7 @@ public class SubmissionController implements SubmissionsApi {
   private final SubmissionService submissionService;
 
   @Override
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateSubmission201Response> createSubmission(
       SubmissionPost submissionPost) {
     UUID id = submissionService.createSubmission(submissionPost);
@@ -38,18 +43,21 @@ public class SubmissionController implements SubmissionsApi {
   }
 
   @Override
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
     SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
   }
 
   @Override
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     submissionService.updateSubmission(id, submissionPatch);
     return ResponseEntity.noContent().build();
   }
 
   @Override
+  @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<SubmissionsResultSet> getSubmissions(
       List<String> offices,
       String submissionId,
@@ -69,5 +77,9 @@ public class SubmissionController implements SubmissionsApi {
             submissionPeriod,
             submissionStatuses,
             pageable));
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }
