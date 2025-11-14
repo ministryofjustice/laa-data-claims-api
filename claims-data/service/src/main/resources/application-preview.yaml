@@ -18,9 +18,8 @@ laa:
 resilience4j.ratelimiter:
   instances:
     submissionRateLimiter:
-      limitForPeriod: 3
-      limitRefreshPeriod: 1m
-      timeoutDuration: 0
+      limitForPeriod: 100
+      limitRefreshPeriod: 1s
     claimRateLimiter:
       limitForPeriod: 100
       limitRefreshPeriod: 1s
