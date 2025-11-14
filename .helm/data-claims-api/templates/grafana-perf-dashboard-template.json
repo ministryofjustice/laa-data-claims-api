@@ -27,7 +27,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 262,
+  "id": 264,
   "links": [],
   "panels": [
     {
@@ -394,7 +394,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstallClaimUI-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -465,7 +465,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'4.*'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstallClaimUI-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'4.*'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -540,7 +540,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstall-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
+          "expr": "sum (increase(http_server_requests_seconds_count{service='$helmInstallClaimUI-submit-a-bulk-claim-service', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status='500'}[$__range])) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -722,7 +722,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile='0.5'}",
+          "expr": "claims_event_service_file_parsing_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile='0.5'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -735,7 +735,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile='0.9'}",
+          "expr": "claims_event_service_file_parsing_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile='0.9'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -748,7 +748,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile='0.95'}",
+          "expr": "claims_event_service_file_parsing_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile='0.95'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -761,7 +761,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_file_parsing_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile='0.99'}",
+          "expr": "claims_event_service_file_parsing_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile='0.99'}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -932,7 +932,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -945,7 +945,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -958,7 +958,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -971,7 +971,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_fsp_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_fsp_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1142,7 +1142,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1155,7 +1155,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1168,7 +1168,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1181,7 +1181,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_submission_validation_time{namespace=~'.*{{ .Release.Name }}', service=~'$helmInstall-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_submission_validation_time{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1352,7 +1352,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.5\"}",
+          "expr": "claims_event_service_claim_validation_time{service='$helmInstallClaimEventService', quantile=\"0.5\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1365,7 +1365,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.9\"}",
+          "expr": "claims_event_service_claim_validation_time{service='$helmInstallClaimEventService', quantile=\"0.9\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1378,7 +1378,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.95\"}",
+          "expr": "claims_event_service_claim_validation_time{service='$helmInstallClaimEventService', quantile=\"0.95\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1391,7 +1391,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "claims_event_service_claim_validation_time{service=~'$helmInstall-.*', quantile=\"0.99\"}",
+          "expr": "claims_event_service_claim_validation_time{service='$helmInstallClaimEventService', quantile=\"0.99\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "{{`{{instance}}`}}-{{`{{quantile}}`}}",
@@ -1490,7 +1490,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_submissions_added_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_submissions_added_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1576,7 +1576,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_added_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_added_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1662,7 +1662,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_valid_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_valid_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1748,7 +1748,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_warnings_found_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_warnings_found_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1834,7 +1834,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_claims_validated_and_invalid_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_claims_validated_and_invalid_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -1920,7 +1920,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_valid_submissions_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_valid_submissions_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -2006,7 +2006,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_invalid_submissions_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_invalid_submissions_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -2092,7 +2092,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(claims_event_service_submissions_with_errors_total{service=~'$helmInstall-.*'}[$__range]))",
+          "expr": "sum(increase(claims_event_service_submissions_with_errors_total{namespace='{{ .Values.grafana.es.namespace }}', service='$helmInstallClaimEventService'}[$__range]))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "__auto",
@@ -2123,16 +2123,54 @@
         },
         "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
         "description": "",
-        "label": "Helm install",
+        "label": "Claims API Helm Install",
         "name": "helmInstall",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(jvm_memory_max_bytes{namespace=~'laa-data-claims.*'},service)",
+          "query": "label_values(jvm_memory_max_bytes{namespace='{{ .Release.Namespace }}'},service)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "([^\"]*)-data.*",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "{{ .Values.grafana.es.mainHelmInstall }}",
+          "value": "{{ .Values.grafana.es.mainHelmInstall }}"
+        },
+        "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Values.grafana.es.namespace }}'},service)",
+        "description": "",
+        "label": "Event Service Helm Install",
+        "name": "helmInstallClaimEventService",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(jvm_memory_max_bytes{namespace='{{ .Values.grafana.es.namespace }}'},service)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "([^\"]*)-data.*",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "{{ .Values.grafana.sabc.mainHelmInstall }}",
+          "value": "{{ .Values.grafana.sabc.mainHelmInstall }}"
+        },
+        "definition": "label_values(jvm_memory_max_bytes{namespace='{{ .Values.grafana.sabc.namespace }}'},service)",
+        "description": "",
+        "label": "UI Helm Install",
+        "name": "helmInstallClaimUI",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(jvm_memory_max_bytes{namespace='{{ .Values.grafana.sabc.namespace }}'},service)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "([^\"]*)-submit.*",
         "type": "query"
       }
     ]
