@@ -53,7 +53,7 @@ autoscaling:
 
 grafana:
   enabled: true
-  mainHelmInstall: uat
+  mainHelmInstall: main
   sabc:
     namespace: laa-submit-a-bulk-claim-uat
     mainHelmInstall: uat
