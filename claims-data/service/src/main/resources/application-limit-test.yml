@@ -3,15 +3,20 @@ resilience4j.ratelimiter:
     submissionRateLimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
+      timeoutDuration: 0
     claimRateLimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
+      timeoutDuration: 0
     bulkSubmissionRateLimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
+      timeoutDuration: 0
     matterStartRateLimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
+      timeoutDuration: 0
     validationRateLimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
+      timeoutDuration: 0

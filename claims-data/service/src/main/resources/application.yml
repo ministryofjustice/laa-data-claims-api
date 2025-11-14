@@ -67,19 +67,19 @@ management:
 resilience4j.ratelimiter:
   instances:
     submissionRateLimiter:
-      limitForPeriod: 10000
+      limitForPeriod: 10
       limitRefreshPeriod: 1s
     claimRateLimiter:
-      limitForPeriod: 10000
+      limitForPeriod: 10
       limitRefreshPeriod: 1s
     bulkSubmissionRateLimiter:
-      limitForPeriod: 10000
+      limitForPeriod: 10
       limitRefreshPeriod: 1s
     matterStartRateLimiter:
-      limitForPeriod: 10000
+      limitForPeriod: 10
       limitRefreshPeriod: 1s
     validationRateLimiter:
-      limitForPeriod: 10000
+      limitForPeriod: 10
       limitRefreshPeriod: 1s
 
 laa:
