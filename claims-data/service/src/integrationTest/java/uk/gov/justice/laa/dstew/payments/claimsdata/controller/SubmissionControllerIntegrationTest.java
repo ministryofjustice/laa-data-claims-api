@@ -1,42 +1,41 @@
- package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
- import static org.assertj.core.api.Assertions.assertThat;
- import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
- import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
- import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
- import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
- import static
- uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService.DECIMAL_PLACES;
- import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService.DECIMAL_PLACES;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
- import com.fasterxml.jackson.databind.ObjectMapper;
- import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
- import java.math.RoundingMode;
- import java.util.List;
- import java.util.UUID;
- import org.junit.jupiter.api.AfterEach;
- import org.junit.jupiter.api.BeforeAll;
- import org.junit.jupiter.api.BeforeEach;
- import org.junit.jupiter.api.DisplayName;
- import org.junit.jupiter.api.Test;
- import org.junit.jupiter.api.TestInstance;
- import org.junit.jupiter.api.TestInstance.Lifecycle;
- import org.springframework.beans.factory.annotation.Autowired;
- import org.springframework.beans.factory.annotation.Value;
- import org.springframework.http.MediaType;
- import org.springframework.test.web.servlet.MockMvc;
- import org.springframework.test.web.servlet.MvcResult;
- import software.amazon.awssdk.services.sqs.SqsClient;
- import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
- import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
- import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
- import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
- import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
- import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
- import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
 
- @TestInstance(Lifecycle.PER_CLASS)
- public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest {
+@TestInstance(Lifecycle.PER_CLASS)
+public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 
@@ -118,14 +117,13 @@
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
         .andExpect(status().isCreated());
 
-    Submission createdSubmission =
- submissionRepository.findById(submission.getId()).orElseThrow();
+    Submission createdSubmission = submissionRepository.findById(submission.getId()).orElseThrow();
 
     // then: submission is correctly created
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
 
- assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
+    assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
   }
 
@@ -194,7 +192,7 @@
     assertThat(submissionResult.getNumberOfClaims()).isEqualTo(0);
     assertThat(submissionResult.getMatterStarts().size()).isEqualTo(0);
 
- assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
+    assertThat(submissionResult.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
   }
 
   @Test
@@ -235,8 +233,7 @@
     // when: calling get all submissions endpoint without an office, should return bad request
     mockMvc
         .perform(
-            get(API_URI_PREFIX + "/submissions").header(AUTHORIZATION_HEADER,
- AUTHORIZATION_TOKEN))
+            get(API_URI_PREFIX + "/submissions").header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest())
         .andReturn();
   }
@@ -374,7 +371,7 @@
     // then: submissions are correctly retrieved
     var submissionsResultSet = OBJECT_MAPPER.readValue(responseBody, SubmissionsResultSet.class);
 
- assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+    assertThat(submissionsResultSet.getContent().getFirst().getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(submissionsResultSet.getContent().getFirst().getSubmissionPeriod())
         .isEqualTo(SUBMISSION_PERIOD);
     assertThat(submissionsResultSet.getContent().getFirst().getStatus())
@@ -382,8 +379,7 @@
   }
 
   @Test
-  void updateSubmission_shouldUpdateAllClaimsAsInvalid_WhenSubmissionIsInvalid() throws Exception
- {
+  void updateSubmission_shouldUpdateAllClaimsAsInvalid_WhenSubmissionIsInvalid() throws Exception {
     createClaimsTestData();
     // given: a Submission patch payload with the changes to make
     SubmissionPatch patch =
@@ -412,4 +408,4 @@
         .findBySubmissionId(submission1.getId())
         .forEach(claim -> assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID));
   }
- }
+}
