@@ -33,6 +33,7 @@ public interface SubmissionMapper {
   @Mapping(target = "id", source = "submissionId")
   @InheritConfiguration(name = "ignoreAuditFields")
   @Mapping(target = "errorMessages", ignore = true)
+  @Mapping(target = "createdOn", source = "submitted")
   Submission toSubmission(SubmissionPost submissionPost);
 
   /**
