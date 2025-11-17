@@ -47,6 +47,7 @@ class SubmissionMapperTest {
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw(areaOfLaw)
+            .submitted(SUBMITTED_DATE)
             .isNilSubmission(false)
             .numberOfClaims(1);
 
@@ -59,6 +60,7 @@ class SubmissionMapperTest {
     assertThat(result.getAreaOfLaw()).isEqualTo(areaOfLaw);
     assertThat(result.getIsNilSubmission()).isFalse();
     assertThat(result.getNumberOfClaims()).isEqualTo(1);
+    assertThat(result.getCreatedOn()).isEqualTo(SUBMITTED_DATE.toInstant());
   }
 
   @Test
