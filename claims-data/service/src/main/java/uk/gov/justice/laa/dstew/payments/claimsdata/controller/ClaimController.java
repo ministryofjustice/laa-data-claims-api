@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +31,7 @@ public class ClaimController implements ClaimsApi {
   private final ClaimService claimService;
 
   @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateClaim201Response> createClaim(
       UUID submissionId, ClaimPost claimPost) {
     UUID claimId = claimService.createClaim(submissionId, claimPost);
@@ -39,12 +44,14 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimResponse> getClaim(UUID submissionId, UUID claimId) {
     ClaimResponse claimResponse = claimService.getClaim(submissionId, claimId);
     return ResponseEntity.ok(claimResponse);
   }
 
   @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimResultSet> getClaims(
       String officeCode,
       String submissionId,
@@ -69,8 +76,13 @@ public class ClaimController implements ClaimsApi {
   }
 
   @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }

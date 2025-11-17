@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +24,7 @@ public class ValidationController implements ValidationMessagesApi {
   private final ValidationMessageService validationMessageService;
 
   @Override
+  @RateLimiter(name = "validationRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ValidationMessagesResponse> getValidationMessages(
       final UUID submissionId,
       final UUID claimId,
@@ -30,5 +35,9 @@ public class ValidationController implements ValidationMessagesApi {
     return ResponseEntity.ok(
         validationMessageService.getValidationErrors(
             submissionId, claimId, type, source, pageable));
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }

@@ -18,3 +18,21 @@ laa:
     authorized-clients: ${AUTHORIZED_CLIENTS}
     authorized-roles: ${AUTHORIZED_ROLES}
     unprotected-uris: ${UNPROTECTED_URIS}
+
+resilience4j.ratelimiter:
+  instances:
+    submissionRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
+    claimRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
+    bulkSubmissionRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
+    matterStartRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
+    validationRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
