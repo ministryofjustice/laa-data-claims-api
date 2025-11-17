@@ -1658,6 +1658,69 @@ components:
         - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+    assessment_outcome:
+      type: string
+      enum:
+        - PAID_IN_FULL
+        - REDUCED_STILL_ESCAPED
+        - REDUCED_TO_FIXED_FEE
+        - NILLED
+    assessment:
+      type: object
+      description: Assessment details
+      required:
+        - id
+        - claim_id
+        - claim_summary_fee_id
+        - assessment_outcome
+        - created_by_user_id
+        - created_on
+      properties:
+        id:
+          type: string
+        claim_id:
+          type: string
+        claim_summary_fee_id:
+          type: string
+        assessment_outcome:
+          $ref: "#/components/schemas/assessment_outcome"
+        fixed_fee_amount:
+          type: number
+        net_travel_costs_amount:
+          type: number
+        net_waiting_costs_amount:
+          type: number
+        net_profit_costs_amount:
+          type: number
+        disbursement_amount:
+          type: number
+        disbursement_vat_amount:
+          type: number
+        net_cost_of_counsel_amount:
+          type: number
+        travel_waiting_costs_amount:
+          type: number
+        travel_and_waiting_costs_amount:
+          type: number
+        is_vat_applicable:
+          type: boolean
+        adjourned_hearing_fee_amount:
+          type: integer
+        jr_form_filling_amount:
+          type: number
+        cmrh_oral_count:
+          type: integer
+        cmrh_telephone_count:
+          type: integer
+        is_substantive_hearing:
+          type: boolean
+        ho_interview:
+          type: integer
+        created_by_user_id:
+          type: string
+        created_on:
+          type: string
+          format: date-time
     page:
       type: 'object'
       properties:
