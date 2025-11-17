@@ -12,8 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -97,10 +96,16 @@ class BulkSubmissionServiceTest {
   }
 
   @ParameterizedTest(name = "submissionPeriod: {0}")
-  @NullSource
-  @ValueSource(strings = {"", " "})
+  @CsvSource({
+    // null submission period
+    ",'Submission period is required, please check the file and try again.'",
+    // empty submission period
+    "' ','Submission period is required, please check the file and try again.'",
+    // invalid submission period
+    "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
+  })
   @DisplayName("Throws BulkSubmissionValidationException when submission period is invalid")
-  void throwsWhenSubmissionPeriodInvalid(String submissionPeriod) {
+  void throwsWhenSubmissionPeriodInvalid(String submissionPeriod, String expectedMessage) {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     String userId = "test-user-id";
     GetBulkSubmission200ResponseDetails mockDetails =
@@ -122,9 +127,7 @@ class BulkSubmissionServiceTest {
             BulkSubmissionValidationException.class,
             () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
 
-    assertEquals(
-        "Submission period is required, please check the file and try again.",
-        exception.getMessage());
+    assertEquals(expectedMessage, exception.getMessage());
 
     ArgumentCaptor<BulkSubmission> captor = ArgumentCaptor.forClass(BulkSubmission.class);
     verify(bulkSubmissionRepository).save(captor.capture());

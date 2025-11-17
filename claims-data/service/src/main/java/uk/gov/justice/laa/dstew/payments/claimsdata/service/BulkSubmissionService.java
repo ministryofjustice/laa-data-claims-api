@@ -114,18 +114,32 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetailsSchedule::getSubmissionPeriod);
 
     if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
-      String errorMessage = "Submission period is required, please check the file and try again.";
+      failSubmission(
+          "Submission period is required, please check the file and try again.",
+          bulkSubmissionBuilder);
 
-      BulkSubmission invalid =
-          bulkSubmissionBuilder
-              .status(BulkSubmissionStatus.VALIDATION_FAILED)
-              .errorCode(BulkSubmissionErrorCode.V100)
-              .errorDescription(errorMessage)
-              .build();
-
-      bulkSubmissionRepository.save(invalid);
-      throw new BulkSubmissionValidationException(errorMessage);
+    } else if (!isValidMonthYear(submissionPeriod.get())) {
+      failSubmission(
+          "Submission period wrong format, should be in the format MMM-YYYY",
+          bulkSubmissionBuilder);
     }
+  }
+
+  private void failSubmission(String errorMessage, BulkSubmission.BulkSubmissionBuilder builder) {
+    BulkSubmission invalid =
+        builder
+            .status(BulkSubmissionStatus.VALIDATION_FAILED)
+            .errorCode(BulkSubmissionErrorCode.V100)
+            .errorDescription(errorMessage)
+            .build();
+
+    bulkSubmissionRepository.save(invalid);
+    throw new BulkSubmissionValidationException(errorMessage);
+  }
+
+  private static boolean isValidMonthYear(String input) {
+    String regex = "^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-\\d{4}$";
+    return input != null && input.matches(regex);
   }
 
   private void validateOfficeCodeAndAccessPermissions(
