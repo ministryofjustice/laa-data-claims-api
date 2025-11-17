@@ -87,6 +87,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .numberOfClaims(5)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(TENTH_APRIL_2024)
             .build();
     submission2 =
         Submission.builder()
@@ -102,6 +103,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .numberOfClaims(3)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(TENTH_APRIL_2024)
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));

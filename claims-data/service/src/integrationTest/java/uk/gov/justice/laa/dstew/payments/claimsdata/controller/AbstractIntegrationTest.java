@@ -154,6 +154,7 @@ public abstract class AbstractIntegrationTest {
             .createdOn(CREATED_ON)
             .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
+            .createdOn(CREATED_ON)
             .build();
     return submissionRepository.save(submission);
   }
@@ -173,6 +174,7 @@ public abstract class AbstractIntegrationTest {
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
+            .createdOn(CREATED_ON)
             .build();
     submission2 =
         Submission.builder()
@@ -184,6 +186,7 @@ public abstract class AbstractIntegrationTest {
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(CREATED_ON)
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));
