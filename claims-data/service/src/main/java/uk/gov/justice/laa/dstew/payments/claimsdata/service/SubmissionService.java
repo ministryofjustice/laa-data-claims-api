@@ -68,7 +68,7 @@ public class SubmissionService
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
-    
+
     submissionRepository.save(submission);
     return submission.getId();
   }
