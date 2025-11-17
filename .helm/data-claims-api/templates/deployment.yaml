@@ -85,6 +85,26 @@ spec:
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
+            - name: HIKARI_MIN_POOL_SIZE
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: hikari-minimum-pool-size
+            - name: HIKARI_MAX_POOL_SIZE
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: hikari-maximum-pool-size
+            - name: HIKARI_IDLE_TIMEOUT
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: hikari-idle-timeout
+            - name: HIKARI_CONNECTION_TIMEOUT
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: hikari-connection-timeout
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
