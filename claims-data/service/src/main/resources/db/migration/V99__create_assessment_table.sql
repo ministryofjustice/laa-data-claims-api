@@ -7,7 +7,6 @@ CREATE TABLE assessment (
     net_travel_costs_amount                  NUMERIC,
     net_waiting_costs_amount                 NUMERIC,
     net_profit_costs_amount                  NUMERIC,
-    net_profit_costs_amount                  NUMERIC,
     disbursement_amount                      NUMERIC,
     disbursement_vat_amount                  NUMERIC,
     net_cost_of_counsel_amount               NUMERIC,
