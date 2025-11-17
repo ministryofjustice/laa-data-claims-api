@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
@@ -86,6 +87,51 @@ public class BulkSubmissionService
             .createdByUserId(userId)
             .authorisedOffices(String.join(",", offices));
 
+    validateOfficeCodeAndAccessPermissions(offices, bulkSubmissionDetails, bulkSubmissionBuilder);
+
+    validateSubmissionPeriod(bulkSubmissionDetails, bulkSubmissionBuilder);
+
+    BulkSubmission authorised =
+        bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING).build();
+
+    bulkSubmissionRepository.save(authorised);
+
+    UUID newSubmissionId = Uuid7.timeBasedUuid();
+    submissionEventPublisherService.publishBulkSubmissionEvent(
+        authorised.getId(), List.of(newSubmissionId));
+
+    return new CreateBulkSubmission201Response()
+        .bulkSubmissionId(authorised.getId())
+        .submissionIds(Collections.singletonList(newSubmissionId));
+  }
+
+  private void validateSubmissionPeriod(
+      GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
+      BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
+    Optional<String> submissionPeriod =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getSchedule)
+            .map(GetBulkSubmission200ResponseDetailsSchedule::getSubmissionPeriod);
+
+    if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
+      String errorMessage = "Submission period is required, please check the file and try again.";
+
+      BulkSubmission invalid =
+          bulkSubmissionBuilder
+              .status(BulkSubmissionStatus.VALIDATION_FAILED)
+              .errorCode(BulkSubmissionErrorCode.V100)
+              .errorDescription(errorMessage)
+              .build();
+
+      bulkSubmissionRepository.save(invalid);
+      throw new BulkSubmissionValidationException(errorMessage);
+    }
+  }
+
+  private void validateOfficeCodeAndAccessPermissions(
+      List<String> offices,
+      GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
+      BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     String officeCode =
         Optional.ofNullable(bulkSubmissionDetails)
             .map(GetBulkSubmission200ResponseDetails::getOffice)
@@ -110,19 +156,6 @@ public class BulkSubmissionService
 
       throw new BulkSubmissionOfficeAuthorisationException(errorMessage);
     }
-
-    BulkSubmission authorised =
-        bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING).build();
-
-    bulkSubmissionRepository.save(authorised);
-
-    UUID newSubmissionId = Uuid7.timeBasedUuid();
-    submissionEventPublisherService.publishBulkSubmissionEvent(
-        authorised.getId(), List.of(newSubmissionId));
-
-    return new CreateBulkSubmission201Response()
-        .bulkSubmissionId(authorised.getId())
-        .submissionIds(Collections.singletonList(newSubmissionId));
   }
 
   /**
