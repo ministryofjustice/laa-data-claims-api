@@ -104,3 +104,16 @@ laa:
     ]'
     unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
                         "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]
+
+# Sentry configuration - disabled by default for local development
+# In deployed environments, these values are overridden by environment variables
+sentry:
+  enabled: ${SENTRY_ENABLED:false}
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}
+  # Disable sending PII (Personally Identifiable Information) to Sentry
+  send-default-pii: false
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info
