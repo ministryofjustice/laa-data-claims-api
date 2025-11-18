@@ -27,7 +27,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 199,
+  "id": 133,
   "links": [],
   "panels": [
     {
@@ -92,7 +92,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -224,7 +224,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -320,7 +320,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -513,7 +513,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -610,7 +610,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -685,7 +685,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -749,7 +749,7 @@
         "sizing": "auto",
         "text": {}
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -812,7 +812,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1141,65 +1141,6 @@
         "x": 0,
         "y": 39
       },
-      "id": 24,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto",
-        "text": {}
-      },
-      "pluginVersion": "11.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "builder",
-          "expr": "hikaricp_connections_min{namespace='{{ .Release.Namespace }}',pod=~'$service.*', pool='HikariPool-1'}",
-          "legendFormat": "{{`{{instance}}`}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Claim DB Min Cons",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "blue"
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 2,
-        "x": 2,
-        "y": 39
-      },
       "id": 51,
       "options": {
         "minVizHeight": 75,
@@ -1217,7 +1158,7 @@
         "sizing": "auto",
         "text": {}
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1312,7 +1253,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1411,7 +1352,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
