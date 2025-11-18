@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
 class DataClaimsExceptionHandlerTest {
-  DataClaimsExceptionHandler dataClaimsExceptionHandler = new DataClaimsExceptionHandler();
+  DataClaimsExceptionHandler dataClaimsExceptionHandler = new DataClaimsExceptionHandler(null);
 
   @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
