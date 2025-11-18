@@ -72,7 +72,7 @@ class BulkSubmissionControllerTest {
     mockMvc =
         MockMvcTester.create(
                 standaloneSetup(bulkSubmissionController)
-                    .setControllerAdvice(new DataClaimsExceptionHandler())
+                    .setControllerAdvice(new DataClaimsExceptionHandler(null))
                     .build())
             .withHttpMessageConverters(singletonList(mappingJackson2HttpMessageConverter));
     mockMultipartFile =
