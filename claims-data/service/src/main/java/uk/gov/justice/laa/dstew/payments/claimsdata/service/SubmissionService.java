@@ -32,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
 /** Service containing business logic for handling submissions. */
 @Service
@@ -125,7 +126,9 @@ public class SubmissionService
     submissionRepository.save(submission);
 
     if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_VALIDATION) {
-      submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId());
+      TransactionalPublisher.runAfterCommit(
+          () ->
+              submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId()));
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
           claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
