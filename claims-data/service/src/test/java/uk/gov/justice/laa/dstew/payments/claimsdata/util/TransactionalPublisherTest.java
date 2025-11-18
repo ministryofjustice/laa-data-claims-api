@@ -6,14 +6,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.TestTransactionConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {TestTransactionConfig.class})
+@Import(TestTransactionConfig.class)
 public class TransactionalPublisherTest {
 
   @Autowired private TransactionTemplate transactionTemplate;
