@@ -3,7 +3,7 @@ CREATE TABLE assessment (
     claim_id                                 UUID NOT NULL,
     claim_summary_fee_id                     UUID NOT NULL,
     assessment_outcome                       TEXT NOT NULL,
-    fixed_fee_amount                         TEXT,
+    fixed_fee_amount                         NUMERIC,
     net_travel_costs_amount                  NUMERIC,
     net_waiting_costs_amount                 NUMERIC,
     net_profit_costs_amount                  NUMERIC,
