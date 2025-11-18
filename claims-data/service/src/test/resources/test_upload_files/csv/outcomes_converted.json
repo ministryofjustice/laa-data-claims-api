@@ -106,7 +106,7 @@
     "CLIENT2_POSTAL_APPL_ACCP" : null,
     "COSTS_DAMAGES_RECOVERED" : null,
     "ELIGIBLE_CLIENT_INDICATOR" : null,
-    "COURT_LOCATION" : null,
+    "COURT_LOCATION_HPCDS" : null,
     "LOCAL_AUTHORITY_NUMBER" : null,
     "PA_NUMBER" : null,
     "EXCESS_TRAVEL_COSTS" : null,

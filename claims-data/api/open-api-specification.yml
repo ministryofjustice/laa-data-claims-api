@@ -1540,7 +1540,7 @@ components:
           type: string
         eligible_client:
           type: boolean
-        court_location:
+        court_location_hpcds:
           type: string
         local_authority_number:
           type: string

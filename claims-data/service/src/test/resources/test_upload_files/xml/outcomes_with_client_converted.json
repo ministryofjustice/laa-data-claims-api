@@ -105,7 +105,7 @@
         "client2PostalApplAccp" : null,
         "costsDamagesRecovered" : null,
         "eligibleClientIndicator" : null,
-        "courtLocation" : null,
+        "courtLocationHpcds" : null,
         "localAuthorityNumber" : null,
         "paNumber" : null,
         "excessTravelCosts" : null,
