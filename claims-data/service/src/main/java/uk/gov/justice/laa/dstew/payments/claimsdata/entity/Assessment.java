@@ -18,7 +18,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 
 /** Entity representing an assessment linked to a claim. */
