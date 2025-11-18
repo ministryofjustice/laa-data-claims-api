@@ -154,6 +154,12 @@ public class ClaimService
     if (claimPatch.getFeeCalculationResponse() != null) {
       CalculatedFeeDetail calculatedFeeDetail =
           claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
+
+      // Get existing calculated fee detail, and set the ID if it exists
+      calculatedFeeDetailRepository
+          .findByClaimId(claimId)
+          .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
+
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
       calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
