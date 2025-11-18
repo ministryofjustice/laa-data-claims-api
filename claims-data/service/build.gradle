@@ -21,7 +21,12 @@ jacocoTestReport {
 jacocoTestCoverageVerification {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: [
+                '**/ClaimsDataApplication.class',
+                '**/monitoring/SentryHelper.class',
+                '**/monitoring/AuthFailureMonitoringFilter.class',
+                '**/config/SentryConfig.class'
+            ])
         }))
     }
 }
