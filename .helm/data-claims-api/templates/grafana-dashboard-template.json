@@ -1137,7 +1137,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 2,
+        "w": 4,
         "x": 0,
         "y": 39
       },
@@ -1172,7 +1172,7 @@
           "refId": "A"
         }
       ],
-      "title": "Claim DB Max Cons",
+      "title": "Claim DB Total Connections",
       "type": "gauge"
     },
     {
