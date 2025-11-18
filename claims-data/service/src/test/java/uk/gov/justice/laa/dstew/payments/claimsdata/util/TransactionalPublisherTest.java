@@ -2,18 +2,21 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.support.TransactionTemplate;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.TestTransactionConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 
-@SpringBootTest
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {TestTransactionConfig.class})
 public class TransactionalPublisherTest {
 
-  @Autowired private PlatformTransactionManager transactionManager;
+  @Autowired private TransactionTemplate transactionTemplate;
 
   @MockBean private SubmissionEventPublisherService submissionEventPublisherService;
 
@@ -21,7 +24,6 @@ public class TransactionalPublisherTest {
   public void testAfterCommitCallbackExecutes() {
     // Arrange
     UUID submissionId = UUID.randomUUID();
-    TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
     // Act: Execute inside a real transaction that commits
     transactionTemplate.execute(
