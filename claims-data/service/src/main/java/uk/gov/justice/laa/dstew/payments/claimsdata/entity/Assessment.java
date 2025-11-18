@@ -89,6 +89,5 @@ public class Assessment {
 
   @NotNull
   @Column(nullable = false)
-  @UpdateTimestamp
   private Instant createdOn;
 }
