@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import java.math.BigDecimal;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
@@ -117,55 +116,55 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
       target = "vatIndicator",
-      source = "vatIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.vatIndicator(), \"VAT Applicable\"))")
   @Mapping(
       target = "londonNonlondonRate",
-      source = "londonNonlondonRate",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.londonNonlondonRate(), \"London Rate\"))")
   @Mapping(
       target = "toleranceIndicator",
-      source = "toleranceIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "legacyCase", source = "legacyCase", qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.toleranceIndicator(), \"Tolerance Applicable\"))")
+  @Mapping(
+      target = "legacyCase",
+      expression = "java(parseBooleanField(outcome.legacyCase(), \"Legacy Case\"))")
   @Mapping(
       target = "postalApplAccp",
-      source = "postalApplAccp",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.postalApplAccp(), \"Postal Application Accepted\"))")
   @Mapping(
       target = "substantiveHearing",
-      source = "substantiveHearing",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.substantiveHearing(), \"Substantive Hearing\"))")
   @Mapping(
       target = "additionalTravelPayment",
-      source = "additionalTravelPayment",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.additionalTravelPayment(), \"Additional Travel Payment\"))")
   @Mapping(
       target = "clientLegallyAided",
-      source = "clientLegallyAided",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.clientLegallyAided(), \"Is Legally Aided\"))")
   @Mapping(
       target = "client2PostalApplAccp",
-      source = "client2PostalApplAccp",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.client2PostalApplAccp(), \"Client 2 Postal Application Accepted\"))")
   @Mapping(
       target = "dutySolicitor",
-      source = "dutySolicitor",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.dutySolicitor(), \"Duty Solicitor\"))")
   @Mapping(
       target = "nationalRefMechanismAdvice",
-      source = "nationalRefMechanismAdvice",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "ircSurgery", source = "ircSurgery", qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.nationalRefMechanismAdvice(), \"NRM Advice\"))")
+  @Mapping(
+      target = "ircSurgery",
+      expression = "java(parseBooleanField(outcome.ircSurgery(), \"IRC Surgery\"))")
   @Mapping(
       target = "client2LegallyAided",
-      source = "client2LegallyAided",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.client2LegallyAided(), \"Client 2 Legally Aided\"))")
   @Mapping(
       target = "eligibleClient",
-      source = "eligibleClientIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.eligibleClientIndicator(), \"Eligible Client\"))")
+  @Mapping(
+      target = "youthCourt",
+      expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
       expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
@@ -256,55 +255,55 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
   @Mapping(
       target = "vatIndicator",
-      source = "vatIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.vatIndicator(), \"VAT Applicable\"))")
   @Mapping(
       target = "londonNonlondonRate",
-      source = "londonNonlondonRate",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.londonNonlondonRate(), \"London Rate\"))")
   @Mapping(
       target = "toleranceIndicator",
-      source = "toleranceIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "legacyCase", source = "legacyCase", qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.toleranceIndicator(), \"Tolerance Applicable\"))")
+  @Mapping(
+      target = "legacyCase",
+      expression = "java(parseBooleanField(outcome.legacyCase(), \"Legacy Case\"))")
   @Mapping(
       target = "postalApplAccp",
-      source = "postalApplAccp",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.postalApplAccp(), \"Postal Application Accepted\"))")
   @Mapping(
       target = "substantiveHearing",
-      source = "substantiveHearing",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.substantiveHearing(), \"Substantive Hearing\"))")
   @Mapping(
       target = "additionalTravelPayment",
-      source = "additionalTravelPayment",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.additionalTravelPayment(), \"Additional Travel Payment\"))")
   @Mapping(
       target = "clientLegallyAided",
-      source = "clientLegallyAided",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.clientLegallyAided(), \"Is Legally Aided\"))")
   @Mapping(
       target = "client2PostalApplAccp",
-      source = "client2PostalApplAccp",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.client2PostalApplAccp(), \"Client 2 Postal Application Accepted\"))")
   @Mapping(
       target = "dutySolicitor",
-      source = "dutySolicitor",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.dutySolicitor(), \"Duty Solicitor\"))")
   @Mapping(
       target = "nationalRefMechanismAdvice",
-      source = "nationalRefMechanismAdvice",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "ircSurgery", source = "ircSurgery", qualifiedByName = "outcomeFieldToBoolean")
+      expression = "java(parseBooleanField(outcome.nationalRefMechanismAdvice(), \"NRM Advice\"))")
+  @Mapping(
+      target = "ircSurgery",
+      expression = "java(parseBooleanField(outcome.ircSurgery(), \"IRC Surgery\"))")
   @Mapping(
       target = "client2LegallyAided",
-      source = "client2LegallyAided",
-      qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.client2LegallyAided(), \"Client 2 Legally Aided\"))")
   @Mapping(
       target = "eligibleClient",
-      source = "eligibleClientIndicator",
-      qualifiedByName = "outcomeFieldToBoolean")
-  @Mapping(target = "youthCourt", source = "youthCourt", qualifiedByName = "outcomeFieldToBoolean")
+      expression =
+          "java(parseBooleanField(outcome.eligibleClientIndicator(), \"Eligible Client\"))")
+  @Mapping(
+      target = "youthCourt",
+      expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
       expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
@@ -428,17 +427,23 @@ public interface BulkSubmissionMapper {
   }
 
   /**
-   * Converts outcome field values of "Y" to {@code true}, any other non-null value to {@code
-   * false}, and {@code null} to {@code null}.
+   * Maps string values "Y" or "N" to corresponding boolean values. Empty or null strings return
+   * null.
    *
-   * @param outcomeField the outcome field value to convert
-   * @return the corresponding Boolean value
+   * @param value the string value to convert ("Y" or "N")
+   * @param fieldName the name of the field being mapped (used for error reporting)
+   * @return true for "Y", false for "N", null for empty/null strings
+   * @throws BulkSubmissionFieldConversionException if value is neither "Y" nor "N"
    */
-  @Named("outcomeFieldToBoolean")
-  default Boolean toBoolean(String outcomeField) {
-    if (outcomeField == null) {
+  default Boolean parseBooleanField(String value, String fieldName) {
+    if (!StringUtils.hasText(value)) {
       return null;
     }
-    return "Y".equals(outcomeField);
+
+    return switch (value) {
+      case "Y" -> true;
+      case "N" -> false;
+      default -> throw new BulkSubmissionFieldConversionException(fieldName, value, true);
+    };
   }
 }
