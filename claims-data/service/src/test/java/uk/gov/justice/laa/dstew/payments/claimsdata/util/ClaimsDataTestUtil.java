@@ -187,7 +187,7 @@ public class ClaimsDataTestUtil {
         .client2PostalApplAccp(expectedValue)
         .costsDamagesRecovered("costsDamagesRecovered")
         .eligibleClient(expectedValue)
-        .courtLocation("courtLocation")
+        .courtLocationHpcds("courtLocationHpcds")
         .localAuthorityNumber("localAuthorityNumber")
         .paNumber("paNumber")
         .excessTravelCosts(new BigDecimal("0.10"))
