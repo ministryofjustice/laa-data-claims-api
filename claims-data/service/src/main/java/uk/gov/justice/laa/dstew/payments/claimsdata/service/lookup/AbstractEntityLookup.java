@@ -45,9 +45,6 @@ public interface AbstractEntityLookup<
    * @throws E if the entity is not found
    */
   default T requireEntity(UUID id) {
-    return lookup()
-        .findById(id)
-        .orElseThrow(
-            () -> entityNotFoundSupplier(String.format("No entity found with id: %s", id)).get());
+    return EntityLookup.requireEntity(lookup(), id, this::entityNotFoundSupplier);
   }
 }

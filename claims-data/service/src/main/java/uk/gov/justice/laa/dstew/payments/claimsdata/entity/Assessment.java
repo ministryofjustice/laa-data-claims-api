@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 
 /** Entity representing an assessment linked to a claim. */
@@ -86,6 +87,7 @@ public class Assessment {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @CreationTimestamp
   @NotNull
   @Column(nullable = false)
   private Instant createdOn;

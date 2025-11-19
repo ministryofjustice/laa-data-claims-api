@@ -1665,23 +1665,18 @@ components:
         - REDUCED_STILL_ESCAPED
         - REDUCED_TO_FIXED_FEE
         - NILLED
-    assessment:
+    assessment_base:
       type: object
-      description: Assessment details
-      required:
-        - id
-        - claim_id
-        - claim_summary_fee_id
-        - assessment_outcome
-        - created_by_user_id
-        - created_on
       properties:
         id:
           type: string
+          format: uuid
         claim_id:
           type: string
+          format: uuid
         claim_summary_fee_id:
           type: string
+          format: uuid
         assessment_outcome:
           $ref: "#/components/schemas/assessment_outcome"
         fixed_fee_amount:
@@ -1718,9 +1713,14 @@ components:
           type: integer
         created_by_user_id:
           type: string
-        created_on:
-          type: string
-          format: date-time
+    assessment_post:
+      allOf:
+        - $ref: '#/components/schemas/assessment_base'
+      required:
+        - claim_id
+        - claim_summary_fee_id
+        - assessment_outcome
+        - created_by_user_id
     page:
       type: 'object'
       properties:
