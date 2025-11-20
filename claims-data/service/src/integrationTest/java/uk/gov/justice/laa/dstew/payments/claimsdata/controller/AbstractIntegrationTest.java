@@ -125,6 +125,7 @@ public abstract class AbstractIntegrationTest {
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+    assessmentRepository.deleteAll();
   }
 
   void createBulkSubmission() {
