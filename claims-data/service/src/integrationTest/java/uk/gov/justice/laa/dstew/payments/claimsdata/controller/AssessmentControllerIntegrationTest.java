@@ -24,7 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String POST_AN_ASSESSMENT_ENDPOINT =
-      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/assessment";
+      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/assessments";
 
   @Test
   void shouldSaveAnAssessmentToDatabase() throws Exception {

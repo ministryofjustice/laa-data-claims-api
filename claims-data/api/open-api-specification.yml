@@ -775,7 +775,7 @@ paths:
         '429':
           description: 'Too many requests'
 
-  /api/v0/claims/{claimId}/assessment:
+  /api/v0/claims/{claimId}/assessments:
     post:
       operationId: createAssessment
       tags:

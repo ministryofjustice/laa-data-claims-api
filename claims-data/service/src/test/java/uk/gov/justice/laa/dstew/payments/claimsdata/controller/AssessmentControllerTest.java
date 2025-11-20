@@ -57,7 +57,7 @@ class AssessmentControllerTest {
 
     mockMvc
         .perform(
-            post(CLAIMS_URI + "/{claimId}/assessment", claimId)
+            post(CLAIMS_URI + "/{claimId}/assessments", claimId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .andExpect(status().isCreated())
@@ -65,7 +65,7 @@ class AssessmentControllerTest {
             header()
                 .string(
                     "Location",
-                    containsString(CLAIMS_URI + "/" + claimId + "/assessment/" + assessmentId)))
+                    containsString(CLAIMS_URI + "/" + claimId + "/assessments/" + assessmentId)))
         .andExpect(jsonPath("$.id").value(assessmentId.toString()));
 
     verify(assessmentService).createAssessment(eq(claimId), any(AssessmentPost.class));
