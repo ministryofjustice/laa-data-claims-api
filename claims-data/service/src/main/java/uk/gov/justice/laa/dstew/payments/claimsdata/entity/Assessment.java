@@ -10,6 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,10 +20,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
 
 /** Entity representing an assessment linked to a claim. */
 @Getter
@@ -32,8 +31,7 @@ import java.util.UUID;
 @Table(name = "assessment")
 public class Assessment {
 
-  @Id
-  private UUID id;
+  @Id private UUID id;
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
