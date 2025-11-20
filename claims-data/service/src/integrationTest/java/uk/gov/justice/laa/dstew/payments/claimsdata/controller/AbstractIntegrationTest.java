@@ -117,6 +117,7 @@ public abstract class AbstractIntegrationTest {
 
   protected void clearIntegrationData() {
     validationMessageLogRepository.deleteAll();
+    assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
@@ -125,7 +126,6 @@ public abstract class AbstractIntegrationTest {
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
-    assessmentRepository.deleteAll();
   }
 
   void createBulkSubmission() {
