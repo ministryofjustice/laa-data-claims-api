@@ -26,8 +26,14 @@ public class AssessmentService {
   private final AssessmentRepository assessmentRepository;
   private final AssessmentMapper assessmentMapper;
 
-  public UUID createAssessment(AssessmentPost request) {
-    UUID claimId = request.getClaimId();
+  /**
+   * Create an assessment for a claim.
+   *
+   * @param claimId claim identifier
+   * @param request request payload
+   * @return identifier of the created assessment
+   */
+  public UUID createAssessment(UUID claimId, AssessmentPost request) {
     UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
 
     if (!claimRepository.existsById(claimId)) {

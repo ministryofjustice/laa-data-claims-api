@@ -71,7 +71,7 @@ class AssessmentServiceTest {
       when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
       when(assessmentRepository.save(assessment)).thenReturn(assessment);
 
-      final UUID id = assessmentService.createAssessment(post);
+      final UUID id = assessmentService.createAssessment(claimId, post);
 
       assertThat(id).isNotNull();
       assertThat(assessment.getId()).isEqualTo(id);
@@ -92,7 +92,7 @@ class AssessmentServiceTest {
 
       when(claimRepository.existsById(missingClaimId)).thenReturn(false);
 
-      assertThatThrownBy(() -> assessmentService.createAssessment(post))
+      assertThatThrownBy(() -> assessmentService.createAssessment(missingClaimId, post))
           .isInstanceOf(ClaimNotFoundException.class)
           .hasMessageContaining(missingClaimId.toString());
     }
@@ -114,7 +114,7 @@ class AssessmentServiceTest {
 
       when(claimSummaryFeeRepository.existsById(missingClaimSummaryFeeId)).thenReturn(false);
 
-      assertThatThrownBy(() -> assessmentService.createAssessment(post))
+      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
           .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
           .hasMessageContaining(missingClaimSummaryFeeId.toString());
     }
