@@ -62,7 +62,8 @@ class AssessmentMapperTest {
   void toValidationMessageLog_mapsFields() {
     final Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
     final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).submission(submission).build();
-    final Assessment assessment = Assessment.builder().id(Uuid7.timeBasedUuid()).claim(claim).build();
+    final Assessment assessment =
+        Assessment.builder().id(Uuid7.timeBasedUuid()).claim(claim).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

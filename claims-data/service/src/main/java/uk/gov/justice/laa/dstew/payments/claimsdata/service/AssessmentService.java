@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.EntityLookup.requireEntity;
-
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +27,19 @@ public class AssessmentService {
   private final AssessmentMapper assessmentMapper;
 
   public UUID createAssessment(AssessmentPost request) {
-    Claim claim =
-        requireEntity(
-            claimRepository, request.getClaimId(), x -> () -> new ClaimNotFoundException(x));
+    UUID claimId = request.getClaimId();
+    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
 
-    ClaimSummaryFee claimSummaryFee =
-        requireEntity(
-            claimSummaryFeeRepository,
-            request.getClaimSummaryFeeId(),
-            x -> () -> new ClaimSummaryFeeNotFoundException(x));
+    if (!claimRepository.existsById(claimId)) {
+      throw new ClaimNotFoundException(String.format("No entity found with id: %s", claimId));
+    }
+    Claim claim = claimRepository.getReferenceById(claimId);
+
+    if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
+      throw new ClaimSummaryFeeNotFoundException(
+          String.format("No entity found with id: %s", claimSummaryFeeId));
+    }
+    ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
     assessment.setClaim(claim);

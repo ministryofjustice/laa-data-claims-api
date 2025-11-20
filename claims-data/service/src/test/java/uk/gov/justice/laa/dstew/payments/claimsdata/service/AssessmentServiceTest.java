@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -62,9 +61,13 @@ class AssessmentServiceTest {
               .createdByUserId(API_USER_ID)
               .build();
 
-      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
-      when(claimSummaryFeeRepository.findById(claimSummaryFeeId))
-          .thenReturn(Optional.of(claimSummaryFee));
+      when(claimRepository.existsById(claimId)).thenReturn(true);
+      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
+
+      when(claimSummaryFeeRepository.existsById(claimSummaryFeeId)).thenReturn(true);
+      when(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+          .thenReturn(claimSummaryFee);
+
       when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
       when(assessmentRepository.save(assessment)).thenReturn(assessment);
 
@@ -75,8 +78,10 @@ class AssessmentServiceTest {
       assertThat(assessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
       assertThat(assessment.getClaim()).isSameAs(claim);
       assertThat(assessment.getClaimSummaryFee()).isSameAs(claimSummaryFee);
-      verify(claimRepository).findById(claimId);
-      verify(claimSummaryFeeRepository).findById(claimSummaryFeeId);
+      verify(claimRepository).existsById(claimId);
+      verify(claimRepository).getReferenceById(claimId);
+      verify(claimSummaryFeeRepository).existsById(claimSummaryFeeId);
+      verify(claimSummaryFeeRepository).getReferenceById(claimSummaryFeeId);
       verify(assessmentRepository).save(assessment);
     }
 
@@ -85,7 +90,7 @@ class AssessmentServiceTest {
       final UUID missingClaimId = Uuid7.timeBasedUuid();
       final AssessmentPost post = AssessmentPost.builder().claimId(missingClaimId).build();
 
-      when(claimRepository.findById(missingClaimId)).thenReturn(Optional.empty());
+      when(claimRepository.existsById(missingClaimId)).thenReturn(false);
 
       assertThatThrownBy(() -> assessmentService.createAssessment(post))
           .isInstanceOf(ClaimNotFoundException.class)
@@ -104,9 +109,10 @@ class AssessmentServiceTest {
 
       final Claim claim = Claim.builder().id(claimId).build();
 
-      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
-      when(claimSummaryFeeRepository.findById(missingClaimSummaryFeeId))
-          .thenReturn(Optional.empty());
+      when(claimRepository.existsById(claimId)).thenReturn(true);
+      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
+
+      when(claimSummaryFeeRepository.existsById(missingClaimSummaryFeeId)).thenReturn(false);
 
       assertThatThrownBy(() -> assessmentService.createAssessment(post))
           .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
