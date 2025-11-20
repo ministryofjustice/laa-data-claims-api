@@ -21,6 +21,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -48,12 +50,14 @@ class AssessmentControllerTest {
         .thenReturn(assessmentId);
 
     final String body =
-        "{"
-            + "\"claim_id\":\"c2ecc377-3223-49c3-999b-08ea461bbd1e\","
-            + "\"claim_summary_fee_id\":\"8dae05c8-1ebd-464d-8a37-8548fd051527\","
-            + "\"assessment_outcome\":\"NILLED\","
-            + "\"created_by_user_id\":\"test-user\""
-            + "}";
+        """
+        {
+          "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
+          "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
+          "assessment_outcome": "NILLED",
+          "created_by_user_id": "test-user"
+        }
+        """;
 
     mockMvc
         .perform(
@@ -67,6 +71,58 @@ class AssessmentControllerTest {
                     "Location",
                     containsString(CLAIMS_URI + "/" + claimId + "/assessments/" + assessmentId)))
         .andExpect(jsonPath("$.id").value(assessmentId.toString()));
+
+    verify(assessmentService).createAssessment(eq(claimId), any(AssessmentPost.class));
+  }
+
+  @Test
+  void createAssessment_whenClaimDoesNotExist_returnsNotFoundStatus() throws Exception {
+    final UUID claimId = Uuid7.timeBasedUuid();
+    when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
+        .thenThrow(new ClaimNotFoundException(""));
+
+    final String body =
+        """
+        {
+          "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
+          "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
+          "assessment_outcome": "NILLED",
+          "created_by_user_id": "test-user"
+        }
+        """;
+
+    mockMvc
+        .perform(
+            post(CLAIMS_URI + "/{claimId}/assessments", claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isNotFound());
+
+    verify(assessmentService).createAssessment(eq(claimId), any(AssessmentPost.class));
+  }
+
+  @Test
+  void createAssessment_whenClaimSummaryFeeDoesNotExist_returnsNotFoundStatus() throws Exception {
+    final UUID claimId = Uuid7.timeBasedUuid();
+    when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
+        .thenThrow(new ClaimSummaryFeeNotFoundException(""));
+
+    final String body =
+        """
+        {
+          "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
+          "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
+          "assessment_outcome": "NILLED",
+          "created_by_user_id": "test-user"
+        }
+        """;
+
+    mockMvc
+        .perform(
+            post(CLAIMS_URI + "/{claimId}/assessments", claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isNotFound());
 
     verify(assessmentService).createAssessment(eq(claimId), any(AssessmentPost.class));
   }
