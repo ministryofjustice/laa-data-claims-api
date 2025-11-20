@@ -30,7 +30,9 @@ public class AssessmentController implements AssessmentsApi {
             .buildAndExpand(assessmentId)
             .toUri();
 
-    return ResponseEntity.created(location)
-        .body(new CreateAssessment201Response().id(assessmentId));
+    CreateAssessment201Response response =
+        CreateAssessment201Response.builder().id(assessmentId).build();
+
+    return ResponseEntity.created(location).body(response);
   }
 }
