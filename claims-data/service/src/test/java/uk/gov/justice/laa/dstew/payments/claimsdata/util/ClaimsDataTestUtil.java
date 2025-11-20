@@ -39,7 +39,7 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -427,7 +427,7 @@ public class ClaimsDataTestUtil {
   public static AssessmentPost getAssessmentPost() {
     return new AssessmentPost()
         .claimId(CLAIM_1_ID)
-        .claimSummaryFeeId(CLAIM_SUMMARY_FEE_ID)
+        .claimSummaryFeeId(CLAIM_1_SUMMARY_FEE_ID)
         .assessmentOutcome(AssessmentOutcome.NILLED)
         .fixedFeeAmount(new BigDecimal("100.00"))
         .netTravelCostsAmount(new BigDecimal("200.00"))

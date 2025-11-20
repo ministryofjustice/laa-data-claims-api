@@ -4,6 +4,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -14,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling assessments. */
 @Service
@@ -33,6 +35,7 @@ public class AssessmentService {
    * @param request request payload
    * @return identifier of the created assessment
    */
+  @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
     UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
 
@@ -48,6 +51,7 @@ public class AssessmentService {
     ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
+    assessment.setId(Uuid7.timeBasedUuid());
     assessment.setClaim(claim);
     assessment.setClaimSummaryFee(claimSummaryFee);
 
