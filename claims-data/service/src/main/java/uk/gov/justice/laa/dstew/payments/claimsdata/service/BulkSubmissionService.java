@@ -199,6 +199,9 @@ public class BulkSubmissionService
         .bulkSubmissionId(id)
         .status(bulkSubmission.getStatus())
         .createdByUserId(bulkSubmission.getCreatedByUserId())
+        .errorCode(bulkSubmission.getErrorCode())
+        .errorDescription(bulkSubmission.getErrorDescription())
+        .updatedByUserId(bulkSubmission.getUpdatedByUserId())
         .details(bulkSubmission.getData());
   }
 
@@ -212,14 +215,17 @@ public class BulkSubmissionService
    */
   @Transactional
   public void updateBulkSubmission(UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
-    BulkSubmission bulkSubmission = requireEntity(id);
+    int updateCount =
+        bulkSubmissionRepository.updateBulkSubmission(
+            id,
+            bulkSubmissionPatch.getStatus(),
+            bulkSubmissionPatch.getErrorCode(),
+            bulkSubmissionPatch.getErrorDescription(),
+            bulkSubmissionPatch.getUpdatedByUserId());
 
-    bulkSubmission.setStatus(bulkSubmissionPatch.getStatus());
-    bulkSubmission.setErrorCode(bulkSubmissionPatch.getErrorCode());
-    bulkSubmission.setErrorDescription(bulkSubmissionPatch.getErrorDescription());
-    bulkSubmission.setUpdatedByUserId(bulkSubmissionPatch.getUpdatedByUserId());
-
-    bulkSubmissionRepository.save(bulkSubmission);
+    if (updateCount == 0) {
+      throw new BulkSubmissionNotFoundException("Bulk submission not found with id: " + id);
+    }
   }
 
   private void validateAreaOfLaw(String areaOfLawValue) {

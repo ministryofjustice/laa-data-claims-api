@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode.V100;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -553,18 +554,27 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .andExpect(status().isNoContent())
         .andReturn();
 
-    // then: should update the bulk submission
-    BulkSubmission updated = bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow();
-    assertThat(updated)
-        .extracting(
-            BulkSubmission::getStatus,
-            BulkSubmission::getErrorCode,
-            BulkSubmission::getErrorDescription)
-        .containsExactly(
-            BulkSubmissionStatus.VALIDATION_FAILED,
-            BulkSubmissionErrorCode.V100,
-            "This is the error message");
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
 
+    // then: response body contains bulk_submission_id, status and details
+    String responseBody = result.getResponse().getContentAsString();
+
+    var getBulkSubmission200Response =
+        OBJECT_MAPPER.readValue(responseBody, GetBulkSubmission200Response.class);
+
+    assertThat(getBulkSubmission200Response.getBulkSubmissionId()).isEqualTo(BULK_SUBMISSION_ID);
+    assertThat(getBulkSubmission200Response.getStatus())
+        .isEqualTo(BulkSubmissionStatus.VALIDATION_FAILED);
+    assertThat(getBulkSubmission200Response.getErrorCode()).isEqualTo(V100);
+    assertThat(getBulkSubmission200Response.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(getBulkSubmission200Response.getErrorDescription())
+        .isEqualTo("This is the error message");
     // clean up the test-data
     bulkSubmissionRepository.deleteAll();
   }
