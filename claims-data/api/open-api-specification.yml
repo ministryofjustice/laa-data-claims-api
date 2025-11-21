@@ -127,6 +127,12 @@ paths:
                   created_by_user_id:
                     type: string
                     description: The user ID of the user who created the bulk submission.
+                  error_code:
+                    $ref: "#/components/schemas/bulk_submission_error_code"
+                  error_description:
+                    type: string
+                  updated_by_user_id:
+                    type: string
                   details:
                     type: object
                     description: The object storing all the details of the bulk submission

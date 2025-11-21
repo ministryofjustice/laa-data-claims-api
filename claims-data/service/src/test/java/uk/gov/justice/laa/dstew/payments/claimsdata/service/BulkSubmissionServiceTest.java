@@ -1,8 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
@@ -216,18 +222,33 @@ class BulkSubmissionServiceTest {
             .errorDescription("This is the error message")
             .updatedByUserId(API_USER_ID);
 
-    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.of(entity));
-
-    bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch);
-
-    verify(bulkSubmissionRepository).save(entity);
+    when(bulkSubmissionRepository.updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
+        .thenReturn(1);
+    assertDoesNotThrow(() -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
   }
 
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
   void shouldThrowWhenBulkSubmissionNotFoundOnUpdate() {
-    BulkSubmissionPatch patch = new BulkSubmissionPatch();
-    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.empty());
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .status(BulkSubmissionStatus.PARSING_FAILED)
+            .errorCode(BulkSubmissionErrorCode.E100)
+            .errorDescription("This is the error message")
+            .updatedByUserId(API_USER_ID);
+    when(bulkSubmissionRepository.updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
+        .thenReturn(0);
 
     assertThrows(
         BulkSubmissionNotFoundException.class,
