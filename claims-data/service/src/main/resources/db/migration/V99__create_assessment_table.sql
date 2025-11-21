@@ -1,0 +1,32 @@
+CREATE TABLE assessment (
+    id                                       UUID NOT NULL,
+    claim_id                                 UUID NOT NULL,
+    claim_summary_fee_id                     UUID NOT NULL,
+    assessment_outcome                       TEXT NOT NULL,
+    fixed_fee_amount                         NUMERIC,
+    net_travel_costs_amount                  NUMERIC,
+    net_waiting_costs_amount                 NUMERIC,
+    net_profit_costs_amount                  NUMERIC,
+    disbursement_amount                      NUMERIC,
+    disbursement_vat_amount                  NUMERIC,
+    net_cost_of_counsel_amount               NUMERIC,
+    travel_waiting_costs_amount              NUMERIC,
+    travel_and_waiting_costs_amount          NUMERIC,
+    is_vat_applicable                        BOOLEAN,
+    adjourned_hearing_fee_amount             INTEGER,
+    jr_form_filling_amount                   NUMERIC,
+    cmrh_oral_count                          INTEGER,
+    cmrh_telephone_count                     INTEGER,
+    is_substantive_hearing                   BOOLEAN,
+    ho_interview                             INTEGER,
+    created_by_user_id                       TEXT NOT NULL,
+    created_on                               TIMESTAMPTZ NOT NULL,
+
+    CONSTRAINT pk_assessment PRIMARY KEY (id),
+    CONSTRAINT fk_claim_id FOREIGN KEY (claim_id) REFERENCES claim(id),
+    CONSTRAINT fk_claim_summary_fee_id FOREIGN KEY (claim_summary_fee_id) REFERENCES claim_summary_fee(id),
+    CONSTRAINT chk_assessment_outcome CHECK (assessment_outcome IN ('PAID_IN_FULL', 'REDUCED_STILL_ESCAPED', 'REDUCED_TO_FIXED_FEE', 'NILLED'))
+);
+
+CREATE INDEX ix_claim_id ON claim(id);
+CREATE INDEX ix_claim_summary_fee_id ON claim_summary_fee(id);
