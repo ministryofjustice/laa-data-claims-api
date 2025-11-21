@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: prometheus-custom-rules-{{ include "data-claims-api.fullname" . }}
+  labels:
+    prometheus: cloud-platform
+    role: alert-rules
+spec:
+  groups:
+  - name: application-rules
+    rules:
+    - alert: High404ErrorRate
+      expr: sum(rate(http_server_requests_seconds_count{status=~"404"}[1m])) by (service, namespace, pod) > 1
+      for: 1m
+      labels:
+        severity: warning-laa-data-claims-api-uat
+      annotations:
+        summary: High rate of 404 errors
+        message: Namespace {{ $labels.namespace }} has {{ $value }} 404 errors in the last minute.
+        runbook_url: https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5829263558/Runbook+Data+Claims
