@@ -595,4 +595,77 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .andExpect(status().isNotFound())
         .andReturn();
   }
+
+  @Test
+  void shouldOnlyUpdateFieldsIncludedInPatch() throws Exception {
+    // Given: create initial bulk submission
+    createBulkSubmissionWithErrorFields();
+
+    GetBulkSubmission200Response beforeUpdate =
+        OBJECT_MAPPER.readValue(
+            mockMvc
+                .perform(
+                    get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            GetBulkSubmission200Response.class);
+
+    // When: patch with only status update and updatedByUserId
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .status(BulkSubmissionStatus.VALIDATION_FAILED)
+            .updatedByUserId("updated-by-user");
+
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    // Then: verify only status and updatedByUserId were updated
+    GetBulkSubmission200Response afterUpdate =
+        OBJECT_MAPPER.readValue(
+            mockMvc
+                .perform(
+                    get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            GetBulkSubmission200Response.class);
+
+    assertThat(afterUpdate.getStatus()).isEqualTo(BulkSubmissionStatus.VALIDATION_FAILED);
+    assertThat(afterUpdate.getUpdatedByUserId()).isEqualTo("updated-by-user");
+
+    // Rest of the values should be the same as before
+    assertThat(afterUpdate.getErrorCode()).isEqualTo(beforeUpdate.getErrorCode());
+    assertThat(afterUpdate.getErrorDescription()).isEqualTo(beforeUpdate.getErrorDescription());
+    assertThat(afterUpdate.getDetails()).isEqualTo(beforeUpdate.getDetails());
+    assertThat(afterUpdate.getCreatedByUserId()).isEqualTo(beforeUpdate.getCreatedByUserId());
+
+    // clean up the test-data
+    bulkSubmissionRepository.deleteAll();
+  }
+
+  private void createBulkSubmissionWithErrorFields() {
+    var bulkSubmission =
+        BulkSubmission.builder()
+            .id(BULK_SUBMISSION_ID)
+            .data(new GetBulkSubmission200ResponseDetails())
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .errorCode(BulkSubmissionErrorCode.E100)
+            .errorDescription("Initial error description")
+            .updatedByUserId("initial-updater")
+            .createdOn(CREATED_ON)
+            .updatedOn(CREATED_ON)
+            .build();
+    bulkSubmissionRepository.save(bulkSubmission);
+  }
 }

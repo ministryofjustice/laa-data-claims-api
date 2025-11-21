@@ -224,8 +224,8 @@ class BulkSubmissionServiceTest {
 
     when(bulkSubmissionRepository.updateBulkSubmission(
             BULK_SUBMISSION_ID,
-            patch.getStatus(),
-            patch.getErrorCode(),
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
             patch.getErrorDescription(),
             patch.getUpdatedByUserId()))
         .thenReturn(1);
@@ -244,8 +244,8 @@ class BulkSubmissionServiceTest {
             .updatedByUserId(API_USER_ID);
     when(bulkSubmissionRepository.updateBulkSubmission(
             BULK_SUBMISSION_ID,
-            patch.getStatus(),
-            patch.getErrorCode(),
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
             patch.getErrorDescription(),
             patch.getUpdatedByUserId()))
         .thenReturn(0);

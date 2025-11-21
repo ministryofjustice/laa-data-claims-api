@@ -215,14 +215,14 @@ public class BulkSubmissionService
    */
   @Transactional
   public void updateBulkSubmission(UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
+
     int updateCount =
         bulkSubmissionRepository.updateBulkSubmission(
             id,
-            bulkSubmissionPatch.getStatus(),
-            bulkSubmissionPatch.getErrorCode(),
+            Optional.ofNullable(bulkSubmissionPatch.getStatus()).map(Enum::name).orElse(null),
+            Optional.ofNullable(bulkSubmissionPatch.getErrorCode()).map(Enum::name).orElse(null),
             bulkSubmissionPatch.getErrorDescription(),
             bulkSubmissionPatch.getUpdatedByUserId());
-
     if (updateCount == 0) {
       throw new BulkSubmissionNotFoundException("Bulk submission not found with id: " + id);
     }
