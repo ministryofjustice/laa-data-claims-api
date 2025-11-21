@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_3_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
@@ -54,6 +55,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
@@ -88,6 +90,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
+  @Autowired protected AssessmentRepository assessmentRepository;
   @Autowired protected MockMvc mockMvc;
 
   protected BulkSubmission bulkSubmission;
@@ -114,6 +117,7 @@ public abstract class AbstractIntegrationTest {
 
   protected void clearIntegrationData() {
     validationMessageLogRepository.deleteAll();
+    assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
@@ -262,7 +266,7 @@ public abstract class AbstractIntegrationTest {
     var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
     var summaryFee1 =
         ClaimSummaryFee.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(CLAIM_1_SUMMARY_FEE_ID)
             .claim(claim1)
             .adviceTime(120)
             .travelTime(45)

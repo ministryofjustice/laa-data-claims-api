@@ -774,6 +774,59 @@ paths:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
         '429':
           description: 'Too many requests'
+
+  /api/v0/claims/{claimId}/assessments:
+    post:
+      operationId: createAssessment
+      tags:
+        - Assessments
+      summary: Create an Assessment for a Claim
+      description: |
+        Adds an Assessment record to the claim with the specified ID.
+        Returns HTTP 201 Created with a Location header pointing to the newly created resource.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/assessment_post'
+      responses:
+        '201':
+          description: Assessment created successfully
+          headers:
+            location:
+              description: URI of the newly created Assessment
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created Assessment
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Claim ID or claim summary fee ID not found'
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
 components:
   schemas:
     bulk_submission_patch:
@@ -1665,23 +1718,18 @@ components:
         - REDUCED_STILL_ESCAPED
         - REDUCED_TO_FIXED_FEE
         - NILLED
-    assessment:
+    assessment_base:
       type: object
-      description: Assessment details
-      required:
-        - id
-        - claim_id
-        - claim_summary_fee_id
-        - assessment_outcome
-        - created_by_user_id
-        - created_on
       properties:
         id:
           type: string
+          format: uuid
         claim_id:
           type: string
+          format: uuid
         claim_summary_fee_id:
           type: string
+          format: uuid
         assessment_outcome:
           $ref: "#/components/schemas/assessment_outcome"
         fixed_fee_amount:
@@ -1718,9 +1766,14 @@ components:
           type: integer
         created_by_user_id:
           type: string
-        created_on:
-          type: string
-          format: date-time
+    assessment_post:
+      allOf:
+        - $ref: '#/components/schemas/assessment_base'
+      required:
+        - claim_id
+        - claim_summary_fee_id
+        - assessment_outcome
+        - created_by_user_id
     page:
       type: 'object'
       properties:

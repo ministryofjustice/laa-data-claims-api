@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 
 /** Entity representing an assessment linked to a claim. */
@@ -30,10 +31,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 @Table(name = "assessment")
 public class Assessment {
 
-  @NotNull
-  @Column(nullable = false)
-  @Id
-  private UUID id;
+  @Id private UUID id;
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
@@ -86,7 +84,7 @@ public class Assessment {
   @Column(nullable = false)
   private String createdByUserId;
 
-  @NotNull
+  @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 }

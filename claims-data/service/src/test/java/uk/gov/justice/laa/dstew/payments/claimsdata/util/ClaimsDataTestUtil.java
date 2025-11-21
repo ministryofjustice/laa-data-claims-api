@@ -11,6 +11,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -37,6 +39,7 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_2_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -418,6 +421,30 @@ public class ClaimsDataTestUtil {
         .isSubstantiveHearing(false)
         .hoInterview(4)
         .localAuthorityNumber("LA_NUMBER")
+        .createdByUserId(API_USER_ID);
+  }
+
+  public static AssessmentPost getAssessmentPost() {
+    return new AssessmentPost()
+        .claimId(CLAIM_1_ID)
+        .claimSummaryFeeId(CLAIM_1_SUMMARY_FEE_ID)
+        .assessmentOutcome(AssessmentOutcome.NILLED)
+        .fixedFeeAmount(new BigDecimal("100.00"))
+        .netTravelCostsAmount(new BigDecimal("200.00"))
+        .netWaitingCostsAmount(new BigDecimal("300.00"))
+        .netProfitCostsAmount(new BigDecimal("400.00"))
+        .disbursementAmount(new BigDecimal("500.00"))
+        .disbursementVatAmount(new BigDecimal("600.00"))
+        .netCostOfCounselAmount(new BigDecimal("700.00"))
+        .travelWaitingCostsAmount(new BigDecimal("800.00"))
+        .travelAndWaitingCostsAmount(new BigDecimal("900.00"))
+        .isVatApplicable(true)
+        .adjournedHearingFeeAmount(1000)
+        .jrFormFillingAmount(new BigDecimal("1100.00"))
+        .cmrhOralCount(1200)
+        .cmrhTelephoneCount(1300)
+        .isSubstantiveHearing(false)
+        .hoInterview(1400)
         .createdByUserId(API_USER_ID);
   }
 }
