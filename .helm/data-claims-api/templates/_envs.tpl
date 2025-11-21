@@ -41,3 +41,25 @@ For the main branch, extract DB environment variables from rds-postgresql-instan
       key: rds_instance_address
 {{- end }}
 {{- end }}
+
+{{/*
+  Define Sentry environment variables
+*/}}
+{{- define "sentryConfig" }}
+{{- if .Values.sentry.enabled }}
+- name: SENTRY_ENABLED
+  value: "true"
+- name: SENTRY_DSN
+  valueFrom:
+    secretKeyRef:
+      name: laa-data-claims-api-secrets
+      key: sentry-dsn
+- name: SENTRY_ENVIRONMENT
+  value: {{ .Values.sentry.environment | quote }}
+- name: SENTRY_TRACES_SAMPLE_RATE
+  value: {{ .Values.sentry.tracesSampleRate | quote }}
+{{- else }}
+- name: SENTRY_ENABLED
+  value: "false"
+{{- end }}
+{{- end }}
