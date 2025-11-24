@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotF
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
@@ -140,6 +142,77 @@ class BulkSubmissionServiceTest {
     assertThat(captor.getValue())
         .extracting(BulkSubmission::getStatus, BulkSubmission::getErrorCode)
         .containsExactly(BulkSubmissionStatus.VALIDATION_FAILED, BulkSubmissionErrorCode.V100);
+  }
+
+  @ParameterizedTest(name = "dateField: {0}, dateValue: {1}, shouldBeValid: {2}")
+  @CsvSource({
+    // Valid dates
+    "Case Start Date,getCaseStartDate,01/01/2025,true",
+    "Client Date of Birth,getClientDateOfBirth,31/12/1980,true",
+    "Work Concluded Date,getWorkConcludedDate,15/06/2025,true",
+    "Transfer Date,getTransferDate,25/11/2025,true",
+    "Surgery Date,getSurgeryDate,01/07/2025,true",
+    "Rep Order Date,getRepOrderDate,30/09/2025,true",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01/01/1990,true",
+    "Med Concluded Date,getMedConcludedDate,31/12/2025,true",
+    // Invalid dates
+    "Case Start Date,getCaseStartDate,32/01/2025,false",
+    "Case Start Date,getCaseStartDate,abc,false",
+    "Client Date of Birth,getClientDateOfBirth,29/02/2025,false",
+    "Work Concluded Date,getWorkConcludedDate,31/04/2025,false",
+    "Transfer Date,getTransferDate,00/11/2025,false",
+    "Surgery Date,getSurgeryDate,01/13/2025,false",
+    "Rep Order Date,getRepOrderDate,2025/09/30,false",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01-01-1990,false",
+    "Med Concluded Date,getMedConcludedDate,2025-12-31,false",
+    // Blank dates
+    "Case Start Date,getCaseStartDate,,true",
+    "Client Date of Birth,getClientDateOfBirth,,true",
+    "Work Concluded Date,getWorkConcludedDate,,true",
+    "Transfer Date,getTransferDate,,true",
+    "Surgery Date,getSurgeryDate,,true",
+    "Rep Order Date,getRepOrderDate,,true",
+    "Client 2 Date of Birth,getClient2DateOfBirth,,true",
+    "Med Concluded Date,getMedConcludedDate,,true",
+  })
+  @DisplayName("Validates date formats in bulk submission file")
+  void validateDateFormatsInBulkSubmission(
+      String dateField, String methodName, String dateValue, boolean shouldBeValid)
+      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    BulkSubmissionOutcome bulkSubmissionOutcome = mock(BulkSubmissionOutcome.class);
+
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getSubmissionPeriod()).thenReturn("APR-2025");
+    when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
+    when(mockOffice.getAccount()).thenReturn("TEST");
+
+    // Set the test date value on the mock details
+    when(bulkSubmissionOutcome.getClass().getMethod(methodName).invoke(bulkSubmissionOutcome))
+        .thenReturn(dateValue);
+    when(mockDetails.getOutcomes()).thenReturn(List.of(bulkSubmissionOutcome));
+
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+    String userId = "test-user-id";
+
+    if (!shouldBeValid) {
+      BulkSubmissionValidationException exception =
+          assertThrows(
+              BulkSubmissionValidationException.class,
+              () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+      assertEquals(
+          dateField + " must be a valid date in the format DD/MM/YYYY", exception.getMessage());
+    } else {
+      assertDoesNotThrow(
+          () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+    }
   }
 
   @Test
