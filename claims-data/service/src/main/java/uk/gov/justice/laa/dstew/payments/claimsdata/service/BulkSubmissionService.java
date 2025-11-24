@@ -218,38 +218,27 @@ public class BulkSubmissionService
   }
 
   /**
-   * Validates that a date string matches the required format DD/MM/YYYY and represents a valid
-   * date. Empty or null values are considered valid and skipped.
+   * Validates that a given date string matches the required format 'dd/MM/yyyy' and represents a
+   * valid date. The method performs both format validation and logical date validation (e.g.,
+   * checking for invalid dates like 29/02/2025).
    *
-   * @param dateStr the date string to validate
-   * @param fieldName name of the field being validated, used in error messages
-   * @throws IllegalArgumentException if the date string does not match the required format or does
-   *     not represent a valid date
+   * @param dateStr the date string to validate, can be null or blank
+   * @param fieldName the name of the field being validated, used in error messages
+   * @throws IllegalArgumentException if the date string is not in the correct format or represents
+   *     an invalid date
    */
   private void validateDate(String dateStr, String fieldName) {
     if (dateStr != null && !dateStr.isBlank()) {
-      if (!dateStr.matches("^\\d{2}/\\d{2}/\\d{4}$") || !isValidDate(dateStr)) {
+      try {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate date = LocalDate.parse(dateStr, formatter);
+        // Validate if parsed date matches original string to catch invalid dates like 29/02/2025
+        if (!dateStr.equals(date.format(formatter))) {
+          throw new IllegalArgumentException(fieldName);
+        }
+      } catch (DateTimeParseException e) {
         throw new IllegalArgumentException(fieldName);
       }
-    }
-  }
-
-  /**
-   * Validates if the provided date string represents a valid date in DD/MM/YYYY format. The method
-   * checks both the format and the actual validity of the date. For example, it will reject invalid
-   * dates like 29/02/2025 (non-leap year).
-   *
-   * @param dateStr the date string to validate in DD/MM/YYYY format
-   * @return true if the date string is valid, false otherwise
-   */
-  private boolean isValidDate(String dateStr) {
-    try {
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-      LocalDate date = LocalDate.parse(dateStr, formatter);
-      // Validate if parsed date matches original string to catch invalid dates like 29/02/2025
-      return dateStr.equals(date.format(formatter));
-    } catch (DateTimeParseException e) {
-      return false;
     }
   }
 
