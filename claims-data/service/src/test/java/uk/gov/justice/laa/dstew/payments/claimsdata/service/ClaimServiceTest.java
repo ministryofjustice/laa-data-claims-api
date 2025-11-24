@@ -328,7 +328,7 @@ class ClaimServiceTest {
   }
 
   @Test
-  void shouldUpdateCalculatedFeeDetails() {
+  void shouldCreateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
     final ClaimPatch patch = new ClaimPatch();
@@ -350,6 +350,36 @@ class ClaimServiceTest {
     verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
     verify(claimRepository).save(claim);
     verify(calculatedFeeDetailRepository).save(calculatedFeeDetail);
+  }
+
+  @Test
+  void shouldUpdateCalculatedFeeDetails() {
+    final Submission submission = ClaimsDataTestUtil.getSubmission();
+    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    final ClaimPatch patch = new ClaimPatch();
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    patch.setFeeCalculationResponse(feeCalculationPatch);
+    patch.setValidationMessages(Collections.emptyList());
+
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setClaim(claim);
+    when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+        .thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.of(claimSummaryFee));
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+    UUID calculatedFeeDetailId = new UUID(0, 1);
+    calculatedFeeDetail.setId(calculatedFeeDetailId);
+    when(calculatedFeeDetailRepository.findByClaimId(CLAIM_1_ID))
+        .thenReturn(Optional.of(calculatedFeeDetail));
+    final CalculatedFeeDetail resultingFeeDetail = new CalculatedFeeDetail();
+    when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(resultingFeeDetail);
+
+    claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    verify(claimRepository).save(claim);
+    verify(calculatedFeeDetailRepository).save(resultingFeeDetail);
   }
 
   @Test

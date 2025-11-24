@@ -27,7 +27,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 199,
+  "id": 133,
   "links": [],
   "panels": [
     {
@@ -92,7 +92,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -224,7 +224,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -320,7 +320,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -424,7 +424,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(uri) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__rate_interval])) ",
+          "expr": "sum by(uri, method) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__rate_interval])) ",
           "legendFormat": "{{`{{app}}`}}",
           "range": true,
           "refId": "A"
@@ -513,7 +513,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -521,7 +521,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(uri) (rate(http_server_requests_seconds_sum{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[1m])) / sum by(uri) (rate(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__rate_interval]))",
+          "expr": "sum by(uri, method) (rate(http_server_requests_seconds_sum{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[1m])) / sum by(uri, method) (rate(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}[$__rate_interval]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -610,7 +610,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -618,7 +618,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "max by(uri) (http_server_requests_seconds_max{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}) ",
+          "expr": "max by(uri, method) (http_server_requests_seconds_max{namespace='{{ .Release.Namespace }}',pod=~'$service.*', uri!~'.*actuator.*|.*swagger.*|.*v3.*|.*providers.*', status=~'2.*'}) ",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -685,7 +685,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -749,7 +749,7 @@
         "sizing": "auto",
         "text": {}
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -812,7 +812,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1137,67 +1137,8 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 2,
+        "w": 4,
         "x": 0,
-        "y": 39
-      },
-      "id": 24,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto",
-        "text": {}
-      },
-      "pluginVersion": "11.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "builder",
-          "expr": "hikaricp_connections_min{namespace='{{ .Release.Namespace }}',pod=~'$service.*', pool='HikariPool-1'}",
-          "legendFormat": "{{`{{instance}}`}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Claim DB Min Cons",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "blue"
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 2,
-        "x": 2,
         "y": 39
       },
       "id": 51,
@@ -1217,7 +1158,7 @@
         "sizing": "auto",
         "text": {}
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1225,13 +1166,13 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "hikaricp_connections_max{namespace='{{ .Release.Namespace }}',pod=~'$service.*', pool='HikariPool-1'}",
+          "expr": "hikaricp_connections{namespace='{{ .Release.Namespace }}',pod=~'$service.*', pool='HikariPool-1'}",
           "legendFormat": "{{`{{instance}}`}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Claim DB Max Cons",
+      "title": "Claim DB Total Connections",
       "type": "gauge"
     },
     {
@@ -1312,7 +1253,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {
@@ -1411,7 +1352,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.3.0",
+      "pluginVersion": "11.5.6+security-01",
       "targets": [
         {
           "datasource": {

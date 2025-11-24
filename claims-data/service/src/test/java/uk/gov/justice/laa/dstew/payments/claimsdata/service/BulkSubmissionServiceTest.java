@@ -1,8 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
@@ -11,15 +17,29 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -54,6 +74,7 @@ class BulkSubmissionServiceTest {
         mock(GetBulkSubmission200ResponseDetailsSchedule.class);
     when(mockDetails.getOffice()).thenReturn(mockOffice);
     when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getSubmissionPeriod()).thenReturn("APR-2025");
     when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
     when(mockOffice.getAccount()).thenReturn("TEST");
 
@@ -78,6 +99,47 @@ class BulkSubmissionServiceTest {
         .extracting(
             BulkSubmission::getCreatedByUserId, BulkSubmission::getData, BulkSubmission::getStatus)
         .containsExactly(userId, mockDetails, BulkSubmissionStatus.READY_FOR_PARSING);
+  }
+
+  @ParameterizedTest(name = "submissionPeriod: {0}")
+  @CsvSource({
+    // null submission period
+    ",'Submission period is required, please check the file and try again.'",
+    // empty submission period
+    "' ','Submission period is required, please check the file and try again.'",
+    // invalid submission period
+    "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
+  })
+  @DisplayName("Throws BulkSubmissionValidationException when submission period is invalid")
+  void throwsWhenSubmissionPeriodInvalid(String submissionPeriod, String expectedMessage) {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    String userId = "test-user-id";
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getSubmissionPeriod()).thenReturn(submissionPeriod);
+    when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
+    when(mockOffice.getAccount()).thenReturn("TEST");
+
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+
+    BulkSubmissionValidationException exception =
+        assertThrows(
+            BulkSubmissionValidationException.class,
+            () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+
+    assertEquals(expectedMessage, exception.getMessage());
+
+    ArgumentCaptor<BulkSubmission> captor = ArgumentCaptor.forClass(BulkSubmission.class);
+    verify(bulkSubmissionRepository).save(captor.capture());
+    assertThat(captor.getValue())
+        .extracting(BulkSubmission::getStatus, BulkSubmission::getErrorCode)
+        .containsExactly(BulkSubmissionStatus.VALIDATION_FAILED, BulkSubmissionErrorCode.V100);
   }
 
   @Test
@@ -160,18 +222,33 @@ class BulkSubmissionServiceTest {
             .errorDescription("This is the error message")
             .updatedByUserId(API_USER_ID);
 
-    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.of(entity));
-
-    bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch);
-
-    verify(bulkSubmissionRepository).save(entity);
+    when(bulkSubmissionRepository.updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
+        .thenReturn(1);
+    assertDoesNotThrow(() -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
   }
 
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
   void shouldThrowWhenBulkSubmissionNotFoundOnUpdate() {
-    BulkSubmissionPatch patch = new BulkSubmissionPatch();
-    when(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID)).thenReturn(Optional.empty());
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .status(BulkSubmissionStatus.PARSING_FAILED)
+            .errorCode(BulkSubmissionErrorCode.E100)
+            .errorDescription("This is the error message")
+            .updatedByUserId(API_USER_ID);
+    when(bulkSubmissionRepository.updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
+        .thenReturn(0);
 
     assertThrows(
         BulkSubmissionNotFoundException.class,

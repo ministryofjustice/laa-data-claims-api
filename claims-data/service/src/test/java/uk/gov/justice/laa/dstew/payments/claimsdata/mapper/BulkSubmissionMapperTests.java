@@ -68,6 +68,38 @@ class BulkSubmissionMapperTests {
 
   @ParameterizedTest(name = "Should include field context when {0} conversion fails")
   @CsvSource({
+    "vatIndicator, VAT Applicable, X",
+    "londonNonlondonRate, London Rate, 1",
+    "toleranceIndicator, Tolerance Applicable, TRUE",
+    "legacyCase, Legacy Case, yes",
+    "postalApplAccp, Postal Application Accepted, false",
+    "substantiveHearing, Substantive Hearing, 2",
+    "additionalTravelPayment, Additional Travel Payment, no",
+    "clientLegallyAided, Is Legally Aided, false",
+    "client2PostalApplAccp, Client 2 Postal Application Accepted, true",
+    "dutySolicitor, Duty Solicitor, false",
+    "nationalRefMechanismAdvice, NRM Advice, FALSE",
+    "ircSurgery, IRC Surgery, FALSE",
+    "client2LegallyAided, Client 2 Legally Aided, FALSE",
+    "eligibleClient, Eligible Client, X",
+    "youthCourt, Youth Court, Z"
+  })
+  void shouldIncludeFieldContextWhenCsvOutcomeBooleanConversionFails(
+      String fieldName, String errorFieldName, String invalidValue) {
+    FileSubmission submission =
+        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y"));
+
+    BulkSubmissionFieldConversionException exception =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+
+    assertEquals(errorFieldName, exception.getFieldName());
+    assertEquals(invalidValue, exception.getRejectedValue());
+  }
+
+  @ParameterizedTest(name = "Should include field context when {0} conversion fails")
+  @CsvSource({
     "adviceTime, notANumber",
     "travelTime, notANumber",
     "waitingTime, notANumber",
@@ -218,7 +250,7 @@ class BulkSubmissionMapperTests {
                             fieldValue,
                             "costsDamagesRecovered",
                             fieldValue,
-                            "courtLocation",
+                            "courtLocationHpcds",
                             "localAuthorityNumber",
                             "paNumber",
                             "0.10",
@@ -279,6 +311,22 @@ class BulkSubmissionMapperTests {
     String numberOfMediationSessions = overrides.getOrDefault("numberOfMediationSessions", "10");
     String mediationTime = overrides.getOrDefault("mediationTime", "11");
     String excessTravelCosts = overrides.getOrDefault("excessTravelCosts", "0.10");
+    String vatIndicator = overrides.getOrDefault("vatIndicator", fieldValue);
+    String londonNonlondonRate = overrides.getOrDefault("londonNonlondonRate", fieldValue);
+    String toleranceIndicator = overrides.getOrDefault("toleranceIndicator", fieldValue);
+    String legacyCase = overrides.getOrDefault("legacyCase", fieldValue);
+    String postalApplAccp = overrides.getOrDefault("postalApplAccp", fieldValue);
+    String substantiveHearing = overrides.getOrDefault("substantiveHearing", fieldValue);
+    String additionalTravelPayment = overrides.getOrDefault("additionalTravelPayment", fieldValue);
+    String clientLegallyAided = overrides.getOrDefault("clientLegallyAided", fieldValue);
+    String client2PostalApplAccp = overrides.getOrDefault("client2PostalApplAccp", fieldValue);
+    String dutySolicitor = overrides.getOrDefault("dutySolicitor", fieldValue);
+    String nationalRefMechanismAdvice =
+        overrides.getOrDefault("nationalRefMechanismAdvice", fieldValue);
+    String ircSurgery = overrides.getOrDefault("ircSurgery", fieldValue);
+    String client2LegallyAided = overrides.getOrDefault("client2LegallyAided", fieldValue);
+    String eligibleClient = overrides.getOrDefault("eligibleClient", fieldValue);
+    String youthCourt = overrides.getOrDefault("youthCourt", fieldValue);
     return new CsvOutcome(
         "matterType",
         "feeCode",
@@ -309,22 +357,22 @@ class BulkSubmissionMapperTests {
         counselCost,
         disbursementsVat,
         travelWaitingCosts,
-        fieldValue,
-        fieldValue,
+        vatIndicator,
+        londonNonlondonRate,
         "clientType",
-        fieldValue,
+        toleranceIndicator,
         travelCosts,
         "outcomeCode",
-        fieldValue,
+        legacyCase,
         "claimType",
         adjournedHearingFee,
         "typeOfAdvice",
-        fieldValue,
+        postalApplAccp,
         "scheduleRef",
         "cmrhOral",
         "cmrhTelephone",
         "aitHearingCentre",
-        fieldValue,
+        substantiveHearing,
         hoInterview,
         "hoUcn",
         "04/01/2000",
@@ -332,19 +380,19 @@ class BulkSubmissionMapperTests {
         "deliveryLocation",
         "priorAuthorityRef",
         "jrFormFilling",
-        fieldValue,
+        additionalTravelPayment,
         "meetingsAttended",
         medicalReportsClaimed,
         desiAccRep,
         "mhtRefNumber",
         "stageReached",
         "followOnWork",
-        fieldValue,
+        nationalRefMechanismAdvice,
         "exemptionCriteriaSatisfied",
         "exclCaseFundingRef",
         noOfClients,
         noOfSurgeryClients,
-        fieldValue,
+        ircSurgery,
         "05/01/2000",
         "lineNumber",
         "crimeMatterType",
@@ -356,14 +404,14 @@ class BulkSubmissionMapperTests {
         "dsccNumber",
         "maatId",
         "prisonLawPriorApproval",
-        fieldValue,
-        fieldValue,
+        dutySolicitor,
+        youthCourt,
         "schemeId",
         numberOfMediationSessions,
         mediationTime,
         "outreach",
         "referral",
-        fieldValue,
+        clientLegallyAided,
         "client2Forename",
         "client2Surname",
         "07/01/2000",
@@ -372,13 +420,13 @@ class BulkSubmissionMapperTests {
         "client2Gender",
         "client2Ethnicity",
         "client2Disability",
-        fieldValue,
+        client2LegallyAided,
         "uniqueCaseId",
         "standardFeeCat",
-        fieldValue,
+        client2PostalApplAccp,
         "costsDamagesRecovered",
-        fieldValue,
-        "courtLocation",
+        eligibleClient,
+        "courtLocationHpcds",
         "localAuthorityNumber",
         "paNumber",
         excessTravelCosts,

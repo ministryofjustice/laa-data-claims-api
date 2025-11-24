@@ -6,11 +6,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService.DECIMAL_PLACES;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_PERIOD;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.RoundingMode;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -29,9 +36,23 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -106,6 +127,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .status(SubmissionStatus.CREATED)
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
             .build();
 
     // when: calling POST endpoint for submissions

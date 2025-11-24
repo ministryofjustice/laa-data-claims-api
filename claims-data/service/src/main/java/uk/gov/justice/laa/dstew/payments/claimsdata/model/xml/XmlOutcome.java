@@ -131,7 +131,7 @@ public record XmlOutcome(
     String client2PostalApplAccp,
     String costsDamagesRecovered,
     String eligibleClientIndicator,
-    String courtLocation,
+    String courtLocationHpcds,
     String localAuthorityNumber,
     String paNumber,
     String excessTravelCosts,
