@@ -1,6 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionVali
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
@@ -90,6 +95,8 @@ public class BulkSubmissionService
     validateOfficeCodeAndAccessPermissions(offices, bulkSubmissionDetails, bulkSubmissionBuilder);
 
     validateSubmissionPeriod(bulkSubmissionDetails, bulkSubmissionBuilder);
+
+    validateDateFormats(bulkSubmissionDetails, bulkSubmissionBuilder);
 
     BulkSubmission authorised =
         bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING).build();
@@ -169,6 +176,80 @@ public class BulkSubmissionService
       bulkSubmissionRepository.save(unauthorised);
 
       throw new BulkSubmissionOfficeAuthorisationException(errorMessage);
+    }
+  }
+
+  /**
+   * Validates the date formats for various date fields within the bulk submission details. This
+   * method checks multiple date fields from the bulk submission outcomes to ensure they conform to
+   * the required DD/MM/YYYY format and represent valid dates.
+   *
+   * @param bulkSubmissionDetails the details object containing the submission data to validate
+   * @param bulkSubmissionBuilder builder object used to construct the bulk submission response in
+   *     case of validation failures
+   * @throws BulkSubmissionValidationException if any date field fails validation
+   */
+  private void validateDateFormats(
+      GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
+      BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
+
+    List<@Valid BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getOutcomes)
+            .orElse(Collections.emptyList());
+
+    bulkSubmissionOutcomes.forEach(
+        outcome -> {
+          try {
+            validateDate(outcome.getCaseStartDate(), "Case Start Date");
+            validateDate(outcome.getClientDateOfBirth(), "Client Date of Birth");
+            validateDate(outcome.getWorkConcludedDate(), "Work Concluded Date");
+            validateDate(outcome.getTransferDate(), "Transfer Date");
+            validateDate(outcome.getSurgeryDate(), "Surgery Date");
+            validateDate(outcome.getRepOrderDate(), "Rep Order Date");
+            validateDate(outcome.getClient2DateOfBirth(), "Client 2 Date of Birth");
+            validateDate(outcome.getMedConcludedDate(), "Med Concluded Date");
+          } catch (Exception e) {
+            failSubmission(
+                e.getMessage() + " must be a valid date in the format DD/MM/YYYY",
+                bulkSubmissionBuilder);
+          }
+        });
+  }
+
+  /**
+   * Validates that a date string matches the required format DD/MM/YYYY and represents a valid
+   * date. Empty or null values are considered valid and skipped.
+   *
+   * @param dateStr the date string to validate
+   * @param fieldName name of the field being validated, used in error messages
+   * @throws IllegalArgumentException if the date string does not match the required format or does
+   *     not represent a valid date
+   */
+  private void validateDate(String dateStr, String fieldName) {
+    if (dateStr != null && !dateStr.isBlank()) {
+      if (!dateStr.matches("^\\d{2}/\\d{2}/\\d{4}$") || !isValidDate(dateStr)) {
+        throw new IllegalArgumentException(fieldName);
+      }
+    }
+  }
+
+  /**
+   * Validates if the provided date string represents a valid date in DD/MM/YYYY format. The method
+   * checks both the format and the actual validity of the date. For example, it will reject invalid
+   * dates like 29/02/2025 (non-leap year).
+   *
+   * @param dateStr the date string to validate in DD/MM/YYYY format
+   * @return true if the date string is valid, false otherwise
+   */
+  private boolean isValidDate(String dateStr) {
+    try {
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+      LocalDate date = LocalDate.parse(dateStr, formatter);
+      // Validate if parsed date matches original string to catch invalid dates like 29/02/2025
+      return dateStr.equals(date.format(formatter));
+    } catch (DateTimeParseException e) {
+      return false;
     }
   }
 
