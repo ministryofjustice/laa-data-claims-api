@@ -17,5 +17,5 @@ spec:
         severity: warning-laa-data-claims-api-uat
       annotations:
         summary: High rate of 404 errors
-        message: Namespace {{ $labels.namespace }} has {{ $value }} 404 errors in the last minute.
+        message: Namespace {{"{{"}} $labels.namespace {{"}}"}} has {{"{{"}} printf "%0.0f" $value {{"}}"}} 404 errors in the last minute.
         runbook_url: https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5829263558/Runbook+Data+Claims
