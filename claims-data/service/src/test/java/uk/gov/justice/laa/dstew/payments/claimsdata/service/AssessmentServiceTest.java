@@ -2,10 +2,15 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,9 +22,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -118,5 +125,50 @@ class AssessmentServiceTest {
           .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
           .hasMessageContaining(missingClaimSummaryFeeId.toString());
     }
+  }
+
+  @Test
+  void getAssessmentShouldReturnMappedObject() {
+    Assessment entity = new Assessment();
+
+    AssessmentGet dto = new AssessmentGet();
+    dto.setClaimId(CLAIM_1_ID);
+    dto.setId(ASSESSMENT_1_ID);
+    dto.setCreatedByUserId(USER_ID);
+    dto.setClaimId(CLAIM_1_ID);
+
+    when(assessmentRepository.findByIdAndClaimId(ASSESSMENT_1_ID, CLAIM_1_ID))
+        .thenReturn(Optional.of(entity));
+    when(assessmentMapper.toAssessmentGet(entity)).thenReturn(dto);
+
+    AssessmentGet result = assessmentService.getAssessment(CLAIM_1_ID, ASSESSMENT_1_ID);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(result.getId()).isEqualTo(ASSESSMENT_1_ID);
+    assertThat(result.getCreatedByUserId()).isEqualTo(USER_ID);
+  }
+
+  @Test
+  void getAssessmentShouldReturnEmpty() {
+    var mockAssessment = new Assessment();
+    mockAssessment.setId(ASSESSMENT_1_ID);
+    when(assessmentRepository.findByIdAndClaimId(ASSESSMENT_1_ID, CLAIM_1_ID))
+        .thenReturn(Optional.of(mockAssessment));
+    when(assessmentMapper.toAssessmentGet(mockAssessment)).thenReturn(null);
+
+    AssessmentGet result = assessmentService.getAssessment(CLAIM_1_ID, ASSESSMENT_1_ID);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void getAssessmentShouldReturnNotFoundWhenAssessmentNotFound() {
+    when(assessmentRepository.findByIdAndClaimId(ASSESSMENT_1_ID, CLAIM_1_ID))
+        .thenReturn(Optional.empty());
+
+    assertThrows(
+        AssessmentNotFoundException.class,
+        () -> assessmentService.getAssessment(CLAIM_1_ID, ASSESSMENT_1_ID));
   }
 }

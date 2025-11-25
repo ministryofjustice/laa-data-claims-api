@@ -21,6 +21,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -40,6 +41,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -100,6 +102,8 @@ public abstract class AbstractIntegrationTest {
   protected Claim claim2;
   protected Claim claim3;
   protected Claim claim4;
+  protected ClaimSummaryFee claimSummaryFee1;
+  protected ClaimSummaryFee claimSummaryFee2;
   protected CalculatedFeeDetail calculatedFeeDetail1;
   protected CalculatedFeeDetail calculatedFeeDetail2;
 
@@ -267,7 +271,7 @@ public abstract class AbstractIntegrationTest {
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
 
     var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
-    var summaryFee1 =
+    claimSummaryFee1 =
         ClaimSummaryFee.builder()
             .id(CLAIM_1_SUMMARY_FEE_ID)
             .claim(claim1)
@@ -308,7 +312,7 @@ public abstract class AbstractIntegrationTest {
             .createdOn(createdDateTime)
             .build();
 
-    var summaryFee2 =
+    claimSummaryFee2 =
         ClaimSummaryFee.builder()
             .id(Uuid7.timeBasedUuid())
             .claim(claim2)
@@ -349,12 +353,12 @@ public abstract class AbstractIntegrationTest {
             .createdOn(createdDateTime)
             .build();
 
-    claimSummaryFeeRepository.saveAll(List.of(summaryFee1, summaryFee2));
+    claimSummaryFeeRepository.saveAll(List.of(claimSummaryFee1, claimSummaryFee2));
 
     calculatedFeeDetail1 =
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claimSummaryFee(summaryFee1)
+            .claimSummaryFee(claimSummaryFee1)
             .claim(claim1)
             .feeCode("CALC-FEE-1")
             .feeType(FeeCalculationType.DISB_ONLY)
@@ -396,7 +400,7 @@ public abstract class AbstractIntegrationTest {
     calculatedFeeDetail2 =
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claimSummaryFee(summaryFee2)
+            .claimSummaryFee(claimSummaryFee2)
             .claim(claim2)
             .feeCode("CALC-FEE-2")
             .feeType(FeeCalculationType.FIXED)
@@ -529,5 +533,13 @@ public abstract class AbstractIntegrationTest {
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
                 CREATED_ON)));
+  }
+
+  void createAssessmentsTestData() {
+    clearIntegrationData();
+    createClaimsTestData();
+    Assessment assessment =
+        getAssessmentBuilder().claim(claim1).claimSummaryFee(claimSummaryFee1).build();
+    assessmentRepository.saveAll(List.of(assessment));
   }
 }

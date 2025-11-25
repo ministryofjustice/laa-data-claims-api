@@ -6,6 +6,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
@@ -35,4 +36,8 @@ public interface AssessmentMapper {
   @Mapping(target = "source", source = "message.source")
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Assessment assessment);
+
+  @Mapping(target = "claimId", source = "claim.id")
+  @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
+  AssessmentGet toAssessmentGet(Assessment assessment);
 }

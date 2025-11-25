@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -39,6 +40,8 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_2_ID = Uuid7.timeBasedUuid();
+  public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
+  public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
@@ -445,5 +448,28 @@ public class ClaimsDataTestUtil {
         .boltOnSubstantiveHearingFee(new BigDecimal(1400))
         .boltOnHomeOfficeInterviewFee(new BigDecimal(1500))
         .createdByUserId(API_USER_ID);
+  }
+
+  public static Assessment.AssessmentBuilder getAssessmentBuilder() {
+    return Assessment.builder()
+        .id(ASSESSMENT_1_ID)
+        .assessmentOutcome(AssessmentOutcome.REDUCED_TO_FIXED_FEE)
+        .fixedFeeAmount(BigDecimal.valueOf(100.00))
+        .netTravelCostsAmount(BigDecimal.valueOf(20.00))
+        .netWaitingCostsAmount(BigDecimal.valueOf(10.00))
+        .netProfitCostsAmount(BigDecimal.valueOf(50.00))
+        .disbursementAmount(BigDecimal.valueOf(15.00))
+        .disbursementVatAmount(BigDecimal.valueOf(3.00))
+        .netCostOfCounselAmount(BigDecimal.valueOf(25.00))
+        .detentionTravelAndWaitingCostsAmount(BigDecimal.valueOf(5.00))
+        .netTravelCostsAmount(BigDecimal.valueOf(8.00))
+        .isVatApplicable(true)
+        .boltOnAdjournedHearingFee(BigDecimal.valueOf(33.00))
+        .jrFormFillingAmount(BigDecimal.valueOf(30.00))
+        .boltOnCmrhOralFee(BigDecimal.valueOf(30.00))
+        .boltOnCmrhTelephoneFee(BigDecimal.valueOf(44))
+        .boltOnSubstantiveHearingFee(BigDecimal.valueOf(55))
+        .boltOnHomeOfficeInterviewFee(BigDecimal.valueOf(59))
+        .createdByUserId(USER_ID);
   }
 }
