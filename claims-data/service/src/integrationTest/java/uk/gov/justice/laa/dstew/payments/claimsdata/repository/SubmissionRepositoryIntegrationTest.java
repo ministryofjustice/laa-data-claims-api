@@ -156,11 +156,11 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
         .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission1);
+        .isEqualTo(submission2);
     assertThat(result.getContent().get(1))
         .usingRecursiveComparison()
         .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission2);
+        .isEqualTo(submission1);
   }
 
   @Test

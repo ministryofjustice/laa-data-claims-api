@@ -148,6 +148,8 @@ class BulkSubmissionServiceTest {
   @CsvSource({
     // Valid dates
     "Case Start Date,getCaseStartDate,01/01/2025,true",
+    "Case Start Date,getCaseStartDate,1/1/2025,true",
+    "Case Start Date,getCaseStartDate, 1/1/2025 ,true",
     "Client Date of Birth,getClientDateOfBirth,31/12/1980,true",
     "Work Concluded Date,getWorkConcludedDate,15/06/2025,true",
     "Transfer Date,getTransferDate,25/11/2025,true",
