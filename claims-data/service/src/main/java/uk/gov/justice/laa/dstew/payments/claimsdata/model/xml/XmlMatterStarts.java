@@ -1,16 +1,22 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.model.xml;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+import uk.gov.justice.laa.dstew.payments.claimsdata.converter.XmlMatterStartsDeserializer;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 
 /**
- * Record holding details of the office submitting a claim.
- *
- * @param account the account number of the office.
- * @param schedule the schedule details for the office.
+ * Record representing matter starts data in XML format. Maps to the "newMatterStarts" XML root
+ * element for bulk submission processing.
  */
-@JacksonXmlRootElement(localName = "office")
-public record XmlOffice(
-    @JacksonXmlProperty(isAttribute = true) String account,
-    @JacksonXmlProperty @JsonProperty(required = true) XmlSchedule schedule) {}
+@JacksonXmlRootElement(localName = "newMatterStarts")
+@JsonDeserialize(using = XmlMatterStartsDeserializer.class)
+public record XmlMatterStarts(
+    String scheduleRef,
+    String procurementArea,
+    String accessPoint,
+    CategoryCode categoryCode,
+    String deliveryLocation,
+    MediationType mediationType,
+    Integer numberOfMatterStarts) {}

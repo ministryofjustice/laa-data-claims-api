@@ -1,3 +1,6 @@
+server:
+  port: 8091
+
 spring:
   application:
     name: LAA Data Stewardship Payments - Claims Data Application

@@ -11,10 +11,13 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -28,8 +31,16 @@ public class BulkSubmissionXmlConverterTests {
 
   private static final String OUTCOMES_INPUT_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client.xml";
+  private static final String MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_mediation_type.xml";
+  private static final String MATTER_STARTS_CATEGORY_CODE_INPUT_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_mediation_type_converted.json";
+  private static final String MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_category_code_converted.json";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
@@ -61,6 +72,34 @@ public class BulkSubmissionXmlConverterTests {
       String expected = getContent(convertedFile);
 
       assertEquals(expected, actual);
+    }
+
+    @ParameterizedTest(name = "Can convert a bulk submission file with matter starts - {2}")
+    @MethodSource("matterStartsTestData")
+    void canConvertMatterStartsToXmlSubmission(MatterStartsTestData testData) throws IOException {
+      MultipartFile file = getMultipartFile(testData.inputFile());
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(testData.convertedFile());
+      String expected = getContent(convertedFile);
+
+      assertEquals(expected, actual);
+    }
+
+    private record MatterStartsTestData(
+        String inputFile, String convertedFile, String displayName) {}
+
+    private static Stream<MatterStartsTestData> matterStartsTestData() {
+      return Stream.of(
+          new MatterStartsTestData(
+              MATTER_STARTS_CATEGORY_CODE_INPUT_FILE,
+              MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE,
+              "category code"),
+          new MatterStartsTestData(
+              MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE,
+              MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE,
+              "mediation type"));
     }
 
     @Test
