@@ -829,8 +829,6 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Claim ID or claim summary fee ID not found'
-        '429':
-          description: 'Too many requests'
         '500':
           description: 'Internal server error'
 components:
@@ -1740,10 +1738,6 @@ components:
           $ref: "#/components/schemas/assessment_outcome"
         fixed_fee_amount:
           type: number
-        net_travel_costs_amount:
-          type: number
-        net_waiting_costs_amount:
-          type: number
         net_profit_costs_amount:
           type: number
         disbursement_amount:
@@ -1752,24 +1746,26 @@ components:
           type: number
         net_cost_of_counsel_amount:
           type: number
-        travel_waiting_costs_amount:
+        net_travel_costs_amount:
           type: number
-        travel_and_waiting_costs_amount:
+        net_waiting_costs_amount:
+          type: number
+        detention_travel_and_waiting_costs_amount:
+          type: number
+        jr_form_filling_amount:
+          type: number
+        bolt_on_adjourned_hearing_fee:
+          type: number
+        bolt_on_cmrh_telephone_fee:
+          type: number
+        bolt_on_cmrh_oral_fee:
+          type: number
+        bolt_on_home_office_interview_fee:
+          type: number
+        bolt_on_substantive_hearing_fee:
           type: number
         is_vat_applicable:
           type: boolean
-        adjourned_hearing_fee_amount:
-          type: integer
-        jr_form_filling_amount:
-          type: number
-        cmrh_oral_count:
-          type: integer
-        cmrh_telephone_count:
-          type: integer
-        is_substantive_hearing:
-          type: boolean
-        ho_interview:
-          type: integer
         created_by_user_id:
           type: string
     assessment_post:

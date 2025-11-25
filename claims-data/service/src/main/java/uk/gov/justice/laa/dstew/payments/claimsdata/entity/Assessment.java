@@ -62,23 +62,21 @@ public class Assessment {
 
   private BigDecimal netCostOfCounselAmount;
 
-  private BigDecimal travelWaitingCostsAmount;
-
-  private BigDecimal travelAndWaitingCostsAmount;
+  private BigDecimal detentionTravelAndWaitingCostsAmount;
 
   private Boolean isVatApplicable;
 
-  private Integer adjournedHearingFeeAmount;
+  private BigDecimal boltOnAdjournedHearingFee;
 
   private BigDecimal jrFormFillingAmount;
 
-  private Integer cmrhOralCount;
+  private BigDecimal boltOnCmrhOralFee;
 
-  private Integer cmrhTelephoneCount;
+  private BigDecimal boltOnCmrhTelephoneFee;
 
-  private Boolean isSubstantiveHearing;
+  private BigDecimal boltOnSubstantiveHearingFee;
 
-  private Integer hoInterview;
+  private BigDecimal boltOnHomeOfficeInterviewFee;
 
   @NotNull
   @Column(nullable = false)

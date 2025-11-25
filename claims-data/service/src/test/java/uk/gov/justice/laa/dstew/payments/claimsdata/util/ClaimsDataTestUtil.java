@@ -436,15 +436,14 @@ public class ClaimsDataTestUtil {
         .disbursementAmount(new BigDecimal("500.00"))
         .disbursementVatAmount(new BigDecimal("600.00"))
         .netCostOfCounselAmount(new BigDecimal("700.00"))
-        .travelWaitingCostsAmount(new BigDecimal("800.00"))
-        .travelAndWaitingCostsAmount(new BigDecimal("900.00"))
+        .detentionTravelAndWaitingCostsAmount(new BigDecimal("800.00"))
         .isVatApplicable(true)
-        .adjournedHearingFeeAmount(1000)
+        .boltOnAdjournedHearingFee(new BigDecimal(1000))
         .jrFormFillingAmount(new BigDecimal("1100.00"))
-        .cmrhOralCount(1200)
-        .cmrhTelephoneCount(1300)
-        .isSubstantiveHearing(false)
-        .hoInterview(1400)
+        .boltOnCmrhOralFee(new BigDecimal(1200))
+        .boltOnCmrhTelephoneFee(new BigDecimal(1300))
+        .boltOnSubstantiveHearingFee(new BigDecimal(1400))
+        .boltOnHomeOfficeInterviewFee(new BigDecimal(1500))
         .createdByUserId(API_USER_ID);
   }
 }

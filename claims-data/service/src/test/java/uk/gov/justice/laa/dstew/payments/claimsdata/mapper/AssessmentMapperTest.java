@@ -46,15 +46,16 @@ class AssessmentMapperTest {
     assertEquals(post.getDisbursementAmount(), entity.getDisbursementAmount());
     assertEquals(post.getDisbursementVatAmount(), entity.getDisbursementVatAmount());
     assertEquals(post.getNetCostOfCounselAmount(), entity.getNetCostOfCounselAmount());
-    assertEquals(post.getTravelWaitingCostsAmount(), entity.getTravelWaitingCostsAmount());
-    assertEquals(post.getTravelAndWaitingCostsAmount(), entity.getTravelAndWaitingCostsAmount());
+    assertEquals(
+        post.getDetentionTravelAndWaitingCostsAmount(),
+        entity.getDetentionTravelAndWaitingCostsAmount());
     assertEquals(post.getIsVatApplicable(), entity.getIsVatApplicable());
-    assertEquals(post.getAdjournedHearingFeeAmount(), entity.getAdjournedHearingFeeAmount());
+    assertEquals(post.getBoltOnAdjournedHearingFee(), entity.getBoltOnAdjournedHearingFee());
     assertEquals(post.getJrFormFillingAmount(), entity.getJrFormFillingAmount());
-    assertEquals(post.getCmrhOralCount(), entity.getCmrhOralCount());
-    assertEquals(post.getCmrhTelephoneCount(), entity.getCmrhTelephoneCount());
-    assertEquals(post.getIsSubstantiveHearing(), entity.getIsSubstantiveHearing());
-    assertEquals(post.getHoInterview(), entity.getHoInterview());
+    assertEquals(post.getBoltOnCmrhOralFee(), entity.getBoltOnCmrhOralFee());
+    assertEquals(post.getBoltOnCmrhTelephoneFee(), entity.getBoltOnCmrhTelephoneFee());
+    assertEquals(post.getBoltOnSubstantiveHearingFee(), entity.getBoltOnSubstantiveHearingFee());
+    assertEquals(post.getBoltOnHomeOfficeInterviewFee(), entity.getBoltOnHomeOfficeInterviewFee());
     assertEquals(post.getCreatedByUserId(), entity.getCreatedByUserId());
   }
 
