@@ -1,0 +1,17 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission
+        xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+        xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <office account="2P554H">
+        <schedule submissionPeriod="JAN-2010" areaOfLaw="CRIME LOWER" scheduleNum="ABC/20000L/10">
+            <outcome matterType="INVC">
+                <outcomeItem name="FEE_CODE">FEE001</outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER">CASE_REF_001</outcomeItem>
+            </outcome>
+            <newMatterStarts>
+                <matterStart code="MDCS"></matterStart>
+            </newMatterStarts>
+        </schedule>
+    </office>
+</submission>

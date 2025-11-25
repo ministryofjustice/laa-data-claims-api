@@ -30,7 +30,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
     try {
       submission = xmlMapper.readValue(file.getInputStream(), XmlSubmission.class);
     } catch (IOException e) {
-      throw new BulkSubmissionFileReadException("Failed to read xml bulk submission file", e);
+      throw new BulkSubmissionFileReadException(e.getMessage());
     }
 
     return submission;

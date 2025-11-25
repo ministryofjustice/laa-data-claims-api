@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
+import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 
@@ -131,7 +132,15 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
 
     String matterType = node.get("matterType").asText();
 
-    for (JsonNode outcomeItem : node.get("outcomeItem")) {
+    JsonNode outcomeItemNode = node.get("outcomeItem");
+    Iterable<JsonNode> outcomeItems;
+    if (outcomeItemNode.isArray()) {
+      outcomeItems = outcomeItemNode;
+    } else {
+      outcomeItems = List.of(outcomeItemNode);
+    }
+
+    for (JsonNode outcomeItem : outcomeItems) {
       JsonNode nameNode = outcomeItem.get("name");
       JsonNode valueNode = outcomeItem.get("");
 
