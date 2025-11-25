@@ -33,6 +33,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/outcomes_with_client.xml";
   private static final String MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_mediation_type.xml";
+  private static final String MATTER_STARTS_ONLY_MEDIATION_TYPES_INPUT_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_only_mediation_types.xml";
   private static final String MATTER_STARTS_CATEGORY_CODE_INPUT_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
@@ -41,6 +43,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_mediation_type_converted.json";
   private static final String MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_category_code_converted.json";
+  private static final String MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_only_mediation_types_converted.json";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
@@ -99,6 +103,10 @@ public class BulkSubmissionXmlConverterTests {
           new MatterStartsTestData(
               MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE,
               MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE,
+              "mediation type"),
+          new MatterStartsTestData(
+              MATTER_STARTS_ONLY_MEDIATION_TYPES_INPUT_FILE,
+              MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE,
               "mediation type"));
     }
 

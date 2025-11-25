@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -36,11 +38,14 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -139,6 +144,101 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "matter_starts_with_mediation_type.xml,MDAS_ALL_ISSUES_SOLE,MDPC_PROPERTY_FINANCE_CO,,",
+    "matter_starts_with_category_code.xml,,,HOU,AAP"
+  })
+  void shouldSaveXmlSubmissionToDatabaseAndPublishMessage(
+      String xmlFile,
+      MediationType expectedMediationType,
+      MediationType secondMediationType,
+      CategoryCode expectedCategoryCode,
+      CategoryCode secondCategoryCode)
+      throws Exception {
+    // Given an XML file containing outcomes and matter starts
+    ClassPathResource resource = new ClassPathResource("test_upload_files/xml/" + xmlFile);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    BulkSubmissionOutcome bulkSubmissionOutcome =
+        savedBulkSubmission.getData().getOutcomes().getFirst();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("INVC");
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isFalse();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isFalse();
+    assertThat(bulkSubmissionOutcome.getUcn()).isEqualTo("14091962/T/PERS");
+
+    verifyBulkSubmissionMatterStart(
+        0,
+        savedBulkSubmission,
+        "0U719K/2024/01",
+        "PA00032",
+        "LONDON",
+        "AP00000",
+        expectedCategoryCode,
+        expectedMediationType,
+        4);
+
+    verifyBulkSubmissionMatterStart(
+        1,
+        savedBulkSubmission,
+        "0U719K/2024/02",
+        "PA00033",
+        "IRELAND",
+        "AP00001",
+        secondCategoryCode,
+        secondMediationType,
+        5);
+
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  private static void verifyBulkSubmissionMatterStart(
+      int index,
+      BulkSubmission savedBulkSubmission,
+      String scheduleRef,
+      String procurementArea,
+      String deliveryLocation,
+      String accessPoint,
+      CategoryCode categoryCode,
+      MediationType mediationType,
+      int numberOfMatterStarts) {
+    BulkSubmissionMatterStart bulkSubmissionMatterStart =
+        savedBulkSubmission.getData().getMatterStarts().get(index);
+    assertThat(bulkSubmissionMatterStart.getScheduleRef()).isEqualTo(scheduleRef);
+    assertThat(bulkSubmissionMatterStart.getProcurementArea()).isEqualTo(procurementArea);
+    assertThat(bulkSubmissionMatterStart.getDeliveryLocation()).isEqualTo(deliveryLocation);
+    assertThat(bulkSubmissionMatterStart.getAccessPoint()).isEqualTo(accessPoint);
+    assertThat(bulkSubmissionMatterStart.getMediationType()).isEqualTo(mediationType);
+    assertThat(bulkSubmissionMatterStart.getNumberOfMatterStarts()).isEqualTo(numberOfMatterStarts);
+    assertThat(bulkSubmissionMatterStart.getCategoryCode()).isEqualTo(categoryCode);
   }
 
   @Test

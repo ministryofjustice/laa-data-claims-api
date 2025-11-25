@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -30,7 +31,20 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
 
     JsonNode node = mapper.readTree(p);
 
-    for (JsonNode matterStart : node.get("matterStart")) {
+    JsonNode matterStartNode = node.get("matterStart");
+    if (matterStartNode == null) {
+      throw new BulkSubmissionFileReadException("MatterStart node not found in XML.");
+    }
+
+    Iterable<JsonNode> matterStarts;
+    if (matterStartNode.isArray()) {
+      matterStarts = matterStartNode;
+    } else {
+      matterStarts = List.of(matterStartNode);
+    }
+
+    for (JsonNode matterStart : matterStarts) {
+
       JsonNode codeNode = matterStart.get("code");
       JsonNode valueNode = matterStart.get("");
 
@@ -39,7 +53,7 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
       }
 
       String name = codeNode.asText();
-      String value = valueNode == null ? null : valueNode.asText();
+      String value = valueNode == null ? null : valueNode.asText().trim();
 
       switch (name) {
         case "SCHEDULE_REF" -> scheduleRef = value;
