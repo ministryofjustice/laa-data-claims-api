@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +27,19 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFile
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
+/**
+ * Test class for {@link BulkSubmissionXmlConverter} that verifies XML file conversion functionality
+ * and handling of different file extensions. This class tests the conversion of bulk submission XML
+ * files to {@link XmlSubmission} objects and validates proper handling of various scenarios
+ * including invalid inputs, missing data, and different file types.
+ *
+ * <p>The test suite is divided into two main sections:
+ *
+ * <ul>
+ *   <li>Convert - Tests for XML file conversion functionality
+ *   <li>Handles - Tests for file extension support validation
+ * </ul>
+ */
 public class BulkSubmissionXmlConverterTests {
 
   ObjectMapper objectMapper;
@@ -70,6 +83,10 @@ public class BulkSubmissionXmlConverterTests {
   private static final String MISSING_SCHEDULE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_schedule.xml";
 
+  /**
+   * Initializes the test environment before each test execution. Sets up the ObjectMapper with
+   * proper configuration and creates a new instance of BulkSubmissionXmlConverter.
+   */
   @BeforeEach
   public void init() {
     objectMapper = new ObjectMapper();
