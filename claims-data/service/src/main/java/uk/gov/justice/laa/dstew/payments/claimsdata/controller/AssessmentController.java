@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.AssessmentsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
@@ -34,5 +35,14 @@ public class AssessmentController implements AssessmentsApi {
         CreateAssessment201Response.builder().id(assessmentId).build();
 
     return ResponseEntity.created(location).body(response);
+  }
+
+  @Override
+  public ResponseEntity<AssessmentGet> getAssessment(UUID claimId, UUID assessmentId) {
+    AssessmentGet assessment = assessmentService.getAssessment(claimId, assessmentId);
+    if (assessment == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(assessment);
   }
 }

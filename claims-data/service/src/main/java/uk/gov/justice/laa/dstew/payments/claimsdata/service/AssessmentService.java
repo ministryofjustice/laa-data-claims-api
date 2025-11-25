@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -56,5 +58,31 @@ public class AssessmentService {
     assessment.setClaimSummaryFee(claimSummaryFee);
 
     return assessmentRepository.save(assessment).getId();
+  }
+
+  /**
+   * Retrieves an {@link AssessmentGet} representation of an assessment for a given claim.
+   *
+   * <p>This method looks up an {@link Assessment} by its unique {@code assessmentId} and associated
+   * {@code claimId}. If no matching assessment is found, an {@link AssessmentNotFoundException} is
+   * thrown.
+   *
+   * @param claimId the unique identifier of the claim
+   * @param assessmentId the unique identifier of the assessment
+   * @return an {@link AssessmentGet} DTO containing assessment details
+   * @throws AssessmentNotFoundException if the assessment does not exist for the given claim
+   */
+  public AssessmentGet getAssessment(UUID claimId, UUID assessmentId) {
+    var assessment =
+        assessmentRepository
+            .findByIdAndClaimId(assessmentId, claimId)
+            .orElseThrow(
+                () ->
+                    new AssessmentNotFoundException(
+                        String.format(
+                            "No Assessment found with id: %s and claim id: %s",
+                            assessmentId, claimId)));
+
+    return assessmentMapper.toAssessmentGet(assessment);
   }
 }

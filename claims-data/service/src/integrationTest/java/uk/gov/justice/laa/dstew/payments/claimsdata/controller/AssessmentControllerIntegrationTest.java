@@ -1,21 +1,29 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
 import java.util.UUID;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -25,6 +33,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   private static final String POST_AN_ASSESSMENT_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/assessments";
+  private static final String GET_ASSESSMENT_URI = "/claims/{claimId}/assessments/{assessmentId}";
 
   @Test
   void shouldSaveAnAssessmentToDatabase() throws Exception {
@@ -114,5 +123,54 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void getAssessment_shouldReturnNotFound() throws Exception {
+    createClaimsTestData();
+    mockMvc
+        .perform(
+            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_2_ID, UUID.randomUUID())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound())
+        .andReturn();
+  }
+
+  @DisplayName("Status 200: when a valid Claim ID & Assessment ID is provided")
+  @Test
+  void getAssessmentShouldReturnSuccess() throws Exception {
+    createAssessmentsTestData();
+    // when: calling GET endpoint with a valid claim and assessment ID
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    AssessmentGet result =
+        OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), AssessmentGet.class);
+    AssertionsForClassTypes.assertThat(result.getClaimId()).isEqualTo(CLAIM_1_ID);
+    AssertionsForClassTypes.assertThat(result.getAssessmentOutcome())
+        .isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
+  }
+
+  @DisplayName("Status 400: when a Assessment ID with an invalid format (non-UUID)")
+  @Test
+  void getAssessmentShouldReturnBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, "invalid-claim-id")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @DisplayName("Status 401: When authentication token missing")
+  @Test
+  void getAssessmentShouldReturnForbidden() throws Exception {
+    mockMvc
+        .perform(get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID))
+        .andExpect(status().isUnauthorized());
   }
 }
