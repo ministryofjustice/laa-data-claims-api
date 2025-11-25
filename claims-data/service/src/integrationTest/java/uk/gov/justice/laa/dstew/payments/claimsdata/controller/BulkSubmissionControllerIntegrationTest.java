@@ -16,6 +16,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,13 +97,18 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     this.queueUrl = queueUrlResponse.queueUrl();
   }
 
-  @Test
-  void shouldSaveSubmissionToDatabaseAndPublishMessage() throws Exception {
+  @ParameterizedTest
+  @CsvSource({
+    "test_upload_files/csv/outcomes.csv,false",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true"
+  })
+  void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath, boolean hasMatterStarts)
+      throws Exception {
     // Given:
-    // Below fields are set to "Y" in outcomes.csv
+    // Below fields are set to "Y" in both files
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
-    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+    ClassPathResource resource = new ClassPathResource(filePath);
 
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
@@ -142,8 +148,50 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(bulkSubmissionOutcome.getEligibleClient()).isTrue();
     assertThat(bulkSubmissionOutcome.getYouthCourt()).isTrue();
 
+    if (hasMatterStarts) {
+      verifyBulkSubmissionMatterStarts(savedBulkSubmission);
+    }
+
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
+    Stream.of(
+            new Object[] {
+              0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
+            },
+            new Object[] {
+              1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
+            },
+            new Object[] {
+              2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
+            },
+            new Object[] {
+              3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
+            },
+            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
+            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
+            new Object[] {
+              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+            },
+            new Object[] {
+              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+            },
+            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
+            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
+        .forEach(
+            params ->
+                verifyBulkSubmissionMatterStart(
+                    (int) params[0],
+                    savedBulkSubmission,
+                    (String) params[1],
+                    (String) params[2],
+                    (String) params[3],
+                    (String) params[4],
+                    (CategoryCode) params[5],
+                    (MediationType) params[6],
+                    (int) params[7]));
   }
 
   @ParameterizedTest
