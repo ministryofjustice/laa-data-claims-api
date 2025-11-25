@@ -99,11 +99,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/csv/outcomes.csv,false",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true"
+    "test_upload_files/csv/outcomes.csv,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,text/csv",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,text/xml"
   })
-  void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath, boolean hasMatterStarts)
-      throws Exception {
+  void shouldSaveSubmissionToDatabaseAndPublishMessage(
+      String filePath, boolean hasMatterStarts, String contentType) throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
@@ -111,7 +112,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     ClassPathResource resource = new ClassPathResource(filePath);
 
     MockMultipartFile file =
-        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+        new MockMultipartFile(FILE, resource.getFilename(), contentType, resource.getInputStream());
 
     // when: calling the POST endpoint with the file
     MvcResult result =
@@ -192,80 +193,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
                     (CategoryCode) params[5],
                     (MediationType) params[6],
                     (int) params[7]));
-  }
-
-  @ParameterizedTest
-  @CsvSource({
-    "matter_starts_with_mediation_type.xml,MDAS_ALL_ISSUES_SOLE,MDPC_PROPERTY_FINANCE_CO,,",
-    "matter_starts_with_category_code.xml,,,HOU,AAP"
-  })
-  void shouldSaveXmlSubmissionToDatabaseAndPublishMessage(
-      String xmlFile,
-      MediationType expectedMediationType,
-      MediationType secondMediationType,
-      CategoryCode expectedCategoryCode,
-      CategoryCode secondCategoryCode)
-      throws Exception {
-    // Given an XML file containing outcomes and matter starts
-    ClassPathResource resource = new ClassPathResource("test_upload_files/xml/" + xmlFile);
-
-    MockMultipartFile file =
-        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
-
-    // when: calling the POST endpoint with the file
-    MvcResult result =
-        mockMvc
-            .perform(
-                multipart(POST_BULK_SUBMISSION_ENDPOINT)
-                    .file(file)
-                    .param(USER_ID_PARAM, TEST_USER)
-                    .param(OFFICES_PARAM, TEST_OFFICE)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isCreated())
-            .andReturn();
-
-    // then: response body contains IDs
-    String responseBody = result.getResponse().getContentAsString();
-    assertThat(responseBody).contains("bulk_submission_id");
-    assertThat(responseBody).contains("submission_ids");
-
-    // then: the database has a persisted entity with values as "true" for fields set to "Y"
-    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
-    assertThat(submissions).hasSize(1);
-    BulkSubmission savedBulkSubmission = submissions.getFirst();
-    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
-    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
-    BulkSubmissionOutcome bulkSubmissionOutcome =
-        savedBulkSubmission.getData().getOutcomes().getFirst();
-    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("INVC");
-    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isFalse();
-    assertThat(bulkSubmissionOutcome.getYouthCourt()).isFalse();
-    assertThat(bulkSubmissionOutcome.getUcn()).isEqualTo("14091962/T/PERS");
-
-    verifyBulkSubmissionMatterStart(
-        0,
-        savedBulkSubmission,
-        "0U719K/2024/01",
-        "PA00032",
-        "LONDON",
-        "AP00000",
-        expectedCategoryCode,
-        expectedMediationType,
-        4);
-
-    verifyBulkSubmissionMatterStart(
-        1,
-        savedBulkSubmission,
-        "0U719K/2024/02",
-        "PA00033",
-        "IRELAND",
-        "AP00001",
-        secondCategoryCode,
-        secondMediationType,
-        5);
-
-    // then: SQS has received a message
-    verifyIfSqsMessageIsReceived(savedBulkSubmission);
   }
 
   private static void verifyBulkSubmissionMatterStart(
