@@ -62,6 +62,10 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
         List<String> row = rowIterator.nextValue();
         String rawHeader = row.getFirst().replaceAll("[^\\p{Print}]", "").trim();
+        // This will handle the case where a csv file has got empty rows (no header, no tags).
+        if (rawHeader.isEmpty()) {
+          continue;
+        }
         CsvHeader header = getHeader(rawHeader);
         Map<String, String> values = getValues(row, header);
         csvBulkSubmissionRow = new CsvBulkSubmissionRow(header, values);
