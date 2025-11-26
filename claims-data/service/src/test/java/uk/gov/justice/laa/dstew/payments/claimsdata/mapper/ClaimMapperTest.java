@@ -453,10 +453,10 @@ class ClaimMapperTest {
   @Test
   void updateClaimResponseFromCalculatedFeeDetail_createsNestedResponseWhenMissing() {
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
-    UUID claimSummaryFeeId = UUID.randomUUID();
+    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
     claimSummaryFee.setId(claimSummaryFeeId);
 
-    UUID calculatedFeeDetailId = UUID.randomUUID();
+    UUID calculatedFeeDetailId = Uuid7.timeBasedUuid();
 
     final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
     final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
