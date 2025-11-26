@@ -65,6 +65,8 @@ dependencies {
     implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:8.26.0'
+//    implementation 'io.sentry:sentry-logback:8.26.0'
 
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 

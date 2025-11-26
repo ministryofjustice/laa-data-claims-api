@@ -82,6 +82,17 @@ resilience4j.ratelimiter:
       limitForPeriod: 10
       limitRefreshPeriod: 1s
 
+sentry:
+  dsn: https://274196f6b7abfe14fbdda4bb14ce3620@o345774.ingest.us.sentry.io/4510307157344256
+  send-default-pii: true
+  enabled: true
+  sample-rate: 1
+  debug: true
+
+logging:
+  level:
+    io.sentry: DEBUG
+
 laa:
   springboot.starter.auth:
     authentication-header: "Authorization"
