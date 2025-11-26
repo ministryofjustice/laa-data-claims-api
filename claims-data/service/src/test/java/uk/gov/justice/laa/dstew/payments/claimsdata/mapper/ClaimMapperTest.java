@@ -452,6 +452,10 @@ class ClaimMapperTest {
 
   @Test
   void updateClaimResponseFromCalculatedFeeDetail_createsNestedResponseWhenMissing() {
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    UUID claimSummaryFeeId = UUID.randomUUID();
+    claimSummaryFee.setId(claimSummaryFeeId);
+
     final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
     final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
     feeDetail.setClaim(claim);
@@ -488,6 +492,7 @@ class ClaimMapperTest {
     feeDetail.setBoltOnSubstantiveHearingFee(new BigDecimal("7.30"));
     feeDetail.setEscapeCaseFlag(Boolean.TRUE);
     feeDetail.setSchemeId("SCHEME-01");
+    feeDetail.setClaimSummaryFee(claimSummaryFee);
 
     final ClaimResponse claimResponse = new ClaimResponse();
 
@@ -496,6 +501,7 @@ class ClaimMapperTest {
     final FeeCalculationPatch feeCalculationResponse = claimResponse.getFeeCalculationResponse();
     assertNotNull(feeCalculationResponse);
     assertThat(feeCalculationResponse.getClaimId()).isEqualTo(claim.getId());
+    assertThat(feeCalculationResponse.getClaimSummaryFeeId()).isEqualTo(claimSummaryFeeId);
     assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("FEE001");
     assertThat(feeCalculationResponse.getFeeCodeDescription()).isEqualTo("Fee description");
     assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISB_ONLY);

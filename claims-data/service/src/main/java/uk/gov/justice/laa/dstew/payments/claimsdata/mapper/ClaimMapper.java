@@ -128,6 +128,7 @@ public interface ClaimMapper {
 
   @Named("updateFeeCalculationResponseFromCalculatedFeeDetail")
   @Mapping(target = "claimId", source = "claim.id")
+  @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
   @Mapping(
       target = "boltOnDetails",
       source = "entity",
