@@ -70,7 +70,9 @@ class AssessmentControllerTest {
           "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
-          "created_by_user_id": "test-user"
+          "created_by_user_id": "test-user",
+          "allowed_total_vat": "1",
+          "allowed_total_incl_vat": "1"
         }
         """;
 
@@ -102,7 +104,9 @@ class AssessmentControllerTest {
           "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
-          "created_by_user_id": "test-user"
+          "created_by_user_id": "test-user",
+          "allowed_total_vat": "1",
+          "allowed_total_incl_vat": "1"
         }
         """;
 
@@ -128,7 +132,9 @@ class AssessmentControllerTest {
           "claim_id": "c2ecc377-3223-49c3-999b-08ea461bbd1e",
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
-          "created_by_user_id": "test-user"
+          "created_by_user_id": "test-user",
+          "allowed_total_vat": "1",
+          "allowed_total_incl_vat": "1"
         }
         """;
 
