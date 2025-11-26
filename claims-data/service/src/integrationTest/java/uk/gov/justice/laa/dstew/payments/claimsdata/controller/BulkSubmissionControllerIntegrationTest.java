@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode.V100;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -553,18 +554,27 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .andExpect(status().isNoContent())
         .andReturn();
 
-    // then: should update the bulk submission
-    BulkSubmission updated = bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow();
-    assertThat(updated)
-        .extracting(
-            BulkSubmission::getStatus,
-            BulkSubmission::getErrorCode,
-            BulkSubmission::getErrorDescription)
-        .containsExactly(
-            BulkSubmissionStatus.VALIDATION_FAILED,
-            BulkSubmissionErrorCode.V100,
-            "This is the error message");
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
 
+    // then: response body contains bulk_submission_id, status and details
+    String responseBody = result.getResponse().getContentAsString();
+
+    var getBulkSubmission200Response =
+        OBJECT_MAPPER.readValue(responseBody, GetBulkSubmission200Response.class);
+
+    assertThat(getBulkSubmission200Response.getBulkSubmissionId()).isEqualTo(BULK_SUBMISSION_ID);
+    assertThat(getBulkSubmission200Response.getStatus())
+        .isEqualTo(BulkSubmissionStatus.VALIDATION_FAILED);
+    assertThat(getBulkSubmission200Response.getErrorCode()).isEqualTo(V100);
+    assertThat(getBulkSubmission200Response.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(getBulkSubmission200Response.getErrorDescription())
+        .isEqualTo("This is the error message");
     // clean up the test-data
     bulkSubmissionRepository.deleteAll();
   }
@@ -584,5 +594,78 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
         .andExpect(status().isNotFound())
         .andReturn();
+  }
+
+  @Test
+  void shouldOnlyUpdateFieldsIncludedInPatch() throws Exception {
+    // Given: create initial bulk submission
+    createBulkSubmissionWithErrorFields();
+
+    GetBulkSubmission200Response beforeUpdate =
+        OBJECT_MAPPER.readValue(
+            mockMvc
+                .perform(
+                    get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            GetBulkSubmission200Response.class);
+
+    // When: patch with only status update and updatedByUserId
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch()
+            .status(BulkSubmissionStatus.VALIDATION_FAILED)
+            .updatedByUserId("updated-by-user");
+
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    // Then: verify only status and updatedByUserId were updated
+    GetBulkSubmission200Response afterUpdate =
+        OBJECT_MAPPER.readValue(
+            mockMvc
+                .perform(
+                    get(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(),
+            GetBulkSubmission200Response.class);
+
+    assertThat(afterUpdate.getStatus()).isEqualTo(BulkSubmissionStatus.VALIDATION_FAILED);
+    assertThat(afterUpdate.getUpdatedByUserId()).isEqualTo("updated-by-user");
+
+    // Rest of the values should be the same as before
+    assertThat(afterUpdate.getErrorCode()).isEqualTo(beforeUpdate.getErrorCode());
+    assertThat(afterUpdate.getErrorDescription()).isEqualTo(beforeUpdate.getErrorDescription());
+    assertThat(afterUpdate.getDetails()).isEqualTo(beforeUpdate.getDetails());
+    assertThat(afterUpdate.getCreatedByUserId()).isEqualTo(beforeUpdate.getCreatedByUserId());
+
+    // clean up the test-data
+    bulkSubmissionRepository.deleteAll();
+  }
+
+  private void createBulkSubmissionWithErrorFields() {
+    var bulkSubmission =
+        BulkSubmission.builder()
+            .id(BULK_SUBMISSION_ID)
+            .data(new GetBulkSubmission200ResponseDetails())
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .errorCode(BulkSubmissionErrorCode.E100)
+            .errorDescription("Initial error description")
+            .updatedByUserId("initial-updater")
+            .createdOn(CREATED_ON)
+            .updatedOn(CREATED_ON)
+            .build();
+    bulkSubmissionRepository.save(bulkSubmission);
   }
 }

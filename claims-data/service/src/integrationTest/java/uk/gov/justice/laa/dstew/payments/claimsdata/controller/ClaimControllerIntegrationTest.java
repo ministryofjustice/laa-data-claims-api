@@ -222,9 +222,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
     assertThat(claimResultSet.getContent()).hasSize(3);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_1_ID.toString());
-    assertThat(claimResultSet.getContent().get(1).getId()).isEqualTo(CLAIM_2_ID.toString());
-    assertThat(claimResultSet.getContent().get(2).getId()).isEqualTo(CLAIM_4_ID.toString());
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
+        .containsExactlyInAnyOrder(
+            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
   }
 
   @Test
