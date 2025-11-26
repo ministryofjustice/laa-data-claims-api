@@ -4,6 +4,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.g
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.sentry.Sentry;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +56,15 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
+    log.info("Sentry initialized: {}", Sentry.isEnabled());
+    try {
+      log.info("Sending message to Sentry");
+      throw new Exception("Test sentry");
+    } catch (Exception e) {
+      Sentry.captureException(e);
+      Sentry.flush(1000);
+    }
+
     GetBulkSubmission200Response response = bulkSubmissionService.getBulkSubmission(id);
     return ResponseEntity.ok(response);
   }
