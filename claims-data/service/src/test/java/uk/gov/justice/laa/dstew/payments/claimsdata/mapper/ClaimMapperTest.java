@@ -505,7 +505,8 @@ class ClaimMapperTest {
     assertNotNull(feeCalculationResponse);
     assertThat(feeCalculationResponse.getClaimId()).isEqualTo(claim.getId());
     assertThat(feeCalculationResponse.getClaimSummaryFeeId()).isEqualTo(claimSummaryFeeId);
-    assertThat(feeCalculationResponse.getCalculatedFeeDetailId()).isEqualTo(calculatedFeeDetailId.toString());
+    assertThat(feeCalculationResponse.getCalculatedFeeDetailId())
+        .isEqualTo(calculatedFeeDetailId.toString());
     assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("FEE001");
     assertThat(feeCalculationResponse.getFeeCodeDescription()).isEqualTo("Fee description");
     assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISB_ONLY);
