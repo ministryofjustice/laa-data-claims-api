@@ -83,10 +83,14 @@ resilience4j.ratelimiter:
       limitRefreshPeriod: 1s
 
 sentry:
-  dsn: https://274196f6b7abfe14fbdda4bb14ce3620@o345774.ingest.us.sentry.io/4510307157344256
-  send-default-pii: true
-  enabled: true
-  sample-rate: 1
+  enabled: ${SENTRY_ENABLED:false}
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1}
+  send-default-pii: false
+  logging:
+    minimum-event-level: error
+    minimum-breadcrumb-level: info
   debug: true
 
 logging:

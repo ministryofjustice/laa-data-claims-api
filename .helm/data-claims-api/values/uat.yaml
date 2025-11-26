@@ -60,3 +60,8 @@ grafana:
   es:
     namespace: laa-data-claims-event-service-uat
     mainHelmInstall: uat
+
+sentry:
+  enabled: true
+  environment: uat
+  tracesSampleRate: 1
