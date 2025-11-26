@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.util.ResourceUtils.getFile;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_ERROR_MESSAGE_TEMPLATE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
@@ -113,6 +117,25 @@ public class BulkSubmissionXmlConverterTests {
       assertEquals(expected, actual);
     }
 
+    private record MatterStartsTestData(
+        String inputFile, String convertedFile, String displayName) {}
+
+    private static Stream<MatterStartsTestData> matterStartsTestData() {
+      return Stream.of(
+          new MatterStartsTestData(
+              MATTER_STARTS_CATEGORY_CODE_INPUT_FILE,
+              MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE,
+              "category code"),
+          new MatterStartsTestData(
+              MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE,
+              MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE,
+              "mediation type"),
+          new MatterStartsTestData(
+              MATTER_STARTS_ONLY_MEDIATION_TYPES_INPUT_FILE,
+              MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE,
+              "mediation type"));
+    }
+
     @ParameterizedTest(name = "Can convert a bulk submission file with matter starts - {0}")
     @MethodSource("matterStartsTestData")
     void canConvertMatterStartsToXmlSubmission(MatterStartsTestData testData) throws IOException {
@@ -133,19 +156,20 @@ public class BulkSubmissionXmlConverterTests {
       return Stream.of(
           new ExceptionTestData(
               MATTER_STARTS_MEDIATION_TYPE_MISSING_COUNT_INPUT_FILE,
-              "Error processing matter start item with code 'MDCS' and value 'null'",
+              MATTER_START_ERROR_MESSAGE_TEMPLATE.formatted(
+                  "MDCS", null, "Cannot parse null string"),
               "missing count value"),
           new ExceptionTestData(
               MATTER_STARTS_MISSING_CODE_INPUT_FILE,
-              "MatterStart does not have a code.",
+              MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR,
               "missing code in matter start node"),
           new ExceptionTestData(
               MATTER_STARTS_UNKNOWN_CODE_INPUT_FILE,
-              "Unsupported matter start category code/mediation type: 'BLAH'",
+              UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR.formatted("BLAH"),
               "unknown code in matter start node"),
           new ExceptionTestData(
               MATTER_STARTS_NO_DATA_INPUT_FILE,
-              "MatterStart node not found in XML.",
+              MATTER_START_NODE_MISSING_ERROR,
               "Missing matter start node"),
           new ExceptionTestData(
               MATTER_STARTS_MALFORMED_XML_FILE,
@@ -171,25 +195,6 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file),
               "Expected exception to be thrown");
       assertThat(exception.getErrorMessage()).contains(testData.expectedErrorMessage());
-    }
-
-    private record MatterStartsTestData(
-        String inputFile, String convertedFile, String displayName) {}
-
-    private static Stream<MatterStartsTestData> matterStartsTestData() {
-      return Stream.of(
-          new MatterStartsTestData(
-              MATTER_STARTS_CATEGORY_CODE_INPUT_FILE,
-              MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE,
-              "category code"),
-          new MatterStartsTestData(
-              MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE,
-              MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE,
-              "mediation type"),
-          new MatterStartsTestData(
-              MATTER_STARTS_ONLY_MEDIATION_TYPES_INPUT_FILE,
-              MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE,
-              "mediation type"));
     }
 
     @Test

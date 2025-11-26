@@ -142,8 +142,8 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
               .orElseThrow(
                   () ->
                       new BulkSubmissionFileReadException(
-                          "Unsupported matter start category code/mediation type: '%s'"
-                              .formatted(categoryCodeOrMediationType)));
+                          UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR.formatted(
+                              categoryCodeOrMediationType)));
 
       matterStarts.add(
           new CsvMatterStarts(

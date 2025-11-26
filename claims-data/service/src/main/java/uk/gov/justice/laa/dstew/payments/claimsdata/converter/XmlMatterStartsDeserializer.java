@@ -1,5 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_ERROR_MESSAGE_TEMPLATE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -33,7 +38,7 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
 
     JsonNode matterStartNode = node.get("matterStart");
     if (matterStartNode == null) {
-      throw new BulkSubmissionFileReadException("MatterStart node not found in XML.");
+      throw new BulkSubmissionFileReadException(MATTER_START_NODE_MISSING_ERROR);
     }
 
     Iterable<JsonNode> matterStarts;
@@ -49,7 +54,7 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
       JsonNode valueNode = matterStart.get("");
 
       if (codeNode == null) {
-        throw new BulkSubmissionFileReadException("MatterStart does not have a code.");
+        throw new BulkSubmissionFileReadException(MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR);
       }
 
       String name = codeNode.asText();
@@ -71,15 +76,12 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
                       .orElseThrow(
                           () ->
                               new BulkSubmissionFileReadException(
-                                  "Unsupported matter start category code/mediation type: '%s'"
-                                      .formatted(name)));
+                                  UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR.formatted(name)));
               numberOfMatterStarts = Integer.parseInt(value);
             }
           } catch (Exception e) {
             throw new BulkSubmissionFileReadException(
-                "Error processing matter start item with code '%s' and value '%s': %s"
-                    .formatted(name, value, e.getMessage()),
-                e);
+                MATTER_START_ERROR_MESSAGE_TEMPLATE.formatted(name, value, e.getMessage()), e);
           }
         }
       }
