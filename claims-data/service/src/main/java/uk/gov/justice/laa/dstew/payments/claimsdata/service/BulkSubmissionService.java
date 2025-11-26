@@ -230,10 +230,20 @@ public class BulkSubmissionService
   private void validateDate(String dateStr, String fieldName) {
     if (dateStr != null && !dateStr.isBlank()) {
       try {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        LocalDate date = LocalDate.parse(dateStr, formatter);
-        // Validate if parsed date matches original string to catch invalid dates like 29/02/2025
-        if (!dateStr.equals(date.format(formatter))) {
+        // Support both single and double digit formats
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("[d/M/yyyy][dd/MM/yyyy]");
+        String normalizedDate = dateStr.trim();
+
+        // Parse will validate the date is actually valid (e.g. not 29/02/2025)
+        LocalDate date = LocalDate.parse(normalizedDate, formatter);
+
+        // Verify the parsed date matches the input to catch any automatic corrections
+        String formattedBackSingleDigitFormat =
+            date.format(DateTimeFormatter.ofPattern("d/M/yyyy"));
+        String formattedBackDoubleDigitFormat =
+            date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        if (!normalizedDate.equals(formattedBackSingleDigitFormat)
+            && !normalizedDate.equals(formattedBackDoubleDigitFormat)) {
           throw new IllegalArgumentException(fieldName);
         }
       } catch (DateTimeParseException e) {
