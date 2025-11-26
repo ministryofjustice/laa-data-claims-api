@@ -456,8 +456,11 @@ class ClaimMapperTest {
     UUID claimSummaryFeeId = UUID.randomUUID();
     claimSummaryFee.setId(claimSummaryFeeId);
 
+    UUID calculatedFeeDetailId = UUID.randomUUID();
+
     final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
     final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+    feeDetail.setId(calculatedFeeDetailId);
     feeDetail.setClaim(claim);
     feeDetail.setFeeCode("FEE001");
     feeDetail.setFeeCodeDescription("Fee description");
@@ -502,6 +505,7 @@ class ClaimMapperTest {
     assertNotNull(feeCalculationResponse);
     assertThat(feeCalculationResponse.getClaimId()).isEqualTo(claim.getId());
     assertThat(feeCalculationResponse.getClaimSummaryFeeId()).isEqualTo(claimSummaryFeeId);
+    assertThat(feeCalculationResponse.getCalculatedFeeDetailId()).isEqualTo(calculatedFeeDetailId.toString());
     assertThat(feeCalculationResponse.getFeeCode()).isEqualTo("FEE001");
     assertThat(feeCalculationResponse.getFeeCodeDescription()).isEqualTo("Fee description");
     assertThat(feeCalculationResponse.getFeeType()).isEqualTo(FeeCalculationType.DISB_ONLY);
