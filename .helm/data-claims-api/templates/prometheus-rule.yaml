@@ -1,21 +1,26 @@
+{{- if eq .Release.Namespace "laa-data-claims-api-uat" }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  namespace: {{ .Release.Namespace }}
   name: prometheus-custom-rules-{{ include "data-claims-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
+    {{- include "data-claims-api.labels" . | nindent 4 }}
     prometheus: cloud-platform
     role: alert-rules
 spec:
   groups:
-  - name: application-rules
-    rules:
-    - alert: High404ErrorRate
-      expr: sum(rate(http_server_requests_seconds_count{status=~"404"}[1m])) by (service, namespace, pod) > 1
-      for: 1m
-      labels:
-        severity: warning-laa-data-claims-api-uat
-      annotations:
-        summary: High rate of 404 errors
-        message: Namespace {{"{{"}} $labels.namespace {{"}}"}} has {{"{{"}} printf "%0.0f" $value {{"}}"}} 404 errors in the last minute.
-        runbook_url: https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5829263558/Runbook+Data+Claims
+    - name: application-rules
+      interval: 60s
+      rules:
+        - alert: High404ErrorRate
+          expr: sum(rate(http_server_requests_seconds_count{exported_namespace="{{ .Release.Namespace }}",status="404"}[5m])) by (pod, exported_namespace) > 0.1
+          for: 2m
+          labels:
+            severity: laa-data-claims-api-uat
+          annotations:
+            message: "High rate of 404 errors detected in {{ .Release.Namespace }}"
+            summary: "Pod {{`{{ $labels.pod }}`}} in namespace {{`{{ $labels.exported_namespace }}`}} is experiencing {{`{{ $value | humanize }}`}} 404 errors per second"
+            description: "The application is returning more than 0.1 404 errors per second over the last 5 minutes. This may indicate clients are accessing non-existent endpoints."
+            runbook_url: "https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5829263558/Runbook+Data+Claims"
+{{- end }}
