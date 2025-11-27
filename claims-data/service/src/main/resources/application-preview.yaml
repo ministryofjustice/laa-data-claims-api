@@ -37,3 +37,4 @@ resilience4j.ratelimiter:
     validationRateLimiter:
       limitForPeriod: 100
       limitRefreshPeriod: 1s
+
