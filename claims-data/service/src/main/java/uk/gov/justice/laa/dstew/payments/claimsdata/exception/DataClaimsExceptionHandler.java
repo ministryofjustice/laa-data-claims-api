@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import uk.gov.laa.springboot.exception.ApplicationException;
 import uk.gov.laa.springboot.exception.GlobalExceptionHandler;
 
 /**
@@ -40,7 +41,10 @@ public class DataClaimsExceptionHandler extends GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(logMessage);
   }
 
-  private void sendToSentry(Exception ex) {
+  @Override
+  @ExceptionHandler(ApplicationException.class)
+  public ResponseEntity<ApplicationException> handleApplicationException(ApplicationException ex) {
     Sentry.captureException(ex);
+    return super.handleApplicationException(ex);
   }
 }
