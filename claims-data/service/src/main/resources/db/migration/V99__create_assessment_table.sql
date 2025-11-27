@@ -20,6 +20,8 @@ CREATE TABLE assessment (
     bolt_on_home_office_interview_fee                   NUMERIC,
     created_by_user_id                                  TEXT NOT NULL,
     created_on                                          TIMESTAMPTZ NOT NULL,
+    allowed_total_vat                                   NUMERIC NOT NULL,
+    allowed_total_incl_vat                              NUMERIC NOT NULL,
 
     CONSTRAINT pk_assessment PRIMARY KEY (id),
     CONSTRAINT fk_claim_id FOREIGN KEY (claim_id) REFERENCES claim(id),

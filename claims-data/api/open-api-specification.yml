@@ -1806,6 +1806,10 @@ components:
           type: boolean
         created_by_user_id:
           type: string
+        allowed_total_vat:
+          type: number
+        allowed_total_incl_vat:
+          type: number
     assessment_post:
       allOf:
         - $ref: '#/components/schemas/assessment_base'
@@ -1814,6 +1818,8 @@ components:
         - claim_summary_fee_id
         - assessment_outcome
         - created_by_user_id
+        - allowed_total_vat
+        - allowed_total_incl_vat
     assessment_get:
       allOf:
         - $ref: '#/components/schemas/assessment_base'

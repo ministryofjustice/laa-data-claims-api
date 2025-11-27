@@ -539,7 +539,12 @@ public abstract class AbstractIntegrationTest {
     clearIntegrationData();
     createClaimsTestData();
     Assessment assessment =
-        getAssessmentBuilder().claim(claim1).claimSummaryFee(claimSummaryFee1).build();
+        getAssessmentBuilder()
+            .claim(claim1)
+            .claimSummaryFee(claimSummaryFee1)
+            .allowedTotalInclVat(BigDecimal.ONE)
+            .allowedTotalVat(BigDecimal.TEN)
+            .build();
     assessmentRepository.saveAll(List.of(assessment));
   }
 }
