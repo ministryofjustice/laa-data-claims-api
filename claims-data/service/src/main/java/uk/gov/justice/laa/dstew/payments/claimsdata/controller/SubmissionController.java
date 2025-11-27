@@ -46,14 +46,6 @@ public class SubmissionController implements SubmissionsApi {
   @Override
   @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<SubmissionResponse> getSubmission(UUID id) {
-    try {
-      log.info("Sending test sentry error");
-      throw new Exception("Test error");
-    } catch (Exception e) {
-      Sentry.captureException(e);
-    }
-    //    List.of().get(0);
-
     SubmissionResponse response = submissionService.getSubmission(id);
     return ResponseEntity.ok(response);
   }
