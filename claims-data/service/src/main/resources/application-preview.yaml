@@ -37,9 +37,3 @@ resilience4j.ratelimiter:
     validationRateLimiter:
       limitForPeriod: 100
       limitRefreshPeriod: 1s
-
-sentry:
-  dsn: https://274196f6b7abfe14fbdda4bb14ce3620@o345774.ingest.us.sentry.io/4510307157344256
-  # Add data like request headers and IP for users,
-  # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
-  send-default-pii: true
