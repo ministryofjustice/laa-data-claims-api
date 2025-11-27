@@ -4,7 +4,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.g
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import io.sentry.Sentry;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
