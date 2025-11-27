@@ -111,7 +111,15 @@
         "excessTravelCosts" : null,
         "medConcludedDate" : null
       } ],
-      "matterStarts" : null
+      "matterStarts" : [ {
+        "scheduleRef" : "0U719K/2024/01",
+        "procurementArea" : "PA00032",
+        "accessPoint" : "AP00000",
+        "categoryCode" : "HOU",
+        "deliveryLocation" : "LONDON",
+        "mediationType" : null,
+        "numberOfMatterStarts" : 3
+      } ]
     }
   }
 }

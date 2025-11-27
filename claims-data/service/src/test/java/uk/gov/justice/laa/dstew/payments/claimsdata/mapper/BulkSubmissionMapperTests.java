@@ -26,6 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
@@ -150,111 +151,8 @@ class BulkSubmissionMapperTests {
                     "submissionPeriod",
                     AREA_OF_LAW.getValue(),
                     "scheduleNum",
-                    List.of(
-                        new XmlOutcome(
-                            "matterType",
-                            "feeCode",
-                            "caseRefNumber",
-                            "01/01/2000",
-                            "caseId",
-                            "caseStageLevel",
-                            "ufn",
-                            "procurementArea",
-                            "accessPoint",
-                            "clientForename",
-                            "clientSurname",
-                            "02/01/2000",
-                            "ucn",
-                            "claRefNumber",
-                            "claExemption",
-                            "gender",
-                            "ethnicity",
-                            "disability",
-                            "clientPostcode",
-                            "03/01/2000",
-                            "1",
-                            "2",
-                            "3",
-                            "0.01",
-                            "0.02",
-                            "0.03",
-                            "0.04",
-                            "0.05",
-                            "0.06",
-                            fieldValue,
-                            fieldValue,
-                            "clientType",
-                            fieldValue,
-                            "0.07",
-                            "outcomeCode",
-                            fieldValue,
-                            "claimType",
-                            "8",
-                            "typeOfAdvice",
-                            fieldValue,
-                            "scheduleRef",
-                            "cmrhOral",
-                            "cmrhTelephone",
-                            "aitHearingCentre",
-                            fieldValue,
-                            "8",
-                            "hoUcn",
-                            "04/01/2000",
-                            "0.09",
-                            "deliveryLocation",
-                            "priorAuthorityRef",
-                            "jrFormFilling",
-                            fieldValue,
-                            "meetingsAttended",
-                            "4",
-                            "5",
-                            "mhtRefNumber",
-                            "stageReached",
-                            "followOnWork",
-                            fieldValue,
-                            "exemptionCriteriaSatisfied",
-                            "exclCaseFundingRef",
-                            "6",
-                            "7",
-                            fieldValue,
-                            "05/01/2000",
-                            "lineNumber",
-                            "crimeMatterType",
-                            "feeScheme",
-                            "06/01/2000",
-                            "8",
-                            "9",
-                            "policeStation",
-                            "dsccNumber",
-                            "maatId",
-                            "prisonLawPriorApproval",
-                            fieldValue,
-                            fieldValue,
-                            "schemeId",
-                            "10",
-                            "11",
-                            "outreach",
-                            "referral",
-                            fieldValue,
-                            "client2Forename",
-                            "client2Surname",
-                            "07/01/2000",
-                            "client2Ucn",
-                            "client2Postcode",
-                            "client2Gender",
-                            "client2Ethnicity",
-                            "client2Disability",
-                            fieldValue,
-                            "uniqueCaseId",
-                            "standardFeeCat",
-                            fieldValue,
-                            "costsDamagesRecovered",
-                            fieldValue,
-                            "courtLocationHpcds",
-                            "localAuthorityNumber",
-                            "paNumber",
-                            "0.10",
-                            "08/01/2000")))));
+                    getXmlOutcomes(fieldValue),
+                    getXmlMatterStarts())));
 
     GetBulkSubmission200ResponseDetails expected =
         getExpectedBulkSubmissionDetails(
@@ -264,6 +162,126 @@ class BulkSubmissionMapperTests {
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
+  }
+
+  private static List<XmlMatterStarts> getXmlMatterStarts() {
+    return List.of(
+        new XmlMatterStarts(
+            "scheduleRef",
+            "procurementArea",
+            "accessPoint",
+            CategoryCode.HOU,
+            "deliveryLocation",
+            null,
+            3));
+  }
+
+  private static List<XmlOutcome> getXmlOutcomes(String fieldValue) {
+    return List.of(
+        new XmlOutcome(
+            "matterType",
+            "feeCode",
+            "caseRefNumber",
+            "01/01/2000",
+            "caseId",
+            "caseStageLevel",
+            "ufn",
+            "procurementArea",
+            "accessPoint",
+            "clientForename",
+            "clientSurname",
+            "02/01/2000",
+            "ucn",
+            "claRefNumber",
+            "claExemption",
+            "gender",
+            "ethnicity",
+            "disability",
+            "clientPostcode",
+            "03/01/2000",
+            "1",
+            "2",
+            "3",
+            "0.01",
+            "0.02",
+            "0.03",
+            "0.04",
+            "0.05",
+            "0.06",
+            fieldValue,
+            fieldValue,
+            "clientType",
+            fieldValue,
+            "0.07",
+            "outcomeCode",
+            fieldValue,
+            "claimType",
+            "8",
+            "typeOfAdvice",
+            fieldValue,
+            "scheduleRef",
+            "cmrhOral",
+            "cmrhTelephone",
+            "aitHearingCentre",
+            fieldValue,
+            "8",
+            "hoUcn",
+            "04/01/2000",
+            "0.09",
+            "deliveryLocation",
+            "priorAuthorityRef",
+            "jrFormFilling",
+            fieldValue,
+            "meetingsAttended",
+            "4",
+            "5",
+            "mhtRefNumber",
+            "stageReached",
+            "followOnWork",
+            fieldValue,
+            "exemptionCriteriaSatisfied",
+            "exclCaseFundingRef",
+            "6",
+            "7",
+            fieldValue,
+            "05/01/2000",
+            "lineNumber",
+            "crimeMatterType",
+            "feeScheme",
+            "06/01/2000",
+            "8",
+            "9",
+            "policeStation",
+            "dsccNumber",
+            "maatId",
+            "prisonLawPriorApproval",
+            fieldValue,
+            fieldValue,
+            "schemeId",
+            "10",
+            "11",
+            "outreach",
+            "referral",
+            fieldValue,
+            "client2Forename",
+            "client2Surname",
+            "07/01/2000",
+            "client2Ucn",
+            "client2Postcode",
+            "client2Gender",
+            "client2Ethnicity",
+            "client2Disability",
+            fieldValue,
+            "uniqueCaseId",
+            "standardFeeCat",
+            fieldValue,
+            "costsDamagesRecovered",
+            fieldValue,
+            "courtLocationHpcds",
+            "localAuthorityNumber",
+            "paNumber",
+            "0.10",
+            "08/01/2000"));
   }
 
   private CsvSubmission createCsvSubmission(CsvOutcome outcome) {
@@ -434,17 +452,19 @@ class BulkSubmissionMapperTests {
   }
 
   private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(
-      boolean includeMatterStarts, Boolean expectedBooleanValue) {
+      boolean includeImmigrationClrRows, Boolean expectedBooleanValue) {
     var expectedBulkSubmissionOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
     var expectedBulkSubmissionOutcome =
         ClaimsDataTestUtil.getBulkSubmissionOutcome(expectedBooleanValue);
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
     List<Map<String, String>> expectedImmigrationClrRows =
-        includeMatterStarts ? ClaimsDataTestUtil.getImmigrationClrRows() : Collections.emptyList();
+        includeImmigrationClrRows
+            ? ClaimsDataTestUtil.getImmigrationClrRows()
+            : Collections.emptyList();
 
     List<BulkSubmissionMatterStart> expectedMatterStarts =
-        includeMatterStarts ? List.of(expectedBulkSubmissionMatterStart) : Collections.emptyList();
+        List.of(expectedBulkSubmissionMatterStart);
 
     return new GetBulkSubmission200ResponseDetails()
         .office(expectedBulkSubmissionOffice)

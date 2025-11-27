@@ -19,4 +19,7 @@ public record XmlSchedule(
     @JacksonXmlProperty(isAttribute = true) String areaOfLaw,
     @JacksonXmlProperty(isAttribute = true) String scheduleNum,
     @JacksonXmlElementWrapper(useWrapping = false) @JacksonXmlProperty(localName = "outcome")
-        List<XmlOutcome> outcomes) {}
+        List<XmlOutcome> outcomes,
+    @JacksonXmlElementWrapper(useWrapping = false)
+        @JacksonXmlProperty(localName = "newMatterStarts")
+        List<XmlMatterStarts> matterStarts) {}

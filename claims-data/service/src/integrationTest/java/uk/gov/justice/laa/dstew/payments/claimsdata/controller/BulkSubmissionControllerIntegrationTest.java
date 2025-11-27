@@ -16,11 +16,14 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -36,11 +39,14 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -91,16 +97,22 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     this.queueUrl = queueUrlResponse.queueUrl();
   }
 
-  @Test
-  void shouldSaveSubmissionToDatabaseAndPublishMessage() throws Exception {
+  @ParameterizedTest
+  @CsvSource({
+    "test_upload_files/csv/outcomes.csv,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,text/csv",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,text/xml"
+  })
+  void shouldSaveSubmissionToDatabaseAndPublishMessage(
+      String filePath, boolean hasMatterStarts, String contentType) throws Exception {
     // Given:
-    // Below fields are set to "Y" in outcomes.csv
+    // Below fields are set to "Y" in both files
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
-    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+    ClassPathResource resource = new ClassPathResource(filePath);
 
     MockMultipartFile file =
-        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+        new MockMultipartFile(FILE, resource.getFilename(), contentType, resource.getInputStream());
 
     // when: calling the POST endpoint with the file
     MvcResult result =
@@ -137,8 +149,71 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(bulkSubmissionOutcome.getEligibleClient()).isTrue();
     assertThat(bulkSubmissionOutcome.getYouthCourt()).isTrue();
 
+    if (hasMatterStarts) {
+      verifyBulkSubmissionMatterStarts(savedBulkSubmission);
+    }
+
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
+    Stream.of(
+            new Object[] {
+              0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
+            },
+            new Object[] {
+              1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
+            },
+            new Object[] {
+              2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
+            },
+            new Object[] {
+              3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
+            },
+            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
+            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
+            new Object[] {
+              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+            },
+            new Object[] {
+              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+            },
+            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
+            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
+        .forEach(
+            params ->
+                verifyBulkSubmissionMatterStart(
+                    (int) params[0],
+                    savedBulkSubmission,
+                    (String) params[1],
+                    (String) params[2],
+                    (String) params[3],
+                    (String) params[4],
+                    (CategoryCode) params[5],
+                    (MediationType) params[6],
+                    (int) params[7]));
+  }
+
+  private static void verifyBulkSubmissionMatterStart(
+      int index,
+      BulkSubmission savedBulkSubmission,
+      String scheduleRef,
+      String procurementArea,
+      String deliveryLocation,
+      String accessPoint,
+      CategoryCode categoryCode,
+      MediationType mediationType,
+      int numberOfMatterStarts) {
+    BulkSubmissionMatterStart bulkSubmissionMatterStart =
+        savedBulkSubmission.getData().getMatterStarts().get(index);
+    assertThat(bulkSubmissionMatterStart.getScheduleRef()).isEqualTo(scheduleRef);
+    assertThat(bulkSubmissionMatterStart.getProcurementArea()).isEqualTo(procurementArea);
+    assertThat(bulkSubmissionMatterStart.getDeliveryLocation()).isEqualTo(deliveryLocation);
+    assertThat(bulkSubmissionMatterStart.getAccessPoint()).isEqualTo(accessPoint);
+    assertThat(bulkSubmissionMatterStart.getMediationType()).isEqualTo(mediationType);
+    assertThat(bulkSubmissionMatterStart.getNumberOfMatterStarts()).isEqualTo(numberOfMatterStarts);
+    assertThat(bulkSubmissionMatterStart.getCategoryCode()).isEqualTo(categoryCode);
   }
 
   @Test
