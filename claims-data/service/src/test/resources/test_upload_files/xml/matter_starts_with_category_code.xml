@@ -1,0 +1,60 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+    xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <office account="2P554H">
+        <schedule submissionPeriod="JAN-2010" areaOfLaw="CRIME LOWER" scheduleNum="ABC/20000L/10">
+            <outcome matterType="INVC">
+                <outcomeItem name="FEE_CODE">FEE001</outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER">CASE_REF_001</outcomeItem>
+                <outcomeItem name="CASE_START_DATE">01/01/2009</outcomeItem>
+                <outcomeItem name="CASE_ID">01012009/123</outcomeItem>
+                <outcomeItem name="CASE_STAGE_LEVEL">STAGE/123</outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME">Client surname</outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME">Client forename</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">15/12/1985</outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE">SW12345</outcomeItem>
+                <outcomeItem name="GENDER">M</outcomeItem>
+                <outcomeItem name="ETHNICITY">00</outcomeItem>
+                <outcomeItem name="DISABILITY">NCD</outcomeItem>
+                <outcomeItem name="ADVICE_TIME">0</outcomeItem>
+                <outcomeItem name="TRAVEL_TIME">50</outcomeItem>
+                <outcomeItem name="WAITING_TIME">20</outcomeItem>
+                <outcomeItem name="UCN">14091962/T/PERS</outcomeItem>
+                <outcomeItem name="CLA_REF_NUMBER">1234567AB</outcomeItem>
+                <outcomeItem name="CLA_EXEMPTION">EX001</outcomeItem>
+                <outcomeItem name="UFN">300101/001</outcomeItem>
+                <outcomeItem name="PROCUREMENT_AREA">PA00136</outcomeItem>
+                <outcomeItem name="ACCESS_POINT">AP00137</outcomeItem>
+                <outcomeItem name="OUTCOME_CODE">AB01</outcomeItem>
+                <outcomeItem name="CRIME_MATTER_TYPE">3</outcomeItem>
+                <outcomeItem name="PROFIT_COST">1.01</outcomeItem>
+                <outcomeItem name="VALUE_OF_COSTS">5</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_AMOUNT">1.02</outcomeItem>
+                <outcomeItem name="COUNSEL_COST">2.5</outcomeItem>
+                <outcomeItem name="TRAVEL_COSTS">1.03</outcomeItem>
+                <outcomeItem name="TRAVEL_WAITING_COSTS">1.04</outcomeItem>
+                <outcomeItem name="LONDON_NONLONDON_RATE">Y</outcomeItem>
+                <outcomeItem name="TOLERANCE_INDICATOR">Y</outcomeItem>
+                <outcomeItem name="CLIENT_TYPE">P</outcomeItem>
+                <outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_VAT">0.90</outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE">01/01/2010</outcomeItem>
+                <outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+                <outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+                <outcomeItem name="POLICE_STATION">AB001</outcomeItem>
+                <outcomeItem name="DSCC_NUMBER">100000000A</outcomeItem>
+                <outcomeItem name="DUTY_SOLICITOR">N</outcomeItem>
+                <outcomeItem name="YOUTH_COURT">N</outcomeItem>
+                <outcomeItem name="SCHEME_ID">2001</outcomeItem>
+            </outcome>
+            <newMatterStarts>
+                <matterStart code="SCHEDULE_REF">0U719K/2024/01</matterStart>
+                <matterStart code="PROCUREMENT_AREA">PA00032</matterStart>
+                <matterStart code="ACCESS_POINT">AP00000</matterStart>
+                <matterStart code="DELIVERY_LOCATION">LONDON</matterStart>
+                <matterStart code="HOU">3</matterStart>
+            </newMatterStarts>
+        </schedule>
+    </office>
+</submission>

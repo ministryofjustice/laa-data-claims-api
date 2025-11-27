@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule;
@@ -48,7 +49,7 @@ public interface BulkSubmissionMapper {
    */
   @Mapping(target = "schedule", source = "office.schedule")
   @Mapping(target = "outcomes", source = "office.schedule.outcomes")
-  @Mapping(target = "matterStarts", expression = "java(new ArrayList<>())")
+  @Mapping(target = "matterStarts", source = "office.schedule.matterStarts")
   @Mapping(target = "immigrationClr", expression = "java(new ArrayList<>())")
   GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(XmlSubmission submission);
 
@@ -389,6 +390,14 @@ public interface BulkSubmissionMapper {
       expression =
           "java(parseIntegerField(csvMatterStarts.numberOfMatterStarts(), \"numberOfMatterStarts\"))")
   BulkSubmissionMatterStart toBulkSubmissionMatterStarts(CsvMatterStarts csvMatterStarts);
+
+  /**
+   * Map to a {@link BulkSubmissionMatterStart}.
+   *
+   * @param xmlMatterStarts the {@link XmlMatterStarts} to map.
+   * @return a mapped {@link BulkSubmissionMatterStart} object.
+   */
+  BulkSubmissionMatterStart toBulkSubmissionMatterStarts(XmlMatterStarts xmlMatterStarts);
 
   /**
    * Map to a {@link java.lang.Integer}.
