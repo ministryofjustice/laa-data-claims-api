@@ -18,10 +18,17 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.AssertionsForClassTypes;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,11 +39,12 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -148,51 +156,104 @@ class AssessmentControllerTest {
     verify(assessmentService).createAssessment(eq(claimId), any(AssessmentPost.class));
   }
 
-  @DisplayName("Status 200: when a valid Claim ID & Assessment ID is provided")
-  @Test
-  void getAssessmentShouldReturnSuccess() throws Exception {
-    AssessmentGet mockAssessment = new AssessmentGet();
-    mockAssessment.setClaimId(CLAIM_1_ID);
-    mockAssessment.setAssessmentOutcome(REDUCED_TO_FIXED_FEE);
-    mockAssessment.setDisbursementAmount(new BigDecimal("44.55"));
-    mockAssessment.setJrFormFillingAmount(new BigDecimal("44.55"));
-    mockAssessment.setCreatedByUserId("test-user");
+  @Nested
+  @DisplayName("Get assessments")
+  class GetAssessment {
 
-    Mockito.when(assessmentService.getAssessment(any(), any())).thenReturn(mockAssessment);
+    @BeforeEach
+    public void init() {
+      OBJECT_MAPPER.registerModule(new JavaTimeModule());
+      OBJECT_MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
+    }
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
+    private static @NotNull AssessmentGet createAssessmentGet() {
+      return AssessmentGet.builder()
+          .claimId(CLAIM_1_ID)
+          .assessmentOutcome(REDUCED_TO_FIXED_FEE)
+          .disbursementAmount(BigDecimal.valueOf(44.55))
+          .jrFormFillingAmount(BigDecimal.valueOf(44.55))
+          .createdByUserId("test-user")
+          .build();
+    }
 
-    AssessmentGet result =
-        OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), AssessmentGet.class);
-    AssertionsForClassTypes.assertThat(result.getClaimId()).isEqualTo(CLAIM_1_ID);
-    AssertionsForClassTypes.assertThat(result.getAssessmentOutcome())
-        .isEqualTo(REDUCED_TO_FIXED_FEE);
-    AssertionsForClassTypes.assertThat(result.getDisbursementAmount())
-        .isEqualTo(new BigDecimal("44.55"));
-    AssertionsForClassTypes.assertThat(result.getJrFormFillingAmount())
-        .isEqualTo(new BigDecimal("44.55"));
-    AssertionsForClassTypes.assertThat(result.getCreatedByUserId()).isEqualTo("test-user");
-  }
+    @DisplayName("Status 200: when a valid Claim ID & Assessment ID is provided")
+    @Test
+    void getAssessmentShouldReturnSuccess() throws Exception {
+      AssessmentGet mockAssessment = createAssessmentGet();
 
-  @DisplayName("Should return 500 when any internal error")
-  @Test
-  void getAssessment_shouldReturnServerError() throws Exception {
-    Mockito.when(assessmentService.getAssessment(any(), any()))
-        .thenThrow(new IllegalArgumentException("Error retrieving assessment"));
+      Mockito.when(assessmentService.getAssessment(any(), any())).thenReturn(mockAssessment);
 
-    var result =
-        mockMvc
-            .perform(
-                get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
-                    .header(AUTHORIZATION, AUTHORIZATION_TOKEN))
-            .andExpect(status().isInternalServerError())
-            .andReturn();
-    AssertionsForClassTypes.assertThat(result.getResponse().getStatus()).isEqualTo(500);
+      MvcResult mvcResult =
+          mockMvc
+              .perform(
+                  get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      AssessmentGet result =
+          OBJECT_MAPPER.readValue(
+              mvcResult.getResponse().getContentAsString(), AssessmentGet.class);
+      AssertionsForClassTypes.assertThat(result.getClaimId()).isEqualTo(CLAIM_1_ID);
+      AssertionsForClassTypes.assertThat(result.getAssessmentOutcome())
+          .isEqualTo(REDUCED_TO_FIXED_FEE);
+      AssertionsForClassTypes.assertThat(result.getDisbursementAmount())
+          .isEqualTo(new BigDecimal("44.55"));
+      AssertionsForClassTypes.assertThat(result.getJrFormFillingAmount())
+          .isEqualTo(new BigDecimal("44.55"));
+      AssertionsForClassTypes.assertThat(result.getCreatedByUserId()).isEqualTo("test-user");
+    }
+
+    @DisplayName("Should return 500 when any internal error")
+    @Test
+    void getAssessment_shouldReturnServerError() throws Exception {
+      Mockito.when(assessmentService.getAssessment(any(), any()))
+          .thenThrow(new IllegalArgumentException("Error retrieving assessment"));
+
+      var result =
+          mockMvc
+              .perform(
+                  get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
+                      .header(AUTHORIZATION, AUTHORIZATION_TOKEN))
+              .andExpect(status().isInternalServerError())
+              .andReturn();
+      AssertionsForClassTypes.assertThat(result.getResponse().getStatus()).isEqualTo(500);
+    }
+
+    @Test
+    void shouldReturnAssessmentsForValidClaimId() throws Exception {
+      UUID claimId = UUID.randomUUID();
+
+      AssessmentResultSet resultSet = new AssessmentResultSet();
+      resultSet.assessments(List.of(createAssessmentGet()));
+
+      when(assessmentService.getAssessmentsByClaimId(claimId)).thenReturn(resultSet);
+
+      mockMvc
+          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.assessments").isArray())
+          .andExpect(jsonPath("$.assessments[0]").exists());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenNoAssessmentsExist() throws Exception {
+      UUID claimId = UUID.randomUUID();
+
+      when(assessmentService.getAssessmentsByClaimId(claimId))
+          .thenThrow(new AssessmentNotFoundException("No assessments found"));
+
+      mockMvc
+          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.message").value("No assessments found"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidClaimId() throws Exception {
+      mockMvc
+          .perform(get("/api/v0/claims/{claimId}/assessments", "invalid-uuid"))
+          .andExpect(status().isBadRequest());
+    }
   }
 }

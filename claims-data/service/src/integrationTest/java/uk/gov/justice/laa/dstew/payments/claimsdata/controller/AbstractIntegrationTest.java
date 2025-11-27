@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
@@ -538,13 +539,26 @@ public abstract class AbstractIntegrationTest {
   void createAssessmentsTestData() {
     clearIntegrationData();
     createClaimsTestData();
-    Assessment assessment =
+    Assessment assessment1 =
         getAssessmentBuilder()
             .claim(claim1)
             .claimSummaryFee(claimSummaryFee1)
-            .allowedTotalInclVat(BigDecimal.ONE)
-            .allowedTotalVat(BigDecimal.TEN)
+            .createdOn(Instant.now())
             .build();
-    assessmentRepository.saveAll(List.of(assessment));
+    Assessment assessment2 =
+        getAssessmentBuilder()
+            .claim(claim1)
+            .id(ASSESSMENT_2_ID)
+            .claimSummaryFee(claimSummaryFee1)
+            .createdOn(Instant.now().minusSeconds(60))
+            .build();
+    Assessment assessment3 =
+        getAssessmentBuilder()
+            .claim(claim2)
+            .id(Uuid7.timeBasedUuid())
+            .claimSummaryFee(claimSummaryFee2)
+            .createdOn(Instant.now().minusSeconds(60))
+            .build();
+    assessmentRepository.saveAll(List.of(assessment1, assessment2, assessment3));
   }
 }

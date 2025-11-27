@@ -14,7 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 @Mapper(
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
-    uses = GlobalStringMapper.class,
+    uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
     imports = {com.fasterxml.uuid.Generators.class},
     config = AuditFieldsMapper.class)
 public interface AssessmentMapper {

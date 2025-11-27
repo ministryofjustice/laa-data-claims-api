@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNot
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -84,5 +86,33 @@ public class AssessmentService {
                             assessmentId, claimId)));
 
     return assessmentMapper.toAssessmentGet(assessment);
+  }
+
+  /**
+   * Retrieves all assessments associated with the given claim ID. This method performs the
+   * following steps:
+   *
+   * <ul>
+   *   <li>Validates that the provided {@code claimId} is not null.
+   *   <li>Fetches assessments from the repository ordered by creation date (descending).
+   *   <li>If no assessments are found, throws {@link AssessmentNotFoundException}.
+   *   <li>Maps the list of assessments to an {@link AssessmentResultSet} using the mapper.
+   * </ul>
+   *
+   * @param claimId the unique identifier of the claim; must not be {@code null}.
+   * @return an {@link AssessmentResultSet} containing all assessments for the claim.
+   * @throws IllegalArgumentException if {@code claimId} is {@code null}.
+   * @throws AssessmentNotFoundException if no assessments exist for the given claim ID.
+   */
+  @Transactional(readOnly = true)
+  public AssessmentResultSet getAssessmentsByClaimId(@NotNull UUID claimId) {
+    var assessments = assessmentRepository.findByClaimIdOrderByCreatedOnDesc(claimId);
+    if (assessments.isEmpty()) {
+      throw new AssessmentNotFoundException(
+          String.format("No assessments found for claimId: %s", claimId));
+    }
+    return AssessmentResultSet.builder()
+        .assessments(assessments.stream().map(assessmentMapper::toAssessmentGet).toList())
+        .build();
   }
 }
