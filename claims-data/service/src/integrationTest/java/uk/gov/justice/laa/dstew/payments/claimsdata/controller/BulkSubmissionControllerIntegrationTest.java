@@ -159,9 +159,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-      "test_upload_files/csv/outcomes.csv",
-      "test_upload_files/csv/outcomes_with_empty_bottom_rows.csv",
-      "test_upload_files/csv/outcomes_with_empty_sparse_rows.csv"
+    "test_upload_files/csv/outcomes.csv",
+    "test_upload_files/csv/outcomes_with_empty_bottom_rows.csv",
+    "test_upload_files/csv/outcomes_with_empty_sparse_rows.csv"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath) throws Exception {
     // Given:
@@ -270,8 +270,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-      "test_upload_files/xml/missing_outcomes_double.xml",
-      "test_upload_files/xml/missing_outcomes_single.xml"
+    "test_upload_files/xml/missing_outcomes_double.xml",
+    "test_upload_files/xml/missing_outcomes_single.xml"
   })
   void shouldSaveSubmissionToDatabaseWhenFileHasOutcomesWithHeadersOnlyAndPublishMessage(
       String filePath) throws Exception {

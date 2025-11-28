@@ -136,9 +136,7 @@ public record XmlOutcome(
     String paNumber,
     String excessTravelCosts,
     String medConcludedDate) {
-  /**
-   * Default constructor for XmlOutcome.
-   */
+  /** Default constructor for XmlOutcome. */
   public XmlOutcome() {
     this(
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
