@@ -130,6 +130,10 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
 
     JsonNode node = mapper.readTree(p);
 
+    if (node.isEmpty()) {
+      return new XmlOutcome();
+    }
+
     String matterType = node.get("matterType").asText();
 
     JsonNode outcomeItemNode = node.get("outcomeItem");

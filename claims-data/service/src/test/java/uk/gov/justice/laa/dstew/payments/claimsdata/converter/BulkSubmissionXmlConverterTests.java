@@ -74,6 +74,12 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_single.xml";
+  private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_double.xml";
+  private static final String MISSING_OUTCOMES_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_converted.json";
   private static final String MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_mediation_type_converted.json";
   private static final String MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE =
@@ -112,6 +118,29 @@ public class BulkSubmissionXmlConverterTests {
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
 
       File convertedFile = getFile(OUTCOMES_CONVERTED_FILE);
+      String expected = getContent(convertedFile);
+
+      assertEquals(expected, actual);
+    }
+
+    private record MissingOutcomeTestData(String inputFile, String convertedFile) {}
+
+    private static Stream<MissingOutcomeTestData> missingOutcomeTestData() {
+      return Stream.of(
+          new MissingOutcomeTestData(
+              MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE),
+          new MissingOutcomeTestData(
+              MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE));
+    }
+
+    @ParameterizedTest(name = "Can convert a bulk submission file with empty outcome nodes - {0}")
+    @MethodSource("missingOutcomeTestData")
+    void canConvertMatterStartsToXmlSubmission(MissingOutcomeTestData testData) throws IOException {
+      MultipartFile file = getMultipartFile(testData.inputFile());
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(testData.convertedFile());
       String expected = getContent(convertedFile);
 
       assertEquals(expected, actual);
