@@ -109,3 +109,4 @@ spec:
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
               value: {{ .Values.aws.region | quote }}
+            {{ include "sentryConfig" . | nindent 12 }}
