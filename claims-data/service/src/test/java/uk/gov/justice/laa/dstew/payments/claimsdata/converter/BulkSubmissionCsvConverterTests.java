@@ -1,6 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.util.ResourceUtils.getFile;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
@@ -28,6 +31,8 @@ public class BulkSubmissionCsvConverterTests {
   BulkSubmissionCsvConverter bulkSubmissionCsvConverter;
 
   private static final String OUTCOMES_INPUT_FILE = "classpath:test_upload_files/csv/outcomes.csv";
+  private static final String OUTCOMES_INPUT_FILE_TXT =
+      "classpath:test_upload_files/txt/outcomes.txt";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/csv/outcomes_converted.json";
 
@@ -43,6 +48,8 @@ public class BulkSubmissionCsvConverterTests {
 
   private static final String ALL_TYPES_INPUT_FILE =
       "classpath:test_upload_files/csv/outcomes_and_matterstarts.csv";
+  private static final String ALL_TYPES_INPUT_FILE_TXT =
+      "classpath:test_upload_files/txt/outcomes_and_matterstarts.txt";
   private static final String ALL_TYPES_CONVERTED_FILE =
       "classpath:test_upload_files/csv/outcomes_and_matterstarts_converted.json";
 
@@ -108,6 +115,19 @@ public class BulkSubmissionCsvConverterTests {
         "Can convert a bulk submission file with nil submission (office and schedule only)")
     void canConvertNilSubmission() throws IOException {
       runTest(NIL_SUBMISSION_INPUT_FILE, NIL_SUBMISSION_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission text file with outcomes to a valid submission")
+    void canConvertTxtOutcomesToValidSubmission() throws IOException {
+      runTest(OUTCOMES_INPUT_FILE_TXT, OUTCOMES_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName(
+        "Can convert a bulk submission text file with outcomes and matter starts to a valid submission")
+    void canConvertTxtFileWithOutcomesAndMatterStartsToValidSubmission() throws IOException {
+      runTest(ALL_TYPES_INPUT_FILE_TXT, ALL_TYPES_CONVERTED_FILE);
     }
 
     @Test
