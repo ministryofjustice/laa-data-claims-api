@@ -187,7 +187,8 @@ public class BulkSubmissionXmlConverterTests {
 
     @ParameterizedTest(name = "Can convert a bulk submission file with matter starts - {0}")
     @MethodSource("matterStartsTestData")
-    void canConvertMatterStartsToXmlSubmissionWithValidCategoryCodeOrMediationType(MatterStartsTestData testData) throws IOException {
+    void canConvertMatterStartsToXmlSubmissionWithValidCategoryCodeOrMediationType(
+        MatterStartsTestData testData) throws IOException {
       MultipartFile file = getMultipartFile(testData.inputFile());
       XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
