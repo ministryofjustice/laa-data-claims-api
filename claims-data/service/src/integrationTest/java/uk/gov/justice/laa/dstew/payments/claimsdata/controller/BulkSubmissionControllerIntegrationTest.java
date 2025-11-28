@@ -157,65 +157,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
   }
 
-  private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
-    Stream.of(
-            new Object[] {
-              0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
-            },
-            new Object[] {
-              1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
-            },
-            new Object[] {
-              2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
-            },
-            new Object[] {
-              3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
-            },
-            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
-            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
-            new Object[] {
-              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
-            },
-            new Object[] {
-              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
-            },
-            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
-            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
-        .forEach(
-            params ->
-                verifyBulkSubmissionMatterStart(
-                    (int) params[0],
-                    savedBulkSubmission,
-                    (String) params[1],
-                    (String) params[2],
-                    (String) params[3],
-                    (String) params[4],
-                    (CategoryCode) params[5],
-                    (MediationType) params[6],
-                    (int) params[7]));
-  }
-
-  private static void verifyBulkSubmissionMatterStart(
-      int index,
-      BulkSubmission savedBulkSubmission,
-      String scheduleRef,
-      String procurementArea,
-      String deliveryLocation,
-      String accessPoint,
-      CategoryCode categoryCode,
-      MediationType mediationType,
-      int numberOfMatterStarts) {
-    BulkSubmissionMatterStart bulkSubmissionMatterStart =
-        savedBulkSubmission.getData().getMatterStarts().get(index);
-    assertThat(bulkSubmissionMatterStart.getScheduleRef()).isEqualTo(scheduleRef);
-    assertThat(bulkSubmissionMatterStart.getProcurementArea()).isEqualTo(procurementArea);
-    assertThat(bulkSubmissionMatterStart.getDeliveryLocation()).isEqualTo(deliveryLocation);
-    assertThat(bulkSubmissionMatterStart.getAccessPoint()).isEqualTo(accessPoint);
-    assertThat(bulkSubmissionMatterStart.getMediationType()).isEqualTo(mediationType);
-    assertThat(bulkSubmissionMatterStart.getNumberOfMatterStarts()).isEqualTo(numberOfMatterStarts);
-    assertThat(bulkSubmissionMatterStart.getCategoryCode()).isEqualTo(categoryCode);
-  }
-
   @ParameterizedTest
   @CsvSource({
       "test_upload_files/csv/outcomes.csv",
@@ -325,6 +266,213 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "test_upload_files/xml/missing_outcomes_double.xml",
+      "test_upload_files/xml/missing_outcomes_single.xml"
+  })
+  void shouldSaveSubmissionToDatabaseWhenFileHasOutcomesWithHeadersOnlyAndPublishMessage(
+      String filePath) throws Exception {
+    ClassPathResource resource = new ClassPathResource(filePath);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    List<BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        savedBulkSubmission.getData().getOutcomes();
+    assertThat(bulkSubmissionOutcomes).hasSize(1);
+
+    BulkSubmissionOutcome bulkSubmissionOutcome = bulkSubmissionOutcomes.getFirst();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isNull();
+    assertThat(bulkSubmissionOutcome.getFeeCode()).isNull();
+    assertThat(bulkSubmissionOutcome.getCaseRefNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getCaseStartDate()).isNull();
+    assertThat(bulkSubmissionOutcome.getCaseId()).isNull();
+    assertThat(bulkSubmissionOutcome.getCaseStageLevel()).isNull();
+    assertThat(bulkSubmissionOutcome.getUfn()).isNull();
+    assertThat(bulkSubmissionOutcome.getProcurementArea()).isNull();
+    assertThat(bulkSubmissionOutcome.getAccessPoint()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientForename()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientSurname()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientDateOfBirth()).isNull();
+    assertThat(bulkSubmissionOutcome.getUcn()).isNull();
+    assertThat(bulkSubmissionOutcome.getClaRefNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getClaExemption()).isNull();
+    assertThat(bulkSubmissionOutcome.getGender()).isNull();
+    assertThat(bulkSubmissionOutcome.getEthnicity()).isNull();
+    assertThat(bulkSubmissionOutcome.getDisability()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientPostCode()).isNull();
+    assertThat(bulkSubmissionOutcome.getWorkConcludedDate()).isNull();
+    assertThat(bulkSubmissionOutcome.getAdviceTime()).isNull();
+    assertThat(bulkSubmissionOutcome.getTravelTime()).isNull();
+    assertThat(bulkSubmissionOutcome.getWaitingTime()).isNull();
+    assertThat(bulkSubmissionOutcome.getProfitCost()).isNull();
+    assertThat(bulkSubmissionOutcome.getValueOfCosts()).isNull();
+    assertThat(bulkSubmissionOutcome.getDisbursementsAmount()).isNull();
+    assertThat(bulkSubmissionOutcome.getCounselCost()).isNull();
+    assertThat(bulkSubmissionOutcome.getDisbursementsVat()).isNull();
+    assertThat(bulkSubmissionOutcome.getTravelWaitingCosts()).isNull();
+    assertThat(bulkSubmissionOutcome.getVatIndicator()).isNull();
+    assertThat(bulkSubmissionOutcome.getLondonNonlondonRate()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientType()).isNull();
+    assertThat(bulkSubmissionOutcome.getToleranceIndicator()).isNull();
+    assertThat(bulkSubmissionOutcome.getTravelCosts()).isNull();
+    assertThat(bulkSubmissionOutcome.getOutcomeCode()).isNull();
+    assertThat(bulkSubmissionOutcome.getLegacyCase()).isNull();
+    assertThat(bulkSubmissionOutcome.getClaimType()).isNull();
+    assertThat(bulkSubmissionOutcome.getAdjournedHearingFee()).isNull();
+    assertThat(bulkSubmissionOutcome.getTypeOfAdvice()).isNull();
+    assertThat(bulkSubmissionOutcome.getPostalApplAccp()).isNull();
+    assertThat(bulkSubmissionOutcome.getScheduleRef()).isNull();
+    assertThat(bulkSubmissionOutcome.getCmrhOral()).isNull();
+    assertThat(bulkSubmissionOutcome.getCmrhTelephone()).isNull();
+    assertThat(bulkSubmissionOutcome.getAitHearingCentre()).isNull();
+    assertThat(bulkSubmissionOutcome.getSubstantiveHearing()).isNull();
+    assertThat(bulkSubmissionOutcome.getHoInterview()).isNull();
+    assertThat(bulkSubmissionOutcome.getHoUcn()).isNull();
+    assertThat(bulkSubmissionOutcome.getTransferDate()).isNull();
+    assertThat(bulkSubmissionOutcome.getDetentionTravelWaitingCosts()).isNull();
+    assertThat(bulkSubmissionOutcome.getDeliveryLocation()).isNull();
+    assertThat(bulkSubmissionOutcome.getPriorAuthorityRef()).isNull();
+    assertThat(bulkSubmissionOutcome.getJrFormFilling()).isNull();
+    assertThat(bulkSubmissionOutcome.getAdditionalTravelPayment()).isNull();
+    assertThat(bulkSubmissionOutcome.getMeetingsAttended()).isNull();
+    assertThat(bulkSubmissionOutcome.getMedicalReportsClaimed()).isNull();
+    assertThat(bulkSubmissionOutcome.getDesiAccRep()).isNull();
+    assertThat(bulkSubmissionOutcome.getMhtRefNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getStageReached()).isNull();
+    assertThat(bulkSubmissionOutcome.getFollowOnWork()).isNull();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isNull();
+    assertThat(bulkSubmissionOutcome.getExemptionCriteriaSatisfied()).isNull();
+    assertThat(bulkSubmissionOutcome.getExclCaseFundingRef()).isNull();
+    assertThat(bulkSubmissionOutcome.getNoOfClients()).isNull();
+    assertThat(bulkSubmissionOutcome.getNoOfSurgeryClients()).isNull();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isNull();
+    assertThat(bulkSubmissionOutcome.getSurgeryDate()).isNull();
+    assertThat(bulkSubmissionOutcome.getLineNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getCrimeMatterType()).isNull();
+    assertThat(bulkSubmissionOutcome.getFeeScheme()).isNull();
+    assertThat(bulkSubmissionOutcome.getRepOrderDate()).isNull();
+    assertThat(bulkSubmissionOutcome.getNoOfSuspects()).isNull();
+    assertThat(bulkSubmissionOutcome.getNoOfPoliceStation()).isNull();
+    assertThat(bulkSubmissionOutcome.getPoliceStation()).isNull();
+    assertThat(bulkSubmissionOutcome.getDsccNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getMaatId()).isNull();
+    assertThat(bulkSubmissionOutcome.getPrisonLawPriorApproval()).isNull();
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isNull();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isNull();
+    assertThat(bulkSubmissionOutcome.getSchemeId()).isNull();
+    assertThat(bulkSubmissionOutcome.getNumberOfMediationSessions()).isNull();
+    assertThat(bulkSubmissionOutcome.getMediationTime()).isNull();
+    assertThat(bulkSubmissionOutcome.getOutreach()).isNull();
+    assertThat(bulkSubmissionOutcome.getReferral()).isNull();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Forename()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Surname()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2DateOfBirth()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Ucn()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2PostCode()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Gender()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Ethnicity()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2Disability()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isNull();
+    assertThat(bulkSubmissionOutcome.getUniqueCaseId()).isNull();
+    assertThat(bulkSubmissionOutcome.getStandardFeeCat()).isNull();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isNull();
+    assertThat(bulkSubmissionOutcome.getCostsDamagesRecovered()).isNull();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isNull();
+    assertThat(bulkSubmissionOutcome.getCourtLocationHpcds()).isNull();
+    assertThat(bulkSubmissionOutcome.getLocalAuthorityNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getPaNumber()).isNull();
+    assertThat(bulkSubmissionOutcome.getExcessTravelCosts()).isNull();
+    assertThat(bulkSubmissionOutcome.getMedConcludedDate()).isNull();
+
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
+    Stream.of(
+            new Object[] {
+              0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
+            },
+            new Object[] {
+              1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
+            },
+            new Object[] {
+              2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
+            },
+            new Object[] {
+              3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
+            },
+            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
+            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
+            new Object[] {
+              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+            },
+            new Object[] {
+              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+            },
+            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
+            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
+        .forEach(
+            params ->
+                verifyBulkSubmissionMatterStart(
+                    (int) params[0],
+                    savedBulkSubmission,
+                    (String) params[1],
+                    (String) params[2],
+                    (String) params[3],
+                    (String) params[4],
+                    (CategoryCode) params[5],
+                    (MediationType) params[6],
+                    (int) params[7]));
+  }
+
+  private static void verifyBulkSubmissionMatterStart(
+      int index,
+      BulkSubmission savedBulkSubmission,
+      String scheduleRef,
+      String procurementArea,
+      String deliveryLocation,
+      String accessPoint,
+      CategoryCode categoryCode,
+      MediationType mediationType,
+      int numberOfMatterStarts) {
+    BulkSubmissionMatterStart bulkSubmissionMatterStart =
+        savedBulkSubmission.getData().getMatterStarts().get(index);
+    assertThat(bulkSubmissionMatterStart.getScheduleRef()).isEqualTo(scheduleRef);
+    assertThat(bulkSubmissionMatterStart.getProcurementArea()).isEqualTo(procurementArea);
+    assertThat(bulkSubmissionMatterStart.getDeliveryLocation()).isEqualTo(deliveryLocation);
+    assertThat(bulkSubmissionMatterStart.getAccessPoint()).isEqualTo(accessPoint);
+    assertThat(bulkSubmissionMatterStart.getMediationType()).isEqualTo(mediationType);
+    assertThat(bulkSubmissionMatterStart.getNumberOfMatterStarts()).isEqualTo(numberOfMatterStarts);
+    assertThat(bulkSubmissionMatterStart.getCategoryCode()).isEqualTo(categoryCode);
   }
 
   @Test
