@@ -831,6 +831,35 @@ paths:
           description: 'Claim ID or claim summary fee ID not found'
         '500':
           description: 'Internal server error'
+    get:
+      operationId: getAssessments
+      tags:
+        - Assessments
+      summary: Get all Assessments for a Claim
+      description: |
+        Retrieves a list of Assessment records associated with the specified Claim ID.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of assessments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/assessment_result_set'
+        '404':
+          description: Claim not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
 
   /api/v0/claims/{claimId}/assessments/{assessmentId}:
     get:
@@ -1088,6 +1117,13 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/matter_start_get'
+    assessment_result_set:
+      type: 'object'
+      properties:
+        assessments:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/assessment_get'
     claim_base:
       type: object
       description: Claim details
@@ -1823,6 +1859,11 @@ components:
     assessment_get:
       allOf:
         - $ref: '#/components/schemas/assessment_base'
+      properties:
+        created_on:
+          type: string
+          format: date-time
+          description: Date and time the assessment was created
     page:
       type: 'object'
       properties:

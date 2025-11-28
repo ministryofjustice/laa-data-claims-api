@@ -472,6 +472,8 @@ public class ClaimsDataTestUtil {
         .boltOnCmrhTelephoneFee(BigDecimal.valueOf(44))
         .boltOnSubstantiveHearingFee(BigDecimal.valueOf(55))
         .boltOnHomeOfficeInterviewFee(BigDecimal.valueOf(59))
+        .allowedTotalInclVat(BigDecimal.ONE)
+        .allowedTotalVat(BigDecimal.TEN)
         .createdByUserId(USER_ID);
   }
 }

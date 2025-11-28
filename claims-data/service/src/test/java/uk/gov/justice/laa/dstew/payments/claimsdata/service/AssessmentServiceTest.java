@@ -10,6 +10,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNot
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -170,5 +173,38 @@ class AssessmentServiceTest {
     assertThrows(
         AssessmentNotFoundException.class,
         () -> assessmentService.getAssessment(CLAIM_1_ID, ASSESSMENT_1_ID));
+  }
+
+  @Test
+  void shouldReturnAssessmentResultSetWhenAssessmentsExist() {
+    Assessment assessment = new Assessment();
+    assessment.setId(ASSESSMENT_1_ID);
+    Claim claim = new Claim();
+    claim.setId(CLAIM_1_ID);
+    assessment.setClaim(claim);
+
+    AssessmentGet dto = new AssessmentGet();
+    dto.setId(assessment.getId());
+    dto.setClaimId(CLAIM_1_ID);
+
+    when(assessmentRepository.findByClaimIdOrderByCreatedOnDesc(CLAIM_1_ID))
+        .thenReturn(List.of(assessment));
+    when(assessmentMapper.toAssessmentGet(assessment)).thenReturn(dto);
+
+    AssessmentResultSet result = assessmentService.getAssessmentsByClaimId(CLAIM_1_ID);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getAssessments()).hasSize(1);
+    assertThat(result.getAssessments().getFirst().getClaimId()).isEqualTo(CLAIM_1_ID);
+  }
+
+  @Test
+  void shouldThrowExceptionWhenAssessmentsEmpty() {
+    when(assessmentRepository.findByClaimIdOrderByCreatedOnDesc(CLAIM_1_ID))
+        .thenReturn(Collections.emptyList());
+
+    assertThatThrownBy(() -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID))
+        .isInstanceOf(AssessmentNotFoundException.class)
+        .hasMessageContaining("No assessments found for claimId");
   }
 }

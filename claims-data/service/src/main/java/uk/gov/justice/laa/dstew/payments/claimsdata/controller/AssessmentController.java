@@ -10,6 +10,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.AssessmentsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
 
@@ -44,5 +45,10 @@ public class AssessmentController implements AssessmentsApi {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(assessment);
+  }
+
+  @Override
+  public ResponseEntity<AssessmentResultSet> getAssessments(UUID claimId) {
+    return ResponseEntity.ok(assessmentService.getAssessmentsByClaimId(claimId));
   }
 }

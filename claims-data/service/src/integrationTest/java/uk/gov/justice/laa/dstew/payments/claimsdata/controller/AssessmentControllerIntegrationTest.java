@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
+import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
@@ -34,6 +37,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   private static final String POST_AN_ASSESSMENT_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/assessments";
   private static final String GET_ASSESSMENT_URI = "/claims/{claimId}/assessments/{assessmentId}";
+  private static final String GET_ASSESSMENTS_URI = "/claims/{claimId}/assessments";
 
   @Test
   void shouldSaveAnAssessmentToDatabase() throws Exception {
@@ -172,5 +176,41 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     mockMvc
         .perform(get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID))
         .andExpect(status().isUnauthorized());
+  }
+
+  @DisplayName("Status 200: when a valid Claim ID is provided")
+  @Test
+  void getAssessmentsShouldReturnSuccess() throws Exception {
+    createAssessmentsTestData();
+    // when: calling GET endpoint with a valid claim ID
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    AssessmentResultSet result =
+        OBJECT_MAPPER.readValue(
+            mvcResult.getResponse().getContentAsString(), AssessmentResultSet.class);
+
+    List<AssessmentGet> assessments = result.getAssessments();
+
+    assertThat(assessments).isNotEmpty().hasSize(2);
+
+    AssessmentGet first = assessments.getFirst();
+    assertThat(first.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(first.getAssessmentOutcome()).isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
+    assertThat(first.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertNotNull(first.getCreatedOn());
+
+    AssessmentGet second = assessments.get(1);
+    assertThat(second.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(second.getId()).isEqualTo(ASSESSMENT_1_ID);
+    assertNotNull(second.getCreatedOn());
+
+    assertThat(assessments)
+        .isSortedAccordingTo((a1, a2) -> a2.getCreatedOn().compareTo(a1.getCreatedOn()));
   }
 }
