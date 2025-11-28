@@ -52,6 +52,8 @@ public class AssessmentService {
       throw new ClaimSummaryFeeNotFoundException(
           String.format("No entity found with id: %s", claimSummaryFeeId));
     }
+
+    updateClaimAssessmentStatus(claim);
     ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
@@ -60,6 +62,16 @@ public class AssessmentService {
     assessment.setClaimSummaryFee(claimSummaryFee);
 
     return assessmentRepository.save(assessment).getId();
+  }
+
+  private void updateClaimAssessmentStatus(Claim claim) {
+    if (!claim.isHasAssessment()) {
+      int noOfClaimsUpdated = claimRepository.updateAssessmentStatus(claim.getId(), true);
+      log.info(
+          "Number of claims updated with assessed status: {} Claim id: {}",
+          noOfClaimsUpdated,
+          claim.getId());
+    }
   }
 
   /**

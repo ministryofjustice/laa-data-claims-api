@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -67,9 +68,15 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
             .findById(createAssessment201Response.getId())
             .orElseThrow(() -> new RuntimeException("Assessment not found"));
 
+    final var updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found exception"));
+
     assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_1_ID);
     assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertTrue(updatedClaim.isHasAssessment());
   }
 
   @Test
@@ -99,7 +106,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void shouldReturnNotFoundWhenClaimNotFound() throws Exception {
-    createClaimsTestData();
     AssessmentPost assessmentPost = getAssessmentPost();
 
     // when: calling the POST endpoint for an unknown claimId, 404 should be returned.
@@ -130,7 +136,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
-  void getAssessment_shouldReturnNotFound() throws Exception {
+  void getAssessmentShouldReturnNotFound() throws Exception {
     createClaimsTestData();
     mockMvc
         .perform(
