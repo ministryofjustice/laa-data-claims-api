@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.apache.commons.lang3.BooleanUtils.toBooleanObject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -59,8 +60,7 @@ class BulkSubmissionMapperTests {
     FileSubmission submission = createCsvSubmission(createCsvOutcome(fieldValue));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(
-            expectedValue == null ? null : Boolean.valueOf(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
@@ -159,8 +159,7 @@ class BulkSubmissionMapperTests {
                             Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"))))));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(
-            expectedValue == null ? null : Boolean.valueOf(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);

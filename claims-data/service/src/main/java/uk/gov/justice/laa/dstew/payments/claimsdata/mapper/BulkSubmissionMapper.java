@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.util.StringUtils;
@@ -475,6 +474,6 @@ public interface BulkSubmissionMapper {
     if (immigrationClrList == null) {
       return new ArrayList<>();
     }
-    return immigrationClrList.stream().map(XmlImmigrationClr::fields).collect(Collectors.toList());
+    return immigrationClrList.stream().map(XmlImmigrationClr::fields).toList();
   }
 }
