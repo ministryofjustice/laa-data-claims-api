@@ -53,3 +53,8 @@ grafana:
   es:
     namespace: laa-data-claims-event-service-staging
     mainHelmInstall: stg
+
+sentry:
+  enabled: true
+  environment: staging
+  tracesSampleRate: 0.5

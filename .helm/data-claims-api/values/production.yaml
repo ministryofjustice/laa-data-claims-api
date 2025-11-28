@@ -53,3 +53,8 @@ grafana:
   es:
     namespace: laa-data-claims-event-service-prod
     mainHelmInstall: prod
+
+sentry:
+  enabled: true
+  environment: production
+  tracesSampleRate: 0.2

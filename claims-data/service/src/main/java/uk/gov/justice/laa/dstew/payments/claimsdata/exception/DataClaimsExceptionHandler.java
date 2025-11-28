@@ -1,10 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import io.sentry.Sentry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import uk.gov.laa.springboot.exception.ApplicationException;
 import uk.gov.laa.springboot.exception.GlobalExceptionHandler;
 
 /**
@@ -37,5 +39,12 @@ public class DataClaimsExceptionHandler extends GlobalExceptionHandler {
     String logMessage = "An unexpected application error has occurred.";
     log.error(logMessage, exception);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(logMessage);
+  }
+
+  @Override
+  @ExceptionHandler(ApplicationException.class)
+  public ResponseEntity<ApplicationException> handleApplicationException(ApplicationException ex) {
+    Sentry.captureException(ex);
+    return super.handleApplicationException(ex);
   }
 }
