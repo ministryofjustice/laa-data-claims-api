@@ -1350,6 +1350,16 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
+        is_amended:
+          type: boolean
+          description: Indicates if the claim has been amended.
+        has_assessment:
+          type: boolean
+          description: Indicates if the claim has an associated assessment.
+        version:
+          type: integer
+          format: int64
+          description: Used for optimistic locking
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'

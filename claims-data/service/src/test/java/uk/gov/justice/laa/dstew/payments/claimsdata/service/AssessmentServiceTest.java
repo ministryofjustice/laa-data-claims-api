@@ -93,6 +93,7 @@ class AssessmentServiceTest {
       verify(claimSummaryFeeRepository).existsById(claimSummaryFeeId);
       verify(claimSummaryFeeRepository).getReferenceById(claimSummaryFeeId);
       verify(assessmentRepository).save(assessment);
+      verify(claimRepository).updateAssessmentStatus(claim.getId(), true);
     }
 
     @Test
