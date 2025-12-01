@@ -1,0 +1,22 @@
+# TODO: remove once underlying buildpack image has been updated
+# libc6
+CVE-2025-5702
+CVE-2025-47907
+CVE-2025-8058
+CVE-2025-9230
+
+# We are currently using trivy-action@0.32.0
+# https://github.com/ministryofjustice/laa-ccms-common-workflows/blob/main/.github/workflows/ecr-publish-image.yml#L142
+# TODO: Update once a new version of trivy-action is released with Go version 1.25
+# https://github.com/aquasecurity/trivy/blob/v0.67.0/go.mod#L3
+# https://github.com/aquasecurity/trivy-action/pull/491/files)
+CVE-2025-47912
+CVE-2025-58183
+CVE-2025-58186
+CVE-2025-58187
+CVE-2025-58188
+CVE-2025-61724
+CVE-2025-58185
+CVE-2025-58189
+CVE-2025-61723
+CVE-2025-61725
