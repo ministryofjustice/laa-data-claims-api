@@ -57,7 +57,8 @@ public final class ClaimSpecification {
       String uniqueClientNumber,
       String uniqueCaseId,
       List<ClaimStatus> claimStatuses,
-      String submissionPeriod) {
+      String submissionPeriod,
+      String caseReferenceNumber) {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
       // Join with Submission
@@ -91,6 +92,10 @@ public final class ClaimSpecification {
 
       if (StringUtils.hasText(uniqueFileNumber)) {
         predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
+      }
+
+      if (StringUtils.hasText(caseReferenceNumber)) {
+        predicates.add(cb.and(cb.equal(root.get("caseReferenceNumber"), caseReferenceNumber)));
       }
 
       // Filter on Client fields

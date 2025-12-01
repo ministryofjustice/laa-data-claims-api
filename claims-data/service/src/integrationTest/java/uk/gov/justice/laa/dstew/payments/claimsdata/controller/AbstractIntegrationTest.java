@@ -251,6 +251,7 @@ public abstract class AbstractIntegrationTest {
             .status(ClaimStatus.INVALID)
             .createdByUserId(USER_ID)
             .createdOn(SUBMITTED_DATE.toInstant())
+            .caseReferenceNumber(CASE_REFERENCE)
             .build();
     claim4 =
         Claim.builder()

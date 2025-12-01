@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
@@ -457,6 +458,7 @@ class ClaimServiceTest {
                 UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
                 SUBMISSION_PERIOD,
+                CASE_REFERENCE,
                 Pageable.unpaged()));
   }
 
@@ -475,6 +477,7 @@ class ClaimServiceTest {
                 UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
                 SUBMISSION_PERIOD,
+                CASE_REFERENCE,
                 Pageable.unpaged()));
   }
 
@@ -499,6 +502,7 @@ class ClaimServiceTest {
             UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
             SUBMISSION_PERIOD,
+            CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
@@ -525,6 +529,7 @@ class ClaimServiceTest {
             UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
             SUBMISSION_PERIOD,
+            CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
