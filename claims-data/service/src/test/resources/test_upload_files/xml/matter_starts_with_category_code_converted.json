@@ -119,7 +119,8 @@
         "deliveryLocation" : "LONDON",
         "mediationType" : null,
         "numberOfMatterStarts" : 3
-      } ]
+      } ],
+      "immigrationClr" : null
     }
   }
 }

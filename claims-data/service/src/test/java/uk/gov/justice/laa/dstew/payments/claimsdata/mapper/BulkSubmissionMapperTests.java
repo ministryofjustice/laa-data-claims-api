@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.apache.commons.lang3.BooleanUtils.toBooleanObject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlImmigrationClr;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
@@ -58,8 +60,7 @@ class BulkSubmissionMapperTests {
     FileSubmission submission = createCsvSubmission(createCsvOutcome(fieldValue));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(
-            true, expectedValue == null ? null : Boolean.valueOf(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
@@ -152,11 +153,13 @@ class BulkSubmissionMapperTests {
                     AREA_OF_LAW.getValue(),
                     "scheduleNum",
                     getXmlOutcomes(fieldValue),
-                    getXmlMatterStarts())));
+                    getXmlMatterStarts(),
+                    List.of(
+                        new XmlImmigrationClr(
+                            Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"))))));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(
-            false, expectedValue == null ? null : Boolean.valueOf(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
@@ -298,7 +301,7 @@ class BulkSubmissionMapperTests {
                 "deliveryLocation",
                 null,
                 "3")),
-        List.of(Map.of("CLR_FIELD", "value")));
+        List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2")));
   }
 
   private CsvOutcome createCsvOutcome(String fieldValue) {
@@ -452,16 +455,14 @@ class BulkSubmissionMapperTests {
   }
 
   private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(
-      boolean includeImmigrationClrRows, Boolean expectedBooleanValue) {
+      Boolean expectedBooleanValue) {
     var expectedBulkSubmissionOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
     var expectedBulkSubmissionOutcome =
         ClaimsDataTestUtil.getBulkSubmissionOutcome(expectedBooleanValue);
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
     List<Map<String, String>> expectedImmigrationClrRows =
-        includeImmigrationClrRows
-            ? ClaimsDataTestUtil.getImmigrationClrRows()
-            : Collections.emptyList();
+        ClaimsDataTestUtil.getImmigrationClrRows();
 
     List<BulkSubmissionMatterStart> expectedMatterStarts =
         List.of(expectedBulkSubmissionMatterStart);

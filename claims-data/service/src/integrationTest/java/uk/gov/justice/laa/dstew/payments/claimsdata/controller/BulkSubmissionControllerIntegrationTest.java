@@ -99,12 +99,14 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/csv/outcomes.csv,false,text/csv",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,text/csv",
-    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,text/xml"
+    "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
+    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
-      String filePath, boolean hasMatterStarts, String contentType) throws Exception {
+      String filePath, boolean hasMatterStarts, boolean hasImmigrationClr, String contentType)
+      throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
@@ -151,6 +153,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     if (hasMatterStarts) {
       verifyBulkSubmissionMatterStarts(savedBulkSubmission);
+    }
+    if (hasImmigrationClr) {
+      verifyImmigrationClr(savedBulkSubmission);
     }
 
     // then: SQS has received a message
@@ -353,6 +358,18 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
                     (CategoryCode) params[5],
                     (MediationType) params[6],
                     (int) params[7]));
+  }
+
+  private static void verifyImmigrationClr(BulkSubmission savedBulkSubmission) {
+    var immigrationClr = savedBulkSubmission.getData().getImmigrationClr().getFirst();
+    assertThat(immigrationClr.get("SUB_ASY_GRANT_PROV")).isEqualTo("0");
+    assertThat(immigrationClr.get("SUB_ASY_GRANT_IFA")).isEqualTo("1");
+    assertThat(immigrationClr.get("SUB_ASY_REF")).isEqualTo("2");
+
+    var immigrationClrSecond = savedBulkSubmission.getData().getImmigrationClr().get(1);
+    assertThat(immigrationClrSecond.get("SUB_ASY_WITH")).isEqualTo("3");
+    assertThat(immigrationClrSecond.get("SUB_NONASY_GRANT_PROV")).isEqualTo("4");
+    assertThat(immigrationClrSecond.get("SUB_NONASY_GRANT_IFA")).isEqualTo("5");
   }
 
   private static void verifyBulkSubmissionMatterStart(
