@@ -61,7 +61,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
                 "unique-file-number",
                 "unique-client-number",
                 "unique-case-id",
-                List.of(ClaimStatus.INVALID)),
+                List.of(ClaimStatus.INVALID),
+                "APR-2024"),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
@@ -78,7 +79,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
       String uniqueFileNumber,
       String uniqueClientNumber,
       String uniqueCaseId,
-      List<ClaimStatus> claimStatuses) {
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod) {
     Page<Claim> result =
         claimRepository.findAll(
             ClaimSpecification.filterBy(
@@ -89,7 +91,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
                 uniqueFileNumber,
                 uniqueClientNumber,
                 uniqueCaseId,
-                claimStatuses),
+                claimStatuses,
+                submissionPeriod),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -115,7 +118,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
                 null,
                 null,
                 null,
-                List.of(ClaimStatus.READY_TO_PROCESS, ClaimStatus.VALID, ClaimStatus.INVALID)),
+                List.of(ClaimStatus.READY_TO_PROCESS, ClaimStatus.VALID, ClaimStatus.INVALID),
+                null),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -133,7 +137,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     Page<Claim> result =
         claimRepository.findAll(
             ClaimSpecification.filterBy(
-                "office2", null, List.of(), null, null, null, null, List.of()),
+                "office2", null, List.of(), null, null, null, null, List.of(), null),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -156,7 +160,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
                 "UFN_123",
                 null,
                 null,
-                List.of(ClaimStatus.READY_TO_PROCESS)),
+                List.of(ClaimStatus.READY_TO_PROCESS),
+                null),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
@@ -183,8 +188,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
    */
   public static Stream<Arguments> getClaimsSearchQueryParams() {
     return Stream.of(
-        Arguments.of("office2", null, null, null, null, null, null, null),
-        Arguments.of("office2", SUBMISSION_2_ID.toString(), null, null, null, null, null, null),
+        Arguments.of("office2", null, null, null, null, null, null, null, null),
+        Arguments.of("office2", SUBMISSION_2_ID.toString(), null, null, null, null, null, null, null),
         Arguments.of(
             "office2",
             null,
@@ -193,11 +198,13 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             null,
             null,
             null,
+            null,
             null),
-        Arguments.of("office2", null, null, "FEE_333", null, null, null, null),
-        Arguments.of("office2", null, null, null, "UFN_333", null, null, null),
-        Arguments.of("office2", null, null, null, null, "UCN_333", null, null),
-        Arguments.of("office2", null, null, null, null, null, "UC_ID_2", null),
-        Arguments.of("office2", null, null, null, null, null, null, List.of(ClaimStatus.INVALID)));
+        Arguments.of("office2", null, null, "FEE_333", null, null, null, null, null),
+        Arguments.of("office2", null, null, null, "UFN_333", null, null, null, null),
+        Arguments.of("office2", null, null, null, null, "UCN_333", null, null, null),
+        Arguments.of("office2", null, null, null, null, null, "UC_ID_2", null, null),
+        Arguments.of("office2", null, null, null, null, null, null, List.of(ClaimStatus.INVALID), null),
+        Arguments.of("office2", null, null, null, null, null, null, null, "APR-2024"));
   }
 }

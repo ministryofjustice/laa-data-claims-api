@@ -393,6 +393,12 @@ paths:
             type: array
             items:
               $ref: "#/components/schemas/claim_status"
+        - name: submission_period
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission period
       responses:
         '200':
           description: Claims retrieved successfully

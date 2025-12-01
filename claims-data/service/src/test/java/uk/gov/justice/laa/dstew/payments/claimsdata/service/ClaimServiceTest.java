@@ -13,6 +13,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_PERIOD;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CASE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
@@ -455,6 +456,7 @@ class ClaimServiceTest {
                 UNIQUE_CLIENT_NUMBER,
                 UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
+                SUBMISSION_PERIOD,
                 Pageable.unpaged()));
   }
 
@@ -472,6 +474,7 @@ class ClaimServiceTest {
                 UNIQUE_CLIENT_NUMBER,
                 UNIQUE_CASE_ID,
                 List.of(ClaimStatus.READY_TO_PROCESS),
+                SUBMISSION_PERIOD,
                 Pageable.unpaged()));
   }
 
@@ -495,6 +498,7 @@ class ClaimServiceTest {
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
+            SUBMISSION_PERIOD,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
@@ -520,6 +524,7 @@ class ClaimServiceTest {
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
             List.of(ClaimStatus.READY_TO_PROCESS),
+            SUBMISSION_PERIOD,
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);

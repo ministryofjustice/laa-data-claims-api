@@ -56,7 +56,8 @@ public final class ClaimSpecification {
       String uniqueFileNumber,
       String uniqueClientNumber,
       String uniqueCaseId,
-      List<ClaimStatus> claimStatuses) {
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod) {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
       // Join with Submission
@@ -73,6 +74,10 @@ public final class ClaimSpecification {
 
       if (submissionStatuses != null && !submissionStatuses.isEmpty()) {
         predicates.add(cb.and(submissionJoin.get("status").in(submissionStatuses)));
+      }
+
+      if (StringUtils.hasText(submissionPeriod)) {
+        predicates.add(cb.and(cb.equal(submissionJoin.get("submissionPeriod"), submissionPeriod)));
       }
 
       // Filter on Claim fields

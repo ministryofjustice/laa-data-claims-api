@@ -246,6 +246,7 @@ public class ClaimService
       String uniqueClientNumber,
       String uniqueCaseId,
       List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
       Pageable pageable) {
 
     if (!StringUtils.hasText(officeCode)) {
@@ -262,7 +263,8 @@ public class ClaimService
                 uniqueFileNumber,
                 uniqueClientNumber,
                 uniqueCaseId,
-                claimStatuses),
+                claimStatuses,
+                submissionPeriod),
             pageable);
 
     ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);

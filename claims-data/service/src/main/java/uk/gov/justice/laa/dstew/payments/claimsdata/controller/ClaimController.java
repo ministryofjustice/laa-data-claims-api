@@ -61,6 +61,7 @@ public class ClaimController implements ClaimsApi {
       String uniqueClientNumber,
       String uniqueCaseId,
       List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
       Pageable pageable) {
     return ResponseEntity.ok(
         claimService.getClaimResultSet(
@@ -72,6 +73,7 @@ public class ClaimController implements ClaimsApi {
             uniqueClientNumber,
             uniqueCaseId,
             claimStatuses,
+            submissionPeriod,
             pageable));
   }
 
