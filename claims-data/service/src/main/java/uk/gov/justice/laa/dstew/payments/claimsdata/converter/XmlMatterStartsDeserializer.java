@@ -18,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFile
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.SqlInjectionDetectionUtil;
 
 /** Deserializer which handles deserialization of bulk submission matter starts from XML files. */
 public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStarts> {
@@ -59,6 +60,7 @@ public class XmlMatterStartsDeserializer extends JsonDeserializer<XmlMatterStart
 
       String name = codeNode.asText();
       String value = valueNode == null ? null : valueNode.asText().trim();
+      SqlInjectionDetectionUtil.validateNoSqlInjection(name, value);
 
       switch (name) {
         case "SCHEDULE_REF" -> scheduleRef = value;

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlImmigrationClr;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.SqlInjectionDetectionUtil;
 
 /**
  * Custom deserializer for converting XML immigration CLR data into {@link XmlImmigrationClr}
@@ -66,6 +67,7 @@ public class XmlImmigrationClrDeserializer extends JsonDeserializer<XmlImmigrati
             .map(JsonNode::asText)
             .map(String::trim)
             .orElse(null);
+    SqlInjectionDetectionUtil.validateNoSqlInjection(name, value);
 
     immigrationClrData.put(name, value);
   }

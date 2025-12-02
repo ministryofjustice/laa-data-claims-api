@@ -93,6 +93,12 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/immigration_clr_missing_code_attribute.xml";
   private static final String IMMIGRATION_CLR_CONVERTED_FILE =
       "classpath:test_upload_files/xml/immigration_clr_converted.json";
+  private static final String OUTCOMES_SQL_INJECTION_INPUT_FILE =
+      "classpath:test_upload_files/xml/outcomes_with_sql_injection_keywords.xml";
+  private static final String MATTER_STARTS_SQL_INJECTION_INPUT_FILE =
+      "classpath:test_upload_files/xml/matter_starts_with_sql_injection_keywords.xml";
+  private static final String IMMIGRATION_CLR_SQL_INJECTION_INPUT_FILE =
+      "classpath:test_upload_files/xml/immigration_clr_with_sql_injection_keywords.xml";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
@@ -236,7 +242,19 @@ public class BulkSubmissionXmlConverterTests {
           new ExceptionTestData(
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_INPUT_FILE,
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_ERROR,
-              "Missing code attribute in immigration clr node"));
+              "Missing code attribute in immigration clr node"),
+          new ExceptionTestData(
+              OUTCOMES_SQL_INJECTION_INPUT_FILE,
+              "SQL injection pattern detected in field 'CASE_REF_NUMBER' with value ''; DROP TABLE claims; --'",
+              "SQL Injection in outcomes"),
+          new ExceptionTestData(
+              MATTER_STARTS_SQL_INJECTION_INPUT_FILE,
+              "SQL injection pattern detected in field 'SCHEDULE_REF' with value 'Test' UNION SELECT * FROM users --'",
+              "SQL Injection in outcomes"),
+          new ExceptionTestData(
+              IMMIGRATION_CLR_SQL_INJECTION_INPUT_FILE,
+              "SQL injection pattern detected in field 'CLR_FIELD' with value 'DELETE FROM submissions;'",
+              "SQL Injection in outcomes"));
     }
 
     @ParameterizedTest(name = "Throws exception when {0}")
