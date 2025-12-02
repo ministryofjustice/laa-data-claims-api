@@ -333,7 +333,7 @@ class BulkSubmissionServiceTest {
 
   @Test
   @DisplayName("Throws BulkSubmissionOfficeAuthorisationException when officeCode is null")
-  void shouldThrowWhenOfficeCodeNull(){
+  void shouldThrowWhenOfficeCodeNull() {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     GetBulkSubmission200ResponseDetails mockDetails =
         mock(GetBulkSubmission200ResponseDetails.class);
@@ -358,8 +358,9 @@ class BulkSubmissionServiceTest {
   }
 
   @Test
-  @DisplayName("Throws BulkSubmissionOfficeAuthorisationException when officeCode not in offices array")
-  void shouldThrowWhenOfficeCodeNotInOfficesArray(){
+  @DisplayName(
+      "Throws BulkSubmissionOfficeAuthorisationException when officeCode not in offices array")
+  void shouldThrowWhenOfficeCodeNotInOfficesArray() {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     GetBulkSubmission200ResponseDetails mockDetails =
         mock(GetBulkSubmission200ResponseDetails.class);

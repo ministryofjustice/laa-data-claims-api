@@ -316,7 +316,4 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
   }
-
-
-
 }
