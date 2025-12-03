@@ -16,11 +16,13 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -36,6 +38,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * SubmissionSpecification} and used by the {@link SubmissionRepository}.
  */
+@Slf4j
+@Isolated
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("SubmissionRepository Integration Test")
 public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -315,7 +319,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @DisplayName(
-      "Should return result if area of law, submission period and office account number match the existing database")
+      "Should return result if area of law, submission period and office account number match the"
+          + " existing database")
   @Test
   void areaOfLawAndSubmissionPeriod() {
     var actualResults =
