@@ -111,7 +111,8 @@
         "excessTravelCosts" : null,
         "medConcludedDate" : null
       } ],
-      "matterStarts" : null
+      "matterStarts" : null,
+      "immigrationClr" : null
     }
   }
 }

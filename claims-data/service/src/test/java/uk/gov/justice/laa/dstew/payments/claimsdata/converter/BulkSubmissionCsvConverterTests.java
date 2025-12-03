@@ -36,6 +36,17 @@ public class BulkSubmissionCsvConverterTests {
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/csv/outcomes_converted.json";
 
+  private static final String OUTCOMES_WITH_EMPTY_BOTTOM_ROWS_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_empty_bottom_rows.csv";
+  private static final String OUTCOMES_WITH_EMPTY_SPARSE_ROWS_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_empty_sparse_rows.csv";
+  private static final String OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_empty_sparse_rows_converted.json";
+  private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_headers_only_rows.csv";
+  private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_CONVERTED_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_headers_only_rows_converted.json";
+
   private static final String MATTERSTARTS_INPUT_FILE =
       "classpath:test_upload_files/csv/matterstarts.csv";
   private static final String MATTERSTARTS_CONVERTED_FILE =
@@ -178,6 +189,28 @@ public class BulkSubmissionCsvConverterTests {
           BulkSubmissionFileReadException.class,
           () -> bulkSubmissionCsvConverter.convert(file),
           "Expected exception to be thrown when multiple schedules found");
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission file with empty bottom rows to csv submission")
+    void canConvertOutcomesWithEmptyBottomRowsToCsvSubmission() throws IOException {
+      runTest(OUTCOMES_WITH_EMPTY_BOTTOM_ROWS_INPUT_FILE, OUTCOMES_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission file with empty sparse rows to csv submission")
+    void canConvertOutcomesWithEmptySparseRowsToCsvSubmission() throws IOException {
+      runTest(
+          OUTCOMES_WITH_EMPTY_SPARSE_ROWS_INPUT_FILE,
+          OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission file with headers only rows to csv submission")
+    void canConvertOutcomesWithHeadersOnlyRowsToCsvSubmission() throws IOException {
+      runTest(
+          OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
+          OUTCOMES_WITH_HEADERS_ONLY_ROWS_CONVERTED_FILE);
     }
   }
 

@@ -211,7 +211,7 @@ public class ClaimsDataTestUtil {
   }
 
   public static List<Map<String, String>> getImmigrationClrRows() {
-    return List.of(Map.of("CLR_FIELD", "value"));
+    return List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"));
   }
 
   public static GetBulkSubmission200ResponseDetails getBulkSubmission200ResponseDetails() {

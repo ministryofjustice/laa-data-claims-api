@@ -22,4 +22,6 @@ public record XmlSchedule(
         List<XmlOutcome> outcomes,
     @JacksonXmlElementWrapper(useWrapping = false)
         @JacksonXmlProperty(localName = "newMatterStarts")
-        List<XmlMatterStarts> matterStarts) {}
+        List<XmlMatterStarts> matterStarts,
+    @JacksonXmlElementWrapper(useWrapping = false) @JacksonXmlProperty(localName = "immigrationCLR")
+        List<XmlImmigrationClr> immigrationClr) {}

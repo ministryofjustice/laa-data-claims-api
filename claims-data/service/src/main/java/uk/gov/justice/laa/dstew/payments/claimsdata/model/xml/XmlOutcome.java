@@ -135,4 +135,16 @@ public record XmlOutcome(
     String localAuthorityNumber,
     String paNumber,
     String excessTravelCosts,
-    String medConcludedDate) {}
+    String medConcludedDate) {
+  /** Default constructor for XmlOutcome. */
+  public XmlOutcome() {
+    this(
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null, null, null, null, null, null, null, null, null);
+  }
+}

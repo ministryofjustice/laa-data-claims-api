@@ -1,6 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.util.StringUtils;
@@ -16,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlImmigrationClr;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
@@ -50,7 +54,9 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "schedule", source = "office.schedule")
   @Mapping(target = "outcomes", source = "office.schedule.outcomes")
   @Mapping(target = "matterStarts", source = "office.schedule.matterStarts")
-  @Mapping(target = "immigrationClr", expression = "java(new ArrayList<>())")
+  @Mapping(
+      target = "immigrationClr",
+      expression = "java(mapImmigrationClrData(submission.office().schedule().immigrationClr()))")
   GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(XmlSubmission submission);
 
   /**
@@ -454,5 +460,20 @@ public interface BulkSubmissionMapper {
       case "N" -> false;
       default -> throw new BulkSubmissionFieldConversionException(fieldName, value, true);
     };
+  }
+
+  /**
+   * Maps XML immigration CLR data to a list of field maps. Each map in the resulting list
+   * represents field name/value pairs from an immigration CLR record.
+   *
+   * @param immigrationClrList the list of XML immigration CLR records to map
+   * @return a list of maps containing the field name/value pairs, or empty list if input is null
+   */
+  default List<Map<String, String>> mapImmigrationClrData(
+      List<XmlImmigrationClr> immigrationClrList) {
+    if (immigrationClrList == null) {
+      return new ArrayList<>();
+    }
+    return immigrationClrList.stream().map(XmlImmigrationClr::fields).toList();
   }
 }

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.util.ResourceUtils.getFile;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_ERROR_MESSAGE_TEMPLATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
@@ -74,12 +75,24 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_single.xml";
+  private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_double.xml";
+  private static final String MISSING_OUTCOMES_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/missing_outcomes_converted.json";
   private static final String MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_mediation_type_converted.json";
   private static final String MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_category_code_converted.json";
   private static final String MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_only_mediation_types_converted.json";
+  private static final String IMMIGRATION_CLR_INPUT_FILE =
+      "classpath:test_upload_files/xml/immigration_clr.xml";
+  private static final String IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_INPUT_FILE =
+      "classpath:test_upload_files/xml/immigration_clr_missing_code_attribute.xml";
+  private static final String IMMIGRATION_CLR_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/immigration_clr_converted.json";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
@@ -117,6 +130,42 @@ public class BulkSubmissionXmlConverterTests {
       assertEquals(expected, actual);
     }
 
+    private record MissingOutcomeTestData(String inputFile, String convertedFile) {}
+
+    private static Stream<MissingOutcomeTestData> missingOutcomeTestData() {
+      return Stream.of(
+          new MissingOutcomeTestData(
+              MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE),
+          new MissingOutcomeTestData(
+              MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE));
+    }
+
+    @ParameterizedTest(name = "Can convert a bulk submission file with empty outcome nodes - {0}")
+    @MethodSource("missingOutcomeTestData")
+    void canConvertMatterStartsToXmlSubmission(MissingOutcomeTestData testData) throws IOException {
+      MultipartFile file = getMultipartFile(testData.inputFile());
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(testData.convertedFile());
+      String expected = getContent(convertedFile);
+
+      assertEquals(expected, actual);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission file with immigration clr data to xml submission")
+    void canConvertImmigrationClrFieldsToXmlSubmission() throws IOException {
+      MultipartFile file = getMultipartFile(IMMIGRATION_CLR_INPUT_FILE);
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(IMMIGRATION_CLR_CONVERTED_FILE);
+      String expected = getContent(convertedFile);
+
+      assertEquals(expected, actual);
+    }
+
     private record MatterStartsTestData(
         String inputFile, String convertedFile, String displayName) {}
 
@@ -138,7 +187,8 @@ public class BulkSubmissionXmlConverterTests {
 
     @ParameterizedTest(name = "Can convert a bulk submission file with matter starts - {0}")
     @MethodSource("matterStartsTestData")
-    void canConvertMatterStartsToXmlSubmission(MatterStartsTestData testData) throws IOException {
+    void canConvertMatterStartsToXmlSubmissionWithValidCategoryCodeOrMediationType(
+        MatterStartsTestData testData) throws IOException {
       MultipartFile file = getMultipartFile(testData.inputFile());
       XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
@@ -182,7 +232,11 @@ public class BulkSubmissionXmlConverterTests {
           new ExceptionTestData(
               OUTCOMES_WITH_MISSING_NAME,
               "Outcome item under matter type INVC does not have a name.",
-              "Outcomes with missing name"));
+              "Outcomes with missing name"),
+          new ExceptionTestData(
+              IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_INPUT_FILE,
+              IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_ERROR,
+              "Missing code attribute in immigration clr node"));
     }
 
     @ParameterizedTest(name = "Throws exception when {0}")
