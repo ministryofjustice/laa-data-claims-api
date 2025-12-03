@@ -99,12 +99,14 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/csv/outcomes.csv,false,text/csv",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,text/csv",
-    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,text/xml"
+    "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
+    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
-      String filePath, boolean hasMatterStarts, String contentType) throws Exception {
+      String filePath, boolean hasMatterStarts, boolean hasImmigrationClr, String contentType)
+      throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
@@ -152,6 +154,169 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     if (hasMatterStarts) {
       verifyBulkSubmissionMatterStarts(savedBulkSubmission);
     }
+    if (hasImmigrationClr) {
+      verifyImmigrationClr(savedBulkSubmission);
+    }
+
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "test_upload_files/csv/outcomes.csv",
+    "test_upload_files/csv/outcomes_with_empty_bottom_rows.csv",
+    "test_upload_files/csv/outcomes_with_empty_sparse_rows.csv"
+  })
+  void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath) throws Exception {
+    // Given:
+    // Below fields are set to "Y" in all files
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
+    ClassPathResource resource = new ClassPathResource(filePath);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    List<BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        savedBulkSubmission.getData().getOutcomes();
+    assertThat(bulkSubmissionOutcomes).hasSize(1);
+
+    BulkSubmissionOutcome bulkSubmissionOutcome = bulkSubmissionOutcomes.getFirst();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isTrue();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isTrue();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isTrue();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isTrue();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isTrue();
+
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @Test
+  void shouldSaveSubmissionToDatabaseWhenFileHasOutcomesWithHeadersOnlyAndPublishMessage()
+      throws Exception {
+    ClassPathResource resource =
+        new ClassPathResource("test_upload_files/csv/outcomes_with_headers_only_rows.csv");
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    List<BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        savedBulkSubmission.getData().getOutcomes();
+    assertThat(bulkSubmissionOutcomes).hasSize(3);
+
+    BulkSubmissionOutcome bulkSubmissionOutcome = bulkSubmissionOutcomes.getFirst();
+    assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2PostalApplAccp()).isTrue();
+    assertThat(bulkSubmissionOutcome.getMatterType()).isEqualTo("IALB:IFRA");
+    assertThat(bulkSubmissionOutcome.getDutySolicitor()).isTrue();
+    assertThat(bulkSubmissionOutcome.getNationalRefMechanismAdvice()).isTrue();
+    assertThat(bulkSubmissionOutcome.getIrcSurgery()).isTrue();
+    assertThat(bulkSubmissionOutcome.getClient2LegallyAided()).isTrue();
+    assertThat(bulkSubmissionOutcome.getEligibleClient()).isTrue();
+    assertThat(bulkSubmissionOutcome.getYouthCourt()).isTrue();
+
+    assertThat(bulkSubmissionOutcomes.get(1)).isEqualTo(bulkSubmissionOutcomes.get(2));
+
+    // then: SQS has received a message
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "test_upload_files/xml/missing_outcomes_double.xml",
+    "test_upload_files/xml/missing_outcomes_single.xml"
+  })
+  void shouldSaveSubmissionToDatabaseWhenFileHasOutcomesWithHeadersOnlyAndPublishMessage(
+      String filePath) throws Exception {
+    ClassPathResource resource = new ClassPathResource(filePath);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
+
+    // when: calling the POST endpoint with the file
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: response body contains IDs
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // then: the database has a persisted entity with values as "true" for fields set to "Y"
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
+    assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    List<BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        savedBulkSubmission.getData().getOutcomes();
+    assertThat(bulkSubmissionOutcomes).hasSize(1);
+
+    BulkSubmissionOutcome bulkSubmissionOutcome = bulkSubmissionOutcomes.getFirst();
+
+    assertThat(bulkSubmissionOutcome)
+        .usingRecursiveComparison()
+        .isEqualTo(new BulkSubmissionOutcome());
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
@@ -193,6 +358,18 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
                     (CategoryCode) params[5],
                     (MediationType) params[6],
                     (int) params[7]));
+  }
+
+  private static void verifyImmigrationClr(BulkSubmission savedBulkSubmission) {
+    var immigrationClr = savedBulkSubmission.getData().getImmigrationClr().getFirst();
+    assertThat(immigrationClr.get("SUB_ASY_GRANT_PROV")).isEqualTo("0");
+    assertThat(immigrationClr.get("SUB_ASY_GRANT_IFA")).isEqualTo("1");
+    assertThat(immigrationClr.get("SUB_ASY_REF")).isEqualTo("2");
+
+    var immigrationClrSecond = savedBulkSubmission.getData().getImmigrationClr().get(1);
+    assertThat(immigrationClrSecond.get("SUB_ASY_WITH")).isEqualTo("3");
+    assertThat(immigrationClrSecond.get("SUB_NONASY_GRANT_PROV")).isEqualTo("4");
+    assertThat(immigrationClrSecond.get("SUB_NONASY_GRANT_IFA")).isEqualTo("5");
   }
 
   private static void verifyBulkSubmissionMatterStart(
