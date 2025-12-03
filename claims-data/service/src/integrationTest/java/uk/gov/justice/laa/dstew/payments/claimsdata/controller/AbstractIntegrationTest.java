@@ -30,6 +30,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -103,6 +104,11 @@ public abstract class AbstractIntegrationTest {
   @BeforeAll
   static void beforeAll() {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
+  }
+
+  @BeforeEach
+  public void abstractSetup() {
+    clearIntegrationData();
   }
 
   @ServiceConnection

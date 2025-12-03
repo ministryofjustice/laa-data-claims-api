@@ -58,7 +58,6 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
    */
   @BeforeEach
   public void setup() {
-    clearIntegrationData();
 
     var bulkSubmission =
         BulkSubmission.builder()
@@ -142,7 +141,9 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   @Test
   @DisplayName("Should get two Submissions for the matching offices")
   void shouldGetTwoSubmissionsForTheMatchingOffices() {
+    submission1.setAreaOfLaw(AreaOfLaw.CRIME_LOWER);
     submission1.setCreatedOn(FIRST_JANUARY_2025);
+    submission2.setAreaOfLaw(AreaOfLaw.CRIME_LOWER);
     submission2.setCreatedOn(TENTH_APRIL_2024);
     submissionRepository.saveAll(List.of(submission1, submission2));
 
