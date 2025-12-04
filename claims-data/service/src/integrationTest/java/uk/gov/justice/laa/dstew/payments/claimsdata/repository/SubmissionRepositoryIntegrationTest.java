@@ -157,8 +157,10 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    List<Submission> content = result.getContent().stream().sorted(
-        Comparator.comparing(Submission::getCreatedOn)).toList();
+    List<Submission> content =
+        result.getContent().stream()
+            .sorted(Comparator.comparing(Submission::getCreatedOn))
+            .toList();
     assertThat(content.getFirst())
         .usingRecursiveComparison()
         .ignoringFields(IGNORE_FIELD_UPDATE_ON)
