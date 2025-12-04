@@ -124,7 +124,7 @@ class BulkSubmissionMapperTests {
     "numberOfMediationSessions, notANumber",
     "mediationTime, notANumber",
     "excessTravelCosts, notANumber",
-    "jrFormFilling, notANumber" ,
+    "jrFormFilling, notANumber",
     "costsDamagesRecovered, notANumber"
   })
   void shouldIncludeFieldContextWhenCsvOutcomeNumericConversionFails(
