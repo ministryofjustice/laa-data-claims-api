@@ -27,6 +27,11 @@ ingress:
       SecRuleEngine On
       SecAction "id:900200,phase:1,nolog,pass,t:none,setvar:tx.allowed_methods=GET HEAD POST OPTIONS PUT PATCH DELETE"
       SecDefaultAction "phase:2,pass,log,tag:github_team=laa-data-stewardship-payments-team,tag:namespace=laa-data-claims-api-uat"
+
+      SecRuleEngine On
+      SecRequestBodyAccess On
+      SecRequestBodyLimitAction Reject
+      SecRequestBodyParsing On
   hosts: []
 
 ingressInternal:
