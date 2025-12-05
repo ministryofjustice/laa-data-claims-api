@@ -1882,6 +1882,8 @@ components:
         - claim_summary_fee_id
         - assessment_outcome
         - created_by_user_id
+        - assessed_total_vat
+        - assessed_total_incl_vat
         - allowed_total_vat
         - allowed_total_incl_vat
     assessment_get:

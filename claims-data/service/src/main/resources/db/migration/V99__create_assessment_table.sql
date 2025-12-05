@@ -20,8 +20,8 @@ CREATE TABLE assessment (
     bolt_on_home_office_interview_fee                   NUMERIC,
     created_by_user_id                                  TEXT NOT NULL,
     created_on                                          TIMESTAMPTZ NOT NULL,
-    assessed_total_vat                                  NUMERIC,
-    assessed_total_incl_vat                             NUMERIC,
+    assessed_total_vat                                  NUMERIC NOT NULL,
+    assessed_total_incl_vat                             NUMERIC NOT NULL,
     allowed_total_vat                                   NUMERIC NOT NULL,
     allowed_total_incl_vat                              NUMERIC NOT NULL,
 
