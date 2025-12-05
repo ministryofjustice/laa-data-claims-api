@@ -57,6 +57,10 @@ class AssessmentMapperTest {
     assertEquals(post.getBoltOnSubstantiveHearingFee(), entity.getBoltOnSubstantiveHearingFee());
     assertEquals(post.getBoltOnHomeOfficeInterviewFee(), entity.getBoltOnHomeOfficeInterviewFee());
     assertEquals(post.getCreatedByUserId(), entity.getCreatedByUserId());
+    assertEquals(post.getAssessedTotalVat(), entity.getAssessedTotalVat());
+    assertEquals(post.getAssessedTotalInclVat(), entity.getAssessedTotalInclVat());
+    assertEquals(post.getAllowedTotalVat(), entity.getAllowedTotalVat());
+    assertEquals(post.getAllowedTotalInclVat(), entity.getAllowedTotalInclVat());
   }
 
   @Test

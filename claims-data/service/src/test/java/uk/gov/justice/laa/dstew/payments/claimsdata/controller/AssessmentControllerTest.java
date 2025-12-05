@@ -79,6 +79,8 @@ class AssessmentControllerTest {
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
           "created_by_user_id": "test-user",
+          "assessed_total_vat": "1",
+          "assessed_total_incl_vat": "1",
           "allowed_total_vat": "1",
           "allowed_total_incl_vat": "1"
         }
@@ -113,6 +115,8 @@ class AssessmentControllerTest {
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
           "created_by_user_id": "test-user",
+          "assessed_total_vat": "1",
+          "assessed_total_incl_vat": "1",
           "allowed_total_vat": "1",
           "allowed_total_incl_vat": "1"
         }
@@ -141,6 +145,8 @@ class AssessmentControllerTest {
           "claim_summary_fee_id": "8dae05c8-1ebd-464d-8a37-8548fd051527",
           "assessment_outcome": "NILLED",
           "created_by_user_id": "test-user",
+          "assessed_total_vat": "1",
+          "assessed_total_incl_vat": "1",
           "allowed_total_vat": "1",
           "allowed_total_incl_vat": "1"
         }
