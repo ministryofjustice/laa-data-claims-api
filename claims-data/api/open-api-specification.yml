@@ -1866,6 +1866,10 @@ components:
           type: boolean
         created_by_user_id:
           type: string
+        assessed_total_vat:
+          type: number
+        assessed_total_incl_vat:
+          type: number
         allowed_total_vat:
           type: number
         allowed_total_incl_vat:

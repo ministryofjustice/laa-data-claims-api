@@ -78,8 +78,16 @@ public class Assessment {
 
   private BigDecimal boltOnHomeOfficeInterviewFee;
 
+  private BigDecimal assessedTotalVat;
+
+  private BigDecimal assessedTotalInclVat;
+
+  @NotNull
+  @Column(nullable = false)
   private BigDecimal allowedTotalVat;
 
+  @NotNull
+  @Column(nullable = false)
   private BigDecimal allowedTotalInclVat;
 
   @NotNull
