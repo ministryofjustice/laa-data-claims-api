@@ -15,12 +15,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -36,6 +39,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * SubmissionSpecification} and used by the {@link SubmissionRepository}.
  */
+@Slf4j
+@Isolated
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("SubmissionRepository Integration Test")
 public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -58,7 +63,6 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
    */
   @BeforeEach
   public void setup() {
-    clearIntegrationData();
 
     var bulkSubmission =
         BulkSubmission.builder()
@@ -142,8 +146,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   @Test
   @DisplayName("Should get two Submissions for the matching offices")
   void shouldGetTwoSubmissionsForTheMatchingOffices() {
-    submission1.setCreatedOn(FIRST_JANUARY_2025);
-    submission2.setCreatedOn(TENTH_APRIL_2024);
+    submission1.setAreaOfLaw(AreaOfLaw.CRIME_LOWER);
+    submission2.setAreaOfLaw(AreaOfLaw.CRIME_LOWER);
     submissionRepository.saveAll(List.of(submission1, submission2));
 
     Page<Submission> result =
@@ -153,14 +157,18 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    assertThat(result.getContent().getFirst())
-        .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
-        .isEqualTo(submission2);
-    assertThat(result.getContent().get(1))
+    List<Submission> content =
+        result.getContent().stream()
+            .sorted(Comparator.comparing(Submission::getCreatedOn))
+            .toList();
+    assertThat(content.getFirst())
         .usingRecursiveComparison()
         .ignoringFields(IGNORE_FIELD_UPDATE_ON)
         .isEqualTo(submission1);
+    assertThat(content.get(1))
+        .usingRecursiveComparison()
+        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .isEqualTo(submission2);
   }
 
   @Test
@@ -314,7 +322,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @DisplayName(
-      "Should return result if area of law, submission period and office account number match the existing database")
+      "Should return result if area of law, submission period and office account number match the"
+          + " existing database")
   @Test
   void areaOfLawAndSubmissionPeriod() {
     var actualResults =

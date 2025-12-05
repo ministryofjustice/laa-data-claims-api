@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
@@ -226,7 +227,7 @@ class BulkSubmissionServiceTest {
     GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
         mock(GetBulkSubmission200ResponseDetailsSchedule.class);
     when(mockDetails.getSchedule()).thenReturn(mockSchedule);
-    when(mockSchedule.getAreaOfLaw()).thenReturn("UNKNOWN");
+    when(mockSchedule.getAreaOfLaw()).thenReturn("UNK");
     doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
 
     BulkSubmissionAreaOfLawException exception =
@@ -328,5 +329,59 @@ class BulkSubmissionServiceTest {
     assertThrows(
         BulkSubmissionNotFoundException.class,
         () -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
+  }
+
+  @Test
+  @DisplayName("Throws BulkSubmissionOfficeAuthorisationException when officeCode is null")
+  void shouldThrowWhenOfficeCodeNull() {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+
+    BulkSubmissionOfficeAuthorisationException exception =
+        assertThrows(
+            BulkSubmissionOfficeAuthorisationException.class,
+            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+
+    assertEquals(
+        "User does not have authorisation to submit for office null. Please verify "
+            + "your office code and access permissions.",
+        exception.getMessage());
+  }
+
+  @Test
+  @DisplayName(
+      "Throws BulkSubmissionOfficeAuthorisationException when officeCode not in offices array")
+  void shouldThrowWhenOfficeCodeNotInOfficesArray() {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockSchedule.getAreaOfLaw()).thenReturn("LEGAL HELP");
+    when(mockOffice.getAccount()).thenReturn("DIFFERENT");
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+
+    BulkSubmissionOfficeAuthorisationException exception =
+        assertThrows(
+            BulkSubmissionOfficeAuthorisationException.class,
+            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+
+    assertEquals(
+        "User does not have authorisation to submit for office DIFFERENT. Please verify "
+            + "your office code and access permissions.",
+        exception.getMessage());
   }
 }

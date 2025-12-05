@@ -30,6 +30,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -105,6 +106,11 @@ public abstract class AbstractIntegrationTest {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
   }
 
+  @BeforeEach
+  public void abstractSetup() {
+    clearIntegrationData();
+  }
+
   @ServiceConnection
   static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
@@ -138,6 +144,10 @@ public abstract class AbstractIntegrationTest {
   }
 
   public Submission getSubmissionTestData() {
+    return getSubmissionTestData(AREA_OF_LAW);
+  }
+
+  public Submission getSubmissionTestData(AreaOfLaw areaOfLaw) {
     clearIntegrationData();
     createBulkSubmission();
 
@@ -147,7 +157,7 @@ public abstract class AbstractIntegrationTest {
             .bulkSubmissionId(BULK_SUBMISSION_ID)
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
             .submissionPeriod(SUBMISSION_PERIOD)
-            .areaOfLaw(AREA_OF_LAW)
+            .areaOfLaw(areaOfLaw)
             .status(SubmissionStatus.CREATED)
             .crimeLowerScheduleNumber(CRIME_SCHEDULE_NUMBER)
             .createdByUserId(USER_ID)
