@@ -447,8 +447,10 @@ public class ClaimsDataTestUtil {
         .boltOnCmrhTelephoneFee(new BigDecimal(1300))
         .boltOnSubstantiveHearingFee(new BigDecimal(1400))
         .boltOnHomeOfficeInterviewFee(new BigDecimal(1500))
-        .allowedTotalInclVat(new BigDecimal("1600.00"))
-        .allowedTotalVat(new BigDecimal("1700.00"))
+        .assessedTotalVat(new BigDecimal("1600.00"))
+        .assessedTotalInclVat(new BigDecimal("1700.00"))
+        .allowedTotalVat(new BigDecimal("1800.00"))
+        .allowedTotalInclVat(new BigDecimal("1900.00"))
         .createdByUserId(API_USER_ID);
   }
 
@@ -472,8 +474,10 @@ public class ClaimsDataTestUtil {
         .boltOnCmrhTelephoneFee(BigDecimal.valueOf(44))
         .boltOnSubstantiveHearingFee(BigDecimal.valueOf(55))
         .boltOnHomeOfficeInterviewFee(BigDecimal.valueOf(59))
-        .allowedTotalInclVat(BigDecimal.ONE)
-        .allowedTotalVat(BigDecimal.TEN)
+        .assessedTotalVat(BigDecimal.valueOf(1.00))
+        .assessedTotalInclVat(BigDecimal.valueOf(2.00))
+        .allowedTotalVat(BigDecimal.valueOf(3.00))
+        .allowedTotalInclVat(BigDecimal.valueOf(4.00))
         .createdByUserId(USER_ID);
   }
 }
