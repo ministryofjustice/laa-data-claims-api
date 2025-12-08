@@ -64,4 +64,4 @@ grafana:
 sentry:
   enabled: true
   environment: uat
-  tracesSampleRate: 1
+  tracesSampleRate: 0.25

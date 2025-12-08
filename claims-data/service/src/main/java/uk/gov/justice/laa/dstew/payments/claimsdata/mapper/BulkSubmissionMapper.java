@@ -244,6 +244,13 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "excessTravelCosts",
       expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
+  @Mapping(
+      target = "jrFormFilling",
+      expression = "java(parseBigDecimalField(outcome.jrFormFilling(), \"jrFormFilling\"))")
+  @Mapping(
+      target = "costsDamagesRecovered",
+      expression =
+          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"costsDamagesRecovered\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(XmlOutcome outcome);
 
   /**
@@ -383,6 +390,13 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "excessTravelCosts",
       expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
+  @Mapping(
+      target = "jrFormFilling",
+      expression = "java(parseBigDecimalField(outcome.jrFormFilling(), \"jrFormFilling\"))")
+  @Mapping(
+      target = "costsDamagesRecovered",
+      expression =
+          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"costsDamagesRecovered\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 
   /**

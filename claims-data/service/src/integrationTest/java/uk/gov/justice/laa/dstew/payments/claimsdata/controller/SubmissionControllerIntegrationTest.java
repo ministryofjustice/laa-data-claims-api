@@ -20,7 +20,6 @@ import java.math.RoundingMode;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -105,12 +104,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   void setup() {
     // creating some data on DB
     submission = getSubmissionTestData();
-  }
-
-  @AfterEach
-  void close() {
-    // delete everything from DB
-    clearIntegrationData();
   }
 
   @Test

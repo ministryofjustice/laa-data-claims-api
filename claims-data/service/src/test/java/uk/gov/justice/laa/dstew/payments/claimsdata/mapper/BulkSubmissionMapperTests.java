@@ -123,7 +123,9 @@ class BulkSubmissionMapperTests {
     "noOfPoliceStation, notANumber",
     "numberOfMediationSessions, notANumber",
     "mediationTime, notANumber",
-    "excessTravelCosts, notANumber"
+    "excessTravelCosts, notANumber",
+    "jrFormFilling, notANumber",
+    "costsDamagesRecovered, notANumber"
   })
   void shouldIncludeFieldContextWhenCsvOutcomeNumericConversionFails(
       String fieldName, String invalidValue) {
@@ -233,7 +235,7 @@ class BulkSubmissionMapperTests {
             "0.09",
             "deliveryLocation",
             "priorAuthorityRef",
-            "jrFormFilling",
+            "12.34",
             fieldValue,
             "meetingsAttended",
             "4",
@@ -278,7 +280,7 @@ class BulkSubmissionMapperTests {
             "uniqueCaseId",
             "standardFeeCat",
             fieldValue,
-            "costsDamagesRecovered",
+            "56.78",
             fieldValue,
             "courtLocationHpcds",
             "localAuthorityNumber",
@@ -323,6 +325,8 @@ class BulkSubmissionMapperTests {
     String hoInterview = overrides.getOrDefault("hoInterview", "8");
     String detentionTravelWaitingCosts =
         overrides.getOrDefault("detentionTravelWaitingCosts", "0.09");
+    String jrFormFilling = overrides.getOrDefault("jrFormFilling", "12.34");
+    String costsDamagesRecovered = overrides.getOrDefault("costsDamagesRecovered", "56.78");
     String medicalReportsClaimed = overrides.getOrDefault("medicalReportsClaimed", "4");
     String desiAccRep = overrides.getOrDefault("desiAccRep", "5");
     String noOfClients = overrides.getOrDefault("noOfClients", "6");
@@ -400,7 +404,7 @@ class BulkSubmissionMapperTests {
         detentionTravelWaitingCosts,
         "deliveryLocation",
         "priorAuthorityRef",
-        "jrFormFilling",
+        jrFormFilling,
         additionalTravelPayment,
         "meetingsAttended",
         medicalReportsClaimed,
@@ -445,7 +449,7 @@ class BulkSubmissionMapperTests {
         "uniqueCaseId",
         "standardFeeCat",
         client2PostalApplAccp,
-        "costsDamagesRecovered",
+        costsDamagesRecovered,
         eligibleClient,
         "courtLocationHpcds",
         "localAuthorityNumber",
