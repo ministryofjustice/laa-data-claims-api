@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -81,11 +80,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   private String queueUrl;
 
-  @BeforeEach
-  void beforeEach() {
-    clearIntegrationData();
-  }
-
   @BeforeAll
   void setup() {
     // create the queue if it doesn't exist
@@ -100,6 +94,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @ParameterizedTest
   @CsvSource({
     "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+    "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv",
+    "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv",
+    "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv",
     "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv",
     "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
     "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"

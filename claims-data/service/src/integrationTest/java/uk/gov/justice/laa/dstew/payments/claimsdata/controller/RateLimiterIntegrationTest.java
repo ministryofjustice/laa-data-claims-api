@@ -2,7 +2,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +29,6 @@ public class RateLimiterIntegrationTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void setup() {
-    clearIntegrationData();
     submission = getSubmissionTestData();
   }
 

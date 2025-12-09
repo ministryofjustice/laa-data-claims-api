@@ -44,7 +44,6 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @BeforeEach
   void setup() {
-    clearIntegrationData();
     submission = getSubmissionTestData();
   }
 

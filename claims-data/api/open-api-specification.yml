@@ -1601,7 +1601,8 @@ components:
         prior_authority_ref:
           type: string
         jr_form_filling:
-          type: string
+          type: number
+          format: bigDecimal
         additional_travel_payment:
           type: boolean
         meetings_attended:
@@ -1692,7 +1693,8 @@ components:
         client_2_postal_appl_accp:
           type: boolean
         costs_damages_recovered:
-          type: string
+          type: number
+          format: bigDecimal
         eligible_client:
           type: boolean
         court_location_hpcds:
