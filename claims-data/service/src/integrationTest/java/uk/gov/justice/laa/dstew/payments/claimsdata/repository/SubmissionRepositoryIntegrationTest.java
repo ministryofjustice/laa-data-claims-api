@@ -49,6 +49,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       LocalDate.of(2025, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final Instant TENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
+  private static final Instant ELEVENTH_APRIL_2024 =
+      LocalDate.of(2024, 4, 11).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
 
   private Submission submission1;
@@ -107,7 +109,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .numberOfClaims(3)
             .createdByUserId(USER_ID)
             .providerUserId(bulkSubmission.getCreatedByUserId())
-            .createdOn(TENTH_APRIL_2024)
+            .createdOn(ELEVENTH_APRIL_2024)
             .build();
 
     submissionRepository.saveAll(List.of(submission1, submission2));
