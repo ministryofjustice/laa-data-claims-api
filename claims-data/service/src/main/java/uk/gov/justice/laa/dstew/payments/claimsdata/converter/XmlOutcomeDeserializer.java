@@ -42,11 +42,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
     Iterable<JsonNode> outcomeItems;
-    if (outcomeItemNode.isArray()) {
-      outcomeItems = outcomeItemNode;
-    } else {
-      outcomeItems = List.of(outcomeItemNode);
-    }
+    outcomeItems = outcomeItemNode.isArray() ? outcomeItemNode : List.of(outcomeItemNode);
 
     String feeCode = null;
     String caseRefNumber = null;

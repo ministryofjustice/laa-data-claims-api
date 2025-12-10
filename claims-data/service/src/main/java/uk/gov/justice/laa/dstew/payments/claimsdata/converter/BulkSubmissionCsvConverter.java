@@ -88,9 +88,11 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
           }
           case CsvHeader.OUTCOME -> {
             var submissionRowValues = csvBulkSubmissionRow.values();
-            if (StringUtils.isEmpty(submissionRowValues.get("matterType"))) {
-              throw new BulkSubmissionFileReadException("Matter type missing in outcome data");
-            }
+            submissionRowValues.computeIfAbsent(
+                "matterType",
+                key -> {
+                  throw new BulkSubmissionFileReadException("Matter type missing in outcome data");
+                });
             csvOutcomes.add(
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
           }
