@@ -102,7 +102,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv,false",
     "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv,false",
     "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml,false",
-    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml,false"
+    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml,false",
+    "test_upload_files/xml/outcomes_with_sql_injection.xml,false,false,text/xml,true"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
       String filePath,
