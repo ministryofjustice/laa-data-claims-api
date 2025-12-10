@@ -46,8 +46,6 @@ public class BulkSubmissionCsvConverterTests {
       "classpath:test_upload_files/csv/outcomes_with_headers_only_rows.csv";
   private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_CONVERTED_FILE =
       "classpath:test_upload_files/csv/outcomes_with_headers_only_rows_converted.json";
-  private static final String OUTCOMES_SQL_INJECTION_INPUT_FILE =
-      "classpath:test_upload_files/csv/outcomes_sql_injection.csv";
 
   private static final String MATTERSTARTS_INPUT_FILE =
       "classpath:test_upload_files/csv/matterstarts.csv";

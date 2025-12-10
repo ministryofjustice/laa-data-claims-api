@@ -93,12 +93,6 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/immigration_clr_missing_code_attribute.xml";
   private static final String IMMIGRATION_CLR_CONVERTED_FILE =
       "classpath:test_upload_files/xml/immigration_clr_converted.json";
-  private static final String OUTCOMES_SQL_INJECTION_INPUT_FILE =
-      "classpath:test_upload_files/xml/outcomes_with_sql_injection_keywords.xml";
-  private static final String MATTER_STARTS_SQL_INJECTION_INPUT_FILE =
-      "classpath:test_upload_files/xml/matter_starts_with_sql_injection_keywords.xml";
-  private static final String IMMIGRATION_CLR_SQL_INJECTION_INPUT_FILE =
-      "classpath:test_upload_files/xml/immigration_clr_with_sql_injection_keywords.xml";
 
   private static final String MISSING_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_office.xml";
