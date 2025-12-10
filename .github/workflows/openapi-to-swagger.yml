@@ -5,10 +5,15 @@ on:
     branches:
       - 'openapi/**'
 
+permissions:
+  contents: read
+
 jobs:
   generate-swagger-ui:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
