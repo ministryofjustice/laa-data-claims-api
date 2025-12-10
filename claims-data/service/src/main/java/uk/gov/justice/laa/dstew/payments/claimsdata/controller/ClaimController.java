@@ -22,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
+import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling claims requests. */
 @RestController
@@ -33,7 +34,7 @@ public class ClaimController implements ClaimsApi {
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateClaim201Response> createClaim(
-      UUID submissionId, ClaimPost claimPost) {
+      UUID submissionId, @ScanForSql ClaimPost claimPost) {
     UUID claimId = claimService.createClaim(submissionId, claimPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()

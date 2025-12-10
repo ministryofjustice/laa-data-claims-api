@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.SqlInjectionDetectionUtil;
 
 /** Deserializer which handles deserialization of bulk submission outcomes from XML files. */
 public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
@@ -156,8 +155,6 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
 
       String name = nameNode.asText();
       String value = valueNode == null ? null : valueNode.asText();
-
-      SqlInjectionDetectionUtil.validateNoSqlInjection(name, value);
 
       switch (name) {
         case "FEE_CODE" -> feeCode = value;

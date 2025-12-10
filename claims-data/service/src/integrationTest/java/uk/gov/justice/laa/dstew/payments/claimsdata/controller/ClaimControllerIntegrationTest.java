@@ -18,6 +18,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -107,7 +109,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
     getSubmissionTestData(areaOfLaw);
-    final ClaimPost claimPost = getClaimPost();
+    final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
 
     // when: calling the POST endpoint with the ClaimPost
     MvcResult result =
@@ -139,6 +141,46 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
+    // given: submission test data exists in the database
+    getSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost = getClaimPost("'; DROP TABLE claims; --");
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
+
+    // when: calling the POST endpoint with the ClaimPost
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: claim is correctly created with a warning logged
+    String responseBody = result.getResponse().getContentAsString();
+    var createClaim201Response =
+        OBJECT_MAPPER.readValue(responseBody, CreateClaim201Response.class);
+    assertThat(createClaim201Response.getId()).isNotNull();
+
+    Claim savedClaim =
+        claimRepository
+            .findById(createClaim201Response.getId())
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+    assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
+    assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
+
+    boolean found =
+        listAppender.list.stream()
+            .anyMatch(event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
+
+    assertThat(found).isTrue();
+  }
+
+  @Test
   void shouldReturnBadRequestWhenPostIsCalledWithIncorrectBody() throws Exception {
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
@@ -152,7 +194,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
-    final ClaimPost claimPost = getClaimPost();
+    final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
     // when: calling the POST endpoint with an invalid token, 401 should be returned
     mockMvc
         .perform(

@@ -242,19 +242,7 @@ public class BulkSubmissionXmlConverterTests {
           new ExceptionTestData(
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_INPUT_FILE,
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_ERROR,
-              "Missing code attribute in immigration clr node"),
-          new ExceptionTestData(
-              OUTCOMES_SQL_INJECTION_INPUT_FILE,
-              "SQL injection pattern detected in field 'CASE_REF_NUMBER' with value ''; DROP TABLE claims; --'",
-              "SQL Injection in outcomes"),
-          new ExceptionTestData(
-              MATTER_STARTS_SQL_INJECTION_INPUT_FILE,
-              "SQL injection pattern detected in field 'SCHEDULE_REF' with value 'Test' UNION SELECT * FROM users --'",
-              "SQL Injection in outcomes"),
-          new ExceptionTestData(
-              IMMIGRATION_CLR_SQL_INJECTION_INPUT_FILE,
-              "SQL injection pattern detected in field 'CLR_FIELD' with value 'DELETE FROM submissions;'",
-              "SQL Injection in outcomes"));
+              "Missing code attribute in immigration clr node"));
     }
 
     @ParameterizedTest(name = "Throws exception when {0}")

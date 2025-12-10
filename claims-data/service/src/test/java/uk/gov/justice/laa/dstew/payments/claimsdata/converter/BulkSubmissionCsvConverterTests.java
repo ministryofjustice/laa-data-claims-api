@@ -154,16 +154,6 @@ public class BulkSubmissionCsvConverterTests {
     }
 
     @Test
-    @DisplayName("Throws exception when sql injection is detected")
-    void throwsExceptionWhenSqlInjectionIsDetected() throws IOException {
-      MultipartFile file = getMultipartFile(OUTCOMES_SQL_INJECTION_INPUT_FILE);
-      assertThrows(
-          BulkSubmissionFileReadException.class,
-          () -> bulkSubmissionCsvConverter.convert(file),
-          "Expected exception to be thrown sql injection is detected");
-    }
-
-    @Test
     @DisplayName("Throws exception when schedule is missing")
     void throwsExceptionWhenScheduleMissing() throws IOException {
       MultipartFile file = getMultipartFile(MISSING_SCHEDULE_INPUT_FILE);

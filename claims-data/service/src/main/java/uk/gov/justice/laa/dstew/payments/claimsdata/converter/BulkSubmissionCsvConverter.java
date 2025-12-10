@@ -28,7 +28,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.SqlInjectionDetectionUtil;
 
 /** Converter responsible for converting bulk submissions in CSV format. */
 @Slf4j
@@ -70,8 +69,6 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         CsvHeader header = getHeader(rawHeader);
         Map<String, String> values = getValues(row, header);
         csvBulkSubmissionRow = new CsvBulkSubmissionRow(header, values);
-
-        SqlInjectionDetectionUtil.validateNoSqlInjection(csvBulkSubmissionRow);
 
         switch (csvBulkSubmissionRow.header()) {
           case CsvHeader.OFFICE -> {

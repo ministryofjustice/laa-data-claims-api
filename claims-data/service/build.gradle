@@ -42,6 +42,7 @@ dependencies {
     //Common exception handling
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-application-exception'
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'

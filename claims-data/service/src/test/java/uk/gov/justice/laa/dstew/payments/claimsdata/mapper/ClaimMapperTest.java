@@ -48,7 +48,7 @@ class ClaimMapperTest {
 
   @Test
   void toSubmissionClaim_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost("CASE001");
 
     final Claim entity = mapper.toClaim(post);
 
@@ -246,7 +246,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimSummaryFee_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost("CASE001");
 
     final ClaimSummaryFee claimSummaryFee = mapper.toClaimSummaryFee(post);
 
@@ -681,7 +681,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimCase_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost("CASE001");
 
     final ClaimCase claimCase = mapper.toClaimCase(post);
 
