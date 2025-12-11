@@ -287,8 +287,8 @@ public class ClaimService
             .ifPresent(
                 claimCase ->
                     claimMapper.updateClaimResponseFromClaimCase(claimCase, claimResponse));
-        long totalWarningsForClaim = validationMessageLogRepository
-            .countAllByClaimIdAndType(
+        long totalWarningsForClaim =
+            validationMessageLogRepository.countAllByClaimIdAndType(
                 UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
         claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
       }
