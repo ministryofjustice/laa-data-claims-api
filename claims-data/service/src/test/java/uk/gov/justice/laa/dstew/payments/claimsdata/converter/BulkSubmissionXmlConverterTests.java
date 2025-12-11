@@ -75,6 +75,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
+      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml";
   private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_outcomes_single.xml";
   private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
@@ -140,17 +142,26 @@ public class BulkSubmissionXmlConverterTests {
               MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE));
     }
 
-    @ParameterizedTest(name = "Can convert a bulk submission file with empty outcome nodes - {0}")
+    @ParameterizedTest(name = "Throws exception when empty outcome nodes - {0}")
     @MethodSource("missingOutcomeTestData")
-    void canConvertMatterStartsToXmlSubmission(MissingOutcomeTestData testData) throws IOException {
+    void throwsExceptionWhenMissingOutcomeData(MissingOutcomeTestData testData) throws IOException {
       MultipartFile file = getMultipartFile(testData.inputFile());
-      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
-      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
 
-      File convertedFile = getFile(testData.convertedFile());
-      String expected = getContent(convertedFile);
+      assertThat(exception.getErrorMessage()).contains("Outcome does not contain any data");
+    }
 
-      assertEquals(expected, actual);
+    @Test
+    void throwsExceptionWhenMissingMatterStart() throws IOException {
+      MultipartFile file = getMultipartFile(OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+      assertThat(exception.getErrorMessage()).contains("Matter type missing in outcome data.");
     }
 
     @Test
