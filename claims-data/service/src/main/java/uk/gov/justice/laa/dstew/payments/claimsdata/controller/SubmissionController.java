@@ -52,7 +52,8 @@ public class SubmissionController implements SubmissionsApi {
 
   @Override
   @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<Void> updateSubmission(UUID id, SubmissionPatch submissionPatch) {
+  public ResponseEntity<Void> updateSubmission(
+      UUID id, @ScanForSql SubmissionPatch submissionPatch) {
     submissionService.updateSubmission(id, submissionPatch);
     return ResponseEntity.noContent().build();
   }

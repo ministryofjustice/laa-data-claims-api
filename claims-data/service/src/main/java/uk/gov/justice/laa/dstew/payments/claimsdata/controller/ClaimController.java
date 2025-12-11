@@ -78,7 +78,8 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<Void> updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+  public ResponseEntity<Void> updateClaim(
+      UUID submissionId, UUID claimId, @ScanForSql ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
   }

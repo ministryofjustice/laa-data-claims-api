@@ -13,8 +13,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -96,14 +94,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @ParameterizedTest
   @CsvSource({
     "test_upload_files/csv/outcomes.csv,false,false,text/csv,false",
-    "test_upload_files/csv/outcomes_with_sql_injection.csv,false,false,text/csv,true",
     "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv,false",
     "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv,false",
     "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv,false",
     "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv,false",
     "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml,false",
-    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml,false",
-    "test_upload_files/xml/outcomes_with_sql_injection.xml,false,false,text/xml,true"
+    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml,false"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
       String filePath,
@@ -117,9 +113,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
-
-    // Get the logger used by the class under test
-    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), contentType, resource.getInputStream());
@@ -168,15 +161,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
-
-    if (isSqlInjection) {
-      boolean found =
-          listAppender.list.stream()
-              .anyMatch(
-                  event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-      assertThat(found).isTrue();
-    }
   }
 
   @ParameterizedTest

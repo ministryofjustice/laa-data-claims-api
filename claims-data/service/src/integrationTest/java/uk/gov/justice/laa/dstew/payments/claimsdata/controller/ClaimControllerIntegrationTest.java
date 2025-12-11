@@ -23,6 +23,7 @@ import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -205,13 +206,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isUnauthorized());
   }
 
-  @Test
-  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
+  @ParameterizedTest
+  @CsvSource({"CASE_123, false", "' OR name LIKE '%', true"})
+  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId(
+      String caseReference, boolean isSqlInjection) throws Exception {
     // given: required claims exist in the database
     createClaimsTestData();
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setCaseReferenceNumber(caseReference);
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -229,7 +234,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
-    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
+
+    if (isSqlInjection) {
+      boolean found =
+          listAppender.list.stream()
+              .anyMatch(
+                  event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
+
+      assertThat(found).isTrue();
+    }
   }
 
   @Test

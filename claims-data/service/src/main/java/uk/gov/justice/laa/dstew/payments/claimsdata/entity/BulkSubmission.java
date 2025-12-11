@@ -23,7 +23,6 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
-import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Entity representing a bulk submission of claims. */
 @Getter
@@ -33,7 +32,6 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 @AllArgsConstructor
 @Entity
 @Table(name = "bulk_submission")
-@ScanForSql
 public class BulkSubmission {
 
   @Id private UUID id;
