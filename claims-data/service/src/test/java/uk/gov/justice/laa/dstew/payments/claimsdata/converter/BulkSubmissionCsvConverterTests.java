@@ -19,6 +19,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -44,8 +46,10 @@ public class BulkSubmissionCsvConverterTests {
       "classpath:test_upload_files/csv/outcomes_with_empty_sparse_rows_converted.json";
   private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE =
       "classpath:test_upload_files/csv/outcomes_with_headers_only_rows.csv";
-  private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_CONVERTED_FILE =
-      "classpath:test_upload_files/csv/outcomes_with_headers_only_rows_converted.json";
+  private static final String OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcomes_with_headers_only_sparse_rows.csv";
+  private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcome_missing_matter_type.csv";
 
   private static final String MATTERSTARTS_INPUT_FILE =
       "classpath:test_upload_files/csv/matterstarts.csv";
@@ -191,6 +195,23 @@ public class BulkSubmissionCsvConverterTests {
           "Expected exception to be thrown when multiple schedules found");
     }
 
+    @ParameterizedTest
+    @CsvSource({
+      OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE,
+      OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
+      OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE
+    })
+    @DisplayName("Throws exception when matterType not found in outcome")
+    void throwsExceptionWhenMatterTypeMissingInOutcome(String inputFile) throws IOException {
+      MultipartFile file = getMultipartFile(inputFile);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file));
+
+      assertEquals("Matter type missing in outcome data", exception.getMessage());
+    }
+
     @Test
     @DisplayName("Can convert a bulk submission file with empty bottom rows to csv submission")
     void canConvertOutcomesWithEmptyBottomRowsToCsvSubmission() throws IOException {
@@ -203,14 +224,6 @@ public class BulkSubmissionCsvConverterTests {
       runTest(
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_INPUT_FILE,
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE);
-    }
-
-    @Test
-    @DisplayName("Can convert a bulk submission file with headers only rows to csv submission")
-    void canConvertOutcomesWithHeadersOnlyRowsToCsvSubmission() throws IOException {
-      runTest(
-          OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
-          OUTCOMES_WITH_HEADERS_ONLY_ROWS_CONVERTED_FILE);
     }
   }
 
