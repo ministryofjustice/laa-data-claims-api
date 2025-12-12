@@ -44,7 +44,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
    */
   @BeforeEach
   public void setup() {
-    createClaimsTestData();
+    super.abstractSetup();
+    seedClaimsData();
   }
 
   @Test

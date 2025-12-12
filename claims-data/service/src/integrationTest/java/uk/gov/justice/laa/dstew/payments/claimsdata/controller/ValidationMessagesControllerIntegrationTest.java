@@ -10,7 +10,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -20,11 +19,10 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @Autowired private MockMvc mockMvc;
 
-  private Submission submission;
-
   @BeforeEach()
   void setup() {
-    submission = getSubmissionTestData();
+    super.abstractSetup();
+    seedSubmissionsData();
   }
 
   @Test
@@ -32,7 +30,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     // given: a submission with Validation Messages associated is created on DB
     ValidationMessageLog log = new ValidationMessageLog();
     log.setId(Uuid7.timeBasedUuid());
-    log.setSubmissionId(submission.getId());
+    log.setSubmissionId(submission1.getId());
     log.setType(ValidationMessageType.ERROR);
     log.setSource("SOURCE1");
     log.setDisplayMessage("MESSAGE1");
@@ -44,7 +42,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
         mockMvc
             .perform(
                 get(API_URI_PREFIX + "/validation-messages")
-                    .param("submission-id", submission.getId().toString())
+                    .param("submission-id", submission1.getId().toString())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();

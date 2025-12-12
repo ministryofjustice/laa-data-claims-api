@@ -18,6 +18,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +49,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT = ClaimsDataTestUtil.API_URI_PREFIX + "/claims";
 
+  @BeforeEach
+  void setUp() {
+    super.abstractSetup();
+    seedClaimsData();
+  }
+
   @Test
   void shouldReturnNotFoundWhenSubmissionIdAndClaimIdDoNotExist() throws Exception {
     mockMvc
@@ -60,7 +67,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve a claim for a given submissionId and a claimId
     MvcResult result =
@@ -106,7 +112,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @EnumSource(AreaOfLaw.class)
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
-    getSubmissionTestData(areaOfLaw);
+    createSubmissionTestData(areaOfLaw);
     final ClaimPost claimPost = getClaimPost();
 
     // when: calling the POST endpoint with the ClaimPost
@@ -166,7 +172,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
+
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
@@ -193,7 +199,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
+
     ClaimPatch claimPatch = new ClaimPatch();
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
@@ -210,7 +216,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
 
     // when: calling the PATCH endpoint to update the claim with an incorrect body, 400 should be
     // returned.
@@ -226,7 +231,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims for an office_code
     MvcResult result =
@@ -251,7 +255,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -276,7 +279,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
     // given: required claims exist in the database
-    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
     // be returned.
@@ -292,7 +294,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
-    createClaimsTestData();
 
     // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
     MvcResult result =

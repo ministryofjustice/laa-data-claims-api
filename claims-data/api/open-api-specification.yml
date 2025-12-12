@@ -843,6 +843,8 @@ paths:
           description: 'Forbidden'
         '404':
           description: 'Claim ID or claim summary fee ID not found'
+        '429':
+          description: 'Too many requests'
         '500':
           description: 'Internal server error'
     get:
@@ -872,6 +874,8 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+        '429':
+          description: 'Too many requests'
         '500':
           description: Internal server error
 
@@ -909,6 +913,8 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+        '429':
+          description: 'Too many requests'
         '500':
           description: Internal server error
 

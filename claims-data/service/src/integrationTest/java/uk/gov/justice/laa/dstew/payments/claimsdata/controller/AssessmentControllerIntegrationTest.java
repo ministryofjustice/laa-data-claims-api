@@ -19,6 +19,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.AssertionsForClassTypes;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -40,10 +41,15 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   private static final String GET_ASSESSMENT_URI = "/claims/{claimId}/assessments/{assessmentId}";
   private static final String GET_ASSESSMENTS_URI = "/claims/{claimId}/assessments";
 
+  @BeforeEach
+  void setUp() {
+    super.abstractSetup();
+    seedAssessmentsData();
+  }
+
   @Test
   void shouldSaveAnAssessmentToDatabase() throws Exception {
     // given: claims test data exists in the database
-    createClaimsTestData();
     final AssessmentPost assessmentPost = getAssessmentPost();
 
     // when: calling the POST endpoint with the AssessmentPost
@@ -120,7 +126,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void shouldReturnNotFoundWhenClaimSummaryFeeNotFound() throws Exception {
-    createClaimsTestData();
     UUID claimSummaryFeeId = UUID.randomUUID();
     AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimSummaryFeeId(claimSummaryFeeId);
@@ -137,7 +142,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void getAssessmentShouldReturnNotFound() throws Exception {
-    createClaimsTestData();
     mockMvc
         .perform(
             get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_2_ID, UUID.randomUUID())
@@ -149,7 +153,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @DisplayName("Status 200: when a valid Claim ID & Assessment ID is provided")
   @Test
   void getAssessmentShouldReturnSuccess() throws Exception {
-    createAssessmentsTestData();
     // when: calling GET endpoint with a valid claim and assessment ID
     MvcResult mvcResult =
         mockMvc
@@ -187,7 +190,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @DisplayName("Status 200: when a valid Claim ID is provided")
   @Test
   void getAssessmentsShouldReturnSuccess() throws Exception {
-    createAssessmentsTestData();
     // when: calling GET endpoint with a valid claim ID
     MvcResult mvcResult =
         mockMvc
