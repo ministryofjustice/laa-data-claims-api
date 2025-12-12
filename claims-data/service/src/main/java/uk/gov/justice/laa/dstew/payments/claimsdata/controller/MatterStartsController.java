@@ -17,6 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
+import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling matter starts requests. */
 @RestController
@@ -29,7 +30,7 @@ public class MatterStartsController implements MatterStartsApi {
   @Override
   @RateLimiter(name = "matterStartRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateMatterStart201Response> createMatterStart(
-      UUID id, MatterStartPost matterStartsPost) {
+      UUID id, @ScanForSql MatterStartPost matterStartsPost) {
     UUID matterStartId = matterStartService.createMatterStart(id, matterStartsPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()

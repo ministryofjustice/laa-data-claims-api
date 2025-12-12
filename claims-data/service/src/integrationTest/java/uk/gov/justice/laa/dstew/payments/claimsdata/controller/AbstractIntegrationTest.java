@@ -21,6 +21,9 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
@@ -29,8 +32,10 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -535,5 +540,17 @@ public abstract class AbstractIntegrationTest {
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
                 CREATED_ON)));
+  }
+
+  public static @NotNull ListAppender<ILoggingEvent> getILoggingEventListAppender() {
+    Logger logger =
+        (Logger) LoggerFactory.getLogger("uk.gov.laa.springboot.sqlscanner.SqlScanAspect");
+    // Create and start an in-memory appender
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+
+    // Attach it to the logger
+    logger.addAppender(listAppender);
+    return listAppender;
   }
 }

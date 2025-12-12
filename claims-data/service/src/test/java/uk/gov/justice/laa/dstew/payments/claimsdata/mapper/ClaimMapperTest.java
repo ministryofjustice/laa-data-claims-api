@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,7 +49,7 @@ class ClaimMapperTest {
 
   @Test
   void toSubmissionClaim_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost(CASE_REFERENCE);
 
     final Claim entity = mapper.toClaim(post);
 
@@ -106,7 +107,7 @@ class ClaimMapperTest {
             .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference("SCH123")
             .lineNumber(5)
-            .caseReferenceNumber("CASE001")
+            .caseReferenceNumber(CASE_REFERENCE)
             .uniqueFileNumber("UFN123")
             .caseStartDate(LocalDate.now())
             .caseConcludedDate(LocalDate.now().plusDays(1))
@@ -246,7 +247,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimSummaryFee_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost(CASE_REFERENCE);
 
     final ClaimSummaryFee claimSummaryFee = mapper.toClaimSummaryFee(post);
 
@@ -681,7 +682,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimCase_mapsAllFields() {
-    final ClaimPost post = ClaimsDataTestUtil.getClaimPost();
+    final ClaimPost post = ClaimsDataTestUtil.getClaimPost(CASE_REFERENCE);
 
     final ClaimCase claimCase = mapper.toClaimCase(post);
 

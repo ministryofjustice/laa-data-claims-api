@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission20
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
+import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /**
  * Controller that handles submissions for bulk claims. This REST API controller provides an
@@ -62,7 +63,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateBulkSubmission(
-      UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
+      UUID id, @ScanForSql BulkSubmissionPatch bulkSubmissionPatch) {
     bulkSubmissionService.updateBulkSubmission(id, bulkSubmissionPatch);
     return ResponseEntity.noContent().build();
   }
