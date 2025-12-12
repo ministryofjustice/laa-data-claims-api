@@ -582,10 +582,4 @@ public abstract class AbstractIntegrationTest {
     seedClaimsData();
     createValidationMessageLogTestData();
   }
-
-  protected void seedData() {
-    seedClaimsData();
-    createAssessmentsTestData();
-    createValidationMessageLogTestData();
-  }
 }

@@ -43,7 +43,6 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   @BeforeEach
   void setUp() {
-    super.abstractSetup();
     seedAssessmentsData();
   }
 

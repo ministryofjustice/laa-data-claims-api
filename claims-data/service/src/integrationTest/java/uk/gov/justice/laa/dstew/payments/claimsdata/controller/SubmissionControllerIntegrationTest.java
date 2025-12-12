@@ -99,7 +99,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @BeforeEach
   void setup() {
-    super.abstractSetup();
     seedSubmissionsData();
   }
 

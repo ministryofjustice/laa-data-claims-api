@@ -40,7 +40,6 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   @BeforeEach
   void setup() {
-    super.abstractSetup();
     seedSubmissionsData();
   }
 

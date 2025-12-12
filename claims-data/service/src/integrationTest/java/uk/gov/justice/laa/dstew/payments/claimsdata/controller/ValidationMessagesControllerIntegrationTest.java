@@ -21,7 +21,6 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
 
   @BeforeEach()
   void setup() {
-    super.abstractSetup();
     seedSubmissionsData();
   }
 

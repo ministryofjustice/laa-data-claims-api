@@ -17,7 +17,6 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void setup() {
-    super.abstractSetup();
     seedClaimsData();
   }
 

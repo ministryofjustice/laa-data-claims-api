@@ -17,7 +17,6 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
 
   @BeforeEach
   void setup() {
-    super.abstractSetup();
     seedClaimsData();
   }
 

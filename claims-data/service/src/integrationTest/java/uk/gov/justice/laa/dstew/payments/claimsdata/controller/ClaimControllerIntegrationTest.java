@@ -51,7 +51,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    super.abstractSetup();
     seedClaimsData();
   }
 

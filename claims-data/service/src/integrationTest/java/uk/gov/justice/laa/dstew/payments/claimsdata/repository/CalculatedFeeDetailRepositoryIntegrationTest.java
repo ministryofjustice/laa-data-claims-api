@@ -16,7 +16,6 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
   @BeforeEach
   void setup() {
-    super.abstractSetup();
     seedClaimsData();
   }
 
