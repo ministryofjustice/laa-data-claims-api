@@ -1,10 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_3_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
@@ -20,6 +22,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -40,6 +43,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -55,6 +59,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
@@ -89,6 +94,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
+  @Autowired protected AssessmentRepository assessmentRepository;
   @Autowired protected MockMvc mockMvc;
 
   protected BulkSubmission bulkSubmission;
@@ -98,6 +104,8 @@ public abstract class AbstractIntegrationTest {
   protected Claim claim2;
   protected Claim claim3;
   protected Claim claim4;
+  protected ClaimSummaryFee claimSummaryFee1;
+  protected ClaimSummaryFee claimSummaryFee2;
   protected CalculatedFeeDetail calculatedFeeDetail1;
   protected CalculatedFeeDetail calculatedFeeDetail2;
 
@@ -120,6 +128,7 @@ public abstract class AbstractIntegrationTest {
 
   protected void clearIntegrationData() {
     validationMessageLogRepository.deleteAll();
+    assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
@@ -178,7 +187,7 @@ public abstract class AbstractIntegrationTest {
             .id(SUBMISSION_1_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
-            .submissionPeriod("JAN-25")
+            .submissionPeriod("JAN-2025")
             .areaOfLaw(AreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .createdByUserId(USER_ID)
@@ -191,7 +200,7 @@ public abstract class AbstractIntegrationTest {
             .id(SUBMISSION_2_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
-            .submissionPeriod("APR-24")
+            .submissionPeriod("APR-2024")
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
@@ -252,6 +261,7 @@ public abstract class AbstractIntegrationTest {
             .status(ClaimStatus.INVALID)
             .createdByUserId(USER_ID)
             .createdOn(SUBMITTED_DATE.toInstant())
+            .caseReferenceNumber(CASE_REFERENCE)
             .build();
     claim4 =
         Claim.builder()
@@ -273,9 +283,9 @@ public abstract class AbstractIntegrationTest {
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
 
     var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
-    var summaryFee1 =
+    claimSummaryFee1 =
         ClaimSummaryFee.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(CLAIM_1_SUMMARY_FEE_ID)
             .claim(claim1)
             .adviceTime(120)
             .travelTime(45)
@@ -314,7 +324,7 @@ public abstract class AbstractIntegrationTest {
             .createdOn(createdDateTime)
             .build();
 
-    var summaryFee2 =
+    claimSummaryFee2 =
         ClaimSummaryFee.builder()
             .id(Uuid7.timeBasedUuid())
             .claim(claim2)
@@ -355,12 +365,12 @@ public abstract class AbstractIntegrationTest {
             .createdOn(createdDateTime)
             .build();
 
-    claimSummaryFeeRepository.saveAll(List.of(summaryFee1, summaryFee2));
+    claimSummaryFeeRepository.saveAll(List.of(claimSummaryFee1, claimSummaryFee2));
 
     calculatedFeeDetail1 =
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claimSummaryFee(summaryFee1)
+            .claimSummaryFee(claimSummaryFee1)
             .claim(claim1)
             .feeCode("CALC-FEE-1")
             .feeType(FeeCalculationType.DISB_ONLY)
@@ -402,7 +412,7 @@ public abstract class AbstractIntegrationTest {
     calculatedFeeDetail2 =
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claimSummaryFee(summaryFee2)
+            .claimSummaryFee(claimSummaryFee2)
             .claim(claim2)
             .feeCode("CALC-FEE-2")
             .feeType(FeeCalculationType.FIXED)
@@ -535,5 +545,31 @@ public abstract class AbstractIntegrationTest {
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
                 CREATED_ON)));
+  }
+
+  void createAssessmentsTestData() {
+    clearIntegrationData();
+    createClaimsTestData();
+    Assessment assessment1 =
+        getAssessmentBuilder()
+            .claim(claim1)
+            .claimSummaryFee(claimSummaryFee1)
+            .createdOn(Instant.now())
+            .build();
+    Assessment assessment2 =
+        getAssessmentBuilder()
+            .claim(claim1)
+            .id(ASSESSMENT_2_ID)
+            .claimSummaryFee(claimSummaryFee1)
+            .createdOn(Instant.now().minusSeconds(60))
+            .build();
+    Assessment assessment3 =
+        getAssessmentBuilder()
+            .claim(claim2)
+            .id(Uuid7.timeBasedUuid())
+            .claimSummaryFee(claimSummaryFee2)
+            .createdOn(Instant.now().minusSeconds(60))
+            .build();
+    assessmentRepository.saveAll(List.of(assessment1, assessment2, assessment3));
   }
 }
