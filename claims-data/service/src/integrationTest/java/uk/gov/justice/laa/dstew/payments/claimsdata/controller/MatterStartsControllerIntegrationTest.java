@@ -22,12 +22,10 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -40,11 +38,9 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
   public static final String GET_MATTER_STARTS_URI = GET_ALL_MATTER_STARTS_URI + "/{msId}";
 
-  private Submission submission;
-
   @BeforeEach
   void setup() {
-    submission = getSubmissionTestData();
+    seedSubmissionsData();
   }
 
   @Test
@@ -59,7 +55,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     // when: calling POST endpoint for matter starts
     mockMvc
         .perform(
-            post(API_URI_PREFIX + POST_MATTER_START_URI, submission.getId())
+            post(API_URI_PREFIX + POST_MATTER_START_URI, submission1.getId())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(matterStartPost)))
@@ -68,7 +64,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
 
     // then: matter starts is correctly created
     List<MatterStart> savedMatterStarts =
-        matterStartRepository.findBySubmissionId(submission.getId());
+        matterStartRepository.findBySubmissionId(submission1.getId());
     assertThat(savedMatterStarts.size()).isEqualTo(1);
     assertThat(savedMatterStarts.getFirst().getCategoryCode())
         .isEqualTo(CategoryCode.AAP.getValue());
@@ -96,7 +92,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     String invalidJson = "{ \"status\": \"INVALID_ENUM\" }";
     mockMvc
         .perform(
-            post(API_URI_PREFIX + POST_MATTER_START_URI, submission.getId())
+            post(API_URI_PREFIX + POST_MATTER_START_URI, submission1.getId())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
@@ -111,7 +107,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MatterStart matterStart =
         MatterStart.builder()
             .id(Uuid7.timeBasedUuid())
-            .submission(submissionRepository.findById(submission.getId()).orElseThrow())
+            .submission(submissionRepository.findById(submission1.getId()).orElseThrow())
             .scheduleReference("REF1")
             .categoryCode(CategoryCode.AAP.getValue())
             .procurementAreaCode("AREA1")
@@ -127,7 +123,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     MvcResult mvcResult =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission.getId(), matterStart.getId())
+                get(
+                        API_URI_PREFIX + GET_MATTER_STARTS_URI,
+                        submission1.getId(),
+                        matterStart.getId())
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -147,7 +146,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     // when: calling GET endpoint with invalid matter start ID, should return not found
     mockMvc
         .perform(
-            get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission.getId(), UUID.randomUUID())
+            get(API_URI_PREFIX + GET_MATTER_STARTS_URI, submission1.getId(), UUID.randomUUID())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
         .andReturn();
@@ -159,11 +158,10 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     @Test
     @Transactional
     void getAllMatterStart_shouldReturnOK() throws Exception {
-      var submission = ClaimsDataTestUtil.getSubmission();
       var matterStartEntity =
           MatterStart.builder()
               .id(Uuid7.timeBasedUuid())
-              .submission(submission)
+              .submission(submission1)
               .scheduleReference("REF1")
               .categoryCode(CategoryCode.AAP.getValue())
               .procurementAreaCode("AREA1")
@@ -180,7 +178,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
       MvcResult mvcResult =
           mockMvc
               .perform(
-                  get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission.getId())
+                  get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission1.getId())
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
               .andExpect(status().isOk())
               .andReturn();
@@ -205,7 +203,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
               """;
 
       assertThat(OBJECT_MAPPER.readTree(mvcResult.getResponse().getContentAsString()))
-          .isEqualTo(OBJECT_MAPPER.readTree(String.format(expectedResults, submission.getId())));
+          .isEqualTo(OBJECT_MAPPER.readTree(String.format(expectedResults, submission1.getId())));
     }
 
     @DisplayName("Status 400: when a submission ID with an invalid format (non-UUID)")
@@ -232,7 +230,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     @Test
     void getAllMatterStart_shouldReturnUnauthorized() throws Exception {
       mockMvc
-          .perform(get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission.getId()))
+          .perform(get(API_URI_PREFIX + GET_ALL_MATTER_STARTS_URI, submission1.getId()))
           .andExpect(status().isUnauthorized());
     }
   }

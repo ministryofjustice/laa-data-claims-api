@@ -43,6 +43,7 @@ public class ClaimsDataTestUtil {
   public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_2_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
