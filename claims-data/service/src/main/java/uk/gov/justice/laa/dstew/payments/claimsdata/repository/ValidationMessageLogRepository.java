@@ -17,4 +17,6 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
           + "AND (:type IS NULL OR v.type = :type)")
   long countDistinctClaimIdsBySubmissionIdAndType(
       @Param("submissionId") UUID submissionId, @Param("type") ValidationMessageType type);
+
+  long countAllByClaimIdAndType(UUID claimId, ValidationMessageType type);
 }

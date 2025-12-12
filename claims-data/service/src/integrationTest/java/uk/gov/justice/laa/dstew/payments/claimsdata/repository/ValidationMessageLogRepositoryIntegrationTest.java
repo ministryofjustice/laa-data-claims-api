@@ -1,7 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -62,6 +64,26 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     assertThat(message.getType()).isEqualTo(type);
     assertThat(message.getSource()).isEqualTo("SYSTEM");
     assertThat(message.getDisplayMessage()).isEqualTo(displayMessage);
+  }
+
+  @Test
+  @DisplayName("Should count by claim ID by error")
+  void shouldCountByClaimIdError() {
+    var result =
+        validationMessageLogRepository.countAllByClaimIdAndType(
+            CLAIM_1_ID, ValidationMessageType.ERROR);
+
+    assertThat(result).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Should count by claim ID by warning")
+  void shouldCountByClaimIdWarning() {
+    var result =
+        validationMessageLogRepository.countAllByClaimIdAndType(
+            CLAIM_2_ID, ValidationMessageType.WARNING);
+
+    assertThat(result).isEqualTo(1);
   }
 
   private static Stream<Arguments> validationTypeProvider() {
