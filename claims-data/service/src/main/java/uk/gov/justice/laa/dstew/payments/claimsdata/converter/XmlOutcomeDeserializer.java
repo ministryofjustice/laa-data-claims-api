@@ -23,6 +23,27 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
    */
   @Override
   public XmlOutcome deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    XmlMapper mapper = (XmlMapper) p.getCodec();
+
+    JsonNode node = mapper.readTree(p);
+
+    // NOTE: If there are no outcome data (empty <outcome> - single or double tags) we need to
+    // reject the submission instead of returning an en empty outcome as this will contain mandatory
+    // fields which will be empty causing errors when creating the claims during parsing
+    // (before validation).
+    if (node.isEmpty()) {
+      throw new BulkSubmissionFileReadException("Outcome does not contain any data.");
+    }
+
+    JsonNode matterType = node.get("matterType");
+    if (matterType == null) {
+      throw new BulkSubmissionFileReadException("Matter type missing in outcome data.");
+    }
+
+    JsonNode outcomeItemNode = node.get("outcomeItem");
+    Iterable<JsonNode> outcomeItems;
+    outcomeItems = outcomeItemNode.isArray() ? outcomeItemNode : List.of(outcomeItemNode);
+
     String feeCode = null;
     String caseRefNumber = null;
     String caseStartDate = null;
@@ -126,31 +147,14 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String excessTravelCosts = null;
     String medConcludedDate = null;
 
-    XmlMapper mapper = (XmlMapper) p.getCodec();
-
-    JsonNode node = mapper.readTree(p);
-
-    if (node.isEmpty()) {
-      return new XmlOutcome();
-    }
-
-    String matterType = node.get("matterType").asText();
-
-    JsonNode outcomeItemNode = node.get("outcomeItem");
-    Iterable<JsonNode> outcomeItems;
-    if (outcomeItemNode.isArray()) {
-      outcomeItems = outcomeItemNode;
-    } else {
-      outcomeItems = List.of(outcomeItemNode);
-    }
-
     for (JsonNode outcomeItem : outcomeItems) {
       JsonNode nameNode = outcomeItem.get("name");
       JsonNode valueNode = outcomeItem.get("");
 
       if (nameNode == null) {
         throw new BulkSubmissionFileReadException(
-            "Outcome item under matter type %s does not have a name.".formatted(matterType));
+            "Outcome item under matter type %s does not have a name."
+                .formatted(matterType.asText()));
       }
 
       String name = nameNode.asText();
@@ -264,7 +268,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     }
 
     return new XmlOutcome(
-        matterType,
+        matterType.asText(),
         feeCode,
         caseRefNumber,
         caseStartDate,

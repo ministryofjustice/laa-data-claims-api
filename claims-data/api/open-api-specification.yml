@@ -1385,6 +1385,9 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            total_warnings:
+              type: integer
+              description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
     fee_calculation_patch:
