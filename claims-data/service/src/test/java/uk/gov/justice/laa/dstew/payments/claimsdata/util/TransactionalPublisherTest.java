@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.TestTransactionConfig;
@@ -18,7 +18,7 @@ public class TransactionalPublisherTest {
 
   @Autowired private TransactionTemplate transactionTemplate;
 
-  @MockBean private SubmissionEventPublisherService submissionEventPublisherService;
+  @MockitoBean private SubmissionEventPublisherService submissionEventPublisherService;
 
   @Test
   public void testAfterCommitCallbackExecutes() {
