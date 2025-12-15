@@ -8,6 +8,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
@@ -39,9 +40,10 @@ class SubmissionSpecificationTest {
         SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("OFFICE1", "OFFICE2"));
 
     Predicate officePredicate = Mockito.mock(Predicate.class);
-    Mockito.when(root.get("officeAccountNumber"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.and(Mockito.any())).thenReturn(officePredicate);
+    Path<Object> officePath = Mockito.mock(Path.class);
+    Mockito.when(root.get("officeAccountNumber")).thenReturn(officePath);
+    Mockito.when(officePath.in(List.of("OFFICE1", "OFFICE2"))).thenReturn(officePredicate);
+    Mockito.when(cb.and(officePredicate)).thenReturn(officePredicate);
 
     Predicate result = spec.toPredicate(root, query, cb);
 
@@ -216,9 +218,10 @@ class SubmissionSpecificationTest {
         SubmissionSpecification.submissionStatusIn(SUBMISSION_STATUSES);
 
     Predicate submissionStatusesPredicate = Mockito.mock(Predicate.class);
-    Mockito.when(root.get("status"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
-    Mockito.when(cb.and(Mockito.any())).thenReturn(submissionStatusesPredicate);
+    Path<Object> statusPath = Mockito.mock(Path.class);
+    Mockito.when(root.get("status")).thenReturn(statusPath);
+    Mockito.when(statusPath.in(SUBMISSION_STATUSES)).thenReturn(submissionStatusesPredicate);
+    Mockito.when(cb.and(submissionStatusesPredicate)).thenReturn(submissionStatusesPredicate);
 
     Predicate result = spec.toPredicate(root, query, cb);
 

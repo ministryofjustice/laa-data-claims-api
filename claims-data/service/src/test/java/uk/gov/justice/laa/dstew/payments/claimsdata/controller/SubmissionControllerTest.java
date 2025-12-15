@@ -1,7 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +26,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -42,10 +48,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(SubmissionController.class)
 @ImportAutoConfiguration(
-    exclude = {
-      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
-    })
+    exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
+@AutoConfigureMockMvc(addFilters = false)
 class SubmissionControllerTest {
   private static final String SUBMISSIONS_URI = API_URI_PREFIX + "/submissions";
 
@@ -90,17 +95,10 @@ class SubmissionControllerTest {
     mockMvc
         .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content("{ }"))
         .andExpect(status().isBadRequest())
-        .andExpect(
-            content()
-                .string(
-                    "{"
-                        + "\"type\":\"about:blank\","
-                        + "\"title\":\"Bad Request\","
-                        + "\"status\":400,"
-                        + "\"detail\":\"Invalid request content.\","
-                        + "\"instance\":\""
-                        + SUBMISSIONS_URI
-                        + "\"}"));
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Invalid request content."))
+        .andExpect(jsonPath("$.instance").value(SUBMISSIONS_URI));
 
     verify(submissionService, never()).createSubmission(any());
   }
