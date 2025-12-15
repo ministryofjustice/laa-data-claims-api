@@ -744,4 +744,14 @@ class ClaimMapperTest {
     feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
     return feeCalculationPatch;
   }
+
+  @Test
+  void shouldAddTotalWarningMessages() {
+    // Given
+    ClaimResponse claimResponse = ClaimResponse.builder().build();
+    // When
+    mapper.updateTotalWarningMessages(123L, claimResponse);
+    // Then
+    assertThat(claimResponse.getTotalWarnings()).isEqualTo(123L);
+  }
 }

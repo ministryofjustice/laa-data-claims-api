@@ -151,4 +151,7 @@ public interface ClaimMapper {
   @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateClaimResponseFromClaimCase(ClaimCase entity, @MappingTarget ClaimResponse claim);
+
+  @Mapping(target = "totalWarnings", source = "totalWarningMessages")
+  void updateTotalWarningMessages(Long totalWarningMessages, @MappingTarget ClaimResponse claim);
 }
