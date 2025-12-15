@@ -1,5 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
+
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ public class AssessmentController implements AssessmentsApi {
   private final AssessmentService assessmentService;
 
   @Override
+  @RateLimiter(name = "assessmentRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateAssessment201Response> createAssessment(
       UUID claimId, AssessmentPost assessmentPost) {
     UUID assessmentId = assessmentService.createAssessment(claimId, assessmentPost);
@@ -39,6 +44,7 @@ public class AssessmentController implements AssessmentsApi {
   }
 
   @Override
+  @RateLimiter(name = "assessmentRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<AssessmentGet> getAssessment(UUID claimId, UUID assessmentId) {
     AssessmentGet assessment = assessmentService.getAssessment(claimId, assessmentId);
     if (assessment == null) {
@@ -48,7 +54,12 @@ public class AssessmentController implements AssessmentsApi {
   }
 
   @Override
+  @RateLimiter(name = "assessmentRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<AssessmentResultSet> getAssessments(UUID claimId) {
     return ResponseEntity.ok(assessmentService.getAssessmentsByClaimId(claimId));
+  }
+
+  private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
+    return get429Response();
   }
 }
