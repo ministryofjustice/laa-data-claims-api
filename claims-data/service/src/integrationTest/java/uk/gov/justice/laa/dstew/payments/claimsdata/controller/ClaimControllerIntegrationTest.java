@@ -20,6 +20,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,6 +35,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -174,11 +177,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
     assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
 
-    boolean found =
-        listAppender.list.stream()
-            .anyMatch(event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-    assertThat(found).isTrue();
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test
@@ -215,6 +219,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setValidationMessages(
+        List.of(
+            new ValidationMessagePatch()
+                .displayMessage(caseReference + "is not allowed")
+                .source("test")
+                .type(ValidationMessageType.ERROR)));
     // Get the logger used by the class under test
     ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
@@ -237,12 +247,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
 
     if (isSqlInjection) {
-      boolean found =
-          listAppender.list.stream()
-              .anyMatch(
-                  event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-      assertThat(found).isTrue();
+      assertThat(
+              listAppender.list.stream()
+                  .filter(
+                      event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                  .count())
+          .isEqualTo(1);
     }
   }
 

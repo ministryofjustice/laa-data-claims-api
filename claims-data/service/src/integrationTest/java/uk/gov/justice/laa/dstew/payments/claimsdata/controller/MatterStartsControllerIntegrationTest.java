@@ -15,7 +15,6 @@ import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -105,11 +104,12 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     List<MatterStart> savedMatterStarts =
         matterStartRepository.findBySubmissionId(submission.getId());
     assertThat(savedMatterStarts.size()).isEqualTo(1);
-    boolean found =
-        listAppender.list.stream()
-            .anyMatch(event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-    Assertions.assertThat(found).isTrue();
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test

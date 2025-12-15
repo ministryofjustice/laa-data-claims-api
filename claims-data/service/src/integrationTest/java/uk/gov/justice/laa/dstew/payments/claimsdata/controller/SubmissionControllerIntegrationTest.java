@@ -146,11 +146,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
-    boolean found =
-        listAppender.list.stream()
-            .anyMatch(event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-    assertThat(found).isFalse();
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(0);
   }
 
   @ParameterizedTest
@@ -248,11 +249,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
     assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
 
-    boolean found =
-        listAppender.list.stream()
-            .anyMatch(event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"));
-
-    assertThat(found).isTrue();
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test
@@ -369,7 +371,20 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Test
   void updateSubmission_shouldUpdate() throws Exception {
     // given: a Submission patch payload with the changes to make
-    SubmissionPatch patch = SubmissionPatch.builder().areaOfLaw(AREA_OF_LAW).build();
+    String sqlInjectionString = "'; SELECT * FROM information_schema.tables; --";
+    SubmissionPatch patch =
+        SubmissionPatch.builder()
+            .areaOfLaw(AREA_OF_LAW)
+            .legalHelpSubmissionReference(sqlInjectionString)
+            .validationMessages(
+                List.of(
+                    new ValidationMessagePatch()
+                        .type(ValidationMessageType.ERROR)
+                        .displayMessage(sqlInjectionString + "is not allowed")
+                        .source("test")))
+            .build();
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
     // when: calling the patch endpoint
     mockMvc
@@ -384,6 +399,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // then: should update the submission
     Submission updated = submissionRepository.findById(submission.getId()).orElseThrow();
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test
