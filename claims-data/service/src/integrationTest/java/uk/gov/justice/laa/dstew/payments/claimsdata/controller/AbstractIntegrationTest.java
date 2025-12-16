@@ -542,6 +542,17 @@ public abstract class AbstractIntegrationTest {
                 CREATED_ON)));
   }
 
+  /**
+   * Creates and returns an in-memory {@link ListAppender} for capturing {@link ILoggingEvent} log
+   * entries emitted by the {@code uk.gov.laa.springboot.sqlscanner.SqlScanAspect} logger.
+   *
+   * <p>This method retrieves the logger for the SQL scanner aspect, creates a new {@link
+   * ListAppender}, starts it, and attaches it to the logger. The returned appender can then be used
+   * in tests to inspect log output without writing to external targets.
+   *
+   * @return a non-null {@link ListAppender} instance that collects {@link ILoggingEvent} log events
+   *     for inspection
+   */
   public static @NotNull ListAppender<ILoggingEvent> getILoggingEventListAppender() {
     Logger logger =
         (Logger) LoggerFactory.getLogger("uk.gov.laa.springboot.sqlscanner.SqlScanAspect");

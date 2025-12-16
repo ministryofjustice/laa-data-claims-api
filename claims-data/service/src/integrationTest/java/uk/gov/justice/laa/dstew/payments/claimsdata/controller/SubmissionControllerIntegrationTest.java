@@ -158,9 +158,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @DisplayName("Should log warning with SQL-like patterns in string fields")
   @ValueSource(
       strings = {
-        // ---- Basic tautologies ----
-        "' OR '1'='1' --", // OR-based tautology
-        "' AND '1'='1' --", // AND-based tautology
+        // ---- Basic conditions that are always true ----
+        "' OR '1'='1' --",
+        "' AND '1'='1' --",
 
         // ---- Classic DROP attacks ----
         "Robert'); DROP TABLE Students;--",

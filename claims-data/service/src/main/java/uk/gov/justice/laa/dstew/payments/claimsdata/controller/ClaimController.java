@@ -82,7 +82,7 @@ public class ClaimController implements ClaimsApi {
   public ResponseEntity<Void> updateClaim(
       UUID submissionId,
       UUID claimId,
-      @ScanForSql(ignoreClasses = {ValidationMessagePatch.class}) ClaimPatch claimPatch) {
+      @ScanForSql(ignoreClasses = ValidationMessagePatch.class) ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
   }

@@ -24,7 +24,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -210,12 +209,38 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isUnauthorized());
   }
 
-  @ParameterizedTest
-  @CsvSource({"CASE_123, false", "' OR name LIKE '%', true"})
-  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId(
-      String caseReference, boolean isSqlInjection) throws Exception {
+  @Test
+  void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
     createClaimsTestData();
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+
+    // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    // then: the database contains the amended claim data
+    Claim updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+    assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
+    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+  }
+
+  @Test
+  void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
+    // given: required claims exist in the database
+    createClaimsTestData();
+    String caseReference = "' OR name LIKE '%'";
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(caseReference);
@@ -246,14 +271,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
 
-    if (isSqlInjection) {
-      assertThat(
-              listAppender.list.stream()
-                  .filter(
-                      event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
-                  .count())
-          .isEqualTo(1);
-    }
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test
