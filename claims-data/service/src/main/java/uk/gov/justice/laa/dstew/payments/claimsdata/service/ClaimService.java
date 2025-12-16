@@ -32,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -286,6 +287,10 @@ public class ClaimService
             .ifPresent(
                 claimCase ->
                     claimMapper.updateClaimResponseFromClaimCase(claimCase, claimResponse));
+        long totalWarningsForClaim =
+            validationMessageLogRepository.countAllByClaimIdAndType(
+                UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
+        claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
       }
     }
     return response;
