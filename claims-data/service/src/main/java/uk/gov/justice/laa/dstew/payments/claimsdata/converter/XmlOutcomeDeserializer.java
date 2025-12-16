@@ -36,8 +36,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     }
 
     JsonNode matterType = node.get("matterType");
-    if (matterType == null) {
-      throw new BulkSubmissionFileReadException("Matter type missing in outcome data.");
+    if (matterType == null || matterType.asText().isEmpty()) {
+      throw new BulkSubmissionFileReadException("Matter type missing or empty in outcome data.");
     }
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
