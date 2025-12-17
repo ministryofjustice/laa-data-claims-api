@@ -9,6 +9,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
@@ -69,6 +71,41 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     assertThat(savedMatterStarts.getFirst().getCategoryCode())
         .isEqualTo(CategoryCode.AAP.getValue());
     assertThat(savedMatterStarts.getFirst().getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @Test
+  void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
+    // given: a MatterStart Post payload
+    MatterStartPost matterStartPost =
+        MatterStartPost.builder()
+            .createdByUserId(
+                "' UNION SELECT table_name, column_name FROM information_schema.columns--")
+            .categoryCode(CategoryCode.AAP)
+            .build();
+
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
+
+    // when: calling POST endpoint for matter starts
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + POST_MATTER_START_URI, submission1.getId())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(matterStartPost)))
+        .andExpect(status().isCreated())
+        .andReturn();
+
+    // then: matter starts is correctly created with a warning logged
+    List<MatterStart> savedMatterStarts =
+        matterStartRepository.findBySubmissionId(submission1.getId());
+    assertThat(savedMatterStarts.size()).isEqualTo(1);
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test

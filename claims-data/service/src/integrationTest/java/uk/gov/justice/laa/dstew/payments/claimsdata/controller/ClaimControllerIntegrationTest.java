@@ -1,5 +1,28 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -17,23 +40,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
@@ -112,7 +118,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(areaOfLaw);
-    final ClaimPost claimPost = getClaimPost();
+    final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
 
     // when: calling the POST endpoint with the ClaimPost
     MvcResult result =
@@ -144,6 +150,47 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
+    // given: submission test data exists in the database
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost = getClaimPost("'; DROP TABLE claims; --");
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
+
+    // when: calling the POST endpoint with the ClaimPost
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // then: claim is correctly created with a warning logged
+    String responseBody = result.getResponse().getContentAsString();
+    var createClaim201Response =
+        OBJECT_MAPPER.readValue(responseBody, CreateClaim201Response.class);
+    assertThat(createClaim201Response.getId()).isNotNull();
+
+    Claim savedClaim =
+        claimRepository
+            .findById(createClaim201Response.getId())
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+    assertThat(savedClaim.getSubmission().getId()).isEqualTo(SUBMISSION_ID);
+    assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
+
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
+  }
+
+  @Test
   void shouldReturnBadRequestWhenPostIsCalledWithIncorrectBody() throws Exception {
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
@@ -157,7 +204,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
-    final ClaimPost claimPost = getClaimPost();
+    final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
     // when: calling the POST endpoint with an invalid token, 401 should be returned
     mockMvc
         .perform(
@@ -193,6 +240,49 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+  }
+
+  @Test
+  void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
+    // given: required claims exist in the database
+
+    String caseReference = "' OR name LIKE '%'";
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setValidationMessages(
+        List.of(
+            new ValidationMessagePatch()
+                .displayMessage(caseReference + "is not allowed")
+                .source("test")
+                .type(ValidationMessageType.ERROR)));
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
+
+    // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    // then: the database contains the amended claim data
+    Claim updatedClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+    assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
+    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
+
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test

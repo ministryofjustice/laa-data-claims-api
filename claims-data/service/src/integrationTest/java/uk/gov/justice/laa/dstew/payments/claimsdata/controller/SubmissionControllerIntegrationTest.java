@@ -14,6 +14,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.RoundingMode;
@@ -26,6 +28,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -119,6 +123,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .createdByUserId(API_USER_ID)
             .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
             .build();
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
     // when: calling POST endpoint for submissions
     mockMvc
@@ -137,6 +143,116 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(0);
+  }
+
+  @ParameterizedTest
+  @DisplayName("Should log warning with SQL-like patterns in string fields")
+  @ValueSource(
+      strings = {
+        // ---- Basic conditions that are always true ----
+        "' OR '1'='1' --",
+        "' AND '1'='1' --",
+
+        // ---- Classic DROP attacks ----
+        "Robert'); DROP TABLE Students;--",
+        "'; DROP TABLE users; --",
+
+        // ---- UNION attacks ----
+        "' UNION SELECT username, password FROM users--",
+
+        // ---- Comment-based termination ----
+        "test' --",
+        "abc'/*",
+
+        // ---- Time-based attacks ----
+        "'; WAITFOR DELAY '0:0:5'--", // MSSQL
+        "' OR SLEEP(5)--", // MySQL
+        "1; SELECT pg_sleep(5); --", // PostgreSQL
+
+        // ---- Stacked queries ----
+        "'; INSERT INTO audit_log(message) VALUES('hacked'); --",
+        "'; UPDATE users SET role='admin' WHERE username='user'; --",
+        "'; DELETE FROM users WHERE '1'='1'; --",
+
+        // ---- Stored procedure & command execution ----
+        "'; EXEC xp_cmdshell('dir'); --", // SQL Server
+        "'; CALL system('ls'); --", // MySQL/Unix external command
+        "'; EXECUTE IMMEDIATE 'DROP TABLE accounts'; --", // Oracle
+
+        // ---- Schema enumeration ----
+        "' UNION SELECT table_name, column_name FROM information_schema.columns--",
+        "'; SELECT * FROM information_schema.tables; --",
+
+        // ---- Obfuscation variants ----
+        "' OR 1=1 /*comment*/--",
+        "'/**/OR/**/1=1--",
+        "%27%20OR%201=1--", // URL encoded
+
+        // ---- Nested/injected string termination ----
+        "O'Brien'); DROP TABLE contacts; --",
+        "abc123'); DELETE FROM logs WHERE 1=1; --",
+
+        // ---- NoSQL / hybrid-like payloads ----
+        "\"}; DROP TABLE logs; --",
+
+        // ---- Vendor-specific distinct patterns ----
+        "' OR sleep(5)#", // MySQL # comment
+        "'); COPY (SELECT '') TO PROGRAM 'ls'; --", // PostgreSQL
+        "'; SHUTDOWN; --", // SQL Server
+
+        // ---- LIKE/wildcard injection ----
+        "' OR name LIKE '%'",
+
+        // ---- JSON-style injection ----
+        "']}'; DROP TABLE products; --"
+      })
+  void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields(String maliciousString)
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod("JAN-25")
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(maliciousString)
+            .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
+
+    // when: calling POST endpoint for submissions
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/submissions")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated());
+
+    Submission createdSubmission = submissionRepository.findById(submissionId).orElseThrow();
+
+    // then: submission is correctly created with a warning logged
+    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
+    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test
@@ -254,7 +370,20 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Test
   void updateSubmission_shouldUpdate() throws Exception {
     // given: a Submission patch payload with the changes to make
-    SubmissionPatch patch = SubmissionPatch.builder().areaOfLaw(AREA_OF_LAW).build();
+    String sqlInjectionString = "'; SELECT * FROM information_schema.tables; --";
+    SubmissionPatch patch =
+        SubmissionPatch.builder()
+            .areaOfLaw(AREA_OF_LAW)
+            .legalHelpSubmissionReference(sqlInjectionString)
+            .validationMessages(
+                List.of(
+                    new ValidationMessagePatch()
+                        .type(ValidationMessageType.ERROR)
+                        .displayMessage(sqlInjectionString + "is not allowed")
+                        .source("test")))
+            .build();
+    // Get the logger used by the class under test
+    ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
     // when: calling the patch endpoint
     mockMvc
@@ -269,6 +398,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // then: should update the submission
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+
+    assertThat(
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
+        .isEqualTo(1);
   }
 
   @Test

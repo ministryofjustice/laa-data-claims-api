@@ -50,6 +50,8 @@ public class BulkSubmissionCsvConverterTests {
       "classpath:test_upload_files/csv/outcomes_with_headers_only_sparse_rows.csv";
   private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
       "classpath:test_upload_files/csv/outcome_missing_matter_type.csv";
+  private static final String OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE =
+      "classpath:test_upload_files/csv/outcome_empty_matter_type.csv";
 
   private static final String MATTERSTARTS_INPUT_FILE =
       "classpath:test_upload_files/csv/matterstarts.csv";
@@ -198,6 +200,7 @@ public class BulkSubmissionCsvConverterTests {
     @ParameterizedTest
     @CsvSource({
       OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE,
+      OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE,
       OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
       OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE
     })
@@ -209,7 +212,7 @@ public class BulkSubmissionCsvConverterTests {
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionCsvConverter.convert(file));
 
-      assertEquals("Matter type missing in outcome data", exception.getMessage());
+      assertEquals("Matter type missing or empty in outcome data", exception.getMessage());
     }
 
     @Test
