@@ -316,12 +316,12 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static ClaimPost getClaimPost() {
+  public static ClaimPost getClaimPost(String caseReferenceNumber) {
     return new ClaimPost()
         .scheduleReference("213_REF")
         .lineNumber(123)
         .status(ClaimStatus.READY_TO_PROCESS)
-        .caseReferenceNumber("CASE001")
+        .caseReferenceNumber(caseReferenceNumber)
         .uniqueFileNumber("UFN123")
         .caseStartDate("01/01/2020")
         .caseConcludedDate("02/01/2020")
