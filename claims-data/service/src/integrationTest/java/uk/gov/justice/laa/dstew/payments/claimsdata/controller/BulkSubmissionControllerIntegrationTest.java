@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -215,6 +216,32 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @DisplayName(
+      "Should return valid error message when multiple offices are found in the submission")
+  @Test
+  void shouldReturnValidErrorMessageWhenMultipleOfficesAreFoundInTheSubmission() throws Exception {
+    ClassPathResource resource =
+        new ClassPathResource("test_upload_files/xml/invalid-submission_multiple_offices.xml");
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    String responseBody = result.getResponse().getContentAsString();
+
+    assertThat(responseBody)
+        .contains(
+            "Multiple offices found in bulk submission file. Only one office is supported per submission.");
   }
 
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {

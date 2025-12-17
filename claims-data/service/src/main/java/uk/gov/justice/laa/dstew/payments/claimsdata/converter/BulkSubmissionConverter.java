@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import java.util.Map;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -15,6 +16,12 @@ public interface BulkSubmissionConverter {
       "Unsupported matter start category code/mediation type: '%s'";
   String MATTER_START_ERROR_MESSAGE_TEMPLATE =
       "Error processing matter start item with code '%s' and value '%s': %s";
+  Map<String, String> mapErrorMessages =
+      Map.of(
+          "office",
+          "Multiple offices found in bulk submission file. Only one office is supported per submission.",
+          "schedule",
+          "Multiple schedule found in bulk submission file. Only one schedule is supported per submission.");
 
   FileSubmission convert(MultipartFile file);
 

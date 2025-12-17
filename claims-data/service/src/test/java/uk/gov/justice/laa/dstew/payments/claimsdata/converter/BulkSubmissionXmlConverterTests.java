@@ -101,6 +101,12 @@ public class BulkSubmissionXmlConverterTests {
 
   private static final String MISSING_SCHEDULE_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_schedule.xml";
+  private static final String MULTIPLE_OFFICES =
+      "classpath:test_upload_files/xml/multiple_offices.xml";
+  private static final String MULTIPLE_OFFICES_AND_SCHEDULE =
+      "classpath:test_upload_files/xml/multiple_off_and_sch.xml";
+  private static final String MALFORMED_SUBMISSION =
+      "classpath:test_upload_files/xml/malformed-submission.xml";
 
   /**
    * Initializes the test environment before each test execution. Sets up the ObjectMapper with
@@ -234,7 +240,7 @@ public class BulkSubmissionXmlConverterTests {
               "Missing matter start node"),
           new ExceptionTestData(
               MATTER_STARTS_MALFORMED_XML_FILE,
-              "Unexpected close tag </newMatterStarts>; expected </matterStart>",
+              "Malformed XML / file is corrupt (not well-formed). Please fix XML structure and re-submit.",
               "Malformed XML"),
           new ExceptionTestData(
               OUTCOMES_WITH_UNSUPPORTED_NAME,
@@ -266,10 +272,13 @@ public class BulkSubmissionXmlConverterTests {
     @DisplayName("Throws exception when office is missing")
     void throwsExceptionWhenOfficeMissing() throws IOException {
       MultipartFile file = getMultipartFile(MISSING_OFFICE_INPUT_FILE);
-      assertThrows(
-          BulkSubmissionFileReadException.class,
-          () -> bulkSubmissionXmlConverter.convert(file),
-          "Expected exception to be thrown when office is missing");
+      var actualException =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file),
+              "Expected exception to be thrown when office is missing");
+      assertThat(actualException.getErrorMessage())
+          .isEqualTo("office missing from xml bulk submission file.");
     }
 
     @Test
@@ -280,6 +289,47 @@ public class BulkSubmissionXmlConverterTests {
           BulkSubmissionFileReadException.class,
           () -> bulkSubmissionXmlConverter.convert(file),
           "Expected exception to be thrown when schedule is missing");
+    }
+
+    @DisplayName(
+        "Throws exception with provided error message when submission has more than one offices")
+    @Test
+    void throwExceptionForMultipleOffice() throws IOException {
+      var file = getMultipartFile(MULTIPLE_OFFICES);
+      var actualException =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+      assertThat(actualException.getErrorMessage())
+          .isEqualTo(
+              "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+    }
+
+    @DisplayName("Throws exception when submission has multiple offices and schedules")
+    @Test
+    void throwsExceptionMultipleOfficesAndSchedules() throws IOException {
+      var file = getMultipartFile(MULTIPLE_OFFICES_AND_SCHEDULE);
+      var actualException =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+      assertThat(actualException.getErrorMessage())
+          .isEqualTo(
+              "Multiple schedule found in bulk submission file. Only one schedule is supported per submission.,"
+                  + " Multiple offices found in bulk submission file. Only one office is supported per submission.");
+    }
+
+    @DisplayName("Throws exception when submission xml is malformed")
+    @Test
+    void throwsExceptionMalformedXml() throws IOException {
+      var file = getMultipartFile(MALFORMED_SUBMISSION);
+      var actualException =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+      assertThat(actualException.getErrorMessage())
+          .isEqualTo(
+              "Malformed XML / file is corrupt (not well-formed). Please fix XML structure and re-submit.");
     }
   }
 
