@@ -602,7 +602,6 @@ class BulkSubmissionMapperTests {
         "policeStation",
         "dsccNumber",
         "maatId",
-        "prisonLawPriorApproval",
         dutySolicitor,
         youthCourt,
         "schemeId",
