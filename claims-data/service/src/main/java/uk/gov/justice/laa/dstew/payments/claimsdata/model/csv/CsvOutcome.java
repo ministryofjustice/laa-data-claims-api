@@ -82,7 +82,6 @@ public record CsvOutcome(
     String policeStation,
     String dsccNumber,
     String maatId,
-    String prisonLawPriorApproval,
     String dutySolicitor,
     String youthCourt,
     String schemeId,
