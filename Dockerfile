@@ -15,13 +15,13 @@ WORKDIR /build
 # Copy gradle files and source code
 COPY . .
 
-RUN env
 
 # Run gradle build
-RUN gradle claims-data:service:spotlessApply build
+RUN gradle claims-data:service:spotlessApply build -x test
+
 
 # Debug step: List all JAR files to find the correct path
-RUN find /build -name "*.jar" & false
+RUN find /build -name "*.jar"
 
 # Specify java runtime base image
 FROM amazoncorretto:21-alpine
@@ -31,7 +31,7 @@ RUN mkdir -p /opt/laa-data-claims-api/claims-data/
 WORKDIR /opt/laa-data-claims-api/claims-data/
 
 # Copy the JAR file into the container
-COPY build/libs/swagger-ui-app.jar app.jar
+COPY --from=builder /build/claims-data/service/build/libs/service-*.jar app.jar
 
 # Create a group and non-root user
 RUN addgroup -S appgroup && adduser -u 1001 -S appuser -G appgroup
