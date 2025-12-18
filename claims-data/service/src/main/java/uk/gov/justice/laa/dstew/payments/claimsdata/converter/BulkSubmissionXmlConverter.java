@@ -122,7 +122,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
             property ->
                 MAP_PROPERTY_TO_ERROR_MESSAGE.getOrDefault(
                     property, invalidDefinitionException.getOriginalMessage()))
-        .collect(Collectors.joining(", "));
+        .collect(Collectors.joining(System.lineSeparator()));
   }
 
   /**

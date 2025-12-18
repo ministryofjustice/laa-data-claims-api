@@ -325,8 +325,8 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file));
       assertThat(actualException.getErrorMessage())
           .isEqualTo(
-              "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.,"
-                  + " Multiple offices found in bulk submission file. Only one office is supported per submission.");
+              "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
+                  + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
     }
 
     @DisplayName("Throws exception when submission xml is malformed")

@@ -242,7 +242,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get("errorMessage").asText())
         .isEqualTo(
-            "Multiple schedules found in bulk submission file. Only one schedule is supported per submission., "
+            "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                 + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
   }
 
