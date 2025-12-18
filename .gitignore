@@ -1,6 +1,8 @@
 README.md
 .gradle
+.env
 build/
+bin/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
