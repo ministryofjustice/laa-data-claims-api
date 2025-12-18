@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
@@ -84,6 +86,37 @@ public class ClaimController implements ClaimsApi {
   public ResponseEntity<Void> updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/search")
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResultSet> searchClaims(
+      @RequestParam(value = "office_code") String officeCode,
+      @RequestParam(value = "submission_id", required = false) String submissionId,
+      @RequestParam(value = "submission_status", required = false)
+          List<SubmissionStatus> submissionStatuses,
+      @RequestParam(value = "fee_code", required = false) String feeCode,
+      @RequestParam(value = "unique_file_number", required = false) String uniqueFileNumber,
+      @RequestParam(value = "unique_client_number", required = false) String uniqueClientNumber,
+      @RequestParam(value = "unique_case_id", required = false) String uniqueCaseId,
+      @RequestParam(value = "claim_status", required = false) List<ClaimStatus> claimStatuses,
+      @RequestParam(value = "submission_period", required = false) String submissionPeriod,
+      @RequestParam(value = "case_reference_number", required = false) String caseReferenceNumber,
+      Pageable pageable) {
+
+    return ResponseEntity.ok(
+        claimService.searchClaims(
+            officeCode,
+            submissionId,
+            submissionStatuses,
+            feeCode,
+            uniqueFileNumber,
+            uniqueClientNumber,
+            uniqueCaseId,
+            claimStatuses,
+            submissionPeriod,
+            caseReferenceNumber,
+            pageable));
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
