@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 public class BulkSubmissionFieldConversionExceptionTest {
 
-  @DisplayName("Exception with out boolean field should return error field and error message")
+  @DisplayName("Exception without boolean field should return error field and error message")
   @Test
   void testBulkSubmissionFieldConversionException() {
 
@@ -18,7 +18,7 @@ public class BulkSubmissionFieldConversionExceptionTest {
         "Travel Costs Amount must be a valid monetary value", exception.getMessage());
   }
 
-  @DisplayName("Exception with  boolean field should return error field and error message")
+  @DisplayName("Exception with boolean field should return error field and error message")
   @Test
   void testBulkSubmissionFieldConversionExceptionBoolean() {
     BulkSubmissionFieldConversionException exception =
@@ -30,9 +30,9 @@ public class BulkSubmissionFieldConversionExceptionTest {
   }
 
   @DisplayName(
-      "Exception with out boolean field should return error field and error message and exception")
+      "Exception without boolean field should return error field and error message and exception")
   @Test
-  void testBulkSubmissionFieldConversionExceptionNullFieldName() {
+  void testBulkSubmissionFieldConversionExceptionFieldName() {
     BulkSubmissionFieldConversionException exception =
         new BulkSubmissionFieldConversionException(
             "Travel Costs Amount must be a valid monetary value",

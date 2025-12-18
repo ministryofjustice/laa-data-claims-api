@@ -73,13 +73,15 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         switch (csvBulkSubmissionRow.header()) {
           case CsvHeader.OFFICE -> {
             if (csvOffice != null) {
-              throw new BulkSubmissionFileReadException(mapErrorMessages.get("office"));
+              throw new BulkSubmissionFileReadException(
+                  MAP_PROPERTY_TO_ERROR_MESSAGE.get("office"));
             }
             csvOffice = objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOffice.class);
           }
           case CsvHeader.SCHEDULE -> {
             if (csvSchedule != null) {
-              throw new BulkSubmissionFileReadException(mapErrorMessages.get("schedule"));
+              throw new BulkSubmissionFileReadException(
+                  MAP_PROPERTY_TO_ERROR_MESSAGE.get("schedule"));
             }
             csvSchedule =
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);

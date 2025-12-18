@@ -65,7 +65,8 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
       throw new BulkSubmissionFileReadException(jsonProcessingException.getOriginalMessage());
     } catch (IOException ioException) {
       log.error("Failed to read/parse XML file: {}", ioException.getMessage(), ioException);
-      throw new BulkSubmissionFileReadException(ioException.getMessage());
+      throw new BulkSubmissionFileReadException(
+          "Failed to read/parse XML file: {}" + file.getName());
     }
   }
 
@@ -119,7 +120,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
     return getInvalidProperties(invalidDefinitionException).stream()
         .map(
             property ->
-                mapErrorMessages.getOrDefault(
+                MAP_PROPERTY_TO_ERROR_MESSAGE.getOrDefault(
                     property, invalidDefinitionException.getOriginalMessage()))
         .collect(Collectors.joining(", "));
   }

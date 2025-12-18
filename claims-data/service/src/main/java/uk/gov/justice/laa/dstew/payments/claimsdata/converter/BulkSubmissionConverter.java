@@ -16,12 +16,12 @@ public interface BulkSubmissionConverter {
       "Unsupported matter start category code/mediation type: '%s'";
   String MATTER_START_ERROR_MESSAGE_TEMPLATE =
       "Error processing matter start item with code '%s' and value '%s': %s";
-  Map<String, String> mapErrorMessages =
+  Map<String, String> MAP_PROPERTY_TO_ERROR_MESSAGE =
       Map.of(
           "office",
           "Multiple offices found in bulk submission file. Only one office is supported per submission.",
           "schedule",
-          "Multiple schedule found in bulk submission file. Only one schedule is supported per submission.");
+          "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.");
 
   FileSubmission convert(MultipartFile file);
 

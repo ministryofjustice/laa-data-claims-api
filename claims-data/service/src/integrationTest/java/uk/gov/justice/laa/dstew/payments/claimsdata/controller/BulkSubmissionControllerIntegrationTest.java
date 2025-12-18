@@ -219,11 +219,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @DisplayName(
-      "Should return valid error message when multiple offices are found in the submission")
+      "Should return valid error message when multiple office and schedule are found in the submission")
   @Test
-  void shouldReturnValidErrorMessageWhenMultipleOfficesAreFoundInTheSubmission() throws Exception {
+  void shouldReturnValidErrorMessageWhenMultipleOfficeAndScheduleAreFoundInTheSubmission()
+      throws Exception {
     ClassPathResource resource =
-        new ClassPathResource("test_upload_files/xml/invalid-submission_multiple_offices.xml");
+        new ClassPathResource(
+            "test_upload_files/xml/invalid_submission_multiple_office_schedule.xml");
     MockMultipartFile file =
         new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
     MvcResult result =
@@ -237,11 +239,34 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andExpect(status().isBadRequest())
             .andReturn();
 
-    String responseBody = result.getResponse().getContentAsString();
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo(
+            "Multiple schedules found in bulk submission file. Only one schedule is supported per submission., "
+                + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+  }
 
-    assertThat(responseBody)
-        .contains(
-            "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+  @DisplayName(
+      "Should return valid error message when monetary field profit cost has invalid value")
+  @Test
+  void shouldReturnValidErrorMessageWhenMonetaryFieldProfitCostHasInvalidValue() throws Exception {
+    ClassPathResource resource =
+        new ClassPathResource("test_upload_files/xml/invalid_submission_invalid_profit_cost.xml");
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), "text/xml", resource.getInputStream());
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get("errorMessage").asText())
+        .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
   }
 
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {

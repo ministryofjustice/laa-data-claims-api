@@ -302,9 +302,9 @@ public class BulkSubmissionXmlConverterTests {
     }
 
     @DisplayName(
-        "Throws exception with provided error message when submission has more than one offices")
+        "Throws exception with provided error message when submission has more than one office")
     @Test
-    void throwExceptionForMultipleOffice() throws IOException {
+    void throwExceptionForMultipleOffices() throws IOException {
       var file = getMultipartFile(MULTIPLE_OFFICES);
       var actualException =
           assertThrows(
@@ -325,7 +325,7 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file));
       assertThat(actualException.getErrorMessage())
           .isEqualTo(
-              "Multiple schedule found in bulk submission file. Only one schedule is supported per submission.,"
+              "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.,"
                   + " Multiple offices found in bulk submission file. Only one office is supported per submission.");
     }
 
