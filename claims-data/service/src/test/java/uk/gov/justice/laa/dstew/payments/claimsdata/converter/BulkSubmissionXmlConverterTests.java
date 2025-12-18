@@ -14,6 +14,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmiss
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -137,7 +138,9 @@ public class BulkSubmissionXmlConverterTests {
       File convertedFile = getFile(OUTCOMES_CONVERTED_FILE);
       String expected = getContent(convertedFile);
 
-      assertEquals(expected, actual);
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
     }
 
     private record MissingOutcomeTestData(String inputFile, String convertedFile) {}
@@ -190,7 +193,9 @@ public class BulkSubmissionXmlConverterTests {
       File convertedFile = getFile(IMMIGRATION_CLR_CONVERTED_FILE);
       String expected = getContent(convertedFile);
 
-      assertEquals(expected, actual);
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
     }
 
     private record MatterStartsTestData(
@@ -223,7 +228,9 @@ public class BulkSubmissionXmlConverterTests {
       File convertedFile = getFile(testData.convertedFile());
       String expected = getContent(convertedFile);
 
-      assertEquals(expected, actual);
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
     }
 
     private record ExceptionTestData(
