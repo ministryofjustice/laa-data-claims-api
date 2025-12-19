@@ -11,7 +11,7 @@ services:
         - GIT_PACKAGE_KEY=${GIT_PACKAGE_KEY}
     ports:
       - "8080:8080"
-      - "8081:8081"
+      - "8183:8081"
     environment:
       - AWS_REGION=us-east-1
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/laa_data_claims_api_dev
