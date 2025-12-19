@@ -174,13 +174,16 @@ public interface BulkSubmissionMapper {
       expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
-      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
   @Mapping(
       target = "travelTime",
-      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
   @Mapping(
       target = "waitingTime",
-      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
   @Mapping(
       target = "profitCost",
       expression =
@@ -212,10 +215,11 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "adjournedHearingFee",
       expression =
-          "java(parseIntegerField(outcome.adjournedHearingFee(), \"Adjourned Hearing Fee Amount must be a valid monetary value\"))")
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"Adjourned Hearing Fee Amount must be between 0 and 9\"))")
   @Mapping(
       target = "hoInterview",
-      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+      expression =
+          "java(parseIntegerField(outcome.hoInterview(), \"HO Interview must be between 0 and 9\"))")
   @Mapping(
       target = "detentionTravelWaitingCosts",
       expression =
@@ -224,29 +228,35 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "medicalReportsClaimed",
       expression =
-          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"Medical Reports Count must be between 0 and 10\"))")
   @Mapping(
       target = "desiAccRep",
-      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+      expression =
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
   @Mapping(
       target = "noOfClients",
-      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSurgeryClients",
-      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSuspects",
-      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
   @Mapping(
       target = "noOfPoliceStation",
-      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfPoliceStation(), \"Police Station Court Attendances Count must be between 0 and 99\"))")
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
   @Mapping(
       target = "mediationTime",
-      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
   @Mapping(
       target = "excessTravelCosts",
       expression =
@@ -328,13 +338,16 @@ public interface BulkSubmissionMapper {
       expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
-      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
   @Mapping(
       target = "travelTime",
-      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
   @Mapping(
       target = "waitingTime",
-      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
   @Mapping(
       target = "profitCost",
       expression =
@@ -366,10 +379,11 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "adjournedHearingFee",
       expression =
-          "java(parseIntegerField(outcome.adjournedHearingFee(), \"adjournedHearingFee\"))")
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"Adjourned Hearing Fee Amount must be between 0 and 9\"))")
   @Mapping(
       target = "hoInterview",
-      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+      expression =
+          "java(parseIntegerField(outcome.hoInterview(), \"HO Interview must be between 0 and 9\"))")
   @Mapping(
       target = "detentionTravelWaitingCosts",
       expression =
@@ -378,32 +392,39 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "medicalReportsClaimed",
       expression =
-          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"Medical Reports Count must be between 0 and 10\"))")
   @Mapping(
       target = "desiAccRep",
-      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+      expression =
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
   @Mapping(
       target = "noOfClients",
-      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSurgeryClients",
-      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSuspects",
-      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
   @Mapping(
       target = "noOfPoliceStation",
-      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfPoliceStation(), \"Police Station Court Attendances Count must be between 0 and 99\"))")
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
   @Mapping(
       target = "mediationTime",
-      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
   @Mapping(
       target = "excessTravelCosts",
-      expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.excessTravelCosts(), \"Excess Travel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "jrFormFilling",
       expression =
