@@ -175,7 +175,7 @@ jobs:
         id: login-ecr
       - name: Build and push a Docker image for claims-data
         run: |
-          docker build --no-cache -t $REGISTRY/$REPOSITORY:$IMAGE_TAG ./claims-data
+          docker build --no-cache -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
