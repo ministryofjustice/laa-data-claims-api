@@ -108,7 +108,6 @@ public record XmlOutcome(
     String policeStation,
     String dsccNumber,
     String maatId,
-    String prisonLawPriorApproval,
     String dutySolicitor,
     String youthCourt,
     String schemeId,
@@ -145,6 +144,6 @@ public record XmlOutcome(
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null);
+        null, null, null, null, null, null, null, null, null, null, null, null);
   }
 }

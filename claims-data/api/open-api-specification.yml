@@ -1504,8 +1504,6 @@ components:
           type: string
         maat_id:
           type: string
-        prison_law_prior_approval:
-          type: string
         duty_solicitor:
           type: boolean
         youth_court:

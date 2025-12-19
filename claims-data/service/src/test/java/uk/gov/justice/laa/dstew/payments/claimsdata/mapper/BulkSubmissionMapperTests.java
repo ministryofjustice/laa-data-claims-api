@@ -287,7 +287,6 @@ class BulkSubmissionMapperTests {
             "policeStation",
             "dsccNumber",
             "maatId",
-            "prisonLawPriorApproval",
             fieldValue,
             fieldValue,
             "schemeId",
@@ -456,7 +455,153 @@ class BulkSubmissionMapperTests {
         "policeStation",
         "dsccNumber",
         "maatId",
-        "prisonLawPriorApproval",
+        dutySolicitor,
+        youthCourt,
+        "schemeId",
+        numberOfMediationSessions,
+        mediationTime,
+        "outreach",
+        "referral",
+        clientLegallyAided,
+        "client2Forename",
+        "client2Surname",
+        "07/01/2000",
+        "client2Ucn",
+        "client2Postcode",
+        "client2Gender",
+        "client2Ethnicity",
+        "client2Disability",
+        client2LegallyAided,
+        "uniqueCaseId",
+        "standardFeeCat",
+        client2PostalApplAccp,
+        costsDamagesRecovered,
+        eligibleClient,
+        "courtLocationHpcds",
+        "localAuthorityNumber",
+        "paNumber",
+        excessTravelCosts,
+        "08/01/2000");
+  }
+
+  private XmlOutcome createXmlOutcome(Map<String, String> overrides, String fieldValue) {
+    String adviceTime = overrides.getOrDefault("adviceTime", "1");
+    String travelTime = overrides.getOrDefault("travelTime", "2");
+    String waitingTime = overrides.getOrDefault("waitingTime", "3");
+    String profitCost = overrides.getOrDefault("profitCost", "0.01");
+    String valueOfCosts = overrides.getOrDefault("valueOfCosts", "0.02");
+    String disbursementsAmount = overrides.getOrDefault("disbursementsAmount", "0.03");
+    String counselCost = overrides.getOrDefault("counselCost", "0.04");
+    String disbursementsVat = overrides.getOrDefault("disbursementsVat", "0.05");
+    String travelWaitingCosts = overrides.getOrDefault("travelWaitingCosts", "0.06");
+    String travelCosts = overrides.getOrDefault("travelCosts", "0.07");
+    String adjournedHearingFee = overrides.getOrDefault("adjournedHearingFee", "8");
+    String hoInterview = overrides.getOrDefault("hoInterview", "8");
+    String detentionTravelWaitingCosts =
+        overrides.getOrDefault("detentionTravelWaitingCosts", "0.09");
+    String jrFormFilling = overrides.getOrDefault("jrFormFilling", "12.34");
+    String costsDamagesRecovered = overrides.getOrDefault("costsDamagesRecovered", "56.78");
+    String medicalReportsClaimed = overrides.getOrDefault("medicalReportsClaimed", "4");
+    String desiAccRep = overrides.getOrDefault("desiAccRep", "5");
+    String noOfClients = overrides.getOrDefault("noOfClients", "6");
+    String noOfSurgeryClients = overrides.getOrDefault("noOfSurgeryClients", "7");
+    String noOfSuspects = overrides.getOrDefault("noOfSuspects", "8");
+    String noOfPoliceStation = overrides.getOrDefault("noOfPoliceStation", "9");
+    String numberOfMediationSessions = overrides.getOrDefault("numberOfMediationSessions", "10");
+    String mediationTime = overrides.getOrDefault("mediationTime", "11");
+    String excessTravelCosts = overrides.getOrDefault("excessTravelCosts", "0.10");
+    String vatIndicator = overrides.getOrDefault("vatIndicator", fieldValue);
+    String londonNonlondonRate = overrides.getOrDefault("londonNonlondonRate", fieldValue);
+    String toleranceIndicator = overrides.getOrDefault("toleranceIndicator", fieldValue);
+    String legacyCase = overrides.getOrDefault("legacyCase", fieldValue);
+    String postalApplAccp = overrides.getOrDefault("postalApplAccp", fieldValue);
+    String substantiveHearing = overrides.getOrDefault("substantiveHearing", fieldValue);
+    String additionalTravelPayment = overrides.getOrDefault("additionalTravelPayment", fieldValue);
+    String clientLegallyAided = overrides.getOrDefault("clientLegallyAided", fieldValue);
+    String client2PostalApplAccp = overrides.getOrDefault("client2PostalApplAccp", fieldValue);
+    String dutySolicitor = overrides.getOrDefault("dutySolicitor", fieldValue);
+    String nationalRefMechanismAdvice =
+        overrides.getOrDefault("nationalRefMechanismAdvice", fieldValue);
+    String ircSurgery = overrides.getOrDefault("ircSurgery", fieldValue);
+    String client2LegallyAided = overrides.getOrDefault("client2LegallyAided", fieldValue);
+    String eligibleClient = overrides.getOrDefault("eligibleClient", fieldValue);
+    String youthCourt = overrides.getOrDefault("youthCourt", fieldValue);
+    return new XmlOutcome(
+        "matterType",
+        "feeCode",
+        "caseRefNumber",
+        "01/01/2000",
+        "caseId",
+        "caseStageLevel",
+        "ufn",
+        "procurementArea",
+        "accessPoint",
+        "clientForename",
+        "clientSurname",
+        "02/01/2000",
+        "ucn",
+        "claRefNumber",
+        "claExemption",
+        "gender",
+        "ethnicity",
+        "disability",
+        "clientPostcode",
+        "03/01/2000",
+        adviceTime,
+        travelTime,
+        waitingTime,
+        profitCost,
+        valueOfCosts,
+        disbursementsAmount,
+        counselCost,
+        disbursementsVat,
+        travelWaitingCosts,
+        vatIndicator,
+        londonNonlondonRate,
+        "clientType",
+        toleranceIndicator,
+        travelCosts,
+        "outcomeCode",
+        legacyCase,
+        "claimType",
+        adjournedHearingFee,
+        "typeOfAdvice",
+        postalApplAccp,
+        "scheduleRef",
+        "cmrhOral",
+        "cmrhTelephone",
+        "aitHearingCentre",
+        substantiveHearing,
+        hoInterview,
+        "hoUcn",
+        "04/01/2000",
+        detentionTravelWaitingCosts,
+        "deliveryLocation",
+        "priorAuthorityRef",
+        jrFormFilling,
+        additionalTravelPayment,
+        "meetingsAttended",
+        medicalReportsClaimed,
+        desiAccRep,
+        "mhtRefNumber",
+        "stageReached",
+        "followOnWork",
+        nationalRefMechanismAdvice,
+        "exemptionCriteriaSatisfied",
+        "exclCaseFundingRef",
+        noOfClients,
+        noOfSurgeryClients,
+        ircSurgery,
+        "05/01/2000",
+        "lineNumber",
+        "crimeMatterType",
+        "feeScheme",
+        "06/01/2000",
+        noOfSuspects,
+        noOfPoliceStation,
+        "policeStation",
+        "dsccNumber",
+        "maatId",
         dutySolicitor,
         youthCourt,
         "schemeId",
