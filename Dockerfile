@@ -1,13 +1,6 @@
 # Build stage
+# syntax=docker/dockerfile:1.4
 FROM gradle:8-jdk21 AS builder
-
-# 1. Declare that we expect these arguments
-ARG GIT_PACKAGE_USER
-ARG GIT_PACKAGE_KEY
-
-# 2. Map them to the ENV variables Gradle is looking for
-ENV GITHUB_ACTOR=${GITHUB_ACTOR}
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 # Set up working directory for build
 WORKDIR /build
@@ -15,10 +8,12 @@ WORKDIR /build
 # Copy gradle files and source code
 COPY . .
 
-
 # Run gradle build
-RUN gradle claims-data:service:spotlessApply build -x test
-
+RUN --mount=type=secret,id=github_actor \
+    --mount=type=secret,id=github_token \
+    export GITHUB_ACTOR="$(cat /run/secrets/github_actor)" && \
+    export GITHUB_TOKEN="$(cat /run/secrets/github_token)" && \
+    gradle claims-data:service:spotlessApply build -x test
 
 # Debug step: List all JAR files to find the correct path
 RUN find /build -name "*.jar"
