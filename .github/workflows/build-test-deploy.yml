@@ -129,20 +129,11 @@ jobs:
 
       - name: Build app jar with gradle
         run: ./gradlew build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build local Docker image
         run: |
-          docker build \
-            --secret id=github_actor,env=GITHUB_ACTOR \
-            --secret id=github_token,env=GITHUB_TOKEN \
-            -t claims-data-scan .
+          docker build -t claims-data-scan .
           docker save claims-data-scan -o image.tar
-        env:
-          DOCKER_BUILDKIT: 1
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
 
       - name: Run Snyk to scan Docker image from tarball
         uses: snyk/actions/docker@master
@@ -182,15 +173,9 @@ jobs:
         id: login-ecr
       - name: Build and push a Docker image for claims-data
         run: |
-          docker build --no-cache \
-                --secret id=github_actor,env=GITHUB_ACTOR \
-                --secret id=github_token,env=GITHUB_TOKEN \
-                -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker build --no-cache -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
         env:
-          DOCKER_BUILDKIT: 1
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}

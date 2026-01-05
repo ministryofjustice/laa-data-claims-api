@@ -12,6 +12,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - BUILD_SOURCE=internal
       secrets:
         - github_actor
         - github_token
