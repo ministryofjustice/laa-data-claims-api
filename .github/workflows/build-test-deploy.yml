@@ -181,6 +181,7 @@ jobs:
                 -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
         env:
+          DOCKER_BUILDKIT: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
