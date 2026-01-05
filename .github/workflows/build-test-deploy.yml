@@ -134,8 +134,15 @@ jobs:
 
       - name: Build local Docker image
         run: |
-          docker build -t claims-data-scan ./claims-data
+          docker build \
+            --secret id=github_actor,env=GITHUB_ACTOR \
+            --secret id=github_token,env=GITHUB_TOKEN \
+            -t claims-data-scan .
           docker save claims-data-scan -o image.tar
+        env:
+          DOCKER_BUILDKIT: 1
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
 
       - name: Run Snyk to scan Docker image from tarball
         uses: snyk/actions/docker@master
