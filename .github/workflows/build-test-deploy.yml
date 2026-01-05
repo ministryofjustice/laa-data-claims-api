@@ -175,7 +175,7 @@ jobs:
         id: login-ecr
       - name: Build and push a Docker image for claims-data
         run: |
-          docker build --no-cache \      
+          docker build --no-cache \
                 --secret id=github_actor,env=GITHUB_ACTOR \
                 --secret id=github_token,env=GITHUB_TOKEN \
                 -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
