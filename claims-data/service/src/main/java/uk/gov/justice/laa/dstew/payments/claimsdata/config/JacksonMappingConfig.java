@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -33,7 +34,11 @@ public class JacksonMappingConfig {
    */
   @Bean
   public CsvMapper csvMapper() {
-    return new CsvMapper();
+    CsvMapper csvMapper = new CsvMapper();
+    csvMapper.registerModule(new JavaTimeModule());
+    csvMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    csvMapper.disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
+    return csvMapper;
   }
 
   /**

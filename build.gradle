@@ -1,3 +1,6 @@
 subprojects {
     group = 'uk.gov.justice.laa.datastewardship.payments'
+    repositories {
+        mavenCentral()
+    }
 }

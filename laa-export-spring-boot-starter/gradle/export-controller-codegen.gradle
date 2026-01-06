@@ -1,0 +1,105 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.yaml:snakeyaml:2.2'
+    }
+}
+
+def exportControllerConfigFile = project.file('src/main/resources/application.yml')
+def exportControllerGeneratedDir = layout.buildDirectory.dir("generated/export-web")
+
+tasks.register('generateExportControllers') {
+    inputs.file(exportControllerConfigFile)
+    outputs.dir(exportControllerGeneratedDir)
+    doLast {
+        def exportDir = exportControllerGeneratedDir.get().asFile
+        exportDir.mkdirs()
+        def yaml = new org.yaml.snakeyaml.Yaml()
+        def config = yaml.load(exportControllerConfigFile.text) ?: [:]
+        def definitions = config?.laa?.exports?.definitions ?: [:]
+        def packageName = 'uk.gov.justice.laa.dstew.payments.claimsdata.export.generated'
+        def className = 'GeneratedExportController'
+        def outDir = new File(exportDir, packageName.replace('.', '/'))
+        outDir.mkdirs()
+
+        def sb = new StringBuilder()
+        sb << "package ${packageName};\n\n"
+        sb << "import io.swagger.v3.oas.annotations.Operation;\n"
+        sb << "import java.time.LocalDate;\n"
+        sb << "import java.util.HashMap;\n"
+        sb << "import java.util.Map;\n"
+        sb << "import org.springframework.http.HttpHeaders;\n"
+        sb << "import org.springframework.http.ResponseEntity;\n"
+        sb << "import org.springframework.web.bind.annotation.GetMapping;\n"
+        sb << "import org.springframework.web.bind.annotation.RequestMapping;\n"
+        sb << "import org.springframework.web.bind.annotation.RequestParam;\n"
+        sb << "import org.springframework.web.bind.annotation.RestController;\n"
+        sb << "import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;\n"
+        sb << "import uk.gov.justice.laa.export.ExportService;\n\n"
+
+        sb << "/**\n"
+        sb << " * Generated export endpoints.\n"
+        sb << " */\n"
+        sb << "@RestController\n"
+        sb << '@RequestMapping("${laa.exports.web.base-path:/exports}")' + "\n"
+        sb << "public class ${className} {\n"
+        sb << "  private final ExportService exportService;\n\n"
+        sb << "  public ${className}(ExportService exportService) {\n"
+        sb << "    this.exportService = exportService;\n"
+        sb << "  }\n\n"
+
+        def toCamel = { String value ->
+            value.split(/[^A-Za-z0-9]+/).findAll { it } .collect { it.capitalize() }.join('')
+        }
+
+        definitions.each { key, defn ->
+            def sql = defn?.sql
+            if (!sql) {
+                return
+            }
+            def params = defn?.params ?: []
+            def paramNames = params.collect { it.name }
+
+            def path = "/${key}.csv"
+            def methodName = "export" + toCamel(key)
+            sb << "  /**\n"
+            sb << "   * Streams export ${key} as CSV.\n"
+            sb << "   */\n"
+            sb << "  @Operation(summary = \"Export ${key}\")\n"
+            sb << "  @GetMapping(value = \"${path}\", produces = \"text/csv\")\n"
+            sb << "  public ResponseEntity<StreamingResponseBody> ${methodName}(\n"
+
+            def requestParams = []
+            params.each { p ->
+                def required = p.required == true
+                def requiredAttr = required ? "" : ", required = false"
+                requestParams << "      @RequestParam(name = \"${p.name}\"${requiredAttr}) String ${p.name}"
+            }
+
+
+            sb << requestParams.join(",\n")
+            sb << "\n  ) {\n"
+            sb << "    Map<String, String[]> rawParams = new HashMap<>();\n"
+            params.each { p ->
+                sb << "    if (${p.name} != null) {\n"
+                sb << "      rawParams.put(\"${p.name}\", new String[] { ${p.name} });\n"
+                sb << "    }\n"
+            }
+            sb << "    String filename = \"${key}-\" + LocalDate.now() + \".csv\";\n"
+            sb << "    StreamingResponseBody body = out -> exportService.streamCsv(\"${key}\", rawParams, out);\n"
+            sb << "    return ResponseEntity.ok()\n"
+            sb << "        .header(HttpHeaders.CONTENT_DISPOSITION, \"attachment; filename=\\\"\" + filename + \"\\\"\")\n"
+            sb << "        .header(HttpHeaders.CACHE_CONTROL, \"no-store\")\n"
+            sb << "        .body(body);\n"
+            sb << "  }\n\n"
+        }
+
+        sb << "}\n"
+        new File(outDir, "${className}.java").text = sb.toString()
+    }
+}
+
+sourceSets.main.java.srcDirs += exportControllerGeneratedDir
+compileJava.dependsOn tasks.named('generateExportControllers')

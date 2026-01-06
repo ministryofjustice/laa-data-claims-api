@@ -19,7 +19,7 @@ pluginManagement {
 
 rootProject.name = 'laa-data-claims-api'
 
+include 'laa-export-spring-boot-starter'
 include 'claims-data'
 include 'claims-data:api'
 include 'claims-data:service'
-
