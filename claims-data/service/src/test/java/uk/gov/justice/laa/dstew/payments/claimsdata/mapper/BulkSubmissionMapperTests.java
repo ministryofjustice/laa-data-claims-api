@@ -96,39 +96,40 @@ class BulkSubmissionMapperTests {
             BulkSubmissionFieldConversionException.class,
             () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
 
-    assertEquals(errorFieldName, exception.getFieldName());
+    assertEquals(errorFieldName, exception.getExceptionMessage());
     assertEquals(invalidValue, exception.getRejectedValue());
   }
 
-  @ParameterizedTest(name = "Should include field context when {0} conversion fails")
+  @ParameterizedTest(
+      name = "Error message should be: {2} when field context when {1} conversion fails")
   @CsvSource({
-    "adviceTime, notANumber",
-    "travelTime, notANumber",
-    "waitingTime, notANumber",
-    "profitCost, notANumber",
-    "valueOfCosts, notANumber",
-    "disbursementsAmount, notANumber",
-    "counselCost, notANumber",
-    "disbursementsVat, notANumber",
-    "travelWaitingCosts, notANumber",
-    "travelCosts, notANumber",
-    "adjournedHearingFee, notANumber",
-    "hoInterview, notANumber",
-    "detentionTravelWaitingCosts, notANumber",
-    "medicalReportsClaimed, notANumber",
-    "desiAccRep, notANumber",
-    "noOfClients, notANumber",
-    "noOfSurgeryClients, notANumber",
-    "noOfSuspects, notANumber",
-    "noOfPoliceStation, notANumber",
-    "numberOfMediationSessions, notANumber",
-    "mediationTime, notANumber",
-    "excessTravelCosts, notANumber",
-    "jrFormFilling, notANumber",
-    "costsDamagesRecovered, notANumber"
+    "adviceTime, notANumber,Advice Time must be in minutes",
+    "travelTime, notANumber,Travel Time must be in minutes",
+    "waitingTime, notANumber,Waiting Time must be in minutes",
+    "profitCost, notANumber,Net Profit Costs Amount must be a valid monetary value",
+    "valueOfCosts, notANumber,Net Value of Costs Amount must be a valid monetary value",
+    "disbursementsAmount, notANumber,Net Disbursement Amount must be a valid monetary value",
+    "counselCost, notANumber,Net Counsel Costs Amount must be a valid monetary value",
+    "disbursementsVat, notANumber,Disbursements VAT Amount must be a valid monetary value",
+    "travelWaitingCosts, notANumber,Net Travel Waiting Costs Amount must be a valid monetary value",
+    "travelCosts, notANumber,Travel Costs Amount must be a valid monetary value",
+    "adjournedHearingFee, notANumber,Adjourned Hearing Fee Amount must be between 0 and 9",
+    "hoInterview, notANumber,HO Interview must be between 0 and 9",
+    "detentionTravelWaitingCosts, notANumber,Detention Travel Waiting Costs Amount must be a valid monetary value",
+    "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
+    "desiAccRep, notANumber,Designated Accredited Representative Code must be valid",
+    "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
+    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
+    "noOfSuspects, notANumber,Suspects Defendants Count must be between 0 and 99",
+    "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
+    "numberOfMediationSessions, notANumber,Mediation Sessions Count must be between 1 and 99",
+    "mediationTime, notANumber,Mediation Time Minutes must be between 0 and 99999",
+    "excessTravelCosts, notANumber,Excess Travel Costs Amount must be a valid monetary value",
+    "jrFormFilling, notANumber,JR Form Filling Amount must be a valid monetary value",
+    "costsDamagesRecovered, notANumber,Costs Damages Recovered Amount must be a valid monetary value"
   })
-  void shouldIncludeFieldContextWhenCsvOutcomeNumericConversionFails(
-      String fieldName, String invalidValue) {
+  void shouldIncludeErrorMessageAndFieldContextWhenCsvOutcomeNumericConversionFails(
+      String fieldName, String invalidValue, String exceptionMessage) {
     FileSubmission submission =
         createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y"));
 
@@ -137,7 +138,7 @@ class BulkSubmissionMapperTests {
             BulkSubmissionFieldConversionException.class,
             () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
 
-    assertEquals(fieldName, exception.getFieldName());
+    assertEquals(exceptionMessage, exception.getExceptionMessage());
     assertEquals(invalidValue, exception.getRejectedValue());
   }
 
@@ -167,6 +168,45 @@ class BulkSubmissionMapperTests {
         bulkSubmissionMapper.toBulkSubmissionDetails(submission);
 
     assertEquals(expected, actual);
+  }
+
+  @ParameterizedTest(name = "Error message should be: {2} when monetary field {0} is not valid")
+  @CsvSource({
+    "profitCost,notANumber,Net Profit Costs Amount must be a valid monetary value",
+    "valueOfCosts,notANumber,Net Value of Costs Amount must be a valid monetary value",
+    "disbursementsAmount, notANumber,Net Disbursement Amount must be a valid monetary value",
+    "counselCost, notANumber,Net Counsel Costs Amount must be a valid monetary value",
+    "disbursementsVat, notANumber,Disbursements VAT Amount must be a valid monetary value",
+    "travelWaitingCosts, notANumber,Net Travel Waiting Costs Amount must be a valid monetary value",
+    "travelCosts, notANumber,Travel Costs Amount must be a valid monetary value",
+    "adjournedHearingFee, notANumber,Adjourned Hearing Fee Amount must be between 0 and 9",
+    "jrFormFilling, notANumber,JR Form Filling Amount must be a valid monetary value",
+    "costsDamagesRecovered, notANumber,Costs Damages Recovered Amount must be a valid monetary value",
+    "excessTravelCosts, notANumber,Excess Travel Costs Amount must be a valid monetary value",
+    "detentionTravelWaitingCosts, notANumber,Detention Travel Waiting Costs Amount must be a valid monetary value",
+    "travelTime, notANumber,Travel Time must be in minutes",
+    "waitingTime, notANumber,Waiting Time must be in minutes",
+    "hoInterview, notANumber,HO Interview must be between 0 and 9",
+    "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
+    "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
+    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
+    "noOfSuspects, notANumber,Suspects Defendants Count must be between 0 and 99",
+    "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
+    "numberOfMediationSessions, notANumber,Mediation Sessions Count must be between 1 and 99",
+    "mediationTime, notANumber,Mediation Time Minutes must be between 0 and 99999",
+    "desiAccRep, notANumber,Designated Accredited Representative Code must be valid",
+    "adviceTime, notANumber,Advice Time must be in minutes",
+  })
+  void shouldIncludeErrorMessageAndFieldContextWhenXMLOutcomeNumericConversionFails(
+      String fieldName, String invalidValue, String expectedExceptionMessage) {
+    var xmlOutCome = createXmlOutcome(Map.of(fieldName, invalidValue), "Y");
+    var actualException =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionOutcome(xmlOutCome));
+
+    assertEquals(expectedExceptionMessage, actualException.getMessage());
+    assertEquals(invalidValue, actualException.getRejectedValue());
   }
 
   private static List<XmlMatterStarts> getXmlMatterStarts() {
@@ -259,7 +299,6 @@ class BulkSubmissionMapperTests {
             "policeStation",
             "dsccNumber",
             "maatId",
-            "prisonLawPriorApproval",
             fieldValue,
             fieldValue,
             "schemeId",
@@ -428,7 +467,153 @@ class BulkSubmissionMapperTests {
         "policeStation",
         "dsccNumber",
         "maatId",
-        "prisonLawPriorApproval",
+        dutySolicitor,
+        youthCourt,
+        "schemeId",
+        numberOfMediationSessions,
+        mediationTime,
+        "outreach",
+        "referral",
+        clientLegallyAided,
+        "client2Forename",
+        "client2Surname",
+        "07/01/2000",
+        "client2Ucn",
+        "client2Postcode",
+        "client2Gender",
+        "client2Ethnicity",
+        "client2Disability",
+        client2LegallyAided,
+        "uniqueCaseId",
+        "standardFeeCat",
+        client2PostalApplAccp,
+        costsDamagesRecovered,
+        eligibleClient,
+        "courtLocationHpcds",
+        "localAuthorityNumber",
+        "paNumber",
+        excessTravelCosts,
+        "08/01/2000");
+  }
+
+  private XmlOutcome createXmlOutcome(Map<String, String> overrides, String fieldValue) {
+    String adviceTime = overrides.getOrDefault("adviceTime", "1");
+    String travelTime = overrides.getOrDefault("travelTime", "2");
+    String waitingTime = overrides.getOrDefault("waitingTime", "3");
+    String profitCost = overrides.getOrDefault("profitCost", "0.01");
+    String valueOfCosts = overrides.getOrDefault("valueOfCosts", "0.02");
+    String disbursementsAmount = overrides.getOrDefault("disbursementsAmount", "0.03");
+    String counselCost = overrides.getOrDefault("counselCost", "0.04");
+    String disbursementsVat = overrides.getOrDefault("disbursementsVat", "0.05");
+    String travelWaitingCosts = overrides.getOrDefault("travelWaitingCosts", "0.06");
+    String travelCosts = overrides.getOrDefault("travelCosts", "0.07");
+    String adjournedHearingFee = overrides.getOrDefault("adjournedHearingFee", "8");
+    String hoInterview = overrides.getOrDefault("hoInterview", "8");
+    String detentionTravelWaitingCosts =
+        overrides.getOrDefault("detentionTravelWaitingCosts", "0.09");
+    String jrFormFilling = overrides.getOrDefault("jrFormFilling", "12.34");
+    String costsDamagesRecovered = overrides.getOrDefault("costsDamagesRecovered", "56.78");
+    String medicalReportsClaimed = overrides.getOrDefault("medicalReportsClaimed", "4");
+    String desiAccRep = overrides.getOrDefault("desiAccRep", "5");
+    String noOfClients = overrides.getOrDefault("noOfClients", "6");
+    String noOfSurgeryClients = overrides.getOrDefault("noOfSurgeryClients", "7");
+    String noOfSuspects = overrides.getOrDefault("noOfSuspects", "8");
+    String noOfPoliceStation = overrides.getOrDefault("noOfPoliceStation", "9");
+    String numberOfMediationSessions = overrides.getOrDefault("numberOfMediationSessions", "10");
+    String mediationTime = overrides.getOrDefault("mediationTime", "11");
+    String excessTravelCosts = overrides.getOrDefault("excessTravelCosts", "0.10");
+    String vatIndicator = overrides.getOrDefault("vatIndicator", fieldValue);
+    String londonNonlondonRate = overrides.getOrDefault("londonNonlondonRate", fieldValue);
+    String toleranceIndicator = overrides.getOrDefault("toleranceIndicator", fieldValue);
+    String legacyCase = overrides.getOrDefault("legacyCase", fieldValue);
+    String postalApplAccp = overrides.getOrDefault("postalApplAccp", fieldValue);
+    String substantiveHearing = overrides.getOrDefault("substantiveHearing", fieldValue);
+    String additionalTravelPayment = overrides.getOrDefault("additionalTravelPayment", fieldValue);
+    String clientLegallyAided = overrides.getOrDefault("clientLegallyAided", fieldValue);
+    String client2PostalApplAccp = overrides.getOrDefault("client2PostalApplAccp", fieldValue);
+    String dutySolicitor = overrides.getOrDefault("dutySolicitor", fieldValue);
+    String nationalRefMechanismAdvice =
+        overrides.getOrDefault("nationalRefMechanismAdvice", fieldValue);
+    String ircSurgery = overrides.getOrDefault("ircSurgery", fieldValue);
+    String client2LegallyAided = overrides.getOrDefault("client2LegallyAided", fieldValue);
+    String eligibleClient = overrides.getOrDefault("eligibleClient", fieldValue);
+    String youthCourt = overrides.getOrDefault("youthCourt", fieldValue);
+    return new XmlOutcome(
+        "matterType",
+        "feeCode",
+        "caseRefNumber",
+        "01/01/2000",
+        "caseId",
+        "caseStageLevel",
+        "ufn",
+        "procurementArea",
+        "accessPoint",
+        "clientForename",
+        "clientSurname",
+        "02/01/2000",
+        "ucn",
+        "claRefNumber",
+        "claExemption",
+        "gender",
+        "ethnicity",
+        "disability",
+        "clientPostcode",
+        "03/01/2000",
+        adviceTime,
+        travelTime,
+        waitingTime,
+        profitCost,
+        valueOfCosts,
+        disbursementsAmount,
+        counselCost,
+        disbursementsVat,
+        travelWaitingCosts,
+        vatIndicator,
+        londonNonlondonRate,
+        "clientType",
+        toleranceIndicator,
+        travelCosts,
+        "outcomeCode",
+        legacyCase,
+        "claimType",
+        adjournedHearingFee,
+        "typeOfAdvice",
+        postalApplAccp,
+        "scheduleRef",
+        "cmrhOral",
+        "cmrhTelephone",
+        "aitHearingCentre",
+        substantiveHearing,
+        hoInterview,
+        "hoUcn",
+        "04/01/2000",
+        detentionTravelWaitingCosts,
+        "deliveryLocation",
+        "priorAuthorityRef",
+        jrFormFilling,
+        additionalTravelPayment,
+        "meetingsAttended",
+        medicalReportsClaimed,
+        desiAccRep,
+        "mhtRefNumber",
+        "stageReached",
+        "followOnWork",
+        nationalRefMechanismAdvice,
+        "exemptionCriteriaSatisfied",
+        "exclCaseFundingRef",
+        noOfClients,
+        noOfSurgeryClients,
+        ircSurgery,
+        "05/01/2000",
+        "lineNumber",
+        "crimeMatterType",
+        "feeScheme",
+        "06/01/2000",
+        noOfSuspects,
+        noOfPoliceStation,
+        "policeStation",
+        "dsccNumber",
+        "maatId",
         dutySolicitor,
         youthCourt,
         "schemeId",

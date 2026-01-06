@@ -174,83 +174,101 @@ public interface BulkSubmissionMapper {
       expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
-      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
   @Mapping(
       target = "travelTime",
-      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
   @Mapping(
       target = "waitingTime",
-      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
   @Mapping(
       target = "profitCost",
-      expression = "java(parseBigDecimalField(outcome.profitCost(), \"profitCost\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "valueOfCosts",
-      expression = "java(parseBigDecimalField(outcome.valueOfCosts(), \"valueOfCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.valueOfCosts(), \"Net Value of Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "disbursementsAmount",
       expression =
-          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"disbursementsAmount\"))")
+          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"Net Disbursement Amount must be a valid monetary value\"))")
   @Mapping(
       target = "counselCost",
-      expression = "java(parseBigDecimalField(outcome.counselCost(), \"counselCost\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.counselCost(), \"Net Counsel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "disbursementsVat",
-      expression = "java(parseBigDecimalField(outcome.disbursementsVat(), \"disbursementsVat\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.disbursementsVat(), \"Disbursements VAT Amount must be a valid monetary value\"))")
   @Mapping(
       target = "travelWaitingCosts",
       expression =
-          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"travelWaitingCosts\"))")
+          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"Net Travel Waiting Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "travelCosts",
-      expression = "java(parseBigDecimalField(outcome.travelCosts(), \"travelCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.travelCosts(), \"Travel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "adjournedHearingFee",
       expression =
-          "java(parseIntegerField(outcome.adjournedHearingFee(), \"adjournedHearingFee\"))")
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"Adjourned Hearing Fee Amount must be between 0 and 9\"))")
   @Mapping(
       target = "hoInterview",
-      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+      expression =
+          "java(parseIntegerField(outcome.hoInterview(), \"HO Interview must be between 0 and 9\"))")
   @Mapping(
       target = "detentionTravelWaitingCosts",
       expression =
-          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(), \"detentionTravelWaitingCosts\"))")
+          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(),"
+              + " \"Detention Travel Waiting Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "medicalReportsClaimed",
       expression =
-          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"Medical Reports Count must be between 0 and 10\"))")
   @Mapping(
       target = "desiAccRep",
-      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+      expression =
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
   @Mapping(
       target = "noOfClients",
-      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSurgeryClients",
-      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSuspects",
-      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
   @Mapping(
       target = "noOfPoliceStation",
-      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfPoliceStation(), \"Police Station Court Attendances Count must be between 0 and 99\"))")
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
   @Mapping(
       target = "mediationTime",
-      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
   @Mapping(
       target = "excessTravelCosts",
-      expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.excessTravelCosts(), \"Excess Travel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "jrFormFilling",
-      expression = "java(parseBigDecimalField(outcome.jrFormFilling(), \"jrFormFilling\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.jrFormFilling(), \"JR Form Filling Amount must be a valid monetary value\"))")
   @Mapping(
       target = "costsDamagesRecovered",
       expression =
-          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"costsDamagesRecovered\"))")
+          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"Costs Damages Recovered Amount must be a valid monetary value\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(XmlOutcome outcome);
 
   /**
@@ -320,83 +338,101 @@ public interface BulkSubmissionMapper {
       expression = "java(parseBooleanField(outcome.youthCourt(), \"Youth Court\"))")
   @Mapping(
       target = "adviceTime",
-      expression = "java(parseIntegerField(outcome.adviceTime(), \"adviceTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
   @Mapping(
       target = "travelTime",
-      expression = "java(parseIntegerField(outcome.travelTime(), \"travelTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
   @Mapping(
       target = "waitingTime",
-      expression = "java(parseIntegerField(outcome.waitingTime(), \"waitingTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
   @Mapping(
       target = "profitCost",
-      expression = "java(parseBigDecimalField(outcome.profitCost(), \"profitCost\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "valueOfCosts",
-      expression = "java(parseBigDecimalField(outcome.valueOfCosts(), \"valueOfCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.valueOfCosts(), \"Net Value of Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "disbursementsAmount",
       expression =
-          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"disbursementsAmount\"))")
+          "java(parseBigDecimalField(outcome.disbursementsAmount(), \"Net Disbursement Amount must be a valid monetary value\"))")
   @Mapping(
       target = "counselCost",
-      expression = "java(parseBigDecimalField(outcome.counselCost(), \"counselCost\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.counselCost(), \"Net Counsel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "disbursementsVat",
-      expression = "java(parseBigDecimalField(outcome.disbursementsVat(), \"disbursementsVat\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.disbursementsVat(), \"Disbursements VAT Amount must be a valid monetary value\"))")
   @Mapping(
       target = "travelWaitingCosts",
       expression =
-          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"travelWaitingCosts\"))")
+          "java(parseBigDecimalField(outcome.travelWaitingCosts(), \"Net Travel Waiting Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "travelCosts",
-      expression = "java(parseBigDecimalField(outcome.travelCosts(), \"travelCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.travelCosts(), \"Travel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "adjournedHearingFee",
       expression =
-          "java(parseIntegerField(outcome.adjournedHearingFee(), \"adjournedHearingFee\"))")
+          "java(parseIntegerField(outcome.adjournedHearingFee(), \"Adjourned Hearing Fee Amount must be between 0 and 9\"))")
   @Mapping(
       target = "hoInterview",
-      expression = "java(parseIntegerField(outcome.hoInterview(), \"hoInterview\"))")
+      expression =
+          "java(parseIntegerField(outcome.hoInterview(), \"HO Interview must be between 0 and 9\"))")
   @Mapping(
       target = "detentionTravelWaitingCosts",
       expression =
-          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(), \"detentionTravelWaitingCosts\"))")
+          "java(parseBigDecimalField(outcome.detentionTravelWaitingCosts(), "
+              + "\"Detention Travel Waiting Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "medicalReportsClaimed",
       expression =
-          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"medicalReportsClaimed\"))")
+          "java(parseIntegerField(outcome.medicalReportsClaimed(), \"Medical Reports Count must be between 0 and 10\"))")
   @Mapping(
       target = "desiAccRep",
-      expression = "java(parseIntegerField(outcome.desiAccRep(), \"desiAccRep\"))")
+      expression =
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
   @Mapping(
       target = "noOfClients",
-      expression = "java(parseIntegerField(outcome.noOfClients(), \"noOfClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSurgeryClients",
-      expression = "java(parseIntegerField(outcome.noOfSurgeryClients(), \"noOfSurgeryClients\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
   @Mapping(
       target = "noOfSuspects",
-      expression = "java(parseIntegerField(outcome.noOfSuspects(), \"noOfSuspects\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
   @Mapping(
       target = "noOfPoliceStation",
-      expression = "java(parseIntegerField(outcome.noOfPoliceStation(), \"noOfPoliceStation\"))")
+      expression =
+          "java(parseIntegerField(outcome.noOfPoliceStation(), \"Police Station Court Attendances Count must be between 0 and 99\"))")
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"numberOfMediationSessions\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
   @Mapping(
       target = "mediationTime",
-      expression = "java(parseIntegerField(outcome.mediationTime(), \"mediationTime\"))")
+      expression =
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
   @Mapping(
       target = "excessTravelCosts",
-      expression = "java(parseBigDecimalField(outcome.excessTravelCosts(), \"excessTravelCosts\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.excessTravelCosts(), \"Excess Travel Costs Amount must be a valid monetary value\"))")
   @Mapping(
       target = "jrFormFilling",
-      expression = "java(parseBigDecimalField(outcome.jrFormFilling(), \"jrFormFilling\"))")
+      expression =
+          "java(parseBigDecimalField(outcome.jrFormFilling(), \"JR Form Filling Amount must be a valid monetary value\"))")
   @Mapping(
       target = "costsDamagesRecovered",
       expression =
-          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"costsDamagesRecovered\"))")
+          "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"Costs Damages Recovered Amount must be a valid monetary value\"))")
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 
   /**
@@ -441,17 +477,17 @@ public interface BulkSubmissionMapper {
    * Map to a {@link BigDecimal}.
    *
    * @param value the value to map.
-   * @param fieldName the name of the field being mapped.
+   * @param exceptionMessage the name of the field being mapped.
    * @return a BigDecimal representation of the outcome field.
    */
-  default BigDecimal parseBigDecimalField(String value, String fieldName) {
+  default BigDecimal parseBigDecimalField(String value, String exceptionMessage) {
     if (!StringUtils.hasText(value)) {
       return null;
     }
     try {
       return new BigDecimal(value);
     } catch (NumberFormatException ex) {
-      throw new BulkSubmissionFieldConversionException(fieldName, value, ex);
+      throw new BulkSubmissionFieldConversionException(exceptionMessage, value, ex);
     }
   }
 
