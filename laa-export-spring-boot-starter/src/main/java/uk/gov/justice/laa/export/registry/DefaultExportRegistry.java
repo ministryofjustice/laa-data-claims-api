@@ -1,10 +1,15 @@
 package uk.gov.justice.laa.export.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.yaml.snakeyaml.Yaml;
 import uk.gov.justice.laa.export.ExportConfigurationException;
 import uk.gov.justice.laa.export.ExportDefinitionNotFoundException;
 import uk.gov.justice.laa.export.ExportQueryProvider;
@@ -29,9 +34,13 @@ public class DefaultExportRegistry implements ExportRegistry {
     this.definitions = new HashMap<>();
     this.providers = new HashMap<>();
 
+    Map<String, LaaExportsProperties.Definition> mergedDefinitions = new HashMap<>();
+    mergedDefinitions.putAll(loadDefinitionsFromResources());
+    mergedDefinitions.putAll(properties.getDefinitions());
+
     int defaultMaxRows = properties.getDefaults().getMaxRows();
     for (Map.Entry<String, LaaExportsProperties.Definition> entry :
-        properties.getDefinitions().entrySet()) {
+        mergedDefinitions.entrySet()) {
       String key = entry.getKey();
       LaaExportsProperties.Definition definition = entry.getValue();
       if (definition.getProvider() == null || definition.getProvider().isBlank()) {
@@ -112,5 +121,98 @@ public class DefaultExportRegistry implements ExportRegistry {
         || "BOOLEAN".equals(type)
         || "DATE".equals(type)
         || "ENUM".equals(type);
+  }
+
+  private Map<String, LaaExportsProperties.Definition> loadDefinitionsFromResources() {
+    Map<String, LaaExportsProperties.Definition> loaded = new HashMap<>();
+    PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+    Resource[] resources = resolveDefinitionResources(resolver);
+    if (resources.length == 0) {
+      return loaded;
+    }
+    ObjectMapper mapper = new ObjectMapper();
+    Yaml yaml = new Yaml();
+    for (Resource resource : resources) {
+      Map<String, Object> root = readYaml(resource, yaml);
+      if (root.isEmpty()) {
+        continue;
+      }
+      Map<String, Object> definitions = extractDefinitions(root);
+      if (!definitions.isEmpty()) {
+        mergeDefinitions(mapper, loaded, definitions);
+        continue;
+      }
+      if (root.containsKey("sql") || root.containsKey("provider")) {
+        String key = filenameKey(resource);
+        loaded.put(key, mapper.convertValue(root, LaaExportsProperties.Definition.class));
+        continue;
+      }
+      if (!root.isEmpty()) {
+        mergeDefinitions(mapper, loaded, root);
+      }
+    }
+    return loaded;
+  }
+
+  private Resource[] resolveDefinitionResources(PathMatchingResourcePatternResolver resolver) {
+    try {
+      Resource[] yml = resolver.getResources("classpath*:export_definitions/*.yml");
+      Resource[] yaml = resolver.getResources("classpath*:export_definitions/*.yaml");
+      Resource[] resources = new Resource[yml.length + yaml.length];
+      System.arraycopy(yml, 0, resources, 0, yml.length);
+      System.arraycopy(yaml, 0, resources, yml.length, yaml.length);
+      return resources;
+    } catch (Exception e) {
+      throw new ExportConfigurationException("Failed to load export definition resources", e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> readYaml(Resource resource, Yaml yaml) {
+    try (InputStream input = resource.getInputStream()) {
+      Object loaded = yaml.load(input);
+      if (loaded instanceof Map<?, ?> map) {
+        return (Map<String, Object>) map;
+      }
+      return Map.of();
+    } catch (Exception e) {
+      throw new ExportConfigurationException(
+          "Failed to parse export definition: " + filenameKey(resource), e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> extractDefinitions(Map<String, Object> root) {
+    Object laa = root.get("laa");
+    if (!(laa instanceof Map<?, ?> laaMap)) {
+      return Map.of();
+    }
+    Object exports = ((Map<String, Object>) laaMap).get("exports");
+    if (!(exports instanceof Map<?, ?> exportsMap)) {
+      return Map.of();
+    }
+    Object definitions = ((Map<String, Object>) exportsMap).get("definitions");
+    if (!(definitions instanceof Map<?, ?> defsMap)) {
+      return Map.of();
+    }
+    return (Map<String, Object>) defsMap;
+  }
+
+  private void mergeDefinitions(
+      ObjectMapper mapper,
+      Map<String, LaaExportsProperties.Definition> target,
+      Map<String, Object> definitions) {
+    definitions.forEach(
+        (key, value) ->
+            target.put(key, mapper.convertValue(value, LaaExportsProperties.Definition.class)));
+  }
+
+  private String filenameKey(Resource resource) {
+    String filename = resource.getFilename();
+    if (filename == null) {
+      return "export";
+    }
+    int dot = filename.lastIndexOf('.');
+    return dot > 0 ? filename.substring(0, dot) : filename;
   }
 }

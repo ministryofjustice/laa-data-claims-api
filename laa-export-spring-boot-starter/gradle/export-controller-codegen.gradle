@@ -8,17 +8,55 @@ buildscript {
 }
 
 def exportControllerConfigFile = project.file('src/main/resources/application.yml')
+def exportDefinitionsDir = project.file('src/main/resources/export_definitions')
+def exportDefinitionFiles = project.fileTree(exportDefinitionsDir) {
+    include '**/*.yml'
+    include '**/*.yaml'
+}
 def exportControllerGeneratedDir = layout.buildDirectory.dir("generated/export-web")
 
 tasks.register('generateExportControllers') {
     inputs.file(exportControllerConfigFile)
+    inputs.files(exportDefinitionFiles)
     outputs.dir(exportControllerGeneratedDir)
     doLast {
         def exportDir = exportControllerGeneratedDir.get().asFile
         exportDir.mkdirs()
         def yaml = new org.yaml.snakeyaml.Yaml()
         def config = yaml.load(exportControllerConfigFile.text) ?: [:]
-        def definitions = config?.laa?.exports?.definitions ?: [:]
+        def filenameKey = { File file ->
+            def name = file.name
+            def dot = name.lastIndexOf('.')
+            return dot > 0 ? name.substring(0, dot) : name
+        }
+        def loadDefinitionsFromFiles = { yamlParser ->
+            def defs = [:]
+            if (!exportDefinitionsDir.exists() || exportDefinitionFiles.isEmpty()) {
+                return defs
+            }
+            exportDefinitionFiles.each { file ->
+                def data = yamlParser.load(file.text) ?: [:]
+                def nestedDefs = data?.laa?.exports?.definitions ?: [:]
+                if (nestedDefs) {
+                    defs.putAll(nestedDefs)
+                    return
+                }
+                if (data?.sql || data?.provider) {
+                    defs.put(filenameKey(file), data)
+                    return
+                }
+                if (data instanceof Map && !data.isEmpty()) {
+                    defs.putAll(data)
+                }
+            }
+            return defs
+        }
+        def definitions = loadDefinitionsFromFiles(yaml)
+        def appDefinitions = config?.laa?.exports?.definitions ?: [:]
+        definitions.putAll(appDefinitions)
+        if (definitions.isEmpty()) {
+            throw new GradleException("No export definitions found in application.yml or src/main/resources/export_definitions")
+        }
         def packageName = 'uk.gov.justice.laa.dstew.payments.claimsdata.export.generated'
         def className = 'GeneratedExportController'
         def outDir = new File(exportDir, packageName.replace('.', '/'))

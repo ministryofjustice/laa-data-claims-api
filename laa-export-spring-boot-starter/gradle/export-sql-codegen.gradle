@@ -8,17 +8,22 @@ buildscript {
 }
 
 def exportSqlConfigFile = project.file('src/main/resources/application.yml')
+def exportDefinitionsDir = project.file('src/main/resources/export_definitions')
+def exportDefinitionFiles = project.fileTree(exportDefinitionsDir) {
+    include '**/*.yml'
+    include '**/*.yaml'
+}
 def exportSqlGeneratedDir = layout.buildDirectory.dir("generated/export-sql")
 
 tasks.register('generateExportSql') {
     inputs.file(exportSqlConfigFile)
+    inputs.files(exportDefinitionFiles)
     outputs.dir(exportSqlGeneratedDir)
     doLast {
         def exportDir = exportSqlGeneratedDir.get().asFile
         exportDir.mkdirs()
         def yaml = new org.yaml.snakeyaml.Yaml()
         def config = yaml.load(exportSqlConfigFile.text) ?: [:]
-        def definitions = config?.laa?.exports?.definitions ?: [:]
         def capitalizeFirst = { String value ->
             value ? value.substring(0, 1).toUpperCase() + value.substring(1) : value
         }
@@ -30,6 +35,39 @@ tasks.register('generateExportSql') {
             def matcher = (sql =~ /(?i)\bas\s+\"?([A-Za-z_][A-Za-z0-9_]*)\"?\s*(,|\\bfrom\\b|$)/)
             matcher.each { match -> keys << match[1] }
             return keys
+        }
+        def filenameKey = { File file ->
+            def name = file.name
+            def dot = name.lastIndexOf('.')
+            return dot > 0 ? name.substring(0, dot) : name
+        }
+        def loadDefinitionsFromFiles = { yamlParser ->
+            def defs = [:]
+            if (!exportDefinitionsDir.exists() || exportDefinitionFiles.isEmpty()) {
+                return defs
+            }
+            exportDefinitionFiles.each { file ->
+                def data = yamlParser.load(file.text) ?: [:]
+                def nestedDefs = data?.laa?.exports?.definitions ?: [:]
+                if (nestedDefs) {
+                    defs.putAll(nestedDefs)
+                    return
+                }
+                if (data?.sql || data?.provider) {
+                    defs.put(filenameKey(file), data)
+                    return
+                }
+                if (data instanceof Map && !data.isEmpty()) {
+                    defs.putAll(data)
+                }
+            }
+            return defs
+        }
+        def definitions = loadDefinitionsFromFiles(yaml)
+        def appDefinitions = config?.laa?.exports?.definitions ?: [:]
+        definitions.putAll(appDefinitions)
+        if (definitions.isEmpty()) {
+            throw new GradleException("No export definitions found in application.yml or src/main/resources/export_definitions")
         }
         definitions.each { key, defn ->
             def sql = defn?.sql
