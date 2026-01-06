@@ -36,8 +36,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     }
 
     JsonNode matterType = node.get("matterType");
-    if (matterType == null) {
-      throw new BulkSubmissionFileReadException("Matter type missing in outcome data.");
+    if (matterType == null || matterType.asText().isEmpty()) {
+      throw new BulkSubmissionFileReadException("Matter type missing or empty in outcome data.");
     }
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
@@ -118,7 +118,6 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String policeStation = null;
     String dsccNumber = null;
     String maatId = null;
-    String prisonLawPriorApproval = null;
     String dutySolicitor = null;
     String youthCourt = null;
     String schemeId = null;
@@ -235,7 +234,6 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "POLICE_STATION" -> policeStation = value;
         case "DSCC_NUMBER" -> dsccNumber = value;
         case "MAAT_ID" -> maatId = value;
-        case "PRISON_LAW_PRIOR_APPROVAL" -> prisonLawPriorApproval = value;
         case "DUTY_SOLICITOR" -> dutySolicitor = value;
         case "YOUTH_COURT" -> youthCourt = value;
         case "SCHEME_ID" -> schemeId = value;
@@ -343,7 +341,6 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         policeStation,
         dsccNumber,
         maatId,
-        prisonLawPriorApproval,
         dutySolicitor,
         youthCourt,
         schemeId,

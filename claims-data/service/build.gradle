@@ -51,6 +51,9 @@ dependencies {
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
     //Common exception handling
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-application-exception'
+    //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
+    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'

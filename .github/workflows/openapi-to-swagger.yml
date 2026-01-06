@@ -39,7 +39,7 @@ jobs:
         run: ./gradlew  -PswaggerOnly=true :claims-data:swagger-ui-app:bootJar
 
       - name: Upload Swagger UI JAR
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: swagger-ui-jar
           path: claims-data/swagger-ui-app/build/libs/*.jar
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download JAR artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: swagger-ui-jar
           path: claims-data/swagger-ui-app/build/libs/

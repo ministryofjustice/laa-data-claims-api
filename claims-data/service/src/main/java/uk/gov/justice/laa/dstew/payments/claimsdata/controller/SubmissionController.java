@@ -22,7 +22,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
+import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling submissions requests. */
 @RestController
@@ -34,7 +36,7 @@ public class SubmissionController implements SubmissionsApi {
   @Override
   @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateSubmission201Response> createSubmission(
-      SubmissionPost submissionPost) {
+      @ScanForSql SubmissionPost submissionPost) {
     UUID id = submissionService.createSubmission(submissionPost);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id).toUri();
@@ -51,7 +53,9 @@ public class SubmissionController implements SubmissionsApi {
 
   @Override
   @RateLimiter(name = "submissionRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<Void> updateSubmission(UUID id, SubmissionPatch submissionPatch) {
+  public ResponseEntity<Void> updateSubmission(
+      UUID id,
+      @ScanForSql(ignoreClasses = ValidationMessagePatch.class) SubmissionPatch submissionPatch) {
     submissionService.updateSubmission(id, submissionPatch);
     return ResponseEntity.noContent().build();
   }
