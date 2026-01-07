@@ -153,11 +153,6 @@ public class BulkSubmissionXmlConverterTests {
               MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE));
     }
 
-    private static Stream<String> missingMatterTypeInOutcomeTestData() {
-      return Stream.of(
-          OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE, OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE);
-    }
-
     @ParameterizedTest(name = "Throws exception when empty outcome nodes - {0}")
     @MethodSource("missingOutcomeTestData")
     void throwsExceptionWhenMissingOutcomeData(MissingOutcomeTestData testData) throws IOException {
@@ -168,19 +163,6 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file));
 
       assertThat(exception.getErrorMessage()).contains("Outcome does not contain any data");
-    }
-
-    @ParameterizedTest(
-        name = "Throws exception when matter type missing or empty in outcome nodes - {0}")
-    @MethodSource("missingMatterTypeInOutcomeTestData")
-    void throwsExceptionWhenMissingOrEmptyMatterStart(String inputFile) throws IOException {
-      MultipartFile file = getMultipartFile(inputFile);
-      BulkSubmissionFileReadException exception =
-          assertThrows(
-              BulkSubmissionFileReadException.class,
-              () -> bulkSubmissionXmlConverter.convert(file));
-      assertThat(exception.getErrorMessage())
-          .contains("Matter type missing or empty in outcome data.");
     }
 
     @Test

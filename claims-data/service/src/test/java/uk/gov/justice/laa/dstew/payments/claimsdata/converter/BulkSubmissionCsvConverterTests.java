@@ -19,8 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -195,24 +193,6 @@ public class BulkSubmissionCsvConverterTests {
           BulkSubmissionFileReadException.class,
           () -> bulkSubmissionCsvConverter.convert(file),
           "Expected exception to be thrown when multiple schedules found");
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-      OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE,
-      OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE,
-      OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
-      OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE
-    })
-    @DisplayName("Throws exception when matterType not found in outcome")
-    void throwsExceptionWhenMatterTypeMissingInOutcome(String inputFile) throws IOException {
-      MultipartFile file = getMultipartFile(inputFile);
-      BulkSubmissionFileReadException exception =
-          assertThrows(
-              BulkSubmissionFileReadException.class,
-              () -> bulkSubmissionCsvConverter.convert(file));
-
-      assertEquals("Matter type missing or empty in outcome data", exception.getMessage());
     }
 
     @Test
