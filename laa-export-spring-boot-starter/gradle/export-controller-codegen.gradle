@@ -51,6 +51,15 @@ tasks.register('generateExportControllers') {
             }
             return defs
         }
+        def extractAliases = { String sql ->
+            def keys = []
+            if (sql == null) {
+                return keys
+            }
+            def matcher = (sql =~ /(?i)\bas\s+\"?([A-Za-z_][A-Za-z0-9_]*)\"?\s*(,|\\bfrom\\b|$)/)
+            matcher.each { match -> keys << match[1] }
+            return keys
+        }
         def definitions = loadDefinitionsFromFiles(yaml)
         def appDefinitions = config?.laa?.exports?.definitions ?: [:]
         definitions.putAll(appDefinitions)
@@ -65,6 +74,9 @@ tasks.register('generateExportControllers') {
         def sb = new StringBuilder()
         sb << "package ${packageName};\n\n"
         sb << "import io.swagger.v3.oas.annotations.Operation;\n"
+        sb << "import io.swagger.v3.oas.annotations.media.Content;\n"
+        sb << "import io.swagger.v3.oas.annotations.media.ExampleObject;\n"
+        sb << "import io.swagger.v3.oas.annotations.responses.ApiResponse;\n"
         sb << "import java.time.LocalDate;\n"
         sb << "import java.util.HashMap;\n"
         sb << "import java.util.Map;\n"
@@ -105,7 +117,35 @@ tasks.register('generateExportControllers') {
             sb << "  /**\n"
             sb << "   * Streams export ${key} as CSV.\n"
             sb << "   */\n"
+            def columns = defn?.columns ?: []
+            def headerLine = ""
+            def aliasKeys = extractAliases(sql)
+            def headerKeys = aliasKeys
+            if (!columns.isEmpty()) {
+                def columnKeys = columns.collect { it.key }
+                if (!aliasKeys.isEmpty()) {
+                    def missing = columnKeys.findAll { !aliasKeys.contains(it) }
+                    headerKeys = aliasKeys + missing
+                } else {
+                    headerKeys = columnKeys
+                }
+            }
+            if (!headerKeys.isEmpty()) {
+                def overrides = [:]
+                columns.each { c -> overrides[c.key] = c }
+                def headers = []
+                headerKeys.each { alias ->
+                    def override = overrides[alias]
+                    headers << (override?.header ?: alias)
+                }
+                headerLine = headers.join(',')
+            }
             sb << "  @Operation(summary = \"Export ${key}\")\n"
+            if (headerLine) {
+                sb << "  @ApiResponse(responseCode = \"200\", description = \"CSV export\", content = @Content(mediaType = \"text/csv\", examples = @ExampleObject(value = \"" + headerLine.replace('\"', '\\\\\"') + "\")))\n"
+            } else {
+                sb << "  @ApiResponse(responseCode = \"200\", description = \"CSV export\", content = @Content(mediaType = \"text/csv\"))\n"
+            }
             sb << "  @GetMapping(value = \"${path}\", produces = \"text/csv\")\n"
             sb << "  public ResponseEntity<StreamingResponseBody> ${methodName}(\n"
 
