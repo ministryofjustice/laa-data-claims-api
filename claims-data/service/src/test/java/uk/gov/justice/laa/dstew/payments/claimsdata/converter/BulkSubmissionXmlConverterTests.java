@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
@@ -76,10 +77,6 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
-  private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml";
-  private static final String OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml";
   private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_outcomes_single.xml";
   private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
@@ -163,6 +160,20 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file));
 
       assertThat(exception.getErrorMessage()).contains("Outcome does not contain any data");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml,", // matterType null
+      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml,''" // matterType empty
+    })
+    void shouldParseEmptyOrMissingMatterTypeCode(String inputFile, String expectedMatterTypeCode)
+        throws IOException {
+      MultipartFile file = getMultipartFile(inputFile);
+      XmlSubmission bulkSubmission = bulkSubmissionXmlConverter.convert(file);
+
+      assertThat(bulkSubmission.office().schedule().outcomes().getFirst().matterType())
+          .isEqualTo(expectedMatterTypeCode);
     }
 
     @Test
