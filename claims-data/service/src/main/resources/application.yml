@@ -93,32 +93,33 @@ sentry:
     minimum-breadcrumb-level: info
 
 laa:
-  springboot.starter.auth:
-    authentication-header: "Authorization"
-    authorized-clients: '[
-        {
-            "name": "test-runner",
-            "roles": [
-                "ALL"
-            ],
-            "token": "f67f968e-b479-4e61-b66e-f57984931e56"
-        }
-    ]'
-    authorized-roles: '[
-        {
-            "name": "ALL",
-            "URIs": [
-                "/**"
-            ]
-        }
-    ]'
-    unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
-                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico",
-                        "/open-api-specification.yml", "/exports/**"]
-  exports:
-    enabled: true
-    web:
+  springboot.starter:
+    auth:
+      authentication-header: "Authorization"
+      authorized-clients: '[
+          {
+              "name": "test-runner",
+              "roles": [
+                  "ALL"
+              ],
+              "token": "f67f968e-b479-4e61-b66e-f57984931e56"
+          }
+      ]'
+      authorized-roles: '[
+          {
+              "name": "ALL",
+              "URIs": [
+                  "/**"
+              ]
+          }
+      ]'
+      unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
+                          "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico",
+                          "/open-api-specification.yml", "/exports/**"]
+    exports:
       enabled: true
-      base-path: /exports
-    defaults:
-      max-rows: 50000
+      web:
+        enabled: true
+        base-path: /exports
+      defaults:
+        max-rows: 50000

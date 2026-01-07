@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Configuration properties for exports.
  */
-@ConfigurationProperties(prefix = "laa.exports")
+@ConfigurationProperties(prefix = "laa.springboot.starter.exports")
 public class LaaExportsProperties {
   private boolean enabled = false;
   private Web web = new Web();

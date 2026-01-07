@@ -24,6 +24,14 @@ tasks.register('generateExportSql') {
         exportDir.mkdirs()
         def yaml = new org.yaml.snakeyaml.Yaml()
         def config = yaml.load(exportSqlConfigFile.text) ?: [:]
+        def exportsConfig = config?.laa?.springboot?.starter?.exports
+        if (!exportsConfig) {
+            exportsConfig = config?.laa?.'springboot.starter'?.exports
+        }
+        if (exportsConfig?.enabled != true) {
+            logger.warn("Exports disabled; skipping SQL export code generation.")
+            return
+        }
         def capitalizeFirst = { String value ->
             value ? value.substring(0, 1).toUpperCase() + value.substring(1) : value
         }
@@ -48,7 +56,10 @@ tasks.register('generateExportSql') {
             }
             exportDefinitionFiles.each { file ->
                 def data = yamlParser.load(file.text) ?: [:]
-                def nestedDefs = data?.laa?.exports?.definitions ?: [:]
+                def nestedDefs = data?.laa?.springboot?.starter?.exports?.definitions ?: [:]
+                if (!nestedDefs) {
+                    nestedDefs = data?.laa?.'springboot.starter'?.exports?.definitions ?: [:]
+                }
                 if (nestedDefs) {
                     defs.putAll(nestedDefs)
                     return
@@ -64,10 +75,11 @@ tasks.register('generateExportSql') {
             return defs
         }
         def definitions = loadDefinitionsFromFiles(yaml)
-        def appDefinitions = config?.laa?.exports?.definitions ?: [:]
+        def appDefinitions = exportsConfig?.definitions ?: [:]
         definitions.putAll(appDefinitions)
         if (definitions.isEmpty()) {
-            throw new GradleException("No export definitions found in application.yml or src/main/resources/export_definitions")
+            logger.warn("No export definitions found; skipping SQL export code generation.")
+            return
         }
         definitions.each { key, defn ->
             def sql = defn?.sql

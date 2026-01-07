@@ -32,7 +32,7 @@ import uk.gov.justice.laa.export.tx.TransactionalStreamRunner;
  */
 @AutoConfiguration
 @EnableConfigurationProperties(LaaExportsProperties.class)
-@ConditionalOnProperty(prefix = "laa.exports", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "laa.springboot.starter.exports", name = "enabled", havingValue = "true")
 public class ExportAutoConfiguration {
 
   /**

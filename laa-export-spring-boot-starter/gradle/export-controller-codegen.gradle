@@ -24,6 +24,14 @@ tasks.register('generateExportControllers') {
         exportDir.mkdirs()
         def yaml = new org.yaml.snakeyaml.Yaml()
         def config = yaml.load(exportControllerConfigFile.text) ?: [:]
+        def exportsConfig = config?.laa?.springboot?.starter?.exports
+        if (!exportsConfig) {
+            exportsConfig = config?.laa?.'springboot.starter'?.exports
+        }
+        if (exportsConfig?.enabled != true) {
+            logger.warn("Exports disabled; skipping export controller generation.")
+            return
+        }
         def filenameKey = { File file ->
             def name = file.name
             def dot = name.lastIndexOf('.')
@@ -36,7 +44,10 @@ tasks.register('generateExportControllers') {
             }
             exportDefinitionFiles.each { file ->
                 def data = yamlParser.load(file.text) ?: [:]
-                def nestedDefs = data?.laa?.exports?.definitions ?: [:]
+                def nestedDefs = data?.laa?.springboot?.starter?.exports?.definitions ?: [:]
+                if (!nestedDefs) {
+                    nestedDefs = data?.laa?.'springboot.starter'?.exports?.definitions ?: [:]
+                }
                 if (nestedDefs) {
                     defs.putAll(nestedDefs)
                     return
@@ -61,10 +72,11 @@ tasks.register('generateExportControllers') {
             return keys
         }
         def definitions = loadDefinitionsFromFiles(yaml)
-        def appDefinitions = config?.laa?.exports?.definitions ?: [:]
+        def appDefinitions = exportsConfig?.definitions ?: [:]
         definitions.putAll(appDefinitions)
         if (definitions.isEmpty()) {
-            throw new GradleException("No export definitions found in application.yml or src/main/resources/export_definitions")
+            logger.warn("No export definitions found; skipping export controller generation.")
+            return
         }
         def packageName = 'uk.gov.justice.laa.dstew.payments.claimsdata.export.generated'
         def className = 'GeneratedExportController'
@@ -93,7 +105,7 @@ tasks.register('generateExportControllers') {
         sb << " * Generated export endpoints.\n"
         sb << " */\n"
         sb << "@RestController\n"
-        sb << '@RequestMapping("${laa.exports.web.base-path:/exports}")' + "\n"
+        sb << '@RequestMapping("${laa.springboot.starter.exports.web.base-path:/exports}")' + "\n"
         sb << "public class ${className} {\n"
         sb << "  private final ExportService exportService;\n\n"
         sb << "  public ${className}(ExportService exportService) {\n"

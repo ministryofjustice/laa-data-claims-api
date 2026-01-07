@@ -187,11 +187,28 @@ public class DefaultExportRegistry implements ExportRegistry {
     if (!(laa instanceof Map<?, ?> laaMap)) {
       return Map.of();
     }
-    Object exports = ((Map<String, Object>) laaMap).get("exports");
-    if (!(exports instanceof Map<?, ?> exportsMap)) {
+    Map<String, Object> starterMap = null;
+    Object springboot = ((Map<String, Object>) laaMap).get("springboot");
+    if (springboot instanceof Map<?, ?> springbootMap) {
+      Object starter = ((Map<String, Object>) springbootMap).get("starter");
+      if (starter instanceof Map<?, ?> starterValue) {
+        starterMap = (Map<String, Object>) starterValue;
+      }
+    }
+    if (starterMap == null) {
+      Object dottedStarter = ((Map<String, Object>) laaMap).get("springboot.starter");
+      if (dottedStarter instanceof Map<?, ?> starterValue) {
+        starterMap = (Map<String, Object>) starterValue;
+      }
+    }
+    if (starterMap == null) {
       return Map.of();
     }
-    Object definitions = ((Map<String, Object>) exportsMap).get("definitions");
+    Object exportsConfig = starterMap.get("exports");
+    if (!(exportsConfig instanceof Map<?, ?> exportsConfigMap)) {
+      return Map.of();
+    }
+    Object definitions = ((Map<String, Object>) exportsConfigMap).get("definitions");
     if (!(definitions instanceof Map<?, ?> defsMap)) {
       return Map.of();
     }

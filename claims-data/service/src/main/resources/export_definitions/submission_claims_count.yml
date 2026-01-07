@@ -9,14 +9,9 @@ sql: |
   from claims.submission s
   join claims.claim c
   on c.submission_id = s.id
-  where s.id = :submissionId
   group by s.id;
 columns:
   - key: submissionId
     header: "Submission ID"
   - key: claimCount
     header: "Amount of claims"
-params:
-  - name: submissionId
-    type: uuid
-    required: true
