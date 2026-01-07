@@ -46,7 +46,7 @@ dependencyManagement {
 
 dependencies {
     implementation project(':claims-data:api')
-
+    implementation project(':laa-export-spring-boot-starter')
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
     //Common exception handling
