@@ -154,9 +154,28 @@ tasks.register('generateExportControllers') {
             }
             sb << "  @Operation(summary = \"Export ${key}\")\n"
             if (headerLine) {
-                sb << "  @ApiResponse(responseCode = \"200\", description = \"CSV export\", content = @Content(mediaType = \"text/csv\", examples = @ExampleObject(value = \"" + headerLine.replace('\"', '\\\\\"') + "\")))\n"
+                def escaped = headerLine.replace('\"', '\\\\\"')
+                def chunks = escaped.collect { it }.collate(80).collect { it.join('') }
+                sb << "  @ApiResponse(\n"
+                sb << "      responseCode = \"200\",\n"
+                sb << "      description = \"CSV export\",\n"
+                sb << "      content = @Content(\n"
+                sb << "          mediaType = \"text/csv\",\n"
+                sb << "          examples = @ExampleObject(\n"
+                sb << "              value =\n"
+                chunks.eachWithIndex { chunk, idx ->
+                    def prefix = idx == 0 ? "                  " : "                  + "
+                    sb << "${prefix}\"${chunk}\"\n"
+                }
+                sb << "          )\n"
+                sb << "      )\n"
+                sb << "  )\n"
             } else {
-                sb << "  @ApiResponse(responseCode = \"200\", description = \"CSV export\", content = @Content(mediaType = \"text/csv\"))\n"
+                sb << "  @ApiResponse(\n"
+                sb << "      responseCode = \"200\",\n"
+                sb << "      description = \"CSV export\",\n"
+                sb << "      content = @Content(mediaType = \"text/csv\")\n"
+                sb << "  )\n"
             }
             sb << "  @GetMapping(value = \"${path}\", produces = \"text/csv\")\n"
             sb << "  public ResponseEntity<StreamingResponseBody> ${methodName}(\n"
