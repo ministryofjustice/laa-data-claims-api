@@ -171,7 +171,6 @@ public class ClaimsDataTestUtil {
         .policeStation("policeStation")
         .dsccNumber("dsccNumber")
         .maatId("maatId")
-        .prisonLawPriorApproval("prisonLawPriorApproval")
         .dutySolicitor(expectedValue)
         .youthCourt(expectedValue)
         .schemeId("schemeId")

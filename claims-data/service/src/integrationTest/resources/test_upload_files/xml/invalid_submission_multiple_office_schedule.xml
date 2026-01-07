@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<submission xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd">
+    <office account="0P322F">
+        <schedule submissionPeriod="NOV-2025" areaOfLaw="CRIME LOWER" scheduleNum="CRM/DUP003A/2025">
+            <outcome matterType="INVC">
+                <outcomeItem name="FEE_CODE">INVC</outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER">BSDUP003-A</outcomeItem>
+                <outcomeItem name="UFN">081225/003</outcomeItem>
+                <outcomeItem name="CASE_START_DATE">08/11/2024</outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE">10/11/2024</outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME">Echo</outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME">Office</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">05/05/1994</outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE">SW1H 9EA</outcomeItem>
+                <outcomeItem name="GENDER">M</outcomeItem>
+                <outcomeItem name="ETHNICITY">06</outcomeItem>
+                <outcomeItem name="DISABILITY">NCD</outcomeItem>
+                <outcomeItem name="OUTCOME_CODE">CN02</outcomeItem>
+                <outcomeItem name="CRIME_MATTER_TYPE">3</outcomeItem>
+                <outcomeItem name="PROFIT_COST">160.00</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_AMOUNT">22.00</outcomeItem>
+                <outcomeItem name="TRAVEL_COSTS">9.00</outcomeItem>
+                <outcomeItem name="TRAVEL_WAITING_COSTS">4.00</outcomeItem>
+                <outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_VAT">4.00</outcomeItem>
+                <outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+                <outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+                <outcomeItem name="POLICE_STATION">1013</outcomeItem>
+                <outcomeItem name="DSCC_NUMBER">DUP0003AAA</outcomeItem>
+                <outcomeItem name="DUTY_SOLICITOR">N</outcomeItem>
+                <outcomeItem name="YOUTH_COURT">N</outcomeItem>
+                <outcomeItem name="SCHEME_ID">1013</outcomeItem>
+            </outcome>
+        </schedule>
+        <schedule submissionPeriod="NOV-2025" areaOfLaw="CRIME LOWER" scheduleNum="CRM/DUP003A/2025">
+            <outcome matterType="INVC">
+                <outcomeItem name="FEE_CODE">INVC</outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER">BSDUP003-A</outcomeItem>
+                <outcomeItem name="UFN">081225/003</outcomeItem>
+                <outcomeItem name="CASE_START_DATE">08/11/2024</outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE">10/11/2024</outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME">Echo</outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME">Office</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">05/05/1994</outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE">SW1H 9EA</outcomeItem>
+                <outcomeItem name="GENDER">M</outcomeItem>
+                <outcomeItem name="ETHNICITY">06</outcomeItem>
+                <outcomeItem name="DISABILITY">NCD</outcomeItem>
+                <outcomeItem name="OUTCOME_CODE">CN02</outcomeItem>
+                <outcomeItem name="CRIME_MATTER_TYPE">3</outcomeItem>
+                <outcomeItem name="PROFIT_COST">160.00</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_AMOUNT">22.00</outcomeItem>
+                <outcomeItem name="TRAVEL_COSTS">9.00</outcomeItem>
+                <outcomeItem name="TRAVEL_WAITING_COSTS">4.00</outcomeItem>
+                <outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_VAT">4.00</outcomeItem>
+                <outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+                <outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+                <outcomeItem name="POLICE_STATION">1013</outcomeItem>
+                <outcomeItem name="DSCC_NUMBER">DUP0003AAA</outcomeItem>
+                <outcomeItem name="DUTY_SOLICITOR">N</outcomeItem>
+                <outcomeItem name="YOUTH_COURT">N</outcomeItem>
+                <outcomeItem name="SCHEME_ID">1013</outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
+    <office account="1A123B">
+        <schedule submissionPeriod="NOV-2025" areaOfLaw="CRIME LOWER" scheduleNum="CRM/DUP003B/2025">
+            <outcome matterType="INVC">
+                <outcomeItem name="FEE_CODE">INVC</outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER">BSDUP003-B</outcomeItem>
+                <outcomeItem name="UFN">081225/003</outcomeItem>
+                <outcomeItem name="CASE_START_DATE">08/11/2024</outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE">11/11/2024</outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME">Foxtrot</outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME">Office</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">06/06/1995</outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE">SW1H 9EB</outcomeItem>
+                <outcomeItem name="GENDER">M</outcomeItem>
+                <outcomeItem name="ETHNICITY">07</outcomeItem>
+                <outcomeItem name="DISABILITY">NCD</outcomeItem>
+                <outcomeItem name="OUTCOME_CODE">CN03</outcomeItem>
+                <outcomeItem name="CRIME_MATTER_TYPE">4</outcomeItem>
+                <outcomeItem name="PROFIT_COST">165.00</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_AMOUNT">22.00</outcomeItem>
+                <outcomeItem name="TRAVEL_COSTS">9.00</outcomeItem>
+                <outcomeItem name="TRAVEL_WAITING_COSTS">4.00</outcomeItem>
+                <outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_VAT">4.00</outcomeItem>
+                <outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+                <outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+                <outcomeItem name="POLICE_STATION">1014</outcomeItem>
+                <outcomeItem name="DSCC_NUMBER">DUP0003BBB</outcomeItem>
+                <outcomeItem name="DUTY_SOLICITOR">Y</outcomeItem>
+                <outcomeItem name="YOUTH_COURT">N</outcomeItem>
+                <outcomeItem name="SCHEME_ID">1014</outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
+</submission>

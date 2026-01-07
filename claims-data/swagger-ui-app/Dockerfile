@@ -1,3 +1,28 @@
+# Build stage
+FROM gradle:8-jdk21 AS builder
+
+# 1. Declare that we expect these arguments
+ARG GIT_PACKAGE_USER
+ARG GIT_PACKAGE_KEY
+
+# 2. Map them to the ENV variables Gradle is looking for
+ENV GITHUB_ACTOR=${GIT_PACKAGE_USER}
+ENV GITHUB_TOKEN=${GIT_PACKAGE_KEY}
+
+# Set up working directory for build
+WORKDIR /build
+
+# Copy gradle files and source code
+COPY . .
+
+RUN env
+
+# Run gradle build
+RUN gradle claims-data:service:spotlessApply build
+
+# Debug step: List all JAR files to find the correct path
+RUN find /build -name "*.jar" & false
+
 # Specify java runtime base image
 FROM amazoncorretto:21-alpine
 
