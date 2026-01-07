@@ -17,9 +17,7 @@ import org.hibernate.envers.RevisionEntity;
 import org.hibernate.envers.RevisionNumber;
 import org.hibernate.envers.RevisionTimestamp;
 
-/**
- * This is the entity representing the audit revision record.
- */
+/** This is the entity representing the audit revision record. */
 @Getter
 @Setter
 @Builder
