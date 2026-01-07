@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 
 /** Entity representing the details of the claim fees calculated by the Fee Scheme Platform. */
@@ -28,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Audited
 @Table(name = "calculated_fee_detail", schema = "claims")
 public class CalculatedFeeDetail {
 

@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 
 /** Entity representing the summary of the claim fee. */
 @Getter
@@ -27,6 +28,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Audited
 @Table(name = "claim_summary_fee", schema = "claims")
 public class ClaimSummaryFee {
   @Id
