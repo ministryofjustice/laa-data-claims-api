@@ -29,7 +29,7 @@ public class CsvExportConfig {
 
   /** Postgres CSV Data Source fetching claims from claims.vw_claim_export view. */
   @Bean
-  public PostgresCopyCsvDataSource claimsCsvSource(DataSource dataSource) {
+  public CsvDataSource claimsCsvSource(DataSource dataSource) {
     PostgresWhereClauseBuilder whereBuilder =
         new PostgresWhereClauseBuilder(
             Map.of("submissionId", new SqlFilterDefinition("\"Submission Id\"", String.class)));

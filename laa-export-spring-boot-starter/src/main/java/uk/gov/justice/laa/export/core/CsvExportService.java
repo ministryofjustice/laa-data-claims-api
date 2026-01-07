@@ -3,6 +3,9 @@ package uk.gov.justice.laa.export.core;
 import java.io.Writer;
 import java.util.List;
 
+/**
+ * Service for exporting CSV data from various data sources.
+ */
 public class CsvExportService {
 
   private final List<CsvDataSource> dataSources;

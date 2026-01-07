@@ -2,6 +2,9 @@ package uk.gov.justice.laa.export.core;
 
 import java.util.Map;
 
+/**
+ * Represents a request to export CSV data from a specified source with given filters.
+ */
 public class CsvExportRequest {
 
   private final String sourceName;

@@ -2,6 +2,7 @@ package uk.gov.justice.laa.export.datasource.postgres;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import lombok.RequiredArgsConstructor;
 import uk.gov.justice.laa.export.core.CsvDataSource;
 import uk.gov.justice.laa.export.core.CsvException;
 import uk.gov.justice.laa.export.core.CsvExportRequest;
@@ -12,24 +13,13 @@ import javax.sql.DataSource;
 import java.io.Writer;
 import java.sql.Connection;
 
+@RequiredArgsConstructor
 public class PostgresCopyCsvDataSource implements CsvDataSource {
 
   private final String name;
   private final DataSource dataSource;
   private final String baseSelect;
   private final PostgresWhereClauseBuilder whereClauseBuilder;
-
-  public PostgresCopyCsvDataSource(
-      String name,
-      DataSource dataSource,
-      String baseSelect,
-      PostgresWhereClauseBuilder whereClauseBuilder
-  ) {
-    this.name = name;
-    this.dataSource = dataSource;
-    this.baseSelect = baseSelect;
-    this.whereClauseBuilder = whereClauseBuilder;
-  }
 
   @Override
   public String getName() {
