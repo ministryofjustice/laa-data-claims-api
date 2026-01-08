@@ -4,9 +4,9 @@ A Spring Boot starter that generates CSV export endpoints from SQL definitions a
 
 ## What it does
 
-- Generates JDBC providers and controllers at build time from YAML definitions.
-- Streams CSV responses with Jackson CSV and a read-only transaction boundary.
-- Validates export parameters and enforces max row limits.
+- Generates Postgres COPY export providers and controllers at build time from YAML definitions.
+- Streams CSV responses using PostgreSQL COPY TO STDOUT.
+- Validates export parameters and supplies maxRows as a SQL parameter.
 - Produces per-export endpoints with Swagger examples showing header rows.
 
 ## Configuration

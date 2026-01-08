@@ -9,7 +9,7 @@ import uk.gov.justice.laa.export.model.ExportDefinition;
 public interface ExportRegistry {
   ExportDefinition getRequired(String key);
 
-  ExportQueryProvider<?> getProvider(String key);
+  ExportCsvProvider getProvider(String key);
 
   Set<String> keys();
 }

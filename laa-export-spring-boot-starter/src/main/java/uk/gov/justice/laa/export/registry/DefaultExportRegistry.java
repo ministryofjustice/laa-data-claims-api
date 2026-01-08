@@ -11,8 +11,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.yaml.snakeyaml.Yaml;
 import uk.gov.justice.laa.export.ExportConfigurationException;
+import uk.gov.justice.laa.export.ExportCsvProvider;
 import uk.gov.justice.laa.export.ExportDefinitionNotFoundException;
-import uk.gov.justice.laa.export.ExportQueryProvider;
 import uk.gov.justice.laa.export.ExportRegistry;
 import uk.gov.justice.laa.export.config.LaaExportsProperties;
 import uk.gov.justice.laa.export.model.ExportColumn;
@@ -24,7 +24,7 @@ import uk.gov.justice.laa.export.model.ExportParamDefinition;
  */
 public class DefaultExportRegistry implements ExportRegistry {
   private final Map<String, ExportDefinition> definitions;
-  private final Map<String, ExportQueryProvider<?>> providers;
+  private final Map<String, ExportCsvProvider> providers;
 
   /**
    * Creates the registry from bound properties and provider beans.
@@ -46,8 +46,8 @@ public class DefaultExportRegistry implements ExportRegistry {
       if (definition.getProvider() == null || definition.getProvider().isBlank()) {
         throw new ExportConfigurationException("Export " + key + " missing provider");
       }
-      ExportQueryProvider<?> provider =
-          applicationContext.getBean(definition.getProvider(), ExportQueryProvider.class);
+      ExportCsvProvider provider =
+          applicationContext.getBean(definition.getProvider(), ExportCsvProvider.class);
       if (providers.containsKey(key)) {
         throw new ExportConfigurationException("Duplicate export key: " + key);
       }
@@ -89,8 +89,8 @@ public class DefaultExportRegistry implements ExportRegistry {
   }
 
   @Override
-  public ExportQueryProvider<?> getProvider(String key) {
-    ExportQueryProvider<?> provider = providers.get(key);
+  public ExportCsvProvider getProvider(String key) {
+    ExportCsvProvider provider = providers.get(key);
     if (provider == null) {
       throw new ExportDefinitionNotFoundException("Export provider not found: " + key);
     }

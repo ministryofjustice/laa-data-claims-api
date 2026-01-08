@@ -32,9 +32,6 @@ tasks.register('generateExportSql') {
             logger.warn("Exports disabled; skipping SQL export code generation.")
             return
         }
-        def capitalizeFirst = { String value ->
-            value ? value.substring(0, 1).toUpperCase() + value.substring(1) : value
-        }
         def extractAliases = { String sql ->
             def keys = []
             if (sql == null) {
@@ -89,7 +86,6 @@ tasks.register('generateExportSql') {
             if (!defn?.provider) {
                 throw new GradleException("Export ${key} has sql but no provider")
             }
-            def className = defn.className ?: key.split('[_-]').collect { it.capitalize() }.join('') + 'Row'
             def packageName = defn.packageName ?: 'uk.gov.justice.laa.dstew.payments.claimsdata.export.generated'
             def columns = defn.columns ?: []
             def aliasKeys = extractAliases(sql)
@@ -99,7 +95,6 @@ tasks.register('generateExportSql') {
             }
             def outDir = new File(exportDir, packageName.replace('.', '/'))
             outDir.mkdirs()
-            def rowSource = new StringBuilder()
             def providerSource = new StringBuilder()
 
             def effectiveKeys = aliasKeys.isEmpty() ? columnKeys : aliasKeys
@@ -107,51 +102,28 @@ tasks.register('generateExportSql') {
                 def missing = columnKeys.findAll { !aliasKeys.contains(it) }
                 effectiveKeys = effectiveKeys + missing
             }
-            def fields = effectiveKeys.collect { name ->
-                [name: name, javaType: 'String']
-            }
 
-            rowSource << "package ${packageName};\n\n"
-            rowSource << "/**\n"
-            rowSource << " * Row DTO for export ${key}.\n"
-            rowSource << " */\n"
-            rowSource << "public class ${className} {\n"
-            fields.each { f ->
-                rowSource << "  private String ${f.name};\n"
-            }
-            rowSource << "\n  public ${className}() {\n"
-            rowSource << "  }\n\n"
-            fields.each { f ->
-                def methodName = "get${capitalizeFirst(f.name)}"
-                def setterName = "set${capitalizeFirst(f.name)}"
-                rowSource << "  public String ${methodName}() {\n"
-                rowSource << "    return ${f.name};\n"
-                rowSource << "  }\n\n"
-                rowSource << "  public void ${setterName}(String ${f.name}) {\n"
-                rowSource << "    this.${f.name} = ${f.name};\n"
-                rowSource << "  }\n\n"
-            }
-            rowSource << "}\n"
-
-            def providerClassName = "${className}Provider"
+            def providerClassName = key.split('[_-]').collect { it.capitalize() }.join('') + 'Provider'
             providerSource << "package ${packageName};\n\n"
-            providerSource << "import java.sql.Timestamp;\n"
-            providerSource << "import java.time.Instant;\n"
+            providerSource << "import java.io.OutputStream;\n"
+            providerSource << "import java.io.OutputStreamWriter;\n"
+            providerSource << "import java.io.Writer;\n"
+            providerSource << "import java.nio.charset.StandardCharsets;\n"
             providerSource << "import java.util.HashMap;\n"
             providerSource << "import java.util.List;\n"
             providerSource << "import java.util.Map;\n"
-            providerSource << "import java.util.stream.Collectors;\n"
-            providerSource << "import java.util.stream.Stream;\n"
-            providerSource << "import org.springframework.jdbc.core.BeanPropertyRowMapper;\n"
-            providerSource << "import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;\n"
+            providerSource << "import javax.sql.DataSource;\n"
             providerSource << "import org.springframework.stereotype.Component;\n"
-            providerSource << "import uk.gov.justice.laa.export.ExportQueryProvider;\n"
+            providerSource << "import uk.gov.justice.laa.export.ExportCsvProvider;\n"
+            providerSource << "import uk.gov.justice.laa.export.csv.CsvHeaderWriter;\n"
+            providerSource << "import uk.gov.justice.laa.export.datasource.postgres.PostgresCopyExporter;\n"
+            providerSource << "import uk.gov.justice.laa.export.model.ExportColumn;\n"
             providerSource << "import uk.gov.justice.laa.export.model.ValidatedExportRequest;\n\n"
             providerSource << "/**\n"
             providerSource << " * Export provider for ${key}.\n"
             providerSource << " */\n"
             providerSource << "@Component(\"${defn.provider}\")\n"
-            providerSource << "public class ${providerClassName} implements ExportQueryProvider<${className}> {\n"
+            providerSource << "public class ${providerClassName} implements ExportCsvProvider {\n"
             def sqlLines = sql.readLines().collect { it.replace('\\\\', '\\\\\\\\').replace('\"', '\\\\\"') }
             providerSource << "  private static final String SQL =\n"
             providerSource << "      String.join(\"\\n\",\n"
@@ -160,46 +132,45 @@ tasks.register('generateExportSql') {
                 providerSource << "          \"${line}\"${suffix}\n"
             }
             providerSource << "      );\n"
-            providerSource << "  private final NamedParameterJdbcTemplate jdbcTemplate;\n"
-            providerSource << "  private final BeanPropertyRowMapper<${className}> rowMapper =\n"
-            providerSource << "      BeanPropertyRowMapper.newInstance(${className}.class);\n\n"
-            providerSource << "  public ${providerClassName}(NamedParameterJdbcTemplate jdbcTemplate) {\n"
-            providerSource << "    this.jdbcTemplate = jdbcTemplate;\n"
+            def columnOrderValues = effectiveKeys.collect { "\"${it}\"" }
+            if (columnOrderValues.isEmpty()) {
+                providerSource << "  private static final List<String> COLUMN_ORDER = List.of();\n"
+            } else {
+                providerSource << "  private static final List<String> COLUMN_ORDER =\n"
+                providerSource << "      List.of(\n"
+                columnOrderValues.eachWithIndex { value, idx ->
+                    def suffix = idx == columnOrderValues.size() - 1 ? "" : ","
+                    providerSource << "          ${value}${suffix}\n"
+                }
+                providerSource << "      );\n"
+            }
+            providerSource << "  private final PostgresCopyExporter copyExporter;\n\n"
+            providerSource << "  public ${providerClassName}(DataSource dataSource) {\n"
+            providerSource << "    this.copyExporter = new PostgresCopyExporter(dataSource);\n"
             providerSource << "  }\n\n"
             providerSource << "  @Override\n"
-            providerSource << "  public Stream<${className}> fetch(ValidatedExportRequest request) {\n"
-            providerSource << "    Map<String, Object> params = normalizeParams(request.getParams());\n"
-            providerSource << "    params.put(\"maxRows\", request.getMaxRows());\n"
-            providerSource << "    return jdbcTemplate.queryForStream(SQL, params, rowMapper);\n"
-            providerSource << "  }\n\n"
-            providerSource << "  @Override\n"
-            providerSource << "  public Class<${className}> rowType() {\n"
-            providerSource << "    return ${className}.class;\n"
-            providerSource << "  }\n\n"
-            providerSource << "  private Map<String, Object> normalizeParams(Map<String, Object> raw) {\n"
+            providerSource << "  public long writeCsv(\n"
+            providerSource << "      ValidatedExportRequest request,\n"
+            providerSource << "      OutputStream out,\n"
+            providerSource << "      List<ExportColumn> columns) {\n"
             providerSource << "    Map<String, Object> params = new HashMap<>();\n"
-            providerSource << "    raw.forEach((key, value) -> params.put(key, normalizeValue(value)));\n"
-            providerSource << "    return params;\n"
+            providerSource << "    params.putAll(request.getParams());\n"
+            providerSource << "    params.put(\"maxRows\", request.getMaxRows());\n"
+            providerSource << "    try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {\n"
+            providerSource << "      boolean hasOverrides = columns != null && !columns.isEmpty();\n"
+            providerSource << "      if (hasOverrides) {\n"
+            providerSource << "        CsvHeaderWriter.writeHeader(writer, COLUMN_ORDER, columns);\n"
+            providerSource << "      }\n"
+            providerSource << "      boolean includeHeader = !hasOverrides;\n"
+            providerSource << "      long rows = copyExporter.copyCsv(SQL, params, writer, includeHeader);\n"
+            providerSource << "      writer.flush();\n"
+            providerSource << "      return rows;\n"
+            providerSource << "    } catch (Exception e) {\n"
+            providerSource << "      throw new RuntimeException(\"CSV export failed\", e);\n"
+            providerSource << "    }\n"
             providerSource << "  }\n\n"
-            providerSource << "  private Object normalizeValue(Object value) {\n"
-            providerSource << "    if (value == null) {\n"
-            providerSource << "      return null;\n"
-            providerSource << "    }\n"
-            providerSource << "    if (value instanceof Instant instant) {\n"
-            providerSource << "      return Timestamp.from(instant);\n"
-            providerSource << "    }\n"
-            providerSource << "    if (value instanceof Enum<?> enumValue) {\n"
-            providerSource << "      return enumValue.name();\n"
-            providerSource << "    }\n"
-            providerSource << "    if (value instanceof List<?> list) {\n"
-            providerSource << "      return list.stream().map(this::normalizeValue).collect(Collectors.toList());\n"
-            providerSource << "    }\n"
-            providerSource << "    return value;\n"
-            providerSource << "  }\n"
-            providerSource << "\n"
             providerSource << "}\n"
 
-            new File(outDir, "${className}.java").text = rowSource.toString()
             new File(outDir, "${providerClassName}.java").text = providerSource.toString()
         }
     }
