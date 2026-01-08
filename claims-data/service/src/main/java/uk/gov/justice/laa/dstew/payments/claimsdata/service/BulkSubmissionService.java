@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -96,6 +97,8 @@ public class BulkSubmissionService
 
     validateSubmissionPeriod(bulkSubmissionDetails, bulkSubmissionBuilder);
 
+    validateMatterTypeCode(bulkSubmissionDetails, bulkSubmissionBuilder, areaOfLaw);
+
     validateDateFormats(bulkSubmissionDetails, bulkSubmissionBuilder);
 
     BulkSubmission authorised =
@@ -110,6 +113,33 @@ public class BulkSubmissionService
     return new CreateBulkSubmission201Response()
         .bulkSubmissionId(authorised.getId())
         .submissionIds(Collections.singletonList(newSubmissionId));
+  }
+
+  private void validateMatterTypeCode(
+      GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
+      BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder,
+      String areaOfLaw) {
+    List<@Valid BulkSubmissionOutcome> bulkSubmissionOutcomes =
+        Optional.ofNullable(bulkSubmissionDetails)
+            .map(GetBulkSubmission200ResponseDetails::getOutcomes)
+            .orElse(Collections.emptyList());
+
+    if (bulkSubmissionOutcomes.stream()
+        .anyMatch(outcome -> StringUtils.isBlank(outcome.getMatterType()))) {
+      handleInvalidMatterTypeCode(areaOfLaw, bulkSubmissionBuilder);
+    }
+  }
+
+  private void handleInvalidMatterTypeCode(
+      String areaOfLaw, BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
+    String errorMessage =
+        switch (areaOfLaw) {
+          case "CRIME LOWER" -> "Stage Reached Code is required for Crime Lower claims";
+          case "LEGAL HELP" -> "Matter Type Code is required for Legal Help claims";
+          case "MEDIATION" -> "Matter Type Code is required for Mediation claims";
+          default -> null;
+        };
+    failSubmission(errorMessage, bulkSubmissionBuilder);
   }
 
   private void validateSubmissionPeriod(

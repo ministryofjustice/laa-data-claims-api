@@ -201,6 +201,7 @@ class BulkSubmissionServiceTest {
     when(bulkSubmissionOutcome.getClass().getMethod(methodName).invoke(bulkSubmissionOutcome))
         .thenReturn(dateValue);
     when(mockDetails.getOutcomes()).thenReturn(List.of(bulkSubmissionOutcome));
+    when(bulkSubmissionOutcome.getMatterType()).thenReturn("ABCD");
 
     doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
     String userId = "test-user-id";
@@ -238,6 +239,57 @@ class BulkSubmissionServiceTest {
     assertEquals(
         "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
         exception.getMessage());
+  }
+
+  @ParameterizedTest(name = "areaOfLaw: {0}, matterType: {1}")
+  @CsvSource({
+    // null matter type
+    "LEGAL HELP,,Matter Type Code is required for Legal Help claims",
+    "MEDIATION,,Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,,Stage Reached Code is required for Crime Lower claims",
+    // empty matter type
+    "LEGAL HELP,'',Matter Type Code is required for Legal Help claims",
+    "MEDIATION,'',Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,'',Stage Reached Code is required for Crime Lower claims",
+    // whitespace matter type
+    "LEGAL HELP,' ',Matter Type Code is required for Legal Help claims",
+    "MEDIATION,' ',Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,' ',Stage Reached Code is required for Crime Lower claims"
+  })
+  @DisplayName("Throws BulkSubmissionValidationException when matter type is invalid")
+  void validateMatterTypeInBulkSubmission(
+      String areaOfLaw, String matterType, String expectedMessage) {
+    MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
+    GetBulkSubmission200ResponseDetails mockDetails =
+        mock(GetBulkSubmission200ResponseDetails.class);
+    GetBulkSubmission200ResponseDetailsOffice mockOffice =
+        mock(GetBulkSubmission200ResponseDetailsOffice.class);
+    GetBulkSubmission200ResponseDetailsSchedule mockSchedule =
+        mock(GetBulkSubmission200ResponseDetailsSchedule.class);
+    BulkSubmissionOutcome bulkSubmissionOutcome = mock(BulkSubmissionOutcome.class);
+
+    when(mockDetails.getOffice()).thenReturn(mockOffice);
+    when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+    when(mockSchedule.getSubmissionPeriod()).thenReturn("APR-2025");
+    when(mockSchedule.getAreaOfLaw()).thenReturn(areaOfLaw);
+    when(mockOffice.getAccount()).thenReturn("TEST");
+    when(mockDetails.getOutcomes()).thenReturn(List.of(bulkSubmissionOutcome));
+    when(bulkSubmissionOutcome.getMatterType()).thenReturn(matterType);
+
+    doReturn(mockDetails).when(bulkSubmissionService).getBulkSubmissionDetails(file);
+
+    BulkSubmissionValidationException exception =
+        assertThrows(
+            BulkSubmissionValidationException.class,
+            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+
+    assertEquals(expectedMessage, exception.getMessage());
+
+    ArgumentCaptor<BulkSubmission> captor = ArgumentCaptor.forClass(BulkSubmission.class);
+    verify(bulkSubmissionRepository).save(captor.capture());
+    assertThat(captor.getValue())
+        .extracting(BulkSubmission::getStatus, BulkSubmission::getErrorCode)
+        .containsExactly(BulkSubmissionStatus.VALIDATION_FAILED, BulkSubmissionErrorCode.V100);
   }
 
   @Test
