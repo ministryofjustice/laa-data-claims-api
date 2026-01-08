@@ -41,3 +41,6 @@ resilience4j.ratelimiter:
     validationRateLimiter:
       limitForPeriod: 500
       limitRefreshPeriod: 1s
+    assessmentRateLimiter:
+      limitForPeriod: 500
+      limitRefreshPeriod: 1s
