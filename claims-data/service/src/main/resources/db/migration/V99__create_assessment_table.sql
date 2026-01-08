@@ -32,5 +32,5 @@ CREATE TABLE assessment (
 );
 
 -- CREATE INDEX ix_claim_id ON claim(id);
-CREATE INDEX ix_created_on ON assessment(claim_id);
+CREATE INDEX ix_claim_id ON assessment(claim_id);
 -- CREATE INDEX ix_claim_summary_fee_id ON claim_summary_fee(id);
