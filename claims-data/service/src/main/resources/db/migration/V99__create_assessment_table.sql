@@ -31,6 +31,6 @@ CREATE TABLE assessment (
     CONSTRAINT chk_assessment_outcome CHECK (assessment_outcome IN ('PAID_IN_FULL', 'REDUCED_STILL_ESCAPED', 'REDUCED_TO_FIXED_FEE', 'NILLED'))
 );
 
-CREATE INDEX ix_claim_id ON claim(id);
-CREATE INDEX ix_created_on ON claim(created_on);
-CREATE INDEX ix_claim_summary_fee_id ON claim_summary_fee(id);
+-- CREATE INDEX ix_claim_id ON claim(id);
+CREATE INDEX ix_created_on ON assessment(claim_id);
+-- CREATE INDEX ix_claim_summary_fee_id ON claim_summary_fee(id);
