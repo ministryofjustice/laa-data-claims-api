@@ -35,10 +35,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
       throw new BulkSubmissionFileReadException("Outcome does not contain any data.");
     }
 
-    JsonNode matterType = node.get("matterType");
-    if (matterType == null || matterType.asText().isEmpty()) {
-      throw new BulkSubmissionFileReadException("Matter type missing or empty in outcome data.");
-    }
+    JsonNode matterTypeNode = node.get("matterType");
+    String matterType = matterTypeNode == null ? null : matterTypeNode.asText();
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
     Iterable<JsonNode> outcomeItems;
@@ -152,8 +150,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
 
       if (nameNode == null) {
         throw new BulkSubmissionFileReadException(
-            "Outcome item under matter type %s does not have a name."
-                .formatted(matterType.asText()));
+            "Outcome item under matter type %s does not have a name.".formatted(matterType));
       }
 
       String name = nameNode.asText();
@@ -266,7 +263,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     }
 
     return new XmlOutcome(
-        matterType.asText(),
+        matterType,
         feeCode,
         caseRefNumber,
         caseStartDate,
