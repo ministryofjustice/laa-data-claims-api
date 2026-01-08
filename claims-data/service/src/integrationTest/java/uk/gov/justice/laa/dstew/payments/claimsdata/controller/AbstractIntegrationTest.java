@@ -225,7 +225,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(100))
             .build();
 
     claim2 =
@@ -242,7 +241,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode("MAT2")
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(200))
             .build();
     claim3 =
         Claim.builder()
@@ -273,7 +271,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(100))
             .build();
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
 

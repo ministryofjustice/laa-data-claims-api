@@ -345,7 +345,6 @@ public class ClaimsDataTestUtil {
         .mediationTimeMinutes(90)
         .outreachLocation("OUT_LOC")
         .referralSource("REF_SRC")
-        .totalValue(new BigDecimal("1523.89"))
         .clientForename("CLIENT_1_FORENAME")
         .clientSurname("CLIENT_1_SURNAME")
         .clientDateOfBirth("12/06/1978")
