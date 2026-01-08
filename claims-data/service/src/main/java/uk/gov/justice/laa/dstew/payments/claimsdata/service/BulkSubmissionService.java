@@ -126,11 +126,11 @@ public class BulkSubmissionService
 
     if (bulkSubmissionOutcomes.stream()
         .anyMatch(outcome -> StringUtils.isBlank(outcome.getMatterType()))) {
-      throwBulkSubmissionFileReadException(areaOfLaw, bulkSubmissionBuilder);
+      handleInvalidMatterTypeCode(areaOfLaw, bulkSubmissionBuilder);
     }
   }
 
-  private void throwBulkSubmissionFileReadException(
+  private void handleInvalidMatterTypeCode(
       String areaOfLaw, BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     String errorMessage =
         switch (areaOfLaw) {
