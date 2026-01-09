@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.envers.Audited;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /** Entity representing a validation message linked to a submission and optionally a claim. */
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Audited
 @Table(name = "validation_message_log")
 public class ValidationMessageLog {
 

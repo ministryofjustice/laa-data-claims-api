@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.converter.MediationTypeConverter;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 
@@ -28,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Audited
 @Table(name = "matter_start")
 public class MatterStart {
 
