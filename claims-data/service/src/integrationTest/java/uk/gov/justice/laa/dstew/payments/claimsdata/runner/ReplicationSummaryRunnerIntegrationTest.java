@@ -19,9 +19,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegrationTest {
 
-  private static final int BULK_SUBMISSION_INDEX = 0;
-  private static final int SUBMISSION_INDEX = 7;
-  private static final int REPLICATED_TABLES_COUNT = 8;
+  private static final int BULK_SUBMISSION_INDEX = 1;
+  private static final int SUBMISSION_INDEX = 8;
+  private static final int REPLICATED_TABLES_COUNT = 9;
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Autowired private ReplicationSummaryRunner runner;
