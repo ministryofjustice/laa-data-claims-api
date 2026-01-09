@@ -27,7 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 @Entity
 @Table(name = "submission")
 public class Submission {
-
+  // TODO: Remove this as part of proof of concept to test storage performances using Javers
   @Id private UUID id;
 
   @NotNull
