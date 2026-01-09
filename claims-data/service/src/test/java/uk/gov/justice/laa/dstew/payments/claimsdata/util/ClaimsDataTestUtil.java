@@ -478,6 +478,7 @@ public class ClaimsDataTestUtil {
         .assessedTotalInclVat(BigDecimal.valueOf(2.00))
         .allowedTotalVat(BigDecimal.valueOf(3.00))
         .allowedTotalInclVat(BigDecimal.valueOf(4.00))
-        .createdByUserId(USER_ID);
+        .createdByUserId(USER_ID)
+        .updatedByUserId(USER_ID);
   }
 }
