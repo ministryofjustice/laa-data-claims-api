@@ -1,0 +1,182 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.yaml:snakeyaml:2.2'
+    }
+}
+
+def exportSqlConfigFile = project.file('src/main/resources/application.yml')
+def exportDefinitionsDir = project.file('src/main/resources/export_definitions')
+def exportDefinitionFiles = project.fileTree(exportDefinitionsDir) {
+    include '**/*.yml'
+    include '**/*.yaml'
+}
+def exportSqlGeneratedDir = layout.buildDirectory.dir("generated/export-sql")
+
+tasks.register('generateExportSql') {
+    inputs.file(exportSqlConfigFile)
+    inputs.files(exportDefinitionFiles)
+    outputs.dir(exportSqlGeneratedDir)
+    doLast {
+        def exportDir = exportSqlGeneratedDir.get().asFile
+        exportDir.mkdirs()
+        def yaml = new org.yaml.snakeyaml.Yaml()
+        def config = yaml.load(exportSqlConfigFile.text) ?: [:]
+        def exportsConfig = config?.laa?.springboot?.starter?.exports
+        if (!exportsConfig) {
+            exportsConfig = config?.laa?.'springboot.starter'?.exports
+        }
+        if (exportsConfig?.enabled != true) {
+            logger.warn("Exports disabled; skipping SQL export code generation.")
+            return
+        }
+        def extractAliases = { String sql ->
+            def keys = []
+            if (sql == null) {
+                return keys
+            }
+            def matcher = (sql =~ /(?i)\bas\s+\"?([A-Za-z_][A-Za-z0-9_]*)\"?\s*(,|\\bfrom\\b|$)/)
+            matcher.each { match -> keys << match[1] }
+            return keys
+        }
+        def filenameKey = { File file ->
+            def name = file.name
+            def dot = name.lastIndexOf('.')
+            return dot > 0 ? name.substring(0, dot) : name
+        }
+        def loadDefinitionsFromFiles = { yamlParser ->
+            def defs = [:]
+            if (!exportDefinitionsDir.exists() || exportDefinitionFiles.isEmpty()) {
+                return defs
+            }
+            exportDefinitionFiles.each { file ->
+                def data = yamlParser.load(file.text) ?: [:]
+                def nestedDefs = data?.laa?.springboot?.starter?.exports?.definitions ?: [:]
+                if (!nestedDefs) {
+                    nestedDefs = data?.laa?.'springboot.starter'?.exports?.definitions ?: [:]
+                }
+                if (nestedDefs) {
+                    defs.putAll(nestedDefs)
+                    return
+                }
+                if (data?.sql || data?.provider) {
+                    defs.put(filenameKey(file), data)
+                    return
+                }
+                if (data instanceof Map && !data.isEmpty()) {
+                    defs.putAll(data)
+                }
+            }
+            return defs
+        }
+        def definitions = loadDefinitionsFromFiles(yaml)
+        def appDefinitions = exportsConfig?.definitions ?: [:]
+        definitions.putAll(appDefinitions)
+        if (definitions.isEmpty()) {
+            logger.warn("No export definitions found; skipping SQL export code generation.")
+            return
+        }
+        definitions.each { key, defn ->
+            def sql = defn?.sql
+            if (!sql) {
+                return
+            }
+            if (!defn?.provider) {
+                throw new GradleException("Export ${key} has sql but no provider")
+            }
+            def packageName = defn.packageName ?: 'uk.gov.justice.laa.dstew.payments.claimsdata.export.generated'
+            def columns = defn.columns ?: []
+            def aliasKeys = extractAliases(sql)
+            def columnKeys = columns.collect { it.key }
+            if (aliasKeys.isEmpty() && columnKeys.isEmpty()) {
+                throw new GradleException("Export ${key} could not determine columns from SQL")
+            }
+            def outDir = new File(exportDir, packageName.replace('.', '/'))
+            outDir.mkdirs()
+            def providerSource = new StringBuilder()
+
+            def effectiveKeys = aliasKeys.isEmpty() ? columnKeys : aliasKeys
+            if (!columnKeys.isEmpty() && !aliasKeys.isEmpty()) {
+                def missing = columnKeys.findAll { !aliasKeys.contains(it) }
+                effectiveKeys = effectiveKeys + missing
+            }
+
+            def providerClassName = key.split('[_-]').collect { it.capitalize() }.join('') + 'Provider'
+            providerSource << "package ${packageName};\n\n"
+            providerSource << "import jakarta.annotation.Generated;\n"
+            providerSource << "import java.io.OutputStream;\n"
+            providerSource << "import java.io.OutputStreamWriter;\n"
+            providerSource << "import java.io.Writer;\n"
+            providerSource << "import java.nio.charset.StandardCharsets;\n"
+            providerSource << "import java.util.HashMap;\n"
+            providerSource << "import java.util.List;\n"
+            providerSource << "import java.util.Map;\n"
+            providerSource << "import javax.sql.DataSource;\n"
+            providerSource << "import org.springframework.stereotype.Component;\n"
+            providerSource << "import uk.gov.justice.laa.export.ExportCsvProvider;\n"
+            providerSource << "import uk.gov.justice.laa.export.csv.CsvHeaderWriter;\n"
+            providerSource << "import uk.gov.justice.laa.export.datasource.postgres.PostgresCopyExporter;\n"
+            providerSource << "import uk.gov.justice.laa.export.model.ExportColumn;\n"
+            providerSource << "import uk.gov.justice.laa.export.model.ValidatedExportRequest;\n\n"
+            providerSource << "/**\n"
+            providerSource << " * Export provider for ${key}.\n"
+            providerSource << " */\n"
+            providerSource << "@Component(\"${defn.provider}\")\n"
+            providerSource << "@Generated(\"export-sql-codegen\")\n"
+            providerSource << "public class ${providerClassName} implements ExportCsvProvider {\n"
+            def sqlLines = sql.readLines().collect { it.replace('\\\\', '\\\\\\\\').replace('\"', '\\\\\"') }
+            providerSource << "  private static final String SQL =\n"
+            providerSource << "      String.join(\"\\n\",\n"
+            sqlLines.eachWithIndex { line, idx ->
+                def suffix = idx == sqlLines.size() - 1 ? "" : ","
+                providerSource << "          \"${line}\"${suffix}\n"
+            }
+            providerSource << "      );\n"
+            def columnOrderValues = effectiveKeys.collect { "\"${it}\"" }
+            if (columnOrderValues.isEmpty()) {
+                providerSource << "  private static final List<String> COLUMN_ORDER = List.of();\n"
+            } else {
+                providerSource << "  private static final List<String> COLUMN_ORDER =\n"
+                providerSource << "      List.of(\n"
+                columnOrderValues.eachWithIndex { value, idx ->
+                    def suffix = idx == columnOrderValues.size() - 1 ? "" : ","
+                    providerSource << "          ${value}${suffix}\n"
+                }
+                providerSource << "      );\n"
+            }
+            providerSource << "  private final PostgresCopyExporter copyExporter;\n\n"
+            providerSource << "  public ${providerClassName}(DataSource dataSource) {\n"
+            providerSource << "    this.copyExporter = new PostgresCopyExporter(dataSource);\n"
+            providerSource << "  }\n\n"
+            providerSource << "  @Override\n"
+            providerSource << "  public long writeCsv(\n"
+            providerSource << "      ValidatedExportRequest request,\n"
+            providerSource << "      OutputStream out,\n"
+            providerSource << "      List<ExportColumn> columns) {\n"
+            providerSource << "    Map<String, Object> params = new HashMap<>();\n"
+            providerSource << "    params.putAll(request.getParams());\n"
+            providerSource << "    params.put(\"maxRows\", request.getMaxRows());\n"
+            providerSource << "    try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {\n"
+            providerSource << "      boolean hasOverrides = columns != null && !columns.isEmpty();\n"
+            providerSource << "      if (hasOverrides) {\n"
+            providerSource << "        CsvHeaderWriter.writeHeader(writer, COLUMN_ORDER, columns);\n"
+            providerSource << "      }\n"
+            providerSource << "      boolean includeHeader = !hasOverrides;\n"
+            providerSource << "      long rows = copyExporter.copyCsv(SQL, params, writer, includeHeader);\n"
+            providerSource << "      writer.flush();\n"
+            providerSource << "      return rows;\n"
+            providerSource << "    } catch (Exception e) {\n"
+            providerSource << "      throw new RuntimeException(\"CSV export failed\", e);\n"
+            providerSource << "    }\n"
+            providerSource << "  }\n\n"
+            providerSource << "}\n"
+
+            new File(outDir, "${providerClassName}.java").text = providerSource.toString()
+        }
+    }
+}
+
+sourceSets.main.java.srcDirs += exportSqlGeneratedDir
+compileJava.dependsOn tasks.named('generateExportSql')

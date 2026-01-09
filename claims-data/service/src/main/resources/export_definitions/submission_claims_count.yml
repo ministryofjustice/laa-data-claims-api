@@ -1,0 +1,16 @@
+description: "Counts total claims for submissions"
+provider: submissionClaimsCountExportProvider
+maxRows: 50000
+sql: |
+  select
+    s.id as submissionId,
+    count(c.id) as claimCount
+  from claims.submission s
+  join claims.claim c
+  on c.submission_id = s.id
+  group by s.id;
+columns:
+  - key: submissionId
+    header: "Submission ID"
+  - key: claimCount
+    header: "Amount of claims"

@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    api 'org.springframework.boot:spring-boot-autoconfigure'
+    api 'org.postgresql:postgresql'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'org.springframework.security:spring-security-core'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('bootRun') {
+    enabled = false
+}
