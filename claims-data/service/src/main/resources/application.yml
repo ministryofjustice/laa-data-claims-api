@@ -113,4 +113,4 @@ laa:
         }
     ]'
     unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
-                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]
+                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml", "/export/**" ]
