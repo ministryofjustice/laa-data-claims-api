@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -21,6 +22,7 @@ public class JacksonMappingConfig {
   @Primary
   public ObjectMapper objectMapper() {
     ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     return objectMapper;

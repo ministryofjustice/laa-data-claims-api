@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
@@ -113,7 +112,7 @@ class SubmissionMapperTest {
     ValidationMessageLog log = submissionMapper.toValidationMessageLog(patch, submission);
 
     assertThat(log.getId()).isNotNull();
-    assertEquals(submission.getId(), log.getSubmissionId());
+    Assertions.assertEquals(submission.getId(), log.getSubmissionId());
     assertThat(log.getClaimId()).isNull();
     Assertions.assertEquals(ValidationMessageType.ERROR, log.getType());
     Assertions.assertEquals("SYSTEM", log.getSource());

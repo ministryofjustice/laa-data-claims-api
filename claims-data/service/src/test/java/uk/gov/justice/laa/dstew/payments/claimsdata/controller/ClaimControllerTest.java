@@ -22,7 +22,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -40,10 +43,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(ClaimController.class)
 @ImportAutoConfiguration(
-    exclude = {
-      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
-    })
+    exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
+@AutoConfigureMockMvc(addFilters = false)
 class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";

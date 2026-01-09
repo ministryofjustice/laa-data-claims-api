@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
-import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,7 +16,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
@@ -37,7 +35,6 @@ public class BulkSubmission {
   @Id private UUID id;
 
   @NotNull
-  @Type(JsonBinaryType.class)
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(nullable = false)
   private GetBulkSubmission200ResponseDetails data;
