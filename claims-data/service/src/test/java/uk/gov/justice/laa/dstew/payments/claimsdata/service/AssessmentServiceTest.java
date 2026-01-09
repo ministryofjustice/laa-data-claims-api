@@ -56,7 +56,11 @@ class AssessmentServiceTest {
       final UUID claimId = Uuid7.timeBasedUuid();
       final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
       final AssessmentPost post =
-          AssessmentPost.builder().claimId(claimId).claimSummaryFeeId(claimSummaryFeeId).build();
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .build();
 
       final Claim claim = Claim.builder().id(claimId).build();
 
