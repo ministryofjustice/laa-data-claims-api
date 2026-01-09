@@ -1,5 +1,4 @@
 description: "Claims data for a submission"
-roles: [ "ALL" ]
 provider: submissionClaimsExportProvider
 maxRows: 50000
 sql: |

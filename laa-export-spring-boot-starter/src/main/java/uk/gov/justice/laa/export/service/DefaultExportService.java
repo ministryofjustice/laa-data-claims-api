@@ -7,7 +7,6 @@ import uk.gov.justice.laa.export.ExportAuditSink;
 import uk.gov.justice.laa.export.ExportCsvProvider;
 import uk.gov.justice.laa.export.ExportRegistry;
 import uk.gov.justice.laa.export.ExportRequestValidator;
-import uk.gov.justice.laa.export.ExportSecurity;
 import uk.gov.justice.laa.export.ExportService;
 import uk.gov.justice.laa.export.model.ExportAuditEvent;
 import uk.gov.justice.laa.export.model.ExportDefinition;
@@ -20,7 +19,6 @@ public final class DefaultExportService implements ExportService {
   private final ExportRegistry registry;
   private final ExportRequestValidator validator;
   private final ExportAuditSink audit;
-  private final ExportSecurity security;
 
   /**
    * Constructor for default export service.
@@ -28,12 +26,10 @@ public final class DefaultExportService implements ExportService {
   public DefaultExportService(
       ExportRegistry registry,
       ExportRequestValidator validator,
-      ExportAuditSink audit,
-      ExportSecurity security) {
+      ExportAuditSink audit) {
     this.registry = registry;
     this.validator = validator;
     this.audit = audit;
-    this.security = security;
   }
 
   /**
@@ -42,7 +38,6 @@ public final class DefaultExportService implements ExportService {
   @Override
   public void streamCsv(String exportKey, Map<String, String[]> rawParams, OutputStream out) {
     ExportDefinition def = registry.getRequired(exportKey);
-    security.checkAllowed(def);
     ValidatedExportRequest validated = validator.validate(def, rawParams);
 
     long start = System.currentTimeMillis();

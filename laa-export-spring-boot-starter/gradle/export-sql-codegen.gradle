@@ -105,6 +105,7 @@ tasks.register('generateExportSql') {
 
             def providerClassName = key.split('[_-]').collect { it.capitalize() }.join('') + 'Provider'
             providerSource << "package ${packageName};\n\n"
+            providerSource << "import jakarta.annotation.Generated;\n"
             providerSource << "import java.io.OutputStream;\n"
             providerSource << "import java.io.OutputStreamWriter;\n"
             providerSource << "import java.io.Writer;\n"
@@ -123,6 +124,7 @@ tasks.register('generateExportSql') {
             providerSource << " * Export provider for ${key}.\n"
             providerSource << " */\n"
             providerSource << "@Component(\"${defn.provider}\")\n"
+            providerSource << "@Generated(\"export-sql-codegen\")\n"
             providerSource << "public class ${providerClassName} implements ExportCsvProvider {\n"
             def sqlLines = sql.readLines().collect { it.replace('\\\\', '\\\\\\\\').replace('\"', '\\\\\"') }
             providerSource << "  private static final String SQL =\n"

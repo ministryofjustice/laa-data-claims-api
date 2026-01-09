@@ -58,7 +58,6 @@ public class DefaultExportRegistry implements ExportRegistry {
           new ExportDefinition(
               key,
               definition.getDescription(),
-              definition.getRoles(),
               maxRows,
               definition.getProvider(),
               definition.getColumns().stream()

@@ -92,7 +92,6 @@ public class LaaExportsProperties {
    */
   public static class Definition {
     private String description;
-    private List<String> roles = new ArrayList<>();
     private Integer maxRows;
     private String provider;
     private String sql;
@@ -105,14 +104,6 @@ public class LaaExportsProperties {
 
     public void setDescription(String description) {
       this.description = description;
-    }
-
-    public List<String> getRoles() {
-      return roles;
-    }
-
-    public void setRoles(List<String> roles) {
-      this.roles = roles;
     }
 
     public Integer getMaxRows() {

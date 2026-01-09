@@ -1,6 +1,8 @@
 spring:
   application:
     name: LAA Data Stewardship Payments - Claims Data Application
+  main:
+    allow-bean-definition-overriding: true
 # Default connection details for local dev, overridden in other envs
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -115,7 +117,7 @@ laa:
       ]'
       unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
                           "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico",
-                          "/open-api-specification.yml", "/exports/**"]
+                          "/open-api-specification.yml"]
     exports:
       enabled: true
       web:

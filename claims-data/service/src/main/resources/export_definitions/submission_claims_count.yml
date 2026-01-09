@@ -1,5 +1,4 @@
 description: "Counts total claims for submissions"
-roles: [ "ALL" ]
 provider: submissionClaimsCountExportProvider
 maxRows: 50000
 sql: |
