@@ -4,17 +4,25 @@
 {{- define "dbConnectionDetails" }}
 {{- if eq .Values.spring.profile "preview" }}
 {{/*
-For the preview branches, set DB connection details to Bitnami Postgres specific values
+For the preview branches, create and use a dynamic RDS instance
 */}}
 - name: DB_NAME
-  value: "postgres"
+  value: "{{ .Release.Name | replace "-" "_" }}"
+- name: DB_USERNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-rds-instance-output
+      key: database_username
 - name: DB_PASSWORD
   valueFrom:
     secretKeyRef:
-      name: {{ .Release.Name }}-postgresql
-      key: postgres-password
+      name: {{ .Release.Name }}-rds-instance-output
+      key: database_password
 - name: DB_HOST
-  value: {{ .Release.Name }}-postgresql
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-rds-instance-output
+      key: rds_instance_address
 {{- else if eq .Values.spring.profile "main" }}
 {{/*
 For the main branch, extract DB environment variables from rds-postgresql-instance-output secret
