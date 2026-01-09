@@ -98,11 +98,12 @@ runs:
           export SPRING_PROFILE="main"
         else
           export SPRING_PROFILE="preview"
-          # Using Bitnami legacy with PostgreSQL 17.2 (specified in values.yaml)
-          helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
-            -f .helm/bitnami_postgres/values.yaml \
+          
+          helm upgrade $RELEASE_NAME .helm/data-claims-api \
             --namespace ${KUBE_NAMESPACE} \
+            --set database_name="${RELEASE_NAME}" \
             --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
+            --values ${VALUES_FILE} \
             --install --wait --timeout=10m
         fi
 
