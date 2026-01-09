@@ -24,7 +24,7 @@ CREATE TABLE assessment (
     allowed_total_incl_vat                              NUMERIC NOT NULL,
     created_by_user_id                                  TEXT NOT NULL,
     created_on                                          TIMESTAMPTZ NOT NULL,
-    updated_by_user_id                                  TEXT,
+    updated_by_user_id                                  TEXT NOT NULL,
     updated_on                                          TIMESTAMPTZ,
 
     CONSTRAINT pk_assessment PRIMARY KEY (id),
