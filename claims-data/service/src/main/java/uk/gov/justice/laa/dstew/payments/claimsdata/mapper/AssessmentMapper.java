@@ -24,6 +24,7 @@ public interface AssessmentMapper {
   @Mapping(target = "claim", ignore = true)
   @Mapping(target = "claimSummaryFee", ignore = true)
   @Mapping(target = "createdOn", ignore = true)
+  @Mapping(target = "updatedByUserId", source = "createdByUserId")
   Assessment toAssessment(AssessmentPost assessmentPost);
 
   /** Map a validation error string to a ValidationErrorLog. */
