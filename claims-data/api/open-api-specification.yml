@@ -849,6 +849,7 @@ paths:
           description: 'Internal server error'
     get:
       operationId: getAssessments
+      x-spring-paginated: true
       tags:
         - Assessments
       summary: Get all Assessments for a Claim

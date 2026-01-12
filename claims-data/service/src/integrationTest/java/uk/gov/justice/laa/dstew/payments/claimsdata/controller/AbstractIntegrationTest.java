@@ -545,14 +545,14 @@ public abstract class AbstractIntegrationTest {
         getAssessmentBuilder()
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
-            .createdOn(Instant.now())
+            .createdOn(Instant.now().minusSeconds(60))
             .build();
     Assessment assessment2 =
         getAssessmentBuilder()
             .id(ASSESSMENT_2_ID)
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
-            .createdOn(Instant.now().minusSeconds(60))
+            .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
         getAssessmentBuilder()
