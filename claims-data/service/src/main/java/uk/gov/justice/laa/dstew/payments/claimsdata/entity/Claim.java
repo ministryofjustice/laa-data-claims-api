@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /** Entity representing a claim linked to a submission. */
@@ -30,6 +31,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Audited
 @Table(name = "claim")
 public class Claim {
 
