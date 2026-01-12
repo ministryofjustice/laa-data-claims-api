@@ -111,11 +111,6 @@ public class Claim {
 
   private UUID matchedClaimId;
 
-  // NOTE: Do not use this field in any mapping, assignment or logic.
-  // This is reserved for future uses when an actual value will be
-  // available from the FSP to be assigned.
-  private java.math.BigDecimal totalValue;
-
   @Column(nullable = false)
   private String createdByUserId;
 
