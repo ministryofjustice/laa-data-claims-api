@@ -195,7 +195,8 @@ class AssessmentServiceTest {
         .thenReturn(List.of(assessment));
     when(assessmentMapper.toAssessmentGet(assessment)).thenReturn(dto);
 
-    AssessmentResultSet result = assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged());
+    AssessmentResultSet result =
+        assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged());
 
     assertThat(result).isNotNull();
     assertThat(result.getAssessments()).hasSize(1);
@@ -207,7 +208,8 @@ class AssessmentServiceTest {
     when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class)))
         .thenReturn(Collections.emptyList());
 
-    assertThatThrownBy(() -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
+    assertThatThrownBy(
+            () -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
         .isInstanceOf(AssessmentNotFoundException.class)
         .hasMessageContaining("No assessments found for claimId");
   }

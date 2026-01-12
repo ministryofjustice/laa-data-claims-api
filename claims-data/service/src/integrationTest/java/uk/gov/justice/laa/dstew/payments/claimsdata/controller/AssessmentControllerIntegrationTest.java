@@ -25,9 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -222,8 +219,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(second.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
     assertNotNull(second.getCreatedOn());
 
-    assertThat(assessments)
-        .isSortedAccordingTo(Comparator.comparing(AssessmentGet::getCreatedOn));
+    assertThat(assessments).isSortedAccordingTo(Comparator.comparing(AssessmentGet::getCreatedOn));
   }
 
   @DisplayName("Status 200: when a valid Claim ID is provided")
