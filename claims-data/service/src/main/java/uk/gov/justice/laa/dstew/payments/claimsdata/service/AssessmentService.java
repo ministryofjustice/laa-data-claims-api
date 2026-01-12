@@ -60,8 +60,6 @@ public class AssessmentService {
     assessment.setId(Uuid7.timeBasedUuid());
     assessment.setClaim(claim);
     assessment.setClaimSummaryFee(claimSummaryFee);
-    assessment.setCreatedByUserId(request.getCreatedByUserId());
-    assessment.setUpdatedByUserId(request.getCreatedByUserId());
 
     return assessmentRepository.save(assessment).getId();
   }
