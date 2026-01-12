@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -117,8 +118,8 @@ public class AssessmentService {
    * @throws AssessmentNotFoundException if no assessments exist for the given claim ID.
    */
   @Transactional(readOnly = true)
-  public AssessmentResultSet getAssessmentsByClaimId(@NotNull UUID claimId) {
-    var assessments = assessmentRepository.findByClaimIdOrderByCreatedOnDesc(claimId);
+  public AssessmentResultSet getAssessmentsByClaimId(@NotNull UUID claimId, Pageable pageable) {
+    var assessments = assessmentRepository.findByClaimId(claimId, pageable);
     if (assessments.isEmpty()) {
       throw new AssessmentNotFoundException(
           String.format("No assessments found for claimId: %s", claimId));
