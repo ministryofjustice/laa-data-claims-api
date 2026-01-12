@@ -81,6 +81,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_1_ID);
     assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
     assertTrue(updatedClaim.isHasAssessment());
   }
 
