@@ -13,13 +13,13 @@ pluginManagement {
     }
 
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '1.2.9'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '1.2.10-75f7699-SNAPSHOT'
     }
 }
 
 rootProject.name = 'laa-data-claims-api'
 
+include 'laa-export-spring-boot-starter'
 include 'claims-data'
 include 'claims-data:api'
 include 'claims-data:service'
-
