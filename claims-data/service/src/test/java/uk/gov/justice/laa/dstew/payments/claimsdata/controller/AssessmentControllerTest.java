@@ -239,8 +239,7 @@ class AssessmentControllerTest {
 
       mockMvc
           .perform(
-              get("/api/v0/claims/{claimId}/assessments", claimId)
-                  .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+              get("/api/v0/claims/{claimId}/assessments", claimId))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.assessments").isArray())
           .andExpect(jsonPath("$.assessments[0]").exists());
@@ -255,8 +254,7 @@ class AssessmentControllerTest {
 
       mockMvc
           .perform(
-              get("/api/v0/claims/{claimId}/assessments", claimId)
-                  .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+              get("/api/v0/claims/{claimId}/assessments", claimId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.message").value("No assessments found"));
     }
