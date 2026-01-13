@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Objects;
@@ -21,7 +22,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -38,10 +42,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(MatterStartsController.class)
 @ImportAutoConfiguration(
-    exclude = {
-      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
-    })
+    exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
+@AutoConfigureMockMvc(addFilters = false)
 class MatterStartsControllerTest {
 
   private static final String GET_ALL_MATTERS_URI =
@@ -142,8 +145,9 @@ class MatterStartsControllerTest {
               .perform(get(GET_ALL_MATTERS_URI, submissionId))
               .andExpect(MockMvcResultMatchers.status().isOk())
               .andReturn();
-      assertThat(actualResult.getResponse().getContentAsString())
-          .isEqualTo(mapper.writeValueAsString(matterStartResultSet));
+      JsonNode expectedJson = mapper.readTree(mapper.writeValueAsString(matterStartResultSet));
+      JsonNode actualJson = mapper.readTree(actualResult.getResponse().getContentAsString());
+      assertThat(actualJson).isEqualTo(expectedJson);
       verify(matterStartService).getAllMatterStartsForSubmission(eq(submissionId));
     }
 
