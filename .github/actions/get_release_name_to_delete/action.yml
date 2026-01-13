@@ -16,11 +16,15 @@ runs:
     - name: Get deleted/merged/closed branch name
       id: get_pr_branch
       shell: bash
+      env:
+        EVENT_NAME: "${{ github.event_name }}"
+        EVENT_REF: "${{ github.event.ref }}"
+        PULL_REQUEST_REF: "${{ github.event.pull_request.head.ref }}"
       run: |
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.event_name }}" == "delete" ]]; then
-          echo "BRANCH_NAME=${{ github.event.ref }}" >> $GITHUB_OUTPUT
+        if [[ "$EVENT_NAME" == "pull_request" ]]; then
+          echo "BRANCH_NAME='$PULL_REQUEST_REF'" >> "$GITHUB_OUTPUT"
+        elif [[ "$EVENT_NAME" == "delete" ]]; then
+          echo "BRANCH_NAME='$EVENT_REF'" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Extract release name from branch name
