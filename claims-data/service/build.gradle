@@ -6,7 +6,10 @@ plugins {
     id "io.sentry.jvm.gradle" version "5.12.2"
 }
 
-def versions = [sentry : '8.28.0', testcontainers: '1.20.1']
+def versions = [
+    sentry : '8.28.0',
+    testcontainers: '1.20.1'
+]
 
 test {
     useJUnitPlatform()
