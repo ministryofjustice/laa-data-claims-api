@@ -129,6 +129,8 @@ jobs:
 
       - name: Build app jar with gradle
         run: ./gradlew build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build local Docker image
         run: |
