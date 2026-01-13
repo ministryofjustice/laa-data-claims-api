@@ -1,0 +1,5 @@
+pactbroker:
+  host: ${PACT_BROKER_URL?:http://localhost:9292}
+  auth:
+    username: ${PACT_BROKER_USERNAME?:pact_broker}
+    password: ${PACT_BROKER_PASSWORD?:pact_broker}

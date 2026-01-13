@@ -107,7 +107,40 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
+    implementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+
 }
+
+// To keep pact stuff seperate
+sourceSets {
+    pactTest {
+        java.srcDir file('src/pactTest/java')
+        resources.srcDir file('src/pactTest/resources')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+    }
+}
+
+configurations {
+    pactTestImplementation.extendsFrom testImplementation
+    pactTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('pactTest', Test) {
+    description = 'Runs the pact tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.pactTest.output.classesDirs
+    classpath = sourceSets.pactTest.runtimeClasspath
+    useJUnitPlatform()
+    // Resolve the directory path to a String for the system property
+    systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
+}
+
+tasks.named('processPactTestResources') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 
 spotless {
     java {
