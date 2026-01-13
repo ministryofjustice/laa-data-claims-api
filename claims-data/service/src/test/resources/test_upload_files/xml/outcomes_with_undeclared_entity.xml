@@ -3,10 +3,10 @@
 	xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<office account="2P554H">
-		<schedule submissionPeriod="JAN-2010" areaOfLaw="CRIME LOWER" scheduleNum="ABC/20000L/10">
-			<outcome matterType="INVC">
-				<outcomeItem name="RANDOM_NAME"></outcomeItem>
-			</outcome>
-		</schedule>
-	</office>
+        <schedule submissionPeriod="DEC-2025">
+            <outcome matterType="FAMD:FAPP">
+                <outcomeItem name="SCHEDULE_REF">&harmless;</outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
 </submission>
