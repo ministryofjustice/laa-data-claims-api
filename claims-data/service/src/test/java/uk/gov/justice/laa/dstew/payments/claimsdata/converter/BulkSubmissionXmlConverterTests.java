@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
@@ -76,10 +77,6 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
-  private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml";
-  private static final String OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml";
   private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_outcomes_single.xml";
   private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
@@ -153,11 +150,6 @@ public class BulkSubmissionXmlConverterTests {
               MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE, MISSING_OUTCOMES_CONVERTED_FILE));
     }
 
-    private static Stream<String> missingMatterTypeInOutcomeTestData() {
-      return Stream.of(
-          OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE, OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE);
-    }
-
     @ParameterizedTest(name = "Throws exception when empty outcome nodes - {0}")
     @MethodSource("missingOutcomeTestData")
     void throwsExceptionWhenMissingOutcomeData(MissingOutcomeTestData testData) throws IOException {
@@ -170,17 +162,18 @@ public class BulkSubmissionXmlConverterTests {
       assertThat(exception.getErrorMessage()).contains("Outcome does not contain any data");
     }
 
-    @ParameterizedTest(
-        name = "Throws exception when matter type missing or empty in outcome nodes - {0}")
-    @MethodSource("missingMatterTypeInOutcomeTestData")
-    void throwsExceptionWhenMissingOrEmptyMatterStart(String inputFile) throws IOException {
+    @ParameterizedTest
+    @CsvSource({
+      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml,", // matterType null
+      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml,''" // matterType empty
+    })
+    void shouldParseEmptyOrMissingMatterTypeCode(String inputFile, String expectedMatterTypeCode)
+        throws IOException {
       MultipartFile file = getMultipartFile(inputFile);
-      BulkSubmissionFileReadException exception =
-          assertThrows(
-              BulkSubmissionFileReadException.class,
-              () -> bulkSubmissionXmlConverter.convert(file));
-      assertThat(exception.getErrorMessage())
-          .contains("Matter type missing or empty in outcome data.");
+      XmlSubmission bulkSubmission = bulkSubmissionXmlConverter.convert(file);
+
+      assertThat(bulkSubmission.office().schedule().outcomes().getFirst().matterType())
+          .isEqualTo(expectedMatterTypeCode);
     }
 
     @Test

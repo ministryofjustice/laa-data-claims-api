@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,14 +45,6 @@ public class BulkSubmissionCsvConverterTests {
       "classpath:test_upload_files/csv/outcomes_with_empty_sparse_rows.csv";
   private static final String OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE =
       "classpath:test_upload_files/csv/outcomes_with_empty_sparse_rows_converted.json";
-  private static final String OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE =
-      "classpath:test_upload_files/csv/outcomes_with_headers_only_rows.csv";
-  private static final String OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE =
-      "classpath:test_upload_files/csv/outcomes_with_headers_only_sparse_rows.csv";
-  private static final String OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/csv/outcome_missing_matter_type.csv";
-  private static final String OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE =
-      "classpath:test_upload_files/csv/outcome_empty_matter_type.csv";
 
   private static final String MATTERSTARTS_INPUT_FILE =
       "classpath:test_upload_files/csv/matterstarts.csv";
@@ -199,20 +192,21 @@ public class BulkSubmissionCsvConverterTests {
 
     @ParameterizedTest
     @CsvSource({
-      OUTCOME_MISSING_MATTER_TYPE_INPUT_FILE,
-      OUTCOME_EMPTY_MATTER_TYPE_INPUT_FILE,
-      OUTCOMES_WITH_HEADERS_ONLY_ROWS_INPUT_FILE,
-      OUTCOMES_WITH_HEADERS_ONLY_SPARSE_ROWS_INPUT_FILE
+      "classpath:test_upload_files/csv/outcome_missing_matter_type.csv,", // matterType null
+      "classpath:test_upload_files/csv/outcome_empty_matter_type.csv,''", // matterType empty
+      "classpath:test_upload_files/csv/outcomes_with_headers_only_rows.csv,IALB:IFRA", // matterType
+      // present
+      "classpath:test_upload_files/csv/outcomes_with_headers_only_sparse_rows.csv," // matterType
+      // null
     })
-    @DisplayName("Throws exception when matterType not found in outcome")
-    void throwsExceptionWhenMatterTypeMissingInOutcome(String inputFile) throws IOException {
+    @DisplayName("Should parse empty or missing matter type code")
+    void shouldParseEmptyOrMissingMatterTypeCode(String inputFile, String expectedMatterTypeCode)
+        throws IOException {
       MultipartFile file = getMultipartFile(inputFile);
-      BulkSubmissionFileReadException exception =
-          assertThrows(
-              BulkSubmissionFileReadException.class,
-              () -> bulkSubmissionCsvConverter.convert(file));
+      CsvSubmission bulkSubmission = bulkSubmissionCsvConverter.convert(file);
 
-      assertEquals("Matter type missing or empty in outcome data", exception.getMessage());
+      assertThat(bulkSubmission.outcomes().getFirst().matterType())
+          .isEqualTo(expectedMatterTypeCode);
     }
 
     @Test
