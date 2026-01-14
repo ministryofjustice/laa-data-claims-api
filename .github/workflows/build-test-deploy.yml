@@ -15,6 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  semgrep-scan:
+    name: semgrep-security-scan
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run Semgrep scan
+        run: semgrep scan --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token --error --config auto
+
   build-test:
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
     runs-on: ubuntu-latest
