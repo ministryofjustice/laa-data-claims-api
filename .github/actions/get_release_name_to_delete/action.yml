@@ -19,12 +19,12 @@ runs:
       env:
         EVENT_NAME: "${{ github.event_name }}"
         EVENT_REF: "${{ github.event.ref }}"
-        PULL_REQUEST_REF: "${{ github.event.pull_request.head.ref }}"
+        PR_HEAD_REF: "${{ github.event.pull_request.head.ref }}"
       run: |
-        if [[ "$EVENT_NAME" == "pull_request" ]]; then
-          echo "BRANCH_NAME='$PULL_REQUEST_REF'" >> "$GITHUB_OUTPUT"
-        elif [[ "$EVENT_NAME" == "delete" ]]; then
-          echo "BRANCH_NAME='$EVENT_REF'" >> "$GITHUB_OUTPUT"
+        if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+          echo "BRANCH_NAME=${PR_HEAD_REF}" >> "$GITHUB_OUTPUT"
+        elif [[ "${EVENT_NAME}" == "delete" ]]; then
+          echo "BRANCH_NAME=${EVENT_REF}" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Extract release name from branch name

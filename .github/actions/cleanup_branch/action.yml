@@ -37,16 +37,22 @@ runs:
       shell: bash
       env:
         RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
-        KUBE_NAMESPACE: "${{ inputs.kube-namespace }}"
-      run: helm uninstall "$RELEASE_NAME" --namespace "$KUBE_NAMESPACE"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE"
 
     - name: Delete preview release's ephemeral postgres database
       shell: bash
-      run: helm uninstall "$RELEASE_NAME"-postgresql --namespace "$KUBE_NAMESPACE"
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: helm uninstall "${RELEASE_NAME}-postgresql" --namespace "$NAMESPACE"
 
     - name: Delete preview release's pvc (persistent volume claim)
       shell: bash
-      run: kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME-postgresql" --namespace "$KUBE_NAMESPACE"
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
 
     - name: Delete Helm release history secrets
       shell: bash
