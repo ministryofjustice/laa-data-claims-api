@@ -1,9 +1,3 @@
-secrets:
-  github_actor:
-    environment: GITHUB_ACTOR
-  github_token:
-    environment: GITHUB_TOKEN
-
 services:
   claims-api:
     container_name: data-claims-api-app

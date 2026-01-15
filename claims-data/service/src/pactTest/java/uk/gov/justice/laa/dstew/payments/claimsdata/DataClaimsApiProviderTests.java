@@ -1,41 +1,87 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimBuilder;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
+
+import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
 import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvider;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
+import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import java.util.Arrays;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
+@Slf4j
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @Provider(value = "laa-data-claims-api")
 @PactBroker
-public class DataClaimsApiProviderTests extends AbstractProviderPactTests{
+public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
-  // A new bulk submission request
-  @State("the system is ready to process a valid bulk submission")
-  public void setupBulkSubmissionState() {
-    // This is where you set up your test data.
-    // For example, ensuring a user exists or a specific record is in the DB.
-    // If no setup is needed for this specific test, you can leave it empty.
-    System.out.println("Setting up state: the system is ready to process a valid bulk submission");
+
+  @LocalServerPort
+  private int port;
+
+  @BeforeEach
+  void setUp(PactVerificationContext context) {
+    HttpTestTarget target = new HttpTestTarget("localhost", port);
+    context.setTarget(target);
   }
 
-  //@BeforeEach
-  //void setUp(PactVerificationContext pactVerificationContext){
-  //  pactVerificationContext.setTarget(new WebFluxSpring7Target(r));
-  //}
+  // TODO: Not working, come back as it's probably the most complicated one
+  @State("the system is ready to process a valid bulk submission")
+  public void setupBulkSubmissionState() {
+    log.info("Setting up state: the system is ready to process a valid bulk submission");
+  }
+
+  @State("no submission exists")
+  public void noSubmissionExists() {
+    log.info("Setting up state: no submission exists");
+    when(submissionRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("no claim exists")
+  public void noClaimExists() {
+    log.info("Setting up state: no claim exists");
+    when(claimRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("a submission exists")
+  public void aSubmissionExists() {
+    log.info("Setting up state: a submission exists");
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    when(claimRepository.findBySubmissionId(any())).thenReturn(
+        Arrays.asList(getClaimBuilder().build()));
+  }
+
+  @State("a claim exists")
+  public void aClaimExists() {
+    log.info("Setting up state: a claim exists");
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(
+        Optional.ofNullable(getClaimBuilder().build()));
+  }
+
+  @TargetRequestFilter
+  public void requestFilter(HttpRequest request) {
+    request.addHeader("Authorization", "00000000-0000-0000-0000-000000000000");
+  }
 
   @TestTemplate
   @ExtendWith(PactVerificationInvocationContextProvider.class)
-  void pactVerificationTestTemplate(PactVerificationContext context ) {
-    // This has been set as the auth token in application.yaml
-    //httpRequest.addHeader("Authorization", "00000000-0000-0000-0000-000000000000");
+  void pactVerificationTestTemplate(PactVerificationContext context) {
     context.verifyInteraction();
   }
 }
