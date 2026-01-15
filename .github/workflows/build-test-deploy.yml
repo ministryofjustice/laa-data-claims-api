@@ -100,7 +100,7 @@ jobs:
   vulnerability-scan-app:
     runs-on: ubuntu-latest
     needs:
-      - build-test
+      - semgrep-scan
     permissions:
       contents: read
       security-events: write
