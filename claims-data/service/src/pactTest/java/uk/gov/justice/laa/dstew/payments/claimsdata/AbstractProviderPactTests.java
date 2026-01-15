@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
 
@@ -42,44 +43,48 @@ public class AbstractProviderPactTests {
   }
 
   @MockitoBean
-  TokenDetailsManager tokenDetailsManager;
+  protected TokenDetailsManager tokenDetailsManager;
 
   @MockitoBean
-  SecurityFilterChain securityFilterChain;
+  protected SecurityFilterChain securityFilterChain;
 
   @MockitoBean
-  JaversAuditingAspect javersAuditingAspect;
+  protected JaversAuditingAspect javersAuditingAspect;
 
   @MockitoBean
-  BulkSubmissionRepository bulkSubmissionRepository;
+  protected BulkSubmissionRepository bulkSubmissionRepository;
 
   @MockitoBean
-  CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
 
   @MockitoBean
-  ClaimCaseRepository claimCaseRepository;
+  protected ClaimCaseRepository claimCaseRepository;
 
   @MockitoBean
-  ClaimRepository claimRepository;
+  protected ClaimRepository claimRepository;
 
   @MockitoBean
-  ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   @MockitoBean
-  ClientRepository clientRepository;
+  protected ClientRepository clientRepository;
 
   @MockitoBean
-  MatterStartRepository matterStartRepository;
+  protected MatterStartRepository matterStartRepository;
 
   @MockitoBean
-  SubmissionRepository submissionRepository;
+  protected SubmissionRepository submissionRepository;
 
   @MockitoBean
-  ValidationMessageLogRepository validationMessageLogRepository;
+  protected ValidationMessageLogRepository validationMessageLogRepository;
 
   @MockitoBean
-  SqsClient sqsClient;
+  protected SqsClient sqsClient;
 
   @MockitoBean
-  SubmissionEventPublisherService submissionEventPublisherService;
+  protected SubmissionEventPublisherService submissionEventPublisherService;
+
+  @MockitoBean
+  protected BulkSubmissionService bulkSubmissionService;
+
 }

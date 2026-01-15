@@ -193,6 +193,21 @@ jobs:
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
 
+  pact-test:
+    needs:
+      - build-test
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@story/pact-publish
+    permissions:
+      contents: write
+      packages: write
+    with:
+      pact_test_task: "pactTest"
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
   deploy-uat:
     runs-on: ubuntu-latest
     needs:
@@ -200,6 +215,7 @@ jobs:
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+      - pact-test
     environment: uat
     permissions:
       id-token: write
@@ -231,6 +247,7 @@ jobs:
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+      - pact-test
     environment: staging
     permissions:
       id-token: write
