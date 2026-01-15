@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @Provider(value = "laa-data-claims-api")
 @PactBroker
-public class ExampleTest {
+public class DataClaimsApiProviderTests extends AbstractProviderPactTests{
 
 
   @TestTemplate
