@@ -86,6 +86,17 @@ jobs:
           path: claims-data/service/build/reports/jacoco
           retention-days: 14
 
+  semgrep-scan:
+    name: semgrep-security-scan
+    needs: build-test
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run Semgrep scan
+        run: semgrep scan --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token --error --config auto
+
   vulnerability-scan-app:
     runs-on: ubuntu-latest
     needs:
@@ -186,6 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-push-docker
+      - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
     environment: uat
@@ -216,6 +228,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-push-docker
+      - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
     environment: staging
