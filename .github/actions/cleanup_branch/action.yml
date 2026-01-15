@@ -44,3 +44,11 @@ runs:
     - name: Delete preview release's pvc (persistent volume claim)
       shell: bash
       run: kubectl delete pvc -l app.kubernetes.io/instance="${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}-postgresql" --namespace ${{ inputs.kube-namespace }}
+
+    - name: Delete Helm release history secrets
+      shell: bash
+      run: |
+        # Delete Helm release history secrets for the main application
+        kubectl delete secret -l name=${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }},owner=helm --namespace ${{ inputs.kube-namespace }} --ignore-not-found=true
+        # Delete Helm release history secrets for PostgreSQL
+        kubectl delete secret -l name=${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}-postgresql,owner=helm --namespace ${{ inputs.kube-namespace }} --ignore-not-found=true
