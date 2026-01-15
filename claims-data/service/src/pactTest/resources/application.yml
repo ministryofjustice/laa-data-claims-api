@@ -3,3 +3,27 @@ pactbroker:
   auth:
     username: ${PACT_BROKER_USERNAME?:pact_broker}
     password: ${PACT_BROKER_PASSWORD?:pact_broker}
+
+
+laa:
+  springboot.starter.auth:
+    authentication-header: "Authorization"
+    authorized-clients: '[
+        {
+            "name": "test-runner",
+            "roles": [
+                "ALL"
+            ],
+            "token": "00000000-0000-0000-0000-000000000000"
+        }
+    ]'
+    authorized-roles: '[
+        {
+            "name": "ALL",
+            "URIs": [
+                "/**"
+            ]
+        }
+    ]'
+    unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
+                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]
