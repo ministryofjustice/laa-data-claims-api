@@ -2,7 +2,11 @@ package uk.gov.justice.laa.dstew.payments.claimsdata;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetailBuilder;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimBuilder;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCaseBuilder;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimSummaryFeeBuilder;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClientBuilder;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
 
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
@@ -51,12 +55,20 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void noSubmissionExists() {
     log.info("Setting up state: no submission exists");
     when(submissionRepository.findById(any())).thenReturn(Optional.empty());
+    when(claimRepository.findById(any())).thenReturn(Optional.empty());
+    when(matterStartRepository.findBySubmissionIdAndId(any(), any())).thenReturn(Optional.empty());
   }
 
   @State("no claim exists")
   public void noClaimExists() {
     log.info("Setting up state: no claim exists");
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("no matter starts exists")
+  public void noMatterStarts() {
+    log.info("Setting up state: no matter starts exists");
+    when(matterStartRepository.findBySubmissionIdAndId(any(), any())).thenReturn(Optional.empty());
   }
 
   @State("a submission exists")
@@ -72,6 +84,14 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a claim exists");
     when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(
         Optional.ofNullable(getClaimBuilder().build()));
+    when(clientRepository.findByClaimId(any())).thenReturn(
+        Optional.ofNullable(getClientBuilder().build()));
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFeeBuilder().build()));
+    when(calculatedFeeDetailRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getCalculatedFeeDetailBuilder().build()));
+    when(claimCaseRepository.findByClaimId(any())).thenReturn(
+        Optional.ofNullable(getClaimCaseBuilder().build()));
   }
 
   @TargetRequestFilter
