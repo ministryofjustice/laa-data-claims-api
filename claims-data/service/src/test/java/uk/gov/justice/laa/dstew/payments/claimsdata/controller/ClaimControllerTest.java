@@ -160,6 +160,8 @@ class ClaimControllerTest {
             anyString(),
             anyString(),
             anyList(),
+            anyString(),
+            anyString(),
             any(Pageable.class)))
         .thenReturn(expected);
 
@@ -182,6 +184,8 @@ class ClaimControllerTest {
                     "claim_statuses",
                     String.valueOf(ClaimStatus.VALID),
                     String.valueOf(ClaimStatus.INVALID))
+                .queryParam("submission_period", "APR-2025")
+                .queryParam("case_reference_number", "CASE_123")
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk())
         .andExpect(content().json(jsonContent));
