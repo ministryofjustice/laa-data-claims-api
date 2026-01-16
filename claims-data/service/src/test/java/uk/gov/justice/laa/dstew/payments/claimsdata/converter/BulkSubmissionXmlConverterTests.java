@@ -11,6 +11,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmiss
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_MISSING_CODE_ATTRIBUTE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionXmlConverter.FILE_REJECTION_MESSAGE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
@@ -59,6 +60,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/outcomes_with_unsupported_name.xml";
   private static final String OUTCOMES_WITH_MISSING_NAME =
       "classpath:test_upload_files/xml/outcomes_with_missing_name.xml";
+  private static final String OUTCOMES_WITH_UNDECLARED_ENTITY =
+      "classpath:test_upload_files/xml/outcomes_with_undeclared_entity.xml";
   private static final String MATTER_STARTS_MEDIATION_TYPE_INPUT_FILE =
       "classpath:test_upload_files/xml/matter_starts_with_mediation_type.xml";
   private static final String MATTER_STARTS_MEDIATION_TYPE_MISSING_COUNT_INPUT_FILE =
@@ -254,12 +257,16 @@ public class BulkSubmissionXmlConverterTests {
               "Malformed XML"),
           new ExceptionTestData(
               OUTCOMES_WITH_UNSUPPORTED_NAME,
-              "Unsupported name for outcome item: RANDOM_NAME",
+              "File rejected: unsupported outcome item. Please correct the file and try again.",
               "Outcomes with unsupported name"),
           new ExceptionTestData(
               OUTCOMES_WITH_MISSING_NAME,
               "Outcome item under matter type INVC does not have a name.",
               "Outcomes with missing name"),
+          new ExceptionTestData(
+              OUTCOMES_WITH_UNDECLARED_ENTITY,
+              FILE_REJECTION_MESSAGE,
+              "Outcomes with undeclared entity"),
           new ExceptionTestData(
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_INPUT_FILE,
               IMMIGRATION_CLR_MISSING_CODE_ATTRIBUTE_ERROR,

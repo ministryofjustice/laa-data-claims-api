@@ -21,6 +21,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 @Component
 @RequiredArgsConstructor
 public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
+
+  public static final String FILE_REJECTION_MESSAGE =
+      "File rejected: unsupported content found. Please correct the file and try again.";
+
   private final XmlMapper xmlMapper;
 
   /**
@@ -34,9 +38,6 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
 
     try {
       return xmlMapper.readValue(file.getInputStream(), XmlSubmission.class);
-    } catch (BulkSubmissionFileReadException bulkSubmissionFileReadException) {
-      // If custom deserializers throw this, keep it intact.
-      throw bulkSubmissionFileReadException;
     } catch (MismatchedInputException mismatchedInputException) {
       log.error(
           "Unsupported XML tag: {}",
@@ -62,7 +63,10 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
         throw new BulkSubmissionFileReadException(
             "Malformed XML / file is corrupt (not well-formed). Please fix XML structure and re-submit.");
       }
-      throw new BulkSubmissionFileReadException(jsonProcessingException.getOriginalMessage());
+      throw new BulkSubmissionFileReadException(
+          containsStackTraceElements(jsonProcessingException.getOriginalMessage())
+              ? FILE_REJECTION_MESSAGE
+              : jsonProcessingException.getOriginalMessage());
     } catch (IOException ioException) {
       log.error("Failed to read/parse XML file: {}", ioException.getMessage(), ioException);
       throw new BulkSubmissionFileReadException(
@@ -135,5 +139,16 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
     return e.getPath().stream()
         .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : ("[" + ref.getIndex() + "]"))
         .collect(Collectors.toSet());
+  }
+
+  /**
+   * Checks if the given text contains stack trace elements by looking for opening brackets or
+   * braces.
+   *
+   * @param text the text to check for stack trace elements
+   * @return true if the text contains stack trace elements (brackets or braces), false otherwise
+   */
+  private boolean containsStackTraceElements(String text) {
+    return text != null && (text.contains("[") || text.contains("{"));
   }
 }
