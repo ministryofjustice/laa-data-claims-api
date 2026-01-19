@@ -24,15 +24,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionServic
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
 
-@EnableAutoConfiguration(exclude = {
-    DataSourceAutoConfiguration.class,
-    HibernateJpaAutoConfiguration.class,
-    FlywayAutoConfiguration.class,
-    JaversSqlAutoConfiguration.class,
-})
-@TestPropertySource(properties = {
-    "laa.springboot.starter.auth.authentication-header=Authorization",
-})
+@EnableAutoConfiguration(
+    exclude = {
+      DataSourceAutoConfiguration.class,
+      HibernateJpaAutoConfiguration.class,
+      FlywayAutoConfiguration.class,
+      JaversSqlAutoConfiguration.class,
+    })
+@TestPropertySource(
+    properties = {
+      "laa.springboot.starter.auth.authentication-header=Authorization",
+    })
 public class AbstractProviderPactTests {
 
   @BeforeAll
@@ -42,49 +44,33 @@ public class AbstractProviderPactTests {
     System.setProperty("pactbroker.scheme", "http");
   }
 
-  @MockitoBean
-  protected TokenDetailsManager tokenDetailsManager;
+  @MockitoBean protected TokenDetailsManager tokenDetailsManager;
 
-  @MockitoBean
-  protected SecurityFilterChain securityFilterChain;
+  @MockitoBean protected SecurityFilterChain securityFilterChain;
 
-  @MockitoBean
-  protected JaversAuditingAspect javersAuditingAspect;
+  @MockitoBean protected JaversAuditingAspect javersAuditingAspect;
 
-  @MockitoBean
-  protected BulkSubmissionRepository bulkSubmissionRepository;
+  @MockitoBean protected BulkSubmissionRepository bulkSubmissionRepository;
 
-  @MockitoBean
-  protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @MockitoBean protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
 
-  @MockitoBean
-  protected ClaimCaseRepository claimCaseRepository;
+  @MockitoBean protected ClaimCaseRepository claimCaseRepository;
 
-  @MockitoBean
-  protected ClaimRepository claimRepository;
+  @MockitoBean protected ClaimRepository claimRepository;
 
-  @MockitoBean
-  protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  @MockitoBean protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
-  @MockitoBean
-  protected ClientRepository clientRepository;
+  @MockitoBean protected ClientRepository clientRepository;
 
-  @MockitoBean
-  protected MatterStartRepository matterStartRepository;
+  @MockitoBean protected MatterStartRepository matterStartRepository;
 
-  @MockitoBean
-  protected SubmissionRepository submissionRepository;
+  @MockitoBean protected SubmissionRepository submissionRepository;
 
-  @MockitoBean
-  protected ValidationMessageLogRepository validationMessageLogRepository;
+  @MockitoBean protected ValidationMessageLogRepository validationMessageLogRepository;
 
-  @MockitoBean
-  protected SqsClient sqsClient;
+  @MockitoBean protected SqsClient sqsClient;
 
-  @MockitoBean
-  protected SubmissionEventPublisherService submissionEventPublisherService;
+  @MockitoBean protected SubmissionEventPublisherService submissionEventPublisherService;
 
-  @MockitoBean
-  protected BulkSubmissionService bulkSubmissionService;
-
+  @MockitoBean protected BulkSubmissionService bulkSubmissionService;
 }

@@ -208,7 +208,8 @@ public class ClaimsDataTestUtil {
     return List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"));
   }
 
-  public static ValidationMessageLog getValidationMessage(ValidationMessageType validationMessageType){
+  public static ValidationMessageLog getValidationMessage(
+      ValidationMessageType validationMessageType) {
     ValidationMessageLog validationMessageLog = new ValidationMessageLog();
     validationMessageLog.setId(MESSAGE_ID);
     validationMessageLog.setClaimId(CLAIM_1_ID);
@@ -291,7 +292,8 @@ public class ClaimsDataTestUtil {
         .accessPointCode(ACCESS_POINT_CODE)
         .deliveryLocation(DELIVERY_LOCATION)
         .createdByUserId(USER_ID)
-        .createdOn(SUBMITTED_DATE.toInstant()).build();
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 
   public static Client getClient() {
@@ -323,7 +325,6 @@ public class ClaimsDataTestUtil {
         .claReferenceNumber("ABC")
         .claExemptionCode("ABC")
         .build();
-
   }
 
   public static ClaimResponse getClaimResponse() {
@@ -377,8 +378,8 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static CalculatedFeeDetail getCalculatedFeeDetail(){
-    
+  public static CalculatedFeeDetail getCalculatedFeeDetail() {
+
     return CalculatedFeeDetail.builder()
         .id(UUID.randomUUID())
         .claim(getClaim())
@@ -459,8 +460,7 @@ public class ClaimsDataTestUtil {
   }
 
   public static ClaimCase getClaimCase() {
-    return ClaimCase
-        .builder()
+    return ClaimCase.builder()
         .caseId("caseId")
         .caseStageCode("caseStageCode")
         .exceptionalCaseFundingReference("123ABC")
@@ -477,11 +477,10 @@ public class ClaimsDataTestUtil {
         .standardFeeCategoryCode("ABC")
         .transferDate(LocalDate.of(2025, 1, 2))
         .uniqueCaseId("ABC")
-        .build()
-        ;
+        .build();
   }
 
-  public static MatterStart getMatterStart(){
+  public static MatterStart getMatterStart() {
     return MatterStart.builder()
         .id(MATTER_START_ID)
         .submission(getSubmission())
@@ -495,6 +494,7 @@ public class ClaimsDataTestUtil {
         .createdByUserId("ABC")
         .createdOn(SUBMITTED_DATE.toInstant())
         .updatedByUserId("ABC")
-        .updatedOn(SUBMITTED_DATE.toInstant()).build();
+        .updatedOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 }

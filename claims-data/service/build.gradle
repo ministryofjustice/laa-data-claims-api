@@ -102,38 +102,63 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    // Add this to ensure Spring Security classes are available during tests
+    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation "org.testcontainers:postgresql:$versions.testcontainers"
     testImplementation "org.testcontainers:localstack:$versions.testcontainers"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
     implementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
-
+    // If the above doesn't resolve it, add it specifically for Pact
+    testImplementation 'org.springframework.boot:spring-boot-starter-security'
+    testImplementation 'org.springframework.boot:spring-boot-autoconfigure'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    testImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 }
 
-// To keep pact stuff seperate
 sourceSets {
     pactTest {
-        java.srcDir file('src/pactTest/java')
-        resources.srcDir file('src/pactTest/resources')
-        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
-        runtimeClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+        }
     }
 }
 
 configurations {
     pactTestImplementation.extendsFrom testImplementation
     pactTestRuntimeOnly.extendsFrom testRuntimeOnly
+    
+    // Explicitly associate the configuration with the source set's classpath
+    // This is often what's missing in CI environments
+    pactTestCompileClasspath.extendsFrom testCompileClasspath
+    pactTestRuntimeClasspath.extendsFrom testRuntimeClasspath
 }
+
+// Ensure the pactTest source set uses the configurations we just set up
+sourceSets.pactTest.compileClasspath += configurations.pactTestCompileClasspath
+sourceSets.pactTest.runtimeClasspath += configurations.pactTestRuntimeClasspath
 
 tasks.register('pactTest', Test) {
     description = 'Runs the pact tests.'
     group = 'verification'
+    useJUnitPlatform()
+
     testClassesDirs = sourceSets.pactTest.output.classesDirs
     classpath = sourceSets.pactTest.runtimeClasspath
-    useJUnitPlatform()
+
+    // Pass environment variables into the test process as System Properties
+    systemProperty 'pact.verifier.publishResults', System.getenv('PACT_VERIFIER_PUBLISH_RESULTS') ?: 'true'
+    systemProperty 'pact.provider.version', System.getenv('CI_COMMIT_SHA') ?: '1.0.0'
+    systemProperty 'pactbroker.host', System.getenv('PACT_BROKER_URL') ?: 'http://localhost:9292'
+    systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME') ?: 'user'
+    systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD') ?: 'pass'
+
     // Resolve the directory path to a String for the system property
     systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
 }
@@ -150,21 +175,6 @@ spotless {
         removeUnusedImports()
         cleanthat()
         googleJavaFormat()
-    }
-}
-
-pact {
-
-    publish {
-        pactBrokerUrl = project.findProperty('pactBrokerUrl') ?: System.getenv('PACT_BROKER_URL') ?: 'http://localhost:9292'
-        pactBrokerUsername = project.findProperty('pactBrokerUsername') ?: System.getenv('PACT_BROKER_USERNAME') ?: 'ABC'
-        pactBrokerPassword = project.findProperty('pactBrokerPassword') ?: System.getenv('PACT_BROKER_PASSWORD') ?: 'ABC'
-
-
-        pactDirectory = layout.buildDirectory.dir("pacts").get().asFile.path
-
-        consumerVersion = project.version != 'unspecified' ? project.version : '1.0.0'
-        tags = ['dev', 'local']
     }
 }
 

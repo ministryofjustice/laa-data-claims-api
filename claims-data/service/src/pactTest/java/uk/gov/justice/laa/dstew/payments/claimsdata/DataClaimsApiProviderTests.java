@@ -48,9 +48,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @PactBroker
 public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
-
-  @LocalServerPort
-  private int port;
+  @LocalServerPort private int port;
 
   @BeforeEach
   void setUp(PactVerificationContext context) {
@@ -61,17 +59,20 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the system is ready to process a valid bulk submission")
   public void setupBulkSubmissionState() {
     log.info("Setting up state: the system is ready to process a valid bulk submission");
-    when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any())).thenReturn(
-        CreateBulkSubmission201Response.builder()
-            .bulkSubmissionId(BULK_SUBMISSION_ID)
-            .submissionIds(Arrays.asList(SUBMISSION_ID)).build());
+    when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any()))
+        .thenReturn(
+            CreateBulkSubmission201Response.builder()
+                .bulkSubmissionId(BULK_SUBMISSION_ID)
+                .submissionIds(Arrays.asList(SUBMISSION_ID))
+                .build());
   }
 
   @State("the submission file contains invalid data")
   public void theSubmissionFileContainsInvalidData() {
     log.info("Setting up state: the submission file contains invalid data");
     doThrow(new BulkSubmissionValidationException("Error found"))
-        .when(bulkSubmissionService).submitBulkSubmissionFile(any(), any(), any());
+        .when(bulkSubmissionService)
+        .submitBulkSubmissionFile(any(), any(), any());
   }
 
   @State("no submission exists")
@@ -89,10 +90,12 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   }
 
   @State("a matter start exists")
-  public void aMatterStartExists(){
+  public void aMatterStartExists() {
     log.info("Setting up state: a matter start exists");
-    when(matterStartRepository.findBySubmissionIdAndId(any(), any())).thenReturn(Optional.of(getMatterStart()));
+    when(matterStartRepository.findBySubmissionIdAndId(any(), any()))
+        .thenReturn(Optional.of(getMatterStart()));
   }
+
   @State("no matter starts exists")
   public void noMatterStarts() {
     log.info("Setting up state: no matter starts exists");
@@ -104,49 +107,42 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void aSubmissionExists() {
     log.info("Setting up state: a submission exists");
     when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
-    when(claimRepository.findBySubmissionId(any())).thenReturn(
-        Arrays.asList(getClaim()));
+    when(claimRepository.findBySubmissionId(any())).thenReturn(Arrays.asList(getClaim()));
   }
 
   @State("a claim exists")
   public void aClaimExists() {
     log.info("Setting up state: a claim exists");
-    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(
-        Optional.ofNullable(getClaim()));
-    when(clientRepository.findByClaimId(any())).thenReturn(
-        Optional.ofNullable(getClient()));
+    when(claimRepository.findByIdAndSubmissionId(any(), any()))
+        .thenReturn(Optional.ofNullable(getClaim()));
+    when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
     when(calculatedFeeDetailRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
-    when(claimCaseRepository.findByClaimId(any())).thenReturn(
-        Optional.ofNullable(getClaimCase()));
+    when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
   }
 
   @State("claims exist for the search criteria")
   public void aClaimExistsForSearchCriteria() {
     log.info("Setting up state: claim exist for the search criteria");
-    when(claimRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(
-        new PageImpl(Arrays.asList(
-            getClaim(),
-            getClaim())));
-    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(
-        Optional.ofNullable(getClaim()));
-    when(clientRepository.findByClaimId(any())).thenReturn(
-        Optional.ofNullable(getClient()));
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl(Arrays.asList(getClaim(), getClaim())));
+    when(claimRepository.findByIdAndSubmissionId(any(), any()))
+        .thenReturn(Optional.ofNullable(getClaim()));
+    when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
     when(calculatedFeeDetailRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
-    when(claimCaseRepository.findByClaimId(any())).thenReturn(
-        Optional.ofNullable(getClaimCase()));
+    when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
   }
 
   @State("no claims exist for the search criteria")
   public void noClaimsExistForTheSearchCriteria() {
     log.info("Setting up state: no claims exist for the search criteria");
-    when(claimRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(
-        new PageImpl(Collections.emptyList()));
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl(Collections.emptyList()));
   }
 
   @State("no validation messages exist for the search criteria")
@@ -160,9 +156,11 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void validationMessagesExistForTheSearchCriteria() {
     log.info("Setting up state: validation messages exist for the search criteria");
     when(validationMessageLogRepository.findAll(any(Example.class), any(Pageable.class)))
-        .thenReturn(new PageImpl(Arrays.asList(
-            getValidationMessage(ValidationMessageType.WARNING),
-            getValidationMessage(ValidationMessageType.ERROR))));
+        .thenReturn(
+            new PageImpl(
+                Arrays.asList(
+                    getValidationMessage(ValidationMessageType.WARNING),
+                    getValidationMessage(ValidationMessageType.ERROR))));
   }
 
   @State("a submission exists for the search criteria")

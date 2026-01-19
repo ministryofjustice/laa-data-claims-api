@@ -45,6 +45,9 @@ jobs:
       - name: Integration test
         run: ./gradlew integrationTest --tests '*IntegrationTest'
 
+      - name: Run pact test
+        run: ./gradlew pactTest
+
       - name: Publish api models package
         run: |
           version=$(git rev-parse --short HEAD)
@@ -201,7 +204,7 @@ jobs:
       contents: write
       packages: write
     with:
-      pact_test_task: "pactTest"
+      pact_test_task: ":claims-data:service:pactTest"
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
