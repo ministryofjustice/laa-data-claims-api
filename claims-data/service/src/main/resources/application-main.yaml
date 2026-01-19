@@ -24,6 +24,9 @@ laa:
     authorized-roles: ${AUTHORIZED_ROLES}
     unprotected-uris: ${UNPROTECTED_URIS}
 
+javers:
+  enabled: false  # turn off auditing for production troubleshooting
+
 resilience4j.ratelimiter:
   instances:
     submissionRateLimiter:
