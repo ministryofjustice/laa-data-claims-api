@@ -45,7 +45,7 @@ runs:
       env:
         RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
         NAMESPACE: "${{ inputs.kube-namespace }}"
-      run: helm uninstall "${RELEASE_NAME}-postgresql" --namespace "$NAMESPACE"
+      run: helm uninstall "$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
 
     - name: Delete preview release's pvc (persistent volume claim)
       shell: bash
