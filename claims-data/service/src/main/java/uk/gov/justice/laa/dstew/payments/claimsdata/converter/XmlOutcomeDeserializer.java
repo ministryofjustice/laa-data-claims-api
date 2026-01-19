@@ -258,7 +258,9 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
-        default -> throw new IllegalStateException("Unsupported name for outcome item: " + name);
+        default ->
+            throw new IllegalStateException(
+                "File rejected: unsupported outcome item. Please correct the file and try again.");
       }
     }
 
