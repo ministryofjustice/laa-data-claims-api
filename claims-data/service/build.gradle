@@ -153,6 +153,8 @@ tasks.register('pactTest', Test) {
     systemProperty 'pact.verifier.publishResults', 'true'
     systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
     systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('http://localhost:9292')
+    systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
+    systemProperty 'pactbroker.auth.password', providers.environmentVariable('PACT_BROKER_PASSWORD').getOrElse('ABC')
 
     // Resolve the directory path to a String for the system property
     systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
