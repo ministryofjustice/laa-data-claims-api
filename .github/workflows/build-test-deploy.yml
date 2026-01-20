@@ -194,7 +194,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/provider-pact-and-publish.yml@story/pact-publish
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish-provider.yml@story/pact-publish
     permissions:
       contents: write
       packages: write
@@ -207,13 +207,21 @@ jobs:
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  deploy-uat:
-    runs-on: ubuntu-latest
+  pact-check-uat:
     needs:
       - build-push-docker
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-can-i-deploy.yml@story/pact-publish
+    with:
+      pacticipants: '["laa-submit-a-bulk-claim"]'
+      to_environment: 'uat'
+    secrets: inherit
+
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs: pact-check-uat
     environment: uat
     permissions:
       id-token: write
@@ -237,14 +245,22 @@ jobs:
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
 
-  deploy-staging:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+  pact-check-staging:
     needs:
       - build-push-docker
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-can-i-deploy.yml@story/pact-publish
+    with:
+      pacticipants: '["laa-submit-a-bulk-claim"]'
+      to_environment: 'staging'
+    secrets: inherit
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: pact-check-staging
     environment: staging
     permissions:
       id-token: write
