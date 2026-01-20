@@ -27,6 +27,26 @@ spec:
                     secretKeyRef:
                       name: laa-data-claims-api-secrets
                       key: sqs-queue-name
+                - name: HIKARI_MIN_POOL_SIZE
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: hikari-minimum-pool-size
+                - name: HIKARI_MAX_POOL_SIZE
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: hikari-maximum-pool-size
+                - name: HIKARI_IDLE_TIMEOUT
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: hikari-idle-timeout
+                - name: HIKARI_CONNECTION_TIMEOUT
+                  valueFrom:
+                    secretKeyRef:
+                      name: laa-data-claims-api-secrets
+                      key: hikari-connection-timeout
               command: ["java", "-jar", "app.jar"]
               args:
                 - "--spring.profiles.active={{ .Values.spring.profile }},replication-summary-cronjob"
