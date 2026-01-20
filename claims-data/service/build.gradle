@@ -8,8 +8,8 @@ plugins {
 }
 
 def versions = [
-    sentry : '8.28.0',
-    testcontainers: '1.20.1'
+        sentry        : '8.28.0',
+        testcontainers: '1.20.1'
 ]
 
 test {
@@ -111,13 +111,6 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
-    implementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
-    // If the above doesn't resolve it, add it specifically for Pact
-    testImplementation 'org.springframework.boot:spring-boot-starter-security'
-    testImplementation 'org.springframework.boot:spring-boot-autoconfigure'
-    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    testImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 }
 
@@ -131,18 +124,22 @@ sourceSets {
 }
 
 configurations {
-    pactTestImplementation.extendsFrom testImplementation
-    pactTestRuntimeOnly.extendsFrom testRuntimeOnly
-    
-    // Explicitly associate the configuration with the source set's classpath
-    // This is often what's missing in CI environments
-    pactTestCompileClasspath.extendsFrom testCompileClasspath
-    pactTestRuntimeClasspath.extendsFrom testRuntimeClasspath
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    pactTestImplementation.extendsFrom(testImplementation)
+    pactTestRuntimeOnly.extendsFrom(testRuntimeOnly)
 }
 
-// Ensure the pactTest source set uses the configurations we just set up
-sourceSets.pactTest.compileClasspath += configurations.pactTestCompileClasspath
-sourceSets.pactTest.runtimeClasspath += configurations.pactTestRuntimeClasspath
+
+dependencies {
+    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    pactTestImplementation 'org.springframework.boot:spring-boot-autoconfigure'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    pactTestImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
+}
 
 tasks.register('pactTest', Test) {
     description = 'Runs the pact tests.'
@@ -153,11 +150,9 @@ tasks.register('pactTest', Test) {
     classpath = sourceSets.pactTest.runtimeClasspath
 
     // Pass environment variables into the test process as System Properties
-    systemProperty 'pact.verifier.publishResults', System.getenv('PACT_VERIFIER_PUBLISH_RESULTS') ?: 'true'
-    systemProperty 'pact.provider.version', System.getenv('CI_COMMIT_SHA') ?: '1.0.0'
-    systemProperty 'pactbroker.host', System.getenv('PACT_BROKER_URL') ?: 'http://localhost:9292'
-    systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME') ?: 'user'
-    systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD') ?: 'pass'
+    systemProperty 'pact.verifier.publishResults', 'true'
+    systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
+    systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('http://localhost:9292')
 
     // Resolve the directory path to a String for the system property
     systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path

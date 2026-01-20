@@ -1,3 +1,16 @@
+spring:
+  jpa:
+    open-in-view: false
+  data:
+    jpa:
+      repositories:
+        enabled: false
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: never
+
 laa:
   springboot.starter.auth:
     authentication-header: "Authorization"

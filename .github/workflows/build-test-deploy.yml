@@ -45,9 +45,6 @@ jobs:
       - name: Integration test
         run: ./gradlew integrationTest --tests '*IntegrationTest'
 
-      - name: Run pact test
-        run: ./gradlew pactTest
-
       - name: Publish api models package
         run: |
           version=$(git rev-parse --short HEAD)
@@ -197,8 +194,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
   pact-test:
-    needs:
-      - build-test
+    #needs:
+    #  - build-test
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@story/pact-publish
     permissions:
       contents: write

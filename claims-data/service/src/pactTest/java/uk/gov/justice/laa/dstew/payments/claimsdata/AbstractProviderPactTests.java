@@ -1,11 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
+import jakarta.activation.DataSource;
+import jakarta.persistence.EntityManagerFactory;
+import org.flywaydb.core.Flyway;
 import org.javers.spring.boot.sql.JaversSqlAutoConfiguration;
 import org.junit.jupiter.api.BeforeAll;
+import org.springframework.boot.actuate.endpoint.web.PathMappedEndpoints;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,8 +29,6 @@ import uk.gov.laa.springboot.auth.TokenDetailsManager;
 @EnableAutoConfiguration(
     exclude = {
       DataSourceAutoConfiguration.class,
-      HibernateJpaAutoConfiguration.class,
-      FlywayAutoConfiguration.class,
       JaversSqlAutoConfiguration.class,
     })
 @TestPropertySource(
@@ -73,4 +73,10 @@ public class AbstractProviderPactTests {
   @MockitoBean protected SubmissionEventPublisherService submissionEventPublisherService;
 
   @MockitoBean protected BulkSubmissionService bulkSubmissionService;
+
+  // Mocked various DB beans to allow application to run properly without dependencies
+  @MockitoBean protected Flyway flyway;
+  @MockitoBean protected EntityManagerFactory entityManagerFactory;
+  @MockitoBean protected PathMappedEndpoints pathMappedEndpoints;
+  @MockitoBean protected DataSource dataSource;
 }
