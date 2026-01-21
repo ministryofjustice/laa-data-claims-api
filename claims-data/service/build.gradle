@@ -6,14 +6,6 @@ plugins {
     id "io.sentry.jvm.gradle" version "5.12.2"
 }
 
-
-//java {
-//    toolchain {
-//        languageVersion = JavaLanguageVersion.of(25)
-//    }
-//}
-
-
 def versions = [
     sentry : '8.28.0',
     testcontainers: '1.20.1'
