@@ -1,4 +1,4 @@
-name: Pact triggered workflow for ${{ github.event.inputs.consumer }}-${{ github.event.inputs.consumerBranch }}
+name: Pact triggered workflow
 
 on:
   workflow_dispatch:

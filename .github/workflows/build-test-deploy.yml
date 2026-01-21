@@ -201,13 +201,14 @@ jobs:
     with:
       pact_test_task: ":claims-data:service:pactTest"
       pacticipant_name: 'laa-data-claims-api'
+      consumer_name: 'laa-submit-a-bulk-claim' # Temporary
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  pact-check-uat:
+  pact-can-i-deploy-to-uat:
     needs:
       - build-push-docker
       - semgrep-scan
@@ -215,13 +216,13 @@ jobs:
       - vulnerability-scan-docker
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-can-i-deploy.yml@story/pact-publish
     with:
-      pacticipants: '["laa-submit-a-bulk-claim"]'
+      pacticipant: 'laa-data-claims-api'
       to_environment: 'uat'
     secrets: inherit
 
   deploy-uat:
     runs-on: ubuntu-latest
-    needs: pact-check-uat
+    needs: pact-can-i-deploy-to-uat
     environment: uat
     permissions:
       id-token: write
@@ -231,6 +232,16 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Can I deploy UAT?
+        id: can_i_deploy_uat
+        uses: ./.github/actions/pact-can-i-deploy-action
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'uat'
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy UAT branch
         id: deploy_uat_branch
@@ -245,7 +256,7 @@ jobs:
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
 
-  pact-check-staging:
+  pact-can-i-deploy-to-staging:
     needs:
       - build-push-docker
       - semgrep-scan
@@ -253,14 +264,14 @@ jobs:
       - vulnerability-scan-docker
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-can-i-deploy.yml@story/pact-publish
     with:
-      pacticipants: '["laa-submit-a-bulk-claim"]'
+      pacticipant: 'laa-data-claims-api'
       to_environment: 'staging'
     secrets: inherit
 
   deploy-staging:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: pact-check-staging
+    needs: pact-can-i-deploy-to-staging
     environment: staging
     permissions:
       id-token: write
@@ -284,10 +295,18 @@ jobs:
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: staging
 
+  pact-can-i-deploy-to-production:
+    needs: deploy-staging
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-can-i-deploy.yml@story/pact-publish
+    with:
+      pacticipant: 'laa-data-claims-api'
+      to_environment: 'production'
+    secrets: inherit
+
   deploy-production:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: deploy-staging
+    needs: pact-can-i-deploy-to-production
     environment: production
     permissions:
       id-token: write

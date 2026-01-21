@@ -173,7 +173,6 @@ tasks.named('processPactTestResources') {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
-
 spotless {
     java {
         target 'src/*/java/**/*.java'
