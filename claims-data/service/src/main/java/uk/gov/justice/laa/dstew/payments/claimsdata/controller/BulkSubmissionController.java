@@ -45,7 +45,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
         bulkSubmissionService.submitBulkSubmissionFile(userId, file, offices);
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
-            .path("/api/v0/submissions/{id}")
+            .path("/api/v1/submissions/{id}")
             .buildAndExpand(bulkSubmissionResponse.getSubmissionIds().getFirst())
             .toUri();
 
