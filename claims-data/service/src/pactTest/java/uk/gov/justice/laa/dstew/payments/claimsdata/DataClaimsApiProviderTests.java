@@ -4,7 +4,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.MATTER_START_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmission;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
@@ -38,6 +41,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
@@ -67,12 +72,89 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .build());
   }
 
+  @State("the system is ready to update a bulk submission")
+  public void theSystemIsReadyToUpdateABulkSubmission() {
+    log.info("Setting up state: the system is ready to update a bulk submission");
+    when(bulkSubmissionRepository.updateBulkSubmission(any(), any(), any(), any(), any()))
+        .thenReturn(1);
+  }
+
+  @State("the system is ready to update a submission")
+  public void theSystemIsReadyToUpdateASubmission() {
+    log.info("Setting up state: the system is ready to update a submission");
+    when(submissionRepository.update(any())).thenReturn(1L);
+  }
+
+  @State("the system is ready to update a claim")
+  public void theSystemIsReadyToUpdateAClaim() {
+    log.info("Setting up state: the system is ready to update a claim");
+    when(claimRepository.update(any())).thenReturn(1L);
+  }
+
+  @State("the system is ready to process a valid claim")
+  public void theSystemIsReadyToProcessAValidClaim() {
+    log.info("Setting up state: the system is ready to process a valid claim");
+    when(claimService.createClaim(any(), any())).thenReturn(CLAIM_1_ID);
+  }
+
+  @State("the system is ready to process a valid matter start")
+  public void theSystemIsReadyToProcessAValidMatterStart() {
+    log.info("Setting up state: the system is ready to process a valid matter start");
+    when(matterStartService.createMatterStart(any(), any())).thenReturn(MATTER_START_ID);
+  }
+
+  @State("the system is ready to process a valid submission")
+  public void theSystemIsReadyToProcessAValidSubmission() {
+    log.info("Setting up state: the system is ready to process a valid submission");
+    when(submissionService.createSubmission(any())).thenReturn(SUBMISSION_ID);
+  }
+
   @State("the submission file contains invalid data")
   public void theSubmissionFileContainsInvalidData() {
     log.info("Setting up state: the submission file contains invalid data");
     doThrow(new BulkSubmissionValidationException("Error found"))
         .when(bulkSubmissionService)
         .submitBulkSubmissionFile(any(), any(), any());
+  }
+
+  @State("the bulk submission patch contains invalid data")
+  public void theBulkSubmissionPatchContainsInvalidData() {
+    log.info("Setting up state: the bulk submission patch contains invalid data");
+    doThrow(new BulkSubmissionValidationException("Error found"))
+        .when(bulkSubmissionService)
+        .updateBulkSubmission(any(), any());
+  }
+
+  @State("the submission patch contains invalid data")
+  public void theSubmissionPatchContainsInvalidData() {
+    log.info("Setting up state: the submission patch contains invalid data");
+    doThrow(new SubmissionBadRequestException("Error found"))
+        .when(submissionService)
+        .updateSubmission(any(), any());
+  }
+
+  @State("the claim patch contains invalid data")
+  public void theClaimPatchContainsInvalidData() {
+    log.info("Setting up state: the claim patch contains invalid data");
+    doThrow(new ClaimBadRequestException("Error found"))
+        .when(claimService)
+        .updateClaim(any(), any(), any());
+  }
+
+  @State("the claim request contains invalid data")
+  public void theClaimRequestContainsInvalidData() {
+    log.info("Setting up state: the claim request contains invalid data");
+    doThrow(new ClaimBadRequestException("Error found"))
+        .when(claimService)
+        .createClaim(any(), any());
+  }
+
+  @State("the matter start request contains invalid data")
+  public void theMatterStartRequestContainsInvalidData() {
+    log.info("Setting up state: the matter start request contains invalid data");
+    doThrow(new BulkSubmissionValidationException("Error found"))
+        .when(matterStartService)
+        .createMatterStart(any(), any());
   }
 
   @State("no submission exists")
@@ -101,6 +183,12 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: no matter starts exists");
     when(matterStartRepository.findBySubmissionIdAndId(any(), any())).thenReturn(Optional.empty());
     when(matterStartRepository.findBySubmissionId(any())).thenReturn(Collections.emptyList());
+  }
+
+  @State("a bulk submission exists")
+  public void aBulkSubmissionExists() {
+    log.info("Setting up state: a bulk submission exists");
+    when(bulkSubmissionRepository.findById(any())).thenReturn(Optional.of(getBulkSubmission()));
   }
 
   @State("a submission exists")

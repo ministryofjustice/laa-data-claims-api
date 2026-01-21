@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -16,12 +17,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
@@ -220,6 +224,20 @@ public class ClaimsDataTestUtil {
     validationMessageLog.setTechnicalMessage("Technical message");
     validationMessageLog.setCreatedOn(SUBMITTED_DATE.toInstant());
     return validationMessageLog;
+  }
+
+  public static BulkSubmission getBulkSubmission() {
+    return BulkSubmission.builder()
+        .id(BULK_SUBMISSION_ID)
+        .data(new GetBulkSubmission200ResponseDetails())
+        .status(BulkSubmissionStatus.READY_FOR_PARSING)
+        .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+        .errorCode(BulkSubmissionErrorCode.E100)
+        .errorDescription("Initial error description")
+        .updatedByUserId("initial-updater")
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .updatedOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 
   public static Submission getSubmission() {
