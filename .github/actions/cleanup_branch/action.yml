@@ -35,12 +35,32 @@ runs:
 
     - name: Delete preview release
       shell: bash
-      run: helm uninstall ${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }} --namespace ${{ inputs.kube-namespace }}
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE"
 
     - name: Delete preview release's ephemeral postgres database
       shell: bash
-      run: helm uninstall ${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}-postgresql --namespace ${{ inputs.kube-namespace }}
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: helm uninstall "$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
 
     - name: Delete preview release's pvc (persistent volume claim)
       shell: bash
-      run: kubectl delete pvc -l app.kubernetes.io/instance="${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}-postgresql" --namespace ${{ inputs.kube-namespace }}
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
+
+    - name: Delete Helm release history secrets
+      shell: bash
+      env:
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        NAMESPACE: "${{ inputs.kube-namespace }}"
+      run: |
+        # Delete Helm release history secrets for the main application
+        kubectl delete secret -l name="$RELEASE_NAME",owner=helm --namespace "$NAMESPACE" --ignore-not-found=true
+        # Delete Helm release history secrets for PostgreSQL
+        kubectl delete secret -l name="$RELEASE_NAME-postgresql",owner=helm --namespace "$NAMESPACE" --ignore-not-found=true
