@@ -29,10 +29,6 @@ spring:
       hibernate:
         default_schema: claims
 
-  autoconfigure:
-    exclude:
-      - org.javers.spring.boot.sql.JaversSqlAutoConfiguration
-
 # Local connection details for dev, overridden in other envs
 aws:
   region: us-east-1
@@ -42,7 +38,6 @@ aws:
 
 javers:
   sqlSchema: javers
-  enabled: false  # turn off auditing for production troubleshooting
 
 # used by actuator info endpoint
 info:
