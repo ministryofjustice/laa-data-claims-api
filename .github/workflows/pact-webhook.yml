@@ -1,0 +1,24 @@
+name: Pact triggered workflow for ${{ github.event.inputs.consumer }}-${{ github.event.inputs.consumerBranch }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      consumer:       { required: true, description: "Consumer name (e.g., laa-microservice)" }
+      consumerBranch: { required: true, description: "Consumer branch (e.g., main)" }
+
+jobs:
+  pact-test:
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@story/pact-publish
+    permissions:
+      contents: write
+      packages: write
+    with:
+      pact_test_task: ":claims-data:service:pactTest"
+      provider_name: 'laa-data-claims-api'
+      consumer_name: ${{ github.event.inputs.consumer }}
+      consumer_branch: ${{ github.event.inputs.consumerBranch }}
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}

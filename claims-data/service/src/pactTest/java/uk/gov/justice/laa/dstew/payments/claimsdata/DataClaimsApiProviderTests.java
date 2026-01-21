@@ -17,7 +17,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
 import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvider;
-import au.com.dius.pact.provider.junitsupport.Consumer;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
@@ -45,7 +44,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @Slf4j
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@Consumer(value = "laa-submit-a-bulk-claim")
 @Provider(value = "laa-data-claims-api")
 @PactBroker
 public class DataClaimsApiProviderTests extends AbstractProviderPactTests {

@@ -156,6 +156,15 @@ tasks.register('pactTest', Test) {
     systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
     systemProperty 'pactbroker.auth.password', providers.environmentVariable('PACT_BROKER_PASSWORD').getOrElse('ABC')
 
+    // Only set the consumer filter and branch selectors if PACT_CONSUMER_NAME is provided
+    def consumerName = providers.environmentVariable('PACT_CONSUMER_NAME').orNull
+    if (consumerName) {
+        systemProperty 'pact.filter.consumers', consumerName
+
+        def branch = providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
+        systemProperty 'pactbroker.consumerversionselectors.rawjson', "[{\"branch\":\"${branch}\"}]"
+    }
+
     // Resolve the directory path to a String for the system property
     systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
 }
