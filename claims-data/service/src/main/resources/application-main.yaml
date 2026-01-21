@@ -13,9 +13,9 @@ spring:
       reporting_username: ${REPORTING_USERNAME}
       reporting_password: ${REPORTING_PASSWORD}
 
-#  autoconfigure:
-#    exclude:
-#      - org.javers.spring.boot.sql.JaversSqlAutoConfiguration
+  autoconfigure:
+    exclude:
+      - org.javers.spring.boot.sql.JaversSqlAutoConfiguration
 
 aws:
   region: ${AWS_REGION}
