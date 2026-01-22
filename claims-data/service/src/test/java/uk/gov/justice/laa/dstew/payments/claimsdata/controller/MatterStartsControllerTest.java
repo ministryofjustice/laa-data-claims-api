@@ -58,7 +58,7 @@ class MatterStartsControllerTest {
   @MockitoBean private MatterStartService matterStartService;
 
   @Nested
-  @DisplayName("POST: /api/v0/submissions/{id}/matter-starts tests")
+  @DisplayName("POST: /api/v1/submissions/{id}/matter-starts tests")
   class CreateMatterStartTests {
 
     @Test
@@ -102,7 +102,7 @@ class MatterStartsControllerTest {
   }
 
   @Nested
-  @DisplayName("GET: /api/v0/submissions/{id}/matter-starts/{matter-start-id} tests")
+  @DisplayName("GET: /api/v1/submissions/{id}/matter-starts/{matter-start-id} tests")
   class GetMatterStarts {
 
     @Test

@@ -1,6 +1,6 @@
 openapi: "3.0.0"
 info:
-  version: 0.0.1
+  version: 1.0.0
   title: LAA Data Claims API
   description: |
     This API allows bulk submission and claim management for the LAA Data Stewardship Payments project. 
@@ -16,7 +16,7 @@ tags:
     description: Operations related to matter starts
 
 paths:
-  /api/v0/bulk-submissions:
+  /api/v1/bulk-submissions:
     post:
       operationId: createBulkSubmission
       tags:
@@ -92,7 +92,7 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v0/bulk-submissions/{id}:
+  /api/v1/bulk-submissions/{id}:
     get:
       operationId: getBulkSubmission
       tags:
@@ -221,7 +221,7 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v0/submissions:
+  /api/v1/submissions:
     post:
       operationId: createSubmission
       tags:
@@ -330,7 +330,7 @@ paths:
                 $ref: '#/components/schemas/submissions_result_set'
         '429':
           description: 'Too many requests'
-  /api/v0/claims:
+  /api/v1/claims:
     get:
       operationId: getClaims
       x-spring-paginated: true
@@ -422,7 +422,7 @@ paths:
           description: 'Too many requests'
         '500':
           description: 'Internal server error'
-  /api/v0/submissions/{id}/claims:
+  /api/v1/submissions/{id}/claims:
     post:
       operationId: createClaim
       tags:
@@ -472,7 +472,7 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v0/submissions/{id}/matter-starts:
+  /api/v1/submissions/{id}/matter-starts:
     post:
       operationId: createMatterStart
       tags:
@@ -556,7 +556,7 @@ paths:
           description: 'Too many requests'
         '500':
           description: 'Internal server error'
-  /api/v0/submissions/{id}/matter-starts/{matter-start-id}:
+  /api/v1/submissions/{id}/matter-starts/{matter-start-id}:
     get:
       operationId: getMatterStart
       tags:
@@ -597,7 +597,7 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v0/submissions/{id}:
+  /api/v1/submissions/{id}:
     patch:
       operationId: updateSubmission
       tags:
@@ -669,7 +669,7 @@ paths:
         '500':
           description: 'Internal server error'
 
-  /api/v0/submissions/{submission-id}/claims/{claim-id}:
+  /api/v1/submissions/{submission-id}/claims/{claim-id}:
     get:
       operationId: getClaim
       tags:
@@ -748,7 +748,7 @@ paths:
           description: Submission or claim not found
         '429':
           description: 'Too many requests'
-  /api/v0/validation-messages:
+  /api/v1/validation-messages:
     get:
       operationId: getValidationMessages
       x-spring-paginated: true

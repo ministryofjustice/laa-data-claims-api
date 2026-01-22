@@ -13,8 +13,9 @@ runs:
   steps:
     - id: release
       shell: bash
+      env:
+        BRANCH_NAME: ${{ inputs.branch_name }}
       run: |
-        branch_name="${{ inputs.branch_name }}"
-        truncated_branch=$(echo "$branch_name" | tr '[:upper:]' '[:lower:]' | tr -s ' _/[]().' '-' | cut -c1-15 | sed 's/-$//')
-        echo "release_name=${truncated_branch}" >> $GITHUB_OUTPUT
+        truncated_branch=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | tr -s ' _/[]().' '-' | cut -c1-15 | sed 's/-$//')
+        echo "release_name=${truncated_branch}" >> "$GITHUB_OUTPUT"
         echo "release_name being exported: ${truncated_branch}"
