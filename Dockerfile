@@ -3,7 +3,7 @@
 ARG BUILD_SOURCE=external
 
 # Build stage
-FROM gradle:8-jdk25 AS builder
+FROM gradle:9-jdk25 AS builder
 
 # Set up working directory for build
 WORKDIR /build
