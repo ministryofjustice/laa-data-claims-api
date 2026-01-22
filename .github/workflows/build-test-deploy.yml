@@ -226,15 +226,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Can I deploy UAT?
-        id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
-        with:
-          pacticipant: 'laa-data-claims-api'
-          environment: 'uat'
-          pact_broker_url: ${{ secrets.pact_broker_url }}
-          pact_broker_username: ${{ secrets.pact_broker_username }}
-          pact_broker_password: ${{ secrets.pact_broker_password }}
+      #- name: Can I deploy UAT?
+      #  id: can_i_deploy_uat
+      #  uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+      #  with:
+      #    pacticipant: 'laa-data-claims-api'
+      #    environment: 'uat'
+      #    pact_broker_url: ${{ secrets.pact_broker_url }}
+      #    pact_broker_username: ${{ secrets.pact_broker_username }}
+      #    pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy UAT branch
         id: deploy_uat_branch
@@ -273,15 +273,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Can I deploy Staging?
-        id: can_i_deploy_staging
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
-        with:
-          pacticipant: 'laa-data-claims-api'
-          environment: 'staging'
-          pact_broker_url: ${{ secrets.pact_broker_url }}
-          pact_broker_username: ${{ secrets.pact_broker_username }}
-          pact_broker_password: ${{ secrets.pact_broker_password }}
+      #- name: Can I deploy Staging?
+      #  id: can_i_deploy_staging
+      #  uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+      #  with:
+      #    pacticipant: 'laa-data-claims-api'
+      #    environment: 'staging'
+      #    pact_broker_url: ${{ secrets.pact_broker_url }}
+      #    pact_broker_username: ${{ secrets.pact_broker_username }}
+      #    pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy staging
         id: deploy_staging
@@ -320,15 +320,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Can I deploy Production?
-        id: can_i_deploy_production
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
-        with:
-          pacticipant: 'laa-data-claims-api'
-          environment: 'production'
-          pact_broker_url: ${{ secrets.pact_broker_url }}
-          pact_broker_username: ${{ secrets.pact_broker_username }}
-          pact_broker_password: ${{ secrets.pact_broker_password }}
+      #- name: Can I deploy Production?
+      #  id: can_i_deploy_production
+      #  uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+      #  with:
+      #    pacticipant: 'laa-data-claims-api'
+      #    environment: 'production'
+      #    pact_broker_url: ${{ secrets.pact_broker_url }}
+      #    pact_broker_username: ${{ secrets.pact_broker_username }}
+      #    pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy production
         id: deploy_production
