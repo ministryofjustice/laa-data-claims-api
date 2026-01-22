@@ -195,6 +195,11 @@ jobs:
 
   pact-test:
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@story/pact-publish
+    needs:
+      - build-push-docker
+      - semgrep-scan
+      - vulnerability-scan-app
+      - vulnerability-scan-docker
     permissions:
       contents: write
       packages: write
@@ -210,11 +215,7 @@ jobs:
 
   deploy-uat:
     runs-on: ubuntu-latest
-    needs:
-      - build-push-docker
-      - semgrep-scan
-      - vulnerability-scan-app
-      - vulnerability-scan-docker
+    needs: pact-test
     environment: uat
     permissions:
       id-token: write
@@ -261,11 +262,7 @@ jobs:
   deploy-staging:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs:
-      - build-push-docker
-      - semgrep-scan
-      - vulnerability-scan-app
-      - vulnerability-scan-docker
+    needs: pact-test
     environment: staging
     permissions:
       id-token: write
