@@ -208,6 +208,17 @@ public class ClaimsDataTestUtil {
         .numberOfMatterStarts(3);
   }
 
+  public static BulkSubmissionMatterStart getBulkSubmissionMatterStartMediationType() {
+    return new BulkSubmissionMatterStart()
+        .scheduleRef("scheduleRef")
+        .mediationType(MediationType.MDCS_CHILD_ONLY_SOLE)
+        .categoryCode(CategoryCode.AAP)
+        .procurementArea("procurementArea")
+        .accessPoint("accessPoint")
+        .deliveryLocation("deliveryLocation")
+        .numberOfMatterStarts(3);
+  }
+
   public static List<Map<String, String>> getImmigrationClrRows() {
     return List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"));
   }

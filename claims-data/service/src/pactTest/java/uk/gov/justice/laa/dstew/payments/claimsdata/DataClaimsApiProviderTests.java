@@ -4,10 +4,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.MATTER_START_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmission;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOutcome;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionSchedule;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
@@ -26,6 +27,8 @@ import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
@@ -40,10 +43,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 @Slf4j
@@ -82,31 +90,41 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the system is ready to update a submission")
   public void theSystemIsReadyToUpdateASubmission() {
     log.info("Setting up state: the system is ready to update a submission");
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
     when(submissionRepository.update(any())).thenReturn(1L);
   }
 
   @State("the system is ready to update a claim")
   public void theSystemIsReadyToUpdateAClaim() {
     log.info("Setting up state: the system is ready to update a claim");
+    when(claimRepository.findByIdAndSubmissionId(any(), any()))
+        .thenReturn(Optional.ofNullable(getClaim()));
     when(claimRepository.update(any())).thenReturn(1L);
   }
 
   @State("the system is ready to process a valid claim")
   public void theSystemIsReadyToProcessAValidClaim() {
     log.info("Setting up state: the system is ready to process a valid claim");
-    when(claimService.createClaim(any(), any())).thenReturn(CLAIM_1_ID);
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
   }
 
   @State("the system is ready to process a valid matter start")
   public void theSystemIsReadyToProcessAValidMatterStart() {
     log.info("Setting up state: the system is ready to process a valid matter start");
-    when(matterStartService.createMatterStart(any(), any())).thenReturn(MATTER_START_ID);
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
   }
 
   @State("the system is ready to process a valid submission")
   public void theSystemIsReadyToProcessAValidSubmission() {
-    log.info("Setting up state: the system is ready to process a valid submission");
-    when(submissionService.createSubmission(any())).thenReturn(SUBMISSION_ID);
+    log.info("No setup needed: the system is ready to process a valid submission");
+  }
+
+  @State("the system rejects an invalid submission")
+  public void theSystemRejectsAnInvalidSubmission() {
+    log.info("Setting up state: the system rejects an invalid submission");
+    doThrow(new SubmissionBadRequestException("Error found"))
+        .when(submissionRepository)
+        .save(any());
   }
 
   @State("the submission file contains invalid data")
@@ -128,39 +146,50 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the submission patch contains invalid data")
   public void theSubmissionPatchContainsInvalidData() {
     log.info("Setting up state: the submission patch contains invalid data");
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
     doThrow(new SubmissionBadRequestException("Error found"))
-        .when(submissionService)
-        .updateSubmission(any(), any());
+        .when(submissionRepository)
+        .save(any());
   }
 
   @State("the claim patch contains invalid data")
   public void theClaimPatchContainsInvalidData() {
     log.info("Setting up state: the claim patch contains invalid data");
-    doThrow(new ClaimBadRequestException("Error found"))
-        .when(claimService)
-        .updateClaim(any(), any(), any());
+    when(claimRepository.findByIdAndSubmissionId(any(), any()))
+        .thenReturn(Optional.ofNullable(getClaim()));
+    doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
   }
 
   @State("the claim request contains invalid data")
   public void theClaimRequestContainsInvalidData() {
     log.info("Setting up state: the claim request contains invalid data");
-    doThrow(new ClaimBadRequestException("Error found"))
-        .when(claimService)
-        .createClaim(any(), any());
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
   }
 
   @State("the matter start request contains invalid data")
   public void theMatterStartRequestContainsInvalidData() {
     log.info("Setting up state: the matter start request contains invalid data");
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
     doThrow(new BulkSubmissionValidationException("Error found"))
-        .when(matterStartService)
-        .createMatterStart(any(), any());
+        .when(matterStartRepository)
+        .save(any());
+  }
+
+  @State("no bulk submission exists")
+  public void noBulkSubmissionExists() {
+    log.info("Setting up state: no bulk submission exists");
+    doThrow(new BulkSubmissionNotFoundException("Not found"))
+        .when(bulkSubmissionService)
+        .getBulkSubmission(any());
   }
 
   @State("no submission exists")
   public void noSubmissionExists() {
     log.info("Setting up state: no submission exists");
     when(submissionRepository.findById(any())).thenReturn(Optional.empty());
+    when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl(Collections.emptyList()));
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
     when(matterStartRepository.findBySubmissionIdAndId(any(), any())).thenReturn(Optional.empty());
   }
@@ -188,7 +217,25 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a bulk submission exists")
   public void aBulkSubmissionExists() {
     log.info("Setting up state: a bulk submission exists");
-    when(bulkSubmissionRepository.findById(any())).thenReturn(Optional.of(getBulkSubmission()));
+    when(bulkSubmissionService.getBulkSubmission(any()))
+        .thenReturn(
+            GetBulkSubmission200Response.builder()
+                .bulkSubmissionId(BULK_SUBMISSION_ID)
+                .details(
+                    new GetBulkSubmission200ResponseDetails()
+                        .office(getBulkSubmissionOffice())
+                        .schedule(getBulkSubmissionSchedule())
+                        .outcomes(List.of(getBulkSubmissionOutcome(Boolean.TRUE)))
+                        .matterStarts(List.of(getBulkSubmissionMatterStartMediationType()))
+                        .immigrationClr(
+                            List.of(
+                                Map.of("additionalProp1", "string", "additionalProp2", "string"))))
+                .createdByUserId("test-user-id")
+                .errorCode(BulkSubmissionErrorCode.P100)
+                .status(BulkSubmissionStatus.READY_FOR_PARSING)
+                .updatedByUserId("event-service")
+                .errorDescription("test-description")
+                .build());
   }
 
   @State("a submission exists")
@@ -253,7 +300,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @State("a submission exists for the search criteria")
   public void aSubmissionExistsForSearchCriteria() {
-    log.info("Setting up state: a submission exist for the search criteria");
+    log.info("Setting up state: a submission exists for the search criteria");
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl(Arrays.asList(getSubmission(), getSubmission())));
   }

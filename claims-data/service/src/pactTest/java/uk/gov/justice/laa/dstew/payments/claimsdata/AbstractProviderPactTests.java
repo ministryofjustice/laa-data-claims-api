@@ -23,10 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartReposi
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
 
 @EnableAutoConfiguration(
@@ -76,12 +73,6 @@ public class AbstractProviderPactTests {
   @MockitoBean protected SubmissionEventPublisherService submissionEventPublisherService;
 
   @MockitoBean protected BulkSubmissionService bulkSubmissionService;
-
-  @MockitoBean protected ClaimService claimService;
-
-  @MockitoBean protected MatterStartService matterStartService;
-
-  @MockitoBean protected SubmissionService submissionService;
 
   // Mocked various DB beans to allow application to run properly without dependencies
   @MockitoBean protected Flyway flyway;
