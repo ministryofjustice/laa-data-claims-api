@@ -314,7 +314,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by(status) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}', uri='/api/v0/bulk-submissions'}[$__range]))",
+          "expr": "sum by(status) (increase(http_server_requests_seconds_count{namespace='{{ .Release.Namespace }}', uri='/api/v1/bulk-submissions'}[$__range]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
