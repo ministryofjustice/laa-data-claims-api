@@ -45,13 +45,13 @@ public class AssessmentService {
     UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
 
     if (!claimRepository.existsById(claimId)) {
-      throw new ClaimNotFoundException(String.format("No entity found with id: %s", claimId));
+      throw new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId));
     }
     Claim claim = claimRepository.getReferenceById(claimId);
 
     if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
       throw new ClaimSummaryFeeNotFoundException(
-          String.format("No entity found with id: %s", claimSummaryFeeId));
+          String.format("No Claim Summary Fee found with id: %s", claimSummaryFeeId));
     }
 
     updateClaimAssessmentStatus(claim);

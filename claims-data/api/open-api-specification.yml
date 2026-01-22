@@ -793,7 +793,7 @@ paths:
         '429':
           description: 'Too many requests'
 
-  /api/v0/claims/{claimId}/assessments:
+  /api/v1/claims/{claimId}/assessments:
     post:
       operationId: createAssessment
       tags:
@@ -880,7 +880,7 @@ paths:
         '500':
           description: Internal server error
 
-  /api/v0/claims/{claimId}/assessments/{assessmentId}:
+  /api/v1/claims/{claimId}/assessments/{assessmentId}:
     get:
       operationId: getAssessment
       tags:

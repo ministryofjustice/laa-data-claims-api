@@ -240,7 +240,7 @@ class AssessmentControllerTest {
           .thenReturn(resultSet);
 
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.assessments").isArray())
           .andExpect(jsonPath("$.assessments[0]").exists());
@@ -254,7 +254,7 @@ class AssessmentControllerTest {
           .thenThrow(new AssessmentNotFoundException("No assessments found"));
 
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.message").value("No assessments found"));
     }
@@ -262,7 +262,7 @@ class AssessmentControllerTest {
     @Test
     void shouldReturnBadRequestForInvalidClaimId() throws Exception {
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", "invalid-uuid"))
+          .perform(get("/api/v1/claims/{claimId}/assessments", "invalid-uuid"))
           .andExpect(status().isBadRequest());
     }
   }
