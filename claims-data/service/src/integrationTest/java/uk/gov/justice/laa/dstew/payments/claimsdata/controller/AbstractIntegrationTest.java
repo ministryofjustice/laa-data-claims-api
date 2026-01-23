@@ -40,9 +40,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -225,7 +225,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(100))
             .build();
 
     claim2 =
@@ -242,7 +241,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode("MAT2")
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(200))
             .build();
     claim3 =
         Claim.builder()
@@ -274,7 +272,6 @@ public abstract class AbstractIntegrationTest {
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
-            .totalValue(BigDecimal.valueOf(100))
             .build();
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
 
@@ -545,14 +542,14 @@ public abstract class AbstractIntegrationTest {
         getAssessmentBuilder()
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
-            .createdOn(Instant.now())
+            .createdOn(Instant.now().minusSeconds(60))
             .build();
     Assessment assessment2 =
         getAssessmentBuilder()
             .id(ASSESSMENT_2_ID)
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
-            .createdOn(Instant.now().minusSeconds(60))
+            .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
         getAssessmentBuilder()

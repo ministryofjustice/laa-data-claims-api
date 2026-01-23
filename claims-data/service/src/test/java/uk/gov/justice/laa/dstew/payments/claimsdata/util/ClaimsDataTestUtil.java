@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 public class ClaimsDataTestUtil {
 
-  public static final String API_URI_PREFIX = "/api/v0";
+  public static final String API_URI_PREFIX = "/api/v1";
   public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_1_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_2_ID = Uuid7.timeBasedUuid();
@@ -352,7 +352,6 @@ public class ClaimsDataTestUtil {
         .mediationTimeMinutes(90)
         .outreachLocation("OUT_LOC")
         .referralSource("REF_SRC")
-        .totalValue(new BigDecimal("1523.89"))
         .clientForename("CLIENT_1_FORENAME")
         .clientSurname("CLIENT_1_SURNAME")
         .clientDateOfBirth("12/06/1978")

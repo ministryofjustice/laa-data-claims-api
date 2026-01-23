@@ -33,7 +33,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -50,10 +54,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(AssessmentController.class)
 @ImportAutoConfiguration(
-    exclude = {
-      org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
-    })
+    exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
+@AutoConfigureMockMvc(addFilters = false)
 class AssessmentControllerTest {
 
   private static final String CLAIMS_URI = API_URI_PREFIX + "/claims";
@@ -233,10 +236,11 @@ class AssessmentControllerTest {
       AssessmentResultSet resultSet = new AssessmentResultSet();
       resultSet.assessments(List.of(createAssessmentGet()));
 
-      when(assessmentService.getAssessmentsByClaimId(claimId)).thenReturn(resultSet);
+      when(assessmentService.getAssessmentsByClaimId(eq(claimId), any(Pageable.class)))
+          .thenReturn(resultSet);
 
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.assessments").isArray())
           .andExpect(jsonPath("$.assessments[0]").exists());
@@ -246,11 +250,11 @@ class AssessmentControllerTest {
     void shouldReturnNotFoundWhenNoAssessmentsExist() throws Exception {
       UUID claimId = UUID.randomUUID();
 
-      when(assessmentService.getAssessmentsByClaimId(claimId))
+      when(assessmentService.getAssessmentsByClaimId(eq(claimId), any(Pageable.class)))
           .thenThrow(new AssessmentNotFoundException("No assessments found"));
 
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", claimId))
+          .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.message").value("No assessments found"));
     }
@@ -258,7 +262,7 @@ class AssessmentControllerTest {
     @Test
     void shouldReturnBadRequestForInvalidClaimId() throws Exception {
       mockMvc
-          .perform(get("/api/v0/claims/{claimId}/assessments", "invalid-uuid"))
+          .perform(get("/api/v1/claims/{claimId}/assessments", "invalid-uuid"))
           .andExpect(status().isBadRequest());
     }
   }

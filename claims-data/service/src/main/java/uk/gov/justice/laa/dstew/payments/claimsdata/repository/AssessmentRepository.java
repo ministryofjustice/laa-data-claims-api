@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -12,5 +13,5 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
   Optional<Assessment> findByIdAndClaimId(UUID assessmentId, UUID claimId);
 
-  List<Assessment> findByClaimIdOrderByCreatedOnDesc(UUID claimId);
+  List<Assessment> findByClaimId(UUID claimId, Pageable pageable);
 }

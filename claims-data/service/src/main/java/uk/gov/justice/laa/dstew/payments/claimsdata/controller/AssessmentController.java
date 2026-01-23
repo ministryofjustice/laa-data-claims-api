@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -55,8 +56,8 @@ public class AssessmentController implements AssessmentsApi {
 
   @Override
   @RateLimiter(name = "assessmentRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<AssessmentResultSet> getAssessments(UUID claimId) {
-    return ResponseEntity.ok(assessmentService.getAssessmentsByClaimId(claimId));
+  public ResponseEntity<AssessmentResultSet> getAssessments(UUID claimId, Pageable pageable) {
+    return ResponseEntity.ok(assessmentService.getAssessmentsByClaimId(claimId, pageable));
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {

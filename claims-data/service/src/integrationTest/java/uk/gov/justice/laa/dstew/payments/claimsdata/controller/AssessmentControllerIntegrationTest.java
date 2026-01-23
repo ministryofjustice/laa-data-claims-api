@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
@@ -16,6 +17,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.AssertionsForClassTypes;
@@ -209,16 +211,45 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
     AssessmentGet first = assessments.getFirst();
     assertThat(first.getClaimId()).isEqualTo(CLAIM_1_ID);
-    assertThat(first.getAssessmentOutcome()).isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
-    assertThat(first.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertThat(first.getId()).isEqualTo(ASSESSMENT_1_ID);
     assertNotNull(first.getCreatedOn());
 
     AssessmentGet second = assessments.get(1);
     assertThat(second.getClaimId()).isEqualTo(CLAIM_1_ID);
-    assertThat(second.getId()).isEqualTo(ASSESSMENT_1_ID);
+    assertThat(second.getAssessmentOutcome()).isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
+    assertThat(second.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
     assertNotNull(second.getCreatedOn());
 
-    assertThat(assessments)
-        .isSortedAccordingTo((a1, a2) -> a2.getCreatedOn().compareTo(a1.getCreatedOn()));
+    assertThat(assessments).isSortedAccordingTo(Comparator.comparing(AssessmentGet::getCreatedOn));
+  }
+
+  @DisplayName("Status 200: when a valid Claim ID is provided")
+  @Test
+  void getAssessmentsWithPaginationShouldReturnSuccess() throws Exception {
+    // when: calling GET endpoint with a valid claim ID
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_1_ID)
+                    .queryParam("page", "0")
+                    .queryParam("size", "1")
+                    .queryParam("sort", "createdOn,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    AssessmentResultSet result =
+        OBJECT_MAPPER.readValue(
+            mvcResult.getResponse().getContentAsString(), AssessmentResultSet.class);
+
+    List<AssessmentGet> assessments = result.getAssessments();
+
+    assertThat(assessments).isNotEmpty().hasSize(1);
+
+    AssessmentGet assessment = assessments.getFirst();
+    assertThat(assessment.getId()).isEqualTo(ASSESSMENT_2_ID);
+    assertThat(assessment.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(assessment.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertNotNull(assessment.getCreatedOn());
   }
 }

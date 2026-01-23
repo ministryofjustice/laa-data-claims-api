@@ -354,7 +354,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     SubmissionBase submissionBase = submissionsResultSet.getContent().getFirst();
     assertThat(submissionBase.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(submissionBase.getStatus()).isEqualTo(SubmissionStatus.CREATED);
-    // assertThat(submissionBase.getProviderUserId()).isEqualTo(submission.getProviderUserId());
+    assertThat(submissionBase.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
   }
 
   @Test
