@@ -393,6 +393,18 @@ paths:
             type: array
             items:
               $ref: "#/components/schemas/claim_status"
+        - name: submission_period
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission period
+        - name: case_reference_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by case reference number
       responses:
         '200':
           description: Claims retrieved successfully
@@ -780,6 +792,133 @@ paths:
                 $ref: '#/components/schemas/ValidationMessagesResponse'
         '429':
           description: 'Too many requests'
+
+  /api/v1/claims/{claimId}/assessments:
+    post:
+      operationId: createAssessment
+      tags:
+        - Assessments
+      summary: Create an Assessment for a Claim
+      description: |
+        Adds an Assessment record to the claim with the specified ID.
+        Returns HTTP 201 Created with a Location header pointing to the newly created resource.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/assessment_post'
+      responses:
+        '201':
+          description: Assessment created successfully
+          headers:
+            location:
+              description: URI of the newly created Assessment
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created Assessment
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Claim ID or claim summary fee ID not found'
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+    get:
+      operationId: getAssessments
+      x-spring-paginated: true
+      tags:
+        - Assessments
+      summary: Get all Assessments for a Claim
+      description: |
+        Retrieves a list of Assessment records associated with the specified Claim ID.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of assessments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/assessment_result_set'
+        '404':
+          description: Claim not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: Internal server error
+
+  /api/v1/claims/{claimId}/assessments/{assessmentId}:
+    get:
+      operationId: getAssessment
+      tags:
+        - Assessments
+      summary: Get an Assessment for a Claim
+      description: |
+        Retrieves the Assessment record for the specified Claim and Assessment IDs.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: assessmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Assessment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/assessment_get'
+        '404':
+          description: Claim or Assessment not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: Internal server error
+
 components:
   schemas:
     bulk_submission_patch:
@@ -999,6 +1138,13 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/matter_start_get'
+    assessment_result_set:
+      type: 'object'
+      properties:
+        assessments:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/assessment_get'
     claim_base:
       type: object
       description: Claim details
@@ -1220,6 +1366,16 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the claim.
+        is_amended:
+          type: boolean
+          description: Indicates if the claim has been amended.
+        has_assessment:
+          type: boolean
+          description: Indicates if the claim has an associated assessment.
+        version:
+          type: integer
+          format: int64
+          description: Used for optimistic locking
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1662,6 +1818,87 @@ components:
         - DISB_ONLY
       description: |
         The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+    assessment_outcome:
+      type: string
+      enum:
+        - PAID_IN_FULL
+        - REDUCED_STILL_ESCAPED
+        - REDUCED_TO_FIXED_FEE
+        - NILLED
+    assessment_base:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        claim_id:
+          type: string
+          format: uuid
+        claim_summary_fee_id:
+          type: string
+          format: uuid
+        assessment_outcome:
+          $ref: "#/components/schemas/assessment_outcome"
+        fixed_fee_amount:
+          type: number
+        net_profit_costs_amount:
+          type: number
+        disbursement_amount:
+          type: number
+        disbursement_vat_amount:
+          type: number
+        net_cost_of_counsel_amount:
+          type: number
+        net_travel_costs_amount:
+          type: number
+        net_waiting_costs_amount:
+          type: number
+        detention_travel_and_waiting_costs_amount:
+          type: number
+        jr_form_filling_amount:
+          type: number
+        bolt_on_adjourned_hearing_fee:
+          type: number
+        bolt_on_cmrh_telephone_fee:
+          type: number
+        bolt_on_cmrh_oral_fee:
+          type: number
+        bolt_on_home_office_interview_fee:
+          type: number
+        bolt_on_substantive_hearing_fee:
+          type: number
+        is_vat_applicable:
+          type: boolean
+        created_by_user_id:
+          type: string
+        assessed_total_vat:
+          type: number
+        assessed_total_incl_vat:
+          type: number
+        allowed_total_vat:
+          type: number
+        allowed_total_incl_vat:
+          type: number
+    assessment_post:
+      allOf:
+        - $ref: '#/components/schemas/assessment_base'
+      required:
+        - claim_id
+        - claim_summary_fee_id
+        - assessment_outcome
+        - created_by_user_id
+        - assessed_total_vat
+        - assessed_total_incl_vat
+        - allowed_total_vat
+        - allowed_total_incl_vat
+    assessment_get:
+      allOf:
+        - $ref: '#/components/schemas/assessment_base'
+      properties:
+        created_on:
+          type: string
+          format: date-time
+          description: Date and time the assessment was created
     page:
       type: 'object'
       properties:

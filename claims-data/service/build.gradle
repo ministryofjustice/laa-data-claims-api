@@ -156,7 +156,7 @@ tasks.register('pactTest', Test) {
     // Pass environment variables into the test process as System Properties
     systemProperty 'pact.verifier.publishResults', 'true'
     systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
-    systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('http://localhost:9292')
+    systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/')
     systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
     systemProperty 'pactbroker.auth.password', providers.environmentVariable('PACT_BROKER_PASSWORD').getOrElse('ABC')
 

@@ -84,6 +84,9 @@ resilience4j.ratelimiter:
     validationRateLimiter:
       limitForPeriod: 10
       limitRefreshPeriod: 1s
+    assessmentRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
 
 sentry:
   enabled: ${SENTRY_ENABLED:false}
