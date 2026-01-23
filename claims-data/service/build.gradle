@@ -49,6 +49,10 @@ dependencyManagement {
 }
 
 dependencies {
+    // Upgrade to fix CVE-2026-1225 vulnerability in logback-core
+    implementation 'ch.qos.logback:logback-core:1.5.25'
+    implementation 'ch.qos.logback:logback-classic:1.5.25'
+
     implementation project(':claims-data:api')
 
     //Enable access token authentication
