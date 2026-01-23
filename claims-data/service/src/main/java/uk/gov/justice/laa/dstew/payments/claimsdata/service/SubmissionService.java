@@ -109,6 +109,7 @@ public class SubmissionService
                 ? BigDecimal.ZERO
                 : calculatedTotalAmount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
         .matterStarts(matterStartIds)
+        .createdByUserId(submission.getCreatedByUserId())
         .providerUserId(submission.getProviderUserId());
   }
 
