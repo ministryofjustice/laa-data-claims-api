@@ -13,6 +13,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.aop.JaversAuditingAspect;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
@@ -67,6 +68,8 @@ public class AbstractProviderPactTests {
   @MockitoBean protected SubmissionRepository submissionRepository;
 
   @MockitoBean protected ValidationMessageLogRepository validationMessageLogRepository;
+
+  @MockitoBean protected AssessmentRepository assessmentRepository;
 
   @MockitoBean protected SqsClient sqsClient;
 
