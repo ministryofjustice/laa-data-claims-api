@@ -59,7 +59,11 @@ class AssessmentServiceTest {
       final UUID claimId = Uuid7.timeBasedUuid();
       final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
       final AssessmentPost post =
-          AssessmentPost.builder().claimId(claimId).claimSummaryFeeId(claimSummaryFeeId).build();
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .build();
 
       final Claim claim = Claim.builder().id(claimId).build();
 
@@ -72,6 +76,7 @@ class AssessmentServiceTest {
               .claim(claim)
               .claimSummaryFee(claimSummaryFee)
               .createdByUserId(API_USER_ID)
+              .updatedByUserId(API_USER_ID)
               .build();
 
       when(claimRepository.existsById(claimId)).thenReturn(true);
@@ -89,6 +94,7 @@ class AssessmentServiceTest {
       assertThat(id).isNotNull();
       assertThat(assessment.getId()).isEqualTo(id);
       assertThat(assessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
+      assertThat(assessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
       assertThat(assessment.getClaim()).isSameAs(claim);
       assertThat(assessment.getClaimSummaryFee()).isSameAs(claimSummaryFee);
       verify(claimRepository).existsById(claimId);
