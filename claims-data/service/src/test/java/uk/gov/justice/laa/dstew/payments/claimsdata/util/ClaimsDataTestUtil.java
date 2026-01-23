@@ -25,7 +25,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 public class ClaimsDataTestUtil {
 
-  public static final String API_URI_PREFIX = "/api/v0";
+  public static final String API_URI_PREFIX = "/api/v1";
   public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_1_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_2_ID = Uuid7.timeBasedUuid();

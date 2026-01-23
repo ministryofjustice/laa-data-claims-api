@@ -1,0 +1,25 @@
+repos:
+  # Local hooks for Gradle tasks
+  - repo: local
+    hooks:
+      - id: spotless
+        name: Spotless Code Formatting
+        description: Apply code formatting to staged Java files using Spotless
+        entry: ./gradlew spotlessApply
+        language: system
+        types: [java]
+        pass_filenames: false
+        always_run: true
+
+      - id: checkstyle
+        name: Checkstyle Validation
+        description: Run Checkstyle validation on staged Java files
+        entry: ./gradlew checkstyleStaged
+        language: system
+        types: [java]
+        pass_filenames: false
+
+  - repo: https://github.com/ministryofjustice/devsecops-hooks
+    rev: v1.3.0
+    hooks:
+      - id: baseline
