@@ -226,6 +226,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Extract release name
+        id: extract_release_name
+        uses: ./.github/actions/get_release_name
       #- name: Can I deploy UAT?
       #  id: can_i_deploy_uat
       #  uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
@@ -248,13 +251,16 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
+          
+      
+          
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: 'uat'
+          environment: ${{ steps.deploy_uat_branch.outputs.release-name }}
           pact_broker_url: ${{ secrets.pact_broker_url }}
           pact_broker_username: ${{ secrets.pact_broker_username }}
           pact_broker_password: ${{ secrets.pact_broker_password }}
@@ -301,7 +307,7 @@ jobs:
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: 'staging'
+          environment: ${{ steps.deploy_staging.outputs.release-name }}
           pact_broker_url: ${{ secrets.pact_broker_url }}
           pact_broker_username: ${{ secrets.pact_broker_username }}
           pact_broker_password: ${{ secrets.pact_broker_password }}
@@ -348,7 +354,7 @@ jobs:
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: 'production'
+          environment: ${{ steps.deploy_production.outputs.release-name }}
           pact_broker_url: ${{ secrets.pact_broker_url }}
           pact_broker_username: ${{ secrets.pact_broker_username }}
           pact_broker_password: ${{ secrets.pact_broker_password }}
