@@ -1,0 +1,35 @@
+name: Pact triggered workflow
+
+inputs:
+  consumer:
+    description: 'Name of the consumer'
+    required: true
+  consumer-branch:
+    description: 'Branch of the consumer'
+    required: true
+  gh-token:
+    description: 'Github token'
+    required: true
+  pact-username:
+    description: 'Pact broker username'
+    required: true
+  pact-password:
+    description: 'Pact broker password'
+    required: true
+
+jobs:
+  pact-test:
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@story/pact-publish
+    permissions:
+      contents: write
+      packages: write
+    with:
+      pact_test_task: ":claims-data:service:pactTest"
+      provider_name: 'laa-data-claims-api'
+      consumer_name: ${{ inputs.consumer }}
+      consumer_branch: ${{ inputs.consumer-branch }}
+    secrets:
+      gh_token: ${{ inputs.gh-token }}
+      pact_broker_url: 'https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/'
+      pact_broker_username: ${{ inputs.pact-username }}
+      pact_broker_password: ${{ inputs.pact-password }}
