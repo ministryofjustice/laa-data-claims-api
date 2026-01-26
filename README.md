@@ -3,7 +3,7 @@
 
 This is a Java based Spring Boot application hosted on [MOJ Cloud Platform](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/concepts/what-is-the-cloud-platform.html).
 
-## Overview
+## Overview 
 
 Java Spring Boot based application that provides APIs to access data maintained by the Data Stewardship (Payments) team at the LAA.
 
