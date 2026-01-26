@@ -18,6 +18,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
@@ -34,10 +35,14 @@ public class BulkSubmission {
 
   @Id private UUID id;
 
+  @DiffIgnore
   @NotNull
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(nullable = false)
   private GetBulkSubmission200ResponseDetails data;
+
+  // It already lives in claims. Keeping it in javers doubles the storage for something
+  // we don’t diff at field-level anyway.
 
   @NotNull
   @Enumerated(EnumType.STRING)
@@ -52,14 +57,16 @@ public class BulkSubmission {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
   private String authorisedOffices;
 
+  @DiffIgnore
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;

@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /** Entity representing a validation message linked to a submission and optionally a claim. */
@@ -23,6 +24,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @AllArgsConstructor
 @Entity
 @Table(name = "validation_message_log")
+@DiffIgnore // It’s already a durable log.
+// Using Javers for a log table compounds storage for minimal insight.
+// We could also add @DiffIgnore to every property except maybe the id?
 public class ValidationMessageLog {
 
   @Id private UUID id;

@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
@@ -62,7 +63,7 @@ public class Submission {
 
   private Integer numberOfClaims;
 
-  private String errorMessages;
+  @DiffIgnore private String errorMessages;
 
   @Column(nullable = false)
   private String createdByUserId;
@@ -70,11 +71,13 @@ public class Submission {
   @Column(nullable = false)
   private String providerUserId;
 
+  @DiffIgnore
   @Column(nullable = false)
   private Instant createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
+  @DiffIgnore
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;

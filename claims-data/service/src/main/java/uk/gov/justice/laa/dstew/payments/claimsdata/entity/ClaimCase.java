@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 
 /** Entity representing the summary of the claim case. */
 @Getter
@@ -74,11 +75,12 @@ public class ClaimCase {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
-  @UpdateTimestamp private Instant updatedOn;
+  @DiffIgnore @UpdateTimestamp private Instant updatedOn;
 }
