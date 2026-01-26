@@ -10,10 +10,10 @@ inputs:
   gh-token:
     description: 'Github token'
     required: true
-  pact-username:
+  pact-broker-username:
     description: 'Pact broker username'
     required: true
-  pact-password:
+  pact-broker-password:
     description: 'Pact broker password'
     required: true
 
@@ -31,5 +31,5 @@ jobs:
     secrets:
       gh_token: ${{ inputs.gh-token }}
       pact_broker_url: 'https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/'
-      pact_broker_username: ${{ inputs.pact-username }}
-      pact_broker_password: ${{ inputs.pact-password }}
+      pact_broker_username: ${{ inputs.pact-broker-username }}
+      pact_broker_password: ${{ inputs.pact-broker-password }}
