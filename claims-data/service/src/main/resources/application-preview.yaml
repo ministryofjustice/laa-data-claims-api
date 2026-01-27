@@ -8,6 +8,10 @@ spring:
       maximum-pool-size: ${HIKARI_MAX_POOL_SIZE}
       idle-timeout: ${HIKARI_IDLE_TIMEOUT}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT}
+
+  autoconfigure:
+    exclude:
+      - org.javers.spring.boot.sql.JaversSqlAutoConfiguration
 aws:
   region: ${AWS_REGION}
   sqs:
@@ -19,6 +23,9 @@ laa:
     authorized-clients: ${AUTHORIZED_CLIENTS}
     authorized-roles: ${AUTHORIZED_ROLES}
     unprotected-uris: ${UNPROTECTED_URIS}
+
+javers:
+  enabled: false  # turn off auditing for production troubleshooting
 
 resilience4j.ratelimiter:
   instances:
