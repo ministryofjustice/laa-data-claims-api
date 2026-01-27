@@ -1,0 +1,35 @@
+spring:
+  jpa:
+    open-in-view: false
+  data:
+    jpa:
+      repositories:
+        enabled: false
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: never
+
+laa:
+  springboot.starter.auth:
+    authentication-header: "Authorization"
+    authorized-clients: '[
+        {
+            "name": "test-runner",
+            "roles": [
+                "ALL"
+            ],
+            "token": "00000000-0000-0000-0000-000000000000"
+        }
+    ]'
+    authorized-roles: '[
+        {
+            "name": "ALL",
+            "URIs": [
+                "/**"
+            ]
+        }
+    ]'
+    unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
+                        "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]

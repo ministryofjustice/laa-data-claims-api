@@ -193,13 +193,30 @@ jobs:
           REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
 
-  deploy-uat:
-    runs-on: ubuntu-latest
+  pact-test:
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@story/pact-publish
     needs:
       - build-push-docker
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+    permissions:
+      contents: write
+      packages: write
+    with:
+      pact_test_task: ":claims-data:service:pactTest"
+      pacticipant_name: 'laa-data-claims-api'
+      consumer_name: 'laa-submit-a-bulk-claim' # Temporary
+      is_provider: 'true'
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs: pact-test
     environment: uat
     permissions:
       id-token: write
@@ -209,6 +226,19 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Extract release name
+        id: extract_release_name_uat
+        uses: ./.github/actions/get_release_name
+      - name: Can I deploy UAT?
+        id: can_i_deploy_uat
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy UAT branch
         id: deploy_uat_branch
@@ -223,14 +253,20 @@ jobs:
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
 
+      - name: Record UAT deployment to pact broker
+        id: record_uat_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
+
   deploy-staging:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs:
-      - build-push-docker
-      - semgrep-scan
-      - vulnerability-scan-app
-      - vulnerability-scan-docker
+    needs: pact-test
     environment: staging
     permissions:
       id-token: write
@@ -240,6 +276,20 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Extract release name
+        id: extract_release_name_staging
+        uses: ./.github/actions/get_release_name
+
+      - name: Can I deploy Staging?
+        id: can_i_deploy_staging
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
 
       - name: Deploy staging
         id: deploy_staging
@@ -253,6 +303,16 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: staging
+
+      - name: Record staging deployment to pact broker
+        id: record_staging_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
 
   deploy-production:
     if: github.ref == 'refs/heads/main'
@@ -268,6 +328,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Extract release name
+        id: extract_release_name_production
+        uses: ./.github/actions/get_release_name
+
+      - name: Can I deploy Production?
+        id: can_i_deploy_production
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_production.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}
+
       - name: Deploy production
         id: deploy_production
         uses: ./.github/actions/deploy
@@ -280,3 +354,13 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: production
+
+      - name: Record production deployment to pact broker
+        id: record_production_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: ${{ steps.extract_release_name_production.outputs.release-name }}
+          pact_broker_url: ${{ secrets.pact_broker_url }}
+          pact_broker_username: ${{ secrets.pact_broker_username }}
+          pact_broker_password: ${{ secrets.pact_broker_password }}

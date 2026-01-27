@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -14,10 +15,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest {
 
+  @BeforeEach
+  void setup() {
+    seedClaimsData();
+  }
+
   @Test
   void findByClaimId_returnsClaimCase() {
-    createClaimsTestData();
-
     var result = claimCaseRepository.findByClaimId(CLAIM_1_ID);
 
     assertThat(result).isPresent();
@@ -30,8 +34,6 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    createClaimsTestData();
-
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = claimCaseRepository.findByClaimId(unknownClaimId);
 

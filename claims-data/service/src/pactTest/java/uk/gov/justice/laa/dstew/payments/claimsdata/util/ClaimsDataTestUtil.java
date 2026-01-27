@@ -7,43 +7,40 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 public class ClaimsDataTestUtil {
 
-  public static final String API_URI_PREFIX = "/api/v1";
   public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_3_ID = Uuid7.timeBasedUuid();
   public static final UUID BULK_SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_3_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLIENT_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_2_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
+  public static final UUID MESSAGE_ID = Uuid7.timeBasedUuid();
+  public static final UUID MATTER_START_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -51,6 +48,7 @@ public class ClaimsDataTestUtil {
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
+  public static final String PROVIDER_USER_ID = "12345";
   public static final String API_USER_ID = "test-user";
   public static final String BULK_SUBMISSION_CREATED_BY_USER_ID = "a-provider-user-id";
   public static final String FEE_CODE = "FEE_123";
@@ -210,23 +208,47 @@ public class ClaimsDataTestUtil {
         .numberOfMatterStarts(3);
   }
 
+  public static BulkSubmissionMatterStart getBulkSubmissionMatterStartMediationType() {
+    return new BulkSubmissionMatterStart()
+        .scheduleRef("scheduleRef")
+        .mediationType(MediationType.MDCS_CHILD_ONLY_SOLE)
+        .categoryCode(CategoryCode.AAP)
+        .procurementArea("procurementArea")
+        .accessPoint("accessPoint")
+        .deliveryLocation("deliveryLocation")
+        .numberOfMatterStarts(3);
+  }
+
   public static List<Map<String, String>> getImmigrationClrRows() {
     return List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"));
   }
 
-  public static GetBulkSubmission200ResponseDetails getBulkSubmission200ResponseDetails() {
-    var expectedSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
-    var expectedOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
-    var expectedOutcomes = List.of(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE));
-    var expectedMatterStarts = List.of(ClaimsDataTestUtil.getBulkSubmissionMatterStart());
+  public static ValidationMessageLog getValidationMessage(
+      ValidationMessageType validationMessageType) {
+    ValidationMessageLog validationMessageLog = new ValidationMessageLog();
+    validationMessageLog.setId(MESSAGE_ID);
+    validationMessageLog.setClaimId(CLAIM_1_ID);
+    validationMessageLog.setSubmissionId(SUBMISSION_ID);
+    validationMessageLog.setType(validationMessageType);
+    validationMessageLog.setSource("data-claims-api");
+    validationMessageLog.setDisplayMessage("Display message");
+    validationMessageLog.setTechnicalMessage("Technical message");
+    validationMessageLog.setCreatedOn(SUBMITTED_DATE.toInstant());
+    return validationMessageLog;
+  }
 
-    var expectedDetails = new GetBulkSubmission200ResponseDetails();
-    expectedDetails.schedule(expectedSchedule);
-    expectedDetails.office(expectedOffice);
-    expectedDetails.outcomes(expectedOutcomes);
-    expectedDetails.matterStarts(expectedMatterStarts);
-
-    return expectedDetails;
+  public static BulkSubmission getBulkSubmission() {
+    return BulkSubmission.builder()
+        .id(BULK_SUBMISSION_ID)
+        .data(new GetBulkSubmission200ResponseDetails())
+        .status(BulkSubmissionStatus.READY_FOR_PARSING)
+        .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+        .errorCode(BulkSubmissionErrorCode.E100)
+        .errorDescription("Initial error description")
+        .updatedByUserId("initial-updater")
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .updatedOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 
   public static Submission getSubmission() {
@@ -242,6 +264,10 @@ public class ClaimsDataTestUtil {
         .isNilSubmission(false)
         .numberOfClaims(5)
         .createdOn(SUBMITTED_DATE.toInstant())
+        .createdByUserId(USER_ID)
+        .providerUserId(PROVIDER_USER_ID)
+        .legalHelpSubmissionReference("ABC")
+        .mediationSubmissionReference("ABC")
         .build();
   }
 
@@ -261,7 +287,7 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static Claim.ClaimBuilder getClaimBuilder() {
+  public static Claim getClaim() {
     return Claim.builder()
         .id(CLAIM_1_ID)
         .submission(getSubmission())
@@ -270,23 +296,43 @@ public class ClaimsDataTestUtil {
         .uniqueFileNumber(UNIQUE_FILE_NUMBER)
         .lineNumber(LINE_NUMBER)
         .matterTypeCode(MATTER_TYPE_CODE)
+        .crimeMatterTypeCode(MATTER_TYPE_CODE)
+        .dsccNumber("ABC")
         .caseStartDate(LocalDate.now().minusDays(365))
         .caseConcludedDate(LocalDate.now().minusDays(30))
         .feeCode(FEE_CODE)
+        .feeSchemeCode("ABC")
+        .dutySolicitor(false)
+        .youthCourt(false)
+        .maatId("ABC")
+        .mediationSessionsCount(1)
+        .mediationTimeMinutes(1)
+        .outreachLocation("ABC")
+        .policeStationCourtAttendancesCount(1)
+        .policeStationCourtPrisonId("ABC")
+        .prisonLawPriorApprovalNumber("ABC")
+        .referralSource("ABC")
+        .representationOrderDate(LocalDate.of(2023, 1, 1))
+        .schemeId("ABC")
+        .suspectsDefendantsCount(1)
         .status(ClaimStatus.READY_TO_PROCESS)
         .procurementAreaCode(PROCUREMENT_AREA_CODE)
         .accessPointCode(ACCESS_POINT_CODE)
         .deliveryLocation(DELIVERY_LOCATION)
         .createdByUserId(USER_ID)
-        .createdOn(SUBMITTED_DATE.toInstant());
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 
-  public static Client.ClientBuilder getClientBuilder() {
+  public static Client getClient() {
     return Client.builder()
         .id(CLIENT_1_ID)
-        .claim(getClaimBuilder().build())
+        .claim(getClaim())
         .clientForename(CLIENT_FORENAME)
         .clientSurname(CLIENT_SURNAME)
+        .disabilityCode("123")
+        .ethnicityCode("123")
+        .genderCode("M")
         .clientDateOfBirth(LocalDate.parse(CLIENT_DOB))
         .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
         .clientPostcode(CLIENT_POSTCODE)
@@ -294,7 +340,19 @@ public class ClaimsDataTestUtil {
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
         .createdByUserId(USER_ID)
-        .createdOn(SUBMITTED_DATE.toInstant());
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .client2DateOfBirth(LocalDate.parse(CLIENT_DOB))
+        .client2Forename(CLIENT_FORENAME)
+        .client2Surname(CLIENT_SURNAME)
+        .client2DisabilityCode("123")
+        .client2EthnicityCode("123")
+        .client2GenderCode("M")
+        .client2IsLegallyAided(true)
+        .client2Postcode(CLIENT_POSTCODE)
+        .client2Ucn(UNIQUE_CLIENT_NUMBER)
+        .claReferenceNumber("ABC")
+        .claExemptionCode("ABC")
+        .build();
   }
 
   public static ClaimResponse getClaimResponse() {
@@ -319,165 +377,151 @@ public class ClaimsDataTestUtil {
         .clientTypeCode(CLIENT_TYPE_CODE)
         .homeOfficeClientNumber(HOME_OFFICE_CLIENT_NUMBER)
         .submissionPeriod(SUBMISSION_PERIOD)
+        .isPostalApplicationAccepted(true)
+        .isClient2PostalApplicationAccepted(true)
+        .genderCode("M")
+        .isDutySolicitor(true)
+        .isLegacyCase(false)
+        .isNrmAdvice(false)
+        .isYouthCourt(false)
+        .maatId("123")
+        .mediationSessionsCount(1)
+        .mediationTimeMinutes(1)
+        .mentalHealthTribunalReference("ABC")
+        .outcomeCode("ABC")
+        .outreachLocation("ABC")
+        .policeStationCourtAttendancesCount(1)
+        .policeStationCourtPrisonId("ABC")
+        .prisonLawPriorApprovalNumber("ABC")
+        .referralSource("ABC")
+        .representationOrderDate("ABC")
+        .schemeId("ABC")
+        .stageReachedCode("ABC")
+        .standardFeeCategoryCode("ABC")
+        .suspectsDefendantsCount(1)
+        .totalWarnings(1)
+        .transferDate("ABC")
+        .uniqueCaseId("ABC")
         .build();
   }
 
-  public static ClaimPost getClaimPost(String caseReferenceNumber) {
-    return new ClaimPost()
-        .scheduleReference("213_REF")
-        .lineNumber(123)
-        .status(ClaimStatus.READY_TO_PROCESS)
-        .caseReferenceNumber(caseReferenceNumber)
-        .uniqueFileNumber("UFN123")
-        .caseStartDate("01/01/2020")
-        .caseConcludedDate("02/01/2020")
-        .matterTypeCode("MTC")
-        .crimeMatterTypeCode("CMTC")
-        .feeSchemeCode("FSC")
-        .feeCode("FC")
-        .procurementAreaCode("PAC")
-        .accessPointCode("APC")
-        .deliveryLocation("DEL")
-        .representationOrderDate("01/01/2020")
-        .suspectsDefendantsCount(3)
-        .policeStationCourtAttendancesCount(4)
-        .policeStationCourtPrisonId("PSCPI")
-        .dsccNumber("DSCC_123")
-        .maatId("987654321L")
-        .prisonLawPriorApprovalNumber("PLPAN")
-        .isDutySolicitor(true)
-        .isYouthCourt(false)
-        .schemeId("12")
-        .mediationSessionsCount(2)
-        .mediationTimeMinutes(90)
-        .outreachLocation("OUT_LOC")
-        .referralSource("REF_SRC")
-        .clientForename("CLIENT_1_FORENAME")
-        .clientSurname("CLIENT_1_SURNAME")
-        .clientDateOfBirth("12/06/1978")
-        .uniqueClientNumber("UCN_CL_1")
-        .clientPostcode("CLIENT_1_POSTCODE")
-        .genderCode("CLIENT_1_GENDER")
-        .ethnicityCode("CLIENT_1_ETHNICITY")
-        .disabilityCode("CLIENT_1_DISABILITY")
-        .isLegallyAided(true)
-        .clientTypeCode("CL1_CODE")
-        .homeOfficeClientNumber("HO_CL1_NUMBER")
-        .claReferenceNumber("CL1_REF_NUMBER")
-        .claExemptionCode("CL1_EX_CODE")
-        .client2Forename("CLIENT_2_FORENAME")
-        .client2Surname("CLIENT_2_SURNAME")
-        .client2DateOfBirth("5/1/2000")
-        .client2Ucn("CLIENT_2_UCN")
-        .client2Postcode("CLIENT_2_POSTCODE")
-        .client2GenderCode("CLIENT_2_GENDER")
-        .client2EthnicityCode("CLIENT_2_ETHNICITY")
-        .client2DisabilityCode("CLIENT_2_DISABILITY")
-        .client2IsLegallyAided(false)
-        .caseId("CASE_ID")
-        .uniqueCaseId("UC_ID")
-        .caseStageCode("CASE_STAGE_CODE")
-        .stageReachedCode("STAGE_REACHED_CODE")
-        .standardFeeCategoryCode("STD_FEE_CAT_CODE")
-        .outcomeCode("OUTCOME_CODE")
-        .designatedAccreditedRepresentativeCode("DAR_CODE")
-        .isPostalApplicationAccepted(true)
+  public static CalculatedFeeDetail getCalculatedFeeDetail() {
+
+    return CalculatedFeeDetail.builder()
+        .id(UUID.randomUUID())
+        .claim(getClaim())
+        .feeCode("FEE001")
+        .feeCodeDescription("Fee description")
+        .feeType(FeeCalculationType.DISB_ONLY)
+        .categoryOfLaw("LAW")
+        .totalAmount(new BigDecimal("100.00"))
+        .vatIndicator(Boolean.TRUE)
+        .vatRateApplied(new BigDecimal("20.00"))
+        .calculatedVatAmount(new BigDecimal("20.00"))
+        .disbursementAmount(new BigDecimal("10.00"))
+        .requestedNetDisbursementAmount(new BigDecimal("9.00"))
+        .disbursementVatAmount(new BigDecimal("1.00"))
+        .hourlyTotalAmount(new BigDecimal("50.00"))
+        .fixedFeeAmount(new BigDecimal("30.00"))
+        .netProfitCostsAmount(new BigDecimal("40.00"))
+        .requestedNetProfitCostsAmount(new BigDecimal("35.00"))
+        .netCostOfCounselAmount(new BigDecimal("25.00"))
+        .netTravelCostsAmount(new BigDecimal("15.00"))
+        .netWaitingCostsAmount(new BigDecimal("5.00"))
+        .detentionTravelAndWaitingCostsAmount(new BigDecimal("3.00"))
+        .jrFormFillingAmount(new BigDecimal("2.00"))
+        .travelAndWaitingCostsAmount(new BigDecimal("4.00"))
+        .boltOnTotalFeeAmount(new BigDecimal("6.00"))
+        .boltOnAdjournedHearingCount(1)
+        .boltOnAdjournedHearingFee(new BigDecimal("1.50"))
+        .boltOnCmrhTelephoneCount(2)
+        .boltOnCmrhTelephoneFee(new BigDecimal("2.50"))
+        .boltOnCmrhOralCount(3)
+        .boltOnCmrhOralFee(new BigDecimal("3.50"))
+        .boltOnHomeOfficeInterviewCount(4)
+        .boltOnHomeOfficeInterviewFee(new BigDecimal("4.50"))
+        .boltOnSubstantiveHearingFee(new BigDecimal("7.30"))
+        .escapeCaseFlag(Boolean.TRUE)
+        .schemeId("SCHEME-01")
+        .claimSummaryFee(getClaimSummaryFee())
+        .build();
+  }
+
+  public static ClaimSummaryFee getClaimSummaryFee() {
+    return ClaimSummaryFee.builder()
+        .id(UUID.randomUUID())
+        .adviceTime(10)
+        .travelTime(20)
+        .waitingTime(30)
+        .netProfitCostsAmount(new BigDecimal("123.45"))
+        .netDisbursementAmount(new BigDecimal("67.89"))
+        .netCounselCostsAmount(new BigDecimal("10.11"))
+        .disbursementsVatAmount(new BigDecimal("12.34"))
+        .travelWaitingCostsAmount(new BigDecimal("15.67"))
+        .netWaitingCostsAmount(new BigDecimal("18.90"))
+        .isVatApplicable(Boolean.TRUE)
+        .isToleranceApplicable(Boolean.FALSE)
+        .priorAuthorityReference("PA-123")
+        .isLondonRate(Boolean.TRUE)
+        .adjournedHearingFeeAmount(5)
+        .isAdditionalTravelPayment(Boolean.FALSE)
+        .costsDamagesRecoveredAmount(new BigDecimal("21.00"))
+        .meetingsAttendedCode("MEET1")
+        .detentionTravelWaitingCostsAmount(new BigDecimal("22.00"))
+        .jrFormFillingAmount(new BigDecimal("23.00"))
+        .isEligibleClient(Boolean.TRUE)
+        .courtLocationCode("COURT01")
+        .adviceTypeCode("ADVICE01")
+        .medicalReportsCount(3)
+        .isIrcSurgery(Boolean.TRUE)
+        .surgeryDate(LocalDate.of(2025, 1, 2))
+        .surgeryClientsCount(4)
+        .surgeryMattersCount(5)
+        .cmrhOralCount(6)
+        .cmrhTelephoneCount(7)
+        .aitHearingCentreCode("AITHC01")
+        .isSubstantiveHearing(Boolean.FALSE)
+        .hoInterview(8)
+        .localAuthorityNumber("LA-001")
+        .build();
+  }
+
+  public static ClaimCase getClaimCase() {
+    return ClaimCase.builder()
+        .caseId("caseId")
+        .caseStageCode("caseStageCode")
+        .exceptionalCaseFundingReference("123ABC")
+        .exemptionCriteriaSatisfied("123ABC")
+        .designatedAccreditedRepresentativeCode("ABC")
+        .followOnWork("ABC")
+        .isPostalApplicationAccepted(false)
         .isClient2PostalApplicationAccepted(true)
-        .mentalHealthTribunalReference("MHT_REF")
-        .isNrmAdvice(true)
-        .followOnWork("FOLLOW")
-        .transferDate("3/7/2024")
-        .exemptionCriteriaSatisfied("ALL")
-        .exceptionalCaseFundingReference("ECF_REF")
         .isLegacyCase(true)
-        .adviceTime(1)
-        .travelTime(2)
-        .waitingTime(3)
-        .netProfitCostsAmount(new BigDecimal("1240.94"))
-        .netDisbursementAmount(new BigDecimal("120.23"))
-        .netCounselCostsAmount(new BigDecimal("354.12"))
-        .disbursementsVatAmount(new BigDecimal("243.05"))
-        .travelWaitingCostsAmount(new BigDecimal("48.76"))
-        .netWaitingCostsAmount(new BigDecimal("87.12"))
-        .isVatApplicable(true)
-        .isToleranceApplicable(false)
-        .priorAuthorityReference("PA_REF")
-        .isLondonRate(true)
-        .adjournedHearingFeeAmount(29)
-        .isAdditionalTravelPayment(true)
-        .costsDamagesRecoveredAmount(new BigDecimal("240.44"))
-        .meetingsAttendedCode("MA_CODE")
-        .detentionTravelWaitingCostsAmount(new BigDecimal("34.57"))
-        .jrFormFillingAmount(new BigDecimal("67.85"))
-        .isEligibleClient(true)
-        .courtLocationCode("CL_CODE")
-        .adviceTypeCode("AT_CODE")
-        .medicalReportsCount(34)
-        .isIrcSurgery(false)
-        .surgeryDate("12/10/2024")
-        .surgeryClientsCount(2)
-        .surgeryMattersCount(7)
-        .cmrhOralCount(5)
-        .cmrhTelephoneCount(8)
-        .aitHearingCentreCode("AHC_CODE")
-        .isSubstantiveHearing(false)
-        .hoInterview(4)
-        .localAuthorityNumber("LA_NUMBER")
-        .createdByUserId(API_USER_ID);
+        .isNrmAdvice(true)
+        .mentalHealthTribunalReference("ABC")
+        .outcomeCode("ABC")
+        .stageReachedCode("ABC")
+        .standardFeeCategoryCode("ABC")
+        .transferDate(LocalDate.of(2025, 1, 2))
+        .uniqueCaseId("ABC")
+        .build();
   }
 
-  public static AssessmentPost getAssessmentPost() {
-    return new AssessmentPost()
-        .claimId(CLAIM_1_ID)
-        .claimSummaryFeeId(CLAIM_1_SUMMARY_FEE_ID)
-        .assessmentOutcome(AssessmentOutcome.NILLED)
-        .fixedFeeAmount(new BigDecimal("100.00"))
-        .netTravelCostsAmount(new BigDecimal("200.00"))
-        .netWaitingCostsAmount(new BigDecimal("300.00"))
-        .netProfitCostsAmount(new BigDecimal("400.00"))
-        .disbursementAmount(new BigDecimal("500.00"))
-        .disbursementVatAmount(new BigDecimal("600.00"))
-        .netCostOfCounselAmount(new BigDecimal("700.00"))
-        .detentionTravelAndWaitingCostsAmount(new BigDecimal("800.00"))
-        .isVatApplicable(true)
-        .boltOnAdjournedHearingFee(new BigDecimal(1000))
-        .jrFormFillingAmount(new BigDecimal("1100.00"))
-        .boltOnCmrhOralFee(new BigDecimal(1200))
-        .boltOnCmrhTelephoneFee(new BigDecimal(1300))
-        .boltOnSubstantiveHearingFee(new BigDecimal(1400))
-        .boltOnHomeOfficeInterviewFee(new BigDecimal(1500))
-        .assessedTotalVat(new BigDecimal("1600.00"))
-        .assessedTotalInclVat(new BigDecimal("1700.00"))
-        .allowedTotalVat(new BigDecimal("1800.00"))
-        .allowedTotalInclVat(new BigDecimal("1900.00"))
-        .createdByUserId(API_USER_ID);
-  }
-
-  public static Assessment.AssessmentBuilder getAssessmentBuilder() {
-    return Assessment.builder()
-        .id(ASSESSMENT_1_ID)
-        .assessmentOutcome(AssessmentOutcome.REDUCED_TO_FIXED_FEE)
-        .fixedFeeAmount(BigDecimal.valueOf(100.00))
-        .netTravelCostsAmount(BigDecimal.valueOf(20.00))
-        .netWaitingCostsAmount(BigDecimal.valueOf(10.00))
-        .netProfitCostsAmount(BigDecimal.valueOf(50.00))
-        .disbursementAmount(BigDecimal.valueOf(15.00))
-        .disbursementVatAmount(BigDecimal.valueOf(3.00))
-        .netCostOfCounselAmount(BigDecimal.valueOf(25.00))
-        .detentionTravelAndWaitingCostsAmount(BigDecimal.valueOf(5.00))
-        .netTravelCostsAmount(BigDecimal.valueOf(8.00))
-        .isVatApplicable(true)
-        .boltOnAdjournedHearingFee(BigDecimal.valueOf(33.00))
-        .jrFormFillingAmount(BigDecimal.valueOf(30.00))
-        .boltOnCmrhOralFee(BigDecimal.valueOf(30.00))
-        .boltOnCmrhTelephoneFee(BigDecimal.valueOf(44))
-        .boltOnSubstantiveHearingFee(BigDecimal.valueOf(55))
-        .boltOnHomeOfficeInterviewFee(BigDecimal.valueOf(59))
-        .assessedTotalVat(BigDecimal.valueOf(1.00))
-        .assessedTotalInclVat(BigDecimal.valueOf(2.00))
-        .allowedTotalVat(BigDecimal.valueOf(3.00))
-        .allowedTotalInclVat(BigDecimal.valueOf(4.00))
-        .createdByUserId(USER_ID)
-        .updatedByUserId(USER_ID);
+  public static MatterStart getMatterStart() {
+    return MatterStart.builder()
+        .id(MATTER_START_ID)
+        .submission(getSubmission())
+        .scheduleReference("ABC")
+        .categoryCode(CategoryCode.AAP.getValue())
+        .procurementAreaCode("ABC")
+        .accessPointCode("ABC")
+        .deliveryLocation("ABC")
+        .numberOfMatterStarts(1)
+        .mediationType(MediationType.MDAC_ALL_ISSUES_CO)
+        .createdByUserId("ABC")
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .updatedByUserId("ABC")
+        .updatedOn(SUBMITTED_DATE.toInstant())
+        .build();
   }
 }
