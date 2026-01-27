@@ -1,20 +1,40 @@
+# Override to use official PostgreSQL image instead of Bitnami
 image:
-  repository: bitnamilegacy/postgresql
-  tag: "17.6.0-debian-12-r2"
-  allowInsecureImages: true
+  registry: docker.io
+  repository: postgres
+  tag: "18.1-alpine"
+  pullPolicy: IfNotPresent
 
 auth:
   enablePostgresUser: true
-  postgresPassword: ""        # Let Bitnami auto-generate password
-  usePasswordFiles: true      # Required when letting Helm generate password
+  postgresPassword: ""        # Auto-generated if empty
+  username: ""
+  password: ""
+  database: "postgres"
 
 primary:
   persistence:
     enabled: true
     size: 8Gi
     storageClass: ""
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
 serviceAccount:
-  create: false            # Do not create a new service account
-  name: default            # Use the existing 'default' service account in the namespace
-  automountServiceAccountToken: false  # Don't mount the service account token inside the pod
+  create: false
+  name: default
+  automountServiceAccountToken: false
+
+# PostgreSQL configuration
+postgresqlConfiguration:
+  max_connections: "100"
+  shared_buffers: "128MB"
+
+# Standalone architecture for preview environments
+architecture: standalone
