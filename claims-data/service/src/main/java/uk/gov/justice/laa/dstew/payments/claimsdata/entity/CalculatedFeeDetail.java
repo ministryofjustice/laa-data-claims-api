@@ -19,7 +19,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 
 /** Entity representing the details of the claim fees calculated by the Fee Scheme Platform. */
@@ -87,39 +86,37 @@ public class CalculatedFeeDetail {
 
   private BigDecimal travelAndWaitingCostsAmount;
 
-  @DiffIgnore private BigDecimal boltOnTotalFeeAmount;
+  private BigDecimal boltOnTotalFeeAmount;
 
-  @DiffIgnore private Integer boltOnAdjournedHearingCount;
+  private Integer boltOnAdjournedHearingCount;
 
-  @DiffIgnore private BigDecimal boltOnAdjournedHearingFee;
+  private BigDecimal boltOnAdjournedHearingFee;
 
-  @DiffIgnore private Integer boltOnCmrhTelephoneCount;
+  private Integer boltOnCmrhTelephoneCount;
 
-  @DiffIgnore private BigDecimal boltOnCmrhTelephoneFee;
+  private BigDecimal boltOnCmrhTelephoneFee;
 
-  @DiffIgnore private Integer boltOnCmrhOralCount;
+  private Integer boltOnCmrhOralCount;
 
-  @DiffIgnore private BigDecimal boltOnCmrhOralFee;
+  private BigDecimal boltOnCmrhOralFee;
 
-  @DiffIgnore private Integer boltOnHomeOfficeInterviewCount;
+  private Integer boltOnHomeOfficeInterviewCount;
 
-  @DiffIgnore private BigDecimal boltOnHomeOfficeInterviewFee;
+  private BigDecimal boltOnHomeOfficeInterviewFee;
 
-  @DiffIgnore private BigDecimal boltOnSubstantiveHearingFee;
+  private BigDecimal boltOnSubstantiveHearingFee;
 
-  @DiffIgnore private Boolean escapeCaseFlag;
+  private Boolean escapeCaseFlag;
 
-  @DiffIgnore private String schemeId;
+  private String schemeId;
 
-  @DiffIgnore
   @Column(nullable = false)
   private String createdByUserId;
 
-  @DiffIgnore
   @Column(nullable = false)
   private OffsetDateTime createdOn;
 
-  @DiffIgnore private String updatedByUserId;
+  private String updatedByUserId;
 
-  @DiffIgnore @UpdateTimestamp private OffsetDateTime updatedOn;
+  @UpdateTimestamp private OffsetDateTime updatedOn;
 }
