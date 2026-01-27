@@ -1,7 +1,7 @@
 spring:
   datasource:
     url: ${DB_URL}
-    username: ${DB_USERNAME}
+    username: "postgres"
     password: ${DB_PASSWORD}
     hikari:
       minimum-idle: ${HIKARI_MIN_POOL_SIZE}

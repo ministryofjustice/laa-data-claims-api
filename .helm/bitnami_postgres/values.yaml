@@ -1,0 +1,20 @@
+image:
+  repository: bitnamilegacy/postgresql
+  tag: "17.6.0-debian-12-r2"
+  allowInsecureImages: true
+
+auth:
+  enablePostgresUser: true
+  postgresPassword: ""        # Let Bitnami auto-generate password
+  usePasswordFiles: true      # Required when letting Helm generate password
+
+primary:
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+
+serviceAccount:
+  create: false            # Do not create a new service account
+  name: default            # Use the existing 'default' service account in the namespace
+  automountServiceAccountToken: false  # Don't mount the service account token inside the pod
