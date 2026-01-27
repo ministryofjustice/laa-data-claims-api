@@ -25,6 +25,36 @@ primary:
     limits:
       memory: "512Mi"
       cpu: "500m"
+  
+  # Override command to use official PostgreSQL entrypoint with socket in /tmp
+  command:
+    - docker-entrypoint.sh
+  args:
+    - postgres
+    - -c
+    - unix_socket_directories=/tmp
+    - -c
+    - max_connections=100
+    - -c
+    - shared_buffers=128MB
+  
+  # Environment variables for official PostgreSQL image
+  extraEnvVars:
+    - name: PGDATA
+      value: /bitnami/postgresql/data
+    - name: POSTGRES_HOST_AUTH_METHOD
+      value: scram-sha-256
+  
+  # Security context to run as postgres user
+  podSecurityContext:
+    fsGroup: 999
+    runAsUser: 999
+    runAsNonRoot: true
+  
+  containerSecurityContext:
+    runAsUser: 999
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
 
 serviceAccount:
   create: false
