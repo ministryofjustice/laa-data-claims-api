@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 
 /** Entity representing the summary of the claim fee. */
 @Getter
@@ -107,11 +108,12 @@ public class ClaimSummaryFee {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @CreationTimestamp
   @Column(nullable = false)
   private OffsetDateTime createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
-  @UpdateTimestamp private OffsetDateTime updatedOn;
+  @DiffIgnore @UpdateTimestamp private OffsetDateTime updatedOn;
 }

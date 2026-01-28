@@ -19,6 +19,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 
 /** Entity representing the details of the claim fees calculated by the Fee Scheme Platform. */
@@ -113,10 +114,11 @@ public class CalculatedFeeDetail {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @Column(nullable = false)
   private OffsetDateTime createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
-  @UpdateTimestamp private OffsetDateTime updatedOn;
+  @DiffIgnore @UpdateTimestamp private OffsetDateTime updatedOn;
 }
