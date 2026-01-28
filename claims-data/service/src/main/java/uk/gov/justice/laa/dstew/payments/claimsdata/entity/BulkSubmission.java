@@ -22,7 +22,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCod
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 
-/** Entity representing a bulk submission of claims. */
+/**
+ * Entity representing a bulk submission of claims. This is just a copy of main with Javers without
+ * using @DiffIgnore
+ */
 @Getter
 @Setter
 @Builder
