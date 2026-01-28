@@ -153,12 +153,8 @@ tasks.register('pactTest', Test) {
     testClassesDirs = sourceSets.pactTest.output.classesDirs
     classpath = sourceSets.pactTest.runtimeClasspath
 
-    // Detect CI (GitHub Actions sets CI=true)
-    def isCi = providers.environmentVariable('CI')
-            .map { it.toBoolean() }
-            .getOrElse(false)
-
-    def canPublish = isCi &&
+    // Publish if both username and password environment variables are provided
+    def canPublish =
             providers.environmentVariable('PACT_BROKER_USERNAME').isPresent() &&
             providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
 
