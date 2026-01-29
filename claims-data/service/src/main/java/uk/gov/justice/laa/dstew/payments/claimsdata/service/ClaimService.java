@@ -33,6 +33,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.projection.ClaimProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -271,6 +272,92 @@ public class ClaimService
             pageable);
 
     ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+    for (ClaimResponse claimResponse : response.getContent()) {
+      if (claimResponse.getId() != null) {
+        clientRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, claimResponse));
+        claimSummaryFeeRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, claimResponse));
+        calculatedFeeDetailRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                feeDetail ->
+                    claimMapper.updateClaimResponseFromCalculatedFeeDetail(
+                        feeDetail, claimResponse));
+        claimCaseRepository
+            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .ifPresent(
+                claimCase ->
+                    claimMapper.updateClaimResponseFromClaimCase(claimCase, claimResponse));
+        long totalWarningsForClaim =
+            validationMessageLogRepository.countAllByClaimIdAndType(
+                UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
+        claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+      }
+    }
+    return response;
+  }
+
+  /**
+   * Returns all the existing claims filtered by some parameters and paginated in a {@link
+   * ClaimResultSet}.
+   *
+   * @param officeCode a mandatory string representing an office code to filter claims by
+   * @param submissionId an optional identifier to filter claims by
+   * @param submissionStatuses an optional list of submission statuses to filter claims by
+   * @param feeCode an optional string representing a fee code to filter claims by
+   * @param uniqueFileNumber the optional unique file number associated to the claim to filter
+   *     claims by
+   * @param uniqueClientNumber the optional unique client number associated to the claim to filter
+   *     claims by
+   * @param claimStatuses an optional list of claim statuses to filter claims by
+   * @param pageable a pageable object to yield the paginated claims results
+   * @return the paginated result set with all claims that satisfy the filtering criteria above.
+   */
+  public ClaimResultSet getClaimResultSetPlus(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
+      String caseReferenceNumber,
+      Pageable pageable) {
+
+    if (!StringUtils.hasText(officeCode)) {
+      throw new ClaimBadRequestException("Missing office code");
+    }
+
+    UUID submissionUuid = null;
+    if (StringUtils.hasText(submissionId)) {
+      try {
+        submissionUuid = UUID.fromString(submissionId);
+      } catch (IllegalArgumentException ex) {
+        throw new ClaimBadRequestException("Invalid submissionId: " + submissionId);
+      }
+    }
+
+    Page<ClaimProjection> projectionPage =
+        claimRepository.findClaimsWithSubmission(
+            officeCode,
+            submissionUuid,
+            submissionStatuses,
+            feeCode,
+            uniqueFileNumber,
+            uniqueClientNumber,
+            uniqueCaseId,
+            claimStatuses,
+            submissionPeriod,
+            caseReferenceNumber,
+            pageable);
+
+    ClaimResultSet response = claimResultSetMapper.toClaimResultSetFromProjection(projectionPage);
     for (ClaimResponse claimResponse : response.getContent()) {
       if (claimResponse.getId() != null) {
         clientRepository

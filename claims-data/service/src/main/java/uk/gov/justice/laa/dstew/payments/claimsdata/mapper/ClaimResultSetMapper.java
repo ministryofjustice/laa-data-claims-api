@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.projection.ClaimProjection;
 
 /**
  * Mapper interface for transforming a Page object of {@link Claim} entities to a {@link
@@ -15,4 +16,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 @Mapper(componentModel = "spring", uses = ClaimMapper.class)
 public interface ClaimResultSetMapper {
   ClaimResultSet toClaimResultSet(Page<Claim> claims);
+
+  ClaimResultSet toClaimResultSetFromProjection(Page<ClaimProjection> claims);
 }
