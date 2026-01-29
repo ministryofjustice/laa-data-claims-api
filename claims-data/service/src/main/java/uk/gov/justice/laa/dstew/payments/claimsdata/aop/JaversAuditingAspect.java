@@ -9,6 +9,8 @@ import org.aspectj.lang.annotation.Before;
 import org.javers.core.Javers;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -49,8 +51,28 @@ public class JaversAuditingAspect {
   public void auditSave(JoinPoint joinPoint, Object result) {
     if (result != null) {
       String apiUser = getApiUser(joinPoint.getArgs()[0]);
-      log.debug("Auditing save operation for entity {}, by user: {}", result, apiUser);
-      javers.commit(apiUser, result);
+
+      // If we're in a Spring-managed transaction, defer audit until the tx commits
+      if (TransactionSynchronizationManager.isActualTransactionActive()) {
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+              public void afterCommit() {
+                try {
+                  javers.commit(apiUser, result);
+                } catch (Exception e) {
+                  // Do not break the already-committed business tx; log and continue (common)
+                  log.error(
+                      "JaVers audit commit failed after business commit. entity={}, user={}",
+                      result,
+                      apiUser,
+                      e);
+                }
+              }
+            });
+      } else {
+        // No tx => commit immediately
+        javers.commit(apiUser, result);
+      }
     }
   }
 
