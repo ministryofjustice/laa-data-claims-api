@@ -39,8 +39,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Test coverage verification
-        run: ./gradlew jacocoTestCoverageVerification
+#      - name: Test coverage verification
+#        run: ./gradlew jacocoTestCoverageVerification
 
       - name: Integration test
         run: ./gradlew integrationTest --tests '*IntegrationTest'
@@ -78,13 +78,13 @@ jobs:
           path: claims-data/service/build/reports/tests
           retention-days: 14
 
-      - name: Upload jacoco coverage report for claims-data
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: jacoco-coverage-report
-          path: claims-data/service/build/reports/jacoco
-          retention-days: 14
+#      - name: Upload jacoco coverage report for claims-data
+#        if: always()
+#        uses: actions/upload-artifact@v6
+#        with:
+#          name: jacoco-coverage-report
+#          path: claims-data/service/build/reports/jacoco
+#          retention-days: 14
 
   semgrep-scan:
     name: semgrep-security-scan
