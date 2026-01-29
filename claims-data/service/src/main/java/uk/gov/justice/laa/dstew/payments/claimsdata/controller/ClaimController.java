@@ -83,6 +83,35 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResultSet> getClaimsPlus(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
+      String caseReferenceNumber,
+      Pageable pageable) {
+    return ResponseEntity.ok(
+        claimService.getClaimResultSetPlus(
+            officeCode,
+            submissionId,
+            submissionStatuses,
+            feeCode,
+            uniqueFileNumber,
+            uniqueClientNumber,
+            uniqueCaseId,
+            claimStatuses,
+            submissionPeriod,
+            caseReferenceNumber,
+            pageable));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateClaim(
       UUID submissionId,
       UUID claimId,

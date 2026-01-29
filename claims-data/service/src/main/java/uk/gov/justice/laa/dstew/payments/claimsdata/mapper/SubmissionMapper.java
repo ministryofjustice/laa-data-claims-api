@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.projection.SubmissionProjection;
 
 /** MapStruct mapper for converting between API models and Submission entities. */
 @Mapper(
@@ -45,6 +46,8 @@ public interface SubmissionMapper {
   @Mapping(target = "submissionId", source = "id")
   @Mapping(target = "submitted", source = "createdOn")
   SubmissionBase toSubmissionBase(Submission submission);
+
+  SubmissionResponse toSubmissionResponse(SubmissionProjection projection);
 
   /**
    * Converts an Instant to a String.

@@ -330,6 +330,100 @@ paths:
                 $ref: '#/components/schemas/submissions_result_set'
         '429':
           description: 'Too many requests'
+
+  /api/v1/claims-plus:
+    get:
+      operationId: getClaimsPlus
+      x-spring-paginated: true
+      tags:
+        - Claims
+      summary: Get claims
+      description: Get claims for an office, filtering on certain fields.
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+        - name: submission_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Unique system-generated identifier for each submission
+        - name: submission_statuses
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/submission_status"
+        - name: fee_code
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Alphanumeric code identifying the specific fee type or category applicable to the claim 
+            under the relevant Legal Aid Agency fee scheme
+        - name: unique_file_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Provider's unique case reference number for controlled work billing
+        - name: unique_client_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Client Number assigned to the client
+        - name: unique_case_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unique Case Id assigned to the claim case
+        - name: claim_statuses
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/claim_status"
+        - name: submission_period
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by submission period
+        - name: case_reference_number
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by case reference number
+      responses:
+        '200':
+          description: Claims retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/claim_result_set'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+
   /api/v1/claims:
     get:
       operationId: getClaims
