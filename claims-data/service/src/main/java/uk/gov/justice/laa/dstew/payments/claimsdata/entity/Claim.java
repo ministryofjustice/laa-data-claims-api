@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /** Entity representing a claim linked to a submission. */
@@ -114,12 +115,14 @@ public class Claim {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
+  @DiffIgnore
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;

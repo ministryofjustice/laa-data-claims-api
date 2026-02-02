@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 
 /** Entity representing client details linked to a claim. */
 @Getter
@@ -95,12 +96,14 @@ public class Client {
   @Column(nullable = false)
   private String createdByUserId;
 
+  @DiffIgnore
   @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
-  private String updatedByUserId;
+  @DiffIgnore private String updatedByUserId;
 
+  @DiffIgnore
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
