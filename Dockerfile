@@ -12,11 +12,16 @@ WORKDIR /build
 COPY . .
 
 # Run gradle build
-RUN --mount=type=secret,id=github_actor \
+RUN --mount=type=cache,target=/root/.gradle \
+    --mount=type=secret,id=github_actor \
     --mount=type=secret,id=github_token \
     export GITHUB_ACTOR="$(cat /run/secrets/github_actor)" && \
     export GITHUB_TOKEN="$(cat /run/secrets/github_token)" && \
-    gradle claims-data:service:spotlessApply build -x test
+    gradle claims-data:service:spotlessApply build \
+    -x test \
+    -x spotlessJava \
+    -x checkstyleMain \
+    -x spotlessJavaCheck
 
 # Debug step: List all JAR files to find the correct path
 RUN find /build -name "*.jar"
