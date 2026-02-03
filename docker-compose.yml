@@ -36,19 +36,19 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 #  local AWS cloud stack for dev
-  localstack:
-    container_name: claims-api-sqs-localstack
-    image: localstack/localstack:latest
-    ports:
-      - "4566:4566"
-    environment:
-      - SERVICES=sqs
-      - DEBUG=1
-      - AWS_DEFAULT_REGION=us-east-1
-    volumes:
-      - "./docker-scripts/init-localstack.sh:/etc/localstack/init/ready.d/init-localstack.sh"
-      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
-      - "/var/run/docker.sock:/var/run/docker.sock"
+#  localstack:
+#    container_name: claims-api-sqs-localstack
+#    image: localstack/localstack:latest
+#    ports:
+#      - "4566:4566"
+#    environment:
+#      - SERVICES=sqs
+#      - DEBUG=1
+#      - AWS_DEFAULT_REGION=us-east-1
+#    volumes:
+#      - "./docker-scripts/init-localstack.sh:/etc/localstack/init/ready.d/init-localstack.sh"
+#      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+#      - "/var/run/docker.sock:/var/run/docker.sock"
 
   audit-postgres:
     image: postgres:17
