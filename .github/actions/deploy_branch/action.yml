@@ -104,6 +104,14 @@ runs:
             --namespace ${KUBE_NAMESPACE} \
             --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
             --install --wait --timeout=10m
+        
+          export SPRING_PROFILE="preview"
+          # Using Bitnami legacy with PostgreSQL 17.2 (specified in values.yaml)
+          helm upgrade ${RELEASE_NAME}-audit oci://registry-1.docker.io/bitnamicharts/postgresql \
+            -f .helm/bitnami_postgres/values.yaml \
+            --namespace ${KUBE_NAMESPACE} \
+            --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
+            --install --wait --timeout=10m
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \

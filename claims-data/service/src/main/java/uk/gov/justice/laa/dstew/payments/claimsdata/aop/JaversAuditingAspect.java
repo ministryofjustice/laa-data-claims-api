@@ -52,12 +52,14 @@ public class JaversAuditingAspect {
     if (result != null) {
       String apiUser = getApiUser(joinPoint.getArgs()[0]);
 
-      // If we're in a Spring-managed transaction, defer audit until the tx commits
+      // If we're in a Spring-managed transaction, defer audit until the tx commits.
+      // If the business transaction rolls back, afterCommit() never runs, so no “phantom audits”.
       if (TransactionSynchronizationManager.isActualTransactionActive()) {
         TransactionSynchronizationManager.registerSynchronization(
             new TransactionSynchronization() {
               public void afterCommit() {
                 try {
+                  // The audit will only be written if the business transaction actually commits.
                   javers.commit(apiUser, result);
                 } catch (Exception e) {
                   // Do not break the already-committed business tx; log and continue (common)
