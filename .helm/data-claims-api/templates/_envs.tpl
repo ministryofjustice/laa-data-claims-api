@@ -43,6 +43,42 @@ For the main branch, extract DB environment variables from rds-postgresql-instan
 {{- end }}
 
 {{/*
+  Define environment variables for the Javers audit DB
+*/}}
+{{- define "auditDbConnectionDetails" }}
+{{- if eq .Values.spring.profile "preview" }}
+- name: AUDIT_DB_NAME
+  value: "AUDIT_db"
+- name: AUDIT_DB_HOST
+  value: "{{ .Release.Name }}-audit-postgresql"
+- name: AUDIT_DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: "{{ .Release.Name }}-audit-postgresql"
+      key: postgres-password
+
+{{- else if eq .Values.spring.profile "main" }}
+
+- name: AUDIT_DB_NAME
+  valueFrom:
+    secretKeyRef:
+      name: rds-postgresql-instance-output
+      key: audit_database_name
+- name: AUDIT_DB_HOST
+  valueFrom:
+    secretKeyRef:
+      name: rds-postgresql-instance-output
+      key: audit_rds_instance_address
+- name: AUDIT_DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: rds-postgresql-instance-output
+      key: audit_database_password
+
+{{- end }}
+{{- end }}
+      
+{{/*
   Define Sentry environment variables
 */}}
 {{- define "sentryConfig" }}
