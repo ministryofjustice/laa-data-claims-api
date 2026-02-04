@@ -3,7 +3,7 @@ image:
   tag: "17.6.0-debian-12-r2"
   allowInsecureImages: true
 
-# Create a database named `javers_db`
+# Create a database named "javers_db"
 auth:
   database: javers_db
   enablePostgresUser: true

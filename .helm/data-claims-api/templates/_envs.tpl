@@ -48,7 +48,7 @@ For the main branch, extract DB environment variables from rds-postgresql-instan
 {{- define "auditDbConnectionDetails" }}
 {{- if eq .Values.spring.profile "preview" }}
 - name: AUDIT_DB_NAME
-  value: "AUDIT_db"
+  value: "javers_db"
 - name: AUDIT_DB_HOST
   value: "{{ .Release.Name }}-audit-postgresql"
 - name: AUDIT_DB_PASSWORD
