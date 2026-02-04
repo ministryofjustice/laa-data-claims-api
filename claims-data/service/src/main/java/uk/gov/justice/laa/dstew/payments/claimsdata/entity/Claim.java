@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -122,4 +123,12 @@ public class Claim {
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
+
+  private boolean isAmended;
+
+  private boolean hasAssessment;
+
+  @Version
+  @Column(nullable = false)
+  private Long version;
 }

@@ -4,11 +4,12 @@ plugins {
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
     id "io.sentry.jvm.gradle" version "5.12.2"
+    id 'au.com.dius.pact' version '4.6.19'
 }
 
 def versions = [
-    sentry : '8.28.0',
-    testcontainers: '1.20.1'
+        sentry        : '8.28.0',
+        testcontainers: '1.20.1'
 ]
 
 test {
@@ -48,6 +49,10 @@ dependencyManagement {
 }
 
 dependencies {
+    // Upgrade to fix CVE-2026-1225 vulnerability in logback-core
+    implementation 'ch.qos.logback:logback-core:1.5.25'
+    implementation 'ch.qos.logback:logback-classic:1.5.25'
+
     implementation project(':claims-data:api')
 
     //Enable access token authentication
@@ -101,12 +106,83 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    // Add this to ensure Spring Security classes are available during tests
+    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation "org.testcontainers:postgresql:$versions.testcontainers"
     testImplementation "org.testcontainers:localstack:$versions.testcontainers"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
+}
+
+sourceSets {
+    pactTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+        }
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    pactTestImplementation.extendsFrom(testImplementation)
+    pactTestRuntimeOnly.extendsFrom(testRuntimeOnly)
+}
+
+
+dependencies {
+    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    pactTestImplementation 'org.springframework.boot:spring-boot-autoconfigure'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    pactTestImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
+}
+
+tasks.register('pactTest', Test) {
+    description = 'Runs the pact tests.'
+    group = 'verification'
+    useJUnitPlatform()
+
+    testClassesDirs = sourceSets.pactTest.output.classesDirs
+    classpath = sourceSets.pactTest.runtimeClasspath
+
+    // Publish if both username and password environment variables are provided
+    def canPublish =
+            providers.environmentVariable('PACT_BROKER_USERNAME').isPresent() &&
+            providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
+
+    if (canPublish) {
+        systemProperty 'pact.verifier.publishResults', 'true'
+    }
+
+    // Pass environment variables into the test process as System Properties
+    systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
+    systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/')
+    systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
+    systemProperty 'pactbroker.auth.password', providers.environmentVariable('PACT_BROKER_PASSWORD').getOrElse('ABC')
+
+    // Only set the consumer filter and branch selectors if PACT_CONSUMER_NAME is provided
+    def consumerName = providers.environmentVariable('PACT_CONSUMER_NAME').orNull
+
+    if (consumerName) {
+        systemProperty 'pact.filter.consumers', consumerName
+    }
+    def branch = providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
+    systemProperty 'pactbroker.consumerversionselectors.rawjson', "[{\"branch\":\"${branch}\"}]"
+
+    // Resolve the directory path to a String for the system property
+    systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
+}
+
+tasks.named('processPactTestResources') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 spotless {

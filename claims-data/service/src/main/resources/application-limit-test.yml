@@ -20,3 +20,7 @@ resilience4j.ratelimiter:
       limitForPeriod: 2
       limitRefreshPeriod: 1m
       timeoutDuration: 0
+    assessmentRateLimiter:
+      limitForPeriod: 2
+      limitRefreshPeriod: 1m
+      timeoutDuration: 0
