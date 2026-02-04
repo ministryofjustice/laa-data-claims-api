@@ -7,12 +7,14 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Explicit definition of a primary data source. This is necessary to instruct Spring which data
  * source to use to save claims data.
  */
 @Configuration
+@Profile("!test")
 public class PrimaryDataSourceConfig {
 
   @Bean

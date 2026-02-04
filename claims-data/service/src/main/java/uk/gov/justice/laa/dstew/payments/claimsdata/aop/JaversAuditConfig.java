@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * This class constructs JaversSqlRepository and then builds a Javers instance registering that
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
  * datasource: Javers repository + connection provider.
  */
 @Configuration
+@Profile("!test")
 public class JaversAuditConfig {
 
   @Bean

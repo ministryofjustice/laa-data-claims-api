@@ -7,7 +7,7 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.javers.core.Javers;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
  */
 @Slf4j
 @Aspect
-@ConditionalOnProperty(name = "javers.enabled", havingValue = "true", matchIfMissing = true)
+@Profile("!test")
 @Component
 public class JaversAuditingAspect {
   private final Javers javers;

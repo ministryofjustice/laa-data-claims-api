@@ -6,9 +6,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Profile;
 
 /** Config to run Flyway migrations against the audit database. */
 @Configuration
+@Profile("!test")
 public class AuditFlywayConfig {
 
   /**
