@@ -12,7 +12,7 @@ spring:
 audit:
   datasource:
     url: ${AUDIT_DB_URL}
-    username: "javers_db"
+    username: "postgres"
     password: ${AUDIT_DB_PASSWORD}
     hikari:
       minimum-idle: ${AUDIT_HIKARI_MIN_POOL_SIZE}
