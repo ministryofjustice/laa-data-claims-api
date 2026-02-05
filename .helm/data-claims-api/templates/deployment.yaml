@@ -112,7 +112,7 @@ spec:
               value: {{ .Values.aws.region | quote }}
             {{ include "sentryConfig" . | nindent 12 }}
             - name: AUDIT_DB_URL
-              value: "jdbc:postgresql://$(AUDIT_DB_HOST):5433/$(AUDIT_DB_NAME)"
+              value: "jdbc:postgresql://$(AUDIT_DB_HOST):5432/$(AUDIT_DB_NAME)"
             - name: AUDIT_HIKARI_MIN_POOL_SIZE
               valueFrom:
                 secretKeyRef:
