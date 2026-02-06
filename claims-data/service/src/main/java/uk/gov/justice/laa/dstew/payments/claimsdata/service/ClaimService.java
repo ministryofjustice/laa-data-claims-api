@@ -317,15 +317,6 @@ public class ClaimService
       throw new ClaimBadRequestException("Missing office code");
     }
 
-    UUID submissionUuid = null;
-    if (StringUtils.hasText(request.getSubmissionId())) {
-      try {
-        submissionUuid = UUID.fromString(request.getSubmissionId());
-      } catch (IllegalArgumentException ex) {
-        throw new ClaimBadRequestException("Invalid submissionId: " + request.getSubmissionId());
-      }
-    }
-
     Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
 
     Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(pageable);
