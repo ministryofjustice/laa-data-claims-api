@@ -45,6 +45,7 @@ public interface ClaimMapper {
   @Mapping(target = "isYouthCourt", source = "youthCourt")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  @Mapping(target = "areaOfLaw", source = "submission.areaOfLaw")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
   @Mapping(target = "netProfitCostsAmount", source = "claimSummaryFee.netProfitCostsAmount")

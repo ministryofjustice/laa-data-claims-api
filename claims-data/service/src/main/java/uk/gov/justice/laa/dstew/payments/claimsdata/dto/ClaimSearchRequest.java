@@ -4,6 +4,7 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 import org.springdoc.core.annotations.ParameterObject;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
@@ -19,6 +20,7 @@ public class ClaimSearchRequest {
   private String officeCode;
   private String submissionId;
   private List<SubmissionStatus> submissionStatuses;
+  private AreaOfLaw areaOfLaw;
   private String feeCode;
   private String uniqueFileNumber;
   private String uniqueClientNumber;

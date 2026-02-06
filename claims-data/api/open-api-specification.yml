@@ -361,6 +361,12 @@ paths:
             type: array
             items:
               $ref: "#/components/schemas/submission_status"
+        - name: area_of_law
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/area_of_law"
+          description: Filter by area of
         - name: fee_code
           in: query
           required: false
@@ -1475,6 +1481,9 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            area_of_law:
+              type: string
+              description: Area of law for this claim.
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.

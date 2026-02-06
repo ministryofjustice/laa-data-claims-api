@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -88,6 +89,7 @@ public class ClaimController implements ClaimsApi {
       String officeCode,
       String submissionId,
       List<SubmissionStatus> submissionStatuses,
+      AreaOfLaw areaOfLaw,
       String feeCode,
       String uniqueFileNumber,
       String uniqueClientNumber,
@@ -116,6 +118,7 @@ public class ClaimController implements ClaimsApi {
                 .officeCode(officeCode)
                 .submissionId(submissionId)
                 .submissionStatuses(submissionStatuses)
+                .areaOfLaw(areaOfLaw)
                 .feeCode(feeCode)
                 .uniqueFileNumber(uniqueFileNumber)
                 .uniqueClientNumber(uniqueClientNumber)

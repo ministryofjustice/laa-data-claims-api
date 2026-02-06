@@ -8,6 +8,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -159,6 +160,10 @@ public final class ClaimSpecification {
         predicates.add(
             cb.and(
                 cb.equal(submissionJoin.get("submissionPeriod"), request.getSubmissionPeriod())));
+      }
+
+      if (Optional.ofNullable(request.getAreaOfLaw()).isPresent()) {
+        predicates.add(cb.and(cb.equal(submissionJoin.get("areaOfLaw"), request.getAreaOfLaw())));
       }
 
       // Filter on Claim fields
