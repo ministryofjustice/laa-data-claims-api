@@ -20,7 +20,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.projection.ClaimProjection;
 
 /** MapStruct mapper for converting between claim models and entities. */
 @Mapper(
@@ -47,12 +46,6 @@ public interface ClaimMapper {
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   ClaimResponse toClaimResponse(Claim entity);
-
-  @Mapping(target = "submissionId", source = "submission.submissionId")
-  @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
-  @Mapping(target = "isDutySolicitor", ignore = true)
-  @Mapping(target = "isYouthCourt", ignore = true)
-  ClaimResponse toClaimResponseFromProjection(ClaimProjection projection);
 
   /**
    * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary
