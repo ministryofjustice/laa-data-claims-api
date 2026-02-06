@@ -32,6 +32,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   private static final String IGNORE_FIELD_SUBMISSION = "submission";
+  private static final String IGNORE_FIELD_CLIENT = "client";
+  private static final String IGNORE_FIELD_CALCULATED_FEE_DETAIL = "calculatedFeeDetail";
+  private static final String IGNORE_FIELD_CLAIM_SUMMARY_FEE = "claimSummaryFee";
+  private static final String IGNORE_FIELD_CLAIM_CASE = "claimCase";
   private static final String IGNORE_FIELD_CREATED_ON = "createdOn";
   private static final String IGNORE_FIELD_UPDATED_ON = "updatedOn";
 
@@ -100,7 +104,12 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
+        .ignoringFields(
+            IGNORE_FIELD_SUBMISSION,
+            IGNORE_FIELD_CREATED_ON,
+            IGNORE_FIELD_UPDATED_ON,
+            IGNORE_FIELD_CLIENT,
+            IGNORE_FIELD_CLAIM_CASE)
         .isEqualTo(claim3);
   }
 
@@ -128,7 +137,12 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
+        .ignoringFields(
+            IGNORE_FIELD_SUBMISSION,
+            IGNORE_FIELD_CREATED_ON,
+            IGNORE_FIELD_UPDATED_ON,
+            IGNORE_FIELD_CLIENT,
+            IGNORE_FIELD_CLAIM_CASE)
         .isEqualTo(claim3);
     assertThat(result.getContent().getFirst().getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
     assertThat(result.getContent().getFirst().getScheduleReference()).isNull();
@@ -146,7 +160,12 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
+        .ignoringFields(
+            IGNORE_FIELD_SUBMISSION,
+            IGNORE_FIELD_CREATED_ON,
+            IGNORE_FIELD_UPDATED_ON,
+            IGNORE_FIELD_CLIENT,
+            IGNORE_FIELD_CLAIM_CASE)
         .isEqualTo(claim3);
   }
 
@@ -173,12 +192,24 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     var actualClaim2 = result.getContent().get(1);
     assertThat(actualClaim1)
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
+        .ignoringFields(
+            IGNORE_FIELD_SUBMISSION,
+            IGNORE_FIELD_CREATED_ON,
+            IGNORE_FIELD_UPDATED_ON,
+            IGNORE_FIELD_CLIENT,
+            IGNORE_FIELD_CLAIM_CASE)
+        .ignoringFields(IGNORE_FIELD_CALCULATED_FEE_DETAIL, IGNORE_FIELD_CLAIM_SUMMARY_FEE)
         .isEqualTo(claim1);
     assertThat(actualClaim1)
         .usingRecursiveComparison()
         .ignoringFields(
-            "id", IGNORE_FIELD_SUBMISSION, IGNORE_FIELD_CREATED_ON, IGNORE_FIELD_UPDATED_ON)
+            "id",
+            IGNORE_FIELD_SUBMISSION,
+            IGNORE_FIELD_CREATED_ON,
+            IGNORE_FIELD_UPDATED_ON,
+            IGNORE_FIELD_CLIENT,
+            IGNORE_FIELD_CLAIM_CASE)
+        .ignoringFields(IGNORE_FIELD_CALCULATED_FEE_DETAIL, IGNORE_FIELD_CLAIM_SUMMARY_FEE)
         .isEqualTo(actualClaim2);
     assertThat(actualClaim1.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
     assertThat(actualClaim1.getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
