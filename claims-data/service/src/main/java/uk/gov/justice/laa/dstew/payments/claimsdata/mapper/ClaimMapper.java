@@ -45,6 +45,18 @@ public interface ClaimMapper {
   @Mapping(target = "isYouthCourt", source = "youthCourt")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  @Mapping(target = "id", source = "id")
+  @Mapping(target = "createdByUserId", source = "createdByUserId")
+  @Mapping(target = "netProfitCostsAmount", source = "claimSummaryFee.netProfitCostsAmount")
+  @Mapping(target = "netWaitingCostsAmount", source = "claimSummaryFee.netWaitingCostsAmount")
+  @Mapping(target = "jrFormFillingAmount", source = "claimSummaryFee.jrFormFillingAmount")
+  @Mapping(target = ".", source = "client")
+  @Mapping(target = ".", source = "claimCase")
+  @Mapping(
+      target = "feeCalculationResponse",
+      source = "calculatedFeeDetail",
+      qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
+  @Mapping(target = ".", source = "claimSummaryFee")
   ClaimResponse toClaimResponse(Claim entity);
 
   /**
@@ -154,4 +166,26 @@ public interface ClaimMapper {
 
   @Mapping(target = "totalWarnings", source = "totalWarningMessages")
   void updateTotalWarningMessages(Long totalWarningMessages, @MappingTarget ClaimResponse claim);
+
+  /**
+   * Map a {@link CalculatedFeeDetail} entity to {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch}.
+   */
+  @Named("mapFeeCalculationResponseFromCalculatedFeeDetail")
+  @Mapping(target = "claimId", source = "claim.id")
+  @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
+  @Mapping(target = "calculatedFeeDetailId", source = "id")
+  @Mapping(target = "boltOnDetails", source = "entity")
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  default FeeCalculationPatch mapFeeCalculationResponseFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity) {
+
+    if (entity == null) {
+      return null;
+    }
+    FeeCalculationPatch target = new FeeCalculationPatch();
+    // reuse your existing update method to avoid duplicating mapping config:
+    updateFeeCalculationResponseFromCalculatedFeeDetail(entity, target);
+    return target;
+  }
 }
