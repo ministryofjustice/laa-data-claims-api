@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -95,18 +96,34 @@ public class ClaimController implements ClaimsApi {
       String submissionPeriod,
       String caseReferenceNumber,
       Pageable pageable) {
+
+    //    ClaimSearchRequest.builder()
+    //            .officeCode(officeCode)
+    //            .submissionId(submissionId)
+    //            .submissionStatuses(submissionStatuses)
+    //            .feeCode(feeCode)
+    //            .uniqueFileNumber(uniqueFileNumber)
+    //            .uniqueClientNumber(uniqueClientNumber)
+    //            .uniqueCaseId(uniqueCaseId)
+    //            .claimStatuses(claimStatuses)
+    //            .submissionPeriod(submissionPeriod)
+    //            .caseReferenceNumber(caseReferenceNumber)
+    //            .build();
+
     return ResponseEntity.ok(
         claimService.getClaimResultSetPlus(
-            officeCode,
-            submissionId,
-            submissionStatuses,
-            feeCode,
-            uniqueFileNumber,
-            uniqueClientNumber,
-            uniqueCaseId,
-            claimStatuses,
-            submissionPeriod,
-            caseReferenceNumber,
+            ClaimSearchRequest.builder()
+                .officeCode(officeCode)
+                .submissionId(submissionId)
+                .submissionStatuses(submissionStatuses)
+                .feeCode(feeCode)
+                .uniqueFileNumber(uniqueFileNumber)
+                .uniqueClientNumber(uniqueClientNumber)
+                .uniqueCaseId(uniqueCaseId)
+                .claimStatuses(claimStatuses)
+                .submissionPeriod(submissionPeriod)
+                .caseReferenceNumber(caseReferenceNumber)
+                .build(),
             pageable));
   }
 
