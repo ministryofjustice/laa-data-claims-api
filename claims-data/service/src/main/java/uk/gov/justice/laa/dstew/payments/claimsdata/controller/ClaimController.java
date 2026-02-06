@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -78,6 +80,53 @@ public class ClaimController implements ClaimsApi {
             claimStatuses,
             submissionPeriod,
             caseReferenceNumber,
+            pageable));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResultSet> getClaimsPlus(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      AreaOfLaw areaOfLaw,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
+      String caseReferenceNumber,
+      Pageable pageable) {
+
+    //    ClaimSearchRequest.builder()
+    //            .officeCode(officeCode)
+    //            .submissionId(submissionId)
+    //            .submissionStatuses(submissionStatuses)
+    //            .feeCode(feeCode)
+    //            .uniqueFileNumber(uniqueFileNumber)
+    //            .uniqueClientNumber(uniqueClientNumber)
+    //            .uniqueCaseId(uniqueCaseId)
+    //            .claimStatuses(claimStatuses)
+    //            .submissionPeriod(submissionPeriod)
+    //            .caseReferenceNumber(caseReferenceNumber)
+    //            .build();
+
+    return ResponseEntity.ok(
+        claimService.getClaimResultSetPlus(
+            ClaimSearchRequest.builder()
+                .officeCode(officeCode)
+                .submissionId(submissionId)
+                .submissionStatuses(submissionStatuses)
+                .areaOfLaw(areaOfLaw)
+                .feeCode(feeCode)
+                .uniqueFileNumber(uniqueFileNumber)
+                .uniqueClientNumber(uniqueClientNumber)
+                .uniqueCaseId(uniqueCaseId)
+                .claimStatuses(claimStatuses)
+                .submissionPeriod(submissionPeriod)
+                .caseReferenceNumber(caseReferenceNumber)
+                .build(),
             pageable));
   }
 

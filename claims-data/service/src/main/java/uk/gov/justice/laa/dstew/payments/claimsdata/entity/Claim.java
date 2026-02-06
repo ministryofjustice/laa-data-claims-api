@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
@@ -40,6 +41,18 @@ public class Claim {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "submission_id", nullable = false)
   private Submission submission;
+
+  @OneToOne(mappedBy = "claim")
+  private ClaimCase claimCase;
+
+  @OneToOne(mappedBy = "claim")
+  private Client client;
+
+  @OneToOne(mappedBy = "claim")
+  private ClaimSummaryFee claimSummaryFee;
+
+  @OneToOne(mappedBy = "claim")
+  private CalculatedFeeDetail calculatedFeeDetail;
 
   @NotNull
   @Column(nullable = false)
