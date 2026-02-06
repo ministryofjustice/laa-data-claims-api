@@ -8,9 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -33,7 +36,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.projection.ClaimProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -305,79 +307,38 @@ public class ClaimService
    * Returns all the existing claims filtered by some parameters and paginated in a {@link
    * ClaimResultSet}.
    *
-   * @param officeCode a mandatory string representing an office code to filter claims by
-   * @param submissionId an optional identifier to filter claims by
-   * @param submissionStatuses an optional list of submission statuses to filter claims by
-   * @param feeCode an optional string representing a fee code to filter claims by
-   * @param uniqueFileNumber the optional unique file number associated to the claim to filter
-   *     claims by
-   * @param uniqueClientNumber the optional unique client number associated to the claim to filter
-   *     claims by
-   * @param claimStatuses an optional list of claim statuses to filter claims by
+   * @param request an object containing all the parameters to filter by
    * @param pageable a pageable object to yield the paginated claims results
    * @return the paginated result set with all claims that satisfy the filtering criteria above.
    */
-  public ClaimResultSet getClaimResultSetPlus(
-      String officeCode,
-      String submissionId,
-      List<SubmissionStatus> submissionStatuses,
-      String feeCode,
-      String uniqueFileNumber,
-      String uniqueClientNumber,
-      String uniqueCaseId,
-      List<ClaimStatus> claimStatuses,
-      String submissionPeriod,
-      String caseReferenceNumber,
-      Pageable pageable) {
+  public ClaimResultSet getClaimResultSetPlus(ClaimSearchRequest request, Pageable pageable) {
 
-    if (!StringUtils.hasText(officeCode)) {
+    if (!StringUtils.hasText(request.getOfficeCode())) {
       throw new ClaimBadRequestException("Missing office code");
     }
 
     UUID submissionUuid = null;
-    if (StringUtils.hasText(submissionId)) {
+    if (StringUtils.hasText(request.getSubmissionId())) {
       try {
-        submissionUuid = UUID.fromString(submissionId);
+        submissionUuid = UUID.fromString(request.getSubmissionId());
       } catch (IllegalArgumentException ex) {
-        throw new ClaimBadRequestException("Invalid submissionId: " + submissionId);
+        throw new ClaimBadRequestException("Invalid submissionId: " + request.getSubmissionId());
       }
     }
 
-    Page<ClaimProjection> projectionPage =
-        claimRepository.findClaimsWithSubmission(
-            officeCode,
-            submissionUuid,
-            submissionStatuses,
-            feeCode,
-            uniqueFileNumber,
-            uniqueClientNumber,
-            uniqueCaseId,
-            claimStatuses,
-            submissionPeriod,
-            caseReferenceNumber,
-            pageable);
+    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
 
-    ClaimResultSet response = claimResultSetMapper.toClaimResultSetFromProjection(projectionPage);
+    Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+
+    Specification<Claim> combinedSpec = baseSpec.and(sortSpec);
+
+    Pageable sanitizedPageable = removeCustomSortFromPageable(pageable, "total_warnings");
+
+    Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
+
+    ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
     for (ClaimResponse claimResponse : response.getContent()) {
       if (claimResponse.getId() != null) {
-        clientRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, claimResponse));
-        claimSummaryFeeRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(
-                fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, claimResponse));
-        calculatedFeeDetailRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(
-                feeDetail ->
-                    claimMapper.updateClaimResponseFromCalculatedFeeDetail(
-                        feeDetail, claimResponse));
-        claimCaseRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(
-                claimCase ->
-                    claimMapper.updateClaimResponseFromClaimCase(claimCase, claimResponse));
         long totalWarningsForClaim =
             validationMessageLogRepository.countAllByClaimIdAndType(
                 UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
@@ -390,5 +351,21 @@ public class ClaimService
   @Transactional
   public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
     return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
+
+  private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return pageable;
+    }
+
+    List<Sort.Order> remainingOrders =
+        pageable.getSort().stream()
+            .filter(order -> !customProperty.equalsIgnoreCase(order.getProperty()))
+            .toList();
+
+    Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
+
+    return org.springframework.data.domain.PageRequest.of(
+        pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 }
