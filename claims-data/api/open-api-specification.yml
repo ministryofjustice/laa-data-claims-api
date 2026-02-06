@@ -1538,6 +1538,9 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            area_of_law:
+              type: string
+              description: Area of law for this claim.
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.

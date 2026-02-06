@@ -190,6 +190,10 @@ public final class ClaimSpecification {
                     calculatedFeeDetailJoin.get(ESCAPE_CASE_FLAG), request.getEscapedCaseFlag())));
       }
 
+      if (Optional.ofNullable(request.getAreaOfLaw()).isPresent()) {
+        predicates.add(cb.and(cb.equal(submissionJoin.get("areaOfLaw"), request.getAreaOfLaw())));
+      }
+
       // Filter on Claim fields
       if (request.getClaimStatuses() != null && !request.getClaimStatuses().isEmpty()) {
         predicates.add(cb.and(root.get(STATUS).in(request.getClaimStatuses())));
