@@ -113,10 +113,7 @@ class AssessmentServiceTest {
       final String userId = Uuid7.timeBasedUuid().toString();
       final UUID missingClaimId = Uuid7.timeBasedUuid();
       final AssessmentPost post =
-          AssessmentPost.builder()
-              .createdByUserId(userId)
-              .claimId(missingClaimId)
-              .build();
+          AssessmentPost.builder().createdByUserId(userId).claimId(missingClaimId).build();
 
       when(claimRepository.existsById(missingClaimId)).thenReturn(false);
 
@@ -135,17 +132,14 @@ class AssessmentServiceTest {
      * @param userid the user ID to test (can be null, empty, blank, or invalid UUID format)
      * @param errorMessage the expected error message enum that should be in the exception
      */
-    void invalidUserTest(String userid, AssessmentInvalidUserException.ErrorMessage errorMessage){
+    void invalidUserTest(String userid, AssessmentInvalidUserException.ErrorMessage errorMessage) {
       final UUID missingClaimId = Uuid7.timeBasedUuid();
       final AssessmentPost post =
-              AssessmentPost.builder()
-                      .createdByUserId(userid)
-                      .claimId(missingClaimId)
-                      .build();
+          AssessmentPost.builder().createdByUserId(userid).claimId(missingClaimId).build();
 
       assertThatThrownBy(() -> assessmentService.createAssessment(missingClaimId, post))
-              .isInstanceOf(AssessmentInvalidUserException.class)
-              .hasMessageContaining(errorMessage.getMessage(userid));
+          .isInstanceOf(AssessmentInvalidUserException.class)
+          .hasMessageContaining(errorMessage.getMessage(userid));
     }
 
     @Test
@@ -165,7 +159,8 @@ class AssessmentServiceTest {
 
     @Test
     void shouldThrowWhenInvalidUserIdInvalid() {
-      invalidUserTest("INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
+      invalidUserTest(
+          "INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
     }
 
     @Test
@@ -197,10 +192,11 @@ class AssessmentServiceTest {
   @DisplayName("validate User Id")
   class validateUserIdTests {
 
-    void invalidUserIdTest(String userid, AssessmentInvalidUserException.ErrorMessage errorMessage){
+    void invalidUserIdTest(
+        String userid, AssessmentInvalidUserException.ErrorMessage errorMessage) {
       assertThatThrownBy(() -> assessmentService.validateUserId(userid))
-              .isInstanceOf(AssessmentInvalidUserException.class)
-              .hasMessageContaining(errorMessage.getMessage(userid));
+          .isInstanceOf(AssessmentInvalidUserException.class)
+          .hasMessageContaining(errorMessage.getMessage(userid));
     }
 
     @Test
@@ -220,12 +216,15 @@ class AssessmentServiceTest {
 
     @Test
     void shouldThrowWhenInvalidUserIdInvalid() {
-      invalidUserIdTest("INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
+      invalidUserIdTest(
+          "INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
     }
 
     @Test
     void shouldThrowWhenInvalidUserIdXSS() {
-      invalidUserIdTest("<img src=x onerror=alert(\"XSS\")>", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
+      invalidUserIdTest(
+          "<img src=x onerror=alert(\"XSS\")>",
+          AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
     }
 
     @Test

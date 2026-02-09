@@ -19,9 +19,7 @@ import uk.gov.laa.springboot.exception.ApplicationException;
  * @see ApplicationException
  */
 public class AssessmentInvalidUserException extends ApplicationException {
-  /**
-   * Enumeration of error messages for invalid user ID scenarios.
-   */
+  /** Enumeration of error messages for invalid user ID scenarios. */
   public enum ErrorMessage {
     /** User ID is null or blank (empty or whitespace-only). */
     NULL_OR_BLANK("User ID cannot be null or blank"),
