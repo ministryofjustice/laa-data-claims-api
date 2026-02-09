@@ -165,7 +165,7 @@ public class AssessmentService {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
     }
-    if (!isValidUUID(userId)) {
+    if (!isValidUuid(userId)) {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
     }
@@ -177,7 +177,7 @@ public class AssessmentService {
    * @param uuid the string to validate as a UUID
    * @return true if the string is a valid UUID, false otherwise
    */
-  protected boolean isValidUUID(String uuid) {
+  protected boolean isValidUuid(String uuid) {
     try {
       UUID.fromString(uuid);
       return true;
