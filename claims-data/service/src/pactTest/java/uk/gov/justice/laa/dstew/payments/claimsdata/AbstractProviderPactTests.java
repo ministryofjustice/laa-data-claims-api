@@ -26,6 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
+import uk.gov.laa.springboot.export.ExportService;
 
 @EnableAutoConfiguration(
     exclude = {
@@ -46,6 +47,8 @@ public class AbstractProviderPactTests {
   }
 
   @MockitoBean protected TokenDetailsManager tokenDetailsManager;
+
+  @MockitoBean protected ExportService exportService;
 
   @MockitoBean protected SecurityFilterChain securityFilterChain;
 
