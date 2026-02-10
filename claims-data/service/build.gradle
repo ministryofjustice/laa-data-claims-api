@@ -96,6 +96,11 @@ dependencies {
     implementation "io.sentry:sentry-logback:$versions.sentry"
     implementation "io.sentry:sentry-spring-boot-4:$versions.sentry"
 
+    // XML Output
+    implementation platform("org.glassfish.jaxb:jaxb-bom:4.0.5")
+    implementation "jakarta.xml.bind:jakarta.xml.bind-api"
+    implementation "org.glassfish.jaxb:jaxb-runtime"
+
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
@@ -207,4 +212,235 @@ tasks.register("checkstyleStaged", Checkstyle) {
     }
 
     classpath = sourceSets.main.compileClasspath
+}
+
+// Outcome item names extracted from XmlOutcomeDeserializer
+def outcomeItems = [
+    "FEE_CODE", "CASE_REF_NUMBER", "CASE_START_DATE", "CASE_ID", "CASE_STAGE_LEVEL",
+    "UFN", "PROCUREMENT_AREA", "ACCESS_POINT", "CLIENT_FORENAME", "CLIENT_SURNAME",
+    "CLIENT_DATE_OF_BIRTH", "UCN", "CLA_REF_NUMBER", "CLA_EXEMPTION", "GENDER",
+    "ETHNICITY", "DISABILITY", "CLIENT_POST_CODE", "WORK_CONCLUDED_DATE", "ADVICE_TIME",
+    "TRAVEL_TIME", "WAITING_TIME", "PROFIT_COST", "VALUE_OF_COSTS", "DISBURSEMENTS_AMOUNT",
+    "COUNSEL_COST", "DISBURSEMENTS_VAT", "TRAVEL_WAITING_COSTS", "VAT_INDICATOR", "LONDON_NONLONDON_RATE",
+    "CLIENT_TYPE", "TOLERANCE_INDICATOR", "TRAVEL_COSTS", "OUTCOME_CODE", "LEGACY_CASE",
+    "CLAIM_TYPE", "ADJOURNED_HEARING_FEE", "TYPE_OF_ADVICE", "POSTAL_APPL_ACCP", "SCHEDULE_REF",
+    "CMRH_ORAL", "CMRH_TELEPHONE", "AIT_HEARING_CENTRE", "SUBSTANTIVE_HEARING", "HO_INTERVIEW",
+    "HO_UCN", "TRANSFER_DATE", "DETENTION_TRAVEL_WAITING_COSTS", "DELIVERY_LOCATION", "PRIOR_AUTHORITY_REF",
+    "JR_FORM_FILLING", "ADDITIONAL_TRAVEL_PAYMENT", "MEETINGS_ATTENDED", "MEDICAL_REPORTS_CLAIMED", "DESI_ACC_REP",
+    "MHT_REF_NUMBER", "STAGE_REACHED", "FOLLOW_ON_WORK", "NATIONAL_REF_MECHANISM_ADVICE", "EXEMPTION_CRITERIA_SATISFIED",
+    "EXCL_CASE_FUNDING_REF", "NO_OF_CLIENTS", "NO_OF_SURGERY_CLIENTS", "IRC_SURGERY", "SURGERY_DATE",
+    "LINE_NUMBER", "CRIME_MATTER_TYPE", "FEE_SCHEME", "REP_ORDER_DATE", "NO_OF_SUSPECTS",
+    "NO_OF_POLICE_STATION", "POLICE_STATION", "DSCC_NUMBER", "MAAT_ID", "DUTY_SOLICITOR",
+    "YOUTH_COURT", "SCHEME_ID", "NUMBER_OF_MEDIATION_SESSIONS", "MEDIATION_TIME", "OUTREACH",
+    "REFERRAL", "CLIENT_LEGALLY_AIDED", "CLIENT2_FORENAME", "CLIENT2_SURNAME", "CLIENT2_DATE_OF_BIRTH",
+    "CLIENT2_UCN", "CLIENT2_POST_CODE", "CLIENT2_GENDER", "CLIENT2_ETHNICITY", "CLIENT2_DISABILITY",
+    "CLIENT2_LEGALLY_AIDED", "UNIQUE_CASE_ID", "STANDARD_FEE_CAT", "CLIENT2_POSTAL_APPL_ACCP", "COSTS_DAMAGES_RECOVERED",
+    "ELIGIBLE_CLIENT_INDICATOR", "COURT_LOCATION_HPCDS", "LOCAL_AUTHORITY_NUMBER", "PA_NUMBER", "EXCESS_TRAVEL_COSTS",
+    "MED_CONCLUDED_DATE"
+]
+
+tasks.register('generateXsd') {
+    group = 'build'
+    description = 'Generates professional third-party XSD from Jackson-annotated XML model classes'
+
+    def outputDir = file("$buildDir/generated/xsd")
+
+    inputs.files(sourceSets.main.output)
+    outputs.dir(outputDir)
+
+    dependsOn tasks.named('classes')
+
+    doLast {
+        outputDir.mkdirs()
+
+        // Get git version for schema
+        def gitVersion = "git rev-parse --short HEAD".execute().text.trim()
+
+        // Create a URL ClassLoader
+        def classPathUrls = []
+        sourceSets.main.output.classesDirs.files.forEach { classPathUrls.add(it.toURI().toURL()) }
+        project(':claims-data:api').sourceSets.main.output.classesDirs.files.forEach { classPathUrls.add(it.toURI().toURL()) }
+        configurations.compileClasspath.forEach { classPathUrls.add(it.toURI().toURL()) }
+
+        def classPath = classPathUrls.toArray(new java.net.URL[0]) as java.net.URL[]
+        def classLoader = new java.net.URLClassLoader(classPath, Thread.currentThread().getContextClassLoader())
+        Thread.currentThread().setContextClassLoader(classLoader)
+
+        // Load annotation and Jackson classes
+        def xsdDocAnnotation = classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.annotation.XsdDocumentation")
+        def jacksonXmlRootElement = classLoader.loadClass("com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement")
+        def jacksonXmlProperty = classLoader.loadClass("com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty")
+
+        // Load XML model classes
+        def xmlClasses = [
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission"),
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOffice"),
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSchedule"),
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome"),
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlMatterStarts"),
+            classLoader.loadClass("uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlImmigrationClr")
+        ]
+
+        def namespace = "http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+        def schemaFileName = "LSCSMSBulkLoadSchema-${gitVersion}.xsd"
+
+        // Build XSD
+        def xsdBuilder = new StringBuilder()
+        xsdBuilder.append('<?xml version="1.0" encoding="UTF-8"?>\n')
+        xsdBuilder.append('<!--\n')
+        xsdBuilder.append('  LAA Claims Data XML Schema\n')
+        xsdBuilder.append('  Generated from: git ' + gitVersion + '\n')
+        xsdBuilder.append('  Namespace: ' + namespace + '\n\n')
+        xsdBuilder.append('  Usage:\n')
+        xsdBuilder.append('  <submission xmlns="' + namespace + '"\n')
+        xsdBuilder.append('              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n')
+        xsdBuilder.append('              xsi:schemaLocation="' + namespace + '\n')
+        xsdBuilder.append('                                  ' + schemaFileName + '">\n')
+        xsdBuilder.append('-->\n')
+        xsdBuilder.append('<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"\n')
+        xsdBuilder.append('           targetNamespace="' + namespace + '"\n')
+        xsdBuilder.append('           elementFormDefault="qualified"\n')
+        xsdBuilder.append('           version="' + gitVersion + '">\n\n')
+
+        // Define outcomeItem type with enumeration
+        xsdBuilder.append('  <!-- Outcome items contain name attribute and text value -->\n')
+        xsdBuilder.append('  <xs:complexType name="outcomeItemType">\n')
+        xsdBuilder.append('    <xs:simpleContent>\n')
+        xsdBuilder.append('      <xs:extension base="xs:string">\n')
+        xsdBuilder.append('        <xs:attribute name="name" use="required">\n')
+        xsdBuilder.append('          <xs:annotation>\n')
+        xsdBuilder.append('            <xs:documentation>Outcome field identifier</xs:documentation>\n')
+        xsdBuilder.append('          </xs:annotation>\n')
+        xsdBuilder.append('          <xs:simpleType>\n')
+        xsdBuilder.append('            <xs:restriction base="xs:string">\n')
+        outcomeItems.each { item ->
+            xsdBuilder.append('              <xs:enumeration value="' + item + '"/>\n')
+        }
+        xsdBuilder.append('            </xs:restriction>\n')
+        xsdBuilder.append('          </xs:simpleType>\n')
+        xsdBuilder.append('        </xs:attribute>\n')
+        xsdBuilder.append('      </xs:extension>\n')
+        xsdBuilder.append('    </xs:simpleContent>\n')
+        xsdBuilder.append('  </xs:complexType>\n\n')
+
+        // Generate complex types and elements for each class
+        xmlClasses.each { clazz ->
+            def rootElem = clazz.getAnnotation(jacksonXmlRootElement)
+            if (rootElem != null) {
+                def elemName = rootElem.localName()
+                def typeName = elemName.capitalize() + "Type"
+
+                // Generate complex type
+                xsdBuilder.append('  <xs:complexType name="' + typeName + '">\n')
+                xsdBuilder.append('    <xs:sequence>\n')
+
+                def components = clazz.getRecordComponents()
+                if (components != null) {
+                    components.each { component ->
+                        def field = clazz.getDeclaredField(component.name)
+                        def propAnnot = field.getAnnotation(jacksonXmlProperty)
+                        def docAnnot = field.getAnnotation(xsdDocAnnotation)
+
+                        if (propAnnot == null || !propAnnot.isAttribute()) {
+                            def typeStr = getXsdType(component.genericType.toString())
+                            def required = docAnnot != null && docAnnot.required()
+                            def minOccurs = required ? '' : ' minOccurs="0"'
+
+                            if (elemName == 'outcome' && component.name == 'matterType') {
+                                // Skip matterType from sequence, it's an attribute
+                            } else {
+                                xsdBuilder.append('      <xs:element name="' + component.name + '" type="' + typeStr + '"' + minOccurs + '>\n')
+                                if (docAnnot != null && docAnnot.description()) {
+                                    xsdBuilder.append('        <xs:annotation>\n')
+                                    xsdBuilder.append('          <xs:documentation>' + docAnnot.description() + '</xs:documentation>\n')
+                                    xsdBuilder.append('        </xs:annotation>\n')
+                                }
+                                xsdBuilder.append('      </xs:element>\n')
+                            }
+                        }
+                    }
+                }
+
+                xsdBuilder.append('    </xs:sequence>\n')
+
+                // Add attributes
+                if (components != null) {
+                    components.each { component ->
+                        def field = clazz.getDeclaredField(component.name)
+                        def propAnnot = field.getAnnotation(jacksonXmlProperty)
+                        def docAnnot = field.getAnnotation(xsdDocAnnotation)
+
+                        if (propAnnot != null && propAnnot.isAttribute()) {
+                            def typeStr = getXsdType(component.genericType.toString())
+                            def required = docAnnot != null && docAnnot.required()
+                            def use = required ? 'required' : 'optional'
+
+                            xsdBuilder.append('    <xs:attribute name="' + component.name + '" type="' + typeStr + '" use="' + use + '">\n')
+                            if (docAnnot != null && docAnnot.description()) {
+                                xsdBuilder.append('      <xs:annotation>\n')
+                                xsdBuilder.append('        <xs:documentation>' + docAnnot.description() + '</xs:documentation>\n')
+                                xsdBuilder.append('      </xs:annotation>\n')
+                            }
+                            xsdBuilder.append('    </xs:attribute>\n')
+                        }
+                    }
+                }
+
+                xsdBuilder.append('  </xs:complexType>\n\n')
+
+                // Generate root element
+                xsdBuilder.append('  <xs:element name="' + elemName + '" type="' + typeName + '">\n')
+                xsdBuilder.append('    <xs:annotation>\n')
+                xsdBuilder.append('      <xs:documentation>Root element for ' + elemName + '</xs:documentation>\n')
+                xsdBuilder.append('    </xs:annotation>\n')
+                xsdBuilder.append('  </xs:element>\n\n')
+            }
+        }
+
+        xsdBuilder.append('</xs:schema>\n')
+
+        // Write XSD file with version in name
+        def xsdFile = new File(outputDir, schemaFileName)
+        xsdFile.text = xsdBuilder.toString()
+        println("Generated XSD: ${xsdFile.absolutePath}")
+
+        // Also create a copy without version for convenience
+        def symlinkFile = new File(outputDir, "LSCSMSBulkLoadSchema.xsd")
+        symlinkFile.text = xsdBuilder.toString()
+        println("Also created: ${symlinkFile.absolutePath}")
+    }
+}
+
+// Helper method for XSD type mapping
+def getXsdType(String javaType) {
+    if (javaType.contains("List") || javaType.contains("java.util.List")) {
+        return "outcomeItemType"  // For outcome items list
+    } else if (javaType.contains("XmlOutcome")) {
+        return "outcomeType"
+    } else if (javaType.contains("XmlMatterStarts")) {
+        return "matterStartsType"
+    } else if (javaType.contains("XmlImmigrationClr")) {
+        return "immigrationClrType"
+    } else if (javaType.contains("XmlSchedule")) {
+        return "scheduleType"
+    } else if (javaType.contains("String")) {
+        return "xs:string"
+    } else if (javaType.contains("Integer")) {
+        return "xs:integer"
+    } else {
+        return "xs:string"
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'generateXsd'
+}
+
+tasks.register('syncXsd', Copy) {
+    from "$buildDir/generated/xsd"
+    into "src/main/resources/schema"
+}
+
+tasks.named('generateXsd') {
+    finalizedBy 'syncXsd'
 }

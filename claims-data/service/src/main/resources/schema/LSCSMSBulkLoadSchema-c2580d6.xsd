@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LAA Claims Data XML Schema
+  Generated from: git c2580d6
+  Namespace: http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/
+
+  Usage:
+  <submission xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/
+                                  LSCSMSBulkLoadSchema-c2580d6.xsd">
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+           elementFormDefault="qualified"
+           version="c2580d6">
+
+  <!-- Outcome items contain name attribute and text value -->
+  <xs:complexType name="outcomeItemType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" use="required">
+          <xs:annotation>
+            <xs:documentation>Outcome field identifier</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="FEE_CODE"/>
+              <xs:enumeration value="CASE_REF_NUMBER"/>
+              <xs:enumeration value="CASE_START_DATE"/>
+              <xs:enumeration value="CASE_ID"/>
+              <xs:enumeration value="CASE_STAGE_LEVEL"/>
+              <xs:enumeration value="UFN"/>
+              <xs:enumeration value="PROCUREMENT_AREA"/>
+              <xs:enumeration value="ACCESS_POINT"/>
+              <xs:enumeration value="CLIENT_FORENAME"/>
+              <xs:enumeration value="CLIENT_SURNAME"/>
+              <xs:enumeration value="CLIENT_DATE_OF_BIRTH"/>
+              <xs:enumeration value="UCN"/>
+              <xs:enumeration value="CLA_REF_NUMBER"/>
+              <xs:enumeration value="CLA_EXEMPTION"/>
+              <xs:enumeration value="GENDER"/>
+              <xs:enumeration value="ETHNICITY"/>
+              <xs:enumeration value="DISABILITY"/>
+              <xs:enumeration value="CLIENT_POST_CODE"/>
+              <xs:enumeration value="WORK_CONCLUDED_DATE"/>
+              <xs:enumeration value="ADVICE_TIME"/>
+              <xs:enumeration value="TRAVEL_TIME"/>
+              <xs:enumeration value="WAITING_TIME"/>
+              <xs:enumeration value="PROFIT_COST"/>
+              <xs:enumeration value="VALUE_OF_COSTS"/>
+              <xs:enumeration value="DISBURSEMENTS_AMOUNT"/>
+              <xs:enumeration value="COUNSEL_COST"/>
+              <xs:enumeration value="DISBURSEMENTS_VAT"/>
+              <xs:enumeration value="TRAVEL_WAITING_COSTS"/>
+              <xs:enumeration value="VAT_INDICATOR"/>
+              <xs:enumeration value="LONDON_NONLONDON_RATE"/>
+              <xs:enumeration value="CLIENT_TYPE"/>
+              <xs:enumeration value="TOLERANCE_INDICATOR"/>
+              <xs:enumeration value="TRAVEL_COSTS"/>
+              <xs:enumeration value="OUTCOME_CODE"/>
+              <xs:enumeration value="LEGACY_CASE"/>
+              <xs:enumeration value="CLAIM_TYPE"/>
+              <xs:enumeration value="ADJOURNED_HEARING_FEE"/>
+              <xs:enumeration value="TYPE_OF_ADVICE"/>
+              <xs:enumeration value="POSTAL_APPL_ACCP"/>
+              <xs:enumeration value="SCHEDULE_REF"/>
+              <xs:enumeration value="CMRH_ORAL"/>
+              <xs:enumeration value="CMRH_TELEPHONE"/>
+              <xs:enumeration value="AIT_HEARING_CENTRE"/>
+              <xs:enumeration value="SUBSTANTIVE_HEARING"/>
+              <xs:enumeration value="HO_INTERVIEW"/>
+              <xs:enumeration value="HO_UCN"/>
+              <xs:enumeration value="TRANSFER_DATE"/>
+              <xs:enumeration value="DETENTION_TRAVEL_WAITING_COSTS"/>
+              <xs:enumeration value="DELIVERY_LOCATION"/>
+              <xs:enumeration value="PRIOR_AUTHORITY_REF"/>
+              <xs:enumeration value="JR_FORM_FILLING"/>
+              <xs:enumeration value="ADDITIONAL_TRAVEL_PAYMENT"/>
+              <xs:enumeration value="MEETINGS_ATTENDED"/>
+              <xs:enumeration value="MEDICAL_REPORTS_CLAIMED"/>
+              <xs:enumeration value="DESI_ACC_REP"/>
+              <xs:enumeration value="MHT_REF_NUMBER"/>
+              <xs:enumeration value="STAGE_REACHED"/>
+              <xs:enumeration value="FOLLOW_ON_WORK"/>
+              <xs:enumeration value="NATIONAL_REF_MECHANISM_ADVICE"/>
+              <xs:enumeration value="EXEMPTION_CRITERIA_SATISFIED"/>
+              <xs:enumeration value="EXCL_CASE_FUNDING_REF"/>
+              <xs:enumeration value="NO_OF_CLIENTS"/>
+              <xs:enumeration value="NO_OF_SURGERY_CLIENTS"/>
+              <xs:enumeration value="IRC_SURGERY"/>
+              <xs:enumeration value="SURGERY_DATE"/>
+              <xs:enumeration value="LINE_NUMBER"/>
+              <xs:enumeration value="CRIME_MATTER_TYPE"/>
+              <xs:enumeration value="FEE_SCHEME"/>
+              <xs:enumeration value="REP_ORDER_DATE"/>
+              <xs:enumeration value="NO_OF_SUSPECTS"/>
+              <xs:enumeration value="NO_OF_POLICE_STATION"/>
+              <xs:enumeration value="POLICE_STATION"/>
+              <xs:enumeration value="DSCC_NUMBER"/>
+              <xs:enumeration value="MAAT_ID"/>
+              <xs:enumeration value="DUTY_SOLICITOR"/>
+              <xs:enumeration value="YOUTH_COURT"/>
+              <xs:enumeration value="SCHEME_ID"/>
+              <xs:enumeration value="NUMBER_OF_MEDIATION_SESSIONS"/>
+              <xs:enumeration value="MEDIATION_TIME"/>
+              <xs:enumeration value="OUTREACH"/>
+              <xs:enumeration value="REFERRAL"/>
+              <xs:enumeration value="CLIENT_LEGALLY_AIDED"/>
+              <xs:enumeration value="CLIENT2_FORENAME"/>
+              <xs:enumeration value="CLIENT2_SURNAME"/>
+              <xs:enumeration value="CLIENT2_DATE_OF_BIRTH"/>
+              <xs:enumeration value="CLIENT2_UCN"/>
+              <xs:enumeration value="CLIENT2_POST_CODE"/>
+              <xs:enumeration value="CLIENT2_GENDER"/>
+              <xs:enumeration value="CLIENT2_ETHNICITY"/>
+              <xs:enumeration value="CLIENT2_DISABILITY"/>
+              <xs:enumeration value="CLIENT2_LEGALLY_AIDED"/>
+              <xs:enumeration value="UNIQUE_CASE_ID"/>
+              <xs:enumeration value="STANDARD_FEE_CAT"/>
+              <xs:enumeration value="CLIENT2_POSTAL_APPL_ACCP"/>
+              <xs:enumeration value="COSTS_DAMAGES_RECOVERED"/>
+              <xs:enumeration value="ELIGIBLE_CLIENT_INDICATOR"/>
+              <xs:enumeration value="COURT_LOCATION_HPCDS"/>
+              <xs:enumeration value="LOCAL_AUTHORITY_NUMBER"/>
+              <xs:enumeration value="PA_NUMBER"/>
+              <xs:enumeration value="EXCESS_TRAVEL_COSTS"/>
+              <xs:enumeration value="MED_CONCLUDED_DATE"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="SubmissionType">
+    <xs:sequence>
+      <xs:element name="office" type="xs:string" minOccurs="0">
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="schemaLocation" type="xs:string" use="optional">
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="submission" type="SubmissionType">
+    <xs:annotation>
+      <xs:documentation>Root element for submission</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="OfficeType">
+    <xs:sequence>
+      <xs:element name="schedule" type="scheduleType" minOccurs="0">
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="account" type="xs:string" use="optional">
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="office" type="OfficeType">
+    <xs:annotation>
+      <xs:documentation>Root element for office</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ScheduleType">
+    <xs:sequence>
+      <xs:element name="outcomes" type="outcomeItemType" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Collection of outcomes for this schedule</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="matterStarts" type="outcomeItemType" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>New matter starts information</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="immigrationClr" type="outcomeItemType" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Immigration Controlled Legal Representation data</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="submissionPeriod" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Submission period (e.g., DEC-2023)</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="areaOfLaw" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Area of law (e.g., MEDIATION, CRIME)</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="scheduleNum" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Schedule number identifier</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="schedule" type="ScheduleType">
+    <xs:annotation>
+      <xs:documentation>Root element for schedule</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="OutcomeType">
+    <xs:sequence>
+      <xs:element name="feeCode" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Fee code for the claim</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="caseRefNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case reference number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="caseStartDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Date when the case started</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="caseId" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case identifier</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="caseStageLevel" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case stage level reached</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="ufn" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Unique File Number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="procurementArea" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Procurement area</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="accessPoint" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Access point for service delivery</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientForename" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's forename</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientSurname" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's surname</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientDateOfBirth" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's date of birth</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="ucn" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Unique Client Number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="claRefNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Community Legal Advice reference number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="claExemption" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Exemption under CLA</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="gender" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's gender</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="ethnicity" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's ethnicity</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="disability" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's disability status</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientPostCode" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client's post code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="workConcludedDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Date when work concluded</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="adviceTime" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Advice time in hours</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="travelTime" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Travel time in hours</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="waitingTime" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Waiting time in hours</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="profitCost" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Profit costs amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="valueOfCosts" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Value of costs</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="disbursementsAmount" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Disbursements amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="counselCost" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Counsel cost</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="disbursementsVat" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Disbursements VAT amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="travelWaitingCosts" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Travel and waiting costs</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vatIndicator" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>VAT indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="londonNonlondonRate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>London/non-London rate indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientType" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Type of client</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="toleranceIndicator" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Tolerance indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="travelCosts" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Travel costs amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="outcomeCode" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Outcome code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="legacyCase" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Legacy case indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="claimType" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Type of claim</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="adjournedHearingFee" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Adjourned hearing fee</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="typeOfAdvice" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Type of advice given</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="postalApplAccp" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Postal application acceptance</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="scheduleRef" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Schedule reference</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="cmrhOral" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case Management Review Hearing - Oral indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="cmrhTelephone" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case Management Review Hearing - Telephone indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="aitHearingCentre" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Asylum and Immigration Tribunal hearing centre</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="substantiveHearing" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Substantive hearing indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="hoInterview" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Home Office interview indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="hoUcn" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Home Office Unique Client Number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="transferDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Case transfer date</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="detentionTravelWaitingCosts" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Detention travel and waiting costs</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="deliveryLocation" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Service delivery location</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="priorAuthorityRef" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Prior authority reference</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="jrFormFilling" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Judicial Review form filling indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="additionalTravelPayment" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Additional travel payment</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="meetingsAttended" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Meetings attended</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="medicalReportsClaimed" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Medical reports claimed</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="desiAccRep" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>DESI account representative</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="mhtRefNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Mental Health Tribunal reference number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="stageReached" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Stage reached in case</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="followOnWork" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Follow-on work indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="nationalRefMechanismAdvice" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>National Referral Mechanism advice given</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="exemptionCriteriaSatisfied" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Exemption criteria satisfied indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="exclCaseFundingRef" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Exclusion case funding reference</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="noOfClients" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of clients</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="noOfSurgeryClients" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of surgery clients</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="ircSurgery" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Immigration and Refugee Centre surgery indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="surgeryDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Surgery date</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="lineNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Line number in submission</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="crimeMatterType" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Crime matter type</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="feeScheme" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Fee scheme code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="repOrderDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Representation order date</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="noOfSuspects" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of suspects</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="noOfPoliceStation" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of police stations</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="policeStation" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Police station code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="dsccNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Departure from Usual Sentence Case court reference</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="maatId" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>MAAT (Magistrates' Court Procedural Application Tool) ID</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="dutySolicitor" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Duty solicitor indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="youthCourt" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Youth court indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="schemeId" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Scheme ID</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="numberOfMediationSessions" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of mediation sessions</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="mediationTime" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Mediation time in hours</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="outreach" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Outreach code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="referral" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Referral code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="clientLegallyAided" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Client legally aided indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Forename" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's forename</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Surname" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's surname</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2DateOfBirth" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's date of birth</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Ucn" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's Unique Client Number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2PostCode" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's post code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Gender" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's gender</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Ethnicity" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's ethnicity</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2Disability" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client's disability status</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2LegallyAided" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client legally aided indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="uniqueCaseId" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Unique case identifier</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="standardFeeCat" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Standard fee category</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="client2PostalApplAccp" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Second client postal application acceptance</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="costsDamagesRecovered" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Costs and damages recovered amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="eligibleClientIndicator" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Eligible client indicator</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="courtLocationHpcds" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Court location HPCDS code</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="localAuthorityNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Local authority number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="paNumber" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Procurement area number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="excessTravelCosts" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Excess travel costs amount</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="medConcludedDate" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Date when mediation concluded</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="outcome" type="OutcomeType">
+    <xs:annotation>
+      <xs:documentation>Root element for outcome</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="NewMatterStartsType">
+    <xs:sequence>
+      <xs:element name="scheduleRef" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Schedule reference identifier</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="procurementArea" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Procurement area</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="accessPoint" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Access point for service delivery</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="categoryCode" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Category code for the matter</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="deliveryLocation" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Service delivery location</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="mediationType" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Type of mediation</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="numberOfMatterStarts" type="xs:integer" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of new matter starts</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="newMatterStarts" type="NewMatterStartsType">
+    <xs:annotation>
+      <xs:documentation>Root element for newMatterStarts</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ImmigrationCLRType">
+    <xs:sequence>
+      <xs:element name="immClrData" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Immigration CLR data fields</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="immigrationCLR" type="ImmigrationCLRType">
+    <xs:annotation>
+      <xs:documentation>Root element for immigrationCLR</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+</xs:schema>
