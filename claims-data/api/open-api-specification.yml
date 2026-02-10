@@ -412,6 +412,11 @@ paths:
           schema:
             type: string
           description: Filter by case reference number
+        - name: escaped_case_flag
+          in: query
+          schema:
+            type: boolean
+          description: Filter by Escaped Case Flag
       responses:
         '200':
           description: Claims retrieved successfully

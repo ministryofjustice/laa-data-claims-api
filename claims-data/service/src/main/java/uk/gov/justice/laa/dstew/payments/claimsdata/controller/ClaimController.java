@@ -97,20 +97,8 @@ public class ClaimController implements ClaimsApi {
       List<ClaimStatus> claimStatuses,
       String submissionPeriod,
       String caseReferenceNumber,
+      Boolean escapedCaseFlag,
       Pageable pageable) {
-
-    //    ClaimSearchRequest.builder()
-    //            .officeCode(officeCode)
-    //            .submissionId(submissionId)
-    //            .submissionStatuses(submissionStatuses)
-    //            .feeCode(feeCode)
-    //            .uniqueFileNumber(uniqueFileNumber)
-    //            .uniqueClientNumber(uniqueClientNumber)
-    //            .uniqueCaseId(uniqueCaseId)
-    //            .claimStatuses(claimStatuses)
-    //            .submissionPeriod(submissionPeriod)
-    //            .caseReferenceNumber(caseReferenceNumber)
-    //            .build();
 
     return ResponseEntity.ok(
         claimService.getClaimResultSetPlus(
@@ -126,6 +114,7 @@ public class ClaimController implements ClaimsApi {
                 .claimStatuses(claimStatuses)
                 .submissionPeriod(submissionPeriod)
                 .caseReferenceNumber(caseReferenceNumber)
+                    .escapedCaseFlag(escapedCaseFlag)
                 .build(),
             pageable));
   }
