@@ -32,11 +32,11 @@ WORKDIR /opt/laa-data-claims-api/claims-data/
 
 # --- Stage for copying from the internal builder stage ---
 FROM base AS build-internal
-ONBUILD COPY --from=builder /build/claims-data/service/build/libs/service-*.jar app.jar
+ONBUILD COPY --from=builder /build/claims-data/service/build/libs/service-*-SNAPSHOT.jar app.jar
 
 # --- Stage for copying from the local filesystem (CI/Manual) ---
 FROM base AS build-external
-ONBUILD COPY claims-data/service/build/libs/service-1.0.0.jar app.jar
+ONBUILD COPY claims-data/service/build/libs/service-1.0.0-SNAPSHOT.jar app.jar
 
 # --- Final Stage ---
 ARG BUILD_SOURCE
