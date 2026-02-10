@@ -28,4 +28,5 @@ public class ClaimSearchRequest {
   private List<ClaimStatus> claimStatuses;
   private String submissionPeriod;
   private String caseReferenceNumber;
+  private Boolean escapedCaseFlag;
 }
