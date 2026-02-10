@@ -20,7 +20,7 @@ test {
 jacocoTestReport {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -28,7 +28,7 @@ jacocoTestReport {
 jacocoTestCoverageVerification {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -195,6 +195,11 @@ spotless {
         cleanthat()
         googleJavaFormat()
     }
+}
+
+tasks.withType(Checkstyle).configureEach {
+    exclude "**/build/generated/**"
+    exclude "**/generated/**"
 }
 
 tasks.register("checkstyleStaged", Checkstyle) {
