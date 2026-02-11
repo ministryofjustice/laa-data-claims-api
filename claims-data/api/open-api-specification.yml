@@ -1541,6 +1541,9 @@ components:
             area_of_law:
               type: string
               description: Area of law for this claim.
+            office_code:
+              type: string
+              description: Account Office Code for this claim's submission.
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.
