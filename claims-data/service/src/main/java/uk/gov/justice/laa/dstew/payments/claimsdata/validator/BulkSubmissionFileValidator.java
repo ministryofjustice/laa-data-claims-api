@@ -17,13 +17,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionVali
 @Component
 public class BulkSubmissionFileValidator {
 
-  private static final Map<String, Set<String>> ALLOWED_BY_EXT =
+  private static final Map<String, Set<String>> ALLOWED_BY_EXTENSION =
       Map.of(
           ".csv", Set.of("text/csv", "application/vnd.ms-excel", "text/plain"),
           ".xml", Set.of("text/xml", "application/xml"),
           ".txt", Set.of("text/plain"));
 
-  private static final Set<String> SUPPORTED_EXTENSIONS = ALLOWED_BY_EXT.keySet();
+  private static final Set<String> SUPPORTED_EXTENSIONS = ALLOWED_BY_EXTENSION.keySet();
 
   /**
    * Validates the provided file against specific criteria, including emptiness, file extension, and
@@ -69,7 +69,7 @@ public class BulkSubmissionFileValidator {
     // Step 4: Validate Content Type
     final String contentTypeRaw = file.getContentType();
     final String contentType = contentTypeRaw == null ? "" : contentTypeRaw.toLowerCase().trim();
-    final Set<String> allowed = ALLOWED_BY_EXT.get(extension);
+    final Set<String> allowed = ALLOWED_BY_EXTENSION.get(extension);
     if (allowed.stream().noneMatch(a -> a.equalsIgnoreCase(contentType))) {
       // 415 Unsupported Media Type
       throw new BulkSubmissionInvalidFileException(
