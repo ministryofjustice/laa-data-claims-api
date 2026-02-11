@@ -1,11 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.validator;
 
+import java.util.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionInvalidFileException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
-
-import java.util.*;
 
 /**
  * This class is responsible for validating bulk submission files uploaded as part of the submission
@@ -18,20 +17,11 @@ import java.util.*;
 @Component
 public class BulkSubmissionFileValidator {
 
-  private static final Map<String, Set<String>> ALLOWED_BY_EXT = Map.of(
-          ".csv", Set.of(
-                  "text/csv",
-                  "application/vnd.ms-excel",
-                  "text/plain"
-          ),
-          ".xml", Set.of(
-                  "text/xml",
-                  "application/xml"
-          ),
-          ".txt", Set.of(
-                  "text/plain"
-          )
-  );
+  private static final Map<String, Set<String>> ALLOWED_BY_EXT =
+      Map.of(
+          ".csv", Set.of("text/csv", "application/vnd.ms-excel", "text/plain"),
+          ".xml", Set.of("text/xml", "application/xml"),
+          ".txt", Set.of("text/plain"));
 
   private static final Set<String> SUPPORTED_EXTENSIONS = ALLOWED_BY_EXT.keySet();
 
@@ -83,8 +73,11 @@ public class BulkSubmissionFileValidator {
     if (allowed.stream().noneMatch(a -> a.equalsIgnoreCase(contentType))) {
       // 415 Unsupported Media Type
       throw new BulkSubmissionInvalidFileException(
-              "Content type '" + contentType + "' does not match the " + extension + " file extension."
-      );
+          "Content type '"
+              + contentType
+              + "' does not match the "
+              + extension
+              + " file extension.");
     }
   }
 

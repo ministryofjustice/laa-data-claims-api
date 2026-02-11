@@ -31,8 +31,8 @@ class BulkSubmissionFileValidatorTest {
 
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
-            .isInstanceOf(BulkSubmissionValidationException.class)
-            .hasMessage("The upload is not a MultipartFile");
+        .isInstanceOf(BulkSubmissionValidationException.class)
+        .hasMessage("The upload is not a MultipartFile");
   }
 
   @Test
@@ -79,8 +79,8 @@ class BulkSubmissionFileValidatorTest {
   void shouldPassValidationForValidTxtFile(String fileName) {
     // Given
     MockMultipartFile file =
-            new MockMultipartFile(
-                    "file", fileName, "text/plain", "col1,col2".getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            "file", fileName, "text/plain", "col1,col2".getBytes(StandardCharsets.UTF_8));
 
     // When / Then - No exception is thrown
     assertThatCode(() -> bulkSubmissionFileValidator.validate(file)).doesNotThrowAnyException();
@@ -113,7 +113,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '"+contentType+"' does not match the .csv file extension.");
+        .hasMessage("Content type '" + contentType + "' does not match the .csv file extension.");
   }
 
   @ParameterizedTest
@@ -128,7 +128,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '"+contentType+"' does not match the .xml file extension.");
+        .hasMessage("Content type '" + contentType + "' does not match the .xml file extension.");
   }
 
   @ParameterizedTest
@@ -137,13 +137,13 @@ class BulkSubmissionFileValidatorTest {
   void shouldThrowExceptionIfMimeDoesNotMatchTxt(String contentType) {
     // Given
     MockMultipartFile file =
-            new MockMultipartFile(
-                    "file", "test.txt", contentType, "<p></p>".getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            "file", "test.txt", contentType, "<p></p>".getBytes(StandardCharsets.UTF_8));
 
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
-            .isInstanceOf(BulkSubmissionInvalidFileException.class)
-            .hasMessage("Content type '"+contentType+"' does not match the .txt file extension.");
+        .isInstanceOf(BulkSubmissionInvalidFileException.class)
+        .hasMessage("Content type '" + contentType + "' does not match the .txt file extension.");
   }
 
   @ParameterizedTest
@@ -152,8 +152,8 @@ class BulkSubmissionFileValidatorTest {
   void shouldPassValidationForValidCsvFileContentType(String contentType) {
     // Given
     MockMultipartFile file =
-            new MockMultipartFile(
-                    "file", "test.csv", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            "file", "test.csv", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
 
     // When / Then - No exception is thrown
     assertThatCode(() -> bulkSubmissionFileValidator.validate(file)).doesNotThrowAnyException();
@@ -165,8 +165,8 @@ class BulkSubmissionFileValidatorTest {
   void shouldPassValidationForValidXmlFileContentType(String contentType) {
     // Given
     MockMultipartFile file =
-            new MockMultipartFile(
-                    "file", "test.xml", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            "file", "test.xml", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
 
     // When / Then - No exception is thrown
     assertThatCode(() -> bulkSubmissionFileValidator.validate(file)).doesNotThrowAnyException();
@@ -178,8 +178,8 @@ class BulkSubmissionFileValidatorTest {
   void shouldPassValidationForValidTxtFileContentType(String contentType) {
     // Given
     MockMultipartFile file =
-            new MockMultipartFile(
-                    "file", "test.txt", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            "file", "test.txt", contentType, "col1,col2".getBytes(StandardCharsets.UTF_8));
 
     // When / Then - No exception is thrown
     assertThatCode(() -> bulkSubmissionFileValidator.validate(file)).doesNotThrowAnyException();
