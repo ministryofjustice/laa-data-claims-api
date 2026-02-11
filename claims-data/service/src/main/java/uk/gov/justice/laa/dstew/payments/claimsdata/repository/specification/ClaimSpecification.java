@@ -16,7 +16,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -134,13 +139,9 @@ public final class ClaimSpecification {
   public static Specification<Claim> filterBy(ClaimSearchRequest request) {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
-      // Join with Submission
-      Join<Claim, Submission> submissionJoin = root.join("submission");
-      Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin = root.join("calculatedFeeDetail");
-      Join<Claim, Client> clientJoin = root.join("client");
-      Join<Claim, ClaimCase> claimCaseJoin = root.join("claimCase");
-
       List<Predicate> predicates = new ArrayList<>();
+
+      Join<Claim, Submission> submissionJoin = root.join("submission");
 
       // Filter on Submission fields
       predicates.add(
@@ -166,7 +167,11 @@ public final class ClaimSpecification {
       }
 
       if (Optional.ofNullable(request.getEscapedCaseFlag()).isPresent()) {
-        predicates.add(cb.and(cb.equal(calculatedFeeDetailJoin.get("escapeCaseFlag"), request.getEscapedCaseFlag())));
+        Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin = root.join("calculatedFeeDetail");
+        predicates.add(
+            cb.and(
+                cb.equal(
+                    calculatedFeeDetailJoin.get("escapeCaseFlag"), request.getEscapedCaseFlag())));
       }
 
       // Filter on Claim fields
@@ -188,32 +193,17 @@ public final class ClaimSpecification {
             cb.and(cb.equal(root.get("caseReferenceNumber"), request.getCaseReferenceNumber())));
       }
 
-      // Filter on Client fields
-//      if (StringUtils.hasText(request.getUniqueClientNumber())) {
-//        // Subquery to check existence of matching clients
-//        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
-//        Subquery<Client> clientSubquery =
-//            getClientSubquery(request.getUniqueClientNumber(), root, query, cb);
-//
-//        predicates.add(cb.exists(clientSubquery));
-//      }
-
       if (StringUtils.hasText(request.getUniqueClientNumber())) {
-        predicates.add(cb.and(cb.equal(clientJoin.get("uniqueClientNumber"), request.getUniqueClientNumber())));
+        Join<Claim, Client> clientJoin = root.join("client");
+        predicates.add(
+            cb.and(
+                cb.equal(clientJoin.get("uniqueClientNumber"), request.getUniqueClientNumber())));
       }
 
-      // Filter on Claim Case fields
-//      if (StringUtils.hasText(request.getUniqueCaseId())) {
-//        // Subquery to check existence of matching claim cases
-//        Assert.notNull(query, NOT_NULL_QUERY_MESSAGE);
-//        Subquery<ClaimCase> claimCaseSubquery =
-//            getClaimCaseSubquery(request.getUniqueCaseId(), root, query, cb);
-//
-//        predicates.add(cb.exists(claimCaseSubquery));
-//      }
-
       if (StringUtils.hasText(request.getUniqueCaseId())) {
-        predicates.add(cb.and(cb.equal(claimCaseJoin.get("uniqueCaseId"), request.getUniqueCaseId())));
+        Join<Claim, ClaimCase> claimCaseJoin = root.join("claimCase");
+        predicates.add(
+            cb.and(cb.equal(claimCaseJoin.get("uniqueCaseId"), request.getUniqueCaseId())));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

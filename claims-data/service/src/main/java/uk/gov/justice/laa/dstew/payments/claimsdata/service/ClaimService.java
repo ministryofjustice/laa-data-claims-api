@@ -311,7 +311,7 @@ public class ClaimService
    * @param pageable a pageable object to yield the paginated claims results
    * @return the paginated result set with all claims that satisfy the filtering criteria above.
    */
-  public ClaimResultSet getClaimResultSetPlus(ClaimSearchRequest request, Pageable pageable) {
+  public ClaimResultSet getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
 
     if (!StringUtils.hasText(request.getOfficeCode())) {
       throw new ClaimBadRequestException("Missing office code");

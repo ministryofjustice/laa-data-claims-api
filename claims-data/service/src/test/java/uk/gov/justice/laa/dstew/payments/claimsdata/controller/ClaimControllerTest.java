@@ -32,6 +32,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -170,6 +171,40 @@ class ClaimControllerTest {
     mockMvc
         .perform(
             get(API_URI_PREFIX + "/claims")
+                .queryParam("office_code", "office_123")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam(
+                    "submission_statuses",
+                    String.valueOf(SubmissionStatus.CREATED),
+                    String.valueOf(SubmissionStatus.REPLACED))
+                .queryParam("fee_code", "fee_123")
+                .queryParam("unique_file_number", "UFN_123")
+                .queryParam("unique_client_number", "UCN_123")
+                .queryParam("unique_case_id", "UC_ID_123")
+                .queryParam(
+                    "claim_statuses",
+                    String.valueOf(ClaimStatus.VALID),
+                    String.valueOf(ClaimStatus.INVALID))
+                .queryParam("submission_period", "APR-2025")
+                .queryParam("case_reference_number", "CASE_123")
+                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+        .andExpect(status().isOk())
+        .andExpect(content().json(jsonContent));
+  }
+
+  @Test
+  void getClaims_v2_returnsClaimDetails() throws Exception {
+    var claimResponse = new ClaimResponse();
+    var expected = new ClaimResultSet().content(List.of(claimResponse));
+
+    when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+        .thenReturn(expected);
+
+    String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+
+    mockMvc
+        .perform(
+            get("/api/v2/claims")
                 .queryParam("office_code", "office_123")
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
                 .queryParam(
