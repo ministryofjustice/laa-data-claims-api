@@ -54,6 +54,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT = ClaimsDataTestUtil.API_URI_PREFIX + "/claims";
 
+  private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
+
   @BeforeEach
   void setUp() {
     seedClaimsData();
@@ -349,7 +351,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_CLAIMS_ENDPOINT + "-plus")
+                get(GET_CLAIMS_ENDPOINT)
                     .param("office_code", "office1")
                     .param("unique_file_number", "UFN-002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -403,6 +405,96 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied() throws Exception {
     mockMvc
         .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnAllClaimsForAGivenOfficeCode_v2() throws Exception {
+    // given: required claims exist in the database
+
+    // when: calling the GET endpoint to retrieve all claims for an office_code
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", "office1")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains the expected number of claims
+    String responseBody = result.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
+    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
+        .containsExactlyInAnyOrder(
+            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+  }
+
+  @Test
+  void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference_v2() throws Exception {
+    // given: required claims exist in the database
+
+    // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
+    // number
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", "office1")
+                    .param("unique_file_number", "UFN-002")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains the expected number of claims
+    String responseBody = result.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+    assertThat(claimResultSet.getContent()).hasSize(1);
+    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenUnknownParametersAreSupplied_v2() throws Exception {
+    // given: required claims exist in the database
+
+    // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
+    // be returned.
+    mockMvc
+        .perform(
+            get(GET_CLAIMS_ENDPOINT_V2)
+                .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
+                .param("unknown-parameter", "UFN-002")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch_v2() throws Exception {
+    // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
+
+    // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", "OFFICE-CODE-002")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains no claims.
+    String responseBody = result.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied_v2() throws Exception {
+    mockMvc
+        .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
   }
 }

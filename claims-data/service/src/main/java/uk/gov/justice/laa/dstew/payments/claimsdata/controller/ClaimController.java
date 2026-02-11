@@ -101,7 +101,7 @@ public class ClaimController implements ClaimsApi {
       Pageable pageable) {
 
     return ResponseEntity.ok(
-        claimService.getClaimResultSetPlus(
+        claimService.getClaimResultSetV2(
             ClaimSearchRequest.builder()
                 .officeCode(officeCode)
                 .submissionId(submissionId)
@@ -114,7 +114,7 @@ public class ClaimController implements ClaimsApi {
                 .claimStatuses(claimStatuses)
                 .submissionPeriod(submissionPeriod)
                 .caseReferenceNumber(caseReferenceNumber)
-                    .escapedCaseFlag(escapedCaseFlag)
+                .escapedCaseFlag(escapedCaseFlag)
                 .build(),
             pageable));
   }
