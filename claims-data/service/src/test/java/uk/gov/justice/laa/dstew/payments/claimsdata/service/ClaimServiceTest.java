@@ -35,7 +35,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
@@ -581,12 +583,14 @@ class ClaimServiceTest {
 
   @Test
   void getClaimResultSet_v2_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
-    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(new Claim()));
+    Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+
+    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(claim));
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new ClaimResultSet().content(Collections.singletonList(new ClaimResponse()));
+        new ClaimResultSet().content(Collections.singletonList(ClaimResponse.builder().id(claim.getId().toString()).build()));
     when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
 
     var actualResultSet =
@@ -603,7 +607,7 @@ class ClaimServiceTest {
                 .submissionPeriod(SUBMISSION_PERIOD)
                 .caseReferenceNumber(CASE_REFERENCE)
                 .build(),
-            Pageable.ofSize(10).withPage(0));
+                PageRequest.of(0, 10, Sort.by("total_warnings")));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
