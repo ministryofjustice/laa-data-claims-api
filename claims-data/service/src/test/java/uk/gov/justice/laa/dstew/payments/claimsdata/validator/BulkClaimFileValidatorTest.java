@@ -184,4 +184,35 @@ class BulkSubmissionFileValidatorTest {
     // When / Then - No exception is thrown
     assertThatCode(() -> bulkSubmissionFileValidator.validate(file)).doesNotThrowAnyException();
   }
+
+  @Test
+  @DisplayName("Should throw exception if Content type is null")
+  void shouldThrowExceptionIfContentTypeIsNull() {
+    // Given
+    MockMultipartFile file =
+        new MockMultipartFile("file", "test.txt", null, "<p></p>".getBytes(StandardCharsets.UTF_8));
+
+    // When / Then
+    assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
+        .isInstanceOf(BulkSubmissionInvalidFileException.class)
+        .hasMessage("Content type '' does not match the .txt file extension.");
+  }
+
+  @Test
+  @DisplayName("Should throw exception if file name is null")
+  void shouldThrowExceptionIfFileNameIsNull() {
+    /*
+     Note: Due to the behavior of the mocking class, the filename is converted to an empty string.
+     As a result, this test does not accurately simulate a true null value being received.
+     However, the production code correctly handles this scenario.
+    */
+    MockMultipartFile file =
+        new MockMultipartFile(
+            "file", null, "text/plain", "<p></p>".getBytes(StandardCharsets.UTF_8));
+
+    // When / Then
+    assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
+        .isInstanceOf(BulkSubmissionInvalidFileException.class)
+        .hasMessage("Only .csv, .xml and .txt files are allowed");
+  }
 }
