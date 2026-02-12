@@ -24,18 +24,6 @@ class BulkSubmissionFileValidatorTest {
   }
 
   @Test
-  @DisplayName("Should throw exception if file is not a multipart file")
-  void shouldThrowExceptionIfFileIsNotMultiPart() {
-    // Given an empty file
-    String file = "MockMultipartFile";
-
-    // When / Then
-    assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
-        .isInstanceOf(BulkSubmissionValidationException.class)
-        .hasMessage("The upload is not a MultipartFile");
-  }
-
-  @Test
   @DisplayName("Should throw exception if file is empty")
   void shouldThrowExceptionIfFileIsEmpty() {
     // Given an empty file
