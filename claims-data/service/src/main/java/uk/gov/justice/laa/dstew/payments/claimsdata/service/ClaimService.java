@@ -323,7 +323,7 @@ public class ClaimService
 
     Specification<Claim> combinedSpec = baseSpec.and(sortSpec);
 
-    Pageable sanitizedPageable = removeCustomSortFromPageable(pageable, "total_warnings");
+    Pageable sanitizedPageable = removeCustomSortFromPageable(pageable, "totalWarnings");
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 

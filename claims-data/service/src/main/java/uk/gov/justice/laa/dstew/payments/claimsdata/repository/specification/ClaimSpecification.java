@@ -249,7 +249,7 @@ public final class ClaimSpecification {
       }
 
       for (Sort.Order order : pageable.getSort()) {
-        if (!"total_warnings".equalsIgnoreCase(order.getProperty())) {
+        if (!"totalWarnings".equalsIgnoreCase(order.getProperty())) {
           continue;
         }
 
