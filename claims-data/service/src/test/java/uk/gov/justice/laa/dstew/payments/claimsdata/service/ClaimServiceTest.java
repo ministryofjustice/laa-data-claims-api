@@ -590,7 +590,10 @@ class ClaimServiceTest {
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new ClaimResultSet().content(Collections.singletonList(ClaimResponse.builder().id(claim.getId().toString()).build()));
+        new ClaimResultSet()
+            .content(
+                Collections.singletonList(
+                    ClaimResponse.builder().id(claim.getId().toString()).build()));
     when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
 
     var actualResultSet =
@@ -607,7 +610,7 @@ class ClaimServiceTest {
                 .submissionPeriod(SUBMISSION_PERIOD)
                 .caseReferenceNumber(CASE_REFERENCE)
                 .build(),
-                PageRequest.of(0, 10, Sort.by("total_warnings")));
+            PageRequest.of(0, 10, Sort.by("total_warnings")));
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
