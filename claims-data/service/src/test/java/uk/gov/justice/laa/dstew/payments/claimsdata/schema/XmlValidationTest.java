@@ -41,6 +41,7 @@ public class XmlValidationTest {
     return Stream.of(
         "outcomes.xml",
         "outcomes_with_client.xml",
+        "schedule_with_nil_outcomes.xml",
         "matter_starts_with_category_code.xml",
         "immigration_clr.xml",
         "matter_starts_with_mediation_type.xml",
