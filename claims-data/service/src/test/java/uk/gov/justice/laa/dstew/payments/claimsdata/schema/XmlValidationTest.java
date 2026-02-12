@@ -47,7 +47,8 @@ public class XmlValidationTest {
         "matter_starts_with_mediation_type.xml",
         "matter_starts_with_only_mediation_types.xml",
         "outcomes-with_court_location_hpcds-valid.xml",
-        "outcomes_with_empty_client_surname.xml");
+        "outcomes_with_empty_client_surname.xml",
+        "outcomes_with_all_possible_fields.xml");
   }
 
   /** Negative path: invalid XML should throw SAXException */

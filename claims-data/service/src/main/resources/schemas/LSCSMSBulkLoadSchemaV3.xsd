@@ -87,11 +87,11 @@
             <xs:enumeration value="TRAVEL_COSTS"/>
             <xs:enumeration value="OUTCOME_CODE"/>
             <xs:enumeration value="LEGACY_CASE"/>
+            <xs:enumeration value="CLAIM_TYPE"/>
             <xs:enumeration value="ADJOURNED_HEARING_FEE"/>
             <xs:enumeration value="TYPE_OF_ADVICE"/>
             <xs:enumeration value="POSTAL_APPL_ACCP"/>
             <xs:enumeration value="SCHEDULE_REF"/>
-            <xs:enumeration value="SCHEDULE_REFERENCE"/>
             <xs:enumeration value="CMRH_ORAL"/>
             <xs:enumeration value="CMRH_TELEPHONE"/>
             <xs:enumeration value="AIT_HEARING_CENTRE"/>
@@ -99,6 +99,7 @@
             <xs:enumeration value="HO_INTERVIEW"/>
             <xs:enumeration value="HO_UCN"/>
             <xs:enumeration value="TRANSFER_DATE"/>
+            <xs:enumeration value="DETENTION_TRAVEL_WAITING_COSTS"/>
             <xs:enumeration value="DELIVERY_LOCATION"/>
             <xs:enumeration value="PRIOR_AUTHORITY_REF"/>
             <xs:enumeration value="JR_FORM_FILLING"/>
@@ -116,7 +117,9 @@
             <xs:enumeration value="NO_OF_SURGERY_CLIENTS"/>
             <xs:enumeration value="IRC_SURGERY"/>
             <xs:enumeration value="SURGERY_DATE"/>
+            <xs:enumeration value="LINE_NUMBER"/>
             <xs:enumeration value="CRIME_MATTER_TYPE"/>
+            <xs:enumeration value="FEE_SCHEME"/>
             <xs:enumeration value="REP_ORDER_DATE"/>
             <xs:enumeration value="NO_OF_SUSPECTS"/>
             <xs:enumeration value="NO_OF_POLICE_STATION"/>
@@ -143,10 +146,12 @@
             <xs:enumeration value="UNIQUE_CASE_ID"/>
             <xs:enumeration value="STANDARD_FEE_CAT"/>
             <xs:enumeration value="CLIENT2_POSTAL_APPL_ACCP"/>
+            <xs:enumeration value="COSTS_DAMAGES_RECOVERED"/>
             <xs:enumeration value="ELIGIBLE_CLIENT_INDICATOR"/>
             <xs:enumeration value="COURT_LOCATION_HPCDS"/>
             <xs:enumeration value="LOCAL_AUTHORITY_NUMBER"/>
             <xs:enumeration value="PA_NUMBER"/>
+            <xs:enumeration value="EXCESS_TRAVEL_COSTS"/>
             <xs:enumeration value="MED_CONCLUDED_DATE"/>
         </xs:restriction>
     </xs:simpleType>
