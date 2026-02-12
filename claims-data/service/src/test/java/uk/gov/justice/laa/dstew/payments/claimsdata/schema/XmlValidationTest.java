@@ -31,13 +31,13 @@ public class XmlValidationTest {
 
   /** Happy path: valid XML should not throw any exception */
   @ParameterizedTest
-  @MethodSource("validXmlPaths")
+  @MethodSource("validXmlFileNames")
   public void testValidXml(String xmlFileName) {
     assertDoesNotThrow(
         () -> validateXml(XML_BASE_PATH + xmlFileName), "Valid XML should pass XSD validation");
   }
 
-  private static Stream<String> validXmlPaths() {
+  private static Stream<String> validXmlFileNames() {
     return Stream.of(
         "outcomes.xml",
         "outcomes_with_client.xml",
@@ -53,7 +53,7 @@ public class XmlValidationTest {
 
   /** Negative path: invalid XML should throw SAXException */
   @ParameterizedTest
-  @MethodSource("invalidXmlPaths")
+  @MethodSource("invalidXmlFileNames")
   public void testInvalidXml(String xmlFileName) {
     assertThrows(
         SAXException.class,
@@ -61,7 +61,7 @@ public class XmlValidationTest {
         "Invalid XML should fail XSD validation");
   }
 
-  private static Stream<String> invalidXmlPaths() {
+  private static Stream<String> invalidXmlFileNames() {
     return Stream.of(
         "malformed-submission.xml",
         "invalid_attribute_submission.xml",
