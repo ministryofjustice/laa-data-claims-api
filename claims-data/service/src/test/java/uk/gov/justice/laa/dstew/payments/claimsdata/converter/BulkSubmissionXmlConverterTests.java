@@ -12,6 +12,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmiss
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionXmlConverter.FILE_REJECTION_MESSAGE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionXmlConverter.XML_XSD_VALIDATION_FAILED_MESSAGE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
 
@@ -167,16 +168,18 @@ public class BulkSubmissionXmlConverterTests {
 
     @ParameterizedTest
     @CsvSource({
-      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml,", // matterType null
-      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml,''" // matterType empty
+      "classpath:test_upload_files/xml/outcome_missing_matter_type.xml", // matterType null
+      "classpath:test_upload_files/xml/outcome_empty_matter_type.xml" // matterType empty
     })
-    void shouldParseEmptyOrMissingMatterTypeCode(String inputFile, String expectedMatterTypeCode)
-        throws IOException {
+    void shouldThrowExceptionForEmptyOrMissingMatterTypeCode(String inputFile) throws IOException {
       MultipartFile file = getMultipartFile(inputFile);
-      XmlSubmission bulkSubmission = bulkSubmissionXmlConverter.convert(file);
 
-      assertThat(bulkSubmission.office().schedule().outcomes().getFirst().matterType())
-          .isEqualTo(expectedMatterTypeCode);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+
+      assertThat(exception.getErrorMessage()).contains(XML_XSD_VALIDATION_FAILED_MESSAGE);
     }
 
     @Test
