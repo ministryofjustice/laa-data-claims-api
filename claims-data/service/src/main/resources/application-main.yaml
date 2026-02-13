@@ -12,6 +12,7 @@ spring:
     placeholders:
       reporting_username: ${REPORTING_USERNAME}
       reporting_password: ${REPORTING_PASSWORD}
+
 aws:
   region: ${AWS_REGION}
   sqs:
