@@ -8,9 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -300,8 +303,60 @@ public class ClaimService
     return response;
   }
 
+  /**
+   * Returns all the existing claims filtered by some parameters and paginated in a {@link
+   * ClaimResultSet}.
+   *
+   * @param request an object containing all the parameters to filter by
+   * @param pageable a pageable object to yield the paginated claims results
+   * @return the paginated result set with all claims that satisfy the filtering criteria above.
+   */
+  public ClaimResultSet getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
+
+    if (!StringUtils.hasText(request.getOfficeCode())) {
+      throw new ClaimBadRequestException("Missing office code");
+    }
+
+    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
+
+    Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+
+    Specification<Claim> combinedSpec = baseSpec.and(sortSpec);
+
+    Pageable sanitizedPageable = removeCustomSortFromPageable(pageable, "totalWarnings");
+
+    Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
+
+    ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+    for (ClaimResponse claimResponse : response.getContent()) {
+      if (claimResponse.getId() != null) {
+        long totalWarningsForClaim =
+            validationMessageLogRepository.countAllByClaimIdAndType(
+                UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
+        claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+      }
+    }
+    return response;
+  }
+
   @Transactional
   public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
     return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
+
+  private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return pageable;
+    }
+
+    List<Sort.Order> remainingOrders =
+        pageable.getSort().stream()
+            .filter(order -> !customProperty.equalsIgnoreCase(order.getProperty()))
+            .toList();
+
+    Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
+
+    return org.springframework.data.domain.PageRequest.of(
+        pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 }

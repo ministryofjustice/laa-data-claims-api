@@ -35,8 +35,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -530,6 +533,112 @@ class ClaimServiceTest {
             List.of(ClaimStatus.READY_TO_PROCESS),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
+    assertThat(actualResultSet.getContent()).isEmpty();
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenOfficeCodeIsMissing_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSetV2(
+                ClaimSearchRequest.builder()
+                    .officeCode(null)
+                    .submissionId(SUBMISSION_ID.toString())
+                    .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                    .feeCode(FEE_CODE)
+                    .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                    .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                    .uniqueCaseId(UNIQUE_CASE_ID)
+                    .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                    .submissionPeriod(SUBMISSION_PERIOD)
+                    .caseReferenceNumber(CASE_REFERENCE)
+                    .build(),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenOfficeCodeIsEmptyString_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSetV2(
+                ClaimSearchRequest.builder()
+                    .officeCode("")
+                    .submissionId(SUBMISSION_ID.toString())
+                    .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                    .feeCode(FEE_CODE)
+                    .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                    .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                    .uniqueCaseId(UNIQUE_CASE_ID)
+                    .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                    .submissionPeriod(SUBMISSION_PERIOD)
+                    .caseReferenceNumber(CASE_REFERENCE)
+                    .build(),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+    Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+
+    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(claim));
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedNonEmptyResultSet =
+        new ClaimResultSet()
+            .content(
+                Collections.singletonList(
+                    ClaimResponse.builder().id(claim.getId().toString()).build()));
+    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(OFFICE_ACCOUNT_NUMBER)
+                .submissionId(SUBMISSION_ID.toString())
+                .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                .feeCode(FEE_CODE)
+                .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                .uniqueCaseId(UNIQUE_CASE_ID)
+                .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                .submissionPeriod(SUBMISSION_PERIOD)
+                .caseReferenceNumber(CASE_REFERENCE)
+                .build(),
+            PageRequest.of(0, 10, Sort.by("total_warnings")));
+
+    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
+    assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
+    Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedEmptyResultSet = new ClaimResultSet();
+    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(OFFICE_ACCOUNT_NUMBER)
+                .submissionId(SUBMISSION_ID.toString())
+                .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                .feeCode(FEE_CODE)
+                .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                .uniqueCaseId(UNIQUE_CASE_ID)
+                .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                .submissionPeriod(SUBMISSION_PERIOD)
+                .caseReferenceNumber(CASE_REFERENCE)
+                .build(),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
