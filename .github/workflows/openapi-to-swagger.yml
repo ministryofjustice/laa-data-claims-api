@@ -75,7 +75,7 @@ jobs:
 
         # ---------- AWS auth (OIDC) ----------
       - name: Configure AWS creds
-        uses: aws-actions/configure-aws-credentials@v5.1.1
+        uses: aws-actions/configure-aws-credentials@v6.0.0
         with:
           role-to-assume: ${{ secrets.ECR_ROLE_TO_ASSUME }}
           aws-region: ${{  vars.ECR_REGION }}
