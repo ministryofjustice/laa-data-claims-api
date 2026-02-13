@@ -1,0 +1,22 @@
+image:
+  repository: bitnamilegacy/postgresql
+  tag: "17.6.0-debian-12-r2"
+  allowInsecureImages: true
+
+# Create a database named "javers_db"
+auth:
+  database: javers_db
+  enablePostgresUser: true
+  postgresPassword: ""  # auto-generate
+  usePasswordFiles: true
+
+primary:
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+
+serviceAccount:
+  create: false
+  name: default
+  automountServiceAccountToken: false

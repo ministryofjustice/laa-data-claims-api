@@ -7,8 +7,11 @@ spring:
     url: jdbc:postgresql://localhost:5432/laa_data_claims_api_dev
     username: user
     password: dev
+    hikari:
+      pool-name: primary-pool
+
   flyway:
-    schemas: claims, javers
+    schemas: claims
     create-schemas: true
     enabled: true
     out-of-order: true
@@ -32,6 +35,31 @@ spring:
       hibernate:
         default_schema: claims
 
+  autoconfigure:
+    exclude:
+      - org.javers.spring.boot.sql.JaversSqlAutoConfiguration
+
+audit:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5433/javers_db
+    username: user
+    password: pass
+    hikari:
+      maximum-pool-size: 30
+      pool-name: javers-pool
+
+  flyway:
+    schemas: javers
+    create-schemas: true
+    enabled: true
+
+# To debug JaVers database connections
+#logging:
+#  level:
+#    com.zaxxer.hikari: DEBUG
+#    org.javers: DEBUG
+
 # Local connection details for dev, overridden in other envs
 aws:
   region: us-east-1
@@ -41,6 +69,8 @@ aws:
 
 javers:
   sqlSchema: javers
+  sqlSchemaManagementEnabled: true
+  sqlGlobalIdCacheDisabled: false
 
 # used by actuator info endpoint
 info:
