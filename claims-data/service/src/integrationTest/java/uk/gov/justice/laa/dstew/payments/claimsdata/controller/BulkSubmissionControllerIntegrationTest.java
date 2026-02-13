@@ -95,11 +95,14 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @ParameterizedTest
   @CsvSource({
     "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+    "test_upload_files/csv/outcomes.csv,false,false,application/vnd.ms-excel",
+    "test_upload_files/csv/outcomes.csv,false,false,text/plain",
     "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv",
     "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv",
     "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/plain",
     "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,application/xml",
     "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
