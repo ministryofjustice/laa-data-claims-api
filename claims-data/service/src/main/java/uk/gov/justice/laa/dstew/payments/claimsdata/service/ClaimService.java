@@ -2,8 +2,11 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,6 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -328,14 +332,37 @@ public class ClaimService
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
     ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
-    for (ClaimResponse claimResponse : response.getContent()) {
-      if (claimResponse.getId() != null) {
-        long totalWarningsForClaim =
-            validationMessageLogRepository.countAllByClaimIdAndType(
-                UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
-        claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+
+    List<UUID> claimIds =
+        response.getContent().stream()
+            .map(ClaimResponse::getId)
+            .filter(Objects::nonNull)
+            .map(UUID::fromString)
+            .distinct()
+            .toList();
+
+    if (!claimIds.isEmpty()) {
+      // 2) Fetch all warning counts in a single query
+      Map<UUID, Long> warningsByClaimId =
+          validationMessageLogRepository
+              .countWarningsByClaimIdsAndType(claimIds, ValidationMessageType.WARNING)
+              .stream()
+              .collect(
+                  Collectors.toMap(
+                      ClaimWarningCountProjection::getClaimId,
+                      ClaimWarningCountProjection::getWarningCount));
+
+      // 3) Apply counts to each ClaimResponse (pure in-memory)
+      for (ClaimResponse claimResponse : response.getContent()) {
+        if (claimResponse.getId() != null) {
+          UUID claimId = UUID.fromString(claimResponse.getId());
+          long totalWarningsForClaim = warningsByClaimId.getOrDefault(claimId, 0L);
+
+          claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+        }
       }
     }
+
     return response;
   }
 

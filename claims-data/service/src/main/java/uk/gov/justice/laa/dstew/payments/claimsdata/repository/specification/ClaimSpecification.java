@@ -36,6 +36,22 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 public final class ClaimSpecification {
 
   private static final String NOT_NULL_QUERY_MESSAGE = "Query must not be null";
+  public static final String OFFICE_ACCOUNT_NUMBER = "officeAccountNumber";
+  public static final String ID = "id";
+  public static final String STATUS = "status";
+  public static final String SUBMISSION_PERIOD = "submissionPeriod";
+  public static final String FEE_CODE = "feeCode";
+  public static final String UNIQUE_FILE_NUMBER = "uniqueFileNumber";
+  public static final String CASE_REFERENCE_NUMBER = "caseReferenceNumber";
+  public static final String AREA_OF_LAW = "areaOfLaw";
+  public static final String ESCAPE_CASE_FLAG = "escapeCaseFlag";
+  public static final String UNIQUE_CASE_ID = "uniqueCaseId";
+  public static final String CLIENT_ENTITY = "client";
+  public static final String CLAIM_CASE_ENTITY = "claimCase";
+  public static final String CALCULATED_FEE_DETAIL_ENTITY = "calculatedFeeDetail";
+  public static final String SUBMISSION_ENTITY = "submission";
+  public static final String UNIQUE_CLIENT_NUMBER = "uniqueClientNumber";
+  public static final String CLAIM_ENTITY = "claim";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
@@ -69,40 +85,40 @@ public final class ClaimSpecification {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
       // Join with Submission
-      Join<Claim, Submission> submissionJoin = root.join("submission");
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
 
       List<Predicate> predicates = new ArrayList<>();
 
       // Filter on Submission fields
-      predicates.add(cb.and(cb.equal(submissionJoin.get("officeAccountNumber"), officeCode)));
+      predicates.add(cb.and(cb.equal(submissionJoin.get(OFFICE_ACCOUNT_NUMBER), officeCode)));
 
       if (StringUtils.hasText(submissionId)) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("id"), UUID.fromString(submissionId))));
+        predicates.add(cb.and(cb.equal(submissionJoin.get(ID), UUID.fromString(submissionId))));
       }
 
       if (submissionStatuses != null && !submissionStatuses.isEmpty()) {
-        predicates.add(cb.and(submissionJoin.get("status").in(submissionStatuses)));
+        predicates.add(cb.and(submissionJoin.get(STATUS).in(submissionStatuses)));
       }
 
       if (StringUtils.hasText(submissionPeriod)) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("submissionPeriod"), submissionPeriod)));
+        predicates.add(cb.and(cb.equal(submissionJoin.get(SUBMISSION_PERIOD), submissionPeriod)));
       }
 
       // Filter on Claim fields
       if (claimStatuses != null && !claimStatuses.isEmpty()) {
-        predicates.add(cb.and(root.get("status").in(claimStatuses)));
+        predicates.add(cb.and(root.get(STATUS).in(claimStatuses)));
       }
 
       if (StringUtils.hasText(feeCode)) {
-        predicates.add(cb.and(cb.equal(root.get("feeCode"), feeCode)));
+        predicates.add(cb.and(cb.equal(root.get(FEE_CODE), feeCode)));
       }
 
       if (StringUtils.hasText(uniqueFileNumber)) {
-        predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
+        predicates.add(cb.and(cb.equal(root.get(UNIQUE_FILE_NUMBER), uniqueFileNumber)));
       }
 
       if (StringUtils.hasText(caseReferenceNumber)) {
-        predicates.add(cb.and(cb.equal(root.get("caseReferenceNumber"), caseReferenceNumber)));
+        predicates.add(cb.and(cb.equal(root.get(CASE_REFERENCE_NUMBER), caseReferenceNumber)));
       }
 
       // Filter on Client fields
@@ -141,69 +157,69 @@ public final class ClaimSpecification {
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
       List<Predicate> predicates = new ArrayList<>();
 
-      Join<Claim, Submission> submissionJoin = root.join("submission");
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
 
       // Filter on Submission fields
       predicates.add(
-          cb.and(cb.equal(submissionJoin.get("officeAccountNumber"), request.getOfficeCode())));
+          cb.and(cb.equal(submissionJoin.get(OFFICE_ACCOUNT_NUMBER), request.getOfficeCode())));
 
       if (StringUtils.hasText(request.getSubmissionId())) {
         predicates.add(
-            cb.and(cb.equal(submissionJoin.get("id"), UUID.fromString(request.getSubmissionId()))));
+            cb.and(cb.equal(submissionJoin.get(ID), UUID.fromString(request.getSubmissionId()))));
       }
 
       if (request.getSubmissionStatuses() != null && !request.getSubmissionStatuses().isEmpty()) {
-        predicates.add(cb.and(submissionJoin.get("status").in(request.getSubmissionStatuses())));
+        predicates.add(cb.and(submissionJoin.get(STATUS).in(request.getSubmissionStatuses())));
       }
 
       if (StringUtils.hasText(request.getSubmissionPeriod())) {
         predicates.add(
-            cb.and(
-                cb.equal(submissionJoin.get("submissionPeriod"), request.getSubmissionPeriod())));
+            cb.and(cb.equal(submissionJoin.get(SUBMISSION_PERIOD), request.getSubmissionPeriod())));
       }
 
       if (Optional.ofNullable(request.getAreaOfLaw()).isPresent()) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("areaOfLaw"), request.getAreaOfLaw())));
+        predicates.add(cb.and(cb.equal(submissionJoin.get(AREA_OF_LAW), request.getAreaOfLaw())));
       }
 
       if (Optional.ofNullable(request.getEscapedCaseFlag()).isPresent()) {
-        Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin = root.join("calculatedFeeDetail");
+        Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin =
+            root.join(CALCULATED_FEE_DETAIL_ENTITY);
         predicates.add(
             cb.and(
                 cb.equal(
-                    calculatedFeeDetailJoin.get("escapeCaseFlag"), request.getEscapedCaseFlag())));
+                    calculatedFeeDetailJoin.get(ESCAPE_CASE_FLAG), request.getEscapedCaseFlag())));
       }
 
       // Filter on Claim fields
       if (request.getClaimStatuses() != null && !request.getClaimStatuses().isEmpty()) {
-        predicates.add(cb.and(root.get("status").in(request.getClaimStatuses())));
+        predicates.add(cb.and(root.get(STATUS).in(request.getClaimStatuses())));
       }
 
       if (StringUtils.hasText(request.getFeeCode())) {
-        predicates.add(cb.and(cb.equal(root.get("feeCode"), request.getFeeCode())));
+        predicates.add(cb.and(cb.equal(root.get(FEE_CODE), request.getFeeCode())));
       }
 
       if (StringUtils.hasText(request.getUniqueFileNumber())) {
         predicates.add(
-            cb.and(cb.equal(root.get("uniqueFileNumber"), request.getUniqueFileNumber())));
+            cb.and(cb.equal(root.get(UNIQUE_FILE_NUMBER), request.getUniqueFileNumber())));
       }
 
       if (StringUtils.hasText(request.getCaseReferenceNumber())) {
         predicates.add(
-            cb.and(cb.equal(root.get("caseReferenceNumber"), request.getCaseReferenceNumber())));
+            cb.and(cb.equal(root.get(CASE_REFERENCE_NUMBER), request.getCaseReferenceNumber())));
       }
 
       if (StringUtils.hasText(request.getUniqueClientNumber())) {
-        Join<Claim, Client> clientJoin = root.join("client");
+        Join<Claim, Client> clientJoin = root.join(CLIENT_ENTITY);
         predicates.add(
             cb.and(
-                cb.equal(clientJoin.get("uniqueClientNumber"), request.getUniqueClientNumber())));
+                cb.equal(clientJoin.get(UNIQUE_CLIENT_NUMBER), request.getUniqueClientNumber())));
       }
 
       if (StringUtils.hasText(request.getUniqueCaseId())) {
-        Join<Claim, ClaimCase> claimCaseJoin = root.join("claimCase");
+        Join<Claim, ClaimCase> claimCaseJoin = root.join(CLAIM_CASE_ENTITY);
         predicates.add(
-            cb.and(cb.equal(claimCaseJoin.get("uniqueCaseId"), request.getUniqueCaseId())));
+            cb.and(cb.equal(claimCaseJoin.get(UNIQUE_CASE_ID), request.getUniqueCaseId())));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));
@@ -215,10 +231,10 @@ public final class ClaimSpecification {
     Subquery<Client> clientSubquery = query.subquery(Client.class);
     Root<Client> clientRoot = clientSubquery.from(Client.class);
     clientSubquery
-        .select(clientRoot.get("id"))
+        .select(clientRoot.get(ID))
         .where(
-            cb.equal(clientRoot.get("claim"), root),
-            cb.equal(clientRoot.get("uniqueClientNumber"), uniqueClientNumber));
+            cb.equal(clientRoot.get(CLAIM_ENTITY), root),
+            cb.equal(clientRoot.get(UNIQUE_CLIENT_NUMBER), uniqueClientNumber));
     return clientSubquery;
   }
 
@@ -227,10 +243,10 @@ public final class ClaimSpecification {
     Subquery<ClaimCase> claimCaseSubquery = query.subquery(ClaimCase.class);
     Root<ClaimCase> claimCaseRoot = claimCaseSubquery.from(ClaimCase.class);
     claimCaseSubquery
-        .select(claimCaseRoot.get("id"))
+        .select(claimCaseRoot.get(ID))
         .where(
-            cb.equal(claimCaseRoot.get("claim"), root),
-            cb.equal(claimCaseRoot.get("uniqueCaseId"), uniqueCaseId));
+            cb.equal(claimCaseRoot.get(CLAIM_ENTITY), root),
+            cb.equal(claimCaseRoot.get(UNIQUE_CASE_ID), uniqueCaseId));
     return claimCaseSubquery;
   }
 
@@ -252,16 +268,13 @@ public final class ClaimSpecification {
         if (!"totalWarnings".equalsIgnoreCase(order.getProperty())) {
           continue;
         }
-
-        // subquery: count(*) from validation_message_log where claim_id = claim.id and type =
-        // 'WARNING'
         Subquery<Long> warningCountSubquery = query.subquery(Long.class);
         Root<ValidationMessageLog> vml = warningCountSubquery.from(ValidationMessageLog.class);
 
         warningCountSubquery
             .select(cb.count(vml))
             .where(
-                cb.equal(vml.get("claimId"), root.get("id")),
+                cb.equal(vml.get("claimId"), root.get(ID)),
                 cb.equal(vml.get("type"), ValidationMessageType.WARNING));
 
         query.orderBy(
