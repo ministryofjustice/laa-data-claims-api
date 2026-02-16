@@ -333,7 +333,7 @@ paths:
 
   /api/v2/claims:
     get:
-      operationId: getClaimsPlus
+      operationId: getClaimsV2
       x-spring-paginated: true
       tags:
         - Claims
