@@ -85,7 +85,7 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<ClaimResultSet> getClaimsPlus(
+  public ResponseEntity<ClaimResultSet> getClaimsV2(
       String officeCode,
       String submissionId,
       List<SubmissionStatus> submissionStatuses,
