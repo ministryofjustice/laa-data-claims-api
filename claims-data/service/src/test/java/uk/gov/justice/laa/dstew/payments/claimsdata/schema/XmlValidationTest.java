@@ -1,40 +1,36 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.validator.CollectingErrorHandler.XML_XSD_VALIDATION_FAILED_MESSAGE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.validator.XmlValidator.validateXml;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.stream.Stream;
-import javax.xml.XMLConstants;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.xml.sax.SAXException;
+import org.springframework.mock.web.MockMultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 
 public class XmlValidationTest {
 
   // Path to your XSD
-  private static final String XSD_PATH = "src/main/resources/schemas/LSCSMSBulkLoadSchemaV3.xsd";
   private static final String XML_BASE_PATH = "src/test/resources/test_upload_files/xml/";
-
-  /** Utility method to validate XML against XSD */
-  private void validateXml(String xmlPath) throws SAXException, IOException {
-    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-    Schema schema = schemaFactory.newSchema(new File(XSD_PATH));
-    Validator validator = schema.newValidator();
-    validator.validate(new StreamSource(new File(xmlPath)));
-  }
 
   /** Happy path: valid XML should not throw any exception */
   @ParameterizedTest
   @MethodSource("validXmlFileNames")
-  public void testValidXml(String xmlFileName) {
-    assertDoesNotThrow(
-        () -> validateXml(XML_BASE_PATH + xmlFileName), "Valid XML should pass XSD validation");
+  public void testValidXml(String xmlFileName) throws IOException {
+    MockMultipartFile file =
+        new MockMultipartFile(
+            "file",
+            xmlFileName,
+            "text/xml",
+            Files.readAllBytes(new File(XML_BASE_PATH + xmlFileName).toPath()));
+    assertDoesNotThrow(() -> validateXml(file), "Valid XML should pass XSD validation");
   }
 
   private static Stream<String> validXmlFileNames() {
@@ -54,11 +50,19 @@ public class XmlValidationTest {
   /** Negative path: invalid XML should throw SAXException */
   @ParameterizedTest
   @MethodSource("invalidXmlFileNames")
-  public void testInvalidXml(String xmlFileName) {
-    assertThrows(
-        SAXException.class,
-        () -> validateXml(XML_BASE_PATH + xmlFileName),
-        "Invalid XML should fail XSD validation");
+  public void testInvalidXml(String xmlFileName) throws IOException {
+    MockMultipartFile file =
+        new MockMultipartFile(
+            "file",
+            xmlFileName,
+            "text/xml",
+            Files.readAllBytes(new File(XML_BASE_PATH + xmlFileName).toPath()));
+    BulkSubmissionFileReadException exception =
+        assertThrows(
+            BulkSubmissionFileReadException.class,
+            () -> validateXml(file),
+            "Invalid XML should fail XSD validation");
+    assertThat(exception.getErrorMessage()).isEqualTo(XML_XSD_VALIDATION_FAILED_MESSAGE);
   }
 
   private static Stream<String> invalidXmlFileNames() {

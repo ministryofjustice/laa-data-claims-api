@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import org.xml.sax.SAXException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
@@ -26,9 +25,6 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
 
   public static final String FILE_REJECTION_MESSAGE =
       "File rejected: unsupported content found. Please correct the file and try again.";
-
-  public static final String XML_XSD_VALIDATION_FAILED_MESSAGE =
-      "The uploaded xml file does not confirm to the XSD, please check your file and try again.";
 
   private final XmlMapper xmlMapper;
 
@@ -45,7 +41,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
       // Intentionally validating after mapping to retain more specific error messages for
       // missing/invalid fields,
       // as well as to ensure the XML structure is correct and matches the expected schema.
-      XmlValidator.validateXml(file, "schemas/LSCSMSBulkLoadSchemaV3.xsd");
+      XmlValidator.validateXml(file);
       return xmlSubmission;
     } catch (MismatchedInputException mismatchedInputException) {
       log.error(
@@ -80,9 +76,6 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
       log.error("Failed to read/parse XML file: {}", ioException.getMessage(), ioException);
       throw new BulkSubmissionFileReadException(
           "Failed to read/parse XML file: {}" + file.getName());
-    } catch (SAXException e) {
-      log.error(XML_XSD_VALIDATION_FAILED_MESSAGE + ": {}", e.getMessage(), e);
-      throw new BulkSubmissionFileReadException(XML_XSD_VALIDATION_FAILED_MESSAGE + file.getName());
     }
   }
 

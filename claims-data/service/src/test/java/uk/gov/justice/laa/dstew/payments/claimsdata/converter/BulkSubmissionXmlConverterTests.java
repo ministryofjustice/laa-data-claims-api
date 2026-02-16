@@ -12,9 +12,9 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmiss
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.MATTER_START_NODE_MISSING_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.UNSUPPORTED_CATEGORY_CODE_MEDIATION_TYPE_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionXmlConverter.FILE_REJECTION_MESSAGE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionXmlConverter.XML_XSD_VALIDATION_FAILED_MESSAGE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getContent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTestUtils.getMultipartFile;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.validator.CollectingErrorHandler.XML_XSD_VALIDATION_FAILED_MESSAGE;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
