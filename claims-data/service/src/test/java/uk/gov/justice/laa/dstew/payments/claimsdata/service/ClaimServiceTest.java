@@ -57,7 +57,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
@@ -590,11 +592,11 @@ class ClaimServiceTest {
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new ClaimResultSet()
+        new ClaimResultSetV2()
             .content(
                 Collections.singletonList(
-                    ClaimResponse.builder().id(claim.getId().toString()).build()));
-    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
+                    ClaimResponseV2.builder().id(claim.getId().toString()).build()));
+    when(claimResultSetMapper.toClaimResultSetV2(resultPage)).thenReturn(expectedNonEmptyResultSet);
 
     var actualResultSet =
         claimService.getClaimResultSetV2(
@@ -622,8 +624,8 @@ class ClaimServiceTest {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
-    var expectedEmptyResultSet = new ClaimResultSet();
-    when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedEmptyResultSet);
+    var expectedEmptyResultSet = new ClaimResultSetV2();
+    when(claimResultSetMapper.toClaimResultSetV2(resultPage)).thenReturn(expectedEmptyResultSet);
 
     var actualResultSet =
         claimService.getClaimResultSetV2(

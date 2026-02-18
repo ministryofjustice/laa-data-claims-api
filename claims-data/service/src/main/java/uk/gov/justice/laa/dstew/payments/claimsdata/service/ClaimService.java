@@ -34,7 +34,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -315,7 +317,7 @@ public class ClaimService
    * @param pageable a pageable object to yield the paginated claims results
    * @return the paginated result set with all claims that satisfy the filtering criteria above.
    */
-  public ClaimResultSet getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
+  public ClaimResultSetV2 getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
 
     if (!StringUtils.hasText(request.getOfficeCode())) {
       throw new ClaimBadRequestException("Missing office code");
@@ -331,11 +333,11 @@ public class ClaimService
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
-    ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+    ClaimResultSetV2 response = claimResultSetMapper.toClaimResultSetV2(page);
 
     List<UUID> claimIds =
         response.getContent().stream()
-            .map(ClaimResponse::getId)
+            .map(ClaimResponseV2::getId)
             .filter(Objects::nonNull)
             .map(UUID::fromString)
             .distinct()
@@ -353,12 +355,12 @@ public class ClaimService
                       ClaimWarningCountProjection::getWarningCount));
 
       // 3) Apply counts to each ClaimResponse (pure in-memory)
-      for (ClaimResponse claimResponse : response.getContent()) {
+      for (ClaimResponseV2 claimResponse : response.getContent()) {
         if (claimResponse.getId() != null) {
           UUID claimId = UUID.fromString(claimResponse.getId());
           long totalWarningsForClaim = warningsByClaimId.getOrDefault(claimId, 0L);
 
-          claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+          claimMapper.updateTotalWarningMessagesV2(totalWarningsForClaim, claimResponse);
         }
       }
     }

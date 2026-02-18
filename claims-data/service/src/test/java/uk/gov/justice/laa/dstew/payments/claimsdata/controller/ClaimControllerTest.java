@@ -36,7 +36,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
@@ -194,8 +196,8 @@ class ClaimControllerTest {
 
   @Test
   void getClaims_v2_returnsClaimDetails() throws Exception {
-    var claimResponse = new ClaimResponse();
-    var expected = new ClaimResultSet().content(List.of(claimResponse));
+    var claimResponse = new ClaimResponseV2();
+    var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
     when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
         .thenReturn(expected);

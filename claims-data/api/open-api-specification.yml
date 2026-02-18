@@ -423,7 +423,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/claim_result_set'
+                $ref: '#/components/schemas/claim_result_set_v2'
         '400':
           description: 'Bad request'
         '401':
@@ -1232,6 +1232,15 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
+    claim_result_set_v2:
+      allOf:
+        - $ref: "#/components/schemas/page"
+      type: 'object'
+      properties:
+        content:
+          type: 'array'
+          items:
+            $ref: '#/components/schemas/claim_response_v2'
     matter_start_result_set:
       type: 'object'
       properties:
@@ -1486,9 +1495,18 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            total_warnings:
+              type: integer
+              description: Number of validation warnings for this claim.
+            fee_calculation_response:
+              $ref: '#/components/schemas/fee_calculation_patch'
+    claim_response_v2:
+      allOf:
+        - $ref: '#/components/schemas/claim_base'
+        - type: object
+          properties:
             area_of_law:
-              type: string
-              description: Area of law for this claim.
+              $ref: '#/components/schemas/area_of_law'
             office_code:
               type: string
               description: Account Office Code for this claim's submission.
