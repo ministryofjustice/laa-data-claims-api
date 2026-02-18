@@ -4,13 +4,22 @@
         xmlns:xs="http://www.w3.org/2001/XMLSchema"
         targetNamespace="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
         elementFormDefault="qualified"
-        attributeFormDefault="unqualified">
+        version="3.0">
 
     <xs:annotation>
         <xs:documentation>
+            LSCSMS Bulk Load XML Schema
+            --------------------------------
+            Schema Version: V3 (Technical version: 3.0)
+            Release Date: 2025-02-18
+            Status: Current
+
+            Summary:
             LAA Data Claims – bulk load submission format.
             Validates structure: submission → office → schedule → outcome/newMatterStarts/immigrationCLR.
             Business rules (e.g. date logic) are enforced by the application.
+
+            Providers must validate against the latest published version.
         </xs:documentation>
     </xs:annotation>
 
