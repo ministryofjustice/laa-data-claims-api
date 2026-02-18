@@ -304,6 +304,127 @@ class ClaimServiceTest {
   }
 
   @Test
+  void shouldGetClaimV2() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimResponseV2 fields = new ClaimResponseV2();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimResponseV2(claim)).thenReturn(fields);
+
+    final ClaimResponseV2 result = claimService.getClaimV2(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+  }
+
+  //  @Test
+  //  void shouldGetClaimV2WithoutClient() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(clientMapper, never()).updateClaimResponseFromClient(any(), eq(fields));
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutClaimSummaryFee() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+  //            .thenReturn(Optional.of(calculatedFeeDetail));
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromClaimSummaryFee(any(), eq(fields));
+  //    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutCalculatedFeeDetail() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  // when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper).updateClaimResponseFromClaimSummaryFee(claimSummaryFee, fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromCalculatedFeeDetail(any(), eq(fields));
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutClaimCase() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+  //            .thenReturn(Optional.of(calculatedFeeDetail));
+  //    when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromClaimCase(any(), eq(fields));
+  //    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
+  //  }
+
+  @Test
+  void shouldThrowWhenClaimV2NotFound() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.getClaimV2(submissionId, claimId))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
