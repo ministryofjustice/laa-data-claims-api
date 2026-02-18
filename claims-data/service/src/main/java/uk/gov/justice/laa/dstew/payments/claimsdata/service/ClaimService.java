@@ -149,6 +149,19 @@ public class ClaimService
   }
 
   /**
+   * Retrieve a claim for a submission.
+   *
+   * @param submissionId submission identifier
+   * @param claimId claim identifier
+   * @return populated claim response v2
+   */
+  @Transactional(readOnly = true)
+  public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
+    Claim claim = requireClaim(submissionId, claimId);
+    return claimMapper.toClaimResponseV2(claim);
+  }
+
+  /**
    * Update a claim for a submission.
    *
    * @param submissionId submission identifier

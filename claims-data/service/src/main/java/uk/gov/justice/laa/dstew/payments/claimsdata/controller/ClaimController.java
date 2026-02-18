@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -52,6 +53,13 @@ public class ClaimController implements ClaimsApi {
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimResponse> getClaim(UUID submissionId, UUID claimId) {
     ClaimResponse claimResponse = claimService.getClaim(submissionId, claimId);
+    return ResponseEntity.ok(claimResponse);
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResponseV2> getClaimV2(UUID submissionId, UUID claimId) {
+    ClaimResponseV2 claimResponse = claimService.getClaimV2(submissionId, claimId);
     return ResponseEntity.ok(claimResponse);
   }
 

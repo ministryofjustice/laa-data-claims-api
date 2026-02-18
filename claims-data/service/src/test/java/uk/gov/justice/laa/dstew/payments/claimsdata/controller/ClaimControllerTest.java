@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_V2_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.util.List;
@@ -52,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
+  private static final String SUBMISSIONS_CLAIMS_V2_URI = API_V2_URI_PREFIX + "/submissions";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired private MockMvc mockMvc;
@@ -128,6 +130,41 @@ class ClaimControllerTest {
         .andExpect(jsonPath("$.outcome_code").value("OUT77"));
 
     verify(claimService).getClaim(submissionId, claimId);
+  }
+
+  @Test
+  void getClaimV2_returnsClaimDetails() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final ClaimResponseV2 claimFields =
+        new ClaimResponseV2()
+            .status(ClaimStatus.VALID)
+            .scheduleReference("SCH-777")
+            .lineNumber(42)
+            .caseReferenceNumber("CRN-777")
+            .uniqueFileNumber("UFN-777")
+            .caseStartDate("01/06/2025")
+            .caseConcludedDate("30/06/2025")
+            .matterTypeCode("MAT77")
+            .outcomeCode("OUT77");
+    when(claimService.getClaimV2(submissionId, claimId)).thenReturn(claimFields);
+
+    mockMvc
+        .perform(
+            get(
+                SUBMISSIONS_CLAIMS_V2_URI + "/{submission-id}/claims/{claim-id}",
+                submissionId,
+                claimId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("VALID"))
+        .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
+        .andExpect(jsonPath("$.line_number").value(42))
+        .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
+        .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
+        .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
+        .andExpect(jsonPath("$.outcome_code").value("OUT77"));
+
+    verify(claimService).getClaimV2(submissionId, claimId);
   }
 
   @Test
