@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
+import java.util.List;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
@@ -56,9 +58,18 @@ public interface ClaimMapper {
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
-  @Mapping(target = "netProfitCostsAmount", source = "claimSummaryFee.netProfitCostsAmount")
-  @Mapping(target = "netWaitingCostsAmount", source = "claimSummaryFee.netWaitingCostsAmount")
-  @Mapping(target = "jrFormFillingAmount", source = "claimSummaryFee.jrFormFillingAmount")
+  @Mapping(
+      target = "netProfitCostsAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstNetProfitCostsAmount")
+  @Mapping(
+      target = "netWaitingCostsAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstNetWaitingCostsAmount")
+  @Mapping(
+      target = "jrFormFillingAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstJrFormFillingAmount")
   @Mapping(target = ".", source = "client")
   @Mapping(target = ".", source = "claimCase")
   @Mapping(
@@ -67,6 +78,33 @@ public interface ClaimMapper {
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
   @Mapping(target = ".", source = "claimSummaryFee")
   ClaimResponseV2 toClaimResponseV2(Claim entity);
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstNetProfitCostsAmount")
+  default BigDecimal firstNetProfitCostsAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getNetProfitCostsAmount();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstNetWaitingCostsAmount")
+  default BigDecimal firstNetWaitingCostsAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getNetWaitingCostsAmount();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstJrFormFillingAmount")
+  default BigDecimal firstJrFormFillingAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getJrFormFillingAmount();
+  }
 
   /**
    * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary
