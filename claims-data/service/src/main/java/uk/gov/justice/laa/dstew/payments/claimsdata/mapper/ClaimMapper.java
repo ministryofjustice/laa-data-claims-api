@@ -17,6 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
@@ -45,6 +46,12 @@ public interface ClaimMapper {
   @Mapping(target = "isYouthCourt", source = "youthCourt")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  ClaimResponse toClaimResponse(Claim entity);
+
+  @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
+  @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "submissionId", source = "submission.id")
+  @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   @Mapping(target = "areaOfLaw", source = "submission.areaOfLaw")
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
@@ -59,7 +66,7 @@ public interface ClaimMapper {
       source = "calculatedFeeDetail",
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
   @Mapping(target = ".", source = "claimSummaryFee")
-  ClaimResponse toClaimResponse(Claim entity);
+  ClaimResponseV2 toClaimResponseV2(Claim entity);
 
   /**
    * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary
@@ -168,6 +175,10 @@ public interface ClaimMapper {
 
   @Mapping(target = "totalWarnings", source = "totalWarningMessages")
   void updateTotalWarningMessages(Long totalWarningMessages, @MappingTarget ClaimResponse claim);
+
+  @Mapping(target = "totalWarnings", source = "totalWarningMessages")
+  void updateTotalWarningMessagesV2(
+      Long totalWarningMessages, @MappingTarget ClaimResponseV2 claim);
 
   /**
    * Map a {@link CalculatedFeeDetail} entity to {@link

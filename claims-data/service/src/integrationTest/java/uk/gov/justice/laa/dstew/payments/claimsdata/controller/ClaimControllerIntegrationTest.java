@@ -33,7 +33,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -424,10 +426,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
     assertThat(claimResultSet.getContent()).hasSize(3);
-    assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .containsExactlyInAnyOrder(
             CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
   }
@@ -450,7 +452,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
     assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
