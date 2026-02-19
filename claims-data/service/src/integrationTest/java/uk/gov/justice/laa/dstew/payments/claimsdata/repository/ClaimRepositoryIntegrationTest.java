@@ -109,7 +109,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
             IGNORE_FIELD_CLIENT,
-            IGNORE_FIELD_CLAIM_CASE)
+            IGNORE_FIELD_CLAIM_CASE,
+            IGNORE_FIELD_CLAIM_SUMMARY_FEE)
         .isEqualTo(claim3);
   }
 
@@ -142,7 +143,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
             IGNORE_FIELD_CLIENT,
-            IGNORE_FIELD_CLAIM_CASE)
+            IGNORE_FIELD_CLAIM_CASE,
+            IGNORE_FIELD_CLAIM_SUMMARY_FEE)
         .isEqualTo(claim3);
     assertThat(result.getContent().getFirst().getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
     assertThat(result.getContent().getFirst().getScheduleReference()).isNull();
@@ -165,7 +167,8 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
             IGNORE_FIELD_CLIENT,
-            IGNORE_FIELD_CLAIM_CASE)
+            IGNORE_FIELD_CLAIM_CASE,
+            IGNORE_FIELD_CLAIM_SUMMARY_FEE)
         .isEqualTo(claim3);
   }
 
