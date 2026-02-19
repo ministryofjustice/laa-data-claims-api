@@ -73,8 +73,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  public static final String ERROR_MESSAGE = "errorMessage";
-  public static final String HTTP_STATUS = "httpStatus";
+  private static final String ERROR_MESSAGE = "errorMessage";
+  private static final String HTTP_STATUS = "httpStatus";
 
   @Autowired private SqsClient sqsClient;
 
