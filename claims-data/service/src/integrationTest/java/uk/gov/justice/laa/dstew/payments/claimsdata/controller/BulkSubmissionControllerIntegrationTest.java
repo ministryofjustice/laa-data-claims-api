@@ -616,7 +616,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_MESSAGE).asText())
-        .isEqualTo("Failed to parse bulk submission file header: OFFICE;account=");
+        .isEqualTo("Failed to parse bulk submission file, found invalid header: OFFICE;account=");
     assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
