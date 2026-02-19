@@ -221,8 +221,7 @@ class BulkSubmissionCsvConverterTests {
     @ParameterizedTest
     @CsvSource({
       MISSING_SOME_OUTCOME_HEADERS_FILE, // Some outcome records are missing the record type header
-      // (OUTCOME) but still contain matterType or FEE_CODE
-      // values
+      // (OUTCOME) but still contain matterType or FEE_CODE values
       MISSING_ALL_OUTCOME_HEADERS_FILE, // All outcome records are missing the record type header
       // (OUTCOME) but still contain matterType or FEE_CODE values
     })
