@@ -96,6 +96,10 @@ dependencies {
     implementation "io.sentry:sentry-logback:$versions.sentry"
     implementation "io.sentry:sentry-spring-boot-4:$versions.sentry"
 
+    // Snyk vulnerabilities override
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.18'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.18'
+
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
