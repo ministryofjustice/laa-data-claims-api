@@ -116,6 +116,11 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
+
+    // Upgrade to fix CVE-2026-24734 vulnerability in apache tomcat
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.18'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.18'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.18' 
 }
 
 sourceSets {
