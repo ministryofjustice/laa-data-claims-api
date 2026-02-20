@@ -144,7 +144,10 @@ class AssessmentServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ClaimStatus.class, names = {"VALID"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(
+        value = ClaimStatus.class,
+        names = {"VALID"},
+        mode = EnumSource.Mode.EXCLUDE)
     void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
       final UUID claimId = Uuid7.timeBasedUuid();
       final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
