@@ -8,16 +8,23 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /**
  * This class provide basic filtering logic to query {@link Claim} entities using JPA {@link
@@ -29,6 +36,22 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 public final class ClaimSpecification {
 
   private static final String NOT_NULL_QUERY_MESSAGE = "Query must not be null";
+  public static final String OFFICE_ACCOUNT_NUMBER = "officeAccountNumber";
+  public static final String ID = "id";
+  public static final String STATUS = "status";
+  public static final String SUBMISSION_PERIOD = "submissionPeriod";
+  public static final String FEE_CODE = "feeCode";
+  public static final String UNIQUE_FILE_NUMBER = "uniqueFileNumber";
+  public static final String CASE_REFERENCE_NUMBER = "caseReferenceNumber";
+  public static final String AREA_OF_LAW = "areaOfLaw";
+  public static final String ESCAPE_CASE_FLAG = "escapeCaseFlag";
+  public static final String UNIQUE_CASE_ID = "uniqueCaseId";
+  public static final String CLIENT_ENTITY = "client";
+  public static final String CLAIM_CASE_ENTITY = "claimCase";
+  public static final String CALCULATED_FEE_DETAIL_ENTITY = "calculatedFeeDetail";
+  public static final String SUBMISSION_ENTITY = "submission";
+  public static final String UNIQUE_CLIENT_NUMBER = "uniqueClientNumber";
+  public static final String CLAIM_ENTITY = "claim";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
@@ -62,40 +85,40 @@ public final class ClaimSpecification {
 
     return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
       // Join with Submission
-      Join<Claim, Submission> submissionJoin = root.join("submission");
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
 
       List<Predicate> predicates = new ArrayList<>();
 
       // Filter on Submission fields
-      predicates.add(cb.and(cb.equal(submissionJoin.get("officeAccountNumber"), officeCode)));
+      predicates.add(cb.and(cb.equal(submissionJoin.get(OFFICE_ACCOUNT_NUMBER), officeCode)));
 
       if (StringUtils.hasText(submissionId)) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("id"), UUID.fromString(submissionId))));
+        predicates.add(cb.and(cb.equal(submissionJoin.get(ID), UUID.fromString(submissionId))));
       }
 
       if (submissionStatuses != null && !submissionStatuses.isEmpty()) {
-        predicates.add(cb.and(submissionJoin.get("status").in(submissionStatuses)));
+        predicates.add(cb.and(submissionJoin.get(STATUS).in(submissionStatuses)));
       }
 
       if (StringUtils.hasText(submissionPeriod)) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("submissionPeriod"), submissionPeriod)));
+        predicates.add(cb.and(cb.equal(submissionJoin.get(SUBMISSION_PERIOD), submissionPeriod)));
       }
 
       // Filter on Claim fields
       if (claimStatuses != null && !claimStatuses.isEmpty()) {
-        predicates.add(cb.and(root.get("status").in(claimStatuses)));
+        predicates.add(cb.and(root.get(STATUS).in(claimStatuses)));
       }
 
       if (StringUtils.hasText(feeCode)) {
-        predicates.add(cb.and(cb.equal(root.get("feeCode"), feeCode)));
+        predicates.add(cb.and(cb.equal(root.get(FEE_CODE), feeCode)));
       }
 
       if (StringUtils.hasText(uniqueFileNumber)) {
-        predicates.add(cb.and(cb.equal(root.get("uniqueFileNumber"), uniqueFileNumber)));
+        predicates.add(cb.and(cb.equal(root.get(UNIQUE_FILE_NUMBER), uniqueFileNumber)));
       }
 
       if (StringUtils.hasText(caseReferenceNumber)) {
-        predicates.add(cb.and(cb.equal(root.get("caseReferenceNumber"), caseReferenceNumber)));
+        predicates.add(cb.and(cb.equal(root.get(CASE_REFERENCE_NUMBER), caseReferenceNumber)));
       }
 
       // Filter on Client fields
@@ -120,15 +143,98 @@ public final class ClaimSpecification {
     };
   }
 
+  /**
+   * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
+   * parameters. The resulting specification can be used to dynamically generate predicates for
+   * querying claims.
+   *
+   * @param request containing the different values for the filters
+   * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
+   *     predicates
+   */
+  public static Specification<Claim> filterBy(ClaimSearchRequest request) {
+
+    return (Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
+
+      // Filter on Submission fields
+      predicates.add(
+          cb.and(cb.equal(submissionJoin.get(OFFICE_ACCOUNT_NUMBER), request.getOfficeCode())));
+
+      if (StringUtils.hasText(request.getSubmissionId())) {
+        predicates.add(
+            cb.and(cb.equal(submissionJoin.get(ID), UUID.fromString(request.getSubmissionId()))));
+      }
+
+      if (request.getSubmissionStatuses() != null && !request.getSubmissionStatuses().isEmpty()) {
+        predicates.add(cb.and(submissionJoin.get(STATUS).in(request.getSubmissionStatuses())));
+      }
+
+      if (StringUtils.hasText(request.getSubmissionPeriod())) {
+        predicates.add(
+            cb.and(cb.equal(submissionJoin.get(SUBMISSION_PERIOD), request.getSubmissionPeriod())));
+      }
+
+      if (Optional.ofNullable(request.getAreaOfLaw()).isPresent()) {
+        predicates.add(cb.and(cb.equal(submissionJoin.get(AREA_OF_LAW), request.getAreaOfLaw())));
+      }
+
+      if (Optional.ofNullable(request.getEscapedCaseFlag()).isPresent()) {
+        Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin =
+            root.join(CALCULATED_FEE_DETAIL_ENTITY);
+        predicates.add(
+            cb.and(
+                cb.equal(
+                    calculatedFeeDetailJoin.get(ESCAPE_CASE_FLAG), request.getEscapedCaseFlag())));
+      }
+
+      // Filter on Claim fields
+      if (request.getClaimStatuses() != null && !request.getClaimStatuses().isEmpty()) {
+        predicates.add(cb.and(root.get(STATUS).in(request.getClaimStatuses())));
+      }
+
+      if (StringUtils.hasText(request.getFeeCode())) {
+        predicates.add(cb.and(cb.equal(root.get(FEE_CODE), request.getFeeCode())));
+      }
+
+      if (StringUtils.hasText(request.getUniqueFileNumber())) {
+        predicates.add(
+            cb.and(cb.equal(root.get(UNIQUE_FILE_NUMBER), request.getUniqueFileNumber())));
+      }
+
+      if (StringUtils.hasText(request.getCaseReferenceNumber())) {
+        predicates.add(
+            cb.and(cb.equal(root.get(CASE_REFERENCE_NUMBER), request.getCaseReferenceNumber())));
+      }
+
+      if (StringUtils.hasText(request.getUniqueClientNumber())) {
+        Join<Claim, Client> clientJoin = root.join(CLIENT_ENTITY);
+        predicates.add(
+            cb.and(
+                cb.equal(clientJoin.get(UNIQUE_CLIENT_NUMBER), request.getUniqueClientNumber())));
+      }
+
+      if (StringUtils.hasText(request.getUniqueCaseId())) {
+        Join<Claim, ClaimCase> claimCaseJoin = root.join(CLAIM_CASE_ENTITY);
+        predicates.add(
+            cb.and(cb.equal(claimCaseJoin.get(UNIQUE_CASE_ID), request.getUniqueCaseId())));
+      }
+
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
   private static Subquery<Client> getClientSubquery(
       String uniqueClientNumber, Root<Claim> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
     Subquery<Client> clientSubquery = query.subquery(Client.class);
     Root<Client> clientRoot = clientSubquery.from(Client.class);
     clientSubquery
-        .select(clientRoot.get("id"))
+        .select(clientRoot.get(ID))
         .where(
-            cb.equal(clientRoot.get("claim"), root),
-            cb.equal(clientRoot.get("uniqueClientNumber"), uniqueClientNumber));
+            cb.equal(clientRoot.get(CLAIM_ENTITY), root),
+            cb.equal(clientRoot.get(UNIQUE_CLIENT_NUMBER), uniqueClientNumber));
     return clientSubquery;
   }
 
@@ -137,10 +243,49 @@ public final class ClaimSpecification {
     Subquery<ClaimCase> claimCaseSubquery = query.subquery(ClaimCase.class);
     Root<ClaimCase> claimCaseRoot = claimCaseSubquery.from(ClaimCase.class);
     claimCaseSubquery
-        .select(claimCaseRoot.get("id"))
+        .select(claimCaseRoot.get(ID))
         .where(
-            cb.equal(claimCaseRoot.get("claim"), root),
-            cb.equal(claimCaseRoot.get("uniqueCaseId"), uniqueCaseId));
+            cb.equal(claimCaseRoot.get(CLAIM_ENTITY), root),
+            cb.equal(claimCaseRoot.get(UNIQUE_CASE_ID), uniqueCaseId));
     return claimCaseSubquery;
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for ordering {@link Claim} records by the count of total
+   * warning validation messages.
+   *
+   * @param pageable includes pagination info
+   * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
+   *     predicates
+   */
+  public static Specification<Claim> orderByTotalWarningMessages(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      for (Sort.Order order : pageable.getSort()) {
+        if (!"totalWarnings".equalsIgnoreCase(order.getProperty())) {
+          continue;
+        }
+        Subquery<Long> warningCountSubquery = query.subquery(Long.class);
+        Root<ValidationMessageLog> vml = warningCountSubquery.from(ValidationMessageLog.class);
+
+        warningCountSubquery
+            .select(cb.count(vml))
+            .where(
+                cb.equal(vml.get("claimId"), root.get(ID)),
+                cb.equal(vml.get("type"), ValidationMessageType.WARNING));
+
+        query.orderBy(
+            order.isAscending() ? cb.asc(warningCountSubquery) : cb.desc(warningCountSubquery));
+
+        // Only handle the first matching custom sort
+        break;
+      }
+
+      // No extra predicate, only ordering
+      return cb.conjunction();
+    };
   }
 }

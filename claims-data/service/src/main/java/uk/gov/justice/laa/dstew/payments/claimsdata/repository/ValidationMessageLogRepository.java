@@ -1,11 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 
 /** Repository for persisting {@link ValidationMessageLog} entries. */
 public interface ValidationMessageLogRepository extends JpaRepository<ValidationMessageLog, UUID> {
@@ -19,4 +22,16 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
       @Param("submissionId") UUID submissionId, @Param("type") ValidationMessageType type);
 
   long countAllByClaimIdAndType(UUID claimId, ValidationMessageType type);
+
+  @Query(
+      """
+           SELECT v.claimId AS claimId,
+                  COUNT(v)   AS warningCount
+           FROM ValidationMessageLog v
+           WHERE v.claimId IN :claimIds
+             AND v.type = :type
+           GROUP BY v.claimId
+           """)
+  List<ClaimWarningCountProjection> countWarningsByClaimIdsAndType(
+      @Param("claimIds") Collection<UUID> claimIds, @Param("type") ValidationMessageType type);
 }

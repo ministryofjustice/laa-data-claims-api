@@ -35,8 +35,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -54,7 +57,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
@@ -299,6 +304,127 @@ class ClaimServiceTest {
   }
 
   @Test
+  void shouldGetClaimV2() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final Claim claim = Claim.builder().id(claimId).build();
+    final ClaimResponseV2 fields = new ClaimResponseV2();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+    when(claimMapper.toClaimResponseV2(claim)).thenReturn(fields);
+
+    final ClaimResponseV2 result = claimService.getClaimV2(submissionId, claimId);
+
+    assertThat(result).isSameAs(fields);
+  }
+
+  //  @Test
+  //  void shouldGetClaimV2WithoutClient() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(clientMapper, never()).updateClaimResponseFromClient(any(), eq(fields));
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutClaimSummaryFee() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+  //            .thenReturn(Optional.of(calculatedFeeDetail));
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromClaimSummaryFee(any(), eq(fields));
+  //    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutCalculatedFeeDetail() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  // when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper).updateClaimResponseFromClaimSummaryFee(claimSummaryFee, fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromCalculatedFeeDetail(any(), eq(fields));
+  //  }
+  //
+  //  @Test
+  //  void shouldGetClaimV2WithoutClaimCase() {
+  //    final UUID submissionId = Uuid7.timeBasedUuid();
+  //    final UUID claimId = Uuid7.timeBasedUuid();
+  //    final Claim claim = Claim.builder().id(claimId).build();
+  //    final ClaimResponse fields = new ClaimResponse();
+  //    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+  //
+  //    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+  //            .thenReturn(Optional.of(claim));
+  //    when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
+  //    when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+  //            .thenReturn(Optional.of(calculatedFeeDetail));
+  //    when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+  //
+  //    final ClaimResponse result = claimService.getClaim(submissionId, claimId);
+  //
+  //    assertThat(result).isSameAs(fields);
+  //    verify(claimMapper, never()).updateClaimResponseFromClaimCase(any(), eq(fields));
+  //    verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
+  //  }
+
+  @Test
+  void shouldThrowWhenClaimV2NotFound() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.getClaimV2(submissionId, claimId))
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(claimId.toString())
+        .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
@@ -530,6 +656,112 @@ class ClaimServiceTest {
             List.of(ClaimStatus.READY_TO_PROCESS),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
+            Pageable.ofSize(10).withPage(0));
+
+    assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
+    assertThat(actualResultSet.getContent()).isEmpty();
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenOfficeCodeIsMissing_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSetV2(
+                ClaimSearchRequest.builder()
+                    .officeCode(null)
+                    .submissionId(SUBMISSION_ID.toString())
+                    .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                    .feeCode(FEE_CODE)
+                    .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                    .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                    .uniqueCaseId(UNIQUE_CASE_ID)
+                    .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                    .submissionPeriod(SUBMISSION_PERIOD)
+                    .caseReferenceNumber(CASE_REFERENCE)
+                    .build(),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenOfficeCodeIsEmptyString_shouldThrowClaimBadRequestException() {
+    assertThrows(
+        ClaimBadRequestException.class,
+        () ->
+            claimService.getClaimResultSetV2(
+                ClaimSearchRequest.builder()
+                    .officeCode("")
+                    .submissionId(SUBMISSION_ID.toString())
+                    .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                    .feeCode(FEE_CODE)
+                    .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                    .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                    .uniqueCaseId(UNIQUE_CASE_ID)
+                    .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                    .submissionPeriod(SUBMISSION_PERIOD)
+                    .caseReferenceNumber(CASE_REFERENCE)
+                    .build(),
+                Pageable.unpaged()));
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+    Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+
+    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(claim));
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedNonEmptyResultSet =
+        new ClaimResultSetV2()
+            .content(
+                Collections.singletonList(
+                    ClaimResponseV2.builder().id(claim.getId().toString()).build()));
+    when(claimResultSetMapper.toClaimResultSetV2(resultPage)).thenReturn(expectedNonEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(OFFICE_ACCOUNT_NUMBER)
+                .submissionId(SUBMISSION_ID.toString())
+                .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                .feeCode(FEE_CODE)
+                .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                .uniqueCaseId(UNIQUE_CASE_ID)
+                .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                .submissionPeriod(SUBMISSION_PERIOD)
+                .caseReferenceNumber(CASE_REFERENCE)
+                .build(),
+            PageRequest.of(0, 10, Sort.by("total_warnings")));
+
+    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
+    assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  @Test
+  void getClaimResultSet_v2_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
+    Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(resultPage);
+
+    var expectedEmptyResultSet = new ClaimResultSetV2();
+    when(claimResultSetMapper.toClaimResultSetV2(resultPage)).thenReturn(expectedEmptyResultSet);
+
+    var actualResultSet =
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(OFFICE_ACCOUNT_NUMBER)
+                .submissionId(SUBMISSION_ID.toString())
+                .submissionStatuses(List.of(SubmissionStatus.CREATED))
+                .feeCode(FEE_CODE)
+                .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+                .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+                .uniqueCaseId(UNIQUE_CASE_ID)
+                .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+                .submissionPeriod(SUBMISSION_PERIOD)
+                .caseReferenceNumber(CASE_REFERENCE)
+                .build(),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);

@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_V2_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.util.List;
@@ -32,10 +33,13 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
@@ -49,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
+  private static final String SUBMISSIONS_CLAIMS_V2_URI = API_V2_URI_PREFIX + "/submissions";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @Autowired private MockMvc mockMvc;
@@ -128,6 +133,41 @@ class ClaimControllerTest {
   }
 
   @Test
+  void getClaimV2_returnsClaimDetails() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final ClaimResponseV2 claimFields =
+        new ClaimResponseV2()
+            .status(ClaimStatus.VALID)
+            .scheduleReference("SCH-777")
+            .lineNumber(42)
+            .caseReferenceNumber("CRN-777")
+            .uniqueFileNumber("UFN-777")
+            .caseStartDate("01/06/2025")
+            .caseConcludedDate("30/06/2025")
+            .matterTypeCode("MAT77")
+            .outcomeCode("OUT77");
+    when(claimService.getClaimV2(submissionId, claimId)).thenReturn(claimFields);
+
+    mockMvc
+        .perform(
+            get(
+                SUBMISSIONS_CLAIMS_V2_URI + "/{submission-id}/claims/{claim-id}",
+                submissionId,
+                claimId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("VALID"))
+        .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
+        .andExpect(jsonPath("$.line_number").value(42))
+        .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
+        .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
+        .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
+        .andExpect(jsonPath("$.outcome_code").value("OUT77"));
+
+    verify(claimService).getClaimV2(submissionId, claimId);
+  }
+
+  @Test
   void updateClaim_returnsNoContent() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
@@ -170,6 +210,40 @@ class ClaimControllerTest {
     mockMvc
         .perform(
             get(API_URI_PREFIX + "/claims")
+                .queryParam("office_code", "office_123")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam(
+                    "submission_statuses",
+                    String.valueOf(SubmissionStatus.CREATED),
+                    String.valueOf(SubmissionStatus.REPLACED))
+                .queryParam("fee_code", "fee_123")
+                .queryParam("unique_file_number", "UFN_123")
+                .queryParam("unique_client_number", "UCN_123")
+                .queryParam("unique_case_id", "UC_ID_123")
+                .queryParam(
+                    "claim_statuses",
+                    String.valueOf(ClaimStatus.VALID),
+                    String.valueOf(ClaimStatus.INVALID))
+                .queryParam("submission_period", "APR-2025")
+                .queryParam("case_reference_number", "CASE_123")
+                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+        .andExpect(status().isOk())
+        .andExpect(content().json(jsonContent));
+  }
+
+  @Test
+  void getClaims_v2_returnsClaimDetails() throws Exception {
+    var claimResponse = new ClaimResponseV2();
+    var expected = new ClaimResultSetV2().content(List.of(claimResponse));
+
+    when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+        .thenReturn(expected);
+
+    String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+
+    mockMvc
+        .perform(
+            get("/api/v2/claims")
                 .queryParam("office_code", "office_123")
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
                 .queryParam(

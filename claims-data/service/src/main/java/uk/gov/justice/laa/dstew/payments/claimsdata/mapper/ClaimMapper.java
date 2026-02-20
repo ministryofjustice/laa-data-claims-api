@@ -17,6 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
@@ -46,6 +47,23 @@ public interface ClaimMapper {
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   ClaimResponse toClaimResponse(Claim entity);
+
+  @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
+  @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "submissionId", source = "submission.id")
+  @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  @Mapping(target = "areaOfLaw", source = "submission.areaOfLaw")
+  @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
+  @Mapping(target = "id", source = "id")
+  @Mapping(target = "createdByUserId", source = "createdByUserId")
+  @Mapping(target = ".", source = "calculatedFeeDetail.claimSummaryFee")
+  @Mapping(target = ".", source = "client")
+  @Mapping(target = ".", source = "claimCase")
+  @Mapping(
+      target = "feeCalculationResponse",
+      source = "calculatedFeeDetail",
+      qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
+  ClaimResponseV2 toClaimResponseV2(Claim entity);
 
   /**
    * Map a {@link uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim} to summary
@@ -154,4 +172,30 @@ public interface ClaimMapper {
 
   @Mapping(target = "totalWarnings", source = "totalWarningMessages")
   void updateTotalWarningMessages(Long totalWarningMessages, @MappingTarget ClaimResponse claim);
+
+  @Mapping(target = "totalWarnings", source = "totalWarningMessages")
+  void updateTotalWarningMessagesV2(
+      Long totalWarningMessages, @MappingTarget ClaimResponseV2 claim);
+
+  /**
+   * Map a {@link CalculatedFeeDetail} entity to {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch}.
+   */
+  @Named("mapFeeCalculationResponseFromCalculatedFeeDetail")
+  @Mapping(target = "claimId", source = "claim.id")
+  @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
+  @Mapping(target = "calculatedFeeDetailId", source = "id")
+  @Mapping(target = "boltOnDetails", source = "entity")
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  default FeeCalculationPatch mapFeeCalculationResponseFromCalculatedFeeDetail(
+      CalculatedFeeDetail entity) {
+
+    if (entity == null) {
+      return null;
+    }
+    FeeCalculationPatch target = new FeeCalculationPatch();
+    // reuse your existing update method to avoid duplicating mapping config:
+    updateFeeCalculationResponseFromCalculatedFeeDetail(entity, target);
+    return target;
+  }
 }
