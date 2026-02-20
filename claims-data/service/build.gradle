@@ -20,7 +20,7 @@ test {
 jacocoTestReport {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -28,7 +28,7 @@ jacocoTestReport {
 jacocoTestCoverageVerification {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -62,6 +62,8 @@ dependencies {
     //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    // Export starter for csv export endpoints
+    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-export'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
@@ -198,6 +200,11 @@ spotless {
         cleanthat()
         googleJavaFormat()
     }
+}
+
+tasks.withType(Checkstyle).configureEach {
+    exclude "**/build/generated/**"
+    exclude "**/generated/**"
 }
 
 tasks.register("checkstyleStaged", Checkstyle) {

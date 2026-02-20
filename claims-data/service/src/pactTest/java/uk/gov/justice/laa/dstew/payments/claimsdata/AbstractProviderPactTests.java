@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
-import jakarta.activation.DataSource;
 import jakarta.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.javers.spring.boot.sql.JaversSqlAutoConfiguration;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
+import uk.gov.laa.springboot.export.ExportService;
 
 @EnableAutoConfiguration(
     exclude = {
@@ -46,6 +47,8 @@ public class AbstractProviderPactTests {
   }
 
   @MockitoBean protected TokenDetailsManager tokenDetailsManager;
+
+  @MockitoBean protected ExportService exportService;
 
   @MockitoBean protected SecurityFilterChain securityFilterChain;
 
