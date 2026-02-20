@@ -20,6 +20,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,12 +30,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -65,7 +69,7 @@ class AssessmentServiceTest {
               .createdByUserId(API_USER_ID)
               .build();
 
-      final Claim claim = Claim.builder().id(claimId).build();
+      final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
 
       final ClaimSummaryFee claimSummaryFee =
           ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
@@ -127,7 +131,7 @@ class AssessmentServiceTest {
               .claimSummaryFeeId(missingClaimSummaryFeeId)
               .build();
 
-      final Claim claim = Claim.builder().id(claimId).build();
+      final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
 
       when(claimRepository.existsById(claimId)).thenReturn(true);
       when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
@@ -137,6 +141,28 @@ class AssessmentServiceTest {
       assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
           .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
           .hasMessageContaining(missingClaimSummaryFeeId.toString());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ClaimStatus.class, names = {"VALID"}, mode = EnumSource.Mode.EXCLUDE)
+    void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
+      final UUID claimId = Uuid7.timeBasedUuid();
+      final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
+      final AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .build();
+
+      final Claim claim = Claim.builder().id(claimId).status(status).build();
+
+      when(claimRepository.existsById(claimId)).thenReturn(true);
+      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
+
+      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
+          .isInstanceOf(ClaimBadRequestException.class)
+          .hasMessageContaining(claimId.toString());
     }
   }
 

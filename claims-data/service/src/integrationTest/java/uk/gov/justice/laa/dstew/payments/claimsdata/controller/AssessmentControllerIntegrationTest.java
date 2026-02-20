@@ -15,6 +15,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
 import java.util.Comparator;
@@ -52,12 +53,14 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldSaveAnAssessmentToDatabase() throws Exception {
     // given: claims test data exists in the database
     final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimId(CLAIM_2_ID);
+    assessmentPost.setClaimSummaryFeeId(CLAIM_2_SUMMARY_FEE_ID);
 
     // when: calling the POST endpoint with the AssessmentPost
     MvcResult result =
         mockMvc
             .perform(
-                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_2_ID)
                     .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -77,14 +80,27 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
     final var updatedClaim =
         claimRepository
-            .findById(CLAIM_1_ID)
+            .findById(CLAIM_2_ID)
             .orElseThrow(() -> new RuntimeException("Claim not found exception"));
 
-    assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_1_ID);
-    assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_2_ID);
+    assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(CLAIM_2_SUMMARY_FEE_ID);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
     assertTrue(updatedClaim.isHasAssessment());
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenClaimDoesNotHaveValidStatus() throws Exception {
+    // when: calling the POST endpoint for a claim without VALID status, 400 should be returned
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    mockMvc
+        .perform(
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -130,12 +146,13 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldReturnNotFoundWhenClaimSummaryFeeNotFound() throws Exception {
     UUID claimSummaryFeeId = UUID.randomUUID();
     AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimId(CLAIM_2_ID);
     assessmentPost.setClaimSummaryFeeId(claimSummaryFeeId);
 
     // when: calling the POST endpoint for an unknown claimSummaryFeeId, 404 should be returned.
     mockMvc
         .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_2_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON))
