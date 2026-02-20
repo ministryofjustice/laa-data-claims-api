@@ -70,6 +70,22 @@ public interface ClaimMapper {
       target = "jrFormFillingAmount",
       source = "claimSummaryFee",
       qualifiedByName = "firstJrFormFillingAmount")
+  @Mapping(
+      target = "disbursementsVatAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstDisbursementsVatAmount")
+  @Mapping(
+      target = "isVatApplicable",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstIsVatApplicable")
+  @Mapping(
+      target = "netDisbursementAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstNetDisbursementAmount")
+  @Mapping(
+      target = "travelWaitingCostsAmount",
+      source = "claimSummaryFee",
+      qualifiedByName = "firstTravelWaitingCostsAmount")
   @Mapping(target = ".", source = "client")
   @Mapping(target = ".", source = "claimCase")
   @Mapping(
@@ -104,6 +120,42 @@ public interface ClaimMapper {
       return null;
     }
     return list.getFirst().getJrFormFillingAmount();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstDisbursementsVatAmount")
+  default BigDecimal firstDisbursementsVatAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getDisbursementsVatAmount();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstIsVatApplicable")
+  default Boolean firstIsVatApplicable(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getIsVatApplicable();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstNetDisbursementAmount")
+  default BigDecimal firstNetDisbursementAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getNetDisbursementAmount();
+  }
+
+  /** Null safety check for first ClaimSummaryFee. */
+  @Named("firstTravelWaitingCostsAmount")
+  default BigDecimal firstTravelWaitingCostsAmount(List<ClaimSummaryFee> list) {
+    if (list == null || list.isEmpty() || list.getFirst() == null) {
+      return null;
+    }
+    return list.getFirst().getTravelWaitingCostsAmount();
   }
 
   /**
