@@ -78,7 +78,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** This is used to isolate the common configuration for integration testing in a single class. */
 @ActiveProfiles("test")
-@SpringBootTest
+@SpringBootTest(properties = "javers.enabled=false")
 @Import(SqsTestConfig.class)
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {

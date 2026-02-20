@@ -104,6 +104,12 @@ runs:
             --namespace ${KUBE_NAMESPACE} \
             --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
             --install --wait --timeout=10m
+
+          # Deploy Javers DB for preview and main
+          helm upgrade ${RELEASE_NAME}-audit-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
+            -f .helm/bitnami_postgres_audit/values.yaml \
+            --namespace ${KUBE_NAMESPACE} \
+            --install --wait --timeout=10m  
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
