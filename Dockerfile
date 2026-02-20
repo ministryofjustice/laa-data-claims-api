@@ -3,7 +3,7 @@
 ARG BUILD_SOURCE=external
 
 # Build stage
-FROM gradle:8-jdk21 AS builder
+FROM gradle:9-jdk25 AS builder
 
 # Set up working directory for build
 WORKDIR /build
@@ -24,7 +24,7 @@ RUN find /build -name "*.jar"
 
 
 # Specify java runtime base image
-FROM amazoncorretto:21-alpine AS base
+FROM amazoncorretto:25-alpine AS base
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-data-claims-api/claims-data/
