@@ -36,6 +36,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
   private final ObjectMapper objectMapper;
   private final CsvMapper csvMapper;
+  static final String MISSING_RECORD_TYPE_ERROR =
+      "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.";
 
   /**
    * Converts the given file to a {@link CsvSubmission} object.
@@ -62,12 +64,16 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
         List<String> row = rowIterator.nextValue();
         String rawHeader = row.getFirst().replaceAll("[^\\p{Print}]", "").trim();
-        // This will handle the case where a csv file has got empty rows (no header, no tags).
+        Map<String, String> values = getValues(row, rawHeader);
+        // Check if this row is really empty (OK) or if only the record type is missing (Error).
         if (rawHeader.isEmpty()) {
-          continue;
+          if (values.containsKey("matterType") || values.containsKey("FEE_CODE")) {
+            throw new BulkSubmissionFileReadException(MISSING_RECORD_TYPE_ERROR);
+          } else {
+            continue;
+          }
         }
         CsvHeader header = getHeader(rawHeader);
-        Map<String, String> values = getValues(row, header);
         csvBulkSubmissionRow = new CsvBulkSubmissionRow(header, values);
 
         switch (csvBulkSubmissionRow.header()) {
@@ -86,10 +92,9 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
             csvSchedule =
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
-          case CsvHeader.OUTCOME -> {
-            csvOutcomes.add(
-                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
-          }
+          case CsvHeader.OUTCOME ->
+              csvOutcomes.add(
+                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
           case CsvHeader.MATTERSTARTS ->
               csvMatterStarts.addAll(toMatterStartRows(csvBulkSubmissionRow.values()));
           case CsvHeader.IMMIGRATIONCLR -> csvImmigrationClr.add(Map.copyOf(values));
@@ -178,7 +183,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     return FileExtension.CSV.equals(fileExtension) || FileExtension.TXT.equals(fileExtension);
   }
 
-  private Map<String, String> getValues(List<String> row, CsvHeader header) {
+  private Map<String, String> getValues(List<String> row, String header) {
     Map<String, String> values = new LinkedHashMap<>();
     row.subList(1, row.size())
         .forEach(
@@ -193,7 +198,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
                 values.put(entry[0], entry[1]);
               } else {
                 throw new BulkSubmissionFileReadException(
-                    "Unable to read entry for %s:'%s'".formatted(header.name(), rowValue));
+                    "Unable to read entry for %s:'%s'".formatted(header, rowValue));
               }
             });
     return values;
@@ -204,7 +209,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       return CsvHeader.valueOf(rawHeader);
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BulkSubmissionFileReadException(
-          "Failed to parse bulk submission file header: %s".formatted(rawHeader), e);
+          "Failed to parse bulk submission file, found invalid header: %s".formatted(rawHeader), e);
     }
   }
 
