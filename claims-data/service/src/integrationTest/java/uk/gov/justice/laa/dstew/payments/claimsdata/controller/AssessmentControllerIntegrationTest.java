@@ -91,7 +91,8 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
             .orElseThrow(() -> new RuntimeException("Claim not found exception"));
 
     assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_ID_WITH_VALID_STATUS);
-    assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    assertThat(savedAssessment.getClaimSummaryFee().getId())
+        .isEqualTo(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
     assertTrue(updatedClaim.isHasAssessment());
@@ -209,7 +210,8 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @Test
   void getAssessmentShouldReturnForbidden() throws Exception {
     mockMvc
-        .perform(get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_ASSESSMENTS, ASSESSMENT_1_ID))
+        .perform(
+            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_ASSESSMENTS, ASSESSMENT_1_ID))
         .andExpect(status().isUnauthorized());
   }
 
@@ -273,7 +275,8 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     AssessmentGet assessment = assessments.getFirst();
     assertThat(assessment.getId()).isEqualTo(ASSESSMENT_2_ID);
     assertThat(assessment.getClaimId()).isEqualTo(CLAIM_ID_WITH_ASSESSMENTS);
-    assertThat(assessment.getClaimSummaryFeeId()).isEqualTo(SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS);
+    assertThat(assessment.getClaimSummaryFeeId())
+        .isEqualTo(SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS);
     assertNotNull(assessment.getCreatedOn());
   }
 }
