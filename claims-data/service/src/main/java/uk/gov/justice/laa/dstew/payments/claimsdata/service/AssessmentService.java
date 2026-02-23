@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -161,7 +162,7 @@ public class AssessmentService {
    * @throws AssessmentInvalidUserException if any validation check fails
    */
   protected void validateUserId(String userId) {
-    if (userId == null || userId.isBlank()) {
+    if (!StringUtils.hasText(userId)) {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
     }
