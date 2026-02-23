@@ -122,11 +122,11 @@ public class BulkSubmissionXmlConverterTests {
     objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-    SimpleModule trimming =
+    SimpleModule trimmer =
         new SimpleModule().addDeserializer(String.class, new TrimmingStringDeserializer());
 
     XmlMapper xmlMapper = new XmlMapper();
-    xmlMapper.registerModule(trimming);
+    xmlMapper.registerModule(trimmer);
     bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(xmlMapper);
   }
 
@@ -151,8 +151,8 @@ public class BulkSubmissionXmlConverterTests {
 
     @ParameterizedTest
     @CsvSource({
-      "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_elements.xml",
-      "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_outcome_items.xml"
+      "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_headers.xml",
+      "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_outcome_header.xml"
     })
     @DisplayName(
         "Can convert a bulk submission xml file with leading and trailing whitespaces to a json file")

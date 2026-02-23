@@ -268,7 +268,7 @@ class BulkSubmissionCsvConverterTests {
 
     @ParameterizedTest
     @CsvSource({
-      "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_header.csv",
+      "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_headers.csv",
       "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_other_headers.csv",
       "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_field_names.csv",
     })
@@ -288,7 +288,7 @@ class BulkSubmissionCsvConverterTests {
 
     @ParameterizedTest
     @CsvSource({
-      "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_header.txt",
+      "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_headers.txt",
       "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_other_headers.txt",
       "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_field_names.txt",
     })
