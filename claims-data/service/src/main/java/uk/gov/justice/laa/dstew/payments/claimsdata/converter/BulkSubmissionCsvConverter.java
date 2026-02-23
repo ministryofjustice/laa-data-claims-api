@@ -195,7 +195,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
               }
               String[] entry = rowValue.split("=", 2);
               if (entry.length == 2) {
-                values.put(entry[0], entry[1]);
+                values.put(entry[0].trim(), entry[1].trim());
               } else {
                 throw new BulkSubmissionFileReadException(
                     "Unable to read entry for %s:'%s'".formatted(header, rowValue));

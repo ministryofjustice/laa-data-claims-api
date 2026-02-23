@@ -467,7 +467,7 @@ public interface BulkSubmissionMapper {
       return null;
     }
     try {
-      return Integer.valueOf(value);
+      return Integer.valueOf(value.trim());
     } catch (NumberFormatException ex) {
       throw new BulkSubmissionFieldConversionException(fieldName, value, ex);
     }
@@ -485,7 +485,7 @@ public interface BulkSubmissionMapper {
       return null;
     }
     try {
-      return new BigDecimal(value);
+      return new BigDecimal(value.trim());
     } catch (NumberFormatException ex) {
       throw new BulkSubmissionFieldConversionException(exceptionMessage, value, ex);
     }
@@ -505,7 +505,7 @@ public interface BulkSubmissionMapper {
       return null;
     }
 
-    return switch (value) {
+    return switch (value.trim()) {
       case "Y" -> true;
       case "N" -> false;
       default -> throw new BulkSubmissionFieldConversionException(fieldName, value, true);

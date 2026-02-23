@@ -72,7 +72,7 @@ public interface GlobalStringMapper {
    */
   default LocalDate stringToLocalDate(String value) {
     return StringUtils.hasText(value)
-        ? LocalDate.parse(value, DateTimeFormatter.ofPattern("d/M/yyyy"))
+        ? LocalDate.parse(value.trim(), DateTimeFormatter.ofPattern("d/M/yyyy"))
         : null;
   }
 }

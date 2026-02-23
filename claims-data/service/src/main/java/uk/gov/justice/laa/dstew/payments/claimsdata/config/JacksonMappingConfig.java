@@ -3,12 +3,15 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.TrimmingStringDeserializer;
 
 /** Configuration for Jackson mapping beans. */
 @Configuration
@@ -45,6 +48,15 @@ public class JacksonMappingConfig {
    */
   @Bean
   public XmlMapper xmlMapper() {
-    return new XmlMapper();
+    return XmlMapper.builder()
+        .addModule(trimmingModule())
+        .build();
+  }
+
+  @Bean
+  public Module trimmingModule() {
+    SimpleModule module = new SimpleModule();
+    module.addDeserializer(String.class, new TrimmingStringDeserializer());
+    return module;
   }
 }

@@ -265,7 +265,47 @@ class BulkSubmissionCsvConverterTests {
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_INPUT_FILE,
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE);
     }
-  }
+
+    @ParameterizedTest
+    @CsvSource({
+        "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_header.csv",
+        "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_other_headers.csv",
+        "classpath:test_upload_files/csv/outcomes_with_leading_and_trailing_whitespaces_in_field_names.csv",
+    })
+    @DisplayName(
+        "Can convert a bulk submission csv file with leading and trailing whitespaces to a json file")
+    void canConvertCsvFileWithWhiteSpacesToJson(String inputFile) throws IOException {
+      runTest(inputFile, ALL_TYPES_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission csv file with blank fields to a json file")
+    void canConvertCsvFileWithBlankFieldsToJson() throws IOException {
+      runTest(
+          "classpath:test_upload_files/csv/outcomes_with_blank_fields.csv",
+          "classpath:test_upload_files/csv/outcomes_with_blank_fields_converted.json");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_header.txt",
+        "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_other_headers.txt",
+        "classpath:test_upload_files/txt/outcomes_with_leading_and_trailing_whitespaces_in_field_names.txt",
+    })
+    @DisplayName(
+        "Can convert a bulk submission txt file with leading and trailing whitespaces to a json file")
+    void canConvertTxtFileWithWhiteSpacesToJson(String file) throws IOException {
+      runTest(file, ALL_TYPES_CONVERTED_FILE);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission txt file with blank fields to a json file")
+    void canConvertTxtFileWithBlankFieldsToJson() throws IOException {
+      runTest(
+          "classpath:test_upload_files/txt/outcomes_with_blank_fields.txt",
+          "classpath:test_upload_files/csv/outcomes_with_blank_fields_converted.json");
+    }
+}
 
   private void runTest(String inputFileName, String outputFileName) throws IOException {
     MultipartFile file = getMultipartFile(inputFileName);

@@ -1,0 +1,53 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+            xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <office account ="0P322F">
+        <schedule submissionPeriod ="JAN-2020" areaOfLaw ="CRIME LOWER " scheduleNum ="ABC/20000L/10">
+            <outcome matterType ="INVC">
+                <outcomeItem name="FEE_CODE"> </outcomeItem>
+                <outcomeItem name="CASE_REF_NUMBER"> </outcomeItem>
+                <outcomeItem name="CASE_START_DATE"> </outcomeItem>
+                <outcomeItem name="CASE_ID"> </outcomeItem>
+                <outcomeItem name="CASE_STAGE_LEVEL"> </outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME"> </outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME"> </outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH"> </outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE"> </outcomeItem>
+                <outcomeItem name="GENDER"> </outcomeItem>
+                <outcomeItem name="ETHNICITY"> </outcomeItem>
+                <outcomeItem name="DISABILITY"> </outcomeItem>
+                <outcomeItem name="ADVICE_TIME"> </outcomeItem>
+                <outcomeItem name="TRAVEL_TIME"> </outcomeItem>
+                <outcomeItem name="WAITING_TIME"> </outcomeItem>
+                <outcomeItem name="UCN"> </outcomeItem>
+                <outcomeItem name="CLA_REF_NUMBER"> </outcomeItem>
+                <outcomeItem name="CLA_EXEMPTION"> </outcomeItem>
+                <outcomeItem name="UFN"> </outcomeItem>
+                <outcomeItem name="PROCUREMENT_AREA"> </outcomeItem>
+                <outcomeItem name="ACCESS_POINT"> </outcomeItem>
+                <outcomeItem name="OUTCOME_CODE"> </outcomeItem>
+                <outcomeItem name="CRIME_MATTER_TYPE"> </outcomeItem>
+                <outcomeItem name="PROFIT_COST"> </outcomeItem>
+                <outcomeItem name="VALUE_OF_COSTS"> </outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_AMOUNT"> </outcomeItem>
+                <outcomeItem name="COUNSEL_COST"> </outcomeItem>
+                <outcomeItem name="TRAVEL_COSTS"> </outcomeItem>
+                <outcomeItem name="TRAVEL_WAITING_COSTS"> </outcomeItem>
+                <outcomeItem name="LONDON_NONLONDON_RATE"> </outcomeItem>
+                <outcomeItem name="TOLERANCE_INDICATOR"> </outcomeItem>
+                <outcomeItem name="CLIENT_TYPE"> </outcomeItem>
+                <outcomeItem name="VAT_INDICATOR"> </outcomeItem>
+                <outcomeItem name="DISBURSEMENTS_VAT"> </outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE"> </outcomeItem>
+                <outcomeItem name="NO_OF_SUSPECTS"> </outcomeItem>
+                <outcomeItem name="NO_OF_POLICE_STATION"> </outcomeItem>
+                <outcomeItem name="POLICE_STATION"> </outcomeItem>
+                <outcomeItem name="DSCC_NUMBER"> </outcomeItem>
+                <outcomeItem name="DUTY_SOLICITOR"> </outcomeItem>
+                <outcomeItem name="YOUTH_COURT"> </outcomeItem>
+                <outcomeItem name="SCHEME_ID"> </outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
+</submission>

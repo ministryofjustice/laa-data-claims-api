@@ -36,7 +36,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     }
 
     JsonNode matterTypeNode = node.get("matterType");
-    String matterType = matterTypeNode == null ? null : matterTypeNode.asText();
+    String matterType = matterTypeNode == null ? null : matterTypeNode.asText().trim();
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
     Iterable<JsonNode> outcomeItems;
@@ -154,7 +154,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
       }
 
       String name = nameNode.asText();
-      String value = valueNode == null ? null : valueNode.asText();
+      String value = valueNode == null ? null : valueNode.asText().trim();
 
       switch (name) {
         case "FEE_CODE" -> feeCode = value;

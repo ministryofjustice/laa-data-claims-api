@@ -18,6 +18,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.ConverterTe
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
@@ -33,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.TrimmingStringDeserializer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
 /**
@@ -120,7 +122,11 @@ public class BulkSubmissionXmlConverterTests {
     objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+    SimpleModule trimming = new SimpleModule()
+        .addDeserializer(String.class, new TrimmingStringDeserializer());
+
     XmlMapper xmlMapper = new XmlMapper();
+    xmlMapper.registerModule(trimming);
     bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(xmlMapper);
   }
 
@@ -141,6 +147,103 @@ public class BulkSubmissionXmlConverterTests {
       JsonNode expectedNode = objectMapper.readTree(expected);
       JsonNode actualNode = objectMapper.readTree(actual);
       assertEquals(expectedNode, actualNode);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_office_and_schedule_elements.xml",
+        "classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_in_outcome_items.xml"
+    })
+    @DisplayName("Can convert a bulk submission xml file with leading and trailing whitespaces to a json file")
+    void canConvertXmlFileWithWhiteSpacesInOutcomeToJson(String inputFile) throws IOException {
+      MultipartFile file = getMultipartFile(inputFile);
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile("classpath:test_upload_files/xml/outcomes_with_leading_and_trailing_whitespaces_converted.json");
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission xml file with blank outcome values to a json file")
+    void canConvertXmlFileWithBlanksInOutcomeToJson() throws IOException {
+      MultipartFile file = getMultipartFile("classpath:test_upload_files/xml/outcomes_with_blank_values.xml");
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile("classpath:test_upload_files/xml/outcomes_with_blank_values_converted.json");
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission xml file with immigration clr data having leading and trailing whitespaces to a json file")
+    void canConvertXmlFileWithImmigrationClrFieldsHavingWhitespacesToJson() throws IOException {
+      MultipartFile file = getMultipartFile("classpath:test_upload_files/xml/immigration_clr_with_leading_and_trailing_whitespaces.xml");
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(IMMIGRATION_CLR_CONVERTED_FILE);
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    @Test
+    @DisplayName("Can convert a bulk submission xml file with blank immigration clr values to a json file")
+    void canConvertXmlFileWithBlanksInImmigrationClrFieldsToJson() throws IOException {
+      MultipartFile file = getMultipartFile("classpath:test_upload_files/xml/immigration_clr_with_blank_values.xml");
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile("classpath:test_upload_files/xml/outcomes_clr_with_blank_values_converted.json");
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+
+    @ParameterizedTest(name = "Can convert a bulk submission file with matter starts having whitespaces - {0}")
+    @MethodSource("matterStartsTestDataWithWhiteSpaces")
+    void canConvertXmlFileWithMatterStartFieldsHavingWhitespacesToJson(
+        MatterStartsTestData testData) throws IOException {
+      MultipartFile file = getMultipartFile(testData.inputFile());
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(testData.convertedFile());
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    private static Stream<MatterStartsTestData> matterStartsTestDataWithWhiteSpaces() {
+      return Stream.of(
+          new MatterStartsTestData(
+              "classpath:test_upload_files/xml/matter_starts_with_category_code_having_leading_and_trailing_whitespaces.xml",
+              MATTER_STARTS_CATEGORY_CODE_CONVERTED_FILE,
+              "category code"),
+          new MatterStartsTestData(
+              "classpath:test_upload_files/xml/matter_starts_with_mediation_type_having_leading_and_trailing_whitespaces.xml",
+              MATTER_STARTS_MEDIATION_TYPE_CONVERTED_FILE,
+              "mediation type"),
+          new MatterStartsTestData(
+              "classpath:test_upload_files/xml/matter_starts_with_only_mediation_types_having_leading_and_trailing_whitespaces.xml",
+              MATTER_STARTS_ONLY_MEDIATION_TYPES_CONVERTED_FILE,
+              "mediation type"));
     }
 
     private record MissingOutcomeTestData(String inputFile, String convertedFile) {}
