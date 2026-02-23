@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -48,9 +48,7 @@ public class JacksonMappingConfig {
    */
   @Bean
   public XmlMapper xmlMapper() {
-    return XmlMapper.builder()
-        .addModule(trimmingModule())
-        .build();
+    return XmlMapper.builder().addModule(trimmingModule()).build();
   }
 
   @Bean
