@@ -51,6 +51,13 @@ public class JacksonMappingConfig {
     return XmlMapper.builder().addModule(trimmingModule()).build();
   }
 
+  /**
+   * Creates and registers a Jackson {@link Module} that applies custom trimming (see {@link
+   * TrimmingStringDeserializer}) behavior to all deserialized {@link String} values.
+   *
+   * @return a configured {@link Module} that applies whitespace‑trimming to all {@code String}
+   *     properties during deserialization.
+   */
   @Bean
   public Module trimmingModule() {
     SimpleModule module = new SimpleModule();
