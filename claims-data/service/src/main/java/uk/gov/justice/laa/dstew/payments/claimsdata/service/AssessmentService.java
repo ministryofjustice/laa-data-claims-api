@@ -46,7 +46,6 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
 
     validateUserId(request.getCreatedByUserId());
 
@@ -60,6 +59,7 @@ public class AssessmentService {
           String.format("Claim with id: %s does not have VALID status", claimId));
     }
 
+    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
     if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
       throw new ClaimSummaryFeeNotFoundException(
           String.format("No Claim Summary Fee found with id: %s", claimSummaryFeeId));
