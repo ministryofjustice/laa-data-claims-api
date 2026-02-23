@@ -1,7 +1,6 @@
 description: "CRIME LOWER submission claims export"
-provider: submissionClaimsProvider
+provider: submissionClaimsCrimeLowerProvider
 packageName: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
-maxRows: 50000
 sql: |
   select
     s.office_account_number as officeAccountNumber,
