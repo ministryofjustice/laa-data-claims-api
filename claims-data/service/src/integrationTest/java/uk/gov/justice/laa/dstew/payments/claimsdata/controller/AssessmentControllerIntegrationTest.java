@@ -44,6 +44,13 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   private static final String GET_ASSESSMENT_URI = "/claims/{claimId}/assessments/{assessmentId}";
   private static final String GET_ASSESSMENTS_URI = "/claims/{claimId}/assessments";
 
+  // Aliases for claim IDs based on their status in seeded test data
+  private static final UUID CLAIM_ID_WITH_VALID_STATUS = CLAIM_2_ID;
+  private static final UUID CLAIM_ID_WITHOUT_VALID_STATUS = CLAIM_1_ID;
+  private static final UUID CLAIM_ID_WITH_ASSESSMENTS = CLAIM_1_ID;
+  private static final UUID SUMMARY_FEE_ID_FOR_VALID_CLAIM = CLAIM_2_SUMMARY_FEE_ID;
+  private static final UUID SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS = CLAIM_1_SUMMARY_FEE_ID;
+
   @BeforeEach
   void setUp() {
     seedAssessmentsData();
@@ -53,14 +60,14 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldSaveAnAssessmentToDatabase() throws Exception {
     // given: claims test data exists in the database
     final AssessmentPost assessmentPost = getAssessmentPost();
-    assessmentPost.setClaimId(CLAIM_2_ID);
-    assessmentPost.setClaimSummaryFeeId(CLAIM_2_SUMMARY_FEE_ID);
+    assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
+    assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
 
     // when: calling the POST endpoint with the AssessmentPost
     MvcResult result =
         mockMvc
             .perform(
-                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_2_ID)
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
                     .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -80,11 +87,11 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
     final var updatedClaim =
         claimRepository
-            .findById(CLAIM_2_ID)
+            .findById(CLAIM_ID_WITH_VALID_STATUS)
             .orElseThrow(() -> new RuntimeException("Claim not found exception"));
 
-    assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_2_ID);
-    assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(CLAIM_2_SUMMARY_FEE_ID);
+    assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_ID_WITH_VALID_STATUS);
+    assertThat(savedAssessment.getClaimSummaryFee().getId()).isEqualTo(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
     assertTrue(updatedClaim.isHasAssessment());
@@ -96,7 +103,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     final AssessmentPost assessmentPost = getAssessmentPost();
     mockMvc
         .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -108,7 +115,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
         .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
                 .content("INVALID_DATA")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -121,7 +128,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the POST endpoint with an invalid token, 401 should be returned
     mockMvc
         .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
@@ -146,13 +153,13 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldReturnNotFoundWhenClaimSummaryFeeNotFound() throws Exception {
     UUID claimSummaryFeeId = UUID.randomUUID();
     AssessmentPost assessmentPost = getAssessmentPost();
-    assessmentPost.setClaimId(CLAIM_2_ID);
+    assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(claimSummaryFeeId);
 
     // when: calling the POST endpoint for an unknown claimSummaryFeeId, 404 should be returned.
     mockMvc
         .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_2_ID)
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON))
@@ -163,7 +170,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void getAssessmentShouldReturnNotFound() throws Exception {
     mockMvc
         .perform(
-            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_2_ID, UUID.randomUUID())
+            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_VALID_STATUS, UUID.randomUUID())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
         .andReturn();
@@ -176,14 +183,14 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult mvcResult =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID)
+                get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_ASSESSMENTS, ASSESSMENT_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
 
     AssessmentGet result =
         OBJECT_MAPPER.readValue(mvcResult.getResponse().getContentAsString(), AssessmentGet.class);
-    AssertionsForClassTypes.assertThat(result.getClaimId()).isEqualTo(CLAIM_1_ID);
+    AssertionsForClassTypes.assertThat(result.getClaimId()).isEqualTo(CLAIM_ID_WITH_ASSESSMENTS);
     AssertionsForClassTypes.assertThat(result.getAssessmentOutcome())
         .isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
   }
@@ -193,7 +200,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void getAssessmentShouldReturnBadRequest() throws Exception {
     mockMvc
         .perform(
-            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, "invalid-claim-id")
+            get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_ASSESSMENTS, "invalid-claim-id")
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
   }
@@ -202,7 +209,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @Test
   void getAssessmentShouldReturnForbidden() throws Exception {
     mockMvc
-        .perform(get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_1_ID, ASSESSMENT_1_ID))
+        .perform(get(API_URI_PREFIX + GET_ASSESSMENT_URI, CLAIM_ID_WITH_ASSESSMENTS, ASSESSMENT_1_ID))
         .andExpect(status().isUnauthorized());
   }
 
@@ -213,7 +220,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult mvcResult =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_1_ID)
+                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_ID_WITH_ASSESSMENTS)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -227,14 +234,14 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(assessments).isNotEmpty().hasSize(2);
 
     AssessmentGet first = assessments.getFirst();
-    assertThat(first.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(first.getClaimId()).isEqualTo(CLAIM_ID_WITH_ASSESSMENTS);
     assertThat(first.getId()).isEqualTo(ASSESSMENT_1_ID);
     assertNotNull(first.getCreatedOn());
 
     AssessmentGet second = assessments.get(1);
-    assertThat(second.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(second.getClaimId()).isEqualTo(CLAIM_ID_WITH_ASSESSMENTS);
     assertThat(second.getAssessmentOutcome()).isEqualTo(AssessmentOutcome.REDUCED_TO_FIXED_FEE);
-    assertThat(second.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertThat(second.getClaimSummaryFeeId()).isEqualTo(SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS);
     assertNotNull(second.getCreatedOn());
 
     assertThat(assessments).isSortedAccordingTo(Comparator.comparing(AssessmentGet::getCreatedOn));
@@ -247,7 +254,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult mvcResult =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_1_ID)
+                get(API_URI_PREFIX + GET_ASSESSMENTS_URI, CLAIM_ID_WITH_ASSESSMENTS)
                     .queryParam("page", "0")
                     .queryParam("size", "1")
                     .queryParam("sort", "createdOn,desc")
@@ -265,8 +272,8 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
     AssessmentGet assessment = assessments.getFirst();
     assertThat(assessment.getId()).isEqualTo(ASSESSMENT_2_ID);
-    assertThat(assessment.getClaimId()).isEqualTo(CLAIM_1_ID);
-    assertThat(assessment.getClaimSummaryFeeId()).isEqualTo(CLAIM_1_SUMMARY_FEE_ID);
+    assertThat(assessment.getClaimId()).isEqualTo(CLAIM_ID_WITH_ASSESSMENTS);
+    assertThat(assessment.getClaimSummaryFeeId()).isEqualTo(SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS);
     assertNotNull(assessment.getCreatedOn());
   }
 }
