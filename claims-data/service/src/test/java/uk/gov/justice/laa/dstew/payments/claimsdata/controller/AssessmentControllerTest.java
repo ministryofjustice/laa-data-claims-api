@@ -107,7 +107,7 @@ class AssessmentControllerTest {
   }
 
   @Test
-  void createAssessment_whenClaimIsNotValid_returnsBadRequestStatus() throws Exception {
+  void createAssessment_whenClaimBadRequestExceptionThrown_returnsBadRequest() throws Exception {
     final UUID claimId = Uuid7.timeBasedUuid();
     when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
         .thenThrow(new ClaimBadRequestException(""));
