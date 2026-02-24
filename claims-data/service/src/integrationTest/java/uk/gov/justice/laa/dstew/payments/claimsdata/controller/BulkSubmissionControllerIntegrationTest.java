@@ -82,7 +82,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @Value("${aws.sqs.queue-name}")
   private String queueName;
 
-
   private String queueUrl;
 
   @BeforeAll
