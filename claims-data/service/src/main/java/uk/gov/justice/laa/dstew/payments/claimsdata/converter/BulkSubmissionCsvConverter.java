@@ -29,7 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 
-/** Converter responsible for converting bulk submissions in CSV format. */
+/** Converter responsible for converting bulk submissions in TXT/CSV format. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -67,7 +67,8 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         Map<String, String> values = getValues(row, rawHeader);
         // Check if this row is really empty (OK) or if only the record type is missing (Error).
         if (rawHeader.isEmpty()) {
-          if (values.containsKey("matterType") || values.containsKey("FEE_CODE")) {
+          if (ALLOWED_MATTER_TYPE_KEYS.stream().anyMatch(values::containsKey)
+              || values.containsKey("FEE_CODE")) {
             throw new BulkSubmissionFileReadException(MISSING_RECORD_TYPE_ERROR);
           } else {
             continue;
@@ -103,22 +104,32 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
         }
       }
     } catch (IllegalArgumentException e) {
-      throw new BulkSubmissionFileReadException("Failed to parse csv bulk submission file", e);
+      throw new BulkSubmissionFileReadException(
+          "Failed to read bulk submission file: %s".formatted(extractReadableMessage(e)), e);
     } catch (IOException e) {
-      throw new BulkSubmissionFileReadException("Failed to read csv bulk submission file", e);
+      throw new BulkSubmissionFileReadException("Failed to read bulk submission file", e);
     }
 
     if (csvOffice == null) {
-      throw new BulkSubmissionFileReadException("Office missing from csv bulk submission file");
+      throw new BulkSubmissionFileReadException("Office missing from bulk submission file");
     }
 
     if (csvSchedule == null) {
-      throw new BulkSubmissionFileReadException("Schedule missing from csv bulk submission file");
+      throw new BulkSubmissionFileReadException("Schedule missing from bulk submission file");
     }
 
     // parent submission object
     return new CsvSubmission(
         csvOffice, csvSchedule, csvOutcomes, csvMatterStarts, csvImmigrationClr);
+  }
+
+  private static String extractReadableMessage(Exception e) {
+    if (e.getMessage() == null) {
+      return "Unknown error";
+    }
+
+    int index = e.getMessage().indexOf("(class");
+    return index > 0 ? e.getMessage().substring(0, index) : e.getMessage();
   }
 
   private List<CsvMatterStarts> toMatterStartRows(Map<String, String> values) {

@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -54,8 +55,15 @@ public class BulkSubmissionXmlConverterTests {
 
   BulkSubmissionXmlConverter bulkSubmissionXmlConverter;
 
-  private static final String OUTCOMES_INPUT_FILE =
+  private static final String OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE =
       "classpath:test_upload_files/xml/outcomes_with_client.xml";
+  private static final String OUTCOMES_INPUT_FILE_UPPER_CASE_M_FOR_MATTER_TYPE =
+      "classpath:test_upload_files/xml/outcomes_with_upper_case_m_in_matter_type.xml";
+  private static final String OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_FOR_MATTER_TYPE =
+      "classpath:test_upload_files/xml/outcomes_with_all_upper_case_letters_for_matter_type.xml";
+  private static final String
+      OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_WITH_UNDERSCORE_FOR_MATTER_TYPE =
+          "classpath:test_upload_files/xml/outcomes_with_all_upper_case_letters_with_underscore_for_matter_type.xml";
   private static final String OUTCOMES_WITH_UNSUPPORTED_NAME =
       "classpath:test_upload_files/xml/outcomes_with_unsupported_name.xml";
   private static final String OUTCOMES_WITH_MISSING_NAME =
@@ -128,10 +136,17 @@ public class BulkSubmissionXmlConverterTests {
   @DisplayName("convert")
   class Convert {
 
-    @Test
-    @DisplayName("Can convert a bulk submission file with outcomes to xml submission")
-    void canConvertOutcomesToXmlSubmission() throws IOException {
-      MultipartFile file = getMultipartFile(OUTCOMES_INPUT_FILE);
+    @ParameterizedTest(
+        name = "Can convert a bulk submission file with outcomes to xml submission - {0}")
+    @ValueSource(
+        strings = {
+          OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_UPPER_CASE_M_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_WITH_UNDERSCORE_FOR_MATTER_TYPE,
+        })
+    void canConvertOutcomesToXmlSubmission(String inputFile) throws IOException {
+      MultipartFile file = getMultipartFile(inputFile);
       XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
 
