@@ -13,6 +13,7 @@ sql: |
     c.case_start_date as caseStartDate,
     claim_case.case_id as caseId,
     c.unique_file_number as ufn,
+    c.status as claimStatus,
     c.procurement_area_code as procurementArea,
     c.access_point_code as accessPoint,
     c.delivery_location as deliveryLocation,
@@ -74,8 +75,6 @@ sql: |
     claim_case.exceptional_case_funding_reference as exceptionalCaseFundingReference,
     claim_case.is_nrm_advice as nrmAdvice,
     claim_case.follow_on_work as followOnWork,
-    cfd.fee_code as feeDetailFeeCode,
-    cfd.fee_code_description as feeDetailFeeCodeDescription,
     cfd.fee_type as feeDetailFeeType,
     cfd.category_of_law as feeDetailCategoryOfLaw,
     cfd.total_amount as feeDetailTotalAmount,
@@ -105,8 +104,7 @@ sql: |
     cfd.bolt_on_home_office_interview_count as feeDetailBoltOnHomeOfficeInterviewCount,
     cfd.bolt_on_home_office_interview_fee as feeDetailBoltOnHomeOfficeInterviewFee,
     cfd.bolt_on_substantive_hearing_fee as feeDetailBoltOnSubstantiveHearingFee,
-    cfd.escape_case_flag as feeDetailEscapeCaseFlag,
-    cfd.scheme_id as feeDetailSchemeId
+    cfd.escape_case_flag as feeDetailEscapeCaseFlag
   from claims.submission s
   join claims.claim c on c.submission_id = s.id
   left join claims.client client on client.claim_id = c.id
@@ -138,6 +136,8 @@ columns:
     header: Case ID
   - key: ufn
     header: UFN
+  - key: claimStatus
+    header: Claim Status
   - key: procurementArea
     header: Procurement Area
   - key: accessPoint
@@ -260,10 +260,6 @@ columns:
     header: NRM Advice
   - key: followOnWork
     header: Follow on work
-  - key: feeDetailFeeCode
-    header: Calculated Fee Detail - Fee Code
-  - key: feeDetailFeeCodeDescription
-    header: Calculated Fee Detail - Fee Code Description
   - key: feeDetailFeeType
     header: Calculated Fee Detail - Fee Type
   - key: feeDetailCategoryOfLaw
@@ -324,8 +320,6 @@ columns:
     header: Calculated Fee Detail - Bolt On Substantive Hearing Fee
   - key: feeDetailEscapeCaseFlag
     header: Calculated Fee Detail - Escape Case Flag
-  - key: feeDetailSchemeId
-    header: Calculated Fee Detail - Scheme ID
 params:
   - name: submissionId
     type: UUID
