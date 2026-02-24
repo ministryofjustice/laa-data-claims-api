@@ -73,13 +73,15 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final String ERROR_MESSAGE = "errorMessage";
-  private static final String HTTP_STATUS = "httpStatus";
+  private static final String ERROR_DETAIL = "detail";
+  private static final String ERROR_STATUS = "status";
+  private static final String ERROR_TITLE = "title";
 
   @Autowired private SqsClient sqsClient;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
+
 
   private String queueUrl;
 
@@ -245,10 +247,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                 + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   @DisplayName(
@@ -270,8 +274,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andExpect(status().isBadRequest())
             .andReturn();
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
@@ -561,9 +567,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Failed to parse csv bulk submission file");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   @Test
@@ -588,9 +595,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Office missing from csv bulk submission file");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   @Test
@@ -615,9 +623,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Failed to parse bulk submission file, found invalid header: OFFICE;account=");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   @ParameterizedTest
@@ -646,10 +655,11 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
 
   @Test
@@ -721,9 +731,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Not Found");
   }
 
   @Test
