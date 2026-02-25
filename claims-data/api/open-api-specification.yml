@@ -1558,6 +1558,10 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+            date_submitted:
+              type: string
+              format: date-time
+              description: Date and time the submission was submitted
     fee_calculation_patch:
       type: object
       description: Fee calculation response from the Fee Scheme Platform
