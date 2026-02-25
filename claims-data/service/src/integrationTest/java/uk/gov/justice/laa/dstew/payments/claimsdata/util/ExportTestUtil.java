@@ -50,7 +50,8 @@ public final class ExportTestUtil {
   private static List<String> headersFromDefinition(String definitionFile) throws IOException {
     ClassPathResource resource = new ClassPathResource("export_definitions/" + definitionFile);
     try (var inputStream = resource.getInputStream()) {
-      return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8).lines()
+      return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8)
+          .lines()
           .map(String::trim)
           .filter(line -> line.startsWith("header:"))
           .map(line -> line.substring("header:".length()).trim())
