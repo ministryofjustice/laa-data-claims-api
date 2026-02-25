@@ -11,8 +11,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ExportTestUtil.f
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -113,6 +116,22 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Mediation fee detail");
+  }
+
+  @ParameterizedTest
+  @MethodSource("exportEndpoints")
+  void returnsBadRequestWhenSubmissionIdIsNotUuidForExport(String endpoint) throws Exception {
+    mockMvc
+        .perform(
+            get(endpoint)
+                .param("submission-id", "invalid-uuid")
+                .param("office", submission1.getOfficeAccountNumber())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  private static Stream<String> exportEndpoints() {
+    return Stream.of(LEGAL_HELP_ENDPOINT, CRIME_LOWER_ENDPOINT, MEDIATION_ENDPOINT);
   }
 
   private MvcResult exportCsv(String endpoint, UUID submissionId, String office) throws Exception {
