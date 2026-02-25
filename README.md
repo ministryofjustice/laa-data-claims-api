@@ -66,7 +66,7 @@ The following actuator endpoints have been configured:
 - Local development workflow, code quality checks, and pre-commit setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 
 ### API testing with Bruno
-- Bruno collection usage, UI workflow, setup flow, and contribution rules: [bruno/README.md](bruno/README.md)
+- Bruno collection usage, UI workflow, setup flow, and contribution rules: [bruno/BRUNO.md](bruno/BRONO.md)
 
 ### Libraries Used
 - [Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/index.html) - used to provide various endpoints to help monitor the application, such as view application health and information.
