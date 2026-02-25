@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
 import java.util.Map;
+import java.util.Set;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileSubmission;
@@ -22,6 +23,9 @@ public interface BulkSubmissionConverter {
           "Multiple offices found in bulk submission file. Only one office is supported per submission.",
           "schedule",
           "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.");
+
+  Set<String> ALLOWED_MATTER_TYPE_KEYS =
+      Set.of("matterType", "MatterType", "MATTER_TYPE", "MATTERTYPE");
 
   FileSubmission convert(MultipartFile file);
 

@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.model.csv;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -7,7 +8,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 /** Record holding submission outcome details. */
 @JsonNaming(PropertyNamingStrategies.UpperSnakeCaseStrategy.class)
 public record CsvOutcome(
-    @JsonProperty(value = "matterType") String matterType,
+    @JsonProperty(value = "matterType") @JsonAlias({"MatterType", "MATTER_TYPE", "MATTERTYPE"})
+        String matterType,
     String feeCode,
     String caseRefNumber,
     String caseStartDate,
