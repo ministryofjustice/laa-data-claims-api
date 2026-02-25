@@ -187,6 +187,7 @@ columns:
     header: Calculated Fee Detail - Travel And Waiting Costs Amount
 params:
   - name: submissionId
+    requestName: submission-id
     type: UUID
     required: true
   - name: office

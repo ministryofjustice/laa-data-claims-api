@@ -169,6 +169,7 @@ columns:
     header: Calculated Fee Detail - Escape Case Flag
 params:
   - name: submissionId
+    requestName: submission-id
     type: UUID
     required: true
   - name: office
