@@ -26,7 +26,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
-import uk.gov.laa.springboot.export.ExportService;
 
 @EnableAutoConfiguration(
     exclude = {
@@ -44,11 +43,10 @@ public class AbstractProviderPactTests {
     System.setProperty("pactbroker.host", "localhost");
     System.setProperty("pactbroker.port", "9292");
     System.setProperty("pactbroker.scheme", "http");
+    System.setProperty("laa.springboot.starter.exports.enabled", "true");
   }
 
   @MockitoBean protected TokenDetailsManager tokenDetailsManager;
-
-  @MockitoBean protected ExportService exportService;
 
   @MockitoBean protected SecurityFilterChain securityFilterChain;
 
