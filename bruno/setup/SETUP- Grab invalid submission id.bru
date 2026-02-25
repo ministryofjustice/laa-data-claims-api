@@ -1,0 +1,38 @@
+meta {
+  name: SETUP: Grab invalid submission id
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0U099L
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  userId: test
+  offices: 0U099L
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(../claims-data/service/src/integrationTest/resources/test_upload_files/csv/outcomes_crime_lower_no_schedule.csv) @contentType(text/csv)
+}
+
+tests {
+  if(res.status === 201){
+    const body = res.getBody();
+    bru.setEnvVar("SUBMISSION_ID", body.submission_ids[0]);
+  }else{
+    throw new Error("POST failed - cannont set SUBMISSION_ID");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -13,5 +13,4 @@ Before you ask people to review this PR please ensure the following and mark as 
 - [ ] Avoid mixing whitespace changes with code changes in the same commit. These make diffs harder to read and conflicts more likely.
 - [ ] You should have looked at the diff against main and ensured that nothing unexpected is included in your changes.
 - [ ] You should have checked that the commit messages say why the change was made.
-- [ ] When applicable run E2E tests locally to ensure they are passing: `./gradlew e2eTest`
 - [ ] If applicable, you have executed the end-to-end (E2E) tests using the [bulk-submission-and-fee-scheme-tests-](https://github.com/ministryofjustice/bulk-submission-and-fee-scheme-tests-) repository and confirmed they pass.

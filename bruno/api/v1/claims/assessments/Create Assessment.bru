@@ -1,0 +1,53 @@
+meta {
+  name: Create Assessment
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/assessments
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "claim_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "claim_summary_fee_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "assessment_outcome": "PAID_IN_FULL",
+    "fixed_fee_amount": 0,
+    "net_profit_costs_amount": 0,
+    "disbursement_amount": 0,
+    "disbursement_vat_amount": 0,
+    "net_cost_of_counsel_amount": 0,
+    "net_travel_costs_amount": 0,
+    "net_waiting_costs_amount": 0,
+    "detention_travel_and_waiting_costs_amount": 0,
+    "jr_form_filling_amount": 0,
+    "bolt_on_adjourned_hearing_fee": 0,
+    "bolt_on_cmrh_telephone_fee": 0,
+    "bolt_on_cmrh_oral_fee": 0,
+    "bolt_on_home_office_interview_fee": 0,
+    "bolt_on_substantive_hearing_fee": 0,
+    "is_vat_applicable": true,
+    "created_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "assessed_total_vat": 0,
+    "assessed_total_incl_vat": 0,
+    "allowed_total_vat": 0,
+    "allowed_total_incl_vat": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

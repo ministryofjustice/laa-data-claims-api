@@ -1,0 +1,28 @@
+meta {
+  name: fetch submission
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{HOST}}/api/v1/bulk-submissions/:bulksubmission_id
+  body: multipartForm
+  auth: inherit
+}
+
+params:path {
+  bulksubmission_id: {{BULKSUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/integrationTest/resources/test_upload_files/csv/outcomes_crime_lower_no_schedule.csv) @contentType(text/xml)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

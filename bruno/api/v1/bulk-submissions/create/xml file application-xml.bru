@@ -1,0 +1,29 @@
+meta {
+  name: xml file application/xml
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0U099L
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  userId: test
+  offices: 0U099L
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(../claims-data/service/src/integrationTest/resources/test_upload_files/xml/invalid_submission_invalid_profit_cost.xml) @contentType(application/xml)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
