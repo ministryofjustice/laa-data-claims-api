@@ -20,9 +20,12 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String EXPORTS_BASE_PATH = "/exports";
 
-  private static final String LEGAL_HELP_ENDPOINT = EXPORTS_BASE_PATH + "/submission-claims-legal-help";
-  private static final String CRIME_LOWER_ENDPOINT = EXPORTS_BASE_PATH + "/submission-claims-crime-lower";
-  private static final String MEDIATION_ENDPOINT = EXPORTS_BASE_PATH + "/submission-claims-mediation";
+  private static final String LEGAL_HELP_ENDPOINT =
+      EXPORTS_BASE_PATH + "/submission-claims-legal-help";
+  private static final String CRIME_LOWER_ENDPOINT =
+      EXPORTS_BASE_PATH + "/submission-claims-crime-lower";
+  private static final String MEDIATION_ENDPOINT =
+      EXPORTS_BASE_PATH + "/submission-claims-mediation";
 
   private static final String LEGAL_HELP_DEFINITION = "submission-claims-legal-help.yml";
   private static final String CRIME_LOWER_DEFINITION = "submission-claims-crime-lower.yml";
@@ -43,11 +46,14 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void exportsLegalHelpCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
-    MvcResult response = exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
+    MvcResult response =
+        exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
 
-    assertCsvHeadersMatchDefinition(response.getResponse().getContentAsString(), LEGAL_HELP_DEFINITION);
+    assertCsvHeadersMatchDefinition(
+        response.getResponse().getContentAsString(), LEGAL_HELP_DEFINITION);
 
-    Map<String, String> firstRow = firstDataRowByHeader(response.getResponse().getContentAsString());
+    Map<String, String> firstRow =
+        firstDataRowByHeader(response.getResponse().getContentAsString());
     assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo("office1");
     assertThat(firstRow.get("Submission Month")).isEqualTo("JAN-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("LEGAL_HELP");
@@ -63,9 +69,11 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
   void exportsCrimeLowerCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
     MvcResult response = exportCsv(CRIME_LOWER_ENDPOINT, crimeSubmissionId, CRIME_OFFICE);
 
-    assertCsvHeadersMatchDefinition(response.getResponse().getContentAsString(), CRIME_LOWER_DEFINITION);
+    assertCsvHeadersMatchDefinition(
+        response.getResponse().getContentAsString(), CRIME_LOWER_DEFINITION);
 
-    Map<String, String> firstRow = firstDataRowByHeader(response.getResponse().getContentAsString());
+    Map<String, String> firstRow =
+        firstDataRowByHeader(response.getResponse().getContentAsString());
     assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo(CRIME_OFFICE);
     assertThat(firstRow.get("Submission Month")).isEqualTo("FEB-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("CRIME_LOWER");
@@ -76,16 +84,19 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("UFN")).isEqualTo("CRIME-UFN-1");
     assertThat(firstRow.get("Stage Reached (Claim Code)")).isEqualTo("CRIME-STAGE");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
-    assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description")).isEqualTo("Crime fee detail");
+    assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
+        .isEqualTo("Crime fee detail");
   }
 
   @Test
   void exportsMediationCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
     MvcResult response = exportCsv(MEDIATION_ENDPOINT, mediationSubmissionId, MEDIATION_OFFICE);
 
-    assertCsvHeadersMatchDefinition(response.getResponse().getContentAsString(), MEDIATION_DEFINITION);
+    assertCsvHeadersMatchDefinition(
+        response.getResponse().getContentAsString(), MEDIATION_DEFINITION);
 
-    Map<String, String> firstRow = firstDataRowByHeader(response.getResponse().getContentAsString());
+    Map<String, String> firstRow =
+        firstDataRowByHeader(response.getResponse().getContentAsString());
     assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo(MEDIATION_OFFICE);
     assertThat(firstRow.get("Submission Month")).isEqualTo("MAY-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("MEDIATION");
@@ -117,7 +128,8 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
     MvcResult response = initialResponse;
     if (initialResponse.getRequest().isAsyncStarted()) {
-      response = mockMvc.perform(asyncDispatch(initialResponse)).andExpect(status().isOk()).andReturn();
+      response =
+          mockMvc.perform(asyncDispatch(initialResponse)).andExpect(status().isOk()).andReturn();
     }
 
     assertThat(response.getResponse().getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-store");

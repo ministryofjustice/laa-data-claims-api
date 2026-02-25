@@ -13,7 +13,7 @@ pluginManagement {
     }
 
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.0.9-15e4289-SNAPSHOT'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.1.0'
     }
 }
 

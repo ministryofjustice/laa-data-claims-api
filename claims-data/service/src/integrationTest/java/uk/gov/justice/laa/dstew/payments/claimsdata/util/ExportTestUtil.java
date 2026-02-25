@@ -24,7 +24,8 @@ public final class ExportTestUtil {
 
   public static Map<String, String> firstDataRowByHeader(String csv) {
     String[] lines = csv.split("\\R");
-    String headerLine = Arrays.stream(lines).filter(line -> !line.isBlank()).findFirst().orElseThrow();
+    String headerLine =
+        Arrays.stream(lines).filter(line -> !line.isBlank()).findFirst().orElseThrow();
     String firstDataLine =
         Arrays.stream(lines)
             .filter(line -> !line.isBlank())
