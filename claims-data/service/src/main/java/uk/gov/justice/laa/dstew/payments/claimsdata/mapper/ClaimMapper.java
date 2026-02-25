@@ -26,7 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 @Mapper(
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
-    uses = GlobalStringMapper.class,
+    uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
     imports = {com.fasterxml.uuid.Generators.class},
     config = AuditFieldsMapper.class)
 public interface ClaimMapper {
@@ -52,6 +52,7 @@ public interface ClaimMapper {
   @Mapping(target = "isYouthCourt", source = "youthCourt")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  @Mapping(target = "dateSubmitted", source = "submission.createdOn")
   @Mapping(target = "areaOfLaw", source = "submission.areaOfLaw")
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")

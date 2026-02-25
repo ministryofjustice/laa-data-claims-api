@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -42,6 +43,8 @@ class ClaimMapperTest {
   @InjectMocks private final ClaimMapperImpl mapper = new ClaimMapperImpl();
 
   @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+
+  @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
   @Test
   void toClaim_nullInput_returnsNull() {
@@ -211,7 +214,12 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
-            .submission(Submission.builder().id(submissionId).submissionPeriod("APR-2025").build())
+            .submission(
+                Submission.builder()
+                    .id(submissionId)
+                    .submissionPeriod("APR-2025")
+                    .createdOn(Instant.now())
+                    .build())
             .build();
 
     final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
@@ -251,6 +259,7 @@ class ClaimMapperTest {
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
+    assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
   }
 
   @Test
