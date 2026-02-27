@@ -1,17 +1,21 @@
 meta {
-  name: Assement
+  name: Assessments
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
-  url: http://{{HOST}}/api/v1/claims/:claim_id/assessments/:assessment_id
+  url: http://{{HOST}}/api/v1/claims/:claim_id/assessments?page=0&size=20
   body: none
   auth: inherit
 }
 
+params:query {
+  page: 0
+  size: 20
+}
+
 params:path {
-  assessment_id: {{ASSESSMENT_ID}}
   claim_id: {{CLAIM_ID}}
 }
 
