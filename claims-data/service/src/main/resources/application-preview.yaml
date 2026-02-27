@@ -14,11 +14,19 @@ aws:
     endpoint: ""
     queue-name: ${QUEUE_NAME}
 laa:
-  springboot.starter.auth:
-    authentication-header: "Authorization"
-    authorized-clients: ${AUTHORIZED_CLIENTS}
-    authorized-roles: ${AUTHORIZED_ROLES}
-    unprotected-uris: ${UNPROTECTED_URIS}
+  springboot.starter:
+    auth:
+      authentication-header: "Authorization"
+      authorized-clients: ${AUTHORIZED_CLIENTS}
+      authorized-roles: ${AUTHORIZED_ROLES}
+      unprotected-uris: ${UNPROTECTED_URIS}
+    exports:
+      enabled: true
+      web:
+        enabled: true
+        base-path: /exports
+      defaults:
+        max-rows: 50000
 
 resilience4j.ratelimiter:
   instances:
