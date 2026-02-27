@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -51,6 +52,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling claims. */
@@ -336,13 +338,13 @@ public class ClaimService
       throw new ClaimBadRequestException("Missing office code");
     }
 
+    Pageable mappedPageable = mapPageableSort(pageable);
+
     Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
-
-    Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(pageable);
-
+    Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
     Specification<Claim> combinedSpec = baseSpec.and(sortSpec);
 
-    Pageable sanitizedPageable = removeCustomSortFromPageable(pageable, "totalWarnings");
+    Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
@@ -379,6 +381,29 @@ public class ClaimService
     }
 
     return response;
+  }
+
+  private Pageable mapPageableSort(Pageable pageable) {
+    Sort originalSort = pageable.getSort();
+
+    if (originalSort.isUnsorted()) {
+      return pageable;
+    }
+
+    Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
+  }
+
+  private Sort.Order mapOrder(Sort.Order order) {
+    String apiProperty = order.getProperty();
+
+    ClaimSortField sortField =
+        ClaimSortField.fromApiName(apiProperty)
+            .orElseThrow(
+                () -> new ClaimBadRequestException("Unsupported sort field: " + apiProperty));
+
+    return new Sort.Order(order.getDirection(), sortField.getEntityPath());
   }
 
   @Transactional
