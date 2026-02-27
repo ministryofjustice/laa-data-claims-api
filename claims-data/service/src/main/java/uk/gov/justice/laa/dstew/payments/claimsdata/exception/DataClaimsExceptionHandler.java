@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import uk.gov.laa.springboot.exception.ApplicationException;
 import uk.gov.laa.springboot.exception.GlobalExceptionHandler;
+import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
  * Global exception handler for the Claims Data service.
@@ -44,5 +45,10 @@ public class DataClaimsExceptionHandler extends GlobalExceptionHandler {
   @ExceptionHandler(ApplicationException.class)
   public ResponseEntity<ApplicationException> handleApplicationException(ApplicationException ex) {
     return super.handleApplicationException(ex);
+  }
+
+  @ExceptionHandler(ExportValidationException.class)
+  public ResponseEntity<String> handleExportValidationException(ExportValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
   }
 }
