@@ -567,7 +567,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Failed to parse csv bulk submission file");
+        .isEqualTo(
+            "Failed to read bulk submission file: Unrecognized field \"CASE_REF_NUMBER_NOT_EXISTING\" ");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }
@@ -595,7 +596,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Office missing from csv bulk submission file");
+        .isEqualTo("Office missing from bulk submission file");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
   }

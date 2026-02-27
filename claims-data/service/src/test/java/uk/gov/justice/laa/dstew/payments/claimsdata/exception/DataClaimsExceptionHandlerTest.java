@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import uk.gov.laa.springboot.export.ExportValidationException;
 
 class DataClaimsExceptionHandlerTest {
   DataClaimsExceptionHandler dataClaimsExceptionHandler = new DataClaimsExceptionHandler();
@@ -67,5 +68,16 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getType().toString()).contains("claims-data");
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties()).containsEntry("message", "Resource not found");
+  }
+
+  @Test
+  void handleExportValidationException_returnsBadRequestWithMessage() {
+    ResponseEntity<String> result =
+        dataClaimsExceptionHandler.handleExportValidationException(
+            new ExportValidationException("Filter submissionId must be a UUID"));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode().value()).isEqualTo(400);
+    assertThat(result.getBody()).isEqualTo("Filter submissionId must be a UUID");
   }
 }

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
  * Global exception handler for the Claims Data service using RFC 9457 Problem Details.
@@ -109,5 +110,10 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
         .replaceAll("Exception$", "")
         .replaceAll("([a-z])([A-Z])", "$1-$2")
         .toLowerCase();
+  }
+
+  @ExceptionHandler(ExportValidationException.class)
+  public ResponseEntity<String> handleExportValidationException(ExportValidationException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
   }
 }
