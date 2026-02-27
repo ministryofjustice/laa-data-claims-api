@@ -17,6 +17,7 @@ public enum ClaimSortField {
 
   UNIQUE_FILE_NUMBER("unique_file_number", "uniqueFileNumber"),
   UNIQUE_CLIENT_NUMBER("unique_client_number", "client.uniqueClientNumber"),
+  CLAIM_STATUS("status", "status"),
 
   CASE_REFERENCE_NUMBER("case_reference_number", "caseReferenceNumber"),
 
