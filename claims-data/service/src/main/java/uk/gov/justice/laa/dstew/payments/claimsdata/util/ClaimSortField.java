@@ -14,9 +14,13 @@ public enum ClaimSortField {
 
   CLIENT_SURNAME("client_surname", "client.clientSurname"),
   CLIENT_FORENAME("client_forename", "client.clientForename"),
+  UNIQUE_CLIENT_NUMBER("unique_client_number", "client.uniqueClientNumber"),
+
+  CLIENT2_SURNAME("client_2_surname", "client.client2Surname"),
+  CLIENT2_FORENAME("client_2_forename", "client.client2Forename"),
+  UNIQUE_CLIENT2_NUMBER("client_2_ucn", "client.client2Ucn"),
 
   UNIQUE_FILE_NUMBER("unique_file_number", "uniqueFileNumber"),
-  UNIQUE_CLIENT_NUMBER("unique_client_number", "client.uniqueClientNumber"),
   CLAIM_STATUS("status", "status"),
 
   CASE_REFERENCE_NUMBER("case_reference_number", "caseReferenceNumber"),
