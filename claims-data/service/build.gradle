@@ -84,6 +84,7 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
     implementation platform('com.fasterxml.jackson:jackson-bom:2.21.1')
+    implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
