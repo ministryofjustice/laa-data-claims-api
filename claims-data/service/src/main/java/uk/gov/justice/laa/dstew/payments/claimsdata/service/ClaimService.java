@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -33,6 +36,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -60,6 +64,7 @@ public class ClaimService
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   private final ClaimCaseRepository claimCaseRepository;
+  private final AssessmentRepository assessmentRepository;
 
   @Override
   public SubmissionRepository lookup() {
@@ -303,5 +308,49 @@ public class ClaimService
   @Transactional
   public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
     return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
+
+  /**
+   * Marks a claim as VOID and creates a corresponding assessment.
+   *
+   * <p>This method retrieves a claim by its identifier and validates that it has a status of VALID.
+   * If valid, the claim is updated to have a VOID status, and an associated assessment entity is
+   * created and persisted in the database. The assessment is initialized with default values for
+   * "allowedTotalInclVat" and "assessmentOutcome".
+   *
+   * @param claimId The unique identifier of the claim to be voided.
+   * @return The unique identifier of the created assessment associated with the voided claim.
+   * @throws ClaimNotFoundException if the claim with the specified ID does not exist.
+   * @throws ClaimBadRequestException if the claim does not have a status of VALID.
+   */
+  @Transactional
+  public UUID voidClaimByIdAndCreateAssessment(UUID claimId) {
+
+    Claim claim =
+        claimRepository
+            .findById(claimId)
+            .orElseThrow(
+                () ->
+                    new ClaimNotFoundException(
+                        String.format("No Claim found with id: %s", claimId)));
+
+    if (claim.getStatus() != ClaimStatus.VALID) {
+      throw new ClaimBadRequestException(
+          String.format("Claim with id: %s does not have VALID status", claimId));
+    }
+
+    claim.setStatus(ClaimStatus.VOID);
+    claim.setHasAssessment(true);
+    claim.setUpdatedOn(Instant.now());
+    claim.setUpdatedByUserId(""); // todo check this
+
+    Assessment assessment = new Assessment();
+    assessment.setAllowedTotalInclVat(BigDecimal.ZERO);
+    assessment.setAssessmentOutcome(null);
+    assessment.setClaim(claim);
+    assessment.setCreatedByUserId(""); // todo check this
+
+    Assessment savedAssessment = assessmentRepository.save(assessment);
+    return savedAssessment.getId();
   }
 }

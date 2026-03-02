@@ -95,13 +95,15 @@ public class ClaimController implements ClaimsApi {
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId) {
-    var assessmentId = UUID.randomUUID();
+    UUID assessmentId = claimService.voidClaimByIdAndCreateAssessment(claimId);
+
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{assessmentId}")
             .buildAndExpand(assessmentId)
             .toUri();
-    return ResponseEntity.created(location).build();
+    return ResponseEntity.created(location)
+        .body(VoidClaim201Response.builder().id(assessmentId).build());
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
