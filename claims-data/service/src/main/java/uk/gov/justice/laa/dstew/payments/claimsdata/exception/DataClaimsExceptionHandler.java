@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,16 +40,36 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    *
    * <p>This is the primary exception handler for the service's custom exceptions.
    *
-   * @param ex the claims data exception
+   * @param exception the claims data exception
+   * @param request the HTTP request
    * @return a response containing a {@link ProblemDetail} with the appropriate status code
    */
   @ExceptionHandler(ClaimsDataException.class)
-  public ResponseEntity<ProblemDetail> handleClaimsDataException(ClaimsDataException ex) {
-    HttpStatus status = HttpStatus.resolve(ex.getHttpStatus().value());
+  public ResponseEntity<ProblemDetail> handleClaimsDataException(
+      ClaimsDataException exception, HttpServletRequest request) {
+    HttpStatus status = HttpStatus.resolve(exception.getHttpStatus().value());
     if (status == null) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
-    return buildProblemDetailResponse(status, ex.getMessage(), ex.getClass());
+    log.warn("ClaimsDataException occurred: {}", exception.getMessage());
+    return buildProblemDetailResponse(
+        status, exception.getMessage(), exception.getClass(), request);
+  }
+
+  /**
+   * Handle {@link ExportValidationException} instances and convert them to RFC 9457 Problem
+   * Details.
+   *
+   * @param exception the export validation exception
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 400 status code
+   */
+  @ExceptionHandler(ExportValidationException.class)
+  public ResponseEntity<ProblemDetail> handleExportValidationException(
+      ExportValidationException exception, HttpServletRequest request) {
+    log.warn("ExportValidationException occurred: {}", exception.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
   }
 
   /**
@@ -59,42 +80,37 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    * Error.
    *
    * @param exception the uncaught exception
+   * @param request the HTTP request
    * @return a response containing a {@link ProblemDetail} with a 500 status code
    */
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ProblemDetail> handleGenericException(Exception exception) {
-    String logMessage = "An unexpected application error has occurred.";
-    log.error(logMessage, exception);
-
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, logMessage);
-    problemDetail.setTitle(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
-    problemDetail.setType(URI.create(ERROR_TYPE_BASE_URI + "internal-server-error"));
-
-    // Add backward compatibility property for downstream services
-    problemDetail.setProperty("message", logMessage);
-
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
+  public ResponseEntity<ProblemDetail> handleGenericException(
+      Exception exception, HttpServletRequest request) {
+    String errorMessage = "An unexpected application error has occurred.";
+    log.error(errorMessage, exception);
+    return buildProblemDetailResponse(
+        HttpStatus.INTERNAL_SERVER_ERROR, errorMessage, exception.getClass(), request);
   }
 
   /**
    * Build a standardised RFC 9457 Problem Detail response.
    *
    * @param status the HTTP status
-   * @param message the error message
+   * @param detail the error detail message
    * @param exceptionClass the exception class for type URI generation
+   * @param request the HTTP request for populating the instance field
    * @return a response containing a {@link ProblemDetail}
    */
   private ResponseEntity<ProblemDetail> buildProblemDetailResponse(
-      HttpStatus status, String message, Class<?> exceptionClass) {
-    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, message);
+      HttpStatus status, String detail, Class<?> exceptionClass, HttpServletRequest request) {
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
     problemDetail.setTitle(status.getReasonPhrase());
     problemDetail.setType(URI.create(ERROR_TYPE_BASE_URI + toKebabCase(exceptionClass)));
+    problemDetail.setInstance(URI.create(request.getRequestURI()));
 
     // Add backward compatibility property for downstream services
-    problemDetail.setProperty("message", message);
+    problemDetail.setProperty("message", detail);
 
-    log.warn("Exception occurred: {}", message);
     return ResponseEntity.status(status).body(problemDetail);
   }
 
@@ -110,10 +126,5 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
         .replaceAll("Exception$", "")
         .replaceAll("([a-z])([A-Z])", "$1-$2")
         .toLowerCase();
-  }
-
-  @ExceptionHandler(ExportValidationException.class)
-  public ResponseEntity<String> handleExportValidationException(ExportValidationException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
   }
 }
