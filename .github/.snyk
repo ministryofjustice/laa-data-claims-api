@@ -1,9 +1,10 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
-    SNYK-JAVA-COMFASTERXMLJACKSONCORE-15365924:
-        - '*':
-            reason: Dependency within the com.palantir.java-format-spotless plugin (build-time only)
-            expires: 2026-04-01T00:00:00.000Z
-    SNYK-JAVA-TOOLSJACKSONCORE-15365915:
-        - '*':
-            reason: Temporarily ignoring this until laa-spring-boot-gradle-plugin supports Jackson 3.1.x
-            expires: 2026-04-01T00:00:00.000Z
+  SNYK-JAVA-COMFASTERXMLJACKSONCORE-15365924:
+    - '*':
+        reason: Temporarily ignoring this until laa-spring-boot-gradle-plugin supports Jackson 3.1.x
+        expires: 2026-04-02T11:13:40.160Z
+        created: 2026-03-03T11:13:40.161Z
+patch: {}
