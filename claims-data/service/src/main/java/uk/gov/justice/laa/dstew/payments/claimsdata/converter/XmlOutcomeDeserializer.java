@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.converter.BulkSubmissionConverter.ALLOWED_MATTER_TYPE_KEYS;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -35,7 +37,7 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
       throw new BulkSubmissionFileReadException("Outcome does not contain any data.");
     }
 
-    JsonNode matterTypeNode = node.get("matterType");
+    JsonNode matterTypeNode = getAllowedMatterType(node);
     String matterType = matterTypeNode == null ? null : matterTypeNode.asText();
 
     JsonNode outcomeItemNode = node.get("outcomeItem");
@@ -367,5 +369,14 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         paNumber,
         excessTravelCosts,
         medConcludedDate);
+  }
+
+  private JsonNode getAllowedMatterType(JsonNode node) {
+    for (String key : ALLOWED_MATTER_TYPE_KEYS) {
+      if (node.has(key)) {
+        return node.get(key);
+      }
+    }
+    return null;
   }
 }

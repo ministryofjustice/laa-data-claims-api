@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+        xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+        elementFormDefault="qualified"
+        version="3.0">
+
+    <xs:annotation>
+        <xs:documentation>
+            LSCSMS Bulk Load XML Schema
+            --------------------------------
+            Schema Version: V3 (Technical version: 3.0)
+            Release Date: 2025-02-18
+            Status: Current
+
+            Summary:
+            LAA Data Claims – bulk load submission format.
+            Validates structure: submission → office → schedule → outcome/newMatterStarts/immigrationCLR.
+            Business rules (e.g. date logic) are enforced by the application.
+
+            Providers must validate against the latest published version.
+        </xs:documentation>
+    </xs:annotation>
+
+    <!-- ========================= -->
+    <!-- Simple Types (attributes) -->
+    <!-- ========================= -->
+    <xs:simpleType name="officeAccountNumber">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z0-9]{6}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="submissionPeriod">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-[0-9]{4}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="areaOfLaw">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MEDIATION"/>
+            <xs:enumeration value="CRIME LOWER"/>
+            <xs:enumeration value="LEGAL HELP"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="scheduleNumber">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="20"/>
+            <xs:pattern value="[A-Za-z0-9/]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="upperSnake">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z0-9_]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="outcomeItemName">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="FEE_CODE"/>
+            <xs:enumeration value="CASE_REF_NUMBER"/>
+            <xs:enumeration value="CASE_START_DATE"/>
+            <xs:enumeration value="CASE_ID"/>
+            <xs:enumeration value="CASE_STAGE_LEVEL"/>
+            <xs:enumeration value="UFN"/>
+            <xs:enumeration value="PROCUREMENT_AREA"/>
+            <xs:enumeration value="ACCESS_POINT"/>
+            <xs:enumeration value="CLIENT_FORENAME"/>
+            <xs:enumeration value="CLIENT_SURNAME"/>
+            <xs:enumeration value="CLIENT_DATE_OF_BIRTH"/>
+            <xs:enumeration value="UCN"/>
+            <xs:enumeration value="CLA_REF_NUMBER"/>
+            <xs:enumeration value="CLA_EXEMPTION"/>
+            <xs:enumeration value="GENDER"/>
+            <xs:enumeration value="ETHNICITY"/>
+            <xs:enumeration value="DISABILITY"/>
+            <xs:enumeration value="CLIENT_POST_CODE"/>
+            <xs:enumeration value="WORK_CONCLUDED_DATE"/>
+            <xs:enumeration value="ADVICE_TIME"/>
+            <xs:enumeration value="TRAVEL_TIME"/>
+            <xs:enumeration value="WAITING_TIME"/>
+            <xs:enumeration value="PROFIT_COST"/>
+            <xs:enumeration value="VALUE_OF_COSTS"/>
+            <xs:enumeration value="DISBURSEMENTS_AMOUNT"/>
+            <xs:enumeration value="COUNSEL_COST"/>
+            <xs:enumeration value="DISBURSEMENTS_VAT"/>
+            <xs:enumeration value="TRAVEL_WAITING_COSTS"/>
+            <xs:enumeration value="VAT_INDICATOR"/>
+            <xs:enumeration value="LONDON_NONLONDON_RATE"/>
+            <xs:enumeration value="CLIENT_TYPE"/>
+            <xs:enumeration value="TOLERANCE_INDICATOR"/>
+            <xs:enumeration value="TRAVEL_COSTS"/>
+            <xs:enumeration value="OUTCOME_CODE"/>
+            <xs:enumeration value="LEGACY_CASE"/>
+            <xs:enumeration value="CLAIM_TYPE"/>
+            <xs:enumeration value="ADJOURNED_HEARING_FEE"/>
+            <xs:enumeration value="TYPE_OF_ADVICE"/>
+            <xs:enumeration value="POSTAL_APPL_ACCP"/>
+            <xs:enumeration value="SCHEDULE_REF"/>
+            <xs:enumeration value="CMRH_ORAL"/>
+            <xs:enumeration value="CMRH_TELEPHONE"/>
+            <xs:enumeration value="AIT_HEARING_CENTRE"/>
+            <xs:enumeration value="SUBSTANTIVE_HEARING"/>
+            <xs:enumeration value="HO_INTERVIEW"/>
+            <xs:enumeration value="HO_UCN"/>
+            <xs:enumeration value="TRANSFER_DATE"/>
+            <xs:enumeration value="DETENTION_TRAVEL_WAITING_COSTS"/>
+            <xs:enumeration value="DELIVERY_LOCATION"/>
+            <xs:enumeration value="PRIOR_AUTHORITY_REF"/>
+            <xs:enumeration value="JR_FORM_FILLING"/>
+            <xs:enumeration value="ADDITIONAL_TRAVEL_PAYMENT"/>
+            <xs:enumeration value="MEETINGS_ATTENDED"/>
+            <xs:enumeration value="MEDICAL_REPORTS_CLAIMED"/>
+            <xs:enumeration value="DESI_ACC_REP"/>
+            <xs:enumeration value="MHT_REF_NUMBER"/>
+            <xs:enumeration value="STAGE_REACHED"/>
+            <xs:enumeration value="FOLLOW_ON_WORK"/>
+            <xs:enumeration value="NATIONAL_REF_MECHANISM_ADVICE"/>
+            <xs:enumeration value="EXEMPTION_CRITERIA_SATISFIED"/>
+            <xs:enumeration value="EXCL_CASE_FUNDING_REF"/>
+            <xs:enumeration value="NO_OF_CLIENTS"/>
+            <xs:enumeration value="NO_OF_SURGERY_CLIENTS"/>
+            <xs:enumeration value="IRC_SURGERY"/>
+            <xs:enumeration value="SURGERY_DATE"/>
+            <xs:enumeration value="LINE_NUMBER"/>
+            <xs:enumeration value="CRIME_MATTER_TYPE"/>
+            <xs:enumeration value="FEE_SCHEME"/>
+            <xs:enumeration value="REP_ORDER_DATE"/>
+            <xs:enumeration value="NO_OF_SUSPECTS"/>
+            <xs:enumeration value="NO_OF_POLICE_STATION"/>
+            <xs:enumeration value="POLICE_STATION"/>
+            <xs:enumeration value="DSCC_NUMBER"/>
+            <xs:enumeration value="MAAT_ID"/>
+            <xs:enumeration value="DUTY_SOLICITOR"/>
+            <xs:enumeration value="YOUTH_COURT"/>
+            <xs:enumeration value="SCHEME_ID"/>
+            <xs:enumeration value="NUMBER_OF_MEDIATION_SESSIONS"/>
+            <xs:enumeration value="MEDIATION_TIME"/>
+            <xs:enumeration value="OUTREACH"/>
+            <xs:enumeration value="REFERRAL"/>
+            <xs:enumeration value="CLIENT_LEGALLY_AIDED"/>
+            <xs:enumeration value="CLIENT2_FORENAME"/>
+            <xs:enumeration value="CLIENT2_SURNAME"/>
+            <xs:enumeration value="CLIENT2_DATE_OF_BIRTH"/>
+            <xs:enumeration value="CLIENT2_UCN"/>
+            <xs:enumeration value="CLIENT2_POST_CODE"/>
+            <xs:enumeration value="CLIENT2_GENDER"/>
+            <xs:enumeration value="CLIENT2_ETHNICITY"/>
+            <xs:enumeration value="CLIENT2_DISABILITY"/>
+            <xs:enumeration value="CLIENT2_LEGALLY_AIDED"/>
+            <xs:enumeration value="UNIQUE_CASE_ID"/>
+            <xs:enumeration value="STANDARD_FEE_CAT"/>
+            <xs:enumeration value="CLIENT2_POSTAL_APPL_ACCP"/>
+            <xs:enumeration value="COSTS_DAMAGES_RECOVERED"/>
+            <xs:enumeration value="ELIGIBLE_CLIENT_INDICATOR"/>
+            <xs:enumeration value="COURT_LOCATION_HPCDS"/>
+            <xs:enumeration value="LOCAL_AUTHORITY_NUMBER"/>
+            <xs:enumeration value="PA_NUMBER"/>
+            <xs:enumeration value="EXCESS_TRAVEL_COSTS"/>
+            <xs:enumeration value="MED_CONCLUDED_DATE"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="nonBlankString">
+        <xs:restriction base="xs:string">
+            <xs:pattern value=".*\S.*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+
+    <!-- ========================= -->
+    <!-- Root element              -->
+    <!-- ========================= -->
+    <xs:element name="submission">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="office">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="schedule" type="schedule"/>
+                        </xs:sequence>
+                        <xs:attribute name="account" type="officeAccountNumber" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="schemaLocation" type="xs:string" use="optional"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ========================= -->
+    <!-- Core types                -->
+    <!-- ========================= -->
+    <xs:complexType name="schedule">
+        <xs:sequence>
+            <xs:element name="outcome" type="outcome" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="newMatterStarts" type="newMatterStarts" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="immigrationCLR" type="immigrationCLR" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="areaOfLaw" type="areaOfLaw" use="required"/>
+        <xs:attribute name="submissionPeriod" type="submissionPeriod" use="required"/>
+        <xs:attribute name="scheduleNum" type="scheduleNumber" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="outcome">
+        <xs:sequence>
+            <xs:element name="outcomeItem" type="outcomeItem" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="matterType" type="nonBlankString" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="outcomeItem">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="name" type="outcomeItemName" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="newMatterStarts">
+        <xs:sequence>
+            <xs:element name="matterStart"
+                        type="matterStartCode"
+                        maxOccurs="5"/>
+        </xs:sequence>
+    </xs:complexType>
+
+
+    <xs:simpleType name="primaryMatterStartCode">
+        <xs:restriction base="xs:string">
+            <!-- MD codes -->
+            <xs:enumeration value="MDCS"/>
+            <xs:enumeration value="MDCC"/>
+            <xs:enumeration value="MDPS"/>
+            <xs:enumeration value="MDPC"/>
+            <xs:enumeration value="MDAS"/>
+            <xs:enumeration value="MDAC"/>
+
+            <!-- Area codes -->
+            <xs:enumeration value="AAP"/>
+            <xs:enumeration value="COM"/>
+            <xs:enumeration value="CON"/>
+            <xs:enumeration value="DEB"/>
+            <xs:enumeration value="EDU"/>
+            <xs:enumeration value="EMP"/>
+            <xs:enumeration value="ELA"/>
+            <xs:enumeration value="HOU"/>
+            <xs:enumeration value="IMMAS"/>
+            <xs:enumeration value="IMMOT"/>
+            <xs:enumeration value="MAT"/>
+            <xs:enumeration value="MED"/>
+            <xs:enumeration value="MHE"/>
+            <xs:enumeration value="MSC"/>
+            <xs:enumeration value="PI"/>
+            <xs:enumeration value="PUB"/>
+            <xs:enumeration value="WB"/>
+            <xs:enumeration value="DISC"/>
+
+            <!-- Optional other matter start codes -->
+            <xs:enumeration value="SCHEDULE_REF"/>
+            <xs:enumeration value="PROCUREMENT_AREA"/>
+            <xs:enumeration value="ACCESS_POINT"/>
+            <xs:enumeration value="DELIVERY_LOCATION"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+
+    <xs:complexType name="matterStartCode">
+        <xs:simpleContent>
+            <xs:extension base="nonBlankString">
+                <xs:attribute name="code"
+                              type="primaryMatterStartCode"
+                              use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="immigrationCLR">
+        <xs:sequence>
+            <xs:element name="immCLRData" type="immCLRData" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="immCLRData">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="code" type="upperSnake" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+</xs:schema>

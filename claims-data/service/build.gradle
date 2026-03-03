@@ -20,7 +20,7 @@ test {
 jacocoTestReport {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -28,7 +28,7 @@ jacocoTestReport {
 jacocoTestCoverageVerification {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class'])
+            fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
 }
@@ -62,6 +62,8 @@ dependencies {
     //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    // Export starter for csv export endpoints
+    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-export'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
@@ -116,6 +118,11 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
+
+    // Upgrade to fix CVE-2026-24734 vulnerability in apache tomcat
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.18'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.18'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.18' 
 }
 
 sourceSets {
@@ -153,8 +160,16 @@ tasks.register('pactTest', Test) {
     testClassesDirs = sourceSets.pactTest.output.classesDirs
     classpath = sourceSets.pactTest.runtimeClasspath
 
+    // Publish if both username and password environment variables are provided
+    def canPublish =
+            providers.environmentVariable('PACT_BROKER_USERNAME').isPresent() &&
+            providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
+
+    if (canPublish) {
+        systemProperty 'pact.verifier.publishResults', 'true'
+    }
+
     // Pass environment variables into the test process as System Properties
-    systemProperty 'pact.verifier.publishResults', 'true'
     systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
     systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/')
     systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
@@ -162,12 +177,12 @@ tasks.register('pactTest', Test) {
 
     // Only set the consumer filter and branch selectors if PACT_CONSUMER_NAME is provided
     def consumerName = providers.environmentVariable('PACT_CONSUMER_NAME').orNull
+
     if (consumerName) {
         systemProperty 'pact.filter.consumers', consumerName
-
-        def branch = providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
-        systemProperty 'pactbroker.consumerversionselectors.rawjson', "[{\"branch\":\"${branch}\"}]"
     }
+    def branch = providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
+    systemProperty 'pactbroker.consumerversionselectors.rawjson', "[{\"branch\":\"${branch}\"}]"
 
     // Resolve the directory path to a String for the system property
     systemProperty 'pact.rootDir', layout.buildDirectory.dir("pacts").get().asFile.path
@@ -185,6 +200,11 @@ spotless {
         cleanthat()
         googleJavaFormat()
     }
+}
+
+tasks.withType(Checkstyle).configureEach {
+    exclude "**/build/generated/**"
+    exclude "**/generated/**"
 }
 
 tasks.register("checkstyleStaged", Checkstyle) {

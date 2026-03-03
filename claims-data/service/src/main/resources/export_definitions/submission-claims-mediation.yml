@@ -1,0 +1,195 @@
+description: "MEDIATION submission claims export"
+provider: submissionClaimsMediationProvider
+packageName: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+sql: |
+  select
+    s.office_account_number as officeAccountNumber,
+    s.submission_period as submissionPeriod,
+    s.area_of_law as areaOfLaw,
+    s.mediation_submission_reference as scheduleNum,
+    c.matter_type_code as matterType,
+    c.fee_code as feeCode,
+    c.case_reference_number as caseReferenceNumber,
+    c.case_start_date as caseStartDate,
+    claim_case.case_id as caseId,
+    claim_case.unique_case_id as uniqueCaseId,
+    c.status as claimStatus,
+    c.case_concluded_date as caseConcludedDate,
+    client.client_forename as clientForename,
+    client.client_surname as clientSurname,
+    client.client_date_of_birth as clientDateOfBirth,
+    client.unique_client_number as clientUcn,
+    client.client_postcode as clientPostcode,
+    client.gender_code as clientGender,
+    client.ethnicity_code as clientEthnicity,
+    client.disability_code as clientDisability,
+    client.is_legally_aided as clientLegallyAided,
+    client.client_2_forename as client2Forename,
+    client.client_2_surname as client2Surname,
+    client.client_2_date_of_birth as client2DateOfBirth,
+    client.client_2_ucn as client2Ucn,
+    client.client_2_postcode as client2Postcode,
+    client.client_2_gender_code as client2Gender,
+    client.client_2_ethnicity_code as client2Ethnicity,
+    client.client_2_disability_code as client2Disability,
+    client.client_2_is_legally_aided as client2LegallyAided,
+    c.mediation_sessions_count as mediationSessionsCount,
+    c.mediation_time_minutes as mediationTimeMinutes,
+    claim_case.outcome_code as outcomeCode,
+    c.outreach_location as outreachLocation,
+    c.referral_source as referralSource,
+    csf.is_vat_applicable as vatIndicator,
+    csf.net_disbursement_amount as netDisbursementAmount,
+    csf.disbursements_vat_amount as disbursementsVatAmount,
+    claim_case.is_postal_application_accepted as postalApplicationAccepted,
+    claim_case.is_client_2_postal_application_accepted as client2PostalApplicationAccepted,
+    c.schedule_reference as scheduleReference,
+    cfd.fee_code_description as feeDetailFeeCodeDescription,
+    cfd.fee_type as feeDetailFeeType,
+    cfd.category_of_law as feeDetailCategoryOfLaw,
+    cfd.total_amount as feeDetailTotalAmount,
+    cfd.vat_indicator as feeDetailVatIndicator,
+    cfd.vat_rate_applied as feeDetailVatRateApplied,
+    cfd.calculated_vat_amount as feeDetailCalculatedVatAmount,
+    cfd.disbursement_amount as feeDetailDisbursementAmount,
+    cfd.requested_net_disbursement_amount as feeDetailRequestedNetDisbursementAmount,
+    cfd.disbursement_vat_amount as feeDetailDisbursementVatAmount,
+    cfd.fixed_fee_amount as feeDetailFixedFeeAmount,
+    cfd.net_profit_costs_amount as feeDetailNetProfitCostsAmount,
+    cfd.requested_net_profit_costs_amount as feeDetailRequestedNetProfitCostsAmount,
+    cfd.net_travel_costs_amount as feeDetailNetTravelCostsAmount,
+    cfd.net_waiting_costs_amount as feeDetailNetWaitingCostsAmount,
+    cfd.travel_and_waiting_costs_amount as feeDetailTravelAndWaitingCostsAmount
+  from claims.submission s
+  join claims.claim c on c.submission_id = s.id
+  left join claims.client client on client.claim_id = c.id
+  left join claims.claim_case claim_case on claim_case.claim_id = c.id
+  left join claims.claim_summary_fee csf on csf.claim_id = c.id
+  left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+  where s.id = :submissionId
+    and s.office_account_number = :office
+    and s.area_of_law = 'MEDIATION'
+  limit :maxRows
+columns:
+  - key: officeAccountNumber
+    header: Providers LAA Office Number
+  - key: submissionPeriod
+    header: Submission Month
+  - key: areaOfLaw
+    header: Area of Law
+  - key: scheduleNum
+    header: Mediation Submission Reference
+  - key: matterType
+    header: Matter Type (1:2)
+  - key: feeCode
+    header: Fee Code
+  - key: caseReferenceNumber
+    header: Case Reference Number
+  - key: caseStartDate
+    header: Case Start Date
+  - key: caseId
+    header: Claim ID
+  - key: uniqueCaseId
+    header: Unique Case ID
+  - key: claimStatus
+    header: Claim Status
+  - key: caseConcludedDate
+    header: Case Concluded Date
+  - key: clientForename
+    header: Client 1 Forename
+  - key: clientSurname
+    header: Client 1 Surname
+  - key: clientDateOfBirth
+    header: Client 1 Date of Birth
+  - key: clientUcn
+    header: Client 1 UCN
+  - key: clientPostcode
+    header: Client 1 Postcode
+  - key: clientGender
+    header: Client 1 Gender
+  - key: clientEthnicity
+    header: Client 1 Ethnicity
+  - key: clientDisability
+    header: Client 1 Disability
+  - key: clientLegallyAided
+    header: Client 1 Legally Aided?
+  - key: client2Forename
+    header: Client 2 Forename
+  - key: client2Surname
+    header: Client 2 Surname
+  - key: client2DateOfBirth
+    header: Client 2 Date of Birth
+  - key: client2Ucn
+    header: Client 2 UCN
+  - key: client2Postcode
+    header: Client 2 Postcode
+  - key: client2Gender
+    header: Client 2 Gender
+  - key: client2Ethnicity
+    header: Client 2 Ethnicity
+  - key: client2Disability
+    header: Client 2 Disability
+  - key: client2LegallyAided
+    header: Client 2 Legally Aided?
+  - key: mediationSessionsCount
+    header: Number of Mediation Sessions
+  - key: mediationTimeMinutes
+    header: Mediation Time (mins)
+  - key: outcomeCode
+    header: Outcome
+  - key: outreachLocation
+    header: Outreach Location
+  - key: referralSource
+    header: Referral
+  - key: vatIndicator
+    header: VAT Indicator
+  - key: netDisbursementAmount
+    header: Net Disbursement Amount (Excluding VAT)
+  - key: disbursementsVatAmount
+    header: Disbursements VAT amount
+  - key: postalApplicationAccepted
+    header: Client 1 Postal Application accepted
+  - key: client2PostalApplicationAccepted
+    header: Client 2 Postal Application accepted
+  - key: scheduleReference
+    header: Schedule Reference (Outcome)
+  - key: feeDetailFeeCodeDescription
+    header: Calculated Fee Detail - Fee Code Description
+  - key: feeDetailFeeType
+    header: Calculated Fee Detail - Fee Type
+  - key: feeDetailCategoryOfLaw
+    header: Calculated Fee Detail - Category of Law
+  - key: feeDetailTotalAmount
+    header: Calculated Fee Detail - Total Amount
+  - key: feeDetailVatIndicator
+    header: Calculated Fee Detail - VAT Indicator
+  - key: feeDetailVatRateApplied
+    header: Calculated Fee Detail - VAT Rate Applied
+  - key: feeDetailCalculatedVatAmount
+    header: Calculated Fee Detail - Calculated VAT Amount
+  - key: feeDetailDisbursementAmount
+    header: Calculated Fee Detail - Disbursement Amount
+  - key: feeDetailRequestedNetDisbursementAmount
+    header: Calculated Fee Detail - Requested Net Disbursement Amount
+  - key: feeDetailDisbursementVatAmount
+    header: Calculated Fee Detail - Disbursement VAT Amount
+  - key: feeDetailFixedFeeAmount
+    header: Calculated Fee Detail - Fixed Fee Amount
+  - key: feeDetailNetProfitCostsAmount
+    header: Calculated Fee Detail - Net Profit Costs Amount
+  - key: feeDetailRequestedNetProfitCostsAmount
+    header: Calculated Fee Detail - Requested Net Profit Costs Amount
+  - key: feeDetailNetTravelCostsAmount
+    header: Calculated Fee Detail - Net Travel Costs Amount
+  - key: feeDetailNetWaitingCostsAmount
+    header: Calculated Fee Detail - Net Waiting Costs Amount
+  - key: feeDetailTravelAndWaitingCostsAmount
+    header: Calculated Fee Detail - Travel And Waiting Costs Amount
+params:
+  - name: submissionId
+    requestName: submission-id
+    type: UUID
+    required: true
+  - name: office
+    type: STRING
+    required: true

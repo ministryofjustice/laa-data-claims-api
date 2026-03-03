@@ -7,16 +7,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -42,13 +46,20 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
+
+    validateUserId(request.getCreatedByUserId());
 
     if (!claimRepository.existsById(claimId)) {
       throw new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId));
     }
     Claim claim = claimRepository.getReferenceById(claimId);
 
+    if (claim.getStatus() != ClaimStatus.VALID) {
+      throw new ClaimBadRequestException(
+          String.format("Claim with id: %s does not have VALID status", claimId));
+    }
+
+    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
     if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
       throw new ClaimSummaryFeeNotFoundException(
           String.format("No Claim Summary Fee found with id: %s", claimSummaryFeeId));
@@ -67,6 +78,18 @@ public class AssessmentService {
     return assessmentRepository.save(assessment).getId();
   }
 
+  /**
+   * Updates the claim assessment status when an assessment is first created for a claim.
+   *
+   * <p>This method checks whether the claim has been assessed before. If the claim has not been
+   * assessed ({@link Claim#isHasAssessment()} returns false), it updates the claim's assessment
+   * status to true and logs the result.
+   *
+   * <p>This is typically called during assessment creation to mark the claim as assessed once the
+   * first assessment is added.
+   *
+   * @param claim the claim to update; must not be null
+   */
   private void updateClaimAssessmentStatus(Claim claim) {
     if (!claim.isHasAssessment()) {
       int noOfClaimsUpdated = claimRepository.updateAssessmentStatus(claim.getId(), true);
@@ -129,5 +152,45 @@ public class AssessmentService {
     return AssessmentResultSet.builder()
         .assessments(assessments.stream().map(assessmentMapper::toAssessmentGet).toList())
         .build();
+  }
+
+  /**
+   * Validates that the provided user ID meets all requirements.
+   *
+   * <p>This method performs the following validation checks:
+   *
+   * <ul>
+   *   <li>Ensures the user ID is not null
+   *   <li>Ensures the user ID is not blank (empty or whitespace-only)
+   *   <li>Ensures the user ID is a valid UUID format
+   * </ul>
+   *
+   * @param userId the user ID to validate
+   * @throws AssessmentInvalidUserException if any validation check fails
+   */
+  protected void validateUserId(String userId) {
+    if (!StringUtils.hasText(userId)) {
+      throw new AssessmentInvalidUserException(
+          AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
+    }
+    if (!isValidUuid(userId)) {
+      throw new AssessmentInvalidUserException(
+          AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
+    }
+  }
+
+  /**
+   * Checks whether the provided string is a valid UUID format.
+   *
+   * @param uuid the string to validate as a UUID
+   * @return true if the string is a valid UUID, false otherwise
+   */
+  protected boolean isValidUuid(String uuid) {
+    try {
+      UUID.fromString(uuid);
+      return true;
+    } catch (IllegalArgumentException | NullPointerException e) {
+      return false;
+    }
   }
 }

@@ -22,18 +22,27 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 
-public class BulkSubmissionCsvConverterTests {
+class BulkSubmissionCsvConverterTests {
 
   ObjectMapper objectMapper;
 
   BulkSubmissionCsvConverter bulkSubmissionCsvConverter;
 
-  private static final String OUTCOMES_INPUT_FILE = "classpath:test_upload_files/csv/outcomes.csv";
+  private static final String OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE =
+      "classpath:test_upload_files/csv/outcomes.csv";
+  private static final String OUTCOMES_INPUT_FILE_UPPER_CASE_M_FOR_MATTER_TYPE =
+      "classpath:test_upload_files/csv/outcomes_with_uppercase_m_in_matter_type.csv";
+  private static final String OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_FOR_MATTER_TYPE =
+      "classpath:test_upload_files/csv/outcomes_with_all_upper_case_letters_for_matter_type.csv";
+  private static final String
+      OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_WITH_UNDERSCORE_FOR_MATTER_TYPE =
+          "classpath:test_upload_files/csv/outcomes_with_all_upper_case_letters_with_underscore_for_matter_type.csv";
   private static final String OUTCOMES_INPUT_FILE_TXT =
       "classpath:test_upload_files/txt/outcomes.txt";
   private static final String OUTCOMES_CONVERTED_FILE =
@@ -74,6 +83,18 @@ public class BulkSubmissionCsvConverterTests {
   private static final String MISSING_SCHEDULE_INPUT_FILE =
       "classpath:test_upload_files/csv/missing_schedule.csv";
 
+  private static final String MISSING_SOME_OUTCOME_HEADERS_FILE =
+      "classpath:test_upload_files/csv/missing_some_outcome_headers.csv";
+
+  private static final String MISSING_ALL_OUTCOME_HEADERS_FILE =
+      "classpath:test_upload_files/csv/missing_all_outcome_headers.csv";
+
+  private static final String MISSING_ALL_OUTCOME_HEADERS_DIFFERENT_VARIANT_OF_MATTER_TYPE =
+      "classpath:test_upload_files/csv/missing_all_outcome_headers_different_variant_of_matter_type.csv";
+
+  private static final String INVALID_RECORD_HEADER_FILE =
+      "classpath:test_upload_files/csv/invalid_record_header.csv";
+
   private static final String DUPLICATE_OFFICE_INPUT_FILE =
       "classpath:test_upload_files/csv/duplicate_office.csv";
 
@@ -83,7 +104,7 @@ public class BulkSubmissionCsvConverterTests {
   private static final String CORRUPTED_FILE = "classpath:test_upload_files/csv/corrupted_file.csv";
 
   @BeforeEach
-  public void init() {
+  void init() {
     objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -95,10 +116,17 @@ public class BulkSubmissionCsvConverterTests {
   @DisplayName("convert")
   class Convert {
 
-    @Test
-    @DisplayName("Can convert a bulk submission file with outcomes to csv submission")
-    void canConvertOutcomesToCsvSubmission() throws IOException {
-      runTest(OUTCOMES_INPUT_FILE, OUTCOMES_CONVERTED_FILE);
+    @ParameterizedTest(
+        name = "Can convert a bulk submission file with outcomes to csv submission - {0}")
+    @ValueSource(
+        strings = {
+          OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_UPPER_CASE_M_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_FOR_MATTER_TYPE,
+          OUTCOMES_INPUT_FILE_ALL_UPPER_CASE_LETTERS_WITH_UNDERSCORE_FOR_MATTER_TYPE
+        })
+    void canConvertOutcomesToCsvSubmission(String inputFile) throws IOException {
+      runTest(inputFile, OUTCOMES_CONVERTED_FILE);
     }
 
     @Test
@@ -207,6 +235,63 @@ public class BulkSubmissionCsvConverterTests {
 
       assertThat(bulkSubmission.outcomes().getFirst().matterType())
           .isEqualTo(expectedMatterTypeCode);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+      MISSING_SOME_OUTCOME_HEADERS_FILE, // Some outcome records are missing the record type header
+      // (OUTCOME) but still contain matterType or FEE_CODE values
+      MISSING_ALL_OUTCOME_HEADERS_FILE, // All outcome records are missing the record type header
+      // (OUTCOME) but still contain matterType or FEE_CODE values
+      MISSING_ALL_OUTCOME_HEADERS_DIFFERENT_VARIANT_OF_MATTER_TYPE // All outcome records are
+      // missing
+      // the record type header (OUTCOME) but still contain MatterType with uppercase M.
+    })
+    @DisplayName("Throws exception when any data rows are missing outcome headers")
+    void throwsExceptionForMissingOutcomeHeaders(String inputFile) throws IOException {
+      MultipartFile file = getMultipartFile(inputFile);
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file),
+              "Expected exception to be thrown when any data rows are missing outcome headers");
+      assertEquals(
+          "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.",
+          ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Throws exception when an invalid record type is found")
+    void throwsExceptionForInvalidRecordType() throws IOException {
+      MultipartFile file = getMultipartFile(INVALID_RECORD_HEADER_FILE);
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file),
+              "Expected exception when an invalid record type is found");
+
+      assertEquals(
+          "Failed to parse bulk submission file, found invalid header: XXX", ex.getMessage());
+    }
+
+    @ParameterizedTest(
+        name = "Throws exception when an invalid {1} tag is found in bulk submission file")
+    @CsvSource({
+      "classpath:test_upload_files/csv/invalid_matter_type.csv, mattertype",
+      "classpath:test_upload_files/csv/invalid_matter_type.txt, matter_type"
+    })
+    void throwsExceptionForInvalidMatterTypeTag(String filePath, String errorField)
+        throws IOException {
+      MultipartFile file = getMultipartFile(filePath);
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file),
+              "Expected exception when an invalid matter type is found");
+
+      assertEquals(
+          "Failed to read bulk submission file: Unrecognized field \"%s\" ".formatted(errorField),
+          ex.getMessage());
     }
 
     @Test

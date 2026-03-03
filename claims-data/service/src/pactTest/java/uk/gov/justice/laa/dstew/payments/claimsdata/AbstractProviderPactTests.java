@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
-import jakarta.activation.DataSource;
 import jakarta.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.javers.spring.boot.sql.JaversSqlAutoConfiguration;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +43,7 @@ public class AbstractProviderPactTests {
     System.setProperty("pactbroker.host", "localhost");
     System.setProperty("pactbroker.port", "9292");
     System.setProperty("pactbroker.scheme", "http");
+    System.setProperty("laa.springboot.starter.exports.enabled", "true");
   }
 
   @MockitoBean protected TokenDetailsManager tokenDetailsManager;
