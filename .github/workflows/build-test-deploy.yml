@@ -148,7 +148,14 @@ jobs:
           docker build -t claims-data-scan .
           docker save claims-data-scan -o image.tar
 
-      - name: Run Snyk to scan Docker image from tarball
+      - name: Verify .snyk visibility
+        run: |
+          echo "Working directory:"
+          pwd
+          echo "Files:"
+          ls -la .
+
+        - name: Run Snyk to scan Docker image from tarball
         uses: snyk/actions/docker@master
         with:
           image: image.tar
