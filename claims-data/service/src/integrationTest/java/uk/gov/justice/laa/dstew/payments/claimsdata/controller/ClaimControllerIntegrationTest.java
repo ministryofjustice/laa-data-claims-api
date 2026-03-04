@@ -353,7 +353,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     MvcResult result =
         mockMvc
             .perform(
-                get(GET_CLAIMS_ENDPOINT + "-plus")
+                get(GET_CLAIMS_ENDPOINT)
                     .param("office_code", "office1")
                     .param("unique_file_number", "UFN-002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
