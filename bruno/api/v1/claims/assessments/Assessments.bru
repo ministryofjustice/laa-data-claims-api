@@ -1,0 +1,29 @@
+meta {
+  name: Assessments
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/assessments?page=0&size=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

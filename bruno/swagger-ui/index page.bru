@@ -1,0 +1,16 @@
+meta {
+  name: index page
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{HOST}}/swagger-ui/index.html
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

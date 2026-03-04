@@ -1,0 +1,33 @@
+meta {
+  name: SETUP: Grab claim id from submission
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+tests {
+  if(res.status === 200){
+    const body = res.getBody();
+    bru.setEnvVar("CLAIM_ID", body.claims[0].claim_id);
+  }else{
+    throw new Error("POST failed - cannont set CLAIM_ID");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
