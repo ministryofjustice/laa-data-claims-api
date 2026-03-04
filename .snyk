@@ -12,4 +12,9 @@ ignore:
         reason: Temporarily ignoring this until laa-spring-boot-gradle-plugin supports Jackson 3.1.x
         expires: 2026-04-02T11:13:40.160Z
         created: 2026-03-03T11:13:40.161Z
+  SNYK-JAVA-TOOLSJACKSONCORE-15371178:
+    - '*':
+        reason: Temporarily ignoring this until laa-spring-boot-gradle-plugin supports Jackson 3.1.x
+        expires: 2026-04-02T11:13:40.160Z
+        created: 2026-03-03T11:13:40.161Z
 patch: {}
