@@ -28,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -154,6 +155,11 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+
+    if (claimPatch.getStatus() == ClaimStatus.VOID) {
+      throw new ClaimBadRequestException(
+          "Claim status VOID cannot be set via claim patch. Use POST /api/v1/claims/{claimId}/void");
+    }
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
 
@@ -324,7 +330,8 @@ public class ClaimService
    * @throws ClaimBadRequestException if the claim does not have a status of VALID.
    */
   @Transactional
-  public UUID voidClaimByIdAndCreateAssessment(UUID claimId) {
+  public UUID voidClaimByIdAndCreateAssessment(
+      UUID claimId, UUID createdByUserId, String assessmentReason) {
 
     Claim claim =
         claimRepository
@@ -342,15 +349,51 @@ public class ClaimService
     claim.setStatus(ClaimStatus.VOID);
     claim.setHasAssessment(true);
     claim.setUpdatedOn(Instant.now());
-    claim.setUpdatedByUserId(""); // todo check this
+    claim.setUpdatedByUserId(createdByUserId.toString());
+    ClaimSummaryFee claimSummaryFee =
+        claimSummaryFeeRepository
+            .findByClaim(claim)
+            .orElseThrow(
+                () ->
+                    new ClaimSummaryFeeNotFoundException(
+                        String.format("No summary fee for claim %s", claim.getId())));
 
-    Assessment assessment = new Assessment();
-    assessment.setAllowedTotalInclVat(BigDecimal.ZERO);
-    assessment.setAssessmentOutcome(null);
-    assessment.setClaim(claim);
-    assessment.setCreatedByUserId(""); // todo check this
+    Assessment assessment = createAssessmentRecord(assessmentReason, claim, createdByUserId);
+    assessment.setClaimSummaryFee(claimSummaryFee);
 
-    Assessment savedAssessment = assessmentRepository.save(assessment);
-    return savedAssessment.getId();
+    return assessmentRepository.save(assessment).getId();
+  }
+
+  private static Assessment createAssessmentRecord(
+      String assessmentReason, Claim claim, UUID createdByUserId) {
+    return Assessment.builder()
+        .id(Uuid7.timeBasedUuid())
+        .claim(claim)
+        .assessmentOutcome(null)
+        .assessmentReason(assessmentReason)
+        .assessmentType(AssessmentType.VOID)
+        .fixedFeeAmount(BigDecimal.ZERO)
+        .netTravelCostsAmount(BigDecimal.ZERO)
+        .netWaitingCostsAmount(BigDecimal.ZERO)
+        .netProfitCostsAmount(BigDecimal.ZERO)
+        .disbursementAmount(BigDecimal.ZERO)
+        .disbursementVatAmount(BigDecimal.ZERO)
+        .netCostOfCounselAmount(BigDecimal.ZERO)
+        .detentionTravelAndWaitingCostsAmount(BigDecimal.ZERO)
+        .boltOnAdjournedHearingFee(BigDecimal.ZERO)
+        .jrFormFillingAmount(BigDecimal.ZERO)
+        .boltOnCmrhOralFee(BigDecimal.ZERO)
+        .boltOnCmrhTelephoneFee(BigDecimal.ZERO)
+        .boltOnSubstantiveHearingFee(BigDecimal.ZERO)
+        .boltOnHomeOfficeInterviewFee(BigDecimal.ZERO)
+        .assessedTotalVat(BigDecimal.ZERO)
+        .assessedTotalInclVat(BigDecimal.ZERO)
+        .allowedTotalVat(BigDecimal.ZERO)
+        .allowedTotalInclVat(BigDecimal.ZERO)
+        .createdByUserId(createdByUserId.toString())
+        .createdOn(Instant.now())
+        .updatedByUserId(createdByUserId.toString())
+        .updatedOn(Instant.now())
+        .build();
   }
 }

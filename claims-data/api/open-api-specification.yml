@@ -764,6 +764,12 @@ paths:
           schema:
             type: string
             format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/void_claim_request'
       responses:
         '201':
           description: Void assessment created successfully
@@ -1176,6 +1182,17 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response'
+    void_claim_request:
+      type: object
+      required:
+        - created_by_user_id
+        - assessment_reason
+      properties:
+        created_by_user_id:
+          type: string
+          format: uuid
+        assessment_reason:
+          type: string
     matter_start_result_set:
       type: 'object'
       properties:
@@ -1893,6 +1910,8 @@ components:
           format: uuid
         assessment_outcome:
           $ref: "#/components/schemas/assessment_outcome"
+        assessment_reason:
+          type: string
         fixed_fee_amount:
           type: number
         net_profit_costs_amount:

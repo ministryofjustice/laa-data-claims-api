@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -59,6 +60,11 @@ public class AssessmentService {
           String.format("Claim with id: %s does not have VALID status", claimId));
     }
 
+    if (request.getAssessmentType() == AssessmentType.VOID) {
+      throw new ClaimBadRequestException(
+          "Claim status VOID cannot be set via assessment patch. Use POST /api/v1/claims/{claimId}/void");
+    }
+
     UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
     if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
       throw new ClaimSummaryFeeNotFoundException(
@@ -74,6 +80,8 @@ public class AssessmentService {
     assessment.setClaimSummaryFee(claimSummaryFee);
     assessment.setCreatedByUserId(request.getCreatedByUserId());
     assessment.setUpdatedByUserId(request.getCreatedByUserId());
+    assessment.setAssessmentReason(request.getAssessmentReason());
+    assessment.setAssessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT);
 
     return assessmentRepository.save(assessment).getId();
   }

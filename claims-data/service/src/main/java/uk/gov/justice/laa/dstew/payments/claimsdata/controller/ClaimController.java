@@ -23,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
@@ -94,8 +95,10 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId) {
-    UUID assessmentId = claimService.voidClaimByIdAndCreateAssessment(claimId);
+  public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId, VoidClaimRequest request) {
+    UUID assessmentId =
+        claimService.voidClaimByIdAndCreateAssessment(
+            claimId, request.getCreatedByUserId(), request.getAssessmentReason());
 
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
