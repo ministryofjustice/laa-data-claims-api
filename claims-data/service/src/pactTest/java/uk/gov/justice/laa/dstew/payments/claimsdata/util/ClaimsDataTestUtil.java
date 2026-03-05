@@ -263,6 +263,7 @@ public class ClaimsDataTestUtil {
         .previousSubmissionId(SUBMISSION_ID)
         .isNilSubmission(false)
         .numberOfClaims(5)
+        .errorMessages("Test error message")
         .createdOn(SUBMITTED_DATE.toInstant())
         .createdByUserId(USER_ID)
         .providerUserId(PROVIDER_USER_ID)

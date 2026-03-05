@@ -110,7 +110,8 @@ public class SubmissionService
                 : calculatedTotalAmount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
-        .providerUserId(submission.getProviderUserId());
+        .providerUserId(submission.getProviderUserId())
+        .errorMessages(submission.getErrorMessages());
   }
 
   /**
