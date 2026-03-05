@@ -23,6 +23,8 @@ import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -522,62 +524,116 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isBadRequest());
   }
 
-  @Test
-  void shouldVoidClaimAndCreateAssessment() throws Exception {
+  @Nested
+  @DisplayName("Void Claim Endpoint")
+  class VoidClaimTests {
 
-    UUID userId = Uuid7.timeBasedUuid();
+    @Test
+    void shouldVoidClaimAndCreateAssessment() throws Exception {
 
-    String requestBody =
-        "{"
-            + "\"created_by_user_id\":\""
-            + userId
-            + "\","
-            + "\"assessment_reason\":\"test reason\""
-            + "}";
+      UUID userId = Uuid7.timeBasedUuid();
 
-    MvcResult result =
-        mockMvc
-            .perform(
-                post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestBody)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isCreated())
-            .andReturn();
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + userId
+              + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
 
-    // Verify response body
-    String responseBody = result.getResponse().getContentAsString();
-    var response = OBJECT_MAPPER.readValue(responseBody, VoidClaim201Response.class);
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestBody)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isCreated())
+              .andReturn();
 
-    assertThat(response.getId()).isNotNull();
+      // Verify response body
+      String responseBody = result.getResponse().getContentAsString();
+      var response = OBJECT_MAPPER.readValue(responseBody, VoidClaim201Response.class);
 
-    // Verify assessment saved in database
-    var assessment =
-        assessmentRepository
-            .findById(response.getId())
-            .orElseThrow(() -> new RuntimeException("Assessment not found"));
+      assertThat(response.getId()).isNotNull();
 
-    assertThat(assessment.getAssessmentType()).isEqualTo(AssessmentType.VOID);
-    assertThat(assessment.getAssessmentReason()).isEqualTo("test reason");
-    assertThat(assessment.getCreatedByUserId()).isEqualTo(userId.toString());
-  }
+      // Verify assessment saved in database
+      var assessment =
+          assessmentRepository
+              .findById(response.getId())
+              .orElseThrow(() -> new RuntimeException("Assessment not found"));
 
-  @Test
-  void shouldReturnBadRequestWhenClaimIsNotInValidStatus() throws Exception {
-    String requestBody =
-        "{"
-            + "\"created_by_user_id\":\""
-            + API_USER_ID
-            + "\","
-            + "\"assessment_reason\":\"test reason\""
-            + "}";
+      assertThat(assessment.getAssessmentType()).isEqualTo(AssessmentType.VOID);
+      assertThat(assessment.getAssessmentReason()).isEqualTo("test reason");
+      assertThat(assessment.getCreatedByUserId()).isEqualTo(userId.toString());
+    }
 
-    mockMvc
-        .perform(
-            post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
+    @Test
+    void shouldReturnBadRequestWhenClaimDoesNotExistInValidStatus() throws Exception {
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
+
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenClaimDoesNotExistForVoidOperation() throws Exception {
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\"" + API_USER_ID + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
+
+      mockMvc.perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", Uuid7.timeBasedUuid())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCreatedByUserIdIsMissing() throws Exception {
+
+      String requestBody =
+          "{"
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
+
+      mockMvc.perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenVoidClaimCalledWithInvalidToken() throws Exception {
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\"" + API_USER_ID + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
+
+      mockMvc.perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
+          .andExpect(status().isUnauthorized());
+    }
   }
 }
