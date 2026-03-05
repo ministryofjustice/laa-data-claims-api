@@ -910,6 +910,12 @@ paths:
           schema:
             type: string
             format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/void_claim_request'
       responses:
         '201':
           description: Void assessment created successfully
@@ -1331,6 +1337,17 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response_v2'
+    void_claim_request:
+      type: object
+      required:
+        - created_by_user_id
+        - assessment_reason
+      properties:
+        created_by_user_id:
+          type: string
+          format: uuid
+        assessment_reason:
+          type: string
     matter_start_result_set:
       type: 'object'
       properties:
@@ -1936,10 +1953,10 @@ components:
           type: string
     matter_start_post:
       allOf:
-      - $ref: '#/components/schemas/matter_start_fields'
+        - $ref: '#/components/schemas/matter_start_fields'
     matter_start_get:
       allOf:
-      - $ref: '#/components/schemas/matter_start_fields'
+        - $ref: '#/components/schemas/matter_start_fields'
     matter_start_fields:
       type: object
       description: Matter start for a submission
