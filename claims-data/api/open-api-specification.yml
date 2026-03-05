@@ -1266,6 +1266,7 @@ components:
         - READY_TO_PROCESS
         - VALID
         - INVALID
+        - VOID
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
@@ -2004,6 +2005,11 @@ components:
         - REDUCED_STILL_ESCAPED
         - REDUCED_TO_FIXED_FEE
         - NILLED
+    assessment_type:
+      type: string
+      enum:
+        - ESCAPE_CASE_ASSESSMENT
+        - VOID
     assessment_base:
       type: object
       properties:
@@ -2018,6 +2024,8 @@ components:
           format: uuid
         assessment_outcome:
           $ref: "#/components/schemas/assessment_outcome"
+        assessment_reason:
+          type: string
         fixed_fee_amount:
           type: number
         net_profit_costs_amount:
@@ -2058,6 +2066,8 @@ components:
           type: number
         allowed_total_incl_vat:
           type: number
+        assessment_type:
+          $ref: "#/components/schemas/assessment_type"
     assessment_post:
       allOf:
         - $ref: '#/components/schemas/assessment_base'
