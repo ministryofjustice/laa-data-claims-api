@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -26,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
@@ -41,6 +43,8 @@ class ClaimMapperTest {
   @InjectMocks private final ClaimMapperImpl mapper = new ClaimMapperImpl();
 
   @Spy private GlobalStringMapper globalStringMapper = new GlobalStringMapperImpl();
+
+  @Spy private GlobalDateTimeMapper globalDateTimeMapper = new GlobalDateTimeMapperImpl();
 
   @Test
   void toClaim_nullInput_returnsNull() {
@@ -95,6 +99,11 @@ class ClaimMapperTest {
   @Test
   void toClaimResponse_nullInput_returnsNull() {
     assertNull(mapper.toClaimResponse(null));
+  }
+
+  @Test
+  void toClaimResponseV2_nullInput_returnsNull() {
+    assertNull(mapper.toClaimResponseV2(null));
   }
 
   @Test
@@ -170,6 +179,87 @@ class ClaimMapperTest {
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
+  }
+
+  @Test
+  void toClaimFieldsV2_mapsAllResponse() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    final Claim entity =
+        Claim.builder()
+            .dutySolicitor(true)
+            .youthCourt(false)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .scheduleReference("SCH123")
+            .lineNumber(5)
+            .caseReferenceNumber(CASE_REFERENCE)
+            .uniqueFileNumber("UFN123")
+            .caseStartDate(LocalDate.now())
+            .caseConcludedDate(LocalDate.now().plusDays(1))
+            .matterTypeCode("MTC")
+            .crimeMatterTypeCode("CMTC")
+            .feeSchemeCode("FSC")
+            .feeCode("FC")
+            .procurementAreaCode("PAC")
+            .accessPointCode("APC")
+            .deliveryLocation("DEL")
+            .representationOrderDate(LocalDate.now().minusDays(2))
+            .suspectsDefendantsCount(3)
+            .policeStationCourtAttendancesCount(4)
+            .policeStationCourtPrisonId("PSCPI")
+            .dsccNumber("DSCC123")
+            .maatId("987654321L")
+            .prisonLawPriorApprovalNumber("PLPAN")
+            .schemeId("12")
+            .mediationSessionsCount(2)
+            .mediationTimeMinutes(90)
+            .outreachLocation("OUTLOC")
+            .referralSource("REFSRC")
+            .submission(
+                Submission.builder()
+                    .id(submissionId)
+                    .submissionPeriod("APR-2025")
+                    .createdOn(Instant.now())
+                    .build())
+            .build();
+
+    final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
+
+    assertNotNull(fields);
+    assertEquals(entity.getDutySolicitor(), fields.getIsDutySolicitor());
+    assertEquals(entity.getYouthCourt(), fields.getIsYouthCourt());
+    assertEquals(ClaimStatus.READY_TO_PROCESS, fields.getStatus());
+    assertEquals(entity.getScheduleReference(), fields.getScheduleReference());
+    assertEquals(entity.getLineNumber(), fields.getLineNumber());
+    assertEquals(entity.getCaseReferenceNumber(), fields.getCaseReferenceNumber());
+    assertEquals(entity.getUniqueFileNumber(), fields.getUniqueFileNumber());
+    assertEquals(entity.getCaseStartDate().toString(), fields.getCaseStartDate());
+    assertEquals(entity.getCaseConcludedDate().toString(), fields.getCaseConcludedDate());
+    assertEquals(entity.getMatterTypeCode(), fields.getMatterTypeCode());
+    assertEquals(entity.getCrimeMatterTypeCode(), fields.getCrimeMatterTypeCode());
+    assertEquals(entity.getFeeSchemeCode(), fields.getFeeSchemeCode());
+    assertEquals(entity.getFeeCode(), fields.getFeeCode());
+    assertEquals(entity.getProcurementAreaCode(), fields.getProcurementAreaCode());
+    assertEquals(entity.getAccessPointCode(), fields.getAccessPointCode());
+    assertEquals(entity.getDeliveryLocation(), fields.getDeliveryLocation());
+    assertEquals(
+        entity.getRepresentationOrderDate().toString(), fields.getRepresentationOrderDate());
+    assertEquals(entity.getSuspectsDefendantsCount(), fields.getSuspectsDefendantsCount());
+    assertEquals(
+        entity.getPoliceStationCourtAttendancesCount(),
+        fields.getPoliceStationCourtAttendancesCount());
+    assertEquals(entity.getPoliceStationCourtPrisonId(), fields.getPoliceStationCourtPrisonId());
+    assertEquals(entity.getDsccNumber(), fields.getDsccNumber());
+    assertEquals(entity.getMaatId(), fields.getMaatId());
+    assertEquals(
+        entity.getPrisonLawPriorApprovalNumber(), fields.getPrisonLawPriorApprovalNumber());
+    assertEquals(entity.getSchemeId(), fields.getSchemeId());
+    assertEquals(entity.getMediationSessionsCount(), fields.getMediationSessionsCount());
+    assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
+    assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
+    assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
+    assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
+    assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
   }
 
   @Test

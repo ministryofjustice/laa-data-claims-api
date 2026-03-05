@@ -14,10 +14,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -54,6 +58,13 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResponseV2> getClaimV2(UUID submissionId, UUID claimId) {
+    ClaimResponseV2 claimResponse = claimService.getClaimV2(submissionId, claimId);
+    return ResponseEntity.ok(claimResponse);
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimResultSet> getClaims(
       String officeCode,
       String submissionId,
@@ -78,6 +89,42 @@ public class ClaimController implements ClaimsApi {
             claimStatuses,
             submissionPeriod,
             caseReferenceNumber,
+            pageable));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResultSetV2> getClaimsV2(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      AreaOfLaw areaOfLaw,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
+      String caseReferenceNumber,
+      Boolean escapedCaseFlag,
+      Pageable pageable) {
+
+    return ResponseEntity.ok(
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(officeCode)
+                .submissionId(submissionId)
+                .submissionStatuses(submissionStatuses)
+                .areaOfLaw(areaOfLaw)
+                .feeCode(feeCode)
+                .uniqueFileNumber(uniqueFileNumber)
+                .uniqueClientNumber(uniqueClientNumber)
+                .uniqueCaseId(uniqueCaseId)
+                .claimStatuses(claimStatuses)
+                .submissionPeriod(submissionPeriod)
+                .caseReferenceNumber(caseReferenceNumber)
+                .escapedCaseFlag(escapedCaseFlag)
+                .build(),
             pageable));
   }
 

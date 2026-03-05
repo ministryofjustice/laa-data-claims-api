@@ -1,0 +1,25 @@
+meta {
+  name: Submission Claims Crime Lower
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://{{HOST}}/exports/submission-claims-crime-lower?submission-id=019ab4bb-e78f-73ce-89de-e9bcff4039bb&office=2R223X
+  body: none
+  auth: inherit
+}
+
+params:query {
+  submission-id: 019ab4bb-e78f-73ce-89de-e9bcff4039bb
+  office: 2R223X
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

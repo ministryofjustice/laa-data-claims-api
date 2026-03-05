@@ -1,0 +1,24 @@
+meta {
+  name: invalid id
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/matter-start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
