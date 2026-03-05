@@ -33,6 +33,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
@@ -95,6 +96,9 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
         .isEqualTo(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedAssessment.getAssessmentReason()).isEqualTo("test");
+    assertThat(savedAssessment.getAssessmentType())
+        .isEqualTo(AssessmentType.ESCAPE_CASE_ASSESSMENT);
     assertTrue(updatedClaim.isHasAssessment());
   }
 
@@ -105,6 +109,20 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     mockMvc
         .perform(
             post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
+                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenAssessmentPostHasVoidStatus() throws Exception {
+    // when: calling the POST endpoint to set a VOID status, 400 should be returned
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setAssessmentType(AssessmentType.VOID);
+    mockMvc
+        .perform(
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
                 .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))

@@ -21,6 +21,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -30,15 +31,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -243,6 +247,24 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
+    // given: required claims exist in the database
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setStatus(ClaimStatus.VOID);
+
+    // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -497,6 +519,65 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied_v2() throws Exception {
     mockMvc
         .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldVoidClaimAndCreateAssessment() throws Exception {
+
+    UUID userId = Uuid7.timeBasedUuid();
+
+    String requestBody =
+        "{"
+            + "\"created_by_user_id\":\""
+            + userId
+            + "\","
+            + "\"assessment_reason\":\"test reason\""
+            + "}";
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    // Verify response body
+    String responseBody = result.getResponse().getContentAsString();
+    var response = OBJECT_MAPPER.readValue(responseBody, VoidClaim201Response.class);
+
+    assertThat(response.getId()).isNotNull();
+
+    // Verify assessment saved in database
+    var assessment =
+        assessmentRepository
+            .findById(response.getId())
+            .orElseThrow(() -> new RuntimeException("Assessment not found"));
+
+    assertThat(assessment.getAssessmentType()).isEqualTo(AssessmentType.VOID);
+    assertThat(assessment.getAssessmentReason()).isEqualTo("test reason");
+    assertThat(assessment.getCreatedByUserId()).isEqualTo(userId.toString());
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenClaimIsNotInValidStatus() throws Exception {
+    String requestBody =
+        "{"
+            + "\"created_by_user_id\":\""
+            + API_USER_ID
+            + "\","
+            + "\"assessment_reason\":\"test reason\""
+            + "}";
+
+    mockMvc
+        .perform(
+            post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
   }
 }
