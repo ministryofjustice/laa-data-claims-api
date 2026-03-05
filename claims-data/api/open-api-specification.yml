@@ -854,54 +854,6 @@ paths:
         '429':
           description: 'Too many requests'
 
-  /api/v1/claims/{claim-id}/void:
-    post:
-      operationId: voidClaim
-      tags:
-        - Claims
-      summary: Void a specific claim for a submission
-      description: Returns the details of a specific claim associated with a submission.
-      parameters:
-        - name: claim-id
-          in: path
-          required: true
-          description: ID of the claim
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '201':
-          description: Void assessment created successfully
-          headers:
-            location:
-              description: URI of the newly created void assessment
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - id
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created void assessment
-        '400':
-          description: 'Bad request'
-        '401':
-          description: 'Unauthorized'
-        '403':
-          description: 'Forbidden'
-        '404':
-          description: Submission or claim not found
-        '429':
-          description: 'Too many requests'
-        '500':
-          description: 'Internal server error'
-
-
   /api/v2/submissions/{submission-id}/claims/{claim-id}:
     get:
       operationId: getClaimV2
