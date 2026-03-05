@@ -101,9 +101,9 @@ public class ClaimController implements ClaimsApi {
             claimId, request.getCreatedByUserId(), request.getAssessmentReason());
 
     URI location =
-        ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/{assessmentId}")
-            .buildAndExpand(assessmentId)
+        ServletUriComponentsBuilder.fromCurrentContextPath()
+            .path("/api/v1/claims/{claimId}/assessments/{assessmentId}")
+            .buildAndExpand(claimId, assessmentId)
             .toUri();
     return ResponseEntity.created(location)
         .body(VoidClaim201Response.builder().id(assessmentId).build());
