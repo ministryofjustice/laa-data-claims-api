@@ -19,8 +19,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -439,6 +439,8 @@ public class ClaimService
   public UUID voidClaimByIdAndCreateAssessment(
       UUID claimId, UUID createdByUserId, String assessmentReason) {
 
+    validateVoidClaimRequest(claimId, createdByUserId, assessmentReason);
+
     Claim claim =
         claimRepository
             .findById(claimId)
@@ -468,6 +470,14 @@ public class ClaimService
     assessment.setClaimSummaryFee(claimSummaryFee);
 
     return assessmentRepository.save(assessment).getId();
+  }
+
+  private void validateVoidClaimRequest(
+      UUID claimId, UUID createdByUserId, String assessmentReason) {
+    if (claimId == null || createdByUserId == null || !StringUtils.hasText(assessmentReason)) {
+      throw new ClaimBadRequestException(
+          "Missing required parameters: claimId, createdByUserId, and assessmentReason must all be provided");
+    }
   }
 
   private static Assessment createAssessmentRecord(
