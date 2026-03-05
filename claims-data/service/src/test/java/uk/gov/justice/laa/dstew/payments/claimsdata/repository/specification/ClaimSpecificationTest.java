@@ -267,6 +267,83 @@ class ClaimSpecificationTest {
     // then
     assertThat(result).isEqualTo(predicate1); // conjunction
     verify(query).subquery(Long.class);
-    //        verify(query).orderBy(any());
+  }
+
+  // -------------------------------------------------------------------------
+  // orderBySubmissionPeriod(Pageable)
+  // -------------------------------------------------------------------------
+
+  @Test
+  void orderBySubmissionPeriod_withNullPageable_returnsConjunction() {
+    // given
+    Pageable pageable = null;
+    when(cb.conjunction()).thenReturn(predicate1);
+
+    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
+
+    // when
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    // then
+    assertThat(result).isEqualTo(predicate1);
+    verify(cb).conjunction();
+    verifyNoMoreInteractions(query);
+  }
+
+  @Test
+  void orderBySubmissionPeriod_withUnsortedPageable_returnsConjunction() {
+    // given
+    Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
+    when(cb.conjunction()).thenReturn(predicate1);
+
+    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
+
+    // when
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    // then
+    assertThat(result).isEqualTo(predicate1);
+    verify(cb).conjunction();
+    verifyNoMoreInteractions(query);
+  }
+
+  @Test
+  void orderBySubmissionPeriod_withNonMatchingSortProperty_doesNothing() {
+    // given
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
+    when(cb.conjunction()).thenReturn(predicate1);
+
+    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
+
+    // when
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    // then
+    assertThat(result).isEqualTo(predicate1);
+    verify(cb).conjunction();
+    verifyNoMoreInteractions(query);
+  }
+
+  @Test
+  void orderBySubmissionPeriod_withMatchingSortProperty_addsOrderByClause() {
+    // given
+    Pageable pageable =
+        PageRequest.of(0, 10, Sort.by(Sort.Order.asc("submission.submissionPeriod")));
+    when(cb.conjunction()).thenReturn(predicate1);
+
+    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+
+    Expression<java.sql.Date> dateExpr = mock(Expression.class);
+    when(cb.function(eq("to_date"), eq(java.sql.Date.class), any(), any())).thenReturn(dateExpr);
+
+    // when
+    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    // then
+    assertThat(result).isEqualTo(predicate1);
+
+    verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
+    verify(cb).function(eq("to_date"), eq(java.sql.Date.class), any(), any());
   }
 }

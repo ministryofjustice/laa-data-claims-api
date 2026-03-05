@@ -255,6 +255,45 @@ public final class ClaimSpecification {
   }
 
   /**
+   * Constructs a JPA {@link Specification} for ordering {@link Claim} records by submissionPeriod,
+   * which requires custom processing.
+   *
+   * @param pageable includes pagination info
+   * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
+   *     predicates
+   */
+  public static Specification<Claim> orderBySubmissionPeriod(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      // Join the Submission entity because submissionPeriod lives there
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
+
+      for (Sort.Order order : pageable.getSort()) {
+        if (!"submission.submissionPeriod".equalsIgnoreCase(order.getProperty())) {
+          continue;
+        }
+
+        var submissionPeriodAsDate =
+            cb.function(
+                "to_date",
+                java.sql.Date.class,
+                submissionJoin.get(SUBMISSION_PERIOD),
+                cb.literal("MON-YYYY"));
+
+        query.orderBy(
+            order.isAscending() ? cb.asc(submissionPeriodAsDate) : cb.desc(submissionPeriodAsDate));
+
+        break;
+      }
+
+      return cb.conjunction();
+    };
+  }
+
+  /**
    * Constructs a JPA {@link Specification} for ordering {@link Claim} records by the count of total
    * warning validation messages.
    *
