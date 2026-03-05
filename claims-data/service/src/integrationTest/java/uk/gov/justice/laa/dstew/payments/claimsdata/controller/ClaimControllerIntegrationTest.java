@@ -592,12 +592,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       String requestBody =
           "{"
-              + "\"created_by_user_id\":\"" + API_USER_ID + "\","
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
               + "\"assessment_reason\":\"test reason\""
               + "}";
 
-      mockMvc.perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", Uuid7.timeBasedUuid())
+      mockMvc
+          .perform(
+              post(
+                      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
+                      Uuid7.timeBasedUuid())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -607,12 +612,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldReturnBadRequestWhenCreatedByUserIdIsMissing() throws Exception {
 
-      String requestBody =
-          "{"
-              + "\"assessment_reason\":\"test reason\""
-              + "}";
+      String requestBody = "{" + "\"assessment_reason\":\"test reason\"" + "}";
 
-      mockMvc.perform(
+      mockMvc
+          .perform(
               post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
@@ -624,11 +627,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     void shouldReturnUnauthorizedWhenVoidClaimCalledWithInvalidToken() throws Exception {
       String requestBody =
           "{"
-              + "\"created_by_user_id\":\"" + API_USER_ID + "\","
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
               + "\"assessment_reason\":\"test reason\""
               + "}";
 
-      mockMvc.perform(
+      mockMvc
+          .perform(
               post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
