@@ -13,6 +13,8 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -179,171 +181,173 @@ class ClaimSpecificationTest {
     verify(cb).exists(claimCaseSubquery);
   }
 
-  // -------------------------------------------------------------------------
-  // orderByTotalWarningMessages(Pageable)
-  // -------------------------------------------------------------------------
+  @Nested
+  @DisplayName("orderByTotalWarningMessages(Pageable)")
+  class OrderByTotalWarningMessagesTest {
 
-  @Test
-  void orderByTotalWarningMessages_withNullPageable_returnsConjunction() {
-    // given
-    Pageable pageable = null;
-    when(cb.conjunction()).thenReturn(predicate1);
+    @Test
+    void orderByTotalWarningMessages_withNullPageable_returnsConjunction() {
+      // given
+      Pageable pageable = null;
+      when(cb.conjunction()).thenReturn(predicate1);
 
-    Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+      Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    void orderByTotalWarningMessages_withNoSort_returnsConjunction() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    void orderByTotalWarningMessages_withNonMatchingSortProperty_doesNotAlterQuery() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.by("someOtherField"));
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    void orderByTotalWarningMessages_withTotalWarningsSort_addsSubqueryOrderBy() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("totalWarnings")));
+
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      Subquery<Long> warningSubquery = mock(Subquery.class);
+      Root<ValidationMessageLog> vmlRoot = mock(Root.class);
+
+      when(query.subquery(Long.class)).thenReturn(warningSubquery);
+      when(warningSubquery.from(ValidationMessageLog.class)).thenReturn(vmlRoot);
+
+      Expression<Long> countExpression = mock(Expression.class);
+      when(cb.count(vmlRoot)).thenReturn(countExpression);
+
+      Predicate claimIdPredicate = mock(Predicate.class);
+      Predicate typePredicate = mock(Predicate.class);
+
+      when(cb.equal(vmlRoot.get("claimId"), root.get(ClaimSpecification.ID)))
+          .thenReturn(claimIdPredicate);
+      when(cb.equal(vmlRoot.get("type"), ValidationMessageType.WARNING)).thenReturn(typePredicate);
+
+      when(warningSubquery.select(countExpression)).thenReturn(warningSubquery);
+      when(warningSubquery.where(claimIdPredicate, typePredicate)).thenReturn(warningSubquery);
+
+      // when
+      Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1); // conjunction
+      verify(query).subquery(Long.class);
+    }
   }
 
-  @Test
-  void orderByTotalWarningMessages_withNoSort_returnsConjunction() {
-    // given
-    Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
-    when(cb.conjunction()).thenReturn(predicate1);
+  @Nested
+  @DisplayName("orderBySubmissionPeriod(Pageable")
+  class OrderBySubmissionPeriodTest {
 
-    Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+    @Test
+    void orderBySubmissionPeriod_withNullPageable_returnsConjunction() {
+      // given
+      Pageable pageable = null;
+      when(cb.conjunction()).thenReturn(predicate1);
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
-  }
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-  @Test
-  void orderByTotalWarningMessages_withNonMatchingSortProperty_doesNotAlterQuery() {
-    // given
-    Pageable pageable = PageRequest.of(0, 10, Sort.by("someOtherField"));
-    when(cb.conjunction()).thenReturn(predicate1);
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
 
-    Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
+    @Test
+    void orderBySubmissionPeriod_withUnsortedPageable_returnsConjunction() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
+      when(cb.conjunction()).thenReturn(predicate1);
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
-  }
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-  @Test
-  void orderByTotalWarningMessages_withTotalWarningsSort_addsSubqueryOrderBy() {
-    // given
-    Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("totalWarnings")));
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
 
-    when(cb.conjunction()).thenReturn(predicate1);
+    @Test
+    void orderBySubmissionPeriod_withNonMatchingSortProperty_doesNothing() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
+      when(cb.conjunction()).thenReturn(predicate1);
 
-    Subquery<Long> warningSubquery = mock(Subquery.class);
-    Root<ValidationMessageLog> vmlRoot = mock(Root.class);
+      Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
-    when(query.subquery(Long.class)).thenReturn(warningSubquery);
-    when(warningSubquery.from(ValidationMessageLog.class)).thenReturn(vmlRoot);
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-    Expression<Long> countExpression = mock(Expression.class);
-    when(cb.count(vmlRoot)).thenReturn(countExpression);
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
 
-    Predicate claimIdPredicate = mock(Predicate.class);
-    Predicate typePredicate = mock(Predicate.class);
+    @Test
+    void orderBySubmissionPeriod_withMatchingSortProperty_addsOrderByClause() {
+      // given
+      Pageable pageable =
+          PageRequest.of(0, 10, Sort.by(Sort.Order.asc("submission.submissionPeriod")));
+      when(cb.conjunction()).thenReturn(predicate1);
 
-    when(cb.equal(vmlRoot.get("claimId"), root.get(ClaimSpecification.ID)))
-        .thenReturn(claimIdPredicate);
-    when(cb.equal(vmlRoot.get("type"), ValidationMessageType.WARNING)).thenReturn(typePredicate);
+      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
-    when(warningSubquery.select(countExpression)).thenReturn(warningSubquery);
-    when(warningSubquery.where(claimIdPredicate, typePredicate)).thenReturn(warningSubquery);
+      Expression<java.sql.Date> dateExpr = mock(Expression.class);
+      when(cb.function(eq("to_date"), eq(java.sql.Date.class), any(), any())).thenReturn(dateExpr);
 
-    // when
-    Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
-    Predicate result = spec.toPredicate(root, query, cb);
+      // when
+      Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
+      Predicate result = spec.toPredicate(root, query, cb);
 
-    // then
-    assertThat(result).isEqualTo(predicate1); // conjunction
-    verify(query).subquery(Long.class);
-  }
+      // then
+      assertThat(result).isEqualTo(predicate1);
 
-  // -------------------------------------------------------------------------
-  // orderBySubmissionPeriod(Pageable)
-  // -------------------------------------------------------------------------
-
-  @Test
-  void orderBySubmissionPeriod_withNullPageable_returnsConjunction() {
-    // given
-    Pageable pageable = null;
-    when(cb.conjunction()).thenReturn(predicate1);
-
-    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
-
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
-
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
-  }
-
-  @Test
-  void orderBySubmissionPeriod_withUnsortedPageable_returnsConjunction() {
-    // given
-    Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
-    when(cb.conjunction()).thenReturn(predicate1);
-
-    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
-
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
-
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
-  }
-
-  @Test
-  void orderBySubmissionPeriod_withNonMatchingSortProperty_doesNothing() {
-    // given
-    Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
-    when(cb.conjunction()).thenReturn(predicate1);
-
-    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
-
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
-
-    // then
-    assertThat(result).isEqualTo(predicate1);
-    verify(cb).conjunction();
-    verifyNoMoreInteractions(query);
-  }
-
-  @Test
-  void orderBySubmissionPeriod_withMatchingSortProperty_addsOrderByClause() {
-    // given
-    Pageable pageable =
-        PageRequest.of(0, 10, Sort.by(Sort.Order.asc("submission.submissionPeriod")));
-    when(cb.conjunction()).thenReturn(predicate1);
-
-    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
-    Expression<java.sql.Date> dateExpr = mock(Expression.class);
-    when(cb.function(eq("to_date"), eq(java.sql.Date.class), any(), any())).thenReturn(dateExpr);
-
-    // when
-    Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
-    Predicate result = spec.toPredicate(root, query, cb);
-
-    // then
-    assertThat(result).isEqualTo(predicate1);
-
-    verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
-    verify(cb).function(eq("to_date"), eq(java.sql.Date.class), any(), any());
+      verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
+      verify(cb).function(eq("to_date"), eq(java.sql.Date.class), any(), any());
+    }
   }
 }
