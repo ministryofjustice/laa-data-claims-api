@@ -1,0 +1,28 @@
+meta {
+  name: update submission blank
+  type: http
+  seq: 1
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/bulk-submissions/:bulksubmission_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  bulksubmission_id: {{BULKSUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
