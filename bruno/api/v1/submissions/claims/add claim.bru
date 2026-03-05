@@ -1,0 +1,24 @@
+meta {
+  name: add claim
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims
+  body: json
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
