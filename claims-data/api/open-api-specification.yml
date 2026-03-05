@@ -2021,6 +2021,8 @@ components:
           format: uuid
         assessment_outcome:
           $ref: "#/components/schemas/assessment_outcome"
+        assessment_reason:
+          type: string
         fixed_fee_amount:
           type: number
         net_profit_costs_amount:
