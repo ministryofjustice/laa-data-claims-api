@@ -26,7 +26,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
@@ -137,18 +136,6 @@ public class ClaimController implements ClaimsApi {
       @ScanForSql(ignoreClasses = ValidationMessagePatch.class) ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
-  }
-
-  @Override
-  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId) {
-    var assessmentId = UUID.randomUUID();
-    URI location =
-        ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/{assessmentId}")
-            .buildAndExpand(assessmentId)
-            .toUri();
-    return ResponseEntity.created(location).build();
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {
