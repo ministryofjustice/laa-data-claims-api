@@ -2,10 +2,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -276,10 +278,10 @@ public final class ClaimSpecification {
           continue;
         }
 
-        var submissionPeriodAsDate =
+        Expression<Date> submissionPeriodAsDate =
             cb.function(
                 "to_date",
-                java.sql.Date.class,
+                Date.class,
                 submissionJoin.get(SUBMISSION_PERIOD),
                 cb.literal("MON-YYYY"));
 
