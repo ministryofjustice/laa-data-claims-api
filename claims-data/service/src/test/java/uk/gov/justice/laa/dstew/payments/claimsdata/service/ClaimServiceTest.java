@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -689,157 +691,163 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).isEmpty();
   }
 
-  @Test
-  void shouldVoidClaimAndCreateAssessment() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
-    String reason = "Escape Fee Case Assessment";
+  @Nested
+  @DisplayName("Void Claim Service Tests")
+  class VoidClaimTests {
 
-    ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().id(claimId).build();
-    Claim claim =
-        Claim.builder()
-            .id(claimId)
-            .status(ClaimStatus.VALID)
-            .claimSummaryFee(List.of(claimSummaryFee))
-            .build();
-    Assessment expected = getAssessment(claim, claimSummaryFee, reason, userId);
+    @Test
+    void shouldVoidClaimAndCreateAssessment() {
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
+      String reason = "Escape Fee Case Assessment";
 
-    when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
-    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.of(claimSummaryFee));
-    when(assessmentRepository.save(any())).thenReturn(expected);
+      ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().id(claimId).build();
+      Claim claim =
+          Claim.builder()
+              .id(claimId)
+              .status(ClaimStatus.VALID)
+              .claimSummaryFee(List.of(claimSummaryFee))
+              .build();
+      Assessment expected = getAssessment(claim, claimSummaryFee, reason, userId);
 
-    claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason);
+      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+      when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.of(claimSummaryFee));
+      when(assessmentRepository.save(any())).thenReturn(expected);
 
-    verify(claimRepository).findById(claimId);
-    verify(claimSummaryFeeRepository).findByClaim(claim);
-    verify(assessmentRepository, times(1)).save(assessmentCaptor.capture());
-    verifyNoMoreInteractions(claimRepository, claimSummaryFeeRepository, assessmentRepository);
-    var captured = assessmentCaptor.getValue();
+      claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason);
 
-    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.VOID);
-    assertThat(claim.isHasAssessment()).isEqualTo(true);
-    assertThat(claim.getUpdatedByUserId()).isEqualTo(userId.toString());
+      verify(claimRepository).findById(claimId);
+      verify(claimSummaryFeeRepository).findByClaim(claim);
+      verify(assessmentRepository, times(1)).save(assessmentCaptor.capture());
+      verifyNoMoreInteractions(claimRepository, claimSummaryFeeRepository, assessmentRepository);
+      var captured = assessmentCaptor.getValue();
 
-    assertThat(captured)
-        .usingRecursiveComparison()
-        .ignoringFields("id", "createdOn", "updatedOn")
-        .isEqualTo(expected);
+      assertThat(claim.getStatus()).isEqualTo(ClaimStatus.VOID);
+      assertThat(claim.isHasAssessment()).isEqualTo(true);
+      assertThat(claim.getUpdatedByUserId()).isEqualTo(userId.toString());
 
-    assertThat(captured)
-        .extracting(Assessment::getId, Assessment::getCreatedOn, Assessment::getUpdatedOn)
-        .doesNotContainNull();
-  }
+      assertThat(captured)
+          .usingRecursiveComparison()
+          .ignoringFields("id", "createdOn", "updatedOn")
+          .isEqualTo(expected);
 
-  @Test
-  void shouldThrowExceptionWhenClaimNotFound() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
+      assertThat(captured)
+          .extracting(Assessment::getId, Assessment::getCreatedOn, Assessment::getUpdatedOn)
+          .doesNotContainNull();
+    }
 
-    when(claimRepository.findById(claimId)).thenReturn(Optional.empty());
+    @Test
+    void shouldThrowExceptionWhenClaimNotFound() {
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
 
-    assertThatThrownBy(
-            () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
-        .isInstanceOf(ClaimNotFoundException.class);
+      when(claimRepository.findById(claimId)).thenReturn(Optional.empty());
 
-    verify(claimRepository).findById(claimId);
-    verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
-  }
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+          .isInstanceOf(ClaimNotFoundException.class);
 
-  @Test
-  void shouldThrowExceptionWhenClaimStatusIsNotValid() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
+      verify(claimRepository).findById(claimId);
+      verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
+    }
 
-    Claim claim = Claim.builder().id(claimId).status(ClaimStatus.INVALID).build();
-    when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+    @Test
+    void shouldThrowExceptionWhenClaimStatusIsNotValid() {
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
 
-    assertThatThrownBy(
-            () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
-        .isInstanceOf(ClaimBadRequestException.class);
+      Claim claim = Claim.builder().id(claimId).status(ClaimStatus.INVALID).build();
+      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
 
-    verify(claimRepository).findById(claimId);
-    verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
-  }
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+          .isInstanceOf(ClaimBadRequestException.class);
 
-  @Test
-  void shouldThrowExceptionWhenClaimSummaryFeeNotFound() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
+      verify(claimRepository).findById(claimId);
+      verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
+    }
 
-    Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
+    @Test
+    void shouldThrowExceptionWhenClaimSummaryFeeNotFound() {
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
 
-    when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
-    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.empty());
+      Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
 
-    assertThatThrownBy(
-            () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
-        .isInstanceOf(ClaimSummaryFeeNotFoundException.class);
+      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+      when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.empty());
 
-    verify(claimRepository).findById(claimId);
-    verify(claimSummaryFeeRepository).findByClaim(claim);
-    verifyNoInteractions(assessmentRepository);
-  }
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+          .isInstanceOf(ClaimSummaryFeeNotFoundException.class);
 
-  @Test
-  void shouldThrowExceptionWhenClaimNotValid() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
+      verify(claimRepository).findById(claimId);
+      verify(claimSummaryFeeRepository).findByClaim(claim);
+      verifyNoInteractions(assessmentRepository);
+    }
 
-    Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VOID).build();
+    @Test
+    void shouldThrowExceptionWhenClaimNotValid() {
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
 
-    when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+      Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VOID).build();
 
-    assertThatThrownBy(
-            () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
-        .isInstanceOf(ClaimBadRequestException.class);
+      when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
 
-    verify(claimRepository).findById(claimId);
-    verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
-  }
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+          .isInstanceOf(ClaimBadRequestException.class);
 
-  @ParameterizedTest
-  @MethodSource("invalidVoidClaimArguments")
-  void shouldFailForInvalidInputs(UUID claimId, UUID userId, String reason) {
-    assertThatThrownBy(() -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason))
-        .isInstanceOf(ClaimBadRequestException.class);
-  }
+      verify(claimRepository).findById(claimId);
+      verifyNoMoreInteractions(claimSummaryFeeRepository, assessmentRepository);
+    }
 
-  static Stream<Arguments> invalidVoidClaimArguments() {
-    return Stream.of(
-        Arguments.of(null, Uuid7.timeBasedUuid(), "reason"),
-        Arguments.of(Uuid7.timeBasedUuid(), null, "reason"),
-        Arguments.of(Uuid7.timeBasedUuid(), Uuid7.timeBasedUuid(), ""),
-        Arguments.of(Uuid7.timeBasedUuid(), Uuid7.timeBasedUuid(), "   "));
-  }
+    @ParameterizedTest
+    @MethodSource("invalidVoidClaimArguments")
+    void shouldFailForInvalidInputs(UUID claimId, UUID userId, String reason) {
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason))
+          .isInstanceOf(ClaimBadRequestException.class);
+    }
 
-  private static Assessment getAssessment(
-      Claim claim, ClaimSummaryFee claimSummaryFee, String reason, UUID userId) {
-    return Assessment.builder()
-        .claim(claim)
-        .claimSummaryFee(claimSummaryFee)
-        .assessmentOutcome(null)
-        .assessmentReason(reason)
-        .assessmentType(AssessmentType.VOID)
-        .fixedFeeAmount(BigDecimal.ZERO)
-        .netTravelCostsAmount(BigDecimal.ZERO)
-        .netWaitingCostsAmount(BigDecimal.ZERO)
-        .netProfitCostsAmount(BigDecimal.ZERO)
-        .disbursementAmount(BigDecimal.ZERO)
-        .disbursementVatAmount(BigDecimal.ZERO)
-        .netCostOfCounselAmount(BigDecimal.ZERO)
-        .detentionTravelAndWaitingCostsAmount(BigDecimal.ZERO)
-        .boltOnAdjournedHearingFee(BigDecimal.ZERO)
-        .jrFormFillingAmount(BigDecimal.ZERO)
-        .boltOnCmrhOralFee(BigDecimal.ZERO)
-        .boltOnCmrhTelephoneFee(BigDecimal.ZERO)
-        .boltOnSubstantiveHearingFee(BigDecimal.ZERO)
-        .boltOnHomeOfficeInterviewFee(BigDecimal.ZERO)
-        .assessedTotalVat(BigDecimal.ZERO)
-        .assessedTotalInclVat(BigDecimal.ZERO)
-        .allowedTotalVat(BigDecimal.ZERO)
-        .allowedTotalInclVat(BigDecimal.ZERO)
-        .createdByUserId(userId.toString())
-        .updatedByUserId(userId.toString())
-        .build();
+    static Stream<Arguments> invalidVoidClaimArguments() {
+      return Stream.of(
+          Arguments.of(null, Uuid7.timeBasedUuid(), "reason"),
+          Arguments.of(Uuid7.timeBasedUuid(), null, "reason"),
+          Arguments.of(Uuid7.timeBasedUuid(), Uuid7.timeBasedUuid(), ""),
+          Arguments.of(Uuid7.timeBasedUuid(), Uuid7.timeBasedUuid(), "   "));
+    }
+
+    private static Assessment getAssessment(
+        Claim claim, ClaimSummaryFee claimSummaryFee, String reason, UUID userId) {
+      return Assessment.builder()
+          .claim(claim)
+          .claimSummaryFee(claimSummaryFee)
+          .assessmentOutcome(null)
+          .assessmentReason(reason)
+          .assessmentType(AssessmentType.VOID)
+          .fixedFeeAmount(BigDecimal.ZERO)
+          .netTravelCostsAmount(BigDecimal.ZERO)
+          .netWaitingCostsAmount(BigDecimal.ZERO)
+          .netProfitCostsAmount(BigDecimal.ZERO)
+          .disbursementAmount(BigDecimal.ZERO)
+          .disbursementVatAmount(BigDecimal.ZERO)
+          .netCostOfCounselAmount(BigDecimal.ZERO)
+          .detentionTravelAndWaitingCostsAmount(BigDecimal.ZERO)
+          .boltOnAdjournedHearingFee(BigDecimal.ZERO)
+          .jrFormFillingAmount(BigDecimal.ZERO)
+          .boltOnCmrhOralFee(BigDecimal.ZERO)
+          .boltOnCmrhTelephoneFee(BigDecimal.ZERO)
+          .boltOnSubstantiveHearingFee(BigDecimal.ZERO)
+          .boltOnHomeOfficeInterviewFee(BigDecimal.ZERO)
+          .assessedTotalVat(BigDecimal.ZERO)
+          .assessedTotalInclVat(BigDecimal.ZERO)
+          .allowedTotalVat(BigDecimal.ZERO)
+          .allowedTotalInclVat(BigDecimal.ZERO)
+          .createdByUserId(userId.toString())
+          .updatedByUserId(userId.toString())
+          .build();
+    }
   }
 }
