@@ -37,7 +37,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
@@ -72,8 +71,7 @@ public class BulkSubmissionService
    *     the bulk).
    */
   public CreateBulkSubmission201Response submitBulkSubmissionFile(
-      @NotNull String userId, @NotNull MultipartFile file, final List<String> offices)
-      throws ApplicationException {
+      @NotNull String userId, @NotNull MultipartFile file, @NotNull final List<String> offices) {
 
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
     String areaOfLaw =
@@ -191,21 +189,20 @@ public class BulkSubmissionService
 
     // Validation: check if file's office is in authorised list
     if (officeCode == null || !offices.contains(officeCode)) {
-      String errorMessage =
-          "User does not have authorisation to submit for office "
-              + officeCode
-              + ". Please verify your office code and access permissions.";
+      String error =
+          "The selected file contains office account %s. You do not have access to this office"
+              .formatted(officeCode);
 
       BulkSubmission unauthorised =
           bulkSubmissionBuilder
               .status(BulkSubmissionStatus.UNAUTHORISED)
               .errorCode(BulkSubmissionErrorCode.E100)
-              .errorDescription(errorMessage)
+              .errorDescription(error)
               .build();
 
       bulkSubmissionRepository.save(unauthorised);
 
-      throw new BulkSubmissionOfficeAuthorisationException(errorMessage);
+      throw new BulkSubmissionOfficeAuthorisationException(error);
     }
   }
 
