@@ -51,22 +51,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @ExtendWith(MockitoExtension.class)
 class BulkSubmissionServiceTest {
 
-  @Mock
-  BulkSubmissionFileService bulkSubmissionFileService;
+  @Mock BulkSubmissionFileService bulkSubmissionFileService;
 
-  @Mock
-  BulkSubmissionRepository bulkSubmissionRepository;
+  @Mock BulkSubmissionRepository bulkSubmissionRepository;
 
   @SuppressWarnings("unused") // This is needed by the bulkSubmissionService
   @Mock
   SubmissionEventPublisherService submissionEventPublisherService;
 
-  @Mock
-  BulkSubmissionMapper bulkSubmissionMapper;
+  @Mock BulkSubmissionMapper bulkSubmissionMapper;
 
-  @Spy
-  @InjectMocks
-  BulkSubmissionService bulkSubmissionService;
+  @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 
   @Test
   @DisplayName("Uploads a bulk submission file")
@@ -111,12 +106,12 @@ class BulkSubmissionServiceTest {
 
   @ParameterizedTest(name = "submissionPeriod: {0}")
   @CsvSource({
-      // null submission period
-      ",'Submission period is required, please check the file and try again.'",
-      // empty submission period
-      "' ','Submission period is required, please check the file and try again.'",
-      // invalid submission period
-      "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
+    // null submission period
+    ",'Submission period is required, please check the file and try again.'",
+    // empty submission period
+    "' ','Submission period is required, please check the file and try again.'",
+    // invalid submission period
+    "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
   })
   @DisplayName("Throws BulkSubmissionValidationException when submission period is invalid")
   void throwsWhenSubmissionPeriodInvalid(String submissionPeriod, String expectedMessage) {
@@ -152,36 +147,36 @@ class BulkSubmissionServiceTest {
 
   @ParameterizedTest(name = "dateField: {0}, dateValue: {1}, shouldBeValid: {2}")
   @CsvSource({
-      // Valid dates
-      "Case Start Date,getCaseStartDate,01/01/2025,true",
-      "Case Start Date,getCaseStartDate,1/1/2025,true",
-      "Case Start Date,getCaseStartDate, 1/1/2025 ,true",
-      "Client Date of Birth,getClientDateOfBirth,31/12/1980,true",
-      "Work Concluded Date,getWorkConcludedDate,15/06/2025,true",
-      "Transfer Date,getTransferDate,25/11/2025,true",
-      "Surgery Date,getSurgeryDate,01/07/2025,true",
-      "Rep Order Date,getRepOrderDate,30/09/2025,true",
-      "Client 2 Date of Birth,getClient2DateOfBirth,01/01/1990,true",
-      "Med Concluded Date,getMedConcludedDate,31/12/2025,true",
-      // Invalid dates
-      "Case Start Date,getCaseStartDate,32/01/2025,false",
-      "Case Start Date,getCaseStartDate,abc,false",
-      "Client Date of Birth,getClientDateOfBirth,29/02/2025,false",
-      "Work Concluded Date,getWorkConcludedDate,31/04/2025,false",
-      "Transfer Date,getTransferDate,00/11/2025,false",
-      "Surgery Date,getSurgeryDate,01/13/2025,false",
-      "Rep Order Date,getRepOrderDate,2025/09/30,false",
-      "Client 2 Date of Birth,getClient2DateOfBirth,01-01-1990,false",
-      "Med Concluded Date,getMedConcludedDate,2025-12-31,false",
-      // Blank dates
-      "Case Start Date,getCaseStartDate,,true",
-      "Client Date of Birth,getClientDateOfBirth,,true",
-      "Work Concluded Date,getWorkConcludedDate,,true",
-      "Transfer Date,getTransferDate,,true",
-      "Surgery Date,getSurgeryDate,,true",
-      "Rep Order Date,getRepOrderDate,,true",
-      "Client 2 Date of Birth,getClient2DateOfBirth,,true",
-      "Med Concluded Date,getMedConcludedDate,,true",
+    // Valid dates
+    "Case Start Date,getCaseStartDate,01/01/2025,true",
+    "Case Start Date,getCaseStartDate,1/1/2025,true",
+    "Case Start Date,getCaseStartDate, 1/1/2025 ,true",
+    "Client Date of Birth,getClientDateOfBirth,31/12/1980,true",
+    "Work Concluded Date,getWorkConcludedDate,15/06/2025,true",
+    "Transfer Date,getTransferDate,25/11/2025,true",
+    "Surgery Date,getSurgeryDate,01/07/2025,true",
+    "Rep Order Date,getRepOrderDate,30/09/2025,true",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01/01/1990,true",
+    "Med Concluded Date,getMedConcludedDate,31/12/2025,true",
+    // Invalid dates
+    "Case Start Date,getCaseStartDate,32/01/2025,false",
+    "Case Start Date,getCaseStartDate,abc,false",
+    "Client Date of Birth,getClientDateOfBirth,29/02/2025,false",
+    "Work Concluded Date,getWorkConcludedDate,31/04/2025,false",
+    "Transfer Date,getTransferDate,00/11/2025,false",
+    "Surgery Date,getSurgeryDate,01/13/2025,false",
+    "Rep Order Date,getRepOrderDate,2025/09/30,false",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01-01-1990,false",
+    "Med Concluded Date,getMedConcludedDate,2025-12-31,false",
+    // Blank dates
+    "Case Start Date,getCaseStartDate,,true",
+    "Client Date of Birth,getClientDateOfBirth,,true",
+    "Work Concluded Date,getWorkConcludedDate,,true",
+    "Transfer Date,getTransferDate,,true",
+    "Surgery Date,getSurgeryDate,,true",
+    "Rep Order Date,getRepOrderDate,,true",
+    "Client 2 Date of Birth,getClient2DateOfBirth,,true",
+    "Med Concluded Date,getMedConcludedDate,,true",
   })
   @DisplayName("Validates date formats in bulk submission file")
   void validateDateFormatsInBulkSubmission(
@@ -248,18 +243,18 @@ class BulkSubmissionServiceTest {
 
   @ParameterizedTest(name = "areaOfLaw: {0}, matterType: {1}")
   @CsvSource({
-      // null matter type
-      "LEGAL HELP,,Matter Type Code is required for Legal Help claims",
-      "MEDIATION,,Matter Type Code is required for Mediation claims",
-      "CRIME LOWER,,Stage Reached Code is required for Crime Lower claims",
-      // empty matter type
-      "LEGAL HELP,'',Matter Type Code is required for Legal Help claims",
-      "MEDIATION,'',Matter Type Code is required for Mediation claims",
-      "CRIME LOWER,'',Stage Reached Code is required for Crime Lower claims",
-      // whitespace matter type
-      "LEGAL HELP,' ',Matter Type Code is required for Legal Help claims",
-      "MEDIATION,' ',Matter Type Code is required for Mediation claims",
-      "CRIME LOWER,' ',Stage Reached Code is required for Crime Lower claims"
+    // null matter type
+    "LEGAL HELP,,Matter Type Code is required for Legal Help claims",
+    "MEDIATION,,Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,,Stage Reached Code is required for Crime Lower claims",
+    // empty matter type
+    "LEGAL HELP,'',Matter Type Code is required for Legal Help claims",
+    "MEDIATION,'',Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,'',Stage Reached Code is required for Crime Lower claims",
+    // whitespace matter type
+    "LEGAL HELP,' ',Matter Type Code is required for Legal Help claims",
+    "MEDIATION,' ',Matter Type Code is required for Mediation claims",
+    "CRIME LOWER,' ',Stage Reached Code is required for Crime Lower claims"
   })
   @DisplayName("Throws BulkSubmissionValidationException when matter type is invalid")
   void validateMatterTypeInBulkSubmission(
@@ -356,11 +351,11 @@ class BulkSubmissionServiceTest {
             .updatedByUserId(API_USER_ID);
 
     when(bulkSubmissionRepository.updateBulkSubmission(
-        BULK_SUBMISSION_ID,
-        patch.getStatus().getValue(),
-        patch.getErrorCode().getValue(),
-        patch.getErrorDescription(),
-        patch.getUpdatedByUserId()))
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
         .thenReturn(1);
     assertDoesNotThrow(() -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
   }
@@ -376,11 +371,11 @@ class BulkSubmissionServiceTest {
             .errorDescription("This is the error message")
             .updatedByUserId(API_USER_ID);
     when(bulkSubmissionRepository.updateBulkSubmission(
-        BULK_SUBMISSION_ID,
-        patch.getStatus().getValue(),
-        patch.getErrorCode().getValue(),
-        patch.getErrorDescription(),
-        patch.getUpdatedByUserId()))
+            BULK_SUBMISSION_ID,
+            patch.getStatus().getValue(),
+            patch.getErrorCode().getValue(),
+            patch.getErrorDescription(),
+            patch.getUpdatedByUserId()))
         .thenReturn(0);
 
     assertThrows(
