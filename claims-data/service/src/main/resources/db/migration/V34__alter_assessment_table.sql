@@ -1,5 +1,5 @@
 ALTER TABLE assessment
-    ADD COLUMN assessment_type varchar(255);
+    ADD COLUMN assessment_type varchar(32);
 
 ALTER TABLE assessment
     ADD CONSTRAINT chk_assessment_type
