@@ -76,7 +76,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String ERROR_MESSAGE = "errorMessage";
   private static final String HTTP_STATUS = "httpStatus";
 
-  @Autowired private SqsClient sqsClient;
+  @Autowired
+  private SqsClient sqsClient;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -96,23 +97,24 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/csv/outcomes.csv,false,false,text/csv",
-    "test_upload_files/csv/outcomes.csv,false,false,application/vnd.ms-excel",
-    "test_upload_files/csv/outcomes.csv,false,false,text/plain",
-    "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv",
-    "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv",
-    "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/plain",
-    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
-    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,application/xml",
-    "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
+      "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+      "test_upload_files/csv/outcomes.csv,false,false,application/vnd.ms-excel",
+      "test_upload_files/csv/outcomes.csv,false,false,text/plain",
+      "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv",
+      "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv",
+      "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv",
+      "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/plain",
+      "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
+      "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,application/xml",
+      "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
       String filePath, boolean hasMatterStarts, boolean hasImmigrationClr, String contentType)
       throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -167,14 +169,15 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/csv/outcomes.csv",
-    "test_upload_files/csv/outcomes_with_empty_bottom_rows.csv",
-    "test_upload_files/csv/outcomes_with_empty_sparse_rows.csv"
+      "test_upload_files/csv/outcomes.csv",
+      "test_upload_files/csv/outcomes_with_empty_bottom_rows.csv",
+      "test_upload_files/csv/outcomes_with_empty_sparse_rows.csv"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath) throws Exception {
     // Given:
     // Below fields are set to "Y" in all files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -224,7 +227,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @DisplayName(
-      "Should return valid error message when multiple office and schedule are found in the submission")
+      "Should return valid error message when multiple office and schedule are found in the "
+          + "submission")
   @Test
   void shouldReturnValidErrorMessageWhenMultipleOfficeAndScheduleAreFoundInTheSubmission()
       throws Exception {
@@ -247,8 +251,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo(
-            "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
-                + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+            "Multiple schedules found in bulk submission file. Only one schedule is supported per"
+                + " submission.\n"
+                + "Multiple offices found in bulk submission file. Only one office is supported "
+                + "per submission.");
   }
 
   @DisplayName(
@@ -277,24 +283,24 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
     Stream.of(
             new Object[] {
-              0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
+                0, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PI, null, 15
             },
             new Object[] {
-              1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
+                1, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.PUB, null, 16
             },
             new Object[] {
-              2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
+                2, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.WB, null, 17
             },
             new Object[] {
-              3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
+                3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
             },
             new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
             new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
             new Object[] {
-              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+                6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
             },
             new Object[] {
-              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+                7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
             },
             new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
             new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
@@ -349,7 +355,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldParseTheBooleanFieldsCorrectly() throws Exception {
     // Given:
     // Below fields are set to "N" in outcomes-2.csv
-    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
+    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,
+    // CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
     // NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
     ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
 
@@ -398,7 +405,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldHandleNullValuesForBooleanFields() throws Exception {
     // Given:
     // Below fields are missing in outcomes-3.csv
-    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT_INDICATOR,
+    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,
+    // ELIGIBLE_CLIENT_INDICATOR,
     // NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
     ClassPathResource resource = new ClassPathResource(OUTCOMES_3_CSV);
 
@@ -563,7 +571,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo(
-            "Failed to read bulk submission file: Unrecognized field \"CASE_REF_NUMBER_NOT_EXISTING\" ");
+            "Failed to read bulk submission file: Unrecognized field "
+                + "\"CASE_REF_NUMBER_NOT_EXISTING\" ");
     assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
@@ -623,8 +632,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @ParameterizedTest
   @CsvSource({
-    "test_upload_files/invalid/missing_some_outcome_headers.csv",
-    "test_upload_files/invalid/missing_all_outcome_headers.csv"
+      "test_upload_files/invalid/missing_some_outcome_headers.csv",
+      "test_upload_files/invalid/missing_all_outcome_headers.csv"
   })
   void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMissingRecordTypeForOutcomes(
       String csvSource) throws Exception {
@@ -649,7 +658,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo(
-            "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
+            "Some rows are missing a record type tag. Each row must start with a valid type (e.g"
+                + "., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
     assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
@@ -751,7 +761,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     BulkSubmission saved = submissions.getFirst();
     assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.UNAUTHORISED);
     assertThat(saved.getErrorCode()).isEqualTo(BulkSubmissionErrorCode.E100);
-    assertThat(saved.getErrorDescription()).contains("User does not have authorisation");
+    assertThat(saved.getErrorDescription()).contains(
+        "The selected file contains office account 0U099L. You do not have access to this office");
     assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
 
     // clean up the test-data
