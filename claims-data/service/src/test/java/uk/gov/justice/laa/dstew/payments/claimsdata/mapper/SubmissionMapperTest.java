@@ -118,6 +118,16 @@ class SubmissionMapperTest {
   }
 
   @Test
+  void shouldUpdateErrorMessagesFromPatch() {
+    Submission submission = Submission.builder().errorMessages("Original error message").build();
+    SubmissionPatch patch = new SubmissionPatch().errorMessages("Updated error message");
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getErrorMessages()).isEqualTo("Updated error message");
+  }
+
+  @Test
   void toValidationErrorLog_mapsFields() {
     Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
 

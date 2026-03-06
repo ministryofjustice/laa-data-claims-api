@@ -527,6 +527,27 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  void updateSubmission_shouldUpdateErrorMessages() throws Exception {
+    // given: a submission patch payload with errorMessages
+    String errorMessage = "Updated error message from integration test";
+    SubmissionPatch patch = SubmissionPatch.builder().errorMessages(errorMessage).build();
+
+    // when: calling the patch endpoint
+    mockMvc
+        .perform(
+            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent())
+        .andReturn();
+
+    // then: should update the submission with errorMessages
+    Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getErrorMessages()).isEqualTo(errorMessage);
+  }
+
+  @Test
   void updateSubmission_shouldReturnNotFound() throws Exception {
     // given: a submission patch payload
     SubmissionPatch patch =
