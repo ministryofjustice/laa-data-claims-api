@@ -24,6 +24,7 @@ public enum ClaimSortField {
   CLAIM_STATUS("status", "status"),
   SCHEDULE_REFERENCE("schedule_reference", "scheduleReference"),
 
+  CASE_CONCLUDED_DATE("case_concluded_date", "caseConcludedDate"),
   CASE_REFERENCE_NUMBER("case_reference_number", "caseReferenceNumber"),
 
   DATE_SUBMITTED("date_submitted", "submission.createdOn"),
@@ -31,6 +32,7 @@ public enum ClaimSortField {
 
   FEE_CODE("fee_code", "feeCode"),
   CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetail.calculatedVatAmount"),
+  TOTAL_AMOUNT("total_amount", "calculatedFeeDetail.totalAmount"),
   ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
   CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
 
