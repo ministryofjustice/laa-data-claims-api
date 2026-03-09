@@ -903,7 +903,7 @@ paths:
       tags:
         - Claims
       summary: Void a specific claim for a submission
-      description: Returns the details of a specific claim associated with a submission.
+      description: Voids a specific claim associated with a submission. This creates a new void assessment linked to the claim, which can be used to track the voiding process and its outcome.
       parameters:
         - name: claim-id
           in: path

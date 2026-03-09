@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +30,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestExc
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -66,6 +64,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @Slf4j
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+  public static final String CLAIM_PATCH_VOID_INVALID_OPERATION = "Claim status VOID cannot be set via %s patch. Use POST /api/v1/claims/{claimId}/void";
+
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -77,6 +77,8 @@ public class ClaimService
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   private final ClaimCaseRepository claimCaseRepository;
   private final AssessmentRepository assessmentRepository;
+  private final ClaimValidationService claimValidationService;
+  private final AssessmentFactory assessmentFactory;
 
   @Override
   public SubmissionRepository lookup() {
@@ -181,8 +183,7 @@ public class ClaimService
     Claim claim = requireClaim(submissionId, claimId);
 
     if (claimPatch.getStatus() == ClaimStatus.VOID) {
-      throw new ClaimBadRequestException(
-          "Claim status VOID cannot be set via claim patch. Use POST /api/v1/claims/{claimId}/void");
+      throw new ClaimBadRequestException(CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("claim"));
     }
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
@@ -439,78 +440,20 @@ public class ClaimService
   public UUID voidClaimByIdAndCreateAssessment(
       UUID claimId, UUID createdByUserId, String assessmentReason) {
 
-    validateVoidClaimRequest(claimId, createdByUserId, assessmentReason);
+    claimValidationService.validateVoidClaimParameters(claimId, createdByUserId, assessmentReason);
 
-    Claim claim =
-        claimRepository
-            .findById(claimId)
-            .orElseThrow(
-                () ->
-                    new ClaimNotFoundException(
-                        String.format("No Claim found with id: %s", claimId)));
+    Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee = claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
 
-    if (claim.getStatus() != ClaimStatus.VALID) {
-      throw new ClaimBadRequestException(
-          String.format("Claim with id: %s does not have VALID status", claimId));
-    }
-
-    claim.setStatus(ClaimStatus.VOID);
-    claim.setHasAssessment(true);
-    claim.setUpdatedOn(Instant.now());
-    claim.setUpdatedByUserId(createdByUserId.toString());
-    ClaimSummaryFee claimSummaryFee =
-        claimSummaryFeeRepository
-            .findByClaim(claim)
-            .orElseThrow(
-                () ->
-                    new ClaimSummaryFeeNotFoundException(
-                        String.format("No summary fee for claim %s", claim.getId())));
-
-    Assessment assessment = createAssessmentRecord(assessmentReason, claim, createdByUserId);
-    assessment.setClaimSummaryFee(claimSummaryFee);
-
+    claim.voidClaim(createdByUserId);
+    Assessment assessment =
+        assessmentFactory.createVoidAssessment(
+            assessmentReason,
+            claim,
+            claimSummaryFee,
+            createdByUserId
+        );
     return assessmentRepository.save(assessment).getId();
-  }
-
-  private void validateVoidClaimRequest(
-      UUID claimId, UUID createdByUserId, String assessmentReason) {
-    if (claimId == null || createdByUserId == null || !StringUtils.hasText(assessmentReason)) {
-      throw new ClaimBadRequestException(
-          "Missing required parameters: claimId, createdByUserId, and assessmentReason must all be provided");
-    }
-  }
-
-  private static Assessment createAssessmentRecord(
-      String assessmentReason, Claim claim, UUID createdByUserId) {
-    return Assessment.builder()
-        .id(Uuid7.timeBasedUuid())
-        .claim(claim)
-        .assessmentOutcome(null)
-        .assessmentReason(assessmentReason)
-        .assessmentType(AssessmentType.VOID)
-        .fixedFeeAmount(BigDecimal.ZERO)
-        .netTravelCostsAmount(BigDecimal.ZERO)
-        .netWaitingCostsAmount(BigDecimal.ZERO)
-        .netProfitCostsAmount(BigDecimal.ZERO)
-        .disbursementAmount(BigDecimal.ZERO)
-        .disbursementVatAmount(BigDecimal.ZERO)
-        .netCostOfCounselAmount(BigDecimal.ZERO)
-        .detentionTravelAndWaitingCostsAmount(BigDecimal.ZERO)
-        .boltOnAdjournedHearingFee(BigDecimal.ZERO)
-        .jrFormFillingAmount(BigDecimal.ZERO)
-        .boltOnCmrhOralFee(BigDecimal.ZERO)
-        .boltOnCmrhTelephoneFee(BigDecimal.ZERO)
-        .boltOnSubstantiveHearingFee(BigDecimal.ZERO)
-        .boltOnHomeOfficeInterviewFee(BigDecimal.ZERO)
-        .assessedTotalVat(BigDecimal.ZERO)
-        .assessedTotalInclVat(BigDecimal.ZERO)
-        .allowedTotalVat(BigDecimal.ZERO)
-        .allowedTotalInclVat(BigDecimal.ZERO)
-        .createdByUserId(createdByUserId.toString())
-        .createdOn(Instant.now())
-        .updatedByUserId(createdByUserId.toString())
-        .updatedOn(Instant.now())
-        .build();
   }
 
   private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {

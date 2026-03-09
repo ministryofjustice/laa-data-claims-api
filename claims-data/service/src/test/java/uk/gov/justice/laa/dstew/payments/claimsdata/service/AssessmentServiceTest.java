@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
@@ -20,8 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,28 +29,25 @@ import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class AssessmentServiceTest {
 
   @Mock private ClaimRepository claimRepository;
-  @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private AssessmentMapper assessmentMapper;
+  @Mock private ClaimValidationService claimValidationService;
+  @Mock private AssessmentFactory assessmentFactory;
 
   @InjectMocks private AssessmentService assessmentService;
 
@@ -59,208 +56,111 @@ class AssessmentServiceTest {
   class CreateAssessmentTests {
 
     @Test
-    void shouldCreateAssessment() {
-      final String userId = Uuid7.timeBasedUuid().toString();
-      final UUID assessmentId = Uuid7.timeBasedUuid();
-      final UUID claimId = Uuid7.timeBasedUuid();
-      final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
-      final AssessmentPost post =
+    void shouldCreateAssessmentAndUpdateClaimStatusWhenFirstAssessment() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID assessmentId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
           AssessmentPost.builder()
               .claimId(claimId)
-              .createdByUserId(userId)
               .claimSummaryFeeId(claimSummaryFeeId)
               .createdByUserId(API_USER_ID)
+              .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
               .build();
 
-      final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
+      Claim claim = Claim.builder()
+          .id(claimId)
+          .hasAssessment(false)
+          .build();
 
-      final ClaimSummaryFee claimSummaryFee =
-          ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder()
+          .id(claimSummaryFeeId)
+          .build();
 
-      final Assessment assessment =
-          Assessment.builder()
-              .id(assessmentId)
-              .claim(claim)
-              .claimSummaryFee(claimSummaryFee)
-              .createdByUserId(API_USER_ID)
-              .updatedByUserId(API_USER_ID)
-              .build();
+      Assessment assessment = Assessment.builder().id(assessmentId).build();
 
-      when(claimRepository.existsById(claimId)).thenReturn(true);
-      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
-
-      when(claimSummaryFeeRepository.existsById(claimSummaryFeeId)).thenReturn(true);
-      when(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
-          .thenReturn(claimSummaryFee);
-
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
       when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
       when(assessmentRepository.save(assessment)).thenReturn(assessment);
 
-      final UUID id = assessmentService.createAssessment(claimId, post);
+      UUID result = assessmentService.createAssessment(claimId, post);
 
-      assertThat(id).isNotNull();
-      assertThat(assessment.getId()).isEqualTo(id);
-      assertThat(assessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
-      assertThat(assessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
-      assertThat(assessment.getClaim()).isSameAs(claim);
-      assertThat(assessment.getClaimSummaryFee()).isSameAs(claimSummaryFee);
-      verify(claimRepository).existsById(claimId);
-      verify(claimRepository).getReferenceById(claimId);
-      verify(claimSummaryFeeRepository).existsById(claimSummaryFeeId);
-      verify(claimSummaryFeeRepository).getReferenceById(claimSummaryFeeId);
+      assertThat(result).isEqualTo(assessmentId);
+
+      verify(claimValidationService).validateUserId(API_USER_ID);
+      verify(claimValidationService).ensureAssessmentTypeIsNotVoid(post.getAssessmentType());
+
+      verify(claimRepository).updateAssessmentStatus(claimId, true);
+
+      verify(assessmentFactory)
+          .applyCommonFields(
+              eq(assessment),
+              eq(claim),
+              eq(fee),
+              eq(API_USER_ID),
+              eq(post.getAssessmentReason()),
+              eq(AssessmentType.ESCAPE_CASE_ASSESSMENT));
+
       verify(assessmentRepository).save(assessment);
-      verify(claimRepository).updateAssessmentStatus(claim.getId(), true);
+    }
+
+    @Test
+    void shouldCreateAssessmentWithoutUpdatingClaimStatusWhenAlreadyAssessed() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+              .build();
+
+      Claim claim = Claim.builder()
+          .id(claimId)
+          .hasAssessment(true)
+          .build();
+
+      ClaimSummaryFee fee = ClaimSummaryFee.builder()
+          .id(claimSummaryFeeId)
+          .build();
+
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
+
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimRepository, never()).updateAssessmentStatus(any(), anyBoolean());
+      verify(assessmentRepository).save(assessment);
     }
 
     @Test
     void shouldThrowWhenClaimNotFound() {
-      final String userId = Uuid7.timeBasedUuid().toString();
-      final UUID missingClaimId = Uuid7.timeBasedUuid();
-      final AssessmentPost post =
-          AssessmentPost.builder().createdByUserId(userId).claimId(missingClaimId).build();
 
-      when(claimRepository.existsById(missingClaimId)).thenReturn(false);
+      UUID claimId = UUID.randomUUID();
 
-      assertThatThrownBy(() -> assessmentService.createAssessment(missingClaimId, post))
-          .isInstanceOf(ClaimNotFoundException.class)
-          .hasMessageContaining(missingClaimId.toString());
-    }
-
-    /**
-     * Helper method to test invalid user ID validation scenarios.
-     *
-     * <p>Verifies that {@link AssessmentService#createAssessment(UUID, AssessmentPost)} throws
-     * {@link AssessmentInvalidUserException} with the expected error message when provided with an
-     * invalid user ID.
-     *
-     * @param userid the user ID to test (can be null, empty, blank, or invalid UUID format)
-     * @param errorMessage the expected error message enum that should be in the exception
-     */
-    void invalidUserTest(String userid, AssessmentInvalidUserException.ErrorMessage errorMessage) {
-      final UUID missingClaimId = Uuid7.timeBasedUuid();
-      final AssessmentPost post =
-          AssessmentPost.builder().createdByUserId(userid).claimId(missingClaimId).build();
-
-      assertThatThrownBy(() -> assessmentService.createAssessment(missingClaimId, post))
-          .isInstanceOf(AssessmentInvalidUserException.class)
-          .hasMessageContaining(errorMessage.getMessage(userid));
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdNull() {
-      invalidUserTest(null, AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdEmpty() {
-      invalidUserTest("", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdWhiteSpace() {
-      invalidUserTest("  ", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdInvalid() {
-      invalidUserTest(
-          "INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
-    }
-
-    @Test
-    void shouldThrowWhenClaimSummaryFeeNotFound() {
-      final String userId = Uuid7.timeBasedUuid().toString();
-      final UUID claimId = Uuid7.timeBasedUuid();
-      final UUID missingClaimSummaryFeeId = Uuid7.timeBasedUuid();
-      final AssessmentPost post =
+      AssessmentPost post =
           AssessmentPost.builder()
               .claimId(claimId)
-              .createdByUserId(userId)
-              .claimSummaryFeeId(missingClaimSummaryFeeId)
-              .build();
-
-      final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
-
-      when(claimRepository.existsById(claimId)).thenReturn(true);
-      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
-
-      when(claimSummaryFeeRepository.existsById(missingClaimSummaryFeeId)).thenReturn(false);
-
-      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
-          .isInstanceOf(ClaimSummaryFeeNotFoundException.class)
-          .hasMessageContaining(missingClaimSummaryFeeId.toString());
-    }
-
-    @ParameterizedTest
-    @EnumSource(
-        value = ClaimStatus.class,
-        names = {"VALID"},
-        mode = EnumSource.Mode.EXCLUDE)
-    void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
-      final UUID claimId = Uuid7.timeBasedUuid();
-      final UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
-      final AssessmentPost post =
-          AssessmentPost.builder()
-              .claimId(claimId)
-              .claimSummaryFeeId(claimSummaryFeeId)
               .createdByUserId(API_USER_ID)
               .build();
 
-      final Claim claim = Claim.builder().id(claimId).status(status).build();
-
-      when(claimRepository.existsById(claimId)).thenReturn(true);
-      when(claimRepository.getReferenceById(claimId)).thenReturn(claim);
+      when(claimValidationService.getValidClaimOrThrow(claimId))
+          .thenThrow(new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId)));
 
       assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
-          .isInstanceOf(ClaimBadRequestException.class)
-          .hasMessageContaining(claimId.toString());
-    }
-  }
-
-  @Nested
-  @DisplayName("validate User Id")
-  class validateUserIdTests {
-
-    void invalidUserIdTest(
-        String userid, AssessmentInvalidUserException.ErrorMessage errorMessage) {
-      assertThatThrownBy(() -> assessmentService.validateUserId(userid))
-          .isInstanceOf(AssessmentInvalidUserException.class)
-          .hasMessageContaining(errorMessage.getMessage(userid));
+          .isInstanceOf(ClaimNotFoundException.class);
     }
 
-    @Test
-    void shouldThrowWhenInvalidUserIdNull() {
-      invalidUserIdTest(null, AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdEmpty() {
-      invalidUserIdTest("", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdWhiteSpace() {
-      invalidUserIdTest("  ", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdInvalid() {
-      invalidUserIdTest(
-          "INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
-    }
-
-    @Test
-    void shouldThrowWhenInvalidUserIdXSS() {
-      invalidUserIdTest(
-          "<img src=x onerror=alert(\"XSS\")>",
-          AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT);
-    }
-
-    @Test
-    void shouldNotThrowWhenInvalidUserIdValid() {
-      final String userId = Uuid7.timeBasedUuid().toString();
-      assessmentService.validateUserId(userId);
-    }
   }
 
   @Test
@@ -271,7 +171,6 @@ class AssessmentServiceTest {
     dto.setClaimId(CLAIM_1_ID);
     dto.setId(ASSESSMENT_1_ID);
     dto.setCreatedByUserId(USER_ID);
-    dto.setClaimId(CLAIM_1_ID);
 
     when(assessmentRepository.findByIdAndClaimId(ASSESSMENT_1_ID, CLAIM_1_ID))
         .thenReturn(Optional.of(entity));
@@ -286,7 +185,7 @@ class AssessmentServiceTest {
   }
 
   @Test
-  void getAssessmentShouldReturnEmpty() {
+  void shouldReturnNullWhenMapperReturnsNull() {
     var mockAssessment = new Assessment();
     mockAssessment.setId(ASSESSMENT_1_ID);
     when(assessmentRepository.findByIdAndClaimId(ASSESSMENT_1_ID, CLAIM_1_ID))

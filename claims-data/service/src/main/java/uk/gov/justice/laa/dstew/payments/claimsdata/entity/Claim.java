@@ -146,4 +146,11 @@ public class Claim {
   @Version
   @Column(nullable = false)
   private Long version;
+
+  public void voidClaim(UUID userId) {
+    this.status = ClaimStatus.VOID;
+    this.hasAssessment = true;
+    this.updatedByUserId = userId.toString();
+    this.updatedOn = Instant.now();
+  }
 }

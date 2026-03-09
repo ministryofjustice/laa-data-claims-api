@@ -7,25 +7,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling assessments. */
 @Service
@@ -34,9 +26,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AssessmentService {
 
   private final ClaimRepository claimRepository;
-  private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final AssessmentRepository assessmentRepository;
   private final AssessmentMapper assessmentMapper;
+  private final ClaimValidationService claimValidationService;
+  private final AssessmentFactory assessmentFactory;
 
   /**
    * Create an assessment for a claim.
@@ -48,40 +41,24 @@ public class AssessmentService {
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
 
-    validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateUserId(request.getCreatedByUserId());
 
-    if (!claimRepository.existsById(claimId)) {
-      throw new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId));
-    }
-    Claim claim = claimRepository.getReferenceById(claimId);
+    Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee =
+        claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 
-    if (claim.getStatus() != ClaimStatus.VALID) {
-      throw new ClaimBadRequestException(
-          String.format("Claim with id: %s does not have VALID status", claimId));
-    }
-
-    if (request.getAssessmentType() == AssessmentType.VOID) {
-      throw new ClaimBadRequestException(
-          "Claim status VOID cannot be set via assessment patch. Use POST /api/v1/claims/{claimId}/void");
-    }
-
-    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
-    if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
-      throw new ClaimSummaryFeeNotFoundException(
-          String.format("No Claim Summary Fee found with id: %s", claimSummaryFeeId));
-    }
-
+    claimValidationService.ensureAssessmentTypeIsNotVoid(request.getAssessmentType());
     updateClaimAssessmentStatus(claim);
-    ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
-    assessment.setId(Uuid7.timeBasedUuid());
-    assessment.setClaim(claim);
-    assessment.setClaimSummaryFee(claimSummaryFee);
-    assessment.setCreatedByUserId(request.getCreatedByUserId());
-    assessment.setUpdatedByUserId(request.getCreatedByUserId());
-    assessment.setAssessmentReason(request.getAssessmentReason());
-    assessment.setAssessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT);
+
+    assessmentFactory.applyCommonFields(
+        assessment,
+        claim,
+        claimSummaryFee,
+        request.getCreatedByUserId(),
+        request.getAssessmentReason(),
+        request.getAssessmentType());
 
     return assessmentRepository.save(assessment).getId();
   }
@@ -162,43 +139,4 @@ public class AssessmentService {
         .build();
   }
 
-  /**
-   * Validates that the provided user ID meets all requirements.
-   *
-   * <p>This method performs the following validation checks:
-   *
-   * <ul>
-   *   <li>Ensures the user ID is not null
-   *   <li>Ensures the user ID is not blank (empty or whitespace-only)
-   *   <li>Ensures the user ID is a valid UUID format
-   * </ul>
-   *
-   * @param userId the user ID to validate
-   * @throws AssessmentInvalidUserException if any validation check fails
-   */
-  protected void validateUserId(String userId) {
-    if (!StringUtils.hasText(userId)) {
-      throw new AssessmentInvalidUserException(
-          AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
-    }
-    if (!isValidUuid(userId)) {
-      throw new AssessmentInvalidUserException(
-          AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
-    }
-  }
-
-  /**
-   * Checks whether the provided string is a valid UUID format.
-   *
-   * @param uuid the string to validate as a UUID
-   * @return true if the string is a valid UUID, false otherwise
-   */
-  protected boolean isValidUuid(String uuid) {
-    try {
-      UUID.fromString(uuid);
-      return true;
-    } catch (IllegalArgumentException | NullPointerException e) {
-      return false;
-    }
-  }
 }
