@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService.CLAIM_PATCH_VOID_INVALID_OPERATION;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -125,7 +125,7 @@ public class ClaimValidationService {
   public void ensureAssessmentTypeIsNotVoid(AssessmentType assessmentType) {
     if (assessmentType == AssessmentType.VOID) {
       throw new ClaimBadRequestException(
-          CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("create assessment"));
+          INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("create assessment"));
     }
   }
 

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
@@ -106,13 +108,22 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldReturnBadRequestWhenClaimDoesNotHaveValidStatus() throws Exception {
     // when: calling the POST endpoint for a claim without VALID status, 400 should be returned
     final AssessmentPost assessmentPost = getAssessmentPost();
-    mockMvc
-        .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
-                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
-                .contentType(MediaType.APPLICATION_JSON)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: assert error message in response body
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody)
+        .contains(
+            CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(
+                CLAIM_ID_WITHOUT_VALID_STATUS));
   }
 
   @Test
@@ -120,13 +131,20 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the POST endpoint to set a VOID status, 400 should be returned
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setAssessmentType(AssessmentType.VOID);
-    mockMvc
-        .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
-                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
-                .contentType(MediaType.APPLICATION_JSON)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: assert error message in response body
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody)
+        .contains(INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("create assessment"));
   }
 
   @Test

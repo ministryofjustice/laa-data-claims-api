@@ -64,7 +64,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @Slf4j
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
-  public static final String CLAIM_PATCH_VOID_INVALID_OPERATION =
+  public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
       "Claim status VOID cannot be set via %s endpoint. Use POST /api/v1/claims/{claimId}/void";
 
   private final SubmissionRepository submissionRepository;
@@ -185,7 +185,7 @@ public class ClaimService
 
     if (claimPatch.getStatus() == ClaimStatus.VOID) {
       throw new ClaimBadRequestException(
-          CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("update claim"));
+          INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("update claim"));
     }
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
