@@ -125,7 +125,7 @@ public class ClaimValidationService {
   public void ensureAssessmentTypeIsNotVoid(AssessmentType assessmentType) {
     if (assessmentType == AssessmentType.VOID) {
       throw new ClaimBadRequestException(
-          CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("assessment"));
+          CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("create assessment"));
     }
   }
 

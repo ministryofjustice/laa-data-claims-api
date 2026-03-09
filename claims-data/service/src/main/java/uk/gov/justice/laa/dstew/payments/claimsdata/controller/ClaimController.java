@@ -36,6 +36,10 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 @RequiredArgsConstructor
 @Slf4j
 public class ClaimController implements ClaimsApi {
+
+  private static final String ASSESSMENT_PATH =
+      "/api/v1/claims/{claimId}/assessments/{assessmentId}";
+
   private final ClaimService claimService;
 
   @Override
@@ -149,7 +153,7 @@ public class ClaimController implements ClaimsApi {
 
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
-            .path("/api/v1/claims/{claimId}/assessments/{assessmentId}")
+            .path(ASSESSMENT_PATH)
             .buildAndExpand(claimId, assessmentId)
             .toUri();
     return ResponseEntity.created(location)

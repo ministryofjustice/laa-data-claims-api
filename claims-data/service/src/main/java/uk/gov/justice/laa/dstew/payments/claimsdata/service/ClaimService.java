@@ -65,7 +65,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final String CLAIM_PATCH_VOID_INVALID_OPERATION =
-      "Claim status VOID cannot be set via %s patch. Use POST /api/v1/claims/{claimId}/void";
+      "Claim status VOID cannot be set via %s endpoint. Use POST /api/v1/claims/{claimId}/void";
 
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
@@ -184,7 +184,8 @@ public class ClaimService
     Claim claim = requireClaim(submissionId, claimId);
 
     if (claimPatch.getStatus() == ClaimStatus.VOID) {
-      throw new ClaimBadRequestException(CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("claim"));
+      throw new ClaimBadRequestException(
+          CLAIM_PATCH_VOID_INVALID_OPERATION.formatted("update claim"));
     }
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
