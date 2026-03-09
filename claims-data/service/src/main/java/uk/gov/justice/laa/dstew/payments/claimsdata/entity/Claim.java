@@ -147,6 +147,13 @@ public class Claim {
   @Column(nullable = false)
   private Long version;
 
+  /**
+   * Marks the claim as void by setting its status to {@link ClaimStatus#VOID}. This method also
+   * sets the `hasAssessment` field to true, updates the `updatedByUserId` with the provided user
+   * ID, and modifies the `updatedOn` timestamp to the current time.
+   *
+   * @param userId the ID of the user performing the void operation
+   */
   public void voidClaim(UUID userId) {
     this.status = ClaimStatus.VOID;
     this.hasAssessment = true;

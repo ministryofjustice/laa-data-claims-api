@@ -1,16 +1,15 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.factory;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
-
-import java.math.BigDecimal;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class AssessmentFactoryTest {
 
@@ -29,12 +28,8 @@ class AssessmentFactoryTest {
     UUID userId = UUID.randomUUID();
     String reason = "Void assessment reason";
 
-    Assessment result = assessmentFactory.createVoidAssessment(
-        reason,
-        claim,
-        claimSummaryFee,
-        userId
-    );
+    Assessment result =
+        assessmentFactory.createVoidAssessment(reason, claim, claimSummaryFee, userId);
 
     assertThat(result).isNotNull();
 
@@ -81,13 +76,7 @@ class AssessmentFactoryTest {
     String reason = "Test reason";
 
     assessmentFactory.applyCommonFields(
-        assessment,
-        claim,
-        claimSummaryFee,
-        userId,
-        reason,
-        AssessmentType.ESCAPE_CASE_ASSESSMENT
-    );
+        assessment, claim, claimSummaryFee, userId, reason, AssessmentType.ESCAPE_CASE_ASSESSMENT);
 
     assertThat(assessment.getId()).isNotNull();
     assertThat(assessment.getClaim()).isEqualTo(claim);

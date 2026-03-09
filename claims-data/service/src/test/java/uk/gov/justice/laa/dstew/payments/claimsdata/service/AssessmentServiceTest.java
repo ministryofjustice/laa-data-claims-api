@@ -70,14 +70,9 @@ class AssessmentServiceTest {
               .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
               .build();
 
-      Claim claim = Claim.builder()
-          .id(claimId)
-          .hasAssessment(false)
-          .build();
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).build();
 
-      ClaimSummaryFee fee = ClaimSummaryFee.builder()
-          .id(claimSummaryFeeId)
-          .build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
 
       Assessment assessment = Assessment.builder().id(assessmentId).build();
 
@@ -121,14 +116,9 @@ class AssessmentServiceTest {
               .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
               .build();
 
-      Claim claim = Claim.builder()
-          .id(claimId)
-          .hasAssessment(true)
-          .build();
+      Claim claim = Claim.builder().id(claimId).hasAssessment(true).build();
 
-      ClaimSummaryFee fee = ClaimSummaryFee.builder()
-          .id(claimSummaryFeeId)
-          .build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
 
       Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
 
@@ -149,18 +139,15 @@ class AssessmentServiceTest {
       UUID claimId = UUID.randomUUID();
 
       AssessmentPost post =
-          AssessmentPost.builder()
-              .claimId(claimId)
-              .createdByUserId(API_USER_ID)
-              .build();
+          AssessmentPost.builder().claimId(claimId).createdByUserId(API_USER_ID).build();
 
       when(claimValidationService.getValidClaimOrThrow(claimId))
-          .thenThrow(new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId)));
+          .thenThrow(
+              new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId)));
 
       assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
           .isInstanceOf(ClaimNotFoundException.class);
     }
-
   }
 
   @Test

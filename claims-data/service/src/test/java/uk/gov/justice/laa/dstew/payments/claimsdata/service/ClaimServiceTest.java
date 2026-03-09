@@ -721,25 +721,23 @@ class ClaimServiceTest {
               .build();
       Assessment expected = getAssessment(claim, claimSummaryFee, reason, userId);
 
-      doNothing().when(claimValidationService)
-          .validateVoidClaimParameters(claimId, userId, reason);
+      doNothing().when(claimValidationService).validateVoidClaimParameters(claimId, userId, reason);
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
-      when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(claimSummaryFee);
-      when(assessmentFactory.createVoidAssessment(reason, claim, claimSummaryFee, userId)).thenReturn(expected);
+      when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId))
+          .thenReturn(claimSummaryFee);
+      when(assessmentFactory.createVoidAssessment(reason, claim, claimSummaryFee, userId))
+          .thenReturn(expected);
       when(assessmentRepository.save(any())).thenReturn(expected);
 
       claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason);
 
       verify(assessmentRepository, times(1)).save(assessmentCaptor.capture());
-      verify(assessmentFactory, times(1)).createVoidAssessment(reason, claim, claimSummaryFee, userId);
+      verify(assessmentFactory, times(1))
+          .createVoidAssessment(reason, claim, claimSummaryFee, userId);
       verify(claimValidationService, times(1)).validateVoidClaimParameters(claimId, userId, reason);
       verify(claimValidationService, times(1)).getValidClaimOrThrow(claimId);
       verify(claimValidationService, times(1)).getClaimSummaryFeeByClaimIdOrThrow(claimId);
-      verifyNoMoreInteractions(
-          claimValidationService,
-          assessmentFactory,
-          assessmentRepository
-      );
+      verifyNoMoreInteractions(claimValidationService, assessmentFactory, assessmentRepository);
       var captured = assessmentCaptor.getValue();
 
       assertThat(claim.getStatus()).isEqualTo(ClaimStatus.VOID);
@@ -768,13 +766,13 @@ class ClaimServiceTest {
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
-      when(assessmentFactory.createVoidAssessment(reason, claim, fee, userId)).thenReturn(assessment);
+      when(assessmentFactory.createVoidAssessment(reason, claim, fee, userId))
+          .thenReturn(assessment);
       when(assessmentRepository.save(any())).thenReturn(assessment);
 
       claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason);
 
-      verify(claimValidationService)
-          .validateVoidClaimParameters(claimId, userId, reason);
+      verify(claimValidationService).validateVoidClaimParameters(claimId, userId, reason);
     }
 
     @Test
@@ -787,8 +785,7 @@ class ClaimServiceTest {
           .when(claimValidationService)
           .validateVoidClaimParameters(claimId, userId, "");
 
-      assertThatThrownBy(() ->
-          claimService.voidClaimByIdAndCreateAssessment(claimId, userId, ""))
+      assertThatThrownBy(() -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, ""))
           .isInstanceOf(ClaimBadRequestException.class)
           .hasMessageContaining(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
 
@@ -811,8 +808,8 @@ class ClaimServiceTest {
       when(assessmentFactory.createVoidAssessment(any(), any(), any(), any()))
           .thenThrow(new RuntimeException("Factory error"));
 
-      assertThatThrownBy(() ->
-          claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
           .isInstanceOf(RuntimeException.class);
 
       verifyNoInteractions(assessmentRepository);
@@ -825,10 +822,11 @@ class ClaimServiceTest {
       UUID userId = Uuid7.timeBasedUuid();
 
       when(claimValidationService.getValidClaimOrThrow(claimId))
-          .thenThrow(new ClaimBadRequestException(CLAIM_IS_ALREADY_VOID_STATUS_ERROR.formatted(claimId)));
+          .thenThrow(
+              new ClaimBadRequestException(CLAIM_IS_ALREADY_VOID_STATUS_ERROR.formatted(claimId)));
 
-      assertThatThrownBy(() ->
-          claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
           .isInstanceOf(ClaimBadRequestException.class)
           .hasMessageContaining(CLAIM_IS_ALREADY_VOID_STATUS_ERROR.formatted(claimId));
 
@@ -842,11 +840,8 @@ class ClaimServiceTest {
       UUID claimId = Uuid7.timeBasedUuid();
       UUID userId = Uuid7.timeBasedUuid();
 
-      Claim claim = Claim.builder()
-          .id(claimId)
-          .status(ClaimStatus.VALID)
-          .hasAssessment(true)
-          .build();
+      Claim claim =
+          Claim.builder().id(claimId).status(ClaimStatus.VALID).hasAssessment(true).build();
 
       ClaimSummaryFee fee = ClaimSummaryFee.builder().id(Uuid7.timeBasedUuid()).build();
       Assessment assessment = getAssessment(claim, fee, "VOID", userId);
@@ -867,9 +862,8 @@ class ClaimServiceTest {
       UUID claimId = Uuid7.timeBasedUuid();
       UUID userId = Uuid7.timeBasedUuid();
 
-      when(claimValidationService.getValidClaimOrThrow(claimId)).thenThrow(new ClaimNotFoundException(
-          NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(claimId))
-      );
+      when(claimValidationService.getValidClaimOrThrow(claimId))
+          .thenThrow(new ClaimNotFoundException(NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(claimId)));
 
       assertThatThrownBy(
               () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
@@ -885,9 +879,10 @@ class ClaimServiceTest {
       UUID claimId = Uuid7.timeBasedUuid();
       UUID userId = Uuid7.timeBasedUuid();
 
-      when(claimValidationService.getValidClaimOrThrow(claimId)).thenThrow(new ClaimBadRequestException(
-          CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(claimId))
-      );
+      when(claimValidationService.getValidClaimOrThrow(claimId))
+          .thenThrow(
+              new ClaimBadRequestException(
+                  CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(claimId)));
 
       assertThatThrownBy(
               () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
@@ -905,9 +900,10 @@ class ClaimServiceTest {
 
       Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
-      when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenThrow(new ClaimSummaryFeeNotFoundException(
-          NO_SUMMARY_FEE_FOR_CLAIM_ID_ERROR.formatted(claimId))
-      );
+      when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId))
+          .thenThrow(
+              new ClaimSummaryFeeNotFoundException(
+                  NO_SUMMARY_FEE_FOR_CLAIM_ID_ERROR.formatted(claimId)));
 
       assertThatThrownBy(
               () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "reason"))
@@ -933,11 +929,10 @@ class ClaimServiceTest {
       when(assessmentFactory.createVoidAssessment(any(), any(), any(), any()))
           .thenReturn(assessment);
 
-      when(assessmentRepository.save(any()))
-          .thenThrow(new RuntimeException("DB failure"));
+      when(assessmentRepository.save(any())).thenThrow(new RuntimeException("DB failure"));
 
-      assertThatThrownBy(() ->
-          claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "VOID"))
+      assertThatThrownBy(
+              () -> claimService.voidClaimByIdAndCreateAssessment(claimId, userId, "VOID"))
           .isInstanceOf(RuntimeException.class);
     }
 

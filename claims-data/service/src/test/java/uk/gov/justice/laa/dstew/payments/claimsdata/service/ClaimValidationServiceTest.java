@@ -1,5 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,27 +30,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class ClaimValidationServiceTest {
 
-  @Mock
-  private ClaimRepository claimRepository;
+  @Mock private ClaimRepository claimRepository;
 
-  @Mock
-  private ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
-  @InjectMocks
-  private ClaimValidationService validationService;
+  @InjectMocks private ClaimValidationService validationService;
 
   // =====================================================
   // Validate User ID Tests
@@ -51,7 +47,8 @@ class ClaimValidationServiceTest {
 
     @ParameterizedTest
     @MethodSource("invalidUserIds")
-    void shouldThrowWhenUserIdInvalid(String userId, AssessmentInvalidUserException.ErrorMessage errorMessage) {
+    void shouldThrowWhenUserIdInvalid(
+        String userId, AssessmentInvalidUserException.ErrorMessage errorMessage) {
       assertThatThrownBy(() -> validationService.validateUserId(userId))
           .isInstanceOf(AssessmentInvalidUserException.class)
           .hasMessageContaining(errorMessage.getMessage(userId));
@@ -59,12 +56,16 @@ class ClaimValidationServiceTest {
 
     static Stream<Object[]> invalidUserIds() {
       return Stream.of(
-          new Object[]{null, AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
-          new Object[]{"", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
-          new Object[]{"  ", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
-          new Object[]{"INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT},
-          new Object[]{"<img src=x onerror=alert('XSS')>", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT}
-      );
+          new Object[] {null, AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
+          new Object[] {"", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
+          new Object[] {"  ", AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK},
+          new Object[] {
+            "INVALIDUUID", AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT
+          },
+          new Object[] {
+            "<img src=x onerror=alert('XSS')>",
+            AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT
+          });
     }
 
     @Test
@@ -78,8 +79,10 @@ class ClaimValidationServiceTest {
   // =====================================================
   @ParameterizedTest
   @MethodSource("invalidVoidClaimParameters")
-  void shouldThrowWhenVoidClaimParametersInvalid(UUID claimId, UUID createdByUserId, String reason, String expectedMessage) {
-    assertThatThrownBy(() -> validationService.validateVoidClaimParameters(claimId, createdByUserId, reason))
+  void shouldThrowWhenVoidClaimParametersInvalid(
+      UUID claimId, UUID createdByUserId, String reason, String expectedMessage) {
+    assertThatThrownBy(
+            () -> validationService.validateVoidClaimParameters(claimId, createdByUserId, reason))
         .isInstanceOf(ClaimBadRequestException.class)
         .hasMessageContaining(expectedMessage);
   }
@@ -88,10 +91,9 @@ class ClaimValidationServiceTest {
     UUID validUserId = Uuid7.timeBasedUuid();
     UUID validClaimId = Uuid7.timeBasedUuid();
     return Stream.of(
-        new Object[]{null, validUserId, "Valid reason", "claimId must be provided"},
-        new Object[]{validClaimId, null, "Valid reason", "createdByUserId must be provided"},
-        new Object[]{validClaimId, validUserId, " ", "assessmentReason must be provided"}
-    );
+        new Object[] {null, validUserId, "Valid reason", "claimId must be provided"},
+        new Object[] {validClaimId, null, "Valid reason", "createdByUserId must be provided"},
+        new Object[] {validClaimId, validUserId, " ", "assessmentReason must be provided"});
   }
 
   @Test
@@ -100,7 +102,8 @@ class ClaimValidationServiceTest {
     UUID userId = Uuid7.timeBasedUuid();
     String reason = "Valid reason";
 
-    assertDoesNotThrow(() -> validationService.validateVoidClaimParameters(claimId, userId, reason));
+    assertDoesNotThrow(
+        () -> validationService.validateVoidClaimParameters(claimId, userId, reason));
   }
 
   // =====================================================
@@ -183,14 +186,19 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldNotThrowForOtherAssessmentTypes() {
-    assertDoesNotThrow(() -> validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.ESCAPE_CASE_ASSESSMENT));
+    assertDoesNotThrow(
+        () ->
+            validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.ESCAPE_CASE_ASSESSMENT));
   }
 
   // =====================================================
   // Claim Status Tests
   // =====================================================
   @ParameterizedTest
-  @EnumSource(value = ClaimStatus.class, names = {"VALID"}, mode = EnumSource.Mode.EXCLUDE)
+  @EnumSource(
+      value = ClaimStatus.class,
+      names = {"VALID"},
+      mode = EnumSource.Mode.EXCLUDE)
   void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
     UUID claimId = Uuid7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).status(status).build();

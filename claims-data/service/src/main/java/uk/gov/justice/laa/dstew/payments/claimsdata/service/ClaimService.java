@@ -64,7 +64,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @Slf4j
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
-  public static final String CLAIM_PATCH_VOID_INVALID_OPERATION = "Claim status VOID cannot be set via %s patch. Use POST /api/v1/claims/{claimId}/void";
+  public static final String CLAIM_PATCH_VOID_INVALID_OPERATION =
+      "Claim status VOID cannot be set via %s patch. Use POST /api/v1/claims/{claimId}/void";
 
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
@@ -424,17 +425,13 @@ public class ClaimService
   }
 
   /**
-   * Marks a claim as VOID and creates a corresponding assessment.
+   * Voids a claim by its identifier and creates an associated assessment. This operation validates
+   * the claim's eligibility for voiding based on input parameters.
    *
-   * <p>This method retrieves a claim by its identifier and validates that it has a status of VALID.
-   * If valid, the claim is updated to have a VOID status, and an associated assessment entity is
-   * created and persisted in the database. The assessment is initialized with default values for
-   * "allowedTotalInclVat" and "assessmentOutcome".
-   *
-   * @param claimId The unique identifier of the claim to be voided.
-   * @return The unique identifier of the created assessment associated with the voided claim.
-   * @throws ClaimNotFoundException if the claim with the specified ID does not exist.
-   * @throws ClaimBadRequestException if the claim does not have a status of VALID.
+   * @param claimId the unique identifier of the claim to be voided
+   * @param createdByUserId the identifier of the user initiating the void operation
+   * @param assessmentReason the reason for the assessment creation during claim voiding
+   * @return the unique identifier of the newly created assessment
    */
   @Transactional
   public UUID voidClaimByIdAndCreateAssessment(
@@ -443,16 +440,13 @@ public class ClaimService
     claimValidationService.validateVoidClaimParameters(claimId, createdByUserId, assessmentReason);
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
-    ClaimSummaryFee claimSummaryFee = claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee =
+        claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
 
     claim.voidClaim(createdByUserId);
     Assessment assessment =
         assessmentFactory.createVoidAssessment(
-            assessmentReason,
-            claim,
-            claimSummaryFee,
-            createdByUserId
-        );
+            assessmentReason, claim, claimSummaryFee, createdByUserId);
     return assessmentRepository.save(assessment).getId();
   }
 

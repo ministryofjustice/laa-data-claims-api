@@ -138,5 +138,4 @@ public class AssessmentService {
         .assessments(assessments.stream().map(assessmentMapper::toAssessmentGet).toList())
         .build();
   }
-
 }
