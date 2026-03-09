@@ -2,10 +2,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -252,6 +254,45 @@ public final class ClaimSpecification {
             cb.equal(claimCaseRoot.get(CLAIM_ENTITY), root),
             cb.equal(claimCaseRoot.get(UNIQUE_CASE_ID), uniqueCaseId));
     return claimCaseSubquery;
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for ordering {@link Claim} records by submissionPeriod,
+   * which requires custom processing.
+   *
+   * @param pageable includes pagination info
+   * @return a JPA {@code Specification} of {@code Submission} containing the constructed filtering
+   *     predicates
+   */
+  public static Specification<Claim> orderBySubmissionPeriod(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      // Join the Submission entity because submissionPeriod lives there
+      Join<Claim, Submission> submissionJoin = root.join(SUBMISSION_ENTITY);
+
+      for (Sort.Order order : pageable.getSort()) {
+        if (!"submission.submissionPeriod".equalsIgnoreCase(order.getProperty())) {
+          continue;
+        }
+
+        Expression<Date> submissionPeriodAsDate =
+            cb.function(
+                "to_date",
+                Date.class,
+                submissionJoin.get(SUBMISSION_PERIOD),
+                cb.literal("MON-YYYY"));
+
+        query.orderBy(
+            order.isAscending() ? cb.asc(submissionPeriodAsDate) : cb.desc(submissionPeriodAsDate));
+
+        break;
+      }
+
+      return cb.conjunction();
+    };
   }
 
   /**
