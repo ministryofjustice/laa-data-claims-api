@@ -3,6 +3,12 @@
 Before uploading XML files to the Submit a Bulk Claim (SaBC) service, you can validate them locally or directly within your XML‑generation tool using the supplied XSD schema.
 Validating your XML in advance helps you identify structural or formatting issues early, reducing the chance of rejected submissions.
 
+## 📥 Feedback
+
+If you use this XSD file, please tell us whether it is useful and share any feedback in our provider survey:
+
+[Give feedback on the XSD file](https://www.smartsurvey.co.uk/s/SaBC_XSD_github_feedback/)
+
 ## ⭐ Why Validate?
 
 - Detect issues before submitting to the service
