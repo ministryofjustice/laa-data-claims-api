@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
@@ -37,12 +38,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
@@ -275,14 +279,22 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a claim exists")
   public void aClaimExists() {
     log.info("Setting up state: a claim exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VALID);
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
+    when(claimRepository.existsById(any())).thenReturn(true);
+    when(claimRepository.getReferenceById(any())).thenReturn(claim);
     when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
+    when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
+    when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
     when(calculatedFeeDetailRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
     when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
+    Assessment savedAssessment = Assessment.builder().id(UUID.randomUUID()).build();
+    when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
   @SneakyThrows
