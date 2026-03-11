@@ -30,7 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestExc
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
@@ -79,7 +78,7 @@ public class ClaimService
   private final ClaimCaseRepository claimCaseRepository;
   private final AssessmentRepository assessmentRepository;
   private final ClaimValidationService claimValidationService;
-  private final AssessmentFactory assessmentFactory;
+  private final AssessmentService assessmentService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -451,7 +450,7 @@ public class ClaimService
 
     claim.voidClaim(createdByUserId);
     Assessment assessment =
-        assessmentFactory.createVoidAssessment(
+        assessmentService.createVoidAssessment(
             assessmentReason, claim, claimSummaryFee, createdByUserId);
     return assessmentRepository.save(assessment).getId();
   }

@@ -14,6 +14,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +32,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
@@ -47,7 +47,6 @@ class AssessmentServiceTest {
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private AssessmentMapper assessmentMapper;
   @Mock private ClaimValidationService claimValidationService;
-  @Mock private AssessmentFactory assessmentFactory;
 
   @InjectMocks private AssessmentService assessmentService;
 
@@ -83,21 +82,12 @@ class AssessmentServiceTest {
 
       UUID result = assessmentService.createAssessment(claimId, post);
 
-      assertThat(result).isEqualTo(assessmentId);
+      assertThat(result).isEqualTo(assessment.getId());
 
       verify(claimValidationService).validateUserId(API_USER_ID);
       verify(claimValidationService).ensureAssessmentTypeIsNotVoid(post.getAssessmentType());
 
       verify(claimRepository).updateAssessmentStatus(claimId, true);
-
-      verify(assessmentFactory)
-          .applyCommonFields(
-              eq(assessment),
-              eq(claim),
-              eq(fee),
-              eq(API_USER_ID),
-              eq(post.getAssessmentReason()),
-              eq(AssessmentType.ESCAPE_CASE_ASSESSMENT));
 
       verify(assessmentRepository).save(assessment);
     }
@@ -227,5 +217,72 @@ class AssessmentServiceTest {
             () -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
         .isInstanceOf(AssessmentNotFoundException.class)
         .hasMessageContaining("No assessments found for claimId");
+  }
+
+  @Test
+  void createVoidAssessment_shouldCreateAssessmentWithZeroMonetaryValues() {
+
+    Claim claim = new Claim();
+    ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    UUID userId = UUID.randomUUID();
+    String reason = "Void assessment reason";
+
+    Assessment result =
+        assessmentService.createVoidAssessment(reason, claim, claimSummaryFee, userId);
+
+    assertThat(result).isNotNull();
+
+    assertThat(result.getClaim()).isEqualTo(claim);
+    assertThat(result.getClaimSummaryFee()).isEqualTo(claimSummaryFee);
+    assertThat(result.getAssessmentReason()).isEqualTo(reason);
+    assertThat(result.getAssessmentType()).isEqualTo(AssessmentType.VOID);
+
+    assertThat(result.getCreatedByUserId()).isEqualTo(userId.toString());
+    assertThat(result.getUpdatedByUserId()).isEqualTo(userId.toString());
+
+    assertThat(result.getId()).isNotNull();
+
+    BigDecimal zero = BigDecimal.ZERO;
+
+    assertThat(result.getFixedFeeAmount()).isEqualTo(zero);
+    assertThat(result.getNetTravelCostsAmount()).isEqualTo(zero);
+    assertThat(result.getNetWaitingCostsAmount()).isEqualTo(zero);
+    assertThat(result.getNetProfitCostsAmount()).isEqualTo(zero);
+    assertThat(result.getDisbursementAmount()).isEqualTo(zero);
+    assertThat(result.getDisbursementVatAmount()).isEqualTo(zero);
+    assertThat(result.getNetCostOfCounselAmount()).isEqualTo(zero);
+    assertThat(result.getDetentionTravelAndWaitingCostsAmount()).isEqualTo(zero);
+    assertThat(result.getBoltOnAdjournedHearingFee()).isEqualTo(zero);
+    assertThat(result.getJrFormFillingAmount()).isEqualTo(zero);
+    assertThat(result.getBoltOnCmrhOralFee()).isEqualTo(zero);
+    assertThat(result.getBoltOnCmrhTelephoneFee()).isEqualTo(zero);
+    assertThat(result.getBoltOnSubstantiveHearingFee()).isEqualTo(zero);
+    assertThat(result.getBoltOnHomeOfficeInterviewFee()).isEqualTo(zero);
+    assertThat(result.getAssessedTotalVat()).isEqualTo(zero);
+    assertThat(result.getAssessedTotalInclVat()).isEqualTo(zero);
+    assertThat(result.getAllowedTotalVat()).isEqualTo(zero);
+    assertThat(result.getAllowedTotalInclVat()).isEqualTo(zero);
+  }
+
+  @Test
+  void applyCommonFields_shouldPopulateAssessmentFields() {
+
+    Assessment assessment = new Assessment();
+    Claim claim = new Claim();
+    ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+
+    String userId = UUID.randomUUID().toString();
+    String reason = "Test reason";
+
+    assessmentService.applyCommonFields(
+        assessment, claim, claimSummaryFee, userId, reason, AssessmentType.ESCAPE_CASE_ASSESSMENT);
+
+    assertThat(assessment.getId()).isNotNull();
+    assertThat(assessment.getClaim()).isEqualTo(claim);
+    assertThat(assessment.getClaimSummaryFee()).isEqualTo(claimSummaryFee);
+    assertThat(assessment.getCreatedByUserId()).isEqualTo(userId);
+    assertThat(assessment.getUpdatedByUserId()).isEqualTo(userId);
+    assertThat(assessment.getAssessmentReason()).isEqualTo(reason);
+    assertThat(assessment.getAssessmentType()).isEqualTo(AssessmentType.ESCAPE_CASE_ASSESSMENT);
   }
 }

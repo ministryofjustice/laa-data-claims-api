@@ -68,7 +68,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestExc
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.factory.AssessmentFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
@@ -109,7 +108,7 @@ class ClaimServiceTest {
   @Mock private ClaimCaseRepository claimCaseRepository;
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private ClaimValidationService claimValidationService;
-  @Mock private AssessmentFactory assessmentFactory;
+  @Mock private AssessmentService assessmentService;
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
@@ -725,19 +724,19 @@ class ClaimServiceTest {
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId))
           .thenReturn(claimSummaryFee);
-      when(assessmentFactory.createVoidAssessment(reason, claim, claimSummaryFee, userId))
+      when(assessmentService.createVoidAssessment(reason, claim, claimSummaryFee, userId))
           .thenReturn(expected);
       when(assessmentRepository.save(any())).thenReturn(expected);
 
       claimService.voidClaimByIdAndCreateAssessment(claimId, userId, reason);
 
       verify(assessmentRepository, times(1)).save(assessmentCaptor.capture());
-      verify(assessmentFactory, times(1))
+      verify(assessmentService, times(1))
           .createVoidAssessment(reason, claim, claimSummaryFee, userId);
       verify(claimValidationService, times(1)).validateVoidClaimParameters(claimId, userId, reason);
       verify(claimValidationService, times(1)).getValidClaimOrThrow(claimId);
       verify(claimValidationService, times(1)).getClaimSummaryFeeByClaimIdOrThrow(claimId);
-      verifyNoMoreInteractions(claimValidationService, assessmentFactory, assessmentRepository);
+      verifyNoMoreInteractions(claimValidationService, assessmentService, assessmentRepository);
       var captured = assessmentCaptor.getValue();
 
       assertThat(claim.getStatus()).isEqualTo(ClaimStatus.VOID);
@@ -766,7 +765,7 @@ class ClaimServiceTest {
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
-      when(assessmentFactory.createVoidAssessment(reason, claim, fee, userId))
+      when(assessmentService.createVoidAssessment(reason, claim, fee, userId))
           .thenReturn(assessment);
       when(assessmentRepository.save(any())).thenReturn(assessment);
 
@@ -789,7 +788,7 @@ class ClaimServiceTest {
           .isInstanceOf(ClaimBadRequestException.class)
           .hasMessageContaining(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
 
-      verifyNoInteractions(assessmentFactory);
+      verifyNoInteractions(assessmentService);
       verifyNoInteractions(assessmentRepository);
     }
 
@@ -805,7 +804,7 @@ class ClaimServiceTest {
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
 
-      when(assessmentFactory.createVoidAssessment(any(), any(), any(), any()))
+      when(assessmentService.createVoidAssessment(any(), any(), any(), any()))
           .thenThrow(new RuntimeException("Factory error"));
 
       assertThatThrownBy(
@@ -830,7 +829,7 @@ class ClaimServiceTest {
           .isInstanceOf(ClaimBadRequestException.class)
           .hasMessageContaining(CLAIM_IS_ALREADY_VOID_STATUS_ERROR.formatted(claimId));
 
-      verifyNoInteractions(assessmentFactory);
+      verifyNoInteractions(assessmentService);
       verifyNoInteractions(assessmentRepository);
     }
 
@@ -848,7 +847,7 @@ class ClaimServiceTest {
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
-      when(assessmentFactory.createVoidAssessment(any(), any(), any(), any()))
+      when(assessmentService.createVoidAssessment(any(), any(), any(), any()))
           .thenReturn(assessment);
       when(assessmentRepository.save(any())).thenReturn(assessment);
 
@@ -871,7 +870,7 @@ class ClaimServiceTest {
           .hasMessageContaining(NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(claimId));
 
       verifyNoInteractions(assessmentRepository);
-      verifyNoInteractions(assessmentFactory);
+      verifyNoInteractions(assessmentService);
     }
 
     @Test
@@ -890,7 +889,7 @@ class ClaimServiceTest {
           .hasMessageContaining(CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(claimId));
 
       verifyNoInteractions(assessmentRepository);
-      verifyNoInteractions(assessmentFactory);
+      verifyNoInteractions(assessmentService);
     }
 
     @Test
@@ -911,7 +910,7 @@ class ClaimServiceTest {
           .hasMessageContaining(NO_SUMMARY_FEE_FOR_CLAIM_ID_ERROR.formatted(claimId));
 
       verifyNoInteractions(assessmentRepository);
-      verifyNoInteractions(assessmentFactory);
+      verifyNoInteractions(assessmentService);
     }
 
     @Test
@@ -926,7 +925,7 @@ class ClaimServiceTest {
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
-      when(assessmentFactory.createVoidAssessment(any(), any(), any(), any()))
+      when(assessmentService.createVoidAssessment(any(), any(), any(), any()))
           .thenReturn(assessment);
 
       when(assessmentRepository.save(any())).thenThrow(new RuntimeException("DB failure"));
