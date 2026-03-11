@@ -5,7 +5,7 @@ Validating your XML in advance helps you identify structural or formatting issue
 
 ## 📥 Feedback
 
-If you use this XSD file, please tell us whether it is useful and share any feedback in our provider survey:
+If you use this XSD file, please tell us whether it is useful and share any feedback in our survey:
 
 [Give feedback on the XSD file](https://www.smartsurvey.co.uk/s/SaBC_XSD_github_feedback/)
 
