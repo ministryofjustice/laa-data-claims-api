@@ -265,7 +265,7 @@ class AssessmentServiceTest {
   }
 
   @Test
-  void applyCommonFields_shouldPopulateAssessmentFields() {
+  void setCommonFields_shouldPopulateAssessmentFields() {
 
     Assessment assessment = new Assessment();
     Claim claim = new Claim();
@@ -274,7 +274,7 @@ class AssessmentServiceTest {
     String userId = UUID.randomUUID().toString();
     String reason = "Test reason";
 
-    assessmentService.applyCommonFields(
+    assessmentService.setCommonFields(
         assessment, claim, claimSummaryFee, userId, reason, AssessmentType.ESCAPE_CASE_ASSESSMENT);
 
     assertThat(assessment.getId()).isNotNull();

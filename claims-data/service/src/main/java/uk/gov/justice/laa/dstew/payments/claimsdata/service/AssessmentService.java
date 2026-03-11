@@ -53,7 +53,7 @@ public class AssessmentService {
 
     Assessment assessment = assessmentMapper.toAssessment(request);
 
-    applyCommonFields(
+    setCommonFields(
         assessment,
         claim,
         claimSummaryFee,
@@ -154,7 +154,7 @@ public class AssessmentService {
       String assessmentReason, Claim claim, ClaimSummaryFee claimSummaryFee, UUID createdByUserId) {
 
     Assessment assessment = new Assessment();
-    applyCommonFields(
+    setCommonFields(
         assessment,
         claim,
         claimSummaryFee,
@@ -204,7 +204,7 @@ public class AssessmentService {
    * @param assessmentReason the reason for the assessment
    * @param assessmentType the type of the assessment (e.g., VOID)
    */
-  protected void applyCommonFields(
+  protected void setCommonFields(
       Assessment assessment,
       Claim claim,
       ClaimSummaryFee claimSummaryFee,
