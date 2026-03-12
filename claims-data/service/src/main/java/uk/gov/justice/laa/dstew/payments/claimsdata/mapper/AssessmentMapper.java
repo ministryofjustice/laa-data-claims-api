@@ -39,9 +39,10 @@ public interface AssessmentMapper {
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Assessment assessment);
 
+  @Mapping(target = "assessments", source = "content")
+  AssessmentResultSet toAssessmentResultSet(Page<Assessment> assessments);
+
   @Mapping(target = "claimId", source = "claim.id")
   @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
   AssessmentGet toAssessmentGet(Assessment assessment);
-
-  AssessmentResultSet toAssessmentResultSet(Page<Assessment> assessments);
 }
