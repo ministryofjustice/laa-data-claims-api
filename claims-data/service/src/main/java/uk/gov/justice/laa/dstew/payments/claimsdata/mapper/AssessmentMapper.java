@@ -4,10 +4,12 @@ import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
+import org.springframework.data.domain.Page;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 
 /** MapStruct mapper for converting between assessment models and entities. */
@@ -40,4 +42,6 @@ public interface AssessmentMapper {
   @Mapping(target = "claimId", source = "claim.id")
   @Mapping(target = "claimSummaryFeeId", source = "claimSummaryFee.id")
   AssessmentGet toAssessmentGet(Assessment assessment);
+
+  AssessmentResultSet toAssessmentResultSet(Page<Assessment> assessments);
 }

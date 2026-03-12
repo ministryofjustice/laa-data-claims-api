@@ -1297,6 +1297,8 @@ components:
           items:
             $ref: '#/components/schemas/matter_start_get'
     assessment_result_set:
+      allOf:
+        - $ref: "#/components/schemas/page"
       type: 'object'
       properties:
         assessments:
