@@ -341,10 +341,15 @@ public class ClaimService
     Pageable mappedPageable = mapPageableSort(pageable);
 
     Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
-    Specification<Claim> sortSpec = ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
-    Specification<Claim> combinedSpec = baseSpec.and(sortSpec);
+    Specification<Claim> warningSortSpec =
+        ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
+    Specification<Claim> submissionPeriodSortSpec =
+        ClaimSpecification.orderBySubmissionPeriod(mappedPageable);
+    Specification<Claim> combinedSpec = baseSpec.and(warningSortSpec).and(submissionPeriodSortSpec);
 
     Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
+    sanitizedPageable =
+        removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
