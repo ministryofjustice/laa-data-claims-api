@@ -896,6 +896,60 @@ paths:
         '500':
           description: 'Internal server error'
 
+
+  /api/v1/claims/{claim-id}/void:
+    post:
+      operationId: voidClaim
+      tags:
+        - Claims
+      summary: Void a specific claim
+      description: Voids a specific claim and creates a void assessment record.
+      parameters:
+        - name: claim-id
+          in: path
+          required: true
+          description: ID of the claim
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/void_claim_request'
+      responses:
+        '201':
+          description: Void assessment created successfully
+          headers:
+            location:
+              description: URI of the newly created void assessment
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID of the created void assessment
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: Submission or claim not found
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+
   /api/v1/validation-messages:
     get:
       operationId: getValidationMessages
@@ -1285,6 +1339,17 @@ components:
           type: 'array'
           items:
             $ref: '#/components/schemas/claim_response_v2'
+    void_claim_request:
+      type: object
+      required:
+        - created_by_user_id
+        - assessment_reason
+      properties:
+        created_by_user_id:
+          type: string
+          format: uuid
+        assessment_reason:
+          type: string
     matter_start_result_set:
       type: 'object'
       properties:
@@ -1297,6 +1362,8 @@ components:
           items:
             $ref: '#/components/schemas/matter_start_get'
     assessment_result_set:
+      allOf:
+        - $ref: "#/components/schemas/page"
       type: 'object'
       properties:
         assessments:

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -42,6 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -61,6 +63,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @Slf4j
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -71,6 +74,9 @@ public class ClaimService
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   private final ClaimCaseRepository claimCaseRepository;
+  private final AssessmentRepository assessmentRepository;
+  private final ClaimValidationService claimValidationService;
+  private final AssessmentService assessmentService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -173,6 +179,8 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+
+    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
 
@@ -414,6 +422,32 @@ public class ClaimService
   @Transactional
   public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
     return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
+
+  /**
+   * Voids a claim by its identifier and creates an associated assessment. This operation validates
+   * the claim's eligibility for voiding based on input parameters.
+   *
+   * @param claimId the unique identifier of the claim to be voided
+   * @param createdByUserId the identifier of the user initiating the void operation
+   * @param assessmentReason the reason for the assessment creation during claim voiding
+   * @return the unique identifier of the newly created assessment
+   */
+  @Transactional
+  public UUID voidClaimByIdAndCreateAssessment(
+      UUID claimId, UUID createdByUserId, String assessmentReason) {
+
+    claimValidationService.validateVoidClaimParameters(claimId, createdByUserId, assessmentReason);
+
+    Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee =
+        claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
+
+    claim.voidClaim(createdByUserId);
+    Assessment assessment =
+        assessmentService.createVoidAssessment(
+            assessmentReason, claim, claimSummaryFee, createdByUserId);
+    return assessmentRepository.save(assessment).getId();
   }
 
   private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {

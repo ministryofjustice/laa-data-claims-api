@@ -21,6 +21,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 
 /** Entity representing an assessment linked to a claim. */
 @Getter
@@ -44,10 +45,13 @@ public class Assessment {
   @JoinColumn(name = "claim_summary_fee_id", nullable = false)
   private ClaimSummaryFee claimSummaryFee;
 
-  @NotNull
-  @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   private AssessmentOutcome assessmentOutcome;
+
+  @Enumerated(EnumType.STRING)
+  private AssessmentType assessmentType;
+
+  private String assessmentReason;
 
   private BigDecimal fixedFeeAmount;
 

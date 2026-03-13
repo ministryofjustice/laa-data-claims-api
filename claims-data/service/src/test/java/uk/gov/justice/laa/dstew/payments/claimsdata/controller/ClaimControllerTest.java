@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -263,5 +264,55 @@ class ClaimControllerTest {
                 .queryParam("pageable", String.valueOf(Pageable.unpaged())))
         .andExpect(status().isOk())
         .andExpect(content().json(jsonContent));
+  }
+
+  @Test
+  void voidClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
+
+    UUID claimId = Uuid7.timeBasedUuid();
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    UUID createdByUserId = UUID.randomUUID();
+
+    when(claimService.voidClaimByIdAndCreateAssessment(
+            eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment")))
+        .thenReturn(assessmentId);
+
+    String body =
+        "{"
+            + "\"created_by_user_id\":\""
+            + createdByUserId
+            + "\","
+            + "\"assessment_reason\":\"Escape Fee Case Assessment\""
+            + "}";
+
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isCreated())
+        .andExpect(
+            header()
+                .string(
+                    "Location",
+                    containsString("/api/v1/claims/" + claimId + "/assessments/" + assessmentId)))
+        .andExpect(jsonPath("$.id").value(assessmentId.toString()));
+
+    verify(claimService)
+        .voidClaimByIdAndCreateAssessment(
+            eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment"));
+  }
+
+  @Test
+  void voidClaim_missingBody_returnsBadRequest() throws Exception {
+    UUID claimId = Uuid7.timeBasedUuid();
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest());
+
+    verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any(), any());
   }
 }

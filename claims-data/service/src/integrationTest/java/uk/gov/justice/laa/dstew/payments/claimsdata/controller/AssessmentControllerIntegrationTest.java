@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
@@ -33,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateAssessment201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
@@ -95,6 +98,9 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
         .isEqualTo(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assertThat(savedAssessment.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedAssessment.getAssessmentReason()).isEqualTo("test");
+    assertThat(savedAssessment.getAssessmentType())
+        .isEqualTo(AssessmentType.ESCAPE_CASE_ASSESSMENT);
     assertTrue(updatedClaim.isHasAssessment());
   }
 
@@ -102,13 +108,43 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   void shouldReturnBadRequestWhenClaimDoesNotHaveValidStatus() throws Exception {
     // when: calling the POST endpoint for a claim without VALID status, 400 should be returned
     final AssessmentPost assessmentPost = getAssessmentPost();
-    mockMvc
-        .perform(
-            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
-                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
-                .contentType(MediaType.APPLICATION_JSON)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: assert error message in response body
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody)
+        .contains(
+            CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(
+                CLAIM_ID_WITHOUT_VALID_STATUS));
+  }
+
+  @Test
+  void shouldReturnBadRequestWhenAssessmentPostHasVoidStatus() throws Exception {
+    // when: calling the POST endpoint to set a VOID status, 400 should be returned
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setAssessmentType(AssessmentType.VOID);
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: assert error message in response body
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody)
+        .contains(INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("create assessment"));
   }
 
   @Test
@@ -269,6 +305,11 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
             mvcResult.getResponse().getContentAsString(), AssessmentResultSet.class);
 
     List<AssessmentGet> assessments = result.getAssessments();
+
+    assertThat(result.getTotalElements()).isEqualTo(2);
+    assertThat(result.getTotalPages()).isEqualTo(2);
+    assertThat(result.getNumber()).isEqualTo(0);
+    assertThat(result.getSize()).isEqualTo(1);
 
     assertThat(assessments).isNotEmpty().hasSize(1);
 
