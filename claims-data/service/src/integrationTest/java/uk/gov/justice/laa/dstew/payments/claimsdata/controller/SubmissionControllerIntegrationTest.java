@@ -88,6 +88,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   // must match application-test.yml for test-runner token
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
+  private static final String TEST_ERROR_MESSAGE =
+      "Concatenated test error messages from integration test";
+
   @BeforeAll
   void initialSetup() {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
@@ -340,7 +343,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
             .createdByUserId(API_USER_ID)
             .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
-            .errorMessages("Test error message from integration test")
+            .errorMessages(TEST_ERROR_MESSAGE)
             .build();
 
     // when: calling POST endpoint for submissions
@@ -354,9 +357,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     Submission createdSubmission = submissionRepository.findById(submissionId).orElseThrow();
 
-    // then: submission is correctly created with errorMessages
-    assertThat(createdSubmission.getErrorMessages())
-        .isEqualTo("Test error message from integration test");
+    // then: submission is correctly created with all expected fields
+    assertThat(createdSubmission.getId()).isEqualTo(submissionId);
+    assertThat(createdSubmission.getBulkSubmissionId()).isEqualTo(BULK_SUBMISSION_ID);
+    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
+    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+    assertThat(createdSubmission.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(createdSubmission.getErrorMessages()).isEqualTo(TEST_ERROR_MESSAGE);
   }
 
   @Test
@@ -379,7 +386,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         OBJECT_MAPPER.readValue(
             result.getResponse().getContentAsString(), SubmissionResponse.class);
 
-    // then: errorMessages is correctly returned
+    // then: submission is correctly returned with errorMessages
+    assertThat(submissionResult.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(submissionResult.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(submissionResult.getErrorMessages()).isEqualTo("Error message for GET test");
   }
 
@@ -456,6 +465,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update the submission
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
 
     assertThat(
@@ -484,6 +495,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update and send validation event
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_VALIDATION);
 
     ReceiveMessageResponse receiveResp =
@@ -517,7 +530,11 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
-    // then: should save new validation messages
+    // then: should save new validation messages and submission remains intact
+    Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+
     List<ValidationMessageLog> logs = validationMessageLogRepository.findAll();
     assertThat(logs).hasSize(1);
     assertThat(logs.getFirst().getDisplayMessage()).isEqualTo("DISPLAY_MESSAGE");
@@ -544,6 +561,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update the submission with errorMessages
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(updated.getErrorMessages()).isEqualTo(errorMessage);
   }
 
