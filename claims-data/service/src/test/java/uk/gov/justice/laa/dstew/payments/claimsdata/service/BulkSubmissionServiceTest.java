@@ -404,8 +404,7 @@ class BulkSubmissionServiceTest {
             () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
 
     assertEquals(
-        "User does not have authorisation to submit for office null. Please verify "
-            + "your office code and access permissions.",
+        "The selected file contains office account null. You do not have access to this office",
         exception.getMessage());
   }
 
@@ -432,8 +431,8 @@ class BulkSubmissionServiceTest {
             () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
 
     assertEquals(
-        "User does not have authorisation to submit for office DIFFERENT. Please verify "
-            + "your office code and access permissions.",
+        "The selected file contains office account DIFFERENT. You do not have access to this "
+            + "office",
         exception.getMessage());
   }
 }
