@@ -14,6 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -451,6 +452,8 @@ public class ClaimsDataTestUtil {
         .assessedTotalInclVat(new BigDecimal("1700.00"))
         .allowedTotalVat(new BigDecimal("1800.00"))
         .allowedTotalInclVat(new BigDecimal("1900.00"))
+        .assessmentReason("test")
+        .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
         .createdByUserId(API_USER_ID);
   }
 
