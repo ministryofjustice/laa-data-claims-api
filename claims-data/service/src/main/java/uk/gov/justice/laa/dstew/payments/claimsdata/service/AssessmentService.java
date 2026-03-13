@@ -135,9 +135,7 @@ public class AssessmentService {
       throw new AssessmentNotFoundException(
           String.format("No assessments found for claimId: %s", claimId));
     }
-    return AssessmentResultSet.builder()
-        .assessments(assessments.stream().map(assessmentMapper::toAssessmentGet).toList())
-        .build();
+    return assessmentMapper.toAssessmentResultSet(assessments);
   }
 
   /**

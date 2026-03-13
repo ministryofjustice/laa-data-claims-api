@@ -306,6 +306,11 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
     List<AssessmentGet> assessments = result.getAssessments();
 
+    assertThat(result.getTotalElements()).isEqualTo(2);
+    assertThat(result.getTotalPages()).isEqualTo(2);
+    assertThat(result.getNumber()).isEqualTo(0);
+    assertThat(result.getSize()).isEqualTo(1);
+
     assertThat(assessments).isNotEmpty().hasSize(1);
 
     AssessmentGet assessment = assessments.getFirst();

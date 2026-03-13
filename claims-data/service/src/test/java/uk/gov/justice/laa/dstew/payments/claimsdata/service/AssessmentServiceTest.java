@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -196,9 +197,14 @@ class AssessmentServiceTest {
     dto.setId(assessment.getId());
     dto.setClaimId(CLAIM_1_ID);
 
-    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class)))
-        .thenReturn(List.of(assessment));
-    when(assessmentMapper.toAssessmentGet(assessment)).thenReturn(dto);
+    var page = new PageImpl<>(Collections.singletonList(assessment));
+    var results =
+        new AssessmentResultSet()
+            .assessments(List.of(new AssessmentGet().claimId(CLAIM_1_ID)))
+            .totalElements(1);
+
+    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class))).thenReturn(page);
+    when(assessmentMapper.toAssessmentResultSet(page)).thenReturn(results);
 
     AssessmentResultSet result =
         assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged());
@@ -211,7 +217,7 @@ class AssessmentServiceTest {
   @Test
   void shouldThrowExceptionWhenAssessmentsEmpty() {
     when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class)))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
 
     assertThatThrownBy(
             () -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
