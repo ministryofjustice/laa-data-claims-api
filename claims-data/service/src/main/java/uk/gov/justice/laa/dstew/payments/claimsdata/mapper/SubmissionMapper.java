@@ -32,7 +32,6 @@ public interface SubmissionMapper {
    */
   @Mapping(target = "id", source = "submissionId")
   @InheritConfiguration(name = "ignoreAuditFields")
-  @Mapping(target = "errorMessages", ignore = true)
   @Mapping(target = "createdOn", source = "submitted")
   Submission toSubmission(SubmissionPost submissionPost);
 
@@ -67,7 +66,6 @@ public interface SubmissionMapper {
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
-  @Mapping(target = "errorMessages", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
   /** Map a validation message string to a ValidationMessageLog. */
