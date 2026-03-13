@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -206,5 +207,31 @@ class ClaimValidationServiceTest {
     assertThatThrownBy(() -> validationService.ensureClaimIsValid(claim))
         .isInstanceOf(ClaimBadRequestException.class)
         .hasMessageContaining(claimId.toString());
+  }
+
+  // =====================================================
+  // Ensure Status Is Not Void Tests
+  // =====================================================
+  @Nested
+  class EnsureStatusIsNotVoidTests {
+
+    @ParameterizedTest
+    @EnumSource(
+        value = ClaimStatus.class,
+        names = {"VOID"})
+    void shouldThrowWhenStatusIsVoid(ClaimStatus status) {
+      assertThatThrownBy(() -> validationService.ensureStatusIsNotVoid(status))
+          .isInstanceOf(ClaimBadRequestException.class)
+          .hasMessageContaining(INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("update claim"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+        value = ClaimStatus.class,
+        names = {"VOID"},
+        mode = EnumSource.Mode.EXCLUDE)
+    void shouldNotThrowForNonVoidStatuses(ClaimStatus status) {
+      assertDoesNotThrow(() -> validationService.ensureStatusIsNotVoid(status));
+    }
   }
 }

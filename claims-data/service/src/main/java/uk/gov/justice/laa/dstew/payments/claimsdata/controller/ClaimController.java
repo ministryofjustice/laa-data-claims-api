@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.controller.AssessmentController.GET_ASSESSMENT_ENDPOINT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
@@ -37,8 +38,7 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 @Slf4j
 public class ClaimController implements ClaimsApi {
 
-  private static final String ASSESSMENT_PATH =
-      "/api/v1/claims/{claimId}/assessments/{assessmentId}";
+  public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
 
   private final ClaimService claimService;
 
@@ -153,7 +153,7 @@ public class ClaimController implements ClaimsApi {
 
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
-            .path(ASSESSMENT_PATH)
+            .path(GET_ASSESSMENT_ENDPOINT)
             .buildAndExpand(claimId, assessmentId)
             .toUri();
     return ResponseEntity.created(location)

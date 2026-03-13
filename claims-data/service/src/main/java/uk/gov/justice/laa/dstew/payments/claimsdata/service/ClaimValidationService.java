@@ -1,12 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
-
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.controller.ClaimController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
@@ -44,6 +43,9 @@ public class ClaimValidationService {
       "createdByUserId must be provided";
   public static final String ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR =
       "assessmentReason must be provided";
+  public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
+      "Claim status VOID cannot be set via %s endpoint. Use POST "
+          + ClaimController.VOID_CLAIM_ENDPOINT;
 
   private final ClaimRepository claimRepository;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
@@ -199,5 +201,22 @@ public class ClaimValidationService {
     }
 
     return claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
+  }
+
+  /**
+   * Ensures that the given claim status is not VOID.
+   *
+   * <p>This method validates the status of a claim and throws an exception if the status is
+   * determined to be VOID. It is used to enforce business rules where claims with VOID status
+   * should not proceed with certain operations.
+   *
+   * @param status The claim status to validate.
+   * @throws ClaimBadRequestException if the status is VOID.
+   */
+  public void ensureStatusIsNotVoid(ClaimStatus status) {
+    if (status == ClaimStatus.VOID) {
+      throw new ClaimBadRequestException(
+          INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("update claim"));
+    }
   }
 }
