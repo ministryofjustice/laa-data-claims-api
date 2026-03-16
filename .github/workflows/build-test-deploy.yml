@@ -10,10 +10,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build-test:
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
@@ -56,7 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload service JAR artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: service-jar
           path: claims-data/service/build/libs/*.jar
@@ -64,7 +60,7 @@ jobs:
 
       - name: Upload checkstyle report for claims-data
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: checkstyle-report
           path: claims-data/service/build/reports/checkstyle
@@ -72,7 +68,7 @@ jobs:
 
       - name: Upload test report for claims-data
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: claims-data/service/build/reports/tests
@@ -80,7 +76,7 @@ jobs:
 
       - name: Upload jacoco coverage report for claims-data
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-coverage-report
           path: claims-data/service/build/reports/jacoco
@@ -152,7 +148,7 @@ jobs:
         uses: snyk/actions/docker@master
         with:
           image: image.tar
-          args: --docker --severity-threshold=high
+          args: --docker --severity-threshold=high --policy-path=.snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -169,14 +165,14 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download JAR artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: service-jar
           path: claims-data/service/build/libs/
 
         # ---------- AWS auth (OIDC) ----------
       - name: Configure AWS creds
-        uses: aws-actions/configure-aws-credentials@v5.1.1
+        uses: aws-actions/configure-aws-credentials@v6.0.0
         with:
           role-to-assume: ${{ secrets.ECR_ROLE_TO_ASSUME }}
           aws-region: ${{  vars.ECR_REGION }}
@@ -194,7 +190,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@story/pact-publish
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@v1
     needs:
       - build-push-docker
       - semgrep-scan
@@ -232,7 +228,7 @@ jobs:
         uses: ./.github/actions/get_release_name
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -255,7 +251,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -283,7 +279,7 @@ jobs:
 
       - name: Can I deploy Staging?
         id: can_i_deploy_staging
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
@@ -306,7 +302,7 @@ jobs:
 
       - name: Record staging deployment to pact broker
         id: record_staging_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
@@ -334,7 +330,7 @@ jobs:
 
       - name: Can I deploy Production?
         id: can_i_deploy_production
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_production.outputs.release-name }}
@@ -357,7 +353,7 @@ jobs:
 
       - name: Record production deployment to pact broker
         id: record_production_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@story/pact-publish
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_production.outputs.release-name }}

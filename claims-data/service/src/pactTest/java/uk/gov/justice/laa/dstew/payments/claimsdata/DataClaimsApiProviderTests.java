@@ -1,22 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOutcome;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionSchedule;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimSummaryFee;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessage;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
@@ -25,16 +13,22 @@ import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import java.io.Writer;
+import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -291,6 +285,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
   }
 
+  @SneakyThrows
+  @State("no data exists for the export")
+  public void noDataExistsForTheExport() {
+    log.info("Setting up state: no data exists for the export");
+    Connection connection = Mockito.mock(Connection.class);
+    PGConnection pgConnection = Mockito.mock(PGConnection.class);
+    CopyManager copyManager = Mockito.mock(CopyManager.class);
+    when(dataSource.getConnection()).thenReturn(connection);
+    when(connection.unwrap(PGConnection.class)).thenReturn(pgConnection);
+    when(pgConnection.getCopyAPI()).thenReturn(copyManager);
+    when(copyManager.copyOut(anyString(), any(Writer.class))).thenReturn(0L);
+  }
+
   @State("claims exist for the search criteria")
   public void aClaimExistsForSearchCriteria() {
     log.info("Setting up state: claim exist for the search criteria");
@@ -304,6 +311,20 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(calculatedFeeDetailRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
     when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
+  }
+
+  @State("claims exist for the search criteria v2")
+  public void aClaimExistsForSearchCriteriaV2() {
+    log.info("Setting up state: claim exist for the search criteria v2");
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl(Collections.singletonList(getClaimV2())));
+  }
+
+  @State("no claims exist for the search criteria v2")
+  public void noClaimsExistForTheSearchCriteriaV2() {
+    log.info("Setting up state: no claims exist for the search criteria v2");
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl(Collections.emptyList()));
   }
 
   @State("no claims exist for the search criteria")

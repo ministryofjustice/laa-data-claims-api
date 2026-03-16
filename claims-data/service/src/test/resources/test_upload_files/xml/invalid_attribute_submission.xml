@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<submission xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd">
+    <office account="0U09"> <!-- INVALID: too short -->
+        <schedule submissionPeriod="APR2021" areaOfLaw="LEGAL HELP" scheduleNum="0U099L/LEGAL_HELP"> <!-- INVALID format -->
+            <outcome matterType="IALB:IFRA">
+                <outcomeItem name="FEE_CODE">FEE001</outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
+</submission>

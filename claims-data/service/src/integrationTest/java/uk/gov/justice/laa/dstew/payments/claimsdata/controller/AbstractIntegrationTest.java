@@ -585,6 +585,236 @@ public abstract class AbstractIntegrationTest {
     createValidationMessageLogTestData();
   }
 
+  protected UUID createCrimeLowerExportData(String officeAccountNumber) {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
+
+    submissionRepository.saveAll(
+        List.of(
+            Submission.builder()
+                .id(submissionId)
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(officeAccountNumber)
+                .submissionPeriod("FEB-2025")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .crimeLowerScheduleNumber("CRIME-SCHEDULE-1")
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(USER_ID)
+                .numberOfClaims(1)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimRepository.saveAll(
+        List.of(
+            Claim.builder()
+                .id(claimId)
+                .submission(submissionRepository.getReferenceById(submissionId))
+                .status(ClaimStatus.INVALID)
+                .lineNumber(1)
+                .matterTypeCode("CRIME-MATTER")
+                .crimeMatterTypeCode("CR-MAT-1")
+                .feeCode("CRIME-FEE")
+                .caseReferenceNumber("CRIME-CASE-1")
+                .uniqueFileNumber("CRIME-UFN-1")
+                .caseStartDate(LocalDate.of(2025, 2, 1))
+                .caseConcludedDate(LocalDate.of(2025, 2, 10))
+                .scheduleReference("CR-SCH-1")
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    clientRepository.saveAll(
+        List.of(
+            Client.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claimRepository.getReferenceById(claimId))
+                .clientForename("Chris")
+                .clientSurname("Davis")
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimCaseRepository.saveAll(
+        List.of(
+            ClaimCase.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claimRepository.getReferenceById(claimId))
+                .stageReachedCode("CRIME-STAGE")
+                .outcomeCode("CRIME-OUTCOME")
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimSummaryFeeRepository.saveAll(
+        List.of(
+            ClaimSummaryFee.builder()
+                .id(claimSummaryFeeId)
+                .claim(claimRepository.getReferenceById(claimId))
+                .netProfitCostsAmount(BigDecimal.valueOf(120))
+                .netDisbursementAmount(BigDecimal.valueOf(22))
+                .travelWaitingCostsAmount(BigDecimal.valueOf(10))
+                .netWaitingCostsAmount(BigDecimal.valueOf(4))
+                .isVatApplicable(true)
+                .disbursementsVatAmount(BigDecimal.valueOf(4))
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .build()));
+
+    calculatedFeeDetailRepository.saveAll(
+        List.of(
+            CalculatedFeeDetail.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .claim(claimRepository.getReferenceById(claimId))
+                .feeCodeDescription("Crime fee detail")
+                .feeType(FeeCalculationType.FIXED)
+                .categoryOfLaw("CRIME")
+                .totalAmount(BigDecimal.valueOf(88))
+                .vatIndicator(true)
+                .vatRateApplied(new BigDecimal("0.20"))
+                .calculatedVatAmount(BigDecimal.valueOf(14))
+                .disbursementAmount(BigDecimal.valueOf(15))
+                .requestedNetDisbursementAmount(BigDecimal.valueOf(13))
+                .disbursementVatAmount(BigDecimal.valueOf(2))
+                .hourlyTotalAmount(BigDecimal.valueOf(40))
+                .fixedFeeAmount(BigDecimal.valueOf(30))
+                .netProfitCostsAmount(BigDecimal.valueOf(55))
+                .requestedNetProfitCostsAmount(BigDecimal.valueOf(50))
+                .netTravelCostsAmount(BigDecimal.valueOf(12))
+                .netWaitingCostsAmount(BigDecimal.valueOf(5))
+                .travelAndWaitingCostsAmount(BigDecimal.valueOf(6))
+                .escapeCaseFlag(true)
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .build()));
+
+    return submissionId;
+  }
+
+  protected UUID createMediationExportData(String officeAccountNumber) {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
+
+    submissionRepository.saveAll(
+        List.of(
+            Submission.builder()
+                .id(submissionId)
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(officeAccountNumber)
+                .submissionPeriod("MAY-2025")
+                .areaOfLaw(AreaOfLaw.MEDIATION)
+                .mediationSubmissionReference("MED-SUB-001")
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(USER_ID)
+                .numberOfClaims(1)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimRepository.saveAll(
+        List.of(
+            Claim.builder()
+                .id(claimId)
+                .submission(submissionRepository.getReferenceById(submissionId))
+                .status(ClaimStatus.READY_TO_PROCESS)
+                .lineNumber(1)
+                .matterTypeCode("MED-MATTER")
+                .feeCode("MED-FEE")
+                .caseReferenceNumber("MED-CASE-001")
+                .caseStartDate(LocalDate.of(2025, 8, 2))
+                .caseConcludedDate(LocalDate.of(2025, 8, 12))
+                .mediationSessionsCount(4)
+                .mediationTimeMinutes(90)
+                .outreachLocation("Outreach centre")
+                .referralSource("Court referral")
+                .scheduleReference("MED-SCHED-001")
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    clientRepository.saveAll(
+        List.of(
+            Client.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claimRepository.getReferenceById(claimId))
+                .clientForename("Mia")
+                .clientSurname("Green")
+                .clientDateOfBirth(LocalDate.of(1985, 4, 12))
+                .uniqueClientNumber("MED-UCN-1")
+                .clientPostcode("AB1 2CD")
+                .genderCode("F")
+                .ethnicityCode("A")
+                .disabilityCode("N")
+                .isLegallyAided(true)
+                .client2Forename("Noah")
+                .client2Surname("Green")
+                .client2DateOfBirth(LocalDate.of(1986, 6, 10))
+                .client2Ucn("MED-UCN-2")
+                .client2Postcode("AB1 2CD")
+                .client2GenderCode("M")
+                .client2EthnicityCode("B")
+                .client2DisabilityCode("N")
+                .client2IsLegallyAided(false)
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimCaseRepository.saveAll(
+        List.of(
+            ClaimCase.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claimRepository.getReferenceById(claimId))
+                .outcomeCode("MED-OUTCOME")
+                .isPostalApplicationAccepted(true)
+                .isClient2PostalApplicationAccepted(false)
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON)
+                .build()));
+
+    claimSummaryFeeRepository.saveAll(
+        List.of(
+            ClaimSummaryFee.builder()
+                .id(claimSummaryFeeId)
+                .claim(claimRepository.getReferenceById(claimId))
+                .isVatApplicable(true)
+                .netDisbursementAmount(BigDecimal.valueOf(33))
+                .disbursementsVatAmount(BigDecimal.valueOf(7))
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .build()));
+
+    calculatedFeeDetailRepository.saveAll(
+        List.of(
+            CalculatedFeeDetail.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .claim(claimRepository.getReferenceById(claimId))
+                .feeCodeDescription("Mediation fee detail")
+                .feeType(FeeCalculationType.FIXED)
+                .categoryOfLaw("MEDIATION")
+                .totalAmount(BigDecimal.valueOf(120))
+                .vatIndicator(true)
+                .vatRateApplied(new BigDecimal("0.20"))
+                .calculatedVatAmount(BigDecimal.valueOf(24))
+                .disbursementAmount(BigDecimal.valueOf(20))
+                .requestedNetDisbursementAmount(BigDecimal.valueOf(18))
+                .disbursementVatAmount(BigDecimal.valueOf(4))
+                .fixedFeeAmount(BigDecimal.valueOf(100))
+                .netProfitCostsAmount(BigDecimal.valueOf(80))
+                .requestedNetProfitCostsAmount(BigDecimal.valueOf(75))
+                .netTravelCostsAmount(BigDecimal.valueOf(10))
+                .netWaitingCostsAmount(BigDecimal.valueOf(5))
+                .travelAndWaitingCostsAmount(BigDecimal.valueOf(15))
+                .createdByUserId(USER_ID)
+                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .build()));
+
+    return submissionId;
+  }
+
   /**
    * Creates and returns an in-memory {@link ListAppender} for capturing {@link ILoggingEvent} log
    * entries emitted by the {@code uk.gov.laa.springboot.sqlscanner.SqlScanAspect} logger.

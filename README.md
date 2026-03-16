@@ -17,6 +17,13 @@ Includes the following subprojects:
 - `claims-data/swagger-ui-app` - Stub REST API application which allows swagger-ui docs to be exposed
                                 - this allows us to upgrade open api spec ahead of the java code 
                                 - (openapi spec changes have to be made on a branch named openapi/*)
+## CSV Exports
+
+This API uses the shared CSV export starter:
+- Dependency: `uk.gov.laa.springboot:laa-spring-boot-starter-export` (configured in `claims-data/service/build.gradle`).
+- Export definitions: `claims-data/service/src/main/resources/export_definitions/*.yml`.
+- Runtime export settings (including default row limits): `laa.exports` in `claims-data/service/src/main/resources/application*.yml` and `application*.yaml`.
+
 ## Add GitHub Token
 1.	Generate a Github PAT (Personal Access Token) to access the required plugin, via https://github.com/settings/tokens
 2.	Specify the Note field, e.g. “Token to allow access to LAA Gradle plugin” 
@@ -61,6 +68,12 @@ The following actuator endpoints have been configured:
 - http://localhost:8080/actuator/info
 
 ## Additional Information
+
+### Development Guide
+- Local development workflow, code quality checks, and pre-commit setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+
+### API testing with Bruno
+- Bruno collection usage, UI workflow, setup flow, and contribution rules: [bruno/BRUNO.md](bruno/BRUNO.md)
 
 ### Libraries Used
 - [Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/index.html) - used to provide various endpoints to help monitor the application, such as view application health and information.

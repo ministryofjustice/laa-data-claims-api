@@ -73,6 +73,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final String ERROR_MESSAGE = "errorMessage";
+  private static final String HTTP_STATUS = "httpStatus";
 
   @Autowired private SqsClient sqsClient;
 
@@ -95,11 +97,14 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   @ParameterizedTest
   @CsvSource({
     "test_upload_files/csv/outcomes.csv,false,false,text/csv",
+    "test_upload_files/csv/outcomes.csv,false,false,application/vnd.ms-excel",
+    "test_upload_files/csv/outcomes.csv,false,false,text/plain",
     "test_upload_files/csv/outcomes_crime_lower.csv,false,false,text/csv",
     "test_upload_files/csv/outcomes_crime_lower_no_schedule.csv,false,false,text/csv",
     "test_upload_files/csv/outcomes_mediation.csv,false,false,text/csv",
-    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/csv",
+    "test_upload_files/txt/outcomes_with_matter_starts.txt,true,false,text/plain",
     "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,text/xml",
+    "test_upload_files/xml/outcomes_with_matter_starts.xml,true,false,application/xml",
     "test_upload_files/xml/outcomes_with_matter_starts_immigrationclr.xml,true,true,text/xml"
   })
   void shouldSaveSubmissionToDatabaseAndPublishMessage(
@@ -240,7 +245,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
+    assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo(
             "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                 + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
@@ -265,7 +270,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andExpect(status().isBadRequest())
             .andReturn();
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
+    assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
   }
 
@@ -556,9 +561,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
-        .isEqualTo("Failed to parse csv bulk submission file");
-    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_MESSAGE).asText())
+        .isEqualTo(
+            "Failed to read bulk submission file: Unrecognized field \"CASE_REF_NUMBER_NOT_EXISTING\" ");
+    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
   @Test
@@ -583,9 +589,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
-        .isEqualTo("Office missing from csv bulk submission file");
-    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_MESSAGE).asText())
+        .isEqualTo("Office missing from bulk submission file");
+    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
   @Test
@@ -610,9 +616,41 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
-        .isEqualTo("Failed to parse bulk submission file header: OFFICE;account=");
-    assertThat(json.get("httpStatus").asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_MESSAGE).asText())
+        .isEqualTo("Failed to parse bulk submission file, found invalid header: OFFICE;account=");
+    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "test_upload_files/invalid/missing_some_outcome_headers.csv",
+    "test_upload_files/invalid/missing_all_outcome_headers.csv"
+  })
+  void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMissingRecordTypeForOutcomes(
+      String csvSource) throws Exception {
+    // given: a file with a missing outcome header
+    ClassPathResource resource = new ClassPathResource(csvSource);
+
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+
+    // when: calling the POST endpoint, then: it should return a bad request.
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get(ERROR_MESSAGE).asText())
+        .isEqualTo(
+            "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
+    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
   }
 
   @Test
@@ -684,9 +722,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get("errorMessage").asText())
+    assertThat(json.get(ERROR_MESSAGE).asText())
         .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
-    assertThat(json.get("httpStatus").asInt()).isEqualTo(404);
+    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(404);
   }
 
   @Test
