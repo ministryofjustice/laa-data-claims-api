@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -34,6 +35,8 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
 
   private static final String ERROR_TYPE_BASE_URI =
       "https://claimsdata.payments.laa.justice.gov.uk/errors/";
+  private static final Pattern EXCEPTION_SUFFIX = Pattern.compile("Exception$");
+  private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
 
   /**
    * Handle {@link ClaimsDataException} instances and convert them to RFC 9457 Problem Details.
@@ -122,9 +125,10 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    */
   private String toKebabCase(Class<?> exceptionClass) {
     String simpleName = exceptionClass.getSimpleName();
-    return simpleName
-        .replaceAll("Exception$", "")
-        .replaceAll("([a-z])([A-Z])", "$1-$2")
-        .toLowerCase();
+    // Remove 'Exception' suffix using precompiled pattern
+    String noSuffix = EXCEPTION_SUFFIX.matcher(simpleName).replaceAll("");
+    // Insert hyphens between camel case using precompiled pattern
+    String kebab = CAMEL_CASE.matcher(noSuffix).replaceAll("$1-$2");
+    return kebab.toLowerCase();
   }
 }

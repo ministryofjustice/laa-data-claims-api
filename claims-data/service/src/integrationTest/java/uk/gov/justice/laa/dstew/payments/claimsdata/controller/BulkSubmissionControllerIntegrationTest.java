@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
@@ -250,8 +251,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .isEqualTo(
             "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                 + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @DisplayName(
@@ -275,8 +276,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
@@ -569,8 +570,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Failed to read bulk submission file: Unrecognized field \"CASE_REF_NUMBER_NOT_EXISTING\" ");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
@@ -597,8 +598,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Office missing from bulk submission file");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
@@ -625,8 +626,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Failed to parse bulk submission file, found invalid header: OFFICE;account=");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @ParameterizedTest
@@ -658,8 +659,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(400);
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Bad Request");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
