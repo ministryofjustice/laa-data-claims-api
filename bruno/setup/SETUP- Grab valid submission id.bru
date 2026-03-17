@@ -1,0 +1,39 @@
+meta {
+  name: SETUP: Grab valid submission id
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=000123
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  userId: test
+  offices: 000123
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(/Users/ben.hobden/BulkClaimFiles/EV-CLM-053.1_outcome_code_crime_valid_code_scenario_it_tests.xml) @contentType(text/xml)
+}
+
+tests {
+  if(res.status === 201){
+    const body = res.getBody();
+    bru.setEnvVar("SUBMISSION_ID", body.submission_ids[0]);
+    bru.setEnvVar("BULKSUBMISSION_ID", body.bulk_submission_id);
+  }else{
+    throw new Error("POST failed - cannont set SUBMISSION_ID");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

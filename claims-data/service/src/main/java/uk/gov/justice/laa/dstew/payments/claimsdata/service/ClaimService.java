@@ -2,15 +2,23 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -28,11 +36,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
@@ -40,8 +51,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling claims. */
@@ -50,6 +63,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @Slf4j
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
+
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -60,6 +74,9 @@ public class ClaimService
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   private final ClaimCaseRepository claimCaseRepository;
+  private final AssessmentRepository assessmentRepository;
+  private final ClaimValidationService claimValidationService;
+  private final AssessmentService assessmentService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -140,6 +157,19 @@ public class ClaimService
   }
 
   /**
+   * Retrieve a claim for a submission.
+   *
+   * @param submissionId submission identifier
+   * @param claimId claim identifier
+   * @return populated claim response v2
+   */
+  @Transactional(readOnly = true)
+  public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
+    Claim claim = requireClaim(submissionId, claimId);
+    return claimMapper.toClaimResponseV2(claim);
+  }
+
+  /**
    * Update a claim for a submission.
    *
    * @param submissionId submission identifier
@@ -149,6 +179,8 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+
+    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
 
@@ -300,8 +332,137 @@ public class ClaimService
     return response;
   }
 
+  /**
+   * Returns all the existing claims filtered by some parameters and paginated in a {@link
+   * ClaimResultSet}.
+   *
+   * @param request an object containing all the parameters to filter by
+   * @param pageable a pageable object to yield the paginated claims results
+   * @return the paginated result set with all claims that satisfy the filtering criteria above.
+   */
+  public ClaimResultSetV2 getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
+
+    if (!StringUtils.hasText(request.getOfficeCode())) {
+      throw new ClaimBadRequestException("Missing office code");
+    }
+
+    Pageable mappedPageable = mapPageableSort(pageable);
+
+    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
+    Specification<Claim> warningSortSpec =
+        ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
+    Specification<Claim> submissionPeriodSortSpec =
+        ClaimSpecification.orderBySubmissionPeriod(mappedPageable);
+    Specification<Claim> combinedSpec = baseSpec.and(warningSortSpec).and(submissionPeriodSortSpec);
+
+    Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
+    sanitizedPageable =
+        removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
+
+    Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
+
+    ClaimResultSetV2 response = claimResultSetMapper.toClaimResultSetV2(page);
+
+    List<UUID> claimIds =
+        response.getContent().stream()
+            .map(ClaimResponseV2::getId)
+            .filter(Objects::nonNull)
+            .map(UUID::fromString)
+            .distinct()
+            .toList();
+
+    if (!claimIds.isEmpty()) {
+      // 2) Fetch all warning counts in a single query
+      Map<UUID, Long> warningsByClaimId =
+          validationMessageLogRepository
+              .countWarningsByClaimIdsAndType(claimIds, ValidationMessageType.WARNING)
+              .stream()
+              .collect(
+                  Collectors.toMap(
+                      ClaimWarningCountProjection::getClaimId,
+                      ClaimWarningCountProjection::getWarningCount));
+
+      // 3) Apply counts to each ClaimResponse (pure in-memory)
+      for (ClaimResponseV2 claimResponse : response.getContent()) {
+        if (claimResponse.getId() != null) {
+          UUID claimId = UUID.fromString(claimResponse.getId());
+          long totalWarningsForClaim = warningsByClaimId.getOrDefault(claimId, 0L);
+
+          claimMapper.updateTotalWarningMessagesV2(totalWarningsForClaim, claimResponse);
+        }
+      }
+    }
+
+    return response;
+  }
+
+  private Pageable mapPageableSort(Pageable pageable) {
+    Sort originalSort = pageable.getSort();
+
+    if (originalSort.isUnsorted()) {
+      return pageable;
+    }
+
+    Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
+  }
+
+  private Sort.Order mapOrder(Sort.Order order) {
+    String apiProperty = order.getProperty();
+
+    ClaimSortField sortField =
+        ClaimSortField.fromApiName(apiProperty)
+            .orElseThrow(
+                () -> new ClaimBadRequestException("Unsupported sort field: " + apiProperty));
+
+    return new Sort.Order(order.getDirection(), sortField.getEntityPath());
+  }
+
   @Transactional
   public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
     return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  }
+
+  /**
+   * Voids a claim by its identifier and creates an associated assessment. This operation validates
+   * the claim's eligibility for voiding based on input parameters.
+   *
+   * @param claimId the unique identifier of the claim to be voided
+   * @param createdByUserId the identifier of the user initiating the void operation
+   * @param assessmentReason the reason for the assessment creation during claim voiding
+   * @return the unique identifier of the newly created assessment
+   */
+  @Transactional
+  public UUID voidClaimByIdAndCreateAssessment(
+      UUID claimId, UUID createdByUserId, String assessmentReason) {
+
+    claimValidationService.validateVoidClaimParameters(claimId, createdByUserId, assessmentReason);
+
+    Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee =
+        claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
+
+    claim.voidClaim(createdByUserId);
+    Assessment assessment =
+        assessmentService.createVoidAssessment(
+            assessmentReason, claim, claimSummaryFee, createdByUserId);
+    return assessmentRepository.save(assessment).getId();
+  }
+
+  private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return pageable;
+    }
+
+    List<Sort.Order> remainingOrders =
+        pageable.getSort().stream()
+            .filter(order -> !customProperty.equalsIgnoreCase(order.getProperty()))
+            .toList();
+
+    Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
+
+    return org.springframework.data.domain.PageRequest.of(
+        pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 }

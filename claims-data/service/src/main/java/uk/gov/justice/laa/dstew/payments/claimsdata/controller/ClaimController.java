@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.controller.AssessmentController.GET_ASSESSMENT_ENDPOINT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
@@ -14,14 +15,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
@@ -30,6 +37,9 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 @RequiredArgsConstructor
 @Slf4j
 public class ClaimController implements ClaimsApi {
+
+  public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
+
   private final ClaimService claimService;
 
   @Override
@@ -49,6 +59,13 @@ public class ClaimController implements ClaimsApi {
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimResponse> getClaim(UUID submissionId, UUID claimId) {
     ClaimResponse claimResponse = claimService.getClaim(submissionId, claimId);
+    return ResponseEntity.ok(claimResponse);
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResponseV2> getClaimV2(UUID submissionId, UUID claimId) {
+    ClaimResponseV2 claimResponse = claimService.getClaimV2(submissionId, claimId);
     return ResponseEntity.ok(claimResponse);
   }
 
@@ -83,12 +100,64 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimResultSetV2> getClaimsV2(
+      String officeCode,
+      String submissionId,
+      List<SubmissionStatus> submissionStatuses,
+      AreaOfLaw areaOfLaw,
+      String feeCode,
+      String uniqueFileNumber,
+      String uniqueClientNumber,
+      String uniqueCaseId,
+      List<ClaimStatus> claimStatuses,
+      String submissionPeriod,
+      String caseReferenceNumber,
+      Boolean escapedCaseFlag,
+      Pageable pageable) {
+
+    return ResponseEntity.ok(
+        claimService.getClaimResultSetV2(
+            ClaimSearchRequest.builder()
+                .officeCode(officeCode)
+                .submissionId(submissionId)
+                .submissionStatuses(submissionStatuses)
+                .areaOfLaw(areaOfLaw)
+                .feeCode(feeCode)
+                .uniqueFileNumber(uniqueFileNumber)
+                .uniqueClientNumber(uniqueClientNumber)
+                .uniqueCaseId(uniqueCaseId)
+                .claimStatuses(claimStatuses)
+                .submissionPeriod(submissionPeriod)
+                .caseReferenceNumber(caseReferenceNumber)
+                .escapedCaseFlag(escapedCaseFlag)
+                .build(),
+            pageable));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<Void> updateClaim(
       UUID submissionId,
       UUID claimId,
       @ScanForSql(ignoreClasses = ValidationMessagePatch.class) ClaimPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId, VoidClaimRequest request) {
+    UUID assessmentId =
+        claimService.voidClaimByIdAndCreateAssessment(
+            claimId, request.getCreatedByUserId(), request.getAssessmentReason());
+
+    URI location =
+        ServletUriComponentsBuilder.fromCurrentContextPath()
+            .path(GET_ASSESSMENT_ENDPOINT)
+            .buildAndExpand(claimId, assessmentId)
+            .toUri();
+    return ResponseEntity.created(location)
+        .body(VoidClaim201Response.builder().id(assessmentId).build());
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {

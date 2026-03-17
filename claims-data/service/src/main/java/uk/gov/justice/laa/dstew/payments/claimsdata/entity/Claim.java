@@ -9,11 +9,14 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,6 +43,18 @@ public class Claim {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "submission_id", nullable = false)
   private Submission submission;
+
+  @OneToOne(mappedBy = "claim")
+  private ClaimCase claimCase;
+
+  @OneToOne(mappedBy = "claim")
+  private Client client;
+
+  @OneToMany(mappedBy = "claim")
+  private List<ClaimSummaryFee> claimSummaryFee;
+
+  @OneToOne(mappedBy = "claim")
+  private CalculatedFeeDetail calculatedFeeDetail;
 
   @NotNull
   @Column(nullable = false)
@@ -131,4 +146,18 @@ public class Claim {
   @Version
   @Column(nullable = false)
   private Long version;
+
+  /**
+   * Marks the claim as void by setting its status to {@link ClaimStatus#VOID}. This method also
+   * sets the `hasAssessment` field to true, updates the `updatedByUserId` with the provided user
+   * ID, and modifies the `updatedOn` timestamp to the current time.
+   *
+   * @param userId the ID of the user performing the void operation
+   */
+  public void voidClaim(UUID userId) {
+    this.status = ClaimStatus.VOID;
+    this.hasAssessment = true;
+    this.updatedByUserId = userId.toString();
+    this.updatedOn = Instant.now();
+  }
 }

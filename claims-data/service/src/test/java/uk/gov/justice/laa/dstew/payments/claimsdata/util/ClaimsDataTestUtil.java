@@ -14,6 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
@@ -29,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v1";
+  public static final String API_V2_URI_PREFIX = "/api/v2";
   public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_1_ID = Uuid7.timeBasedUuid();
   public static final UUID SUBMISSION_2_ID = Uuid7.timeBasedUuid();
@@ -450,6 +452,8 @@ public class ClaimsDataTestUtil {
         .assessedTotalInclVat(new BigDecimal("1700.00"))
         .allowedTotalVat(new BigDecimal("1800.00"))
         .allowedTotalInclVat(new BigDecimal("1900.00"))
+        .assessmentReason("test")
+        .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
         .createdByUserId(API_USER_ID);
   }
 

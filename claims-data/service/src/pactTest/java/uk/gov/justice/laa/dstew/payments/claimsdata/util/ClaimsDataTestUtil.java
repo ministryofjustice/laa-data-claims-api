@@ -355,6 +355,14 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
+  public static Claim getClaimV2() {
+    var claim = getClaim();
+    claim.setClaimSummaryFee(List.of(getClaimSummaryFee()));
+    claim.setCalculatedFeeDetail(getCalculatedFeeDetail());
+    claim.setClient(getClient());
+    return claim;
+  }
+
   public static ClaimResponse getClaimResponse() {
     return ClaimResponse.builder()
         .id(String.valueOf(CLAIM_1_ID))
