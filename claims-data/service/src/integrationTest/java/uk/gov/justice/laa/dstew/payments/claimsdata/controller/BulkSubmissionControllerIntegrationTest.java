@@ -114,7 +114,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
       throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -176,7 +177,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath) throws Exception {
     // Given:
     // Below fields are set to "Y" in all files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -226,7 +228,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @DisplayName(
-      "Should return valid error message when multiple office and schedule are found in the submission")
+      "Should return valid error message when multiple office and schedule are found in the "
+          + "submission")
   @Test
   void shouldReturnValidErrorMessageWhenMultipleOfficeAndScheduleAreFoundInTheSubmission()
       throws Exception {
@@ -355,7 +358,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldParseTheBooleanFieldsCorrectly() throws Exception {
     // Given:
     // Below fields are set to "N" in outcomes-2.csv
-    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
+    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,
+    // CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
     // NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
     ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
 
@@ -404,7 +408,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldHandleNullValuesForBooleanFields() throws Exception {
     // Given:
     // Below fields are missing in outcomes-3.csv
-    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT_INDICATOR,
+    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,
+    // ELIGIBLE_CLIENT_INDICATOR,
     // NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
     ClassPathResource resource = new ClassPathResource(OUTCOMES_3_CSV);
 
@@ -762,7 +767,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     BulkSubmission saved = submissions.getFirst();
     assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.UNAUTHORISED);
     assertThat(saved.getErrorCode()).isEqualTo(BulkSubmissionErrorCode.E100);
-    assertThat(saved.getErrorDescription()).contains("User does not have authorisation");
+    assertThat(saved.getErrorDescription())
+        .contains(
+            "The selected file contains office account 0U099L. You do not have access to this office");
     assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
 
     // clean up the test-data
