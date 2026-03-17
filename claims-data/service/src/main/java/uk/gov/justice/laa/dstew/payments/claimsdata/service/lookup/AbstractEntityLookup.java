@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimsDataException;
 
 /**
