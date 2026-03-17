@@ -67,7 +67,6 @@ class AssessmentServiceTest {
               .claimId(claimId)
               .claimSummaryFeeId(claimSummaryFeeId)
               .createdByUserId(API_USER_ID)
-              .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
               .build();
 
       Claim claim = Claim.builder().id(claimId).hasAssessment(false).build();
@@ -104,7 +103,6 @@ class AssessmentServiceTest {
               .claimId(claimId)
               .claimSummaryFeeId(claimSummaryFeeId)
               .createdByUserId(API_USER_ID)
-              .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
               .build();
 
       Claim claim = Claim.builder().id(claimId).hasAssessment(true).build();

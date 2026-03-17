@@ -65,6 +65,9 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    // ensure assessmentType is null in AssessmentPost as it's defaulted to ESCAPE_CASE_ASSESSMENT
+    // in the service layer.
+    assertThat(assessmentPost.getAssessmentType()).isNull();
 
     // when: calling the POST endpoint with the AssessmentPost
     MvcResult result =

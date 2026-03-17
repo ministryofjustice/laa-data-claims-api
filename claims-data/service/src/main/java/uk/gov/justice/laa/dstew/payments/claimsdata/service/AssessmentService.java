@@ -59,7 +59,7 @@ public class AssessmentService {
         claimSummaryFee,
         request.getCreatedByUserId(),
         request.getAssessmentReason(),
-        request.getAssessmentType());
+        AssessmentType.ESCAPE_CASE_ASSESSMENT);
 
     return assessmentRepository.save(assessment).getId();
   }
