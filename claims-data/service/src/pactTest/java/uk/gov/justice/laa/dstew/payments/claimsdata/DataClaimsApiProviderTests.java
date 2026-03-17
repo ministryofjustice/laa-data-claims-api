@@ -294,8 +294,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a valid claim exists");
     Claim claim = getClaim();
     claim.setStatus(ClaimStatus.VALID);
-    when(claimRepository.existsById(any())).thenReturn(true);
-    when(claimRepository.getReferenceById(any())).thenReturn(claim);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
     when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
     when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
     Assessment savedAssessment = Assessment.builder().id(UUID.randomUUID()).build();
