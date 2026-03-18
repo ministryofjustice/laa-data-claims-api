@@ -25,6 +25,9 @@ inputs:
   app-environment:
     description: "environment to which the app is being deployed [staging, production, etc]"
     required: true
+  image-tag:
+    description: "Docker image tag to deploy"
+    required: true
 
 runs:
   using: "composite"
@@ -65,7 +68,7 @@ runs:
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         ECR_REGION: ${{ inputs.ecr-region }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        GIT_SHA: ${{ github.sha }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
         KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
         VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
       run: |
@@ -75,7 +78,7 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
-          --set image.tag="${GIT_SHA}" \
+          --set image.tag="${IMAGE_TAG}" \
           --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
           --set spring.profile="main" \
           --set aws.region="${ECR_REGION}" \
