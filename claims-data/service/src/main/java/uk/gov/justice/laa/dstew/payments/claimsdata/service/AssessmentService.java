@@ -1,29 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service containing business logic for handling assessments. */
@@ -33,9 +28,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AssessmentService {
 
   private final ClaimRepository claimRepository;
-  private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final AssessmentRepository assessmentRepository;
   private final AssessmentMapper assessmentMapper;
+  private final ClaimValidationService claimValidationService;
 
   /**
    * Create an assessment for a claim.
@@ -47,33 +42,24 @@ public class AssessmentService {
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
 
-    validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateUserId(request.getCreatedByUserId());
 
-    if (!claimRepository.existsById(claimId)) {
-      throw new ClaimNotFoundException(String.format("No Claim found with id: %s", claimId));
-    }
-    Claim claim = claimRepository.getReferenceById(claimId);
+    Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    ClaimSummaryFee claimSummaryFee =
+        claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 
-    if (claim.getStatus() != ClaimStatus.VALID) {
-      throw new ClaimBadRequestException(
-          String.format("Claim with id: %s does not have VALID status", claimId));
-    }
-
-    UUID claimSummaryFeeId = request.getClaimSummaryFeeId();
-    if (!claimSummaryFeeRepository.existsById(claimSummaryFeeId)) {
-      throw new ClaimSummaryFeeNotFoundException(
-          String.format("No Claim Summary Fee found with id: %s", claimSummaryFeeId));
-    }
-
+    claimValidationService.ensureAssessmentTypeIsNotVoid(request.getAssessmentType());
     updateClaimAssessmentStatus(claim);
-    ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
-    assessment.setId(Uuid7.timeBasedUuid());
-    assessment.setClaim(claim);
-    assessment.setClaimSummaryFee(claimSummaryFee);
-    assessment.setCreatedByUserId(request.getCreatedByUserId());
-    assessment.setUpdatedByUserId(request.getCreatedByUserId());
+
+    setCommonFields(
+        assessment,
+        claim,
+        claimSummaryFee,
+        request.getCreatedByUserId(),
+        request.getAssessmentReason(),
+        AssessmentType.ESCAPE_CASE_ASSESSMENT);
 
     return assessmentRepository.save(assessment).getId();
   }
@@ -153,42 +139,82 @@ public class AssessmentService {
   }
 
   /**
-   * Validates that the provided user ID meets all requirements.
+   * Creates a new {@link Assessment} of type VOID and initializes it with specific parameters. All
+   * monetary fields are set to zero and common fields are populated using the provided arguments.
    *
-   * <p>This method performs the following validation checks:
-   *
-   * <ul>
-   *   <li>Ensures the user ID is not null
-   *   <li>Ensures the user ID is not blank (empty or whitespace-only)
-   *   <li>Ensures the user ID is a valid UUID format
-   * </ul>
-   *
-   * @param userId the user ID to validate
-   * @throws AssessmentInvalidUserException if any validation check fails
+   * @param assessmentReason the reason for creating the void assessment
+   * @param claim the associated {@link Claim} instance
+   * @param claimSummaryFee the related {@link ClaimSummaryFee} instance
+   * @param createdByUserId the UUID of the user creating the assessment
+   * @return a new {@link Assessment} of type VOID
    */
-  protected void validateUserId(String userId) {
-    if (!StringUtils.hasText(userId)) {
-      throw new AssessmentInvalidUserException(
-          AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
-    }
-    if (!isValidUuid(userId)) {
-      throw new AssessmentInvalidUserException(
-          AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
-    }
+  public Assessment createVoidAssessment(
+      String assessmentReason, Claim claim, ClaimSummaryFee claimSummaryFee, UUID createdByUserId) {
+
+    Assessment assessment = new Assessment();
+    setCommonFields(
+        assessment,
+        claim,
+        claimSummaryFee,
+        createdByUserId.toString(),
+        assessmentReason,
+        AssessmentType.VOID);
+    setMonetaryFieldsToZero(assessment);
+
+    return assessment;
   }
 
   /**
-   * Checks whether the provided string is a valid UUID format.
+   * Sets all monetary fields of the given {@link Assessment} to zero.
    *
-   * @param uuid the string to validate as a UUID
-   * @return true if the string is a valid UUID, false otherwise
+   * @param assessment the {@link Assessment} whose monetary fields will be reset to zero
    */
-  protected boolean isValidUuid(String uuid) {
-    try {
-      UUID.fromString(uuid);
-      return true;
-    } catch (IllegalArgumentException | NullPointerException e) {
-      return false;
-    }
+  private void setMonetaryFieldsToZero(Assessment assessment) {
+    BigDecimal zero = BigDecimal.ZERO;
+
+    assessment.setFixedFeeAmount(zero);
+    assessment.setNetTravelCostsAmount(zero);
+    assessment.setNetWaitingCostsAmount(zero);
+    assessment.setNetProfitCostsAmount(zero);
+    assessment.setDisbursementAmount(zero);
+    assessment.setDisbursementVatAmount(zero);
+    assessment.setNetCostOfCounselAmount(zero);
+    assessment.setDetentionTravelAndWaitingCostsAmount(zero);
+    assessment.setBoltOnAdjournedHearingFee(zero);
+    assessment.setJrFormFillingAmount(zero);
+    assessment.setBoltOnCmrhOralFee(zero);
+    assessment.setBoltOnCmrhTelephoneFee(zero);
+    assessment.setBoltOnSubstantiveHearingFee(zero);
+    assessment.setBoltOnHomeOfficeInterviewFee(zero);
+    assessment.setAssessedTotalVat(zero);
+    assessment.setAssessedTotalInclVat(zero);
+    assessment.setAllowedTotalVat(zero);
+    assessment.setAllowedTotalInclVat(zero);
+  }
+
+  /**
+   * Populates common fields in the given {@link Assessment} based on the provided parameters.
+   *
+   * @param assessment the {@link Assessment} to be updated
+   * @param claim the associated {@link Claim} instance
+   * @param claimSummaryFee the related {@link ClaimSummaryFee} instance
+   * @param createdByUserId the ID of the user creating the assessment
+   * @param assessmentReason the reason for the assessment
+   * @param assessmentType the type of the assessment (e.g., VOID)
+   */
+  protected void setCommonFields(
+      Assessment assessment,
+      Claim claim,
+      ClaimSummaryFee claimSummaryFee,
+      String createdByUserId,
+      String assessmentReason,
+      AssessmentType assessmentType) {
+    assessment.setId(Uuid7.timeBasedUuid());
+    assessment.setClaim(claim);
+    assessment.setClaimSummaryFee(claimSummaryFee);
+    assessment.setCreatedByUserId(createdByUserId);
+    assessment.setUpdatedByUserId(createdByUserId);
+    assessment.setAssessmentReason(assessmentReason);
+    assessment.setAssessmentType(assessmentType);
   }
 }

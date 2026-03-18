@@ -25,6 +25,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
 @Slf4j
 public class AssessmentController implements AssessmentsApi {
 
+  public static final String GET_ASSESSMENT_ENDPOINT =
+      "/api/v1/claims/{claimId}/assessments/{assessmentId}";
+
   private final AssessmentService assessmentService;
 
   @Override

@@ -452,6 +452,7 @@ public class ClaimsDataTestUtil {
         .assessedTotalInclVat(new BigDecimal("1700.00"))
         .allowedTotalVat(new BigDecimal("1800.00"))
         .allowedTotalInclVat(new BigDecimal("1900.00"))
+        .assessmentReason("test")
         .createdByUserId(API_USER_ID);
   }
 
