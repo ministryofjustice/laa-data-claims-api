@@ -9,10 +9,10 @@ inputs:
 outputs:
   branch-name:
     description: "Extracted branch name"
-    value: ${{ steps.et_release_and_branch.outputs.branch_name }}
+    value: ${{ steps.get_release_and_branch.outputs.branch_name }}
   release-name:
     description: "Extracted release name"
-    value: ${{ steps.et_release_and_branch.outputs.release_name }}
+    value: ${{ steps.get_release_and_branch.outputs.release_name }}
 
 runs:
   using: "composite"
