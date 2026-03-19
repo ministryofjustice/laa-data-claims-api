@@ -301,6 +301,18 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
+  @State("a voidable claim exists")
+  public void aVoidableClaimExists() {
+    log.info("Setting up state: a voidable claim exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VALID);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
+    Assessment savedAssessment = Assessment.builder().id(UUID.randomUUID()).build();
+    when(assessmentRepository.save(any())).thenReturn(savedAssessment);
+  }
+
   @SneakyThrows
   @State("no data exists for the export")
   public void noDataExistsForTheExport() {
