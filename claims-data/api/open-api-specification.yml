@@ -1283,6 +1283,9 @@ components:
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.
+        error_messages:
+          type: string
+          description: Error messages associated with this submission.
     submissions_result_set:
       allOf:
         - $ref: "#/components/schemas/page"

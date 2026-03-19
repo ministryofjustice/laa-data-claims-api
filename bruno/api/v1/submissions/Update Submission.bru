@@ -1,0 +1,45 @@
+meta {
+  name: Update Submission
+  type: http
+  seq: 2
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "area_of_law": "CRIME LOWER",
+    "bulk_submission_id": "019d05b9-709e-7874-a41b-e97791d431e1",
+    "calculated_total_amount": 0,
+    "created_by_user_id": "Data-Claims-Event-Service",
+    "crime_lower_schedule_number": "0U099L/CRIME_LOWER",
+    "error_messages": "Write Error",
+    "is_nil_submission": false,
+    "legal_help_submission_reference": null,
+    "mediation_submission_reference": null,
+    "number_of_claims": 1,
+    "office_account_number": "0U099L",
+    "previous_submission_id": null,
+    "provider_user_id": "test",
+    "status": "VALIDATION_FAILED",
+    "submission_id": "019d05b9-70ad-7310-836a-348be7f8c85d",
+    "submission_period": "APR-2021"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

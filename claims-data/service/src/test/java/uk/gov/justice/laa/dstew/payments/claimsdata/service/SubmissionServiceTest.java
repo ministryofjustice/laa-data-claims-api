@@ -123,6 +123,20 @@ class SubmissionServiceTest {
   }
 
   @Test
+  void shouldGetSubmissionWithErrorMessages() {
+    Submission entity = ClaimsDataTestUtil.getSubmission();
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
+
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getErrorMessages()).isEqualTo("Test error message");
+  }
+
+  @Test
   void shouldThrowWhenSubmissionNotFoundOnGet() {
     UUID id = Uuid7.timeBasedUuid();
     when(submissionRepository.findById(id)).thenReturn(Optional.empty());

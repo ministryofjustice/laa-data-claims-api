@@ -63,6 +63,25 @@ class SubmissionMapperTest {
   }
 
   @Test
+  void shouldMapErrorMessagesToSubmissionEntity() {
+    UUID id = Uuid7.timeBasedUuid();
+    UUID bulkId = Uuid7.timeBasedUuid();
+    SubmissionPost post =
+        new SubmissionPost()
+            .submissionId(id)
+            .bulkSubmissionId(bulkId)
+            .officeAccountNumber("12345")
+            .submissionPeriod("2025-07")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submitted(SUBMITTED_DATE)
+            .errorMessages("Test error message");
+
+    Submission result = submissionMapper.toSubmission(post);
+
+    assertThat(result.getErrorMessages()).isEqualTo("Test error message");
+  }
+
+  @Test
   void shouldMapToSubmissionBase() {
     UUID id = Uuid7.timeBasedUuid();
     Submission submission =
@@ -96,6 +115,16 @@ class SubmissionMapperTest {
 
     assertThat(submission.getCrimeLowerScheduleNumber()).isEqualTo("456");
     assertThat(submission.getIsNilSubmission()).isTrue();
+  }
+
+  @Test
+  void shouldUpdateErrorMessagesFromPatch() {
+    Submission submission = Submission.builder().errorMessages("Original error message").build();
+    SubmissionPatch patch = new SubmissionPatch().errorMessages("Updated error message");
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getErrorMessages()).isEqualTo("Updated error message");
   }
 
   @Test

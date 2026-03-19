@@ -88,6 +88,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   // must match application-test.yml for test-runner token
   private static final String AUTHORIZATION_TOKEN = "f67f968e-b479-4e61-b66e-f57984931e56";
 
+  private static final String TEST_ERROR_MESSAGE =
+      "Concatenated test error messages from integration test";
+
   @BeforeAll
   void initialSetup() {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
@@ -325,6 +328,71 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  void postSubmission_shouldCreateWithErrorMessages() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with errorMessages
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod("JAN-25")
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .errorMessages(TEST_ERROR_MESSAGE)
+            .build();
+
+    // when: calling POST endpoint for submissions
+    mockMvc
+        .perform(
+            post(API_URI_PREFIX + "/submissions")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated());
+
+    Submission createdSubmission = submissionRepository.findById(submissionId).orElseThrow();
+
+    // then: submission is correctly created with all expected fields
+    assertThat(createdSubmission.getId()).isEqualTo(submissionId);
+    assertThat(createdSubmission.getBulkSubmissionId()).isEqualTo(BULK_SUBMISSION_ID);
+    assertThat(createdSubmission.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
+    assertThat(createdSubmission.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+    assertThat(createdSubmission.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(createdSubmission.getErrorMessages()).isEqualTo(TEST_ERROR_MESSAGE);
+  }
+
+  @Test
+  void getSubmission_shouldReturnErrorMessages() throws Exception {
+    // given: a submission with errorMessages
+    Submission submissionWithError = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    submissionWithError.setErrorMessages("Error message for GET test");
+    submissionRepository.save(submissionWithError);
+
+    // when: calling get endpoint with the ID
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var submissionResult =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionResponse.class);
+
+    // then: submission is correctly returned with errorMessages
+    assertThat(submissionResult.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(submissionResult.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(submissionResult.getErrorMessages()).isEqualTo("Error message for GET test");
+  }
+
+  @Test
   void getSubmission_ReturnsNotFound() throws Exception {
     // when: calling get endpoint without a valid ID, should return not found
     mockMvc
@@ -397,6 +465,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update the submission
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
 
     assertThat(
@@ -425,6 +495,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     // then: should update and send validation event
     Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_VALIDATION);
 
     ReceiveMessageResponse receiveResp =
@@ -458,13 +530,40 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
-    // then: should save new validation messages
+    // then: should save new validation messages and submission remains intact
+    Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+
     List<ValidationMessageLog> logs = validationMessageLogRepository.findAll();
     assertThat(logs).hasSize(1);
     assertThat(logs.getFirst().getDisplayMessage()).isEqualTo("DISPLAY_MESSAGE");
     assertThat(logs.getFirst().getType()).isEqualTo(ValidationMessageType.WARNING);
     assertThat(logs.getFirst().getSource()).isEqualTo("SOURCE");
     validationMessageLogRepository.deleteAll();
+  }
+
+  @Test
+  void updateSubmission_shouldUpdateErrorMessages() throws Exception {
+    // given: a submission patch payload with errorMessages
+    String errorMessage = "Updated error message from integration test";
+    SubmissionPatch patch = SubmissionPatch.builder().errorMessages(errorMessage).build();
+
+    // when: calling the patch endpoint
+    mockMvc
+        .perform(
+            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent())
+        .andReturn();
+
+    // then: should update the submission with errorMessages
+    Submission updated = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
+    assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(updated.getErrorMessages()).isEqualTo(errorMessage);
   }
 
   @Test
