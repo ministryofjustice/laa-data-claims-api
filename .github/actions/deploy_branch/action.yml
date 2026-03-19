@@ -128,6 +128,7 @@ runs:
           --set ingressInternal.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$internal_identifier" \
           --set ingressInternal.hosts="{$internal_host}" \
           --set spring.profile="$SPRING_PROFILE" \
+          --set database.name="$DB_NAME" \
           --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \
           --install \
