@@ -21,11 +21,13 @@ runs:
     - name: Get release name and branch name
       id: get_release_and_branch
       shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr-number }}
       run: |
-        if [ -n "${{ inputs.pr-number }}" ]; then
-          echo "release-name=pr-${{ inputs.pr-number }}" >> $GITHUB_OUTPUT
+        if [ -n "$PR_NUMBER" ]; then
+          echo "release-name=pr-$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "branch-name=non-main" >> $GITHUB_OUTPUT
-          echo "PR number provided: ${{ inputs.pr-number }}. Setting release-name to pr-${{ inputs.pr-number }} and branch-name to non-main."
+          echo "PR number provided: $PR_NUMBER. Setting release-name to pr-$PR_NUMBER and branch-name to non-main."
         else
           echo "release-name=main" >> $GITHUB_OUTPUT
           echo "branch-name=main" >> $GITHUB_OUTPUT
