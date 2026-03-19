@@ -25,6 +25,9 @@ inputs:
   app-environment:
     description: "environment to which the app is being deployed [staging, production, etc]"
     required: true
+  pr-number:
+    description: "Pull request number, if applicable"
+    required: false
   image-tag:
     description: "Docker image tag to deploy"
     required: false
@@ -44,6 +47,8 @@ runs:
     - name: Extract release name
       id: extract_release_name
       uses: ./.github/actions/get_release_name
+      with:
+          pr-number: ${{ inputs.pr-number }}
 
     - name: Authenticate to the cluster
       uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
@@ -102,14 +107,14 @@ runs:
           export SPRING_PROFILE="main"
         elif [ "$branch_name" == "main" ]; then
           export SPRING_PROFILE="main"
+          export DB_NAME="main"
         else
           export SPRING_PROFILE="preview"
-          # Using Bitnami legacy with PostgreSQL 17.2 (specified in values.yaml)
-          helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
-            -f .helm/bitnami_postgres/values.yaml \
-            --namespace ${KUBE_NAMESPACE} \
-            --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
-            --install --wait --timeout=10m
+          export DB_NAME="$RELEASE_NAME"
+        
+          # Create named database in RDS for this preview branch
+          echo "Creating database: $DB_NAME"
+          scripts/uat_create_db "$DB_NAME"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \

@@ -16,14 +16,18 @@ inputs:
   app-environment:
     description: "environment to which the app is being deployed [staging, production, etc]"
     required: true
-
+  pr-number:
+    description: "Pull request number for the PR being closed"
+    required: true
 runs:
   using: "composite"
   steps:
 
     - name: Get merged release name
       id: extract_release_name_to_delete
-      uses: ./.github/actions/get_release_name_to_delete
+      uses: ./.github/actions/get_release_name
+      with:
+          pr-number: ${{ inputs.pr-number }}
 
     - name: Authenticate to the cluster
       uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
@@ -40,19 +44,12 @@ runs:
         NAMESPACE: "${{ inputs.kube-namespace }}"
       run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE"
 
-    - name: Delete preview release's ephemeral postgres database
+    - name: Delete preview release's database from RDS
       shell: bash
       env:
         RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
-        NAMESPACE: "${{ inputs.kube-namespace }}"
-      run: helm uninstall "$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
-
-    - name: Delete preview release's pvc (persistent volume claim)
-      shell: bash
-      env:
-        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
-        NAMESPACE: "${{ inputs.kube-namespace }}"
-      run: kubectl delete pvc -l app.kubernetes.io/instance="$RELEASE_NAME-postgresql" --namespace "$NAMESPACE"
+      run: |
+        scripts/uat_drop_db "$RELEASE_NAME"
 
     - name: Delete Helm release history secrets
       shell: bash

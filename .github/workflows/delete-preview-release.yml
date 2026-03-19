@@ -40,4 +40,5 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
+          pr-number: ${{ github.event.pull_request.number }}
 

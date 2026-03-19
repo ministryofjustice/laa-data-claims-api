@@ -1,37 +1,33 @@
 name: "Get release name"
 description: 'Get a release name'
 
+inputs:
+  pr-number:
+    description: "Pull request number, if applicable"
+    required: false
+
 outputs:
   branch-name:
     description: "Extracted branch name"
-    value: ${{ steps.extract_branch.outputs.branch_name }}
+    value: ${{ steps.et_release_and_branch.outputs.branch_name }}
   release-name:
     description: "Extracted release name"
-    value: ${{ steps.extract_release.outputs.release_name }}
+    value: ${{ steps.et_release_and_branch.outputs.release_name }}
 
 runs:
   using: "composite"
   steps:
 
-    - name: Extract branch name
-      id: extract_branch
+    - name: Get release name and branch name
+      id: get_release_and_branch
       shell: bash
       run: |
-        if [ $GITHUB_EVENT_NAME == "pull_request" ]
-        then
-          branch=$GITHUB_HEAD_REF
-        elif [[ $GITHUB_REF == refs/tags/* ]]
-        then
-          # For tag-based deployments, use 'main' as the branch name
-          branch="main"
+        if [ -n "${{ inputs.pr-number }}" ]; then
+          echo "release-name=pr-${{ inputs.pr-number }}" >> $GITHUB_OUTPUT
+          echo "branch-name=non-main" >> $GITHUB_OUTPUT
+          echo "PR number provided: ${{ inputs.pr-number }}. Setting release-name to pr-${{ inputs.pr-number }} and branch-name to non-main."
         else
-          branch=${GITHUB_REF#refs/heads/}
+          echo "release-name=main" >> $GITHUB_OUTPUT
+          echo "branch-name=main" >> $GITHUB_OUTPUT
+          echo "No PR number provided. Setting release-name and branch-name to main."
         fi
-        echo "branch_name=$branch" >> $GITHUB_OUTPUT
-        echo "branch_name being exported: $branch"
-
-    - name: Extract release name from branch name
-      id: extract_release
-      uses: ./.github/actions/extract_release_name_from_branch
-      with:
-        branch_name: ${{ steps.extract_branch.outputs.branch_name }}
