@@ -2,11 +2,11 @@
 
 function _uat_drop_db() {
   usage="uat_drop_db -- drop a database in the UAT RDS instance
-  Usage: scripts/uat_drop_db <release-name>
+  Usage: scripts/uat_drop_db.sh <release-name>
   DANGER: This will delete the database permanently
 
   Example:
-    scripts/uat_drop_db data-claims-api-feature-xyz
+    scripts/uat_drop_db.sh data-claims-api-feature-xyz
   "
 
   set -e

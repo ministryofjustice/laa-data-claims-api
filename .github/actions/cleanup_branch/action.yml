@@ -49,7 +49,7 @@ runs:
       env:
         RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
       run: |
-        scripts/uat_drop_db "$RELEASE_NAME"
+        scripts/uat_drop_db.sh "$RELEASE_NAME"
 
     - name: Delete Helm release history secrets
       shell: bash

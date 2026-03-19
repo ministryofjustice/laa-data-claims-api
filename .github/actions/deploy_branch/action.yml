@@ -114,7 +114,7 @@ runs:
         
           # Create named database in RDS for this preview branch
           echo "Creating database: $DB_NAME"
-          scripts/uat_create_db "$DB_NAME"
+          scripts/uat_create_db.sh "$DB_NAME"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \

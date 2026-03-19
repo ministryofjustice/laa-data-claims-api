@@ -2,10 +2,10 @@
 
 function _uat_create_db() {
   usage="uat_create_db -- create a database in the UAT RDS instance named after the release
-  Usage: scripts/uat_create_db <release-name>
+  Usage: scripts/uat_create_db.sh <release-name>
 
   Example:
-    scripts/uat_create_db data-claims-api-feature-xyz
+    scripts/uat_create_db.sh data-claims-api-feature-xyz
   "
 
   set -e
