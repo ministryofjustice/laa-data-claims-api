@@ -94,16 +94,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Extract release name
-        id: extract_release_name_uat
-        uses: ./.github/actions/get_release_name
-
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -127,7 +123,7 @@ jobs:
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -148,16 +144,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Extract release name
-        id: extract_release_name_staging
-        uses: ./.github/actions/get_release_name
-
       - name: Can I deploy Staging?
         id: can_i_deploy_staging
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -181,7 +173,7 @@ jobs:
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_staging.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -202,16 +194,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Extract release name
-        id: extract_release_name_production
-        uses: ./.github/actions/get_release_name
-
       - name: Can I deploy Production?
         id: can_i_deploy_production
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_production.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -235,7 +223,7 @@ jobs:
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
         with:
           pacticipant: 'laa-data-claims-api'
-          environment: ${{ steps.extract_release_name_production.outputs.release-name }}
+          environment: 'main'
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
