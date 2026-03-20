@@ -10,6 +10,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/laa_data_claims_api_dev
     username: user
     password: dev
+  flyway:
     schemas: claims, javers
     create-schemas: true
     enabled: true
