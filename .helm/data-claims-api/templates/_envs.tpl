@@ -3,7 +3,14 @@
 */}}
 {{- define "dbConnectionDetails" }}
 - name: DB_NAME
+{{- if and .Values.database.name (ne .Values.database.name "main") }}
   value: {{ .Values.database.name | quote }}
+{{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: rds-postgresql-instance-output
+      key: database_name
+{{- end }}
 - name: DB_USERNAME
   valueFrom:
     secretKeyRef:
