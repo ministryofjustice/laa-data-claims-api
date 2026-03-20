@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 @Slf4j
-class FlywayDiagnosticIntegrationTest {
+class FlywayDiagnosticIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private Flyway flyway;
 
