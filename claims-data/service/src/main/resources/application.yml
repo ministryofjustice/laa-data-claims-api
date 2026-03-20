@@ -11,6 +11,7 @@ spring:
     username: user
     password: dev
   flyway:
+    locations: classpath:db/migration,classpath:db/migration-main
     schemas: claims, javers
     create-schemas: true
     enabled: true
