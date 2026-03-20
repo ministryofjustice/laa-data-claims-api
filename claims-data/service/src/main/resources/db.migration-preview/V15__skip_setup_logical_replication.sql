@@ -1,4 +1,0 @@
---This is an empty migration to replace the same version that gets run in the main profile.
---This has been done because in the preview deployments we create a new database and run all
---migrations there. The real Version 15 migration tries to create a user and fails because
---a user is a global entity (applies to all databases) and it already exists in the instance.
