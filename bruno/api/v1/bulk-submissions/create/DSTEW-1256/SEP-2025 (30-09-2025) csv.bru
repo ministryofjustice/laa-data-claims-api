@@ -1,7 +1,7 @@
 meta {
-  name: SETUP: Grab valid submission id
+  name: SEP-2025 (30/09/2025) csv
   type: http
-  seq: 1
+  seq: 3
 }
 
 post {
@@ -20,7 +20,7 @@ headers {
 }
 
 body:multipart-form {
-  file: @file(/Users/ben.hobden/BulkClaimFiles/EV-CLM-053.1_outcome_code_crime_valid_code_scenario_it_tests.xml) @contentType(text/xml)
+  file: @file(/Users/ben.hobden/Documents/Uploads/DSTEW-1256/SEP-2025.csv) @contentType(text/csv)
 }
 
 tests {
@@ -36,4 +36,16 @@ tests {
 settings {
   encodeUrl: true
   timeout: 0
+}
+
+docs {
+  Sumbission Period SEP-2025
+  Concluded date 31/09/2025
+  
+  This is closest to Dec but not within range
+  
+  Sumbission Period DEC-2025
+  Jan 20 - 3 = Oct 20
+  
+  Oct 20 > 31 Sep PASS
 }
