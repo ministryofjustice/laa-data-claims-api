@@ -77,8 +77,8 @@ jobs:
       - name: Configure AWS creds
         uses: aws-actions/configure-aws-credentials@v6.0.0
         with:
-          role-to-assume: ${{ secrets.ECR_ROLE_TO_ASSUME }}
-          aws-region: ${{  vars.ECR_REGION }}
+          role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+          aws-region: ${{  vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -89,7 +89,7 @@ jobs:
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          REPOSITORY: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
 
   deploy-uat:
@@ -110,9 +110,9 @@ jobs:
         id: deploy_uat_branch
         uses: ./.github/actions/deploy_branch
         with:
-          ecr-region: ${{ vars.ECR_REGION }}
-          ecr-role-to-assume: ${{ secrets.ECR_ROLE_TO_ASSUME }}
-          ecr-repository: ${{ vars.ECR_REPOSITORY }}
+          ecr-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+          ecr-role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+          ecr-repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
           kube-cert: ${{ secrets.KUBE_CERT }}
           kube-token: ${{ secrets.KUBE_TOKEN }}
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
