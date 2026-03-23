@@ -34,7 +34,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.v1.ClaimControllerV1;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
@@ -47,12 +46,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
-@WebMvcTest(ClaimControllerV1.class)
+@WebMvcTest(ClaimController.class)
 @ImportAutoConfiguration(
     exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 @AutoConfigureMockMvc(addFilters = false)
-class ClaimControllerV1Test {
+class ClaimControllerTest {
 
   private static final String SUBMISSIONS_CLAIMS_URI = API_URI_PREFIX + "/submissions";
   private static final String SUBMISSIONS_CLAIMS_V2_URI = API_V2_URI_PREFIX + "/submissions";
