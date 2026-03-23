@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller.v1;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.controller.AssessmentController.GET_ASSESSMENT_ENDPOINT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
@@ -34,9 +35,10 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling claims requests. */
 @RestController
+@RequestMapping(version = "1")
 @RequiredArgsConstructor
 @Slf4j
-public class ClaimController implements ClaimsApi {
+public class ClaimControllerV1 implements ClaimsApi {
 
   public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
 

@@ -66,6 +66,48 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
     ]
 }
 
+tasks.register('openApiGenerateV1', GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "$rootDir/claims-data/api/open-api-specification.yml".toString()
+    outputDir = "$rootDir/claims-data/api/generated".toString()
+    apiPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.api.v1"
+
+    globalProperties = [
+            apis: "v1"
+    ]
+
+    configOptions = [
+            generateBuilders    : "true",
+            interfaceOnly       : "true", // This will only generate interfaces, not implementations
+            serializableModel   : "true",
+            skipDefaultInterface: "true",
+            useJakartaEe        : "true",
+            useSpringBoot3      : "true",
+            useTags             : "true",
+    ]
+}
+
+tasks.register('openApiGenerateV2', GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "$rootDir/claims-data/api/open-api-specification.yml"
+    outputDir = "$rootDir/claims-data/api/generated/v2"
+    apiPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.api.v2"
+
+    globalProperties = [
+            apis: "v2"
+    ]
+
+    configOptions = [
+            generateBuilders    : "true",
+            interfaceOnly       : "true", // This will only generate interfaces, not implementations
+            serializableModel   : "true",
+            skipDefaultInterface: "true",
+            useJakartaEe        : "true",
+            useSpringBoot3      : "true",
+            useTags             : "true",
+    ]
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

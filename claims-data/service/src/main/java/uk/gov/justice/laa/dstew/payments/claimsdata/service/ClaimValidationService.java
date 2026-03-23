@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.ClaimController;
+import uk.gov.justice.laa.dstew.payments.claimsdata.controller.v1.ClaimControllerV1;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
@@ -45,7 +45,7 @@ public class ClaimValidationService {
       "assessmentReason must be provided";
   public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
       "Claim status VOID cannot be set via %s endpoint. Use POST "
-          + ClaimController.VOID_CLAIM_ENDPOINT;
+          + ClaimControllerV1.VOID_CLAIM_ENDPOINT;
 
   private final ClaimRepository claimRepository;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;

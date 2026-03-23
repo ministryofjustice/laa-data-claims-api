@@ -22,7 +22,6 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
-
   jpa:
     show-sql: false
     generate-ddl: false

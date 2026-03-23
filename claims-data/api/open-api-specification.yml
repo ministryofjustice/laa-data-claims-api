@@ -336,6 +336,7 @@ paths:
       x-spring-paginated: true
       tags:
         - Claims
+        - v2
       summary: Get claims
       description: Get claims for an office, filtering on certain fields.
       parameters:
@@ -440,6 +441,7 @@ paths:
       x-spring-paginated: true
       tags:
         - Claims
+        - v1
       summary: Get claims
       description: Get claims for an office, filtering on certain fields.
       parameters:
@@ -778,6 +780,7 @@ paths:
       operationId: getClaim
       tags:
         - Claims
+        - v1
       summary: Get a specific claim for a submission
       description: Returns the details of a specific claim associated with a submission.
       parameters:
@@ -858,6 +861,7 @@ paths:
       operationId: getClaimV2
       tags:
         - Claims
+        - v2
       summary: Get a specific claim for a submission
       description: Returns the details of a specific claim associated with a submission.
       parameters:

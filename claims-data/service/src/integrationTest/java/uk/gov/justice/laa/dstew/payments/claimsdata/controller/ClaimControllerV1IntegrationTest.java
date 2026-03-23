@@ -50,7 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
+public class ClaimControllerV1IntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
