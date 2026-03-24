@@ -86,7 +86,6 @@ runs:
         VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
-        deploy_image_tag="${IMAGE_TAG:-$GIT_SHA}"
         ingress_name="$RELEASE_NAME-data-claims-api"
         external_host="$RELEASE_NAME-$KUBE_NAMESPACE.cloud-platform.service.justice.gov.uk"
         internal_host="$RELEASE_NAME-internal-$KUBE_NAMESPACE.internal-non-prod.cloud-platform.service.justice.gov.uk"
@@ -117,7 +116,7 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
-          --set image.tag="${deploy_image_tag}" \
+          --set image.tag="${IMAGE_TAG:-$GIT_SHA}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$external_identifier" \
           --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
           --set ingress.hosts="{$external_host}" \
