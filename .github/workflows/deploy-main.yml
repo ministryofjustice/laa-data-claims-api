@@ -35,6 +35,7 @@ jobs:
       pact_test_task: ":claims-data:service:pactTest"
       pacticipant_name: 'laa-data-claims-api'
       consumer_name: 'laa-submit-a-bulk-claim'
+      git_branch: 'main'
       is_provider: true
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
