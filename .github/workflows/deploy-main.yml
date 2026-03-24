@@ -42,47 +42,25 @@ jobs:
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  build-push-docker:
-    name: build and push docker image
-    runs-on: ubuntu-latest
-    needs:
-      - assemble
+  ecr-publish-image:
+    needs: [ assemble ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@v1
     permissions:
-      id-token: write
       contents: read
-    steps:
-
-      - uses: actions/checkout@v6
-
-      - name: Download JAR artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: service-jar
-          path: claims-data/service/build/libs/
-
-      - name: Configure AWS creds
-        uses: aws-actions/configure-aws-credentials@v6.0.0
-        with:
-          role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
-
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-        id: login-ecr
-
-      - name: Build and push a Docker image for claims-data
-        run: |
-          docker build --no-cache -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+      id-token: write
+    with:
+      jar_subproject: 'claims-data/service'
+      image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+      ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+      ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
 
   deploy-uat:
     runs-on: ubuntu-latest
     needs:
-      - build-push-docker
+      - ecr-publish-image
       - pact-test
     environment: uat
     permissions:
@@ -131,7 +109,7 @@ jobs:
   deploy-staging:
     runs-on: ubuntu-latest
     needs:
-      - build-push-docker
+      - ecr-publish-image
       - pact-test
       - deploy-uat
     environment: staging
@@ -181,7 +159,7 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs:
-      - build-push-docker
+      - ecr-publish-image
       - pact-test
       - deploy-staging
     environment: production
