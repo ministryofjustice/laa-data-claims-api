@@ -182,6 +182,7 @@ public class ClaimService
 
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
+    claim.setUpdatedByUserId(claimPatch.getCreatedByUserId());
     claimRepository.save(claim);
 
     // If we have calculated fee details from the FSP as part of this patch, save them.

@@ -1,0 +1,24 @@
+meta {
+  name: Audit
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/audit
+  body: none
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

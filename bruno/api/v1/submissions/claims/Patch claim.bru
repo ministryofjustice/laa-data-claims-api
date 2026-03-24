@@ -1,0 +1,137 @@
+meta {
+  name: Patch claim
+  type: http
+  seq: 3
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "access_point_code": null,
+    "adjourned_hearing_fee_amount": null,
+    "advice_time": null,
+    "advice_type_code": null,
+    "ait_hearing_centre_code": null,
+    "case_concluded_date": "10/11/2025",
+    "case_id": null,
+    "case_reference_number": "EV0531CR-OUTC",
+    "case_stage_code": null,
+    "case_start_date": "08/11/2025",
+    "cla_exemption_code": null,
+    "cla_reference_number": null,
+    "client_2_date_of_birth": null,
+    "client_2_disability_code": null,
+    "client_2_ethnicity_code": null,
+    "client_2_forename": null,
+    "client_2_gender_code": null,
+    "client_2_is_legally_aided": null,
+    "client_2_postcode": null,
+    "client_2_surname": null,
+    "client_2_ucn": null,
+    "client_date_of_birth": "01/01/1990",
+    "client_forename": "Alicey",
+    "client_postcode": "SW1H 9EA",
+    "client_surname": "EV0531CR-OUTC",
+    "client_type_code": null,
+    "cmrh_oral_count": null,
+    "cmrh_telephone_count": null,
+    "costs_damages_recovered_amount": null,
+    "court_location_code": null,
+    "created_by_user_id": "Data-Claims-Event-Service",
+    "crime_matter_type_code": "03",
+    "delivery_location": null,
+    "designated_accredited_representative_code": null,
+    "detention_travel_waiting_costs_amount": null,
+    "disability_code": null,
+    "disbursements_vat_amount": 5.00,
+    "dscc_number": "EV0531DS01",
+    "ethnicity_code": "02",
+    "exceptional_case_funding_reference": null,
+    "exemption_criteria_satisfied": null,
+    "fee_code": "INVC",
+    "fee_scheme_code": null,
+    "follow_on_work": null,
+    "gender_code": "F",
+    "has_assessment": false,
+    "ho_interview": null,
+    "home_office_client_number": null,
+    "id": "{{CLAIM_ID}}",
+    "is_additional_travel_payment": null,
+    "is_amended": null,
+    "is_client_2_postal_application_accepted": null,
+    "is_duty_solicitor": false,
+    "is_eligible_client": null,
+    "is_irc_surgery": null,
+    "is_legacy_case": null,
+    "is_legally_aided": null,
+    "is_london_rate": null,
+    "is_nrm_advice": null,
+    "is_postal_application_accepted": null,
+    "is_substantive_hearing": null,
+    "is_tolerance_applicable": null,
+    "is_vat_applicable": true,
+    "is_youth_court": false,
+    "jr_form_filling_amount": null,
+    "line_number": 1,
+    "local_authority_number": null,
+    "maat_id": null,
+    "matter_type_code": "INVC",
+    "mediation_sessions_count": null,
+    "mediation_time_minutes": null,
+    "medical_reports_count": null,
+    "meetings_attended_code": null,
+    "mental_health_tribunal_reference": null,
+    "net_counsel_costs_amount": null,
+    "net_disbursement_amount": 25.00,
+    "net_profit_costs_amount": 150.00,
+    "net_waiting_costs_amount": 5.00,
+    "outcome_code": "CN02",
+    "outreach_location": null,
+    "police_station_court_attendances_count": 1,
+    "police_station_court_prison_id": "NE001",
+    "prior_authority_reference": null,
+    "prison_law_prior_approval_number": null,
+    "procurement_area_code": null,
+    "referral_source": null,
+    "representation_order_date": null,
+    "schedule_reference": null,
+    "scheme_id": "1013",
+    "stage_reached_code": "INVC",
+    "standard_fee_category_code": null,
+    "status": "INVALID",
+    "submission_id": "019d20ca-831d-7eb0-bf45-7e5961fb9938",
+    "submission_period": "OCT-2025",
+    "surgery_clients_count": null,
+    "surgery_date": null,
+    "surgery_matters_count": null,
+    "suspects_defendants_count": 1,
+    "total_warnings": null,
+    "transfer_date": null,
+    "travel_time": null,
+    "travel_waiting_costs_amount": 10.00,
+    "unique_case_id": null,
+    "unique_client_number": null,
+    "unique_file_number": "101224/931",
+    "version": 0,
+    "waiting_time": null
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

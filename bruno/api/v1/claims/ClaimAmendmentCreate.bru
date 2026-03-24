@@ -1,0 +1,31 @@
+meta {
+  name: Create Claim Amendment
+  type: http
+  seq: 11
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/amendments
+  body: '{
+    "amendedFields": [
+      { "field": "exampleField", "newValue": "newValue", "note": "example note" }
+    ],
+    "createdByUserId": "test-user"
+  }'
+  contentType: application/json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

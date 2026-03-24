@@ -16,7 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentGet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentResponse;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentStatusUpdate;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAuditChange;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -29,7 +36,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimAmendmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.audit.AuditTrailService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling claims requests. */
@@ -41,6 +50,8 @@ public class ClaimController implements ClaimsApi {
   public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
 
   private final ClaimService claimService;
+  private final AuditTrailService auditTrailService;
+  private final ClaimAmendmentService claimAmendmentService;
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
@@ -158,6 +169,70 @@ public class ClaimController implements ClaimsApi {
             .toUri();
     return ResponseEntity.created(location)
         .body(VoidClaim201Response.builder().id(assessmentId).build());
+  }
+
+  @Override
+  public ResponseEntity<List<ClaimAuditChange>> getClaimAudit(UUID claimId) {
+    List<ClaimAuditChange> auditTrail = auditTrailService.getClaimAuditTrail(claimId);
+    return ResponseEntity.ok(auditTrail);
+  }
+
+  // --- Claim Amendment Endpoints ---
+
+  @Override
+  public ResponseEntity<List<ClaimAmendmentGet>> listClaimAmendmentsForClaim(UUID claimId) {
+    List<ClaimAmendment> amendments = claimAmendmentService.getAmendmentsForClaim(claimId);
+    List<ClaimAmendmentGet> responses =
+        amendments.stream()
+            .map(
+                amendment ->
+                    new ClaimAmendmentGet()
+                        .claimId(amendment.getClaim().getId())
+                        // .claimAmendmentId(amendment.getClaimAmendmentId())
+                        .status(AmendmentStatus.fromValue(amendment.getStatus()))
+                        .createdOn(amendment.getCreatedOn())
+                        .createdByUserId(amendment.getCreatedByUserId())
+                        .updatedByUserId(amendment.getUpdatedByUserId())
+                        .updatedOn(amendment.getUpdatedOn())
+                        .amendedFields(
+                            claimAmendmentService.convertChangedFieldsToAmendedFields(
+                                amendment.getChangedFields())))
+            .toList();
+    return ResponseEntity.ok(responses);
+  }
+
+  @Override
+  public ResponseEntity<Void> markClaimAmendmentValid(
+      UUID claimId, UUID amendmentId, ClaimAmendmentStatusUpdate body) {
+    boolean updated =
+        claimAmendmentService
+            .updateAmendmentStatus(
+                claimId, amendmentId, AmendmentStatus.VALID, body.getUpdatedByUserId())
+            .isPresent();
+    return updated ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> markClaimAmendmentInvalid(
+      UUID claimId, UUID amendmentId, ClaimAmendmentStatusUpdate body) {
+    boolean updated =
+        claimAmendmentService
+            .updateAmendmentStatus(
+                claimId, amendmentId, AmendmentStatus.INVALID, body.getUpdatedByUserId())
+            .isPresent();
+    return updated ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+  }
+
+  @Override
+  public ResponseEntity<ClaimAmendmentResponse> createClaimAmendmentForClaim(
+      UUID claimId, ClaimAmendmentPost claimAmendmentPost) {
+    ClaimAmendment amendment = claimAmendmentService.createAmendment(claimId, claimAmendmentPost);
+    ClaimAmendmentResponse response =
+        new ClaimAmendmentResponse()
+            .claimAmendmentId(amendment.getClaimAmendmentId())
+            .status(AmendmentStatus.fromValue(amendment.getStatus()))
+            .createdOn(amendment.getCreatedOn());
+    return ResponseEntity.status(201).body(response);
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {

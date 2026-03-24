@@ -1,0 +1,29 @@
+meta {
+  name: Mark Claim Amendment Valid
+  type: http
+  seq: 12
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/amendments/:amendment_id/valid
+  body: '{
+    "updatedByUserId": "test-user"
+  }'
+  contentType: application/json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  amendment_id: {{AMENDMENT_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

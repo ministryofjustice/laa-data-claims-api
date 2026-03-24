@@ -1120,6 +1120,189 @@ paths:
         '500':
           description: Internal server error
 
+  /api/v1/claims/{claimId}/audit:
+    get:
+      operationId: getClaimAudit
+      tags:
+        - Claims
+      summary: Get audit trail for a claim
+      description: Returns the audit trail and field-level diffs for the specified claim.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: The claim ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audit trail for the claim
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/claim_audit_change'
+
+  /api/v1/claims/{claimId}/amendments:
+    get:
+      operationId: listClaimAmendmentsForClaim
+      tags:
+        - Claims
+      summary: List Claim Amendments for a Claim
+      description: Returns all amendments for a specific claim.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim being amended
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of claim amendments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/claim_amendment_get'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+    post:
+      operationId: createClaimAmendmentForClaim
+      tags:
+        - Claims
+      summary: Create Claim Amendment for a Claim
+      description: Create a new claim amendment for a specific claim.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim being amended
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/claim_amendment_post'
+      responses:
+        '201':
+          description: Claim Amendment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/claim_amendment_response'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '415':
+          description: Unsupported Media Type
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+
+  /api/v1/claims/{claimId}/amendments/{amendmentId}/valid:
+    post:
+      operationId: markClaimAmendmentValid
+      tags:
+        - Claims
+      summary: Mark Claim Amendment as Valid
+      description: Mark a claim amendment as VALID.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim being amended
+          schema:
+            type: string
+            format: uuid
+        - name: amendmentId
+          in: path
+          required: true
+          description: UUID of the amendment
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/claim_amendment_status_update'
+      responses:
+        '200':
+          description: Amendment marked as valid
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+
+  /api/v1/claims/{claimId}/amendments/{amendmentId}/invalid:
+    post:
+      operationId: markClaimAmendmentInvalid
+      tags:
+        - Claims
+      summary: Mark Claim Amendment as Invalid
+      description: Mark a claim amendment as INVALID.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim being amended
+          schema:
+            type: string
+            format: uuid
+        - name: amendmentId
+          in: path
+          required: true
+          description: UUID of the amendment
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/claim_amendment_status_update'
+      responses:
+        '200':
+          description: Amendment marked as invalid
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+
 components:
   schemas:
     bulk_submission_patch:
@@ -2076,6 +2259,13 @@ components:
       enum:
         - ESCAPE_CASE_ASSESSMENT
         - VOID
+    amendment_status:
+      type: string
+      enum:
+        - READY_FOR_VALIDATION
+        - VALID
+        - INVALID
+      description: Current status of the amendment
     assessment_base:
       type: object
       properties:
@@ -2165,3 +2355,111 @@ components:
           type: 'integer'
         size:
           type: 'integer'
+    claim_audit_change:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Audit log record id
+        changedAt:
+          type: string
+          format: date-time
+        operation:
+          type: string
+        actorUser:
+          type: string
+        actorService:
+          type: string
+        diff:
+          type: array
+          items:
+            $ref: '#/components/schemas/claim_audit_field_diff'
+    claim_audit_field_diff:
+      type: object
+      properties:
+        field:
+          type: string
+        before:
+          type: string
+        after:
+          type: string
+    claim_amendment_post:
+      type: object
+      required:
+        - claimId
+        - amendedFields
+        - created_by_user_id
+      properties:
+        claimId:
+          type: string
+          format: uuid
+          description: UUID of the claim being amended
+        amendedFields:
+          type: array
+          description: List of amended fields and their new values/notes
+          items:
+            $ref: '#/components/schemas/amended_field'
+        created_by_user_id:
+          type: string
+          description: User ID of the caseworker who requested the amendment
+
+    claim_amendment_get:
+      allOf:
+        - $ref: '#/components/schemas/claim_amendment_post'
+        - type: object
+          properties:
+            updated_by_user_id:
+              type: string
+              description: User ID of the user who last modified the record
+            created_on:
+              type: string
+              format: date-time
+              description: Timestamp when the amendment was created
+            updated_on:
+              type: string
+              format: date-time
+              description: Timestamp of the last modification
+            status:
+              $ref: "#/components/schemas/amendment_status"
+
+    claim_amendment_status_update:
+      type: object
+      required:
+        - updated_by_user_id
+      properties:
+        updated_by_user_id:
+          type: string
+          description: User ID of the user who is updating the amendment status
+    amended_field:
+      type: object
+      required:
+        - fieldName
+      properties:
+        fieldName:
+          type: string
+          description: Name of the amended field
+        newValue:
+          type: string
+          nullable: true
+          description: New value for the field (if any)
+        note:
+          type: string
+          nullable: true
+          description: Optional note about the amendment
+    claim_amendment_response:
+      type: object
+      required:
+        - claimAmendmentId
+        - status
+        - createdOn
+      properties:
+        claimAmendmentId:
+          type: string
+          format: uuid
+          description: Unique identifier for the amendment record
+        status:
+          $ref: "#/components/schemas/amendment_status"
+        createdOn:
+          type: string
+          format: date-time
+          description: Timestamp when the amendment was created
