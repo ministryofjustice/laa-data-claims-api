@@ -19,6 +19,7 @@ jobs:
       publish_package: 'false'
       junit_results: 'false'
       junit_report: 'false'
+      publish_package: 'true'
       checkstyle_report: 'false'
       jacoco_coverage_report: 'false'
     secrets:
