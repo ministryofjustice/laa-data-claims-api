@@ -84,7 +84,7 @@ jobs:
 
       - name: Deploy UAT
         id: deploy_uat
-        uses: ./.github/actions/deploy
+        uses: ./.github/actions/deploy_branch
         with:
           ecr-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
           ecr-role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}

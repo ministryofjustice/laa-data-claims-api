@@ -25,6 +25,9 @@ inputs:
   app-environment:
     description: "environment to which the app is being deployed [staging, production, etc]"
     required: true
+  image-tag:
+    description: "Docker image tag to deploy"
+    required: false
 
 outputs:
   branch-name:
@@ -78,10 +81,12 @@ runs:
         ECR_REGION: ${{ inputs.ecr-region }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         GIT_SHA: ${{ github.sha }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
         KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
         VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
+        deploy_image_tag="${IMAGE_TAG:-$GIT_SHA}"
         ingress_name="$RELEASE_NAME-data-claims-api"
         external_host="$RELEASE_NAME-$KUBE_NAMESPACE.cloud-platform.service.justice.gov.uk"
         internal_host="$RELEASE_NAME-internal-$KUBE_NAMESPACE.internal-non-prod.cloud-platform.service.justice.gov.uk"
@@ -94,7 +99,9 @@ runs:
 
         echo "branch name: $branch_name"
 
-        if [ "$branch_name" == "main" ]; then
+        if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          export SPRING_PROFILE="main"
+        elif [ "$branch_name" == "main" ]; then
           export SPRING_PROFILE="main"
         else
           export SPRING_PROFILE="preview"
@@ -110,7 +117,7 @@ runs:
           --namespace ${KUBE_NAMESPACE} \
           --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
-          --set image.tag="${GIT_SHA}" \
+          --set image.tag="${deploy_image_tag}" \
           --set ingress.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$external_identifier" \
           --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="$LAA_IPS" \
           --set ingress.hosts="{$external_host}" \
