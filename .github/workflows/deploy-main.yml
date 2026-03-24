@@ -69,7 +69,6 @@ jobs:
       contents: read
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v6
 
@@ -95,7 +94,7 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
-          image-tag: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
@@ -145,7 +144,7 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: staging
-          image-tag: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       - name: Record staging deployment to pact broker
         id: record_staging_deployment
@@ -195,7 +194,7 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: production
-          image-tag: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       - name: Record production deployment to pact broker
         id: record_production_deployment
