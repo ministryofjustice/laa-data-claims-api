@@ -15,7 +15,7 @@ jobs:
     with:
       integration_test_task: 'integrationTest'
       create_tag: 'true'
-      github_bot_username: 'laa-ccms-caab-service'
+      github_bot_username: 'laa-java-service-deployer'
       semgrep_check: 'false'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
