@@ -20,7 +20,7 @@ public class VersionProbeController {
     return ResponseEntity.ok(Map.of("proof", "v1 handler was selected", "version", 1));
   }
 
-  @GetMapping(path = "/{version}/_version-proof", version = "2")
+  @GetMapping(path = "/{version}/_version-proof", version = "2+")
   public ResponseEntity<Map<String, Object>> probeV2() {
     return ResponseEntity.ok(Map.of("proof", "v2 handler was selected", "version", 2));
   }

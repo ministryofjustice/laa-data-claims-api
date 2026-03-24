@@ -13,7 +13,7 @@ public class ApiVersionConfig implements WebMvcConfigurer {
     configurer
         .usePathSegment(1)
         .detectSupportedVersions(false)
-        .addSupportedVersions("1", "2")
+        .addSupportedVersions("1", "2", "3")
         .setDefaultVersion("1")
         .setVersionRequired(false)
         .setVersionParser(new ApiVersionParser());
