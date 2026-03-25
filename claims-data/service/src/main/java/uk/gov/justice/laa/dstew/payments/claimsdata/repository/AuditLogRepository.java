@@ -10,4 +10,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AuditLog;
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
   List<AuditLog> findByTableNameAndPrimaryKeyOrderByChangedAtAsc(
       String tableName, String primaryKey);
+
+  /** Retrieves all audit records for the given primary key, regardless of table name. */
+  List<AuditLog> findByPrimaryKeyOrderByChangedAtAsc(String primaryKey);
 }

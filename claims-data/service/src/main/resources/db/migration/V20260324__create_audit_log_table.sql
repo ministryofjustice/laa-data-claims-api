@@ -30,39 +30,39 @@ CREATE TRIGGER audit_log_no_update
 BEFORE UPDATE OR DELETE ON audit.audit_log
 FOR EACH ROW EXECUTE FUNCTION audit.prevent_audit_log_modification();
 
--- V20260324__create_audit_trigger_function.sql
--- Create a trigger function to audit INSERT, UPDATE, DELETE on claim table
+-- V20260325__update_audit_claim_changes_actor_user.sql
+-- Update audit.audit_claim_changes() to set actor_user from claim table fields
+
 CREATE OR REPLACE FUNCTION audit.audit_claim_changes()
 RETURNS trigger AS $$
 DECLARE
 v_actor_user TEXT;
     v_actor_service TEXT;
-    v_pk JSONB;
+    v_pk TEXT;
     v_old_data JSONB;
     v_new_data JSONB;
-BEGIN
-    -- Set actor info
-    v_actor_user := current_setting('audit.actor_user', true);
-    v_actor_service := current_user;
 
-    -- Set primary key (uses 'id' as PK for claim table)
-    IF TG_OP = 'DELETE' THEN
-        v_pk := jsonb_build_object('id', OLD.id);
-        v_old_data := to_jsonb(OLD);
-        v_new_data := NULL;
-    ELSIF TG_OP = 'INSERT' THEN
-        v_pk := jsonb_build_object('id', NEW.id);
+BEGIN
+    -- Set actor_service from session or fallback to current_user
+    v_actor_service := COALESCE(current_setting('audit.actor_service', true), current_user);
+
+    -- Set actor_user from claim fields
+    IF TG_OP = 'INSERT' THEN
+        v_actor_user := NEW.created_by_user_id;
+        v_pk := NEW.id::text;
         v_old_data := NULL;
         v_new_data := to_jsonb(NEW);
-    ELSE -- UPDATE
-        v_pk := jsonb_build_object('id', NEW.id);
+    ELSIF TG_OP = 'DELETE' THEN
+        v_actor_user := OLD.updated_by_user_id;
+        v_pk := OLD.id::text;
+        v_old_data := to_jsonb(OLD);
+        v_new_data := NULL;
+ELSE -- UPDATE
+        v_actor_user := NEW.updated_by_user_id;
+        v_pk := NEW.id::text;
         v_old_data := to_jsonb(OLD);
         v_new_data := to_jsonb(NEW);
-    END IF;
-
-    -- Optional: Redact sensitive fields here if needed
-    -- Example: v_old_data := v_old_data - 'client_ssn';
-    -- Example: v_new_data := v_new_data - 'client_ssn';
+END IF;
 
 INSERT INTO audit.audit_log (
     table_name, operation, primary_key, old_data, new_data, changed_at, actor_user, actor_service

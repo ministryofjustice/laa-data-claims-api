@@ -2355,20 +2355,24 @@ components:
           type: 'integer'
         size:
           type: 'integer'
+
     claim_audit_change:
       type: object
       properties:
         id:
           type: integer
           description: Audit log record id
-        changedAt:
+        object_name:
+          type: string
+          description: Name of the audited object/table
+        changed_at:
           type: string
           format: date-time
         operation:
           type: string
-        actorUser:
+        actor_user:
           type: string
-        actorService:
+        actor_service:
           type: string
         diff:
           type: array
@@ -2383,18 +2387,19 @@ components:
           type: string
         after:
           type: string
+          
     claim_amendment_post:
       type: object
       required:
-        - claimId
-        - amendedFields
+        - claim_id
+        - amended_fields
         - created_by_user_id
       properties:
-        claimId:
+        claim_id:
           type: string
           format: uuid
           description: UUID of the claim being amended
-        amendedFields:
+        amended_fields:
           type: array
           description: List of amended fields and their new values/notes
           items:
@@ -2408,6 +2413,13 @@ components:
         - $ref: '#/components/schemas/claim_amendment_post'
         - type: object
           properties:
+            claim_amendment_id:
+              type: string
+              format: uuid
+              description: Unique identifier for the amendment record
+            target:
+              type: string
+              description: Target of the amendment
             updated_by_user_id:
               type: string
               description: User ID of the user who last modified the record
@@ -2430,36 +2442,36 @@ components:
         updated_by_user_id:
           type: string
           description: User ID of the user who is updating the amendment status
+
     amended_field:
       type: object
       required:
-        - fieldName
+        - field_name
       properties:
-        fieldName:
+        field_name:
           type: string
           description: Name of the amended field
-        newValue:
+        new_value:
           type: string
-          nullable: true
           description: New value for the field (if any)
         note:
           type: string
-          nullable: true
           description: Optional note about the amendment
+
     claim_amendment_response:
       type: object
       required:
-        - claimAmendmentId
+        - claim_amendment_id
         - status
-        - createdOn
+        - created_on
       properties:
-        claimAmendmentId:
+        claim_amendment_id:
           type: string
           format: uuid
           description: Unique identifier for the amendment record
         status:
           $ref: "#/components/schemas/amendment_status"
-        createdOn:
+        created_on:
           type: string
           format: date-time
           description: Timestamp when the amendment was created

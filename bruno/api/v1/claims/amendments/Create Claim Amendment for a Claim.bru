@@ -1,0 +1,358 @@
+meta {
+  name: Create Claim Amendment for a Claim
+  type: http
+  seq: 2
+  tags: [
+    Claims
+  ]
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claimId/amendments
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claimId: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "claim_id": "{{CLAIM_ID}}",
+    "amended_fields": [
+      {
+        "field_name": "policeStationCode",
+        "new_value": "c",
+        "note": "bob"
+      }
+    ],
+    "created_by_user_id": "Ben-Test"
+  }
+}
+
+tests {
+  if(res.status === 201){
+    const body = res.getBody();
+    bru.setEnvVar("CLAIM_AMENDMENT_ID", body.claim_amendment_id);
+  }else{
+    throw new Error("POST failed - cannont set CLAIM_AMENDMENT_ID");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}
+
+docs {
+  Create a new claim amendment for a specific claim.
+}
+
+example {
+  name: 201 Response
+  description: Claim Amendment created
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 201
+      text: Created
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "claimAmendmentId": "",
+          "status": "READY_FOR_VALIDATION",
+          "createdOn": ""
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Bad request
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 401 Response
+  description: Unauthorized
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 401
+      text: Unauthorized
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 403 Response
+  description: Forbidden
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 403
+      text: Forbidden
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 415 Response
+  description: Unsupported Media Type
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 415
+      text: Unsupported Media Type
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 429 Response
+  description: Too many requests
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 429
+      text: Too Many Requests
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 500 Response
+  description: Internal server error
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+    }
+  
+    body:json: {
+      {
+        "claimId": "",
+        "amendedFields": [
+          {
+            "fieldName": "",
+            "newValue": "",
+            "note": ""
+          }
+        ],
+        "created_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 500
+      text: Internal Server Error
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

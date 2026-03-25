@@ -187,16 +187,13 @@ public class ClaimController implements ClaimsApi {
             .map(
                 amendment ->
                     new ClaimAmendmentGet()
-                        .claimId(amendment.getClaim().getId())
-                        // .claimAmendmentId(amendment.getClaimAmendmentId())
+                        .claimId(amendment.getClaimId())
+                        .claimAmendmentId(amendment.getClaimAmendmentId())
                         .status(AmendmentStatus.fromValue(amendment.getStatus()))
                         .createdOn(amendment.getCreatedOn())
                         .createdByUserId(amendment.getCreatedByUserId())
                         .updatedByUserId(amendment.getUpdatedByUserId())
-                        .updatedOn(amendment.getUpdatedOn())
-                        .amendedFields(
-                            claimAmendmentService.convertChangedFieldsToAmendedFields(
-                                amendment.getChangedFields())))
+                        .amendedFields(amendment.getChangedFields()))
             .toList();
     return ResponseEntity.ok(responses);
   }

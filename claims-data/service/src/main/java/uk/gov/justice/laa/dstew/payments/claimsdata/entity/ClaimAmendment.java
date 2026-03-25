@@ -2,12 +2,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +13,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendedField;
 
 /** Entity representing a claim amendment. */
 @Getter
@@ -30,9 +31,8 @@ public class ClaimAmendment {
   @Column(name = "claim_amendment_id", nullable = false)
   private UUID claimAmendmentId;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "claim_id", nullable = false)
-  private Claim claim;
+  @Column(name = "claim_id", nullable = false)
+  private UUID claimId;
 
   @Column(name = "created_by_user_id", nullable = false)
   private String createdByUserId;
@@ -51,6 +51,7 @@ public class ClaimAmendment {
   @Column(name = "status", nullable = false)
   private String status;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "changed_fields", columnDefinition = "jsonb", nullable = false)
-  private String changedFields;
+  private List<AmendedField> changedFields;
 }

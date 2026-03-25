@@ -1,0 +1,250 @@
+meta {
+  name: Mark Claim Amendment as Valid
+  type: http
+  seq: 1
+  tags: [
+    Claims
+  ]
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claimId: {{CLAIM_ID}}
+  amendmentId: {{CLAIM_AMENDMENT_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "updated_by_user_id": "Ben-Admin-Valid"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}
+
+docs {
+  Mark a claim amendment as VALID.
+}
+
+example {
+  name: 200 Response
+  description: Amendment marked as valid
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Bad request
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 401 Response
+  description: Unauthorized
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 401
+      text: Unauthorized
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 403 Response
+  description: Forbidden
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 403
+      text: Forbidden
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 429 Response
+  description: Too many requests
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 429
+      text: Too Many Requests
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 500 Response
+  description: Internal server error
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claimId/amendments/:amendmentId/valid
+    method: POST
+    mode: json
+    params:path: {
+      claimId: 
+      amendmentId: 
+    }
+  
+    body:json: {
+      {
+        "updated_by_user_id": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 500
+      text: Internal Server Error
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

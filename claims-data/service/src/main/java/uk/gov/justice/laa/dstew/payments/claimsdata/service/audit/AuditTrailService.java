@@ -26,8 +26,7 @@ public class AuditTrailService {
    */
   public List<ClaimAuditChange> getClaimAuditTrail(UUID claimId) {
     List<AuditLog> logs =
-        auditLogRepository.findByTableNameAndPrimaryKeyOrderByChangedAtAsc(
-            "claim", claimId.toString());
+        auditLogRepository.findByPrimaryKeyOrderByChangedAtAsc(claimId.toString());
     return logs.stream()
         .map(
             log ->
@@ -37,6 +36,7 @@ public class AuditTrailService {
                     .operation(log.getOperation())
                     .actorUser(log.getActorUser())
                     .actorService(log.getActorService())
+                    .objectName(log.getTableName())
                     .diff(
                         auditDiffHelper.computeDiff(
                             log.getOldData(), log.getNewData(), log.getOperation())))
