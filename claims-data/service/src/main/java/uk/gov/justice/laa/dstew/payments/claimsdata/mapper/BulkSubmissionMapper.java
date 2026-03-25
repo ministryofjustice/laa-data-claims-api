@@ -252,7 +252,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions count must be less than 100\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be less than 100\"))")
   @Mapping(
       target = "mediationTime",
       expression =
@@ -416,7 +416,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions count must be less than 100\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be less than 100\"))")
   @Mapping(
       target = "mediationTime",
       expression =
