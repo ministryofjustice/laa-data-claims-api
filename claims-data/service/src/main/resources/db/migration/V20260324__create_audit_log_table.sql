@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS audit.audit_log (
     id BIGSERIAL PRIMARY KEY,
     table_name TEXT NOT NULL,
     operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
-    primary_key JSONB NOT NULL,
+    primary_key TEXT NOT NULL,
     old_data JSONB,
     new_data JSONB,
     changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -36,14 +36,12 @@ FOR EACH ROW EXECUTE FUNCTION audit.prevent_audit_log_modification();
 CREATE OR REPLACE FUNCTION audit.audit_claim_changes()
 RETURNS trigger AS $$
 DECLARE
-v_actor_user TEXT;
+    v_actor_user TEXT;
     v_actor_service TEXT;
     v_pk TEXT;
     v_old_data JSONB;
     v_new_data JSONB;
-
 BEGIN
-    -- Set actor_service from session or fallback to current_user
     v_actor_service := COALESCE(current_setting('audit.actor_service', true), current_user);
 
     -- Set actor_user from claim fields
