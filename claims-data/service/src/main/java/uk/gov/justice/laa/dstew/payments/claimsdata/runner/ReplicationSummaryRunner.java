@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Slf4j
 public class ReplicationSummaryRunner implements ApplicationRunner {
+  private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -62,11 +64,14 @@ public class ReplicationSummaryRunner implements ApplicationRunner {
       for (Map<String, Object> table : tables) {
         String schema = (String) table.get("schemaname");
         String tableName = (String) table.get("tablename");
-        String fullTableName = schema + "." + tableName;
+        String fullTableName = generateSafeTableReference(schema, tableName);
+        if (fullTableName == null) {
+          continue;
+        }
 
         log.info("Processing table: {}", fullTableName);
 
-        // Build SQL dynamically
+        // Build SQL dynamically with quoted identifiers
         String countSql =
             String.format("SELECT count(*) FROM %s WHERE created_on < ?", fullTableName);
         String updatedSql =
@@ -90,7 +95,8 @@ public class ReplicationSummaryRunner implements ApplicationRunner {
               created_on = now();
             """;
 
-        jdbcTemplate.update(upsertSql, fullTableName, summaryDate, recordCount, updatedCount);
+        jdbcTemplate.update(
+            upsertSql, schema + "." + tableName, summaryDate, recordCount, updatedCount);
       }
 
       log.info("Replication summary update complete.");
@@ -100,6 +106,42 @@ public class ReplicationSummaryRunner implements ApplicationRunner {
     } catch (Exception ex) {
       log.error("Unexpected error while updating replication summary", ex);
       throw ex;
+    }
+  }
+
+  /**
+   * Validates that the provided identifier (schema or table name) matches the allowed pattern for
+   * PostgreSQL identifiers and safely quotes it for use in SQL statements. This prevents SQL
+   * injection by ensuring only valid, expected names are used and by applying double-quoting to
+   * handle reserved words and special characters.
+   *
+   * @param identifier the schema or table name to validate and quote
+   * @return the safely quoted identifier
+   * @throws IllegalArgumentException if the identifier does not match the allowed pattern
+   */
+  private static String quoteAndValidateIdentifier(String identifier) {
+    if (!IDENTIFIER_PATTERN.matcher(identifier).matches()) {
+      throw new IllegalArgumentException("Invalid identifier: " + identifier);
+    }
+    return "\"" + identifier.replace("\"", "\"\"") + "\"";
+  }
+
+  /**
+   * Generates a safely quoted table reference (schema.table) if both identifiers are valid,
+   * otherwise returns null.
+   *
+   * @param schema the schema name
+   * @param tableName the table name
+   * @return the safely quoted schema.table reference, or null if either identifier is invalid
+   */
+  private static String generateSafeTableReference(String schema, String tableName) {
+    try {
+      String quotedSchema = quoteAndValidateIdentifier(schema);
+      String quotedTable = quoteAndValidateIdentifier(tableName);
+      return quotedSchema + "." + quotedTable;
+    } catch (IllegalArgumentException ex) {
+      log.warn("Skipping table with invalid identifier: {}.{}", schema, tableName);
+      return null;
     }
   }
 }

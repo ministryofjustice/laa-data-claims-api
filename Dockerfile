@@ -36,7 +36,7 @@ ONBUILD COPY --from=builder /build/claims-data/service/build/libs/service-*.jar 
 
 # --- Stage for copying from the local filesystem (CI/Manual) ---
 FROM base AS build-external
-ONBUILD COPY claims-data/service/build/libs/service-1.0.0.jar app.jar
+ONBUILD COPY claims-data/service/build/libs/service-*.jar app.jar
 
 # --- Final Stage ---
 ARG BUILD_SOURCE

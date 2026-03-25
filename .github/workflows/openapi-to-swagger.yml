@@ -78,7 +78,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6.0.0
         with:
           role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-          aws-region: ${{  vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+          aws-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
