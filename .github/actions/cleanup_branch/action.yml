@@ -40,21 +40,21 @@ runs:
     - name: Delete preview release
       shell: bash
       env:
-        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name }}"
         NAMESPACE: "${{ inputs.kube-namespace }}"
       run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE"
 
     - name: Delete preview release's database from RDS
       shell: bash
       env:
-        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name }}"
       run: |
         scripts/uat_drop_db.sh "$RELEASE_NAME"
 
     - name: Delete Helm release history secrets
       shell: bash
       env:
-        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name-to-delete }}"
+        RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name }}"
         NAMESPACE: "${{ inputs.kube-namespace }}"
       run: |
         # Delete Helm release history secrets for the main application
