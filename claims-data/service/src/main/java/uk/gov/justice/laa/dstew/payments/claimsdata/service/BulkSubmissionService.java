@@ -132,9 +132,9 @@ public class BulkSubmissionService
       String areaOfLaw, BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     String errorMessage =
         switch (areaOfLaw) {
-          case "CRIME LOWER" -> "Stage Reached Code is required for Crime Lower claims";
-          case "LEGAL HELP" -> "Matter Type Code is required for Legal Help claims";
-          case "MEDIATION" -> "Matter Type Code is required for Mediation claims";
+          case "CRIME LOWER" -> "Stage Reached is missing for one or more of your claims";
+          case "LEGAL HELP" -> "Matter Type is missing for one or more of your claims";
+          case "MEDIATION" -> "Matter Type is missing for one or more of your claims";
           default -> null;
         };
     failSubmission(errorMessage, bulkSubmissionBuilder);
@@ -149,13 +149,11 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetailsSchedule::getSubmissionPeriod);
 
     if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
-      failSubmission(
-          "Submission period is required, please check the file and try again.",
-          bulkSubmissionBuilder);
+      failSubmission("Enter a submission period in the file", bulkSubmissionBuilder);
 
     } else if (!isValidMonthYear(submissionPeriod.get())) {
       failSubmission(
-          "Submission period wrong format, should be in the format MMM-YYYY",
+          "Enter the submission period in the format MMM-YYYY (for example, JAN-2025)",
           bulkSubmissionBuilder);
     }
   }

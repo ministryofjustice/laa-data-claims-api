@@ -107,11 +107,11 @@ class BulkSubmissionServiceTest {
   @ParameterizedTest(name = "submissionPeriod: {0}")
   @CsvSource({
     // null submission period
-    ",'Submission period is required, please check the file and try again.'",
+    ",'Enter a submission period in the file'",
     // empty submission period
-    "' ','Submission period is required, please check the file and try again.'",
+    "' ','Enter a submission period in the file'",
     // invalid submission period
-    "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
+    "blah-blah, 'Enter the submission period in the format MMM-YYYY (for example, JAN-2025)'"
   })
   @DisplayName("Throws BulkSubmissionValidationException when submission period is invalid")
   void throwsWhenSubmissionPeriodInvalid(String submissionPeriod, String expectedMessage) {
@@ -237,24 +237,23 @@ class BulkSubmissionServiceTest {
             () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
 
     assertEquals(
-        "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
-        exception.getMessage());
+        "Area of law must be Mediation, Crime Lower or Legal Help", exception.getMessage());
   }
 
   @ParameterizedTest(name = "areaOfLaw: {0}, matterType: {1}")
   @CsvSource({
     // null matter type
-    "LEGAL HELP,,Matter Type Code is required for Legal Help claims",
-    "MEDIATION,,Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,,Stage Reached Code is required for Crime Lower claims",
+    "LEGAL HELP,,Matter Type is missing for one or more of your claims",
+    "MEDIATION,,Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,,Stage Reached is missing for one or more of your claims",
     // empty matter type
-    "LEGAL HELP,'',Matter Type Code is required for Legal Help claims",
-    "MEDIATION,'',Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,'',Stage Reached Code is required for Crime Lower claims",
+    "LEGAL HELP,'',Matter Type is missing for one or more of your claims",
+    "MEDIATION,'',Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,'',Stage Reached is missing for one or more of your claims",
     // whitespace matter type
-    "LEGAL HELP,' ',Matter Type Code is required for Legal Help claims",
-    "MEDIATION,' ',Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,' ',Stage Reached Code is required for Crime Lower claims"
+    "LEGAL HELP,' ',Matter Type is missing for one or more of your claims",
+    "MEDIATION,' ',Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,' ',Stage Reached is missing for one or more of your claims"
   })
   @DisplayName("Throws BulkSubmissionValidationException when matter type is invalid")
   void validateMatterTypeInBulkSubmission(

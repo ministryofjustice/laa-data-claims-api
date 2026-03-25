@@ -262,7 +262,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
         default ->
             throw new IllegalStateException(
-                "File rejected: unsupported outcome item. Please correct the file and try again.");
+                "The file contains an unrecognised field %s. Correct or remove the field and try again."
+                    .formatted(name));
       }
     }
 

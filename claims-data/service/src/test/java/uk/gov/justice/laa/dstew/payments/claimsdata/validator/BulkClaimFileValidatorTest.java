@@ -32,7 +32,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionValidationException.class)
-        .hasMessage("The uploaded file is empty");
+        .hasMessage("The selected file is empty");
   }
 
   @ParameterizedTest
@@ -86,7 +86,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Only .csv, .xml and .txt files are allowed");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 
   @ParameterizedTest
@@ -101,7 +101,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '" + contentType + "' does not match the .csv file extension.");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 
   @ParameterizedTest
@@ -116,7 +116,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '" + contentType + "' does not match the .xml file extension.");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 
   @ParameterizedTest
@@ -131,7 +131,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '" + contentType + "' does not match the .txt file extension.");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 
   @ParameterizedTest
@@ -183,7 +183,7 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Content type '' does not match the .txt file extension.");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 
   @Test
@@ -201,6 +201,6 @@ class BulkSubmissionFileValidatorTest {
     // When / Then
     assertThatThrownBy(() -> bulkSubmissionFileValidator.validate(file))
         .isInstanceOf(BulkSubmissionInvalidFileException.class)
-        .hasMessage("Only .csv, .xml and .txt files are allowed");
+        .hasMessage("The selected file must be a valid CSV, XML or TXT file");
   }
 }
