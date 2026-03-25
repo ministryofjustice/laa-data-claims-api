@@ -58,7 +58,8 @@ public class BulkSubmissionFileValidator {
 
     if (extension == null) {
       // 415 Unsupported Media Type
-      throw new BulkSubmissionInvalidFileException("The selected file must be a valid CSV, XML or TXT file");
+      throw new BulkSubmissionInvalidFileException(
+          "The selected file must be a valid CSV, XML or TXT file");
     }
 
     // Step 3: Validate Content Type

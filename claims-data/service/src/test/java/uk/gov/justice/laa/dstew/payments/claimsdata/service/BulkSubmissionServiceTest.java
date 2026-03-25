@@ -237,8 +237,7 @@ class BulkSubmissionServiceTest {
             () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
 
     assertEquals(
-        "Area of law must be Mediation, Crime Lower or Legal Help",
-        exception.getMessage());
+        "Area of law must be Mediation, Crime Lower or Legal Help", exception.getMessage());
   }
 
   @ParameterizedTest(name = "areaOfLaw: {0}, matterType: {1}")

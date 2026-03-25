@@ -177,8 +177,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
               count));
     }
     if (matterStarts.isEmpty()) {
-      throw new BulkSubmissionFileReadException(
-          "Enter a matter start row in the file");
+      throw new BulkSubmissionFileReadException("Enter a matter start row in the file");
     }
     return matterStarts;
   }

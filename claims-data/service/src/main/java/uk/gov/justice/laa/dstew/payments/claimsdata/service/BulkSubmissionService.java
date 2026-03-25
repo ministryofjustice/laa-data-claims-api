@@ -149,9 +149,7 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetailsSchedule::getSubmissionPeriod);
 
     if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
-      failSubmission(
-          "Enter a submission period in the file",
-          bulkSubmissionBuilder);
+      failSubmission("Enter a submission period in the file", bulkSubmissionBuilder);
 
     } else if (!isValidMonthYear(submissionPeriod.get())) {
       failSubmission(
