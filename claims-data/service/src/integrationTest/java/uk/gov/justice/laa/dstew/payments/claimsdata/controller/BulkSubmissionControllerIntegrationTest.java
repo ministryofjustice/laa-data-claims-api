@@ -278,7 +278,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
+        .isEqualTo("Net Profit Costs Amount must be a number with no more than 2 decimal places");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
@@ -602,7 +602,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Office missing from bulk submission file");
+        .isEqualTo("Enter the office account row in the file");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
