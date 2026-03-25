@@ -63,12 +63,7 @@ public class BulkSubmissionFieldConversionException extends ApplicationException
     String errorMessage =
         StringUtils.hasText(exceptionMessage) ? exceptionMessage : "unknown field";
     if (isBooleanField) {
-      errorMessage =
-          "Invalid value '"
-              + rejectedValue
-              + "' supplied for field '"
-              + exceptionMessage
-              + "'. Valid values are 'Y' or 'N'";
+      errorMessage = exceptionMessage + " must only include Y or N";
     }
     return errorMessage;
   }

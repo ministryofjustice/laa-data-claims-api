@@ -103,10 +103,10 @@ class BulkSubmissionMapperTests {
   @ParameterizedTest(
       name = "Error message should be: {2} when field context when {1} conversion fails")
   @CsvSource({
-    "adviceTime, notANumber,Advice Time must be in minutes",
-    "travelTime, notANumber,Travel Time must be in minutes",
-    "waitingTime, notANumber,Waiting Time must be in minutes",
-    "profitCost, notANumber,Net Profit Costs Amount must be a valid monetary value",
+    "adviceTime, notANumber,Advice Time must be a number",
+    "travelTime, notANumber,Travel Time must be a number",
+    "waitingTime, notANumber,Waiting Time must be a number",
+    "profitCost, notANumber,Net Profit Costs Amount must be a number with no more than 2 decimal places",
     "valueOfCosts, notANumber,Net Value of Costs Amount must be a valid monetary value",
     "disbursementsAmount, notANumber,Net Disbursement Amount must be a valid monetary value",
     "counselCost, notANumber,Net Counsel Costs Amount must be a valid monetary value",
@@ -117,13 +117,13 @@ class BulkSubmissionMapperTests {
     "hoInterview, notANumber,HO Interview must be between 0 and 9",
     "detentionTravelWaitingCosts, notANumber,Detention Travel Waiting Costs Amount must be a valid monetary value",
     "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
-    "desiAccRep, notANumber,Designated Accredited Representative Code must be valid",
+    "desiAccRep, notANumber,Designated Accredited Representative Code must be a number from 1 to 5",
     "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
     "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
-    "noOfSuspects, notANumber,Suspects Defendants Count must be between 0 and 99",
+    "noOfSuspects, notANumber,Suspects Defendants Count must be less than 100",
     "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
-    "numberOfMediationSessions, notANumber,Mediation Sessions Count must be between 1 and 99",
-    "mediationTime, notANumber,Mediation Time Minutes must be between 0 and 99999",
+    "numberOfMediationSessions, notANumber,Mediation Sessions count must be less than 100",
+    "mediationTime, notANumber,Mediation Time Minutes must be 99999 or less",
     "excessTravelCosts, notANumber,Excess Travel Costs Amount must be a valid monetary value",
     "jrFormFilling, notANumber,JR Form Filling Amount must be a valid monetary value",
     "costsDamagesRecovered, notANumber,Costs Damages Recovered Amount must be a valid monetary value"
@@ -172,7 +172,7 @@ class BulkSubmissionMapperTests {
 
   @ParameterizedTest(name = "Error message should be: {2} when monetary field {0} is not valid")
   @CsvSource({
-    "profitCost,notANumber,Net Profit Costs Amount must be a valid monetary value",
+    "profitCost,notANumber,Net Profit Costs Amount must be a number with no more than 2 decimal places",
     "valueOfCosts,notANumber,Net Value of Costs Amount must be a valid monetary value",
     "disbursementsAmount, notANumber,Net Disbursement Amount must be a valid monetary value",
     "counselCost, notANumber,Net Counsel Costs Amount must be a valid monetary value",
@@ -184,18 +184,18 @@ class BulkSubmissionMapperTests {
     "costsDamagesRecovered, notANumber,Costs Damages Recovered Amount must be a valid monetary value",
     "excessTravelCosts, notANumber,Excess Travel Costs Amount must be a valid monetary value",
     "detentionTravelWaitingCosts, notANumber,Detention Travel Waiting Costs Amount must be a valid monetary value",
-    "travelTime, notANumber,Travel Time must be in minutes",
-    "waitingTime, notANumber,Waiting Time must be in minutes",
+    "travelTime, notANumber,Travel Time must be a number",
+    "waitingTime, notANumber,Waiting Time must be a number",
     "hoInterview, notANumber,HO Interview must be between 0 and 9",
     "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
     "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
     "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
-    "noOfSuspects, notANumber,Suspects Defendants Count must be between 0 and 99",
+    "noOfSuspects, notANumber,Suspects Defendants Count must be less than 100",
     "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
-    "numberOfMediationSessions, notANumber,Mediation Sessions Count must be between 1 and 99",
-    "mediationTime, notANumber,Mediation Time Minutes must be between 0 and 99999",
-    "desiAccRep, notANumber,Designated Accredited Representative Code must be valid",
-    "adviceTime, notANumber,Advice Time must be in minutes",
+    "numberOfMediationSessions, notANumber,Mediation Sessions count must be less than 100",
+    "mediationTime, notANumber,Mediation Time Minutes must be 99999 or less",
+    "desiAccRep, notANumber,Designated Accredited Representative Code must be a number from 1 to 5",
+    "adviceTime, notANumber,Advice Time must be a number",
   })
   void shouldIncludeErrorMessageAndFieldContextWhenXMLOutcomeNumericConversionFails(
       String fieldName, String invalidValue, String expectedExceptionMessage) {

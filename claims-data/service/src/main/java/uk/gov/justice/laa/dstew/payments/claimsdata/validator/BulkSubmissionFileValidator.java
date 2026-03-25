@@ -48,7 +48,7 @@ public class BulkSubmissionFileValidator {
     // Step 1: Check if file is null or empty
     if (file.isEmpty()) {
       // Causes a 400 Bad Request response to be returned to the client.
-      throw new BulkSubmissionValidationException("The uploaded file is empty");
+      throw new BulkSubmissionValidationException("The selected file is empty");
     }
 
     // Step 2: Validate file extension
@@ -58,7 +58,7 @@ public class BulkSubmissionFileValidator {
 
     if (extension == null) {
       // 415 Unsupported Media Type
-      throw new BulkSubmissionInvalidFileException("Only .csv, .xml and .txt files are allowed");
+      throw new BulkSubmissionInvalidFileException("The selected file must be a valid CSV, XML or TXT file");
     }
 
     // Step 3: Validate Content Type
@@ -68,11 +68,7 @@ public class BulkSubmissionFileValidator {
     if (allowed.stream().noneMatch(a -> a.equalsIgnoreCase(contentType))) {
       // 415 Unsupported Media Type
       throw new BulkSubmissionInvalidFileException(
-          "Content type '"
-              + contentType
-              + "' does not match the "
-              + extension
-              + " file extension.");
+          "The selected file must be a valid CSV, XML or TXT file");
     }
   }
 

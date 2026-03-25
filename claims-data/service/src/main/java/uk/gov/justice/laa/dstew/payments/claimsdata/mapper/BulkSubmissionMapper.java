@@ -175,19 +175,19 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "adviceTime",
       expression =
-          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be a number\"))")
   @Mapping(
       target = "travelTime",
       expression =
-          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be a number\"))")
   @Mapping(
       target = "waitingTime",
       expression =
-          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be a number\"))")
   @Mapping(
       target = "profitCost",
       expression =
-          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a valid monetary value\"))")
+          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a number with no more than 2 decimal places\"))")
   @Mapping(
       target = "valueOfCosts",
       expression =
@@ -232,7 +232,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "desiAccRep",
       expression =
-          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be a number from 1 to 5\"))")
   @Mapping(
       target = "noOfClients",
       expression =
@@ -244,7 +244,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "noOfSuspects",
       expression =
-          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be less than 100\"))")
   @Mapping(
       target = "noOfPoliceStation",
       expression =
@@ -252,11 +252,11 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions count must be less than 100\"))")
   @Mapping(
       target = "mediationTime",
       expression =
-          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be 99999 or less\"))")
   @Mapping(
       target = "excessTravelCosts",
       expression =
@@ -339,19 +339,19 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "adviceTime",
       expression =
-          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.adviceTime(), \"Advice Time must be a number\"))")
   @Mapping(
       target = "travelTime",
       expression =
-          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.travelTime(), \"Travel Time must be a number\"))")
   @Mapping(
       target = "waitingTime",
       expression =
-          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be in minutes\"))")
+          "java(parseIntegerField(outcome.waitingTime(), \"Waiting Time must be a number\"))")
   @Mapping(
       target = "profitCost",
       expression =
-          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a valid monetary value\"))")
+          "java(parseBigDecimalField(outcome.profitCost(), \"Net Profit Costs Amount must be a number with no more than 2 decimal places\"))")
   @Mapping(
       target = "valueOfCosts",
       expression =
@@ -396,7 +396,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "desiAccRep",
       expression =
-          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be valid\"))")
+          "java(parseIntegerField(outcome.desiAccRep(), \"Designated Accredited Representative Code must be a number from 1 to 5\"))")
   @Mapping(
       target = "noOfClients",
       expression =
@@ -408,7 +408,7 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "noOfSuspects",
       expression =
-          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be between 0 and 99\"))")
+          "java(parseIntegerField(outcome.noOfSuspects(), \"Suspects Defendants Count must be less than 100\"))")
   @Mapping(
       target = "noOfPoliceStation",
       expression =
@@ -416,11 +416,11 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "numberOfMediationSessions",
       expression =
-          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions Count must be between 1 and 99\"))")
+          "java(parseIntegerField(outcome.numberOfMediationSessions(), \"Mediation Sessions count must be less than 100\"))")
   @Mapping(
       target = "mediationTime",
       expression =
-          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be between 0 and 99999\"))")
+          "java(parseIntegerField(outcome.mediationTime(), \"Mediation Time Minutes must be 99999 or less\"))")
   @Mapping(
       target = "excessTravelCosts",
       expression =

@@ -11,7 +11,7 @@ public class BulkSubmissionAreaOfLawException extends ApplicationException {
    */
   public BulkSubmissionAreaOfLawException() {
     super(
-        "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
+        "Area of law must be Mediation, Crime Lower or Legal Help",
         HttpStatus.BAD_REQUEST);
   }
 }
