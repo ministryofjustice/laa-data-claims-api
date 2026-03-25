@@ -58,6 +58,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
@@ -542,6 +543,8 @@ public abstract class AbstractIntegrationTest {
         getAssessmentBuilder()
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
+            .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+            .assessmentReason("Reason for assessment")
             .createdOn(Instant.now().minusSeconds(60))
             .build();
     Assessment assessment2 =
@@ -549,6 +552,8 @@ public abstract class AbstractIntegrationTest {
             .id(ASSESSMENT_2_ID)
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
+            .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+            .assessmentReason("Reason for assessment")
             .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
@@ -556,6 +561,8 @@ public abstract class AbstractIntegrationTest {
             .id(Uuid7.timeBasedUuid())
             .claim(claimRepository.getReferenceById(CLAIM_2_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_2_SUMMARY_FEE_ID))
+            .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+            .assessmentReason("Reason for assessment")
             .createdOn(Instant.now().minusSeconds(60))
             .build();
     assessmentRepository.saveAll(List.of(assessment1, assessment2, assessment3));

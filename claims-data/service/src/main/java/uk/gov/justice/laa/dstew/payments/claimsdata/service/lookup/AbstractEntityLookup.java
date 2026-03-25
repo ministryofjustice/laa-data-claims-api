@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.data.jpa.repository.JpaRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimsDataException;
 
 /**
  * A generic interface that centralises the common lookup logic for claims api entities of type
@@ -14,10 +15,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @param <T> the type of the entity
  * @param <R> the type of the repository, extending {@code JpaRepository<T, UUID>}
  * @param <E> the type of the exception to be thrown when the entity is not found, must extend
- *     {@link RuntimeException}
+ *     {@link ClaimsDataException}
  */
 public interface AbstractEntityLookup<
-    T, R extends JpaRepository<T, UUID>, E extends RuntimeException> {
+    T, R extends JpaRepository<T, UUID>, E extends ClaimsDataException> {
 
   /**
    * Provides the repository {@code R} to be used by the default lookup method.

@@ -1,0 +1,207 @@
+name: Deploy main
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  assemble:
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@v1
+    permissions:
+      contents: write
+      packages: write
+    with:
+      build_command: 'assemble'
+      junit_results: 'false'
+      junit_report: 'false'
+      publish_package: 'true'
+      checkstyle_report: 'false'
+      jacoco_coverage_report: 'false'
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      aws_region: ${{ vars.AWS_REGION }}
+
+  pact-test:
+    needs: [ assemble ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@v1
+    permissions:
+      contents: write
+      packages: write
+    with:
+      pact_test_task: ":claims-data:service:pactTest"
+      pacticipant_name: 'laa-data-claims-api'
+      consumer_name: 'laa-submit-a-bulk-claim'
+      git_branch: 'main'
+      is_provider: true
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  ecr-publish-image:
+    needs: [ assemble ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      jar_subproject: 'claims-data:service'
+      image_version: ${{ format('{0}-{1}', vars.IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+      ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+      ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs:
+      - ecr-publish-image
+      - pact-test
+    environment: uat
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Can I deploy UAT?
+        id: can_i_deploy_uat
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+      - name: Deploy UAT
+        id: deploy_uat
+        uses: ./.github/actions/deploy_branch
+        with:
+          ecr-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+          ecr-role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+          ecr-repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          app-environment: uat
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
+
+      - name: Record UAT deployment to pact broker
+        id: record_uat_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs:
+      - ecr-publish-image
+      - pact-test
+      - deploy-uat
+    environment: staging
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Can I deploy Staging?
+        id: can_i_deploy_staging
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+      - name: Deploy staging
+        id: deploy_staging
+        uses: ./.github/actions/deploy
+        with:
+          ecr-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+          ecr-role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+          ecr-repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          app-environment: staging
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
+
+      - name: Record staging deployment to pact broker
+        id: record_staging_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs:
+      - ecr-publish-image
+      - pact-test
+      - deploy-staging
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Can I deploy Production?
+        id: can_i_deploy_production
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+      - name: Deploy production
+        id: deploy_production
+        uses: ./.github/actions/deploy
+        with:
+          ecr-region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+          ecr-role-to-assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+          ecr-repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          app-environment: production
+          image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
+
+      - name: Record production deployment to pact broker
+        id: record_production_deployment
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@v1
+        with:
+          pacticipant: 'laa-data-claims-api'
+          environment: 'main'
+          pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+          pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+          pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}

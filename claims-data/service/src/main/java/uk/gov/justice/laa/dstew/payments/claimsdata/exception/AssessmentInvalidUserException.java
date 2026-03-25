@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import org.springframework.http.HttpStatus;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /**
  * Exception thrown when an {@link uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment}
@@ -16,9 +15,9 @@ import uk.gov.laa.springboot.exception.ApplicationException;
  *     throw new AssessmentInvalidUserException(ErrorMessage.NULL_OR_BLANK.getMessage());
  * </pre>
  *
- * @see ApplicationException
+ * @see ClaimsDataException
  */
-public class AssessmentInvalidUserException extends ApplicationException {
+public class AssessmentInvalidUserException extends ClaimsDataException {
   /** Enumeration of error messages for invalid user ID scenarios. */
   public enum ErrorMessage {
     /** User ID is null or blank (empty or whitespace-only). */

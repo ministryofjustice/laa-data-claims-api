@@ -57,8 +57,6 @@ dependencies {
 
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
-    //Common exception handling
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-application-exception'
     //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
@@ -170,7 +168,7 @@ tasks.register('pactTest', Test) {
     }
 
     // Pass environment variables into the test process as System Properties
-    systemProperty 'pact.provider.version', providers.environmentVariable('CI_COMMIT_SHA').getOrElse('1.0.0')
+    systemProperty 'pact.provider.version', providers.environmentVariable('GIT_SHA').getOrElse('1.0.0')
     systemProperty 'pactbroker.url', providers.environmentVariable('PACT_BROKER_URL').getOrElse('https://laa-data-pact-broker.apps.live.cloud-platform.service.justice.gov.uk/')
     systemProperty 'pactbroker.auth.username', providers.environmentVariable('PACT_BROKER_USERNAME').getOrElse('ABC')
     systemProperty 'pactbroker.auth.password', providers.environmentVariable('PACT_BROKER_PASSWORD').getOrElse('ABC')

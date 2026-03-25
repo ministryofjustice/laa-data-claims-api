@@ -88,4 +88,78 @@ class ReplicationSummaryRunnerTest {
     // verify no insert/update
     verify(jdbcTemplate, never()).update(anyString(), any(), any());
   }
+
+  @Test
+  void run_shouldSkipTablesWithInvalidNames() {
+    // Arrange: invalid schema and table names
+    List<Map<String, Object>> mockTables =
+        List.of(
+            Map.of("schemaname", "claims", "tablename", "valid_table"),
+            Map.of("schemaname", "invalid schema", "tablename", "table1"), // space in schema
+            Map.of("schemaname", "claims", "tablename", "invalid-table"), // dash in table
+            Map.of("schemaname", "123claims", "tablename", "table2"), // starts with number
+            Map.of("schemaname", "claims", "tablename", "table with space"), // space in table
+            Map.of(
+                "schemaname",
+                "claims",
+                "tablename",
+                "valid_table; DROP TABLE users; --") // attempted SQL injection
+            );
+
+    when(jdbcTemplate.queryForList(anyString())).thenReturn(mockTables);
+
+    // Only the valid table should be processed
+    when(jdbcTemplate.queryForObject(
+            startsWith("SELECT count(*) FROM \"claims\".\"valid_table\" WHERE created_on < ?"),
+            eq(Long.class),
+            any(Timestamp.class)))
+        .thenReturn(42L);
+    when(jdbcTemplate.queryForObject(
+            startsWith(
+                "SELECT count(*) FROM \"claims\".\"valid_table\" WHERE updated_on BETWEEN ? AND ?"),
+            eq(Long.class),
+            any(Timestamp.class),
+            any(Timestamp.class)))
+        .thenReturn(7L);
+
+    // Act
+    assertThatNoException().isThrownBy(() -> runner.run(mock(ApplicationArguments.class)));
+
+    // Assert: only one upsert for the valid table
+    verify(jdbcTemplate, times(1))
+        .update(
+            argThat(sql -> sql.contains("INSERT INTO claims.replication_summary")),
+            eq("claims.valid_table"),
+            any(),
+            any(),
+            any());
+
+    // No upsert for invalid tables (including attempted SQL injection)
+    verify(jdbcTemplate, times(1))
+        .queryForObject(
+            startsWith("SELECT count(*) FROM \"claims\".\"valid_table\" WHERE created_on < ?"),
+            eq(Long.class),
+            any(Timestamp.class));
+    verify(jdbcTemplate, times(1))
+        .queryForObject(
+            startsWith(
+                "SELECT count(*) FROM \"claims\".\"valid_table\" WHERE updated_on BETWEEN ? AND ?"),
+            eq(Long.class),
+            any(Timestamp.class),
+            any(Timestamp.class));
+
+    // Ensure no update for invalid tables (by checking total update calls is 1)
+    verify(jdbcTemplate, times(1)).update(anyString(), any(), any(), any(), any());
+
+    // Ensure no query or update for the SQL injection table
+    verify(jdbcTemplate, never())
+        .queryForObject(contains("valid_table; DROP TABLE users; --"), any(Class.class), any());
+    verify(jdbcTemplate, never())
+        .update(
+            anyString(),
+            eq("\"claims\".\"valid_table; DROP TABLE users; --\""),
+            any(),
+            any(),
+            any());
+  }
 }
