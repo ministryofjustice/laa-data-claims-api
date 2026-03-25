@@ -1,0 +1,50 @@
+name: Security Scans
+on:
+  workflow_call:
+    inputs:
+      docker_image_name:
+        description: 'Docker image name for Snyk scan'
+        required: true
+        type: string
+      java_version:
+        description: 'Java version for build and scan'
+        required: false
+        default: '25'
+        type: number
+    secrets:
+      SNYK_TOKEN:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      docker_image_name:
+        description: 'Docker image name for Snyk scan'
+        required: true
+      java_version:
+        description: 'Java version for build and scan'
+        required: false
+        default: '25'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  snyk-vulnerability-scan:
+    uses: ./.github/workflows/snyk-vulnerability-scans.yml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      docker_image_name: ${{ inputs.docker_image_name }}
+      java_version: ${{ inputs.java_version }}
+
+  sca-scan:
+    uses: ./.github/workflows/sca-analysis.yml
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      docker_image_name: ${{ inputs.docker_image_name }}
+      java_version: ${{ inputs.java_version }}
