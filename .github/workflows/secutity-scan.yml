@@ -45,6 +45,3 @@ jobs:
     uses: ./.github/workflows/sca-analysis.yml
     secrets:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    with:
-      docker_image_name: ${{ inputs.docker_image_name }}
-      java_version: ${{ inputs.java_version }}

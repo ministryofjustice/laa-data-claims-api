@@ -2,59 +2,27 @@ name: SCA - Software Composition Analysis
 
 on:
   workflow_call:
-    inputs:
-      java_version:
-        description: 'Java version for build and scan'
-        required: false
-        default: '25'
-        type: string
-      docker_image_name:
-        description: 'Docker image name for SCA scan'
-        required: true
-        type: string
     secrets:
       GITHUB_TOKEN:
         required: true
   workflow_dispatch:
-    inputs:
-      java_version:
-        description: 'Java version for build and scan'
-        required: false
-        default: '25'
-      docker_image_name:
-        description: 'Docker image name for SCA scan'
-        required: true
+
+permissions: {}
 
 jobs:
   sca:
     name: Software Composition Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      JAVA_VERSION: ${{ inputs.java_version }}
-      DOCKER_IMAGE_NAME: ${{ inputs.docker_image_name }}
+
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
+      issues: write
       security-events: write
-      actions: read
+
     steps:
-      - uses: actions/checkout@v6
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'corretto'
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
-      - name: Build app jar with gradle
-        run: ./gradlew build
-      - name: Build Docker image
-        run: docker build -t $DOCKER_IMAGE_NAME:latest-image .
       - name: Run SCA
-        uses: ministryofjustice/devsecops-actions/sca@f965eb1771ec66cfc41d7d57dc607fa6dfbc10ed
+        uses: ministryofjustice/devsecops-actions/sca@v1.4.0
         with:
-          token: ${{ env.GITHUB_TOKEN }}
-          docker-images-file: ${{ github.workspace }}/docker-images.json
+          token: ${{ secrets.GITHUB_TOKEN }}
           renovate: "false"
-          dependency-review-config-file: "./.github/dependency-review-config.yml"
