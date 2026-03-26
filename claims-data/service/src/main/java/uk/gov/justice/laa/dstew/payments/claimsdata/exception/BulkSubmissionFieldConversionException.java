@@ -3,17 +3,16 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /**
  * Exception raised when a bulk submission field cannot be converted to its target type.
  *
- * <p>This extends {@link uk.gov.laa.springboot.exception.ApplicationException} so the framework can
- * automatically translate the error into a {@link org.springframework.http.HttpStatus#BAD_REQUEST}
- * response. The offending field name and value are captured to support client-side debugging.
+ * <p>This extends {@link ClaimsDataException} so the framework can automatically translate the
+ * error into a {@link org.springframework.http.HttpStatus#BAD_REQUEST} response. The offending
+ * field name and value are captured to support client-side debugging.
  */
 @Getter
-public class BulkSubmissionFieldConversionException extends ApplicationException {
+public class BulkSubmissionFieldConversionException extends ClaimsDataException {
 
   private final String exceptionMessage;
   private final String rejectedValue;
@@ -63,12 +62,7 @@ public class BulkSubmissionFieldConversionException extends ApplicationException
     String errorMessage =
         StringUtils.hasText(exceptionMessage) ? exceptionMessage : "unknown field";
     if (isBooleanField) {
-      errorMessage =
-          "Invalid value '"
-              + rejectedValue
-              + "' supplied for field '"
-              + exceptionMessage
-              + "'. Valid values are 'Y' or 'N'";
+      errorMessage = exceptionMessage + " must only include Y or N";
     }
     return errorMessage;
   }

@@ -177,7 +177,7 @@ public class BulkSubmissionXmlConverterTests {
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file));
 
-      assertThat(exception.getErrorMessage()).contains("Outcome does not contain any data");
+      assertThat(exception.getMessage()).contains("Outcome does not contain any data");
     }
 
     @ParameterizedTest
@@ -272,7 +272,7 @@ public class BulkSubmissionXmlConverterTests {
               "Malformed XML"),
           new ExceptionTestData(
               OUTCOMES_WITH_UNSUPPORTED_NAME,
-              "File rejected: unsupported outcome item. Please correct the file and try again.",
+              "The file contains an unrecognised field RANDOM_NAME. Correct or remove the field and try again.",
               "Outcomes with unsupported name"),
           new ExceptionTestData(
               OUTCOMES_WITH_MISSING_NAME,
@@ -297,7 +297,7 @@ public class BulkSubmissionXmlConverterTests {
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file),
               "Expected exception to be thrown");
-      assertThat(exception.getErrorMessage()).contains(testData.expectedErrorMessage());
+      assertThat(exception.getMessage()).contains(testData.expectedErrorMessage());
     }
 
     @Test
@@ -309,7 +309,7 @@ public class BulkSubmissionXmlConverterTests {
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file),
               "Expected exception to be thrown when office is missing");
-      assertThat(actualException.getErrorMessage())
+      assertThat(actualException.getMessage())
           .isEqualTo("office missing from xml bulk submission file.");
     }
 
@@ -332,7 +332,7 @@ public class BulkSubmissionXmlConverterTests {
           assertThrows(
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file));
-      assertThat(actualException.getErrorMessage())
+      assertThat(actualException.getMessage())
           .isEqualTo(
               "Multiple offices found in bulk submission file. Only one office is supported per submission.");
     }
@@ -345,7 +345,7 @@ public class BulkSubmissionXmlConverterTests {
           assertThrows(
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file));
-      assertThat(actualException.getErrorMessage())
+      assertThat(actualException.getMessage())
           .isEqualTo(
               "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                   + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
@@ -359,7 +359,7 @@ public class BulkSubmissionXmlConverterTests {
           assertThrows(
               BulkSubmissionFileReadException.class,
               () -> bulkSubmissionXmlConverter.convert(file));
-      assertThat(actualException.getErrorMessage())
+      assertThat(actualException.getMessage())
           .isEqualTo(
               "Malformed XML / file is corrupt (not well-formed). Please fix XML structure and re-submit.");
     }
