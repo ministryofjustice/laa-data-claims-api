@@ -33,7 +33,7 @@ flowchart LR
   RepoAmend2 -->|updates amendment row| DB
   RepoAmend2 -->|writes audit record| AuditAmendUpdate[AuditLog - audit.audit_log]
   AuditAmendUpdate --> DB
-  CAS3 -->|if status == VALID then| ACTION[actionAmendment(amendmentId)]
+  CAS3 -->|if status == VALID then| ACTION[actionAmendment with amendmentId]
   ACTION -->|loads amendment| RepoAmend3[ClaimAmendmentRepository.findById]
   RepoAmend3 --> DB
   ACTION -->|loads claim| RepoClaim[ClaimRepository.findById]
