@@ -1,0 +1,23 @@
+name: Pact main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  record-commit-against-pact-broker:
+    runs-on: ubuntu-latest
+    steps:
+      - id: pact-broker-version
+        shell: bash
+        run: |
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL=${{ secrets.PACT_BROKER_URL }} \
+            -e PACT_BROKER_USERNAME=${{ secrets.PACT_BROKER_USERNAME }} \
+            -e PACT_BROKER_PASSWORD=${{ secrets.PACT_BROKER_PASSWORD }} \
+            pactfoundation/pact-cli:latest \
+            broker create-or-update-version \
+            --pacticipant laa-data-claims-api \
+            --version ${{ github.sha }} \
+            --branch main

@@ -111,11 +111,11 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     }
 
     if (csvOffice == null) {
-      throw new BulkSubmissionFileReadException("Office missing from bulk submission file");
+      throw new BulkSubmissionFileReadException("Enter the office account row in the file");
     }
 
     if (csvSchedule == null) {
-      throw new BulkSubmissionFileReadException("Schedule missing from bulk submission file");
+      throw new BulkSubmissionFileReadException("Enter the schedule row in the file");
     }
 
     // parent submission object
@@ -177,8 +177,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
               count));
     }
     if (matterStarts.isEmpty()) {
-      throw new BulkSubmissionFileReadException(
-          "Matter start row missing category code or mediation type");
+      throw new BulkSubmissionFileReadException("Enter a matter start row in the file");
     }
     return matterStarts;
   }

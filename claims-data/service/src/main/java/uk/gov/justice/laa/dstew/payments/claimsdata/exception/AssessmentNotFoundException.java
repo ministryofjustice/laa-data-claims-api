@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import org.springframework.http.HttpStatus;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /**
  * Exception thrown when an {@link uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment}
@@ -16,9 +15,9 @@ import uk.gov.laa.springboot.exception.ApplicationException;
  *     throw new AssessmentNotFoundException("Assessment not found for ID: " + assessmentId);
  * </pre>
  *
- * @see ApplicationException
+ * @see ClaimsDataException
  */
-public class AssessmentNotFoundException extends ApplicationException {
+public class AssessmentNotFoundException extends ClaimsDataException {
   /**
    * Construct a new exception with the specified detail message.
    *

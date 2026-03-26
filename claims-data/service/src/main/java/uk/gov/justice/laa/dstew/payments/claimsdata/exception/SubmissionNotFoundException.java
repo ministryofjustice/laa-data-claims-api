@@ -1,15 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import org.springframework.http.HttpStatus;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /**
  * The exception thrown when a submission cannot be located.
  *
- * <p>Extending {@link uk.gov.laa.springboot.exception.ApplicationException} associates this
- * exception with a {@link org.springframework.http.HttpStatus#NOT_FOUND 404 Not Found} status code.
+ * <p>Extending {@link ClaimsDataException} associates this exception with a {@link
+ * org.springframework.http.HttpStatus#NOT_FOUND 404 Not Found} status code.
  */
-public class SubmissionNotFoundException extends ApplicationException {
+public class SubmissionNotFoundException extends ClaimsDataException {
   /**
    * Construct a new exception with the specified detail message.
    *

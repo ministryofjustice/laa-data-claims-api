@@ -20,6 +20,10 @@ runs:
         if [ $GITHUB_EVENT_NAME == "pull_request" ]
         then
           branch=$GITHUB_HEAD_REF
+        elif [[ $GITHUB_REF == refs/tags/* ]]
+        then
+          # For tag-based deployments, use 'main' as the branch name
+          branch="main"
         else
           branch=${GITHUB_REF#refs/heads/}
         fi
