@@ -16,8 +16,8 @@ flowchart LR
   CC -->|calls| CAS[ClaimAmendmentService.createAmendment]
   CAS -->|validates & saves| RepoAmend[ClaimAmendmentRepository.save]
   RepoAmend -->|writes amendment row| DB
-  RepoAmend -->|writes audit record| AuditAmendCreate[AuditLog - audit.audit_log]
-  AuditAmendCreate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditLogCreate[AuditLog - audit.audit_log]
+  AuditLogCreate --> DB
   DB -->|row created: status=READY_FOR_VALIDATION| AmendRow[claim_amendment - changed_fields JSON]
 
   %% Listing
@@ -31,8 +31,8 @@ flowchart LR
   CC3 -->|calls| CAS3[ClaimAmendmentService.updateAmendmentStatus]
   CAS3 -->|validates updatedByUserId & state| RepoAmend2[ClaimAmendmentRepository.save]
   RepoAmend2 -->|updates amendment row| DB
-  RepoAmend2 -->|writes audit record| AuditAmendUpdate[AuditLog - audit.audit_log]
-  AuditAmendUpdate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditLogUpdate[AuditLog - audit.audit_log]
+  AuditLogUpdate --> DB
   CAS3 -->|if status == VALID then| ACTION[actionAmendment with amendmentId]
   ACTION -->|loads amendment| RepoAmend3[ClaimAmendmentRepository.findById]
   RepoAmend3 --> DB
@@ -40,8 +40,8 @@ flowchart LR
   RepoClaim --> DB
   ACTION -->|if policeStationCode changed -> update claim| RepoClaimSave[ClaimRepository.save]
   RepoClaimSave -->|updates claim row| DB
-  RepoClaimSave -->|writes audit record| AuditClaimUpdate[AuditLog - audit.audit_log]
-  AuditClaimUpdate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditLogClaimUpdate[AuditLog - audit.audit_log]
+  AuditLogClaimUpdate --> DB
 
   %% Error paths / rules
   CAS -.->|throws| Error1[400 Bad Request] 
@@ -73,42 +73,42 @@ sequenceDiagram
   participant DB
 
   %% Create amendment
-  Client->>ClaimController: POST /api/v1/claims/{claimId}/amendments\n{createdByUserId, amendedFields}
+  Client->>ClaimController: POST /api/v1/claims/CLAIM_ID/amendments - createdByUserId, amendedFields
   ClaimController->>ClaimAmendmentService: createAmendment(claimId, post)
   ClaimAmendmentService->>ClaimAmendmentRepository: save(amendment)
   ClaimAmendmentRepository->>DB: insert claim_amendment row
-  ClaimAmendmentRepository->>AuditLogRepository: insert audit_log (old=null, new=amendment)
-  AuditLogRepository->>DB: insert audit.audit_log row
+  %% DB trigger writes audit row after insert
+  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
 
   %% List amendments
-  Client->>ClaimController: GET /api/v1/claims/{claimId}/amendments
+  Client->>ClaimController: GET /api/v1/claims/CLAIM_ID/amendments
   ClaimController->>ClaimAmendmentService: getAmendmentsForClaim(claimId)
   ClaimAmendmentService->>ClaimAmendmentRepository: findByClaimId(claimId)
-  ClaimAmendmentRepository-->>ClaimAmendmentService: [amendment list]
-  ClaimAmendmentService-->>ClaimController: [amendment DTOs]
+  ClaimAmendmentRepository-->>ClaimAmendmentService: amendment list
+  ClaimAmendmentService-->>ClaimController: amendment DTOs
   ClaimController-->>Client: 200 OK
 
   %% Mark amendment VALID -> action
-  Client->>ClaimController: PATCH /api/v1/claims/{claimId}/amendments/{amendmentId}\n{updatedByUserId}
+  Client->>ClaimController: PATCH /api/v1/claims/CLAIM_ID/amendments/AMENDMENT_ID - updatedByUserId
   ClaimController->>ClaimAmendmentService: updateAmendmentStatus(claimId, amendmentId, VALID, user)
   ClaimAmendmentService->>ClaimAmendmentRepository: save(updated amendment)
   ClaimAmendmentRepository->>DB: update claim_amendment row (status)
-  ClaimAmendmentRepository->>AuditLogRepository: insert audit_log (old=before, new=after)
-  AuditLogRepository->>DB: insert audit.audit_log row
+  %% DB trigger writes audit row after amendment update
+  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
   ClaimAmendmentService->>ClaimAmendmentRepository: findById(amendmentId)
   ClaimAmendmentRepository->>ClaimRepository: findById(claimId)
-  ClaimRepository-->>ClaimAmendmentService: [claim]
-  ClaimAmendmentService->>ClaimRepository: save(updated claim)\n(if policeStationCode changed)
+  ClaimRepository-->>ClaimAmendmentService: claim
+  ClaimAmendmentService->>ClaimRepository: save updated claim (if policeStationCode changed)
   ClaimRepository->>DB: update claim row
-  ClaimRepository->>AuditLogRepository: insert audit_log (old=claimBefore, new=claimAfter)
-  AuditLogRepository->>DB: insert audit.audit_log row
+  %% DB trigger writes audit row after claim update
+  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
 
   %% Get audit trail for claim
-  Client->>ClaimController: GET /api/v1/claims/{claimId}/audit
+  Client->>ClaimController: GET /api/v1/claims/CLAIM_ID/audit
   ClaimController->>AuditTrailService: getClaimAuditTrail(claimId)
   AuditTrailService->>AuditLogRepository: findByPrimaryKeyOrderByChangedAtAsc(claimId)
   AuditLogRepository->>DB: select audit rows
-  AuditLogRepository-->>AuditTrailService: [audit rows]
+  AuditLogRepository-->>AuditTrailService: audit rows
   AuditTrailService-->>ClaimController: [ClaimAuditChange list]
   ClaimController-->>Client: 200 OK
 
@@ -117,11 +117,11 @@ sequenceDiagram
 Explanatory notes and mapping to code
 
 1) Entry points (controller)
-- `POST /api/v1/claims/{claimId}/amendments` -> `ClaimController.createClaimAmendmentForClaim(...)`
+-- `POST /api/v1/claims/CLAIM_ID/amendments` -> `ClaimController.createClaimAmendmentForClaim(...)`
   - File: `claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/controller/ClaimController.java`
   - Calls `ClaimAmendmentService.createAmendment(claimId, claimAmendmentPost)`.
 
-- `GET /api/v1/claims/{claimId}/amendments` -> `ClaimController.listClaimAmendmentsForClaim(...)`
+-- `GET /api/v1/claims/CLAIM_ID/amendments` -> `ClaimController.listClaimAmendmentsForClaim(...)`
   - Calls `ClaimAmendmentService.getAmendmentsForClaim(claimId)` and maps `ClaimAmendment` -> `ClaimAmendmentGet` DTOs.
 
 - `PUT/PATCH` mark valid/invalid
@@ -205,6 +205,9 @@ References (key files)
 - `claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java`
 
 ---
+
+
+
 
 
 
