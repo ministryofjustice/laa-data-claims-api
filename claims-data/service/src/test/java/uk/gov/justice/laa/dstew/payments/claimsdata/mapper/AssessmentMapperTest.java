@@ -51,6 +51,7 @@ class AssessmentMapperTest {
 
     assertNotNull(entity);
     assertEquals(post.getAssessmentOutcome(), entity.getAssessmentOutcome());
+    assertEquals(post.getAssessmentReason(), entity.getAssessmentReason());
     assertEquals(post.getFixedFeeAmount(), entity.getFixedFeeAmount());
     assertEquals(post.getNetTravelCostsAmount(), entity.getNetTravelCostsAmount());
     assertEquals(post.getNetWaitingCostsAmount(), entity.getNetWaitingCostsAmount());

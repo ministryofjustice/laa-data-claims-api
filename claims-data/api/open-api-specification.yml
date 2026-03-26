@@ -2141,6 +2141,7 @@ components:
         - claim_id
         - claim_summary_fee_id
         - assessment_outcome
+        - assessment_reason
         - created_by_user_id
         - assessed_total_vat
         - assessed_total_incl_vat
