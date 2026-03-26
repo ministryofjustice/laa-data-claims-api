@@ -7,8 +7,8 @@ Mermaid flowchart
 ```mermaid
 flowchart LR
   %% Actors
-  Client[Client (API caller)]
-  Validator[Validator / UI / API caller (mark valid/invalid)]
+  Client[Client - API caller]
+  Validator[Validator / UI / API caller - mark valid/invalid]
   DB[(Postgres DB)]
 
   %% Request paths
@@ -16,9 +16,9 @@ flowchart LR
   CC -->|calls| CAS[ClaimAmendmentService.createAmendment]
   CAS -->|validates & saves| RepoAmend[ClaimAmendmentRepository.save]
   RepoAmend -->|writes amendment row| DB
-  RepoAmend -->|writes audit record| AuditAmendCreate[AuditLog (audit.audit_log)]
+  RepoAmend -->|writes audit record| AuditAmendCreate[AuditLog - audit.audit_log]
   AuditAmendCreate --> DB
-  DB -->|row created: status=READY_FOR_VALIDATION| AmendRow[claim_amendment (changed_fields JSON)]
+  DB -->|row created: status=READY_FOR_VALIDATION| AmendRow[claim_amendment - changed_fields JSON]
 
   %% Listing
   Client -->|GET /api/v1/claims/{claimId}/amendments| CC2[ClaimController.listClaimAmendmentsForClaim]
@@ -31,7 +31,7 @@ flowchart LR
   CC3 -->|calls| CAS3[ClaimAmendmentService.updateAmendmentStatus]
   CAS3 -->|validates updatedByUserId & state| RepoAmend2[ClaimAmendmentRepository.save]
   RepoAmend2 -->|updates amendment row| DB
-  RepoAmend2 -->|writes audit record| AuditAmendUpdate[AuditLog (audit.audit_log)]
+  RepoAmend2 -->|writes audit record| AuditAmendUpdate[AuditLog - audit.audit_log]
   AuditAmendUpdate --> DB
   CAS3 -->|if status == VALID then| ACTION[actionAmendment(amendmentId)]
   ACTION -->|loads amendment| RepoAmend3[ClaimAmendmentRepository.findById]
@@ -40,7 +40,7 @@ flowchart LR
   RepoClaim --> DB
   ACTION -->|if policeStationCode changed -> update claim| RepoClaimSave[ClaimRepository.save]
   RepoClaimSave -->|updates claim row| DB
-  RepoClaimSave -->|writes audit record| AuditClaimUpdate[AuditLog (audit.audit_log)]
+  RepoClaimSave -->|writes audit record| AuditClaimUpdate[AuditLog - audit.audit_log]
   AuditClaimUpdate --> DB
 
   %% Error paths / rules
