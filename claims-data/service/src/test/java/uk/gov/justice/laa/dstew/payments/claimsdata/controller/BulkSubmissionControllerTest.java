@@ -34,11 +34,13 @@ import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionInvalidFileException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DataClaimsExceptionHandler;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -192,6 +194,35 @@ class BulkSubmissionControllerTest {
       when(bulkSubmissionService.getBulkSubmission(id)).thenReturn(expectedResponse);
 
       assertThat(mockMvc.perform(get(BULK_SUBMISSIONS_URI + "/{id}", id))).hasStatus(200);
+    }
+
+    @Test
+    @DisplayName("Should return 200 response for summary")
+    void shouldReturn200ResponseForSummary() {
+      UUID id = Uuid7.timeBasedUuid();
+
+      var expectedResponse = new GetBulkSubmissionStatusById200Response();
+      expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
+
+      when(bulkSubmissionService.getBulkSubmissionStatusById(id)).thenReturn(expectedResponse);
+
+      assertThat(mockMvc.perform(get(BULK_SUBMISSIONS_URI + "/{id}/summary", id)))
+          .hasStatus(200)
+          .bodyJson()
+          .convertTo(GetBulkSubmissionStatusById200Response.class)
+          .isEqualTo(expectedResponse);
+    }
+
+    @Test
+    @DisplayName("Should return 404 when summary not found")
+    void shouldReturn404ForSummaryWhenNotFound() {
+      UUID id = Uuid7.timeBasedUuid();
+
+      when(bulkSubmissionService.getBulkSubmissionStatusById(id))
+          .thenThrow(
+              new BulkSubmissionNotFoundException("Bulk submission not found with id: " + id));
+
+      assertThat(mockMvc.perform(get(BULK_SUBMISSIONS_URI + "/{id}/summary", id))).hasStatus(404);
     }
   }
 

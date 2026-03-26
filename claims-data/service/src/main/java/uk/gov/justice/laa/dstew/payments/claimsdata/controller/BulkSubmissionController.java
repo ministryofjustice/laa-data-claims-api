@@ -19,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.api.BulkSubmissionsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
@@ -62,6 +63,15 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
     GetBulkSubmission200Response response = bulkSubmissionService.getBulkSubmission(id);
+    return ResponseEntity.ok(response);
+  }
+
+  @Override
+  @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<GetBulkSubmissionStatusById200Response> getBulkSubmissionStatusById(
+      UUID id) {
+    GetBulkSubmissionStatusById200Response response =
+        bulkSubmissionService.getBulkSubmissionStatusById(id);
     return ResponseEntity.ok(response);
   }
 
