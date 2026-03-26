@@ -12,7 +12,7 @@ flowchart LR
   DB[(Postgres DB)]
 
   %% Request paths
-  Client -->|POST /api/v1/claims/{claimId}/amendments| CC[ClaimController.createClaimAmendmentForClaim]
+  Client -->|POST /api/v1/claims/CLAIM_ID/amendments| CC[ClaimController.createClaimAmendmentForClaim]
   CC -->|calls| CAS[ClaimAmendmentService.createAmendment]
   CAS -->|validates & saves| RepoAmend[ClaimAmendmentRepository.save]
   RepoAmend -->|writes amendment row| DB
@@ -21,7 +21,7 @@ flowchart LR
   DB -->|row created: status=READY_FOR_VALIDATION| AmendRow[claim_amendment - changed_fields JSON]
 
   %% Listing
-  Client -->|GET /api/v1/claims/{claimId}/amendments| CC2[ClaimController.listClaimAmendmentsForClaim]
+  Client -->|GET /api/v1/claims/CLAIM_ID/amendments| CC2[ClaimController.listClaimAmendmentsForClaim]
   CC2 -->|calls| CAS2[ClaimAmendmentService.getAmendmentsForClaim]
   CAS2 --> RepoAmend
   RepoAmend --> DB
@@ -50,7 +50,7 @@ flowchart LR
   CAS3 -.->|throws| Error4[400 Bad Request if updatedByUserId missing]
 
   %% Audit access
-  Client -->|GET /api/v1/claims/{claimId}/audit| GetAudit[ClaimController.getClaimAudit]
+  Client -->|GET /api/v1/claims/CLAIM_ID/audit| GetAudit[ClaimController.getClaimAudit]
   GetAudit -->|calls| AuditSvc[AuditTrailService.getClaimAuditTrail]
   AuditSvc --> AuditLogRepo[AuditLogRepository.findByPrimaryKeyOrderByChangedAtAsc]
   AuditLogRepo --> DB
