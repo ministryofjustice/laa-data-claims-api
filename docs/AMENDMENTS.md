@@ -8,7 +8,6 @@ Mermaid flowchart
 flowchart LR
   %% Actors
   Client[Client - API caller]
-  ...existing code...
   DB[(Postgres DB)]
 
   %% Request paths
