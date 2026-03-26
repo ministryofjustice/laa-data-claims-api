@@ -337,7 +337,8 @@ class BulkSubmissionServiceTest {
     expectedBulkSubmission.setId(id);
     expectedBulkSubmission.setStatus(BulkSubmissionStatus.PARSING_COMPLETED);
 
-    when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
+    when(bulkSubmissionRepository.findStatusById(id))
+        .thenReturn(Optional.of(expectedBulkSubmission.getStatus()));
 
     GetBulkSubmissionStatusById200Response response =
         bulkSubmissionService.getBulkSubmissionStatusById(id);
@@ -350,7 +351,7 @@ class BulkSubmissionServiceTest {
   @DisplayName("Throws BulkSubmissionNotFoundException when summary not found")
   void shouldThrowWhenBulkSubmissionStatusNotFound() {
     var id = Uuid7.timeBasedUuid();
-    when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
+    when(bulkSubmissionRepository.findStatusById(id)).thenReturn(Optional.empty());
 
     assertThrows(
         BulkSubmissionNotFoundException.class,

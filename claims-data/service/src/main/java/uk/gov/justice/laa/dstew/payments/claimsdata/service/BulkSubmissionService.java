@@ -319,9 +319,11 @@ public class BulkSubmissionService
    */
   @Transactional(readOnly = true)
   public GetBulkSubmissionStatusById200Response getBulkSubmissionStatusById(UUID id) {
-    BulkSubmission bulkSubmission = requireEntity(id);
-
-    return new GetBulkSubmissionStatusById200Response().status(bulkSubmission.getStatus());
+    return bulkSubmissionRepository
+        .findStatusById(id)
+        .map(status -> new GetBulkSubmissionStatusById200Response().status(status))
+        .orElseThrow(
+            () -> entityNotFoundSupplier(String.format("No entity found with id: %s", id)).get());
   }
 
   /**

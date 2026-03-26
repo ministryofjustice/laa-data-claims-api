@@ -785,6 +785,18 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
+  void shouldReturnUnauthorizedForGetBulkSubmissionSummaryWhenAuthHeaderIsInvalid()
+      throws Exception {
+    // when: calling the GET summary endpoint with an invalid auth token, it should return
+    // unauthorized status.
+    mockMvc
+        .perform(
+            get(BULK_SUBMISSION_ENDPOINT + "/summary", Uuid7.timeBasedUuid())
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void shouldReturnNotFoundForGetBulkSubmissionWhenItDoesNotExist() throws Exception {
     // when: calling the GET endpoint with a random ID, it should return not found.
     MvcResult result =
