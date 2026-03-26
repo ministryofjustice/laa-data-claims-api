@@ -8,7 +8,7 @@ Mermaid flowchart
 flowchart LR
   %% Actors
   Client[Client - API caller]
-  Validator[Validator / UI / API caller - mark valid/invalid]
+  ...existing code...
   DB[(Postgres DB)]
 
   %% Request paths
@@ -16,8 +16,8 @@ flowchart LR
   CC -->|calls| CAS[ClaimAmendmentService.createAmendment]
   CAS -->|validates & saves| RepoAmend[ClaimAmendmentRepository.save]
   RepoAmend -->|writes amendment row| DB
-  DB -->|trigger writes audit.audit_log row| AuditLogCreate[AuditLog - audit.audit_log]
-  AuditLogCreate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditTriggerAmendment[DB trigger - amendment audit]
+  AuditTriggerAmendment --> DB
   DB -->|row created: status=READY_FOR_VALIDATION| AmendRow[claim_amendment - changed_fields JSON]
 
   %% Listing
@@ -27,12 +27,12 @@ flowchart LR
   RepoAmend --> DB
 
   %% Validation path
-  Validator -->|PATCH/PUT mark valid| CC3[ClaimController.markClaimAmendmentValid]
+  Client -->|PATCH/PUT mark valid| CC3[ClaimController.markClaimAmendmentValid]
   CC3 -->|calls| CAS3[ClaimAmendmentService.updateAmendmentStatus]
   CAS3 -->|validates updatedByUserId & state| RepoAmend2[ClaimAmendmentRepository.save]
   RepoAmend2 -->|updates amendment row| DB
-  DB -->|trigger writes audit.audit_log row| AuditLogUpdate[AuditLog - audit.audit_log]
-  AuditLogUpdate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditTriggerAmendment
+  AuditTriggerAmendment --> DB
   CAS3 -->|if status == VALID then| ACTION[actionAmendment with amendmentId]
   ACTION -->|loads amendment| RepoAmend3[ClaimAmendmentRepository.findById]
   RepoAmend3 --> DB
@@ -40,8 +40,8 @@ flowchart LR
   RepoClaim --> DB
   ACTION -->|if policeStationCode changed -> update claim| RepoClaimSave[ClaimRepository.save]
   RepoClaimSave -->|updates claim row| DB
-  DB -->|trigger writes audit.audit_log row| AuditLogClaimUpdate[AuditLog - audit.audit_log]
-  AuditLogClaimUpdate --> DB
+  DB -->|trigger writes audit.audit_log row| AuditTriggerClaim[DB trigger - claim audit]
+  AuditTriggerClaim --> DB
 
   %% Error paths / rules
   CAS -.->|throws| Error1[400 Bad Request] 
@@ -52,8 +52,7 @@ flowchart LR
   %% Audit access
   Client -->|GET /api/v1/claims/CLAIM_ID/audit| GetAudit[ClaimController.getClaimAudit]
   GetAudit -->|calls| AuditSvc[AuditTrailService.getClaimAuditTrail]
-  AuditSvc --> AuditLogRepo[AuditLogRepository.findByPrimaryKeyOrderByChangedAtAsc]
-  AuditLogRepo --> DB
+  AuditSvc -->|queries audit.audit_log by claim id| DB
 
   style RepoAmend fill:#f9f,stroke:#333,stroke-width:1px
   style RepoClaim fill:#f9f,stroke:#333,stroke-width:1px
@@ -68,7 +67,8 @@ sequenceDiagram
   participant ClaimAmendmentService
   participant ClaimAmendmentRepository
   participant ClaimRepository
-  participant AuditLogRepository
+  participant AuditTriggerAmendment
+  participant AuditTriggerClaim
   participant AuditTrailService
   participant DB
 
@@ -78,7 +78,7 @@ sequenceDiagram
   ClaimAmendmentService->>ClaimAmendmentRepository: save(amendment)
   ClaimAmendmentRepository->>DB: insert claim_amendment row
   %% DB trigger writes audit row after insert
-  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
+  DB-->>AuditTriggerAmendment: trigger inserts audit.audit_log row
 
   %% List amendments
   Client->>ClaimController: GET /api/v1/claims/CLAIM_ID/amendments
@@ -94,22 +94,21 @@ sequenceDiagram
   ClaimAmendmentService->>ClaimAmendmentRepository: save(updated amendment)
   ClaimAmendmentRepository->>DB: update claim_amendment row (status)
   %% DB trigger writes audit row after amendment update
-  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
+  DB-->>AuditTriggerAmendment: trigger inserts audit.audit_log row
   ClaimAmendmentService->>ClaimAmendmentRepository: findById(amendmentId)
   ClaimAmendmentRepository->>ClaimRepository: findById(claimId)
   ClaimRepository-->>ClaimAmendmentService: claim
   ClaimAmendmentService->>ClaimRepository: save updated claim (if policeStationCode changed)
   ClaimRepository->>DB: update claim row
   %% DB trigger writes audit row after claim update
-  DB-->>AuditLogRepository: trigger inserts audit.audit_log row
+  DB-->>AuditTriggerClaim: trigger inserts audit.audit_log row
 
   %% Get audit trail for claim
   Client->>ClaimController: GET /api/v1/claims/CLAIM_ID/audit
   ClaimController->>AuditTrailService: getClaimAuditTrail(claimId)
-  AuditTrailService->>AuditLogRepository: findByPrimaryKeyOrderByChangedAtAsc(claimId)
-  AuditLogRepository->>DB: select audit rows
-  AuditLogRepository-->>AuditTrailService: audit rows
-  AuditTrailService-->>ClaimController: [ClaimAuditChange list]
+  AuditTrailService->>DB: select audit.audit_log rows by primary key
+  DB-->>AuditTrailService: audit rows
+  AuditTrailService-->>ClaimController: ClaimAuditChange list
   ClaimController-->>Client: 200 OK
 
 ```
@@ -205,6 +204,9 @@ References (key files)
 - `claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java`
 
 ---
+
+
+
 
 
 
