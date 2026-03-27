@@ -50,6 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /**
@@ -267,6 +268,24 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .updatedByUserId("event-service")
                 .errorDescription("test-description")
                 .build());
+  }
+
+  @State("a bulk submission summary exists")
+  public void aBulkSubmissionSummaryExists() {
+    log.info("Setting up state: a bulk submission summary exists");
+    when(bulkSubmissionService.getBulkSubmissionStatusById(any()))
+        .thenReturn(
+            GetBulkSubmissionStatusById200Response.builder()
+                .status(BulkSubmissionStatus.READY_FOR_PARSING)
+                .build());
+  }
+
+  @State("no bulk submission summary exists")
+  public void noBulkSubmissionSummaryExists() {
+    log.info("Setting up state: no bulk submission summary exists");
+    doThrow(new BulkSubmissionNotFoundException("Not found"))
+        .when(bulkSubmissionService)
+        .getBulkSubmissionStatusById(any());
   }
 
   @State("a submission exists")
