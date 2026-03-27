@@ -137,7 +137,8 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @NullAndEmptySource
   @ValueSource(strings = {" "})
   void shouldReturnBadRequestForInvalidAssessmentReason(String assessmentReason) throws Exception {
-    // when: calling the POST endpoint with assessment reason set to null, 400 should be returned
+    // when: calling the POST endpoint with assessment reason set to null/empty/blank, 400 should be
+    // returned
     AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setAssessmentReason(assessmentReason);
     MvcResult result =
