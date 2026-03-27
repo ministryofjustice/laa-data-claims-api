@@ -29,6 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -130,11 +133,13 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
                 CLAIM_ID_WITHOUT_VALID_STATUS));
   }
 
-  @Test
-  void shouldReturnBadRequestWhenAssessmentReasonIsNull() throws Exception {
+  @ParameterizedTest(name = "Assessment reason: {0}")
+  @NullAndEmptySource
+  @ValueSource(strings = {" "})
+  void shouldReturnBadRequestForInvalidAssessmentReasons(String assessmentReason) throws Exception {
     // when: calling the POST endpoint with assessment reason set to null, 400 should be returned
     AssessmentPost assessmentPost = getAssessmentPost();
-    assessmentPost.setAssessmentReason(null);
+    assessmentPost.setAssessmentReason(assessmentReason);
     MvcResult result =
         mockMvc
             .perform(
