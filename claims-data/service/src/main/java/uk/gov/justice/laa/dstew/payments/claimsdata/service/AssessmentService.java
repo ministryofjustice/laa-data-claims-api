@@ -41,8 +41,8 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-
     claimValidationService.validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateAssessmentReason(request.getAssessmentReason());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
     ClaimSummaryFee claimSummaryFee =
