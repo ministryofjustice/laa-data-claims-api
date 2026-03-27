@@ -22,4 +22,9 @@ ignore:
         reason: Temporarily ignoring this until Amazon corretto is upgraded with Alpine:3.23 zlib to version 1.3.2-r0 or higher.
         expires: 2026-04-05T11:13:40.160Z
         created: 2026-03-06T11:13:40.161Z
+  SNYK-JAVA-IONETTY-15789756:
+    - 'io.netty:netty-codec-http@4.2.10.Final':
+        reason: Temporarily ignoring this until netty-codec-http can be upgraded safely to 4.2.12.Final
+        expires: 2026-04-30T11:13:40.160Z
+        created: 2026-03-27T11:13:40.161Z
 patch: {}
