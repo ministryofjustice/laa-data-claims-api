@@ -119,7 +119,7 @@ public class SubmissionService
 
   private BigDecimal scaleAmountOrZero(BigDecimal amount) {
     return amount == null
-        ? BigDecimal.ZERO.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP)
+        ? BigDecimal.ZERO
         : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
   }
 
