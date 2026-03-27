@@ -18,15 +18,16 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
 
   Page<Assessment> findByClaimId(UUID claimId, Pageable pageable);
 
-  @Query("""
-    SELECT SUM(a.assessedTotalInclVat)
-    FROM Assessment a
-    WHERE a.claim.submission.id = :submissionId
-      AND a.createdOn = (
-          SELECT MAX(a2.createdOn)
-          FROM Assessment a2
-          WHERE a2.claim = a.claim
-      )
-    """)
+  @Query(
+      """
+      SELECT SUM(a.assessedTotalInclVat)
+      FROM Assessment a
+      WHERE a.claim.submission.id = :submissionId
+        AND a.createdOn = (
+            SELECT MAX(a2.createdOn)
+            FROM Assessment a2
+            WHERE a2.claim = a.claim
+        )
+      """)
   BigDecimal getAssessedTotalAmount(@Param("submissionId") UUID submissionId);
 }

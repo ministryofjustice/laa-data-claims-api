@@ -34,9 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
-/**
- * Service containing business logic for handling submissions.
- */
+/** Service containing business logic for handling submissions. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -117,22 +115,37 @@ public class SubmissionService
         .errorMessages(submission.getErrorMessages());
   }
 
+  /**
+   * Returns a scaled {@link BigDecimal} using the configured {@code DECIMAL_PLACES} and {@link
+   * RoundingMode#HALF_UP}.
+   *
+   * <p>If {@code amount} is {@code null}, this method returns {@link BigDecimal#ZERO}.
+   *
+   * @param amount the value to scale; may be {@code null}
+   * @return the scaled value, or {@code BigDecimal.ZERO} if {@code amount} is {@code null}
+   */
   private BigDecimal scaleAmountOrZero(BigDecimal amount) {
-    return amount == null
-        ? BigDecimal.ZERO
-        : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
+    return amount == null ? BigDecimal.ZERO : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
   }
 
+  /**
+   * Returns a scaled {@link BigDecimal} using the configured {@code DECIMAL_PLACES} and {@link
+   * RoundingMode#HALF_UP}.
+   *
+   * <p>Unlike {@link #scaleAmountOrZero(BigDecimal)}, this method preserves {@code null} values
+   * rather than converting them into zero.
+   *
+   * @param amount the value to scale; may be {@code null}
+   * @return the scaled value, or {@code null} if {@code amount} is {@code null}
+   */
   private BigDecimal scaleNullableAmount(BigDecimal amount) {
-    return amount == null
-        ? null
-        : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
+    return amount == null ? null : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
   }
 
   /**
    * Partially update a submission.
    *
-   * @param id              the submission id
+   * @param id the submission id
    * @param submissionPatch patch object containing updated fields
    */
   @Transactional
@@ -169,16 +182,16 @@ public class SubmissionService
    * Returns all the existing submissions filtered by some parameters and paginated in a {@link
    * SubmissionsResultSet}.
    *
-   * @param offices            a mandatory list of office codes to filter submissions by
-   * @param submissionId       an optional identifier to filter submissions by
-   * @param submittedDateFrom  an optional end date to filter submissions created on or after this
-   *                           date
-   * @param submittedDateTo    an optional end date to filter submissions created on or before this
-   *                           date
+   * @param offices a mandatory list of office codes to filter submissions by
+   * @param submissionId an optional identifier to filter submissions by
+   * @param submittedDateFrom an optional end date to filter submissions created on or after this
+   *     date
+   * @param submittedDateTo an optional end date to filter submissions created on or before this
+   *     date
    * @param submissionStatuses an optional list of submission statuses to filter submissions by
-   * @param pageable           a pageable object to yield the paginated submission results
+   * @param pageable a pageable object to yield the paginated submission results
    * @return the paginated result set with all submissions that satisfy the filtering criteria
-   * above.
+   *     above.
    */
   @Transactional(readOnly = true)
   public SubmissionsResultSet getSubmissionsResultSet(

@@ -62,7 +62,6 @@ class SubmissionServiceTest {
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
 
-
   @InjectMocks private SubmissionService submissionService;
 
   @Captor private ArgumentCaptor<Specification> submissionSpecificationArgumentCaptor;

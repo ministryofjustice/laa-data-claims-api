@@ -295,8 +295,7 @@ class AssessmentServiceTest {
     UUID submissionId = UUID.randomUUID();
     BigDecimal assessedTotalAmount = new BigDecimal("12.34");
 
-    when(assessmentRepository.getAssessedTotalAmount(submissionId))
-        .thenReturn(assessedTotalAmount);
+    when(assessmentRepository.getAssessedTotalAmount(submissionId)).thenReturn(assessedTotalAmount);
 
     BigDecimal result = assessmentService.getAssessedTotalAmount(submissionId);
 
