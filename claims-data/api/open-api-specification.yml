@@ -1303,6 +1303,9 @@ components:
           description: Number of claims in this submission.
         calculated_total_amount:
           type: number
+          description: Total amount calculated from the latest assessment for each claim.
+        assessed_total_amount:
+          type: number
           description: Total amount calculated from the fee details of each claim.
         submitted:
           type: string

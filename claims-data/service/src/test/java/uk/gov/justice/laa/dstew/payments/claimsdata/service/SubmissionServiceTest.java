@@ -60,6 +60,8 @@ class SubmissionServiceTest {
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
+  @Mock private AssessmentService assessmentService;
+
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -120,6 +122,39 @@ class SubmissionServiceTest {
 
     assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
     assertThat(result.getCalculatedTotalAmount()).isEqualTo(BigDecimal.ZERO);
+  }
+
+  @Test
+  void shouldGetSubmissionWithNullAssessedTotalAmountWhenNoAssessmentsExist() {
+    Submission entity = ClaimsDataTestUtil.getSubmission();
+
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
+    when(assessmentService.getAssessedTotalAmount(SUBMISSION_ID)).thenReturn(null);
+
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getAssessedTotalAmount()).isNull();
+  }
+
+  @Test
+  void shouldGetSubmissionWithAssessedTotalAmount() {
+    Submission entity = ClaimsDataTestUtil.getSubmission();
+
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
+    when(assessmentService.getAssessedTotalAmount(SUBMISSION_ID))
+        .thenReturn(new BigDecimal("12.345"));
+
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getAssessedTotalAmount()).isEqualTo(new BigDecimal("12.35"));
   }
 
   @Test

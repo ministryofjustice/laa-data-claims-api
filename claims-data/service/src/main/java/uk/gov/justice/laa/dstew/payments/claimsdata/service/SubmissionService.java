@@ -34,7 +34,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
-/** Service containing business logic for handling submissions. */
+/**
+ * Service containing business logic for handling submissions.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -49,6 +51,7 @@ public class SubmissionService
   private final ValidationMessageLogRepository validationMessageLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
+  private final AssessmentService assessmentService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -89,6 +92,8 @@ public class SubmissionService
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
     var calculatedTotalAmount = submissionRepository.getCalculatedTotalAmount(id);
+    var assessedTotalAmount = assessmentService.getAssessedTotalAmount(id);
+
     return new SubmissionResponse()
         .submissionId(submission.getId())
         .bulkSubmissionId(submission.getBulkSubmissionId())
@@ -104,20 +109,30 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(
-            calculatedTotalAmount == null
-                ? BigDecimal.ZERO
-                : calculatedTotalAmount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
+        .calculatedTotalAmount(scaleAmountOrZero(calculatedTotalAmount))
+        .assessedTotalAmount(scaleNullableAmount(assessedTotalAmount))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
         .providerUserId(submission.getProviderUserId())
         .errorMessages(submission.getErrorMessages());
   }
 
+  private BigDecimal scaleAmountOrZero(BigDecimal amount) {
+    return amount == null
+        ? BigDecimal.ZERO.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP)
+        : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal scaleNullableAmount(BigDecimal amount) {
+    return amount == null
+        ? null
+        : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
+  }
+
   /**
    * Partially update a submission.
    *
-   * @param id the submission id
+   * @param id              the submission id
    * @param submissionPatch patch object containing updated fields
    */
   @Transactional
@@ -154,16 +169,16 @@ public class SubmissionService
    * Returns all the existing submissions filtered by some parameters and paginated in a {@link
    * SubmissionsResultSet}.
    *
-   * @param offices a mandatory list of office codes to filter submissions by
-   * @param submissionId an optional identifier to filter submissions by
-   * @param submittedDateFrom an optional end date to filter submissions created on or after this
-   *     date
-   * @param submittedDateTo an optional end date to filter submissions created on or before this
-   *     date
+   * @param offices            a mandatory list of office codes to filter submissions by
+   * @param submissionId       an optional identifier to filter submissions by
+   * @param submittedDateFrom  an optional end date to filter submissions created on or after this
+   *                           date
+   * @param submittedDateTo    an optional end date to filter submissions created on or before this
+   *                           date
    * @param submissionStatuses an optional list of submission statuses to filter submissions by
-   * @param pageable a pageable object to yield the paginated submission results
+   * @param pageable           a pageable object to yield the paginated submission results
    * @return the paginated result set with all submissions that satisfy the filtering criteria
-   *     above.
+   * above.
    */
   @Transactional(readOnly = true)
   public SubmissionsResultSet getSubmissionsResultSet(
