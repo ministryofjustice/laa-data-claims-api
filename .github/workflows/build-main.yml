@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pull-requests: write
     with:
       integration_test_task: 'integrationTest'
       create_tag: 'true'
