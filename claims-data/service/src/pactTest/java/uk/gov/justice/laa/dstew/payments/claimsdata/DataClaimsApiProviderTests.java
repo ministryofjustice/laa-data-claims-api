@@ -4,7 +4,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOutcome;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionSchedule;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimSummaryFee;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimV2;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessage;
 
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
@@ -117,6 +131,13 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: the system is ready to update a bulk submission");
     when(bulkSubmissionRepository.updateBulkSubmission(any(), any(), any(), any(), any()))
         .thenReturn(1);
+  }
+
+  @State("a bulk submission summary is available")
+  public void aBulkSubmissionSummaryIsAvailable() {
+    log.info("Setting up state: a bulk submission summary is available");
+    when(bulkSubmissionRepository.findStatusById(any()))
+        .thenReturn(Optional.of(BulkSubmissionStatus.READY_FOR_PARSING));
   }
 
   @State("the system is ready to update a submission")
