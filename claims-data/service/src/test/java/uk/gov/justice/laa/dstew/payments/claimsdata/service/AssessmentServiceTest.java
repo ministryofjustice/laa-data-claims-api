@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
@@ -32,6 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
@@ -86,10 +89,64 @@ class AssessmentServiceTest {
 
       verify(claimValidationService).validateUserId(API_USER_ID);
       verify(claimValidationService).ensureAssessmentTypeIsNotVoid(post.getAssessmentType());
+      verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
 
       verify(claimRepository).updateAssessmentStatus(claimId, true);
 
       verify(assessmentRepository).save(assessment);
+    }
+
+    @Test
+    void shouldCallValidateAssessmentReason() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .assessmentReason("VALID_REASON")
+              .build();
+
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).build();
+
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
+
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
+    }
+
+    @Test
+    void shouldThrowExceptionForInvalidAssessmentReason() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .assessmentReason(null)
+              .build();
+
+      doThrow(new ClaimBadRequestException(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR))
+          .when(claimValidationService)
+          .validateAssessmentReason(post.getAssessmentReason());
+
+      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
+          .isInstanceOf(ClaimBadRequestException.class)
+          .hasMessageContaining(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
     }
 
     @Test
