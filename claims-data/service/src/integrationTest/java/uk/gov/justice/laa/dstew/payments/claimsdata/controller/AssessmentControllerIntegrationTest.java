@@ -136,7 +136,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   @ParameterizedTest(name = "Assessment reason: {0}")
   @NullAndEmptySource
   @ValueSource(strings = {" "})
-  void shouldReturnBadRequestForInvalidAssessmentReasons(String assessmentReason) throws Exception {
+  void shouldReturnBadRequestForInvalidAssessmentReason(String assessmentReason) throws Exception {
     // when: calling the POST endpoint with assessment reason set to null, 400 should be returned
     AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setAssessmentReason(assessmentReason);
