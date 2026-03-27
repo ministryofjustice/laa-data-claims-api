@@ -220,6 +220,34 @@ paths:
         '500':
           description: 'Internal server error'
 
+  /api/v1/bulk-submissions/{id}/summary:
+    get:
+      operationId: getBulkSubmissionStatusById
+      tags:
+        - Bulk Submissions
+      summary: Get the processing summary of a bulk submission
+      description: Returns a minimal processing summary (currently only status) for the bulk submission identified by its UUID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the bulk submission
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved bulk submission summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    $ref: "#/components/schemas/bulk_submission_status"
+        '404':
+          description: Bulk submission not found
+
   /api/v1/submissions:
     post:
       operationId: createSubmission
