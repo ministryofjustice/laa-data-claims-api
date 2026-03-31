@@ -25,7 +25,7 @@ jobs:
           distribution: 'corretto'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@205054a7257716ec64af10a2e2ff1ac5d3b132db # v6
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
 
       - name: Build and test
         run: ./gradlew build
@@ -129,7 +129,7 @@ jobs:
           distribution: 'corretto'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@205054a7257716ec64af10a2e2ff1ac5d3b132db # v6
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
 
       - name: Build app jar with gradle
         run: ./gradlew build
@@ -152,10 +152,11 @@ jobs:
   ecr-publish-image:
     needs:
       - build-test
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@68d8f5aeccd47fa5baa1fe6c63269569b682e656 # v2
     permissions:
       contents: read
       id-token: write
+      security-events: write
     with:
       jar_subproject: 'claims-data:service'
       image_version: ${{ github.sha }}
@@ -164,6 +165,7 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   pact-test:
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1

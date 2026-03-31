@@ -44,10 +44,11 @@ jobs:
 
   ecr-publish-image:
     needs: [ assemble ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@68d8f5aeccd47fa5baa1fe6c63269569b682e656 # v2
     permissions:
       contents: read
       id-token: write
+      security-events: write
     with:
       jar_subproject: 'claims-data:service'
       image_version: ${{ format('{0}-{1}', vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX, needs.assemble.outputs.published_artifact_version) }}
@@ -56,6 +57,7 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   deploy-uat:
     runs-on: ubuntu-latest
