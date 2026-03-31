@@ -38,6 +38,8 @@ jacocoTestCoverageVerification {
 // Upgrade to fix CVE-xxxx-xxxxx
 // ext['dependency-name.version'] = 'x.x.x'
 ext['commons-lang3.version'] = '3.18.0'
+// Upgrade to fix HTTP Request Smuggling (SNYK-JAVA-IONETTY-15789756)
+ext['netty.version'] = '4.2.12.Final'
 
 dependencyManagement {
     dependencies {

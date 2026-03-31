@@ -34,6 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -308,6 +309,21 @@ public class BulkSubmissionService
         .errorDescription(bulkSubmission.getErrorDescription())
         .updatedByUserId(bulkSubmission.getUpdatedByUserId())
         .details(bulkSubmission.getData());
+  }
+
+  /**
+   * Retrieve a minimal summary for a bulk submission by id - currently only status.
+   *
+   * @param id the bulk submission id
+   * @return a response containing only the status of the bulk submission
+   */
+  @Transactional(readOnly = true)
+  public GetBulkSubmissionStatusById200Response getBulkSubmissionStatusById(UUID id) {
+    return bulkSubmissionRepository
+        .findStatusById(id)
+        .map(status -> new GetBulkSubmissionStatusById200Response().status(status))
+        .orElseThrow(
+            () -> entityNotFoundSupplier(String.format("No entity found with id: %s", id)).get());
   }
 
   /**

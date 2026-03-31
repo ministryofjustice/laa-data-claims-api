@@ -43,6 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -326,6 +327,35 @@ class BulkSubmissionServiceTest {
     var bulkSubmissionResponse = bulkSubmissionService.getBulkSubmission(id);
 
     assertEquals(expectedResponse, bulkSubmissionResponse);
+  }
+
+  @Test
+  @DisplayName("Returns bulk submission status summary")
+  void returnsBulkSubmissionStatusSummary() {
+    var id = Uuid7.timeBasedUuid();
+    var expectedBulkSubmission = new BulkSubmission();
+    expectedBulkSubmission.setId(id);
+    expectedBulkSubmission.setStatus(BulkSubmissionStatus.PARSING_COMPLETED);
+
+    when(bulkSubmissionRepository.findStatusById(id))
+        .thenReturn(Optional.of(expectedBulkSubmission.getStatus()));
+
+    GetBulkSubmissionStatusById200Response response =
+        bulkSubmissionService.getBulkSubmissionStatusById(id);
+
+    assertThat(response).isNotNull();
+    assertEquals(BulkSubmissionStatus.PARSING_COMPLETED, response.getStatus());
+  }
+
+  @Test
+  @DisplayName("Throws BulkSubmissionNotFoundException when summary not found")
+  void shouldThrowWhenBulkSubmissionStatusNotFound() {
+    var id = Uuid7.timeBasedUuid();
+    when(bulkSubmissionRepository.findStatusById(id)).thenReturn(Optional.empty());
+
+    assertThrows(
+        BulkSubmissionNotFoundException.class,
+        () -> bulkSubmissionService.getBulkSubmissionStatusById(id));
   }
 
   @Test
