@@ -31,6 +31,18 @@ jacocoTestCoverageVerification {
             fileTree(dir: it, exclude: ['**/ClaimsDataApplication.class', '**/generated/**', '**/*Generated*.*', '**/export/generated/**'])
         }))
     }
+
+    violationRules {
+        failOnViolation = true
+
+        rule {
+            element = 'CLASS'
+            limit {
+                counter = 'LINE'
+                minimum = 0.1
+            }
+        }
+    }
 }
 
 // Dependency overrides
