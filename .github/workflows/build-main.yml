@@ -17,6 +17,8 @@ jobs:
       create_tag: 'true'
       github_bot_username: 'laa-java-service-deployer'
       semgrep_check: 'false'
+      java_version: '25'
+      java_distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       github_app_id: ${{ vars.LAA_CCMS_CAAB_SERVICE_APP_ID }}
