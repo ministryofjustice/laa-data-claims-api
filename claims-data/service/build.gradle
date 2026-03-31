@@ -81,14 +81,20 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
+    // Ensure javers core APIs are available for using Change, ValueChange, PropertyChange types
+    implementation 'org.javers:javers-core:7.10.0'
     implementation platform('com.fasterxml.jackson:jackson-bom:2.19.2')
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
-    implementation "software.amazon.awssdk:sqs"
-    implementation 'software.amazon.awssdk:sts'
+
+    // AWS SDK v2 for SNS
+    implementation 'software.amazon.awssdk:sns:2.33.7'
+    implementation 'software.amazon.awssdk:sqs:2.33.7'
+    implementation 'software.amazon.awssdk:sts:2.33.7'
+
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
 
     // Sentry

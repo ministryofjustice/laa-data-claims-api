@@ -33,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.EventPublisher;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionInvalidFileException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
@@ -59,6 +60,8 @@ class BulkSubmissionControllerTest {
   @Mock private BulkSubmissionService bulkSubmissionService;
 
   @Mock private BulkSubmissionFileValidator bulkSubmissionFileValidator;
+
+  @Mock private EventPublisher publisher;
 
   protected MockMvcTester mockMvc;
 

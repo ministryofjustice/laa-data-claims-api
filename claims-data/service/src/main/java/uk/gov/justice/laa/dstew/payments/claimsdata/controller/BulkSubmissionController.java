@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.BulkSubmissionsApi;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.EventPublisher;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
@@ -36,6 +37,7 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
 
   private final BulkSubmissionService bulkSubmissionService;
   private final BulkSubmissionFileValidator bulkSubmissionFileValidator;
+  private final EventPublisher publisher;
 
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
@@ -56,6 +58,10 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
             .toUri();
 
     // Return response entity
+    publisher.publish(
+        String.format(
+            "Bulk submission created with ID: %s by user: %s",
+            bulkSubmissionResponse.getSubmissionIds().getFirst(), userId));
     return ResponseEntity.created(location).body(bulkSubmissionResponse);
   }
 

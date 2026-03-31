@@ -67,11 +67,13 @@ public class JaversAuditingAspect {
   @Before(
       "execution(* uk.gov.justice.laa.dstew.payments.claimsdata.repository.*.deleteById(..)) "
           + "&& args(id)")
+  @SuppressWarnings("unchecked")
   public void auditDelete(JoinPoint joinPoint, Object id) {
     // You need to load the entity before deletion to audit it
     Object repo = joinPoint.getTarget();
-    if (repo instanceof JpaRepository rawRepo) {
-      Optional<?> entity = rawRepo.findById(id);
+    if (repo instanceof JpaRepository<?, ?>) {
+      JpaRepository<Object, Object> typedRepo = (JpaRepository<Object, Object>) repo;
+      Optional<Object> entity = typedRepo.findById(id);
       entity.ifPresent(e -> javers.commitShallowDelete(getApiUser(joinPoint.getArgs()[0]), e));
     }
   }

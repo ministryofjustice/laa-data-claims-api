@@ -1,0 +1,291 @@
+meta {
+  name: Void a specific claim
+  type: http
+  seq: 1
+  tags: [
+    Claims
+  ]
+}
+
+post {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/void
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "created_by_user_id": "{{CLAIM_ID}}",
+    "assessment_reason": "test"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}
+
+docs {
+  Voids a specific claim and creates a void assessment record.
+}
+
+example {
+  name: 201 Response
+  description: Void assessment created successfully
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 201
+      text: Created
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": ""
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Bad request
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 401 Response
+  description: Unauthorized
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 401
+      text: Unauthorized
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 403 Response
+  description: Forbidden
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 403
+      text: Forbidden
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 404 Response
+  description: Submission or claim not found
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 404
+      text: Not Found
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 429 Response
+  description: Too many requests
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 429
+      text: Too Many Requests
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 500 Response
+  description: Internal server error
+  
+  request: {
+    url: {{baseUrl}}/api/v1/claims/:claim-id/void
+    method: POST
+    mode: json
+    params:path: {
+      claim-id: 
+    }
+  
+    body:json: {
+      {
+        "created_by_user_id": "",
+        "assessment_reason": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 500
+      text: Internal Server Error
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

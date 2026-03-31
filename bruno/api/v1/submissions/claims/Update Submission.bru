@@ -1,0 +1,31 @@
+meta {
+  name: Update Submission
+  type: http
+  seq: 3
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "status": "VALID"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
