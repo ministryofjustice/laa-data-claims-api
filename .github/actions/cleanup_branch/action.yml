@@ -59,5 +59,3 @@ runs:
       run: |
         # Delete Helm release history secrets for the main application
         kubectl delete secret -l name="$RELEASE_NAME",owner=helm --namespace "$NAMESPACE" --ignore-not-found=true
-        # Delete Helm release history secrets for PostgreSQL
-        kubectl delete secret -l name="$RELEASE_NAME-postgresql",owner=helm --namespace "$NAMESPACE" --ignore-not-found=true
