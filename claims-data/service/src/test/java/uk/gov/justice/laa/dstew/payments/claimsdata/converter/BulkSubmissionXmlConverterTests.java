@@ -272,7 +272,7 @@ public class BulkSubmissionXmlConverterTests {
               "Malformed XML"),
           new ExceptionTestData(
               OUTCOMES_WITH_UNSUPPORTED_NAME,
-              "File rejected: unsupported outcome item. Please correct the file and try again.",
+              "The file contains an unrecognised field RANDOM_NAME. Correct or remove the field and try again.",
               "Outcomes with unsupported name"),
           new ExceptionTestData(
               OUTCOMES_WITH_MISSING_NAME,

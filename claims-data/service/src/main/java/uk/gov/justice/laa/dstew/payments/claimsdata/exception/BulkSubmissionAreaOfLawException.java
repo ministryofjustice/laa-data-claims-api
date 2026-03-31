@@ -9,8 +9,6 @@ public class BulkSubmissionAreaOfLawException extends ClaimsDataException {
    * Constructs a new BulkSubmissionAreaOfLawException with a predefined message and HTTP status.
    */
   public BulkSubmissionAreaOfLawException() {
-    super(
-        "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
-        HttpStatus.BAD_REQUEST);
+    super("Area of law must be Mediation, Crime Lower or Legal Help", HttpStatus.BAD_REQUEST);
   }
 }

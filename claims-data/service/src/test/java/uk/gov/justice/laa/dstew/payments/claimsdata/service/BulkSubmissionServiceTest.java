@@ -43,6 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -107,11 +108,11 @@ class BulkSubmissionServiceTest {
   @ParameterizedTest(name = "submissionPeriod: {0}")
   @CsvSource({
     // null submission period
-    ",'Submission period is required, please check the file and try again.'",
+    ",'Enter a submission period in the file'",
     // empty submission period
-    "' ','Submission period is required, please check the file and try again.'",
+    "' ','Enter a submission period in the file'",
     // invalid submission period
-    "blah-blah, 'Submission period wrong format, should be in the format MMM-YYYY'"
+    "blah-blah, 'Enter the submission period in the format MMM-YYYY (for example, JAN-2025)'"
   })
   @DisplayName("Throws BulkSubmissionValidationException when submission period is invalid")
   void throwsWhenSubmissionPeriodInvalid(String submissionPeriod, String expectedMessage) {
@@ -237,24 +238,23 @@ class BulkSubmissionServiceTest {
             () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
 
     assertEquals(
-        "Area of Law must be one of: MEDIATION, CRIME LOWER, or LEGAL HELP",
-        exception.getMessage());
+        "Area of law must be Mediation, Crime Lower or Legal Help", exception.getMessage());
   }
 
   @ParameterizedTest(name = "areaOfLaw: {0}, matterType: {1}")
   @CsvSource({
     // null matter type
-    "LEGAL HELP,,Matter Type Code is required for Legal Help claims",
-    "MEDIATION,,Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,,Stage Reached Code is required for Crime Lower claims",
+    "LEGAL HELP,,Matter Type is missing for one or more of your claims",
+    "MEDIATION,,Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,,Stage Reached is missing for one or more of your claims",
     // empty matter type
-    "LEGAL HELP,'',Matter Type Code is required for Legal Help claims",
-    "MEDIATION,'',Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,'',Stage Reached Code is required for Crime Lower claims",
+    "LEGAL HELP,'',Matter Type is missing for one or more of your claims",
+    "MEDIATION,'',Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,'',Stage Reached is missing for one or more of your claims",
     // whitespace matter type
-    "LEGAL HELP,' ',Matter Type Code is required for Legal Help claims",
-    "MEDIATION,' ',Matter Type Code is required for Mediation claims",
-    "CRIME LOWER,' ',Stage Reached Code is required for Crime Lower claims"
+    "LEGAL HELP,' ',Matter Type is missing for one or more of your claims",
+    "MEDIATION,' ',Matter Type is missing for one or more of your claims",
+    "CRIME LOWER,' ',Stage Reached is missing for one or more of your claims"
   })
   @DisplayName("Throws BulkSubmissionValidationException when matter type is invalid")
   void validateMatterTypeInBulkSubmission(
@@ -327,6 +327,35 @@ class BulkSubmissionServiceTest {
     var bulkSubmissionResponse = bulkSubmissionService.getBulkSubmission(id);
 
     assertEquals(expectedResponse, bulkSubmissionResponse);
+  }
+
+  @Test
+  @DisplayName("Returns bulk submission status summary")
+  void returnsBulkSubmissionStatusSummary() {
+    var id = Uuid7.timeBasedUuid();
+    var expectedBulkSubmission = new BulkSubmission();
+    expectedBulkSubmission.setId(id);
+    expectedBulkSubmission.setStatus(BulkSubmissionStatus.PARSING_COMPLETED);
+
+    when(bulkSubmissionRepository.findStatusById(id))
+        .thenReturn(Optional.of(expectedBulkSubmission.getStatus()));
+
+    GetBulkSubmissionStatusById200Response response =
+        bulkSubmissionService.getBulkSubmissionStatusById(id);
+
+    assertThat(response).isNotNull();
+    assertEquals(BulkSubmissionStatus.PARSING_COMPLETED, response.getStatus());
+  }
+
+  @Test
+  @DisplayName("Throws BulkSubmissionNotFoundException when summary not found")
+  void shouldThrowWhenBulkSubmissionStatusNotFound() {
+    var id = Uuid7.timeBasedUuid();
+    when(bulkSubmissionRepository.findStatusById(id)).thenReturn(Optional.empty());
+
+    assertThrows(
+        BulkSubmissionNotFoundException.class,
+        () -> bulkSubmissionService.getBulkSubmissionStatusById(id));
   }
 
   @Test

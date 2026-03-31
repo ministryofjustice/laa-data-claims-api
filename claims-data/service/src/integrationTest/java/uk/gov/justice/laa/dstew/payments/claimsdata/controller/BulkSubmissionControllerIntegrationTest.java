@@ -47,6 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -278,7 +279,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
+        .isEqualTo("Net Profit Costs Amount must be a number with no more than 2 decimal places");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
@@ -602,7 +603,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
-        .isEqualTo("Office missing from bulk submission file");
+        .isEqualTo("Enter the office account row in the file");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
@@ -715,12 +716,82 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
+  void shouldGetBulkSubmissionSummaryById() throws Exception {
+    // given: a bulk submission is saved to the database
+    var bulkSubmission200ResponseDetails =
+        new GetBulkSubmission200ResponseDetails()
+            .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
+            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
+            .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
+    var bulkSubmission =
+        BulkSubmission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .data(bulkSubmission200ResponseDetails)
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    BulkSubmission savedBulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
+
+    // when: calling the GET summary endpoint with the ID
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT + "/summary", savedBulkSubmission.getId().toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains status only
+    String responseBody = result.getResponse().getContentAsString();
+
+    var getBulkSubmissionSummaryResponse =
+        OBJECT_MAPPER.readValue(responseBody, GetBulkSubmissionStatusById200Response.class);
+    assertThat(getBulkSubmissionSummaryResponse.getStatus())
+        .isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+
+    // clean up the test-data
+    bulkSubmissionRepository.delete(bulkSubmission);
+  }
+
+  @Test
+  void shouldReturnNotFoundForGetBulkSubmissionSummaryWhenItDoesNotExist() throws Exception {
+    // when: calling the GET summary endpoint with a random id, it should return not found.
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT + "/summary", BULK_SUBMISSION_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get(ERROR_DETAIL).asText())
+        .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Not Found");
+  }
+
+  @Test
   void shouldReturnUnauthorizedForGetBulkSubmissionWhenAuthHeaderIsInvalid() throws Exception {
     // when: calling the GET endpoint with an invalid auth token, it should return unauthorized
     // status.
     mockMvc
         .perform(
             get(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void shouldReturnUnauthorizedForGetBulkSubmissionSummaryWhenAuthHeaderIsInvalid()
+      throws Exception {
+    // when: calling the GET summary endpoint with an invalid auth token, it should return
+    // unauthorized status.
+    mockMvc
+        .perform(
+            get(BULK_SUBMISSION_ENDPOINT + "/summary", Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
