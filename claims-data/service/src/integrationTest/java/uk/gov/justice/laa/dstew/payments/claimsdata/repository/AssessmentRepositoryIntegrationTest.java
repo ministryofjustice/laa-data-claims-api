@@ -5,14 +5,12 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +32,22 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
+/**
+ * Integration tests for {@link AssessmentRepository#getAssessedTotalAmount(UUID)}.
+ *
+ * <p>These tests verify that the assessed total amount for a submission is calculated as the sum of
+ * {@code assessedTotalInclVat} from the latest assessment for each claim in the submission.
+ *
+ * <p>The scenarios covered include:
+ *
+ * <ul>
+ *   <li>returning {@code null} when a submission has no assessments
+ *   <li>returning the value for a single assessed claim
+ *   <li>summing assessed totals across multiple claims
+ *   <li>counting only the most recent assessment when a claim has multiple assessments
+ *   <li>returning zero when the latest assessments sum to zero
+ * </ul>
+ */
 @Slf4j
 @Isolated
 @TestInstance(Lifecycle.PER_CLASS)
@@ -43,21 +57,16 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   private static final Instant TENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
-
   private static final Instant ELEVENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 11).atStartOfDay().toInstant(ZoneOffset.UTC);
-
   private static final Instant TWELFTH_APRIL_2024 =
       LocalDate.of(2024, 4, 12).atStartOfDay().toInstant(ZoneOffset.UTC);
-
-  @PersistenceContext
-  private EntityManager entityManager;
 
   private Submission submission;
 
   @BeforeEach
   void setup() {
-    var bulkSubmission =
+    BulkSubmission bulkSubmission =
         BulkSubmission.builder()
             .id(BULK_SUBMISSION_ID)
             .data(new GetBulkSubmission200ResponseDetails())
@@ -80,7 +89,6 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
             .crimeLowerScheduleNumber("office1/CRIME")
             .legalHelpSubmissionReference("office1/LEGAL")
             .mediationSubmissionReference("office1/MEDIATION")
-            .previousSubmissionId(null)
             .isNilSubmission(false)
             .numberOfClaims(2)
             .createdByUserId(USER_ID)
@@ -94,128 +102,109 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should return null when submission has no assessments")
   void shouldReturnNullWhenSubmissionHasNoAssessments() {
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isNull();
+    assertAssessedTotalIsNull();
   }
 
   @Test
   @DisplayName("Should return assessed total for one assessed claim")
   void shouldReturnAssessedTotalForOneAssessedClaim() {
-    Claim claim = saveClaim(submission, true);
-    ClaimSummaryFee claimSummaryFee = saveClaimSummaryFee(claim);
+    AssessedClaim claim = createAssessedClaim();
 
-    saveAssessment(claim, claimSummaryFee, "12.34", TENTH_APRIL_2024);
+    saveAssessment(claim, "12.34", TENTH_APRIL_2024);
 
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isEqualByComparingTo("12.34");
+    assertAssessedTotal("12.34");
   }
 
   @Test
   @DisplayName("Should sum latest assessments across multiple claims")
   void shouldSumLatestAssessmentsAcrossMultipleClaims() {
-    Claim claim1 = saveClaim(submission, true);
-    Claim claim2 = saveClaim(submission, true);
+    AssessedClaim claim1 = createAssessedClaim();
+    AssessedClaim claim2 = createAssessedClaim();
 
-    ClaimSummaryFee claim1SummaryFee = saveClaimSummaryFee(claim1);
-    ClaimSummaryFee claim2SummaryFee = saveClaimSummaryFee(claim2);
+    saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
+    saveAssessment(claim2, "5.25", ELEVENTH_APRIL_2024);
 
-    saveAssessment(claim1, claim1SummaryFee, "10.00", TENTH_APRIL_2024);
-    saveAssessment(claim2, claim2SummaryFee, "5.25", ELEVENTH_APRIL_2024);
-
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isEqualByComparingTo("15.25");
+    assertAssessedTotal("15.25");
   }
 
   @Test
   @DisplayName("Should only count the latest assessment for the same claim")
   void shouldOnlyCountLatestAssessmentForSameClaim() {
-    Claim claim = saveClaim(submission, true);
-    ClaimSummaryFee claimSummaryFee = saveClaimSummaryFee(claim);
+    AssessedClaim claim = createAssessedClaim();
 
-    saveAssessment(claim, claimSummaryFee, "10.00", TENTH_APRIL_2024);
-    saveAssessment(claim, claimSummaryFee, "7.50", TWELFTH_APRIL_2024);
+    saveAssessment(claim, "10.00", TENTH_APRIL_2024);
+    saveAssessment(claim, "7.50", TWELFTH_APRIL_2024);
 
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isEqualByComparingTo("7.50");
+    assertAssessedTotal("7.50");
   }
 
   @Test
   @DisplayName("Should sum latest assessment per claim when one claim has multiple assessments")
   void shouldSumLatestAssessmentPerClaimWhenOneClaimHasMultipleAssessments() {
-    Claim claim1 = saveClaim(submission, true);
-    Claim claim2 = saveClaim(submission, true);
+    AssessedClaim claim1 = createAssessedClaim();
+    AssessedClaim claim2 = createAssessedClaim();
 
-    ClaimSummaryFee claim1SummaryFee = saveClaimSummaryFee(claim1);
-    ClaimSummaryFee claim2SummaryFee = saveClaimSummaryFee(claim2);
+    saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
+    saveAssessment(claim1, "12.00", TWELFTH_APRIL_2024);
+    saveAssessment(claim2, "5.00", ELEVENTH_APRIL_2024);
 
-    saveAssessment(claim1, claim1SummaryFee, "10.00", TENTH_APRIL_2024);
-    saveAssessment(claim1, claim1SummaryFee, "12.00", TWELFTH_APRIL_2024); // latest for claim1
-    saveAssessment(claim2, claim2SummaryFee, "5.00", ELEVENTH_APRIL_2024);
-
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isEqualByComparingTo("17.00");
+    assertAssessedTotal("17.00");
   }
 
   @Test
   @DisplayName("Should return zero when latest assessments sum to zero")
   void shouldReturnZeroWhenLatestAssessmentsSumToZero() {
-    Claim claim1 = saveClaim(submission, true);
-    Claim claim2 = saveClaim(submission, true);
+    AssessedClaim claim1 = createAssessedClaim();
+    AssessedClaim claim2 = createAssessedClaim();
 
-    ClaimSummaryFee claim1SummaryFee = saveClaimSummaryFee(claim1);
-    ClaimSummaryFee claim2SummaryFee = saveClaimSummaryFee(claim2);
+    saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
+    saveAssessment(claim2, "-10.00", ELEVENTH_APRIL_2024);
 
-    saveAssessment(claim1, claim1SummaryFee, "10.00", TENTH_APRIL_2024);
-    saveAssessment(claim2, claim2SummaryFee, "-10.00", ELEVENTH_APRIL_2024);
+    assertAssessedTotal("0.00");
+  }
 
+  private void assertAssessedTotal(String expected) {
     BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-
-    assertThat(result).isNotNull();
-    assertThat(result).isEqualByComparingTo("0.00");
+    assertThat(result).isEqualByComparingTo(expected);
   }
 
-  private Claim saveClaim(Submission submission, boolean hasAssessment) {
+  private void assertAssessedTotalIsNull() {
+    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
+    assertThat(result).isNull();
+  }
+
+  private AssessedClaim createAssessedClaim() {
     Claim claim =
-        Claim.builder()
-            .id(UUID.randomUUID())
-            .submission(submission)
-            .hasAssessment(hasAssessment)
-            .matterTypeCode("MTC-333")
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .lineNumber(1)
-            .createdByUserId(USER_ID)
-            .build();
+        claimRepository.saveAndFlush(
+            Claim.builder()
+                .id(UUID.randomUUID())
+                .submission(submission)
+                .hasAssessment(true)
+                .matterTypeCode("MTC-333")
+                .status(ClaimStatus.READY_TO_PROCESS)
+                .lineNumber(1)
+                .createdByUserId(USER_ID)
+                .build());
 
-    return claimRepository.save(claim);
-  }
-
-  private ClaimSummaryFee saveClaimSummaryFee(Claim claim) {
     ClaimSummaryFee claimSummaryFee =
-        ClaimSummaryFee.builder()
-            .id(UUID.randomUUID())
-            .createdByUserId(USER_ID)
-            .claim(claim)
-            .build();
+        claimSummaryFeeRepository.saveAndFlush(
+            ClaimSummaryFee.builder()
+                .id(UUID.randomUUID())
+                .createdByUserId(USER_ID)
+                .claim(claim)
+                .build());
 
-    return claimSummaryFeeRepository.save(claimSummaryFee);
+    return AssessedClaim.builder().claim(claim).claimSummaryFee(claimSummaryFee).build();
   }
 
   private void saveAssessment(
-      Claim claim,
-      ClaimSummaryFee claimSummaryFee,
-      String assessedTotalInclVat,
-      Instant createdOn) {
+      AssessedClaim assessedClaim, String assessedTotalInclVat, Instant createdOn) {
 
     Assessment assessment =
         Assessment.builder()
             .id(UUID.randomUUID())
-            .claim(claim)
-            .claimSummaryFee(claimSummaryFee)
+            .claim(assessedClaim.claim())
+            .claimSummaryFee(assessedClaim.claimSummaryFee())
             .assessedTotalVat(BigDecimal.ZERO)
             .assessedTotalInclVat(new BigDecimal(assessedTotalInclVat))
             .allowedTotalVat(BigDecimal.ZERO)
@@ -229,4 +218,7 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     assessmentRepository.saveAndFlush(assessment);
   }
+
+  @Builder
+  private record AssessedClaim(Claim claim, ClaimSummaryFee claimSummaryFee) {}
 }
