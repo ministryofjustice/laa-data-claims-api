@@ -82,7 +82,7 @@ jobs:
   sca-scan:
     uses: ./.github/workflows/sca-analysis.yml
     secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   semgrep-scan:
     name: semgrep-security-scan

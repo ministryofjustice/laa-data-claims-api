@@ -3,7 +3,7 @@ name: SCA - Software Composition Analysis
 on:
   workflow_call:
     secrets:
-      GITHUB_TOKEN:
+      gh_token:
         required: true
   workflow_dispatch:
 
@@ -24,5 +24,5 @@ jobs:
       - name: Run SCA
         uses: ministryofjustice/devsecops-actions/sca@f965eb1771ec66cfc41d7d57dc607fa6dfbc10ed # v1.4.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.gh_token }}
           renovate: "false"
