@@ -50,6 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /**
@@ -269,6 +270,24 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .build());
   }
 
+  @State("a bulk submission summary exists")
+  public void aBulkSubmissionSummaryExists() {
+    log.info("Setting up state: a bulk submission summary exists");
+    when(bulkSubmissionService.getBulkSubmissionStatusById(any()))
+        .thenReturn(
+            GetBulkSubmissionStatusById200Response.builder()
+                .status(BulkSubmissionStatus.READY_FOR_PARSING)
+                .build());
+  }
+
+  @State("no bulk submission summary exists")
+  public void noBulkSubmissionSummaryExists() {
+    log.info("Setting up state: no bulk submission summary exists");
+    doThrow(new BulkSubmissionNotFoundException("Not found"))
+        .when(bulkSubmissionService)
+        .getBulkSubmissionStatusById(any());
+  }
+
   @State("a submission exists")
   public void aSubmissionExists() {
     log.info("Setting up state: a submission exists");
@@ -294,10 +313,21 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a valid claim exists");
     Claim claim = getClaim();
     claim.setStatus(ClaimStatus.VALID);
-    when(claimRepository.existsById(any())).thenReturn(true);
-    when(claimRepository.getReferenceById(any())).thenReturn(claim);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
     when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
     when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
+    Assessment savedAssessment = Assessment.builder().id(UUID.randomUUID()).build();
+    when(assessmentRepository.save(any())).thenReturn(savedAssessment);
+  }
+
+  @State("a voidable claim exists")
+  public void aVoidableClaimExists() {
+    log.info("Setting up state: a voidable claim exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VALID);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
     Assessment savedAssessment = Assessment.builder().id(UUID.randomUUID()).build();
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }

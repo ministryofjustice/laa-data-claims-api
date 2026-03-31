@@ -19,7 +19,7 @@ runs:
       run: echo "BUILD_DATE=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
 
     - name: Assume role in Cloud Platform
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.ecr-role-to-assume }}
         aws-region: ${{ inputs.ecr-region }}

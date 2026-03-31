@@ -1,4 +1,5 @@
 name: Pact triggered workflow
+run-name: Pact tests triggered by `${{ github.event.inputs.consumer }}`/`${{ github.event.inputs.consumerBranch }}`
 
 on:
   workflow_dispatch:

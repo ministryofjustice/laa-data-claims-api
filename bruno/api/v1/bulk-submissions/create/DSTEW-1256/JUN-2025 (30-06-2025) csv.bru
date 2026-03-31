@@ -1,7 +1,7 @@
 meta {
-  name: SETUP: Grab valid submission id
+  name: JUN-2025 (30/06/2025) csv
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
@@ -20,7 +20,7 @@ headers {
 }
 
 body:multipart-form {
-  file: @file(/Users/ben.hobden/BulkClaimFiles/EV-CLM-053.1_outcome_code_crime_valid_code_scenario_it_tests.xml) @contentType(text/xml)
+  file: @file(/Users/ben.hobden/Documents/Uploads/DSTEW-1256/JUN_2025.csv) @contentType(text/csv)
 }
 
 tests {

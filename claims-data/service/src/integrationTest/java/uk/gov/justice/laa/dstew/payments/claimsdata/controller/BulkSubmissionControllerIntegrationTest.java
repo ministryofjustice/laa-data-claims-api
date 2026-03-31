@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
@@ -46,6 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -73,8 +75,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String TEST_OFFICE = "0U099L";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final String ERROR_MESSAGE = "errorMessage";
-  private static final String HTTP_STATUS = "httpStatus";
+  private static final String ERROR_DETAIL = "detail";
+  private static final String ERROR_STATUS = "status";
+  private static final String ERROR_TITLE = "title";
 
   @Autowired private SqsClient sqsClient;
 
@@ -112,7 +115,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
       throws Exception {
     // Given:
     // Below fields are set to "Y" in both files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -174,7 +178,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldSaveSubmissionToDatabaseAndPublishMessage(String filePath) throws Exception {
     // Given:
     // Below fields are set to "Y" in all files
-    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
+    // CLIENT_LEGALLY_AIDED=Y,DUTY_SOLICITOR=Y,IRC_SURGERY=Y,YOUTH_COURT=Y,
+    // CLIENT2_LEGALLY_AIDED=Y,ELIGIBLE_CLIENT_INDICATOR=Y,
     // NATIONAL_REF_MECHANISM_ADVICE=Y,CLIENT2_POSTAL_APPL_ACCP=Y
     ClassPathResource resource = new ClassPathResource(filePath);
 
@@ -224,7 +229,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @DisplayName(
-      "Should return valid error message when multiple office and schedule are found in the submission")
+      "Should return valid error message when multiple office and schedule are found in the "
+          + "submission")
   @Test
   void shouldReturnValidErrorMessageWhenMultipleOfficeAndScheduleAreFoundInTheSubmission()
       throws Exception {
@@ -245,10 +251,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Multiple schedules found in bulk submission file. Only one schedule is supported per submission.\n"
                 + "Multiple offices found in bulk submission file. Only one office is supported per submission.");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @DisplayName(
@@ -270,8 +278,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andExpect(status().isBadRequest())
             .andReturn();
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
-        .isEqualTo("Net Profit Costs Amount must be a valid monetary value");
+    assertThat(json.get(ERROR_DETAIL).asText())
+        .isEqualTo("Net Profit Costs Amount must be a number with no more than 2 decimal places");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   private static void verifyBulkSubmissionMatterStarts(BulkSubmission savedBulkSubmission) {
@@ -349,7 +359,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldParseTheBooleanFieldsCorrectly() throws Exception {
     // Given:
     // Below fields are set to "N" in outcomes-2.csv
-    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
+    // CLIENT_LEGALLY_AIDED=N,DUTY_SOLICITOR=N,IRC_SURGERY=N,YOUTH_COURT=N,
+    // CLIENT2_LEGALLY_AIDED=N,ELIGIBLE_CLIENT_INDICATOR=N,
     // NATIONAL_REF_MECHANISM_ADVICE=N,CLIENT2_POSTAL_APPL_ACCP=N
     ClassPathResource resource = new ClassPathResource(OUTCOMES_2_CSV);
 
@@ -398,7 +409,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void shouldHandleNullValuesForBooleanFields() throws Exception {
     // Given:
     // Below fields are missing in outcomes-3.csv
-    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,ELIGIBLE_CLIENT_INDICATOR,
+    // CLIENT_LEGALLY_AIDED,DUTY_SOLICITOR,IRC_SURGERY,YOUTH_COURT,CLIENT2_LEGALLY_AIDED,
+    // ELIGIBLE_CLIENT_INDICATOR,
     // NATIONAL_REF_MECHANISM_ADVICE,CLIENT2_POSTAL_APPL_ACCP
     ClassPathResource resource = new ClassPathResource(OUTCOMES_3_CSV);
 
@@ -561,10 +573,11 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Failed to read bulk submission file: Unrecognized field \"CASE_REF_NUMBER_NOT_EXISTING\" ");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
@@ -589,9 +602,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
-        .isEqualTo("Office missing from bulk submission file");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_DETAIL).asText())
+        .isEqualTo("Enter the office account row in the file");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
@@ -616,9 +630,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("Failed to parse bulk submission file, found invalid header: OFFICE;account=");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @ParameterizedTest
@@ -647,10 +662,11 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(
             "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.");
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(400);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   @Test
@@ -700,12 +716,82 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
+  void shouldGetBulkSubmissionSummaryById() throws Exception {
+    // given: a bulk submission is saved to the database
+    var bulkSubmission200ResponseDetails =
+        new GetBulkSubmission200ResponseDetails()
+            .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
+            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
+            .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
+    var bulkSubmission =
+        BulkSubmission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .data(bulkSubmission200ResponseDetails)
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    BulkSubmission savedBulkSubmission = bulkSubmissionRepository.save(bulkSubmission);
+
+    // when: calling the GET summary endpoint with the ID
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT + "/summary", savedBulkSubmission.getId().toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: response body contains status only
+    String responseBody = result.getResponse().getContentAsString();
+
+    var getBulkSubmissionSummaryResponse =
+        OBJECT_MAPPER.readValue(responseBody, GetBulkSubmissionStatusById200Response.class);
+    assertThat(getBulkSubmissionSummaryResponse.getStatus())
+        .isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+
+    // clean up the test-data
+    bulkSubmissionRepository.delete(bulkSubmission);
+  }
+
+  @Test
+  void shouldReturnNotFoundForGetBulkSubmissionSummaryWhenItDoesNotExist() throws Exception {
+    // when: calling the GET summary endpoint with a random id, it should return not found.
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(BULK_SUBMISSION_ENDPOINT + "/summary", BULK_SUBMISSION_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get(ERROR_DETAIL).asText())
+        .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Not Found");
+  }
+
+  @Test
   void shouldReturnUnauthorizedForGetBulkSubmissionWhenAuthHeaderIsInvalid() throws Exception {
     // when: calling the GET endpoint with an invalid auth token, it should return unauthorized
     // status.
     mockMvc
         .perform(
             get(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+                .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void shouldReturnUnauthorizedForGetBulkSubmissionSummaryWhenAuthHeaderIsInvalid()
+      throws Exception {
+    // when: calling the GET summary endpoint with an invalid auth token, it should return
+    // unauthorized status.
+    mockMvc
+        .perform(
+            get(BULK_SUBMISSION_ENDPOINT + "/summary", Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
@@ -722,9 +808,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .andReturn();
 
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_MESSAGE).asText())
+    assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo(String.format("No entity found with id: %s", BULK_SUBMISSION_ID));
-    assertThat(json.get(HTTP_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(404);
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo("Not Found");
   }
 
   @Test
@@ -751,7 +838,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     BulkSubmission saved = submissions.getFirst();
     assertThat(saved.getStatus()).isEqualTo(BulkSubmissionStatus.UNAUTHORISED);
     assertThat(saved.getErrorCode()).isEqualTo(BulkSubmissionErrorCode.E100);
-    assertThat(saved.getErrorDescription()).contains("User does not have authorisation");
+    assertThat(saved.getErrorDescription())
+        .contains(
+            "The selected file contains office account 0U099L. You do not have access to this office");
     assertThat(saved.getCreatedByUserId()).isEqualTo(TEST_USER);
 
     // clean up the test-data

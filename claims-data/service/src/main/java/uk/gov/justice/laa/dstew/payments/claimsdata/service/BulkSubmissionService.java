@@ -34,10 +34,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
-import uk.gov.laa.springboot.exception.ApplicationException;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
@@ -72,8 +72,7 @@ public class BulkSubmissionService
    *     the bulk).
    */
   public CreateBulkSubmission201Response submitBulkSubmissionFile(
-      @NotNull String userId, @NotNull MultipartFile file, final List<String> offices)
-      throws ApplicationException {
+      @NotNull String userId, @NotNull MultipartFile file, @NotNull final List<String> offices) {
 
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
     String areaOfLaw =
@@ -134,9 +133,9 @@ public class BulkSubmissionService
       String areaOfLaw, BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     String errorMessage =
         switch (areaOfLaw) {
-          case "CRIME LOWER" -> "Stage Reached Code is required for Crime Lower claims";
-          case "LEGAL HELP" -> "Matter Type Code is required for Legal Help claims";
-          case "MEDIATION" -> "Matter Type Code is required for Mediation claims";
+          case "CRIME LOWER" -> "Stage Reached is missing for one or more of your claims";
+          case "LEGAL HELP" -> "Matter Type is missing for one or more of your claims";
+          case "MEDIATION" -> "Matter Type is missing for one or more of your claims";
           default -> null;
         };
     failSubmission(errorMessage, bulkSubmissionBuilder);
@@ -151,13 +150,11 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetailsSchedule::getSubmissionPeriod);
 
     if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
-      failSubmission(
-          "Submission period is required, please check the file and try again.",
-          bulkSubmissionBuilder);
+      failSubmission("Enter a submission period in the file", bulkSubmissionBuilder);
 
     } else if (!isValidMonthYear(submissionPeriod.get())) {
       failSubmission(
-          "Submission period wrong format, should be in the format MMM-YYYY",
+          "Enter the submission period in the format MMM-YYYY (for example, JAN-2025)",
           bulkSubmissionBuilder);
     }
   }
@@ -191,21 +188,20 @@ public class BulkSubmissionService
 
     // Validation: check if file's office is in authorised list
     if (officeCode == null || !offices.contains(officeCode)) {
-      String errorMessage =
-          "User does not have authorisation to submit for office "
-              + officeCode
-              + ". Please verify your office code and access permissions.";
+      String error =
+          "The selected file contains office account %s. You do not have access to this office"
+              .formatted(officeCode);
 
       BulkSubmission unauthorised =
           bulkSubmissionBuilder
               .status(BulkSubmissionStatus.UNAUTHORISED)
               .errorCode(BulkSubmissionErrorCode.E100)
-              .errorDescription(errorMessage)
+              .errorDescription(error)
               .build();
 
       bulkSubmissionRepository.save(unauthorised);
 
-      throw new BulkSubmissionOfficeAuthorisationException(errorMessage);
+      throw new BulkSubmissionOfficeAuthorisationException(error);
     }
   }
 
@@ -313,6 +309,21 @@ public class BulkSubmissionService
         .errorDescription(bulkSubmission.getErrorDescription())
         .updatedByUserId(bulkSubmission.getUpdatedByUserId())
         .details(bulkSubmission.getData());
+  }
+
+  /**
+   * Retrieve a minimal summary for a bulk submission by id - currently only status.
+   *
+   * @param id the bulk submission id
+   * @return a response containing only the status of the bulk submission
+   */
+  @Transactional(readOnly = true)
+  public GetBulkSubmissionStatusById200Response getBulkSubmissionStatusById(UUID id) {
+    return bulkSubmissionRepository
+        .findStatusById(id)
+        .map(status -> new GetBulkSubmissionStatusById200Response().status(status))
+        .orElseThrow(
+            () -> entityNotFoundSupplier(String.format("No entity found with id: %s", id)).get());
   }
 
   /**

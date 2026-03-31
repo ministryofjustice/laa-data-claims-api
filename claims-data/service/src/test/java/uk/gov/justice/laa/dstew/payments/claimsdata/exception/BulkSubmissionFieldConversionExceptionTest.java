@@ -24,9 +24,7 @@ public class BulkSubmissionFieldConversionExceptionTest {
     BulkSubmissionFieldConversionException exception =
         new BulkSubmissionFieldConversionException("Youth Court", "truee", true);
     Assertions.assertEquals("truee", exception.getRejectedValue());
-    Assertions.assertEquals(
-        "Invalid value 'truee' supplied for field 'Youth Court'. Valid values are 'Y' or 'N'",
-        exception.getMessage());
+    Assertions.assertEquals("Youth Court must only include Y or N", exception.getMessage());
   }
 
   @DisplayName(

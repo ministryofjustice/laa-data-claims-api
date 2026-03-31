@@ -5,7 +5,9 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.g
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.api.BulkSubmissionsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
@@ -30,19 +33,22 @@ import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 @RequiredArgsConstructor
 @Slf4j
 public class BulkSubmissionController implements BulkSubmissionsApi {
+
   private final BulkSubmissionService bulkSubmissionService;
   private final BulkSubmissionFileValidator bulkSubmissionFileValidator;
 
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateBulkSubmission201Response> createBulkSubmission(
-      final String userId, final List<String> offices, final MultipartFile file) {
+      String userId, MultipartFile file, List<String> offices) {
     // Validate file
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
+
     CreateBulkSubmission201Response bulkSubmissionResponse =
-        bulkSubmissionService.submitBulkSubmissionFile(userId, file, offices);
+        bulkSubmissionService.submitBulkSubmissionFile(
+            userId, file, Optional.ofNullable(offices).orElse(Collections.emptyList()));
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/api/v1/submissions/{id}")
@@ -57,6 +63,15 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<GetBulkSubmission200Response> getBulkSubmission(UUID id) {
     GetBulkSubmission200Response response = bulkSubmissionService.getBulkSubmission(id);
+    return ResponseEntity.ok(response);
+  }
+
+  @Override
+  @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<GetBulkSubmissionStatusById200Response> getBulkSubmissionStatusById(
+      UUID id) {
+    GetBulkSubmissionStatusById200Response response =
+        bulkSubmissionService.getBulkSubmissionStatusById(id);
     return ResponseEntity.ok(response);
   }
 
