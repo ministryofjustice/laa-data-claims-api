@@ -129,17 +129,29 @@ public class SubmissionService
   }
 
   /**
-   * Returns a scaled {@link BigDecimal} using the configured {@code DECIMAL_PLACES} and {@link
-   * RoundingMode#HALF_UP}.
+   * Scales a {@link BigDecimal} to the configured number of decimal places using
+   * {@link RoundingMode#HALF_UP}, with special handling for {@code null} and zero values.
+   * <p>
+   * Behavior:
+   * <ul>
+   *   <li>If {@code amount} is {@code null}, this method returns {@code null}.</li>
+   *   <li>If {@code amount} is numerically zero (e.g., 0, 0.0, 0.000),
+   *       this method returns {@link BigDecimal#ZERO}.</li>
+   *   <li>Otherwise, the value is scaled to {@code DECIMAL_PLACES} using
+   *       {@code RoundingMode.HALF_UP}.</li>
+   * </ul>
    *
-   * <p>Unlike {@link #scaleAmountOrZero(BigDecimal)}, this method preserves {@code null} values
-   * rather than converting them into zero.
-   *
-   * @param amount the value to scale; may be {@code null}
-   * @return the scaled value, or {@code null} if {@code amount} is {@code null}
+   * @param amount the {@code BigDecimal} to process; may be {@code null}
+   * @return a scaled {@code BigDecimal}, {@code null}, or {@code BigDecimal.ZERO}
    */
   private BigDecimal scaleNullableAmount(BigDecimal amount) {
-    return amount == null ? null : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
+    if (amount == null) {
+      return null;
+    }
+    if (amount.compareTo(BigDecimal.ZERO) == 0) {
+      return BigDecimal.ZERO;
+    }
+    return amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
   }
 
   /**
