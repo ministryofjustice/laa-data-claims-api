@@ -139,15 +139,16 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should sum latest assessment per claim when one claim has multiple assessments")
+  @DisplayName("Should sum latest assessment per claim when any claim has multiple assessments")
   void shouldSumLatestAssessmentPerClaimWhenOneClaimHasMultipleAssessments() {
     AssessedClaim claim1 = createAssessedClaim();
     AssessedClaim claim2 = createAssessedClaim();
 
     saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim1, "12.00", TWELFTH_APRIL_2024);
-    saveAssessment(claim2, "5.00", ELEVENTH_APRIL_2024);
-
+    saveAssessment(claim2, "15.00", TENTH_APRIL_2024);
+    saveAssessment(claim2, "33.00", ELEVENTH_APRIL_2024);
+    saveAssessment(claim2, "5.00", TWELFTH_APRIL_2024);
     assertAssessedTotal("17.00");
   }
 
