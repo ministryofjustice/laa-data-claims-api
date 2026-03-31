@@ -35,7 +35,7 @@ jobs:
           distribution: 'corretto'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        uses: gradle/actions/setup-gradle@205054a7257716ec64af10a2e2ff1ac5d3b132db # v6
 
       - name: Generate Swagger UI
         run: ./gradlew -PswaggerOnly=true openApiGenerateSwaggerOnly
