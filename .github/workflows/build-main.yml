@@ -6,7 +6,14 @@ on:
     types: [ closed ]
 
 jobs:
+  sca-scan:
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/sca-analysis.yml
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: sca-scan
     if: ${{ github.event.pull_request.merged == true }}
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@v1
     permissions:
