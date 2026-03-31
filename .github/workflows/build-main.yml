@@ -15,10 +15,11 @@ jobs:
   build:
     needs: sca-scan
     if: ${{ github.event.pull_request.merged == true }}
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
     permissions:
       contents: write
       packages: write
+      pull-requests: write
     with:
       integration_test_task: 'integrationTest'
       create_tag: 'true'
