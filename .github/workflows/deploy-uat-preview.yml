@@ -8,10 +8,11 @@ permissions:
   contents: read
 
 env:
-  JAVA_VERSION: '21'
-  JDK_DISTRIBUTION: 'corretto'
+  JAVA_VERSION: &JAVA_VERSION '21'
+  JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
 
 jobs:
+
   build-test:
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
     runs-on: ubuntu-latest
