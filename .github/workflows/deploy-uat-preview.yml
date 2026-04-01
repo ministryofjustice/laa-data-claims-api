@@ -8,17 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  sca-scan:
-    if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
-    uses: ./.github/workflows/sca-analysis.yml
-    permissions:
-      contents: read
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-
   build-test:
-    needs:
-      - sca-scan
+    if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -87,6 +78,15 @@ jobs:
           name: jacoco-coverage-report
           path: claims-data/service/build/reports/jacoco
           retention-days: 14
+
+  sca-scan:
+    needs:
+      - build-test
+    uses: ./.github/workflows/sca-analysis.yml
+    permissions:
+      contents: read
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   semgrep-scan:
     name: semgrep-security-scan
