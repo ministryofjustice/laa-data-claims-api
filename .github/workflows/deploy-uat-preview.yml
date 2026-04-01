@@ -229,6 +229,8 @@ jobs:
       - name: Extract release name
         id: extract_release_name_uat
         uses: ./.github/actions/get_release_name
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
@@ -252,6 +254,7 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
+          pr-number: ${{ github.event.pull_request.number }}
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       - name: Record UAT deployment to pact broker
