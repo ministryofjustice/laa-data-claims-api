@@ -9,6 +9,7 @@ spring:
       idle-timeout: ${HIKARI_IDLE_TIMEOUT}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT}
   flyway:
+    locations: classpath:db/migration,classpath:db/migration-main
     placeholders:
       reporting_username: ${REPORTING_USERNAME}
       reporting_password: ${REPORTING_PASSWORD}
