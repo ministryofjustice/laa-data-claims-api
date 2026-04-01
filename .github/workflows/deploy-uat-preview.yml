@@ -7,7 +7,12 @@ on:
 permissions:
   contents: read
 
+env:
+  JAVA_VERSION: &JAVA_VERSION '21'
+  JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
+
 jobs:
+
   build-test:
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
     runs-on: ubuntu-latest
@@ -18,11 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Set up JDK 21
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
-          java-version: 21
-          distribution: 'corretto'
+          java-version: *JAVA_VERSION
+          distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
@@ -79,6 +84,18 @@ jobs:
           path: claims-data/service/build/reports/jacoco
           retention-days: 14
 
+  sca-scan:
+    needs:
+      - build-test
+    uses: ./.github/workflows/sca-analysis.yml
+    permissions:
+      contents: read
+    with:
+      java-version: *JAVA_VERSION
+      distribution: *JDK_DISTRIBUTION
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+
   semgrep-scan:
     name: semgrep-security-scan
     needs: build-test
@@ -122,11 +139,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Set up JDK 21
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
-          java-version: 21
-          distribution: 'corretto'
+          java-version: *JAVA_VERSION
+          distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
@@ -174,6 +191,7 @@ jobs:
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+      - sca-scan
     permissions:
       contents: write
       packages: write
@@ -207,6 +225,8 @@ jobs:
       - name: Extract release name
         id: extract_release_name_uat
         uses: ./.github/actions/get_release_name
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
@@ -230,6 +250,7 @@ jobs:
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: uat
+          pr-number: ${{ github.event.pull_request.number }}
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       - name: Record UAT deployment to pact broker

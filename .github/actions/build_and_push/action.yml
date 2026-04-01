@@ -10,6 +10,9 @@ inputs:
   ecr-repository:
     description: "ECR repository"
     required: true
+  pr-number:
+    description: "Pull request number, if applicable"
+    required: false
 
 runs:
   using: "composite"
@@ -33,6 +36,8 @@ runs:
     - name: Extract release name
       id: extract_release_name
       uses: ./.github/actions/get_release_name
+      with:
+        pr-number: ${{ inputs.pr-number }}
 
     - name: Build
       shell: bash
