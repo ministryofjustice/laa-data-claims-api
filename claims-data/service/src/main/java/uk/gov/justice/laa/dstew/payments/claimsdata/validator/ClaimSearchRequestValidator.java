@@ -89,12 +89,12 @@ public class ClaimSearchRequestValidator {
    * <ol>
    *   <li>If {@code caseReferenceNumber} is has no text it is considered absent and no validation
    *       error is raised.
-   *   <li>If the  value is non-empty then it must be at least {@link
-   *       #MIN_CASE_REFERENCE_LENGTH} and at most {@link #MAX_CASE_REFERENCE_LENGTH} characters
-   *       long, otherwise a {@link ClaimBadRequestException} is thrown with a descriptive message.
-   *   <li>The value must match the pattern <code>^[a-zA-Z0-9/\.\-\s]+$</code> (letters,
-   *       digits, space, forward slash, dot and hyphen only) otherwise a {@link
-   *       ClaimBadRequestException} is thrown.
+   *   <li>If the value is non-empty then it must be at least {@link #MIN_CASE_REFERENCE_LENGTH} and
+   *       at most {@link #MAX_CASE_REFERENCE_LENGTH} characters long, otherwise a {@link
+   *       ClaimBadRequestException} is thrown with a descriptive message.
+   *   <li>The value must match the pattern <code>^[a-zA-Z0-9/\.\-\s]+$</code> (letters, digits,
+   *       space, forward slash, dot and hyphen only) otherwise a {@link ClaimBadRequestException}
+   *       is thrown.
    * </ol>
    *
    * @param caseReferenceNumber the raw case reference number supplied by the caller

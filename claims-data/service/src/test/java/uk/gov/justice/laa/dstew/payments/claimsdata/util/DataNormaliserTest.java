@@ -1,7 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,7 +19,7 @@ class DataNormaliserTest {
   @DisplayName("normaliseClaimSearchRequest should be no-op for null request")
   void normalise_nullRequest_noException() {
     // Should not throw
-    DataNormaliser.normaliseClaimSearchRequest(null);
+    assertDoesNotThrow(() -> DataNormaliser.normaliseClaimSearchRequest(null));
   }
 
   @Test
@@ -67,6 +70,19 @@ class DataNormaliserTest {
       assertThat(result).isNull();
     } else {
       assertThat(result).isEqualTo(input.trim());
+    }
+  }
+
+  @Test
+  @DisplayName("private constructor throws UnsupportedOperationException and is covered")
+  void privateConstructor_throwsUnsupportedOperationException() throws Exception {
+    Constructor<DataNormaliser> ctor = DataNormaliser.class.getDeclaredConstructor();
+    ctor.setAccessible(true);
+    try {
+      ctor.newInstance();
+      org.junit.jupiter.api.Assertions.fail("Expected constructor to throw an exception");
+    } catch (InvocationTargetException e) {
+      assertThat(e.getCause()).isInstanceOf(UnsupportedOperationException.class);
     }
   }
 }
