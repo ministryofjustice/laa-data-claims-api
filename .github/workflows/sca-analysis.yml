@@ -7,18 +7,13 @@ on:
         required: true
   workflow_dispatch:
 
-permissions: {}
-
 jobs:
   sca:
     name: Software Composition Analysis
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      security-events: write
+      contents: read
 
     steps:
       - name: Run SCA
