@@ -85,6 +85,9 @@ jobs:
     uses: ./.github/workflows/sca-analysis.yml
     permissions:
       contents: read
+    with:
+      java-version: 21
+      distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -183,6 +186,7 @@ jobs:
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
+      - sca-scan
     permissions:
       contents: write
       packages: write

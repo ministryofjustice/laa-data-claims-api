@@ -2,6 +2,15 @@ name: SCA - Software Composition Analysis
 
 on:
   workflow_call:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: 21
+      distribution:
+        required:  false
+        type: string
+        default: 'corretto'
     secrets:
       gh_token:
         required: true
@@ -16,6 +25,22 @@ jobs:
       contents: read
 
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.distribution }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
+
+      - name: Build app jar with gradle
+        run: ./gradlew assemble -x test --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
+
       - name: Run SCA
         uses: ministryofjustice/devsecops-actions/sca@f965eb1771ec66cfc41d7d57dc607fa6dfbc10ed # v1.4.0
         with:
