@@ -1,5 +1,5 @@
 plugins {
-    id 'io.freefair.lombok' version '8.13.1'
+    id 'io.freefair.lombok' version '9.2.0'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
@@ -76,10 +76,12 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
-    testCompileOnly 'org.projectlombok:lombok:1.18.38'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+    compileOnly 'org.projectlombok:lombok:1.18.44'
+    annotationProcessor 'org.projectlombok:lombok:1.18.44'
+    testCompileOnly 'org.projectlombok:lombok:1.18.44'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
+
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
@@ -198,7 +200,7 @@ spotless {
         importOrder()
         removeUnusedImports()
         cleanthat()
-        googleJavaFormat()
+        googleJavaFormat('1.27.0')
     }
 }
 
