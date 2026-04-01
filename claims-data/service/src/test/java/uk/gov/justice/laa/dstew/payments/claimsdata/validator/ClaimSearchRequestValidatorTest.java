@@ -92,6 +92,39 @@ class ClaimSearchRequestValidatorTest {
   }
 
   @ParameterizedTest
+  @ValueSource(strings = {"123456789012345678901234567890", " 12345678901234567890123456789 "})
+  @DisplayName("validateCaseReferenceNumber should accept values up to the max length")
+  void validateCaseReferenceNumber_maxLength_ok(String value) {
+    Assertions.assertDoesNotThrow(() -> validator.validateCaseReferenceNumber(value));
+  }
+
+  @Test
+  @DisplayName("validateCaseReferenceNumber should reject values longer than max length")
+  void validateCaseReferenceNumber_tooLong_throws() {
+    String tooLong = "1234567890123456789012345678901"; // 31 chars
+    ClaimBadRequestException ex =
+        Assertions.assertThrows(
+            ClaimBadRequestException.class, () -> validator.validateCaseReferenceNumber(tooLong));
+
+    String expected =
+        String.format(
+            ClaimSearchRequestValidator.CASE_REFERENCE_TOO_LONG,
+            ClaimSearchRequestValidator.MAX_CASE_REFERENCE_LENGTH);
+    Assertions.assertEquals(expected, ex.getMessage());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ABC%123", "ABC_123", "ABC!123", "ABC@123"})
+  @DisplayName(
+      "validateCaseReferenceNumber should reject values with invalid characters or wildcards")
+  void validateCaseReferenceNumber_invalidChars_throws(String value) {
+    ClaimBadRequestException ex =
+        Assertions.assertThrows(
+            ClaimBadRequestException.class, () -> validator.validateCaseReferenceNumber(value));
+    Assertions.assertEquals(ClaimSearchRequestValidator.CASE_REFERENCE_INVALID, ex.getMessage());
+  }
+
+  @ParameterizedTest
   @MethodSource("provideRequestsForValidation")
   @DisplayName("validate(request) should behave correctly for various request combinations")
   void validate_request_various(String officeCode, String caseRef, boolean shouldThrow) {

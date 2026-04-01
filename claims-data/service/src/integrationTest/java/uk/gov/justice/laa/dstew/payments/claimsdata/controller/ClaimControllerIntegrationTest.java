@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -49,8 +51,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_A_CLAIM_ENDPOINT =
@@ -72,6 +76,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET submission/claims - returns 404 when submission and claim IDs do not exist")
   void shouldReturnNotFoundWhenSubmissionIdAndClaimIdDoNotExist() throws Exception {
     mockMvc
         .perform(
@@ -81,6 +86,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET submission/claims - returns claim when submission and claim exist")
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
 
@@ -116,6 +122,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET submission/claims - unauthorized when invalid auth token supplied")
   void shouldReturnUnauthorizedWhenAnInvalidAuthTokenIsSupplied() throws Exception {
     mockMvc
         .perform(
@@ -126,6 +133,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(AreaOfLaw.class)
+  @DisplayName("POST submissions/{id}/claims - saves a claim to the database for each area of law")
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(areaOfLaw);
@@ -161,6 +169,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName(
+      "POST submissions/{id}/claims - logs warning for suspicious SQL-like patterns but creates claim")
   void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
@@ -202,6 +212,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("POST submissions/{id}/claims - 400 Bad Request for incorrect body")
   void shouldReturnBadRequestWhenPostIsCalledWithIncorrectBody() throws Exception {
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
@@ -214,6 +225,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("POST submissions/{id}/claims - 401 Unauthorized for invalid token")
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
     final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
     // when: calling the POST endpoint with an invalid token, 401 should be returned
@@ -227,6 +239,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - updates an existing claim")
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
 
@@ -254,6 +267,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - 400 when attempting invalid void update")
   void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
@@ -279,6 +293,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName(
+      "PATCH submissions/{id}/claims/{id} - detects SQL-like patterns in patch and logs warning")
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
     // given: required claims exist in the database
 
@@ -322,6 +338,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - 404 when submission or claim not found")
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
 
@@ -339,6 +356,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - 400 for incorrect request body")
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
 
@@ -354,6 +372,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims - returns all claims for the given office code")
   void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
     // given: required claims exist in the database
 
@@ -378,6 +397,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims - returns claims for office code and unique file reference")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
 
@@ -402,6 +422,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims - bad request for unknown parameters")
   void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
     // given: required claims exist in the database
 
@@ -417,6 +438,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims - returns empty when office code does not match")
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
 
@@ -437,6 +459,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims - bad request when office code is not supplied")
   void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied() throws Exception {
     mockMvc
         .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -444,6 +467,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - returns all claims for the given office code (v2)")
   void shouldReturnAllClaimsForAGivenOfficeCodeV2() throws Exception {
     // given: required claims exist in the database
 
@@ -468,6 +492,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - returns claims for office code and unique file reference (v2)")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
     // given: required claims exist in the database
 
@@ -492,6 +517,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - bad request for unknown parameters (v2)")
   void shouldReturnBadRequestWhenUnknownParametersAreSuppliedV2() throws Exception {
     // given: required claims exist in the database
 
@@ -507,6 +533,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - returns empty when office code does not match (v2)")
   void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatchV2() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
 
@@ -527,6 +554,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - bad request when office code not supplied (v2)")
   void shouldReturnBadRequestWhenOfficeCodeIsNotSuppliedV2() throws Exception {
     mockMvc
         .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -550,6 +578,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         "RAC ATE2/1,ATE3,false",
         "RAC ATE2/1,2/1,true"
       })
+  @DisplayName(
+      "GET /api/v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
   void shouldMatchCaseReferenceVariantsV2(
       String existingCrn, String searchFilter, boolean expectedFound) throws Exception {
 
@@ -578,6 +608,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - rejects short case_reference_number (min length)")
   void shouldRejectShortCaseReferenceFiltersV2() throws Exception {
     // when: calling v2 with a short (trimmed length < 3) case_reference_number
     MvcResult result =
@@ -596,6 +627,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /api/v2/claims - returns no results when no CRN matches")
   void shouldReturnNoResultsWhenNoCrnMatchesV2() throws Exception {
 
     // when: searching for a non-matching value
@@ -615,6 +647,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET /claims (v1) - exact match behaviour remains unchanged")
   void shouldNotChangeV1ExactMatchBehaviour() throws Exception {
 
     UUID newClaimId = createAndValidateClaimWithCRN("V1-EXACT-1");
@@ -637,6 +670,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName(
+      "GET /api/v2/claims - pagination and other filters unaffected by case_reference filter")
   void paginationAndOtherFiltersUnaffectedWhenUsingCaseReferenceV2() throws Exception {
 
     UUID newClaimId = createAndValidateClaimWithCRN("PAG-123");
@@ -660,6 +695,48 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(claimResultSet.getTotalElements()).isGreaterThanOrEqualTo(1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .contains(newClaimId.toString());
+  }
+
+  @ParameterizedTest
+  @DisplayName("GET /api/v2/claims - rejects various invalid case_reference_number inputs (400)")
+  @CsvSource({
+    "ABC%123,INVALID",
+    "ABC_123,INVALID",
+    "ABC!123,INVALID",
+    "1234567890123456789012345678901,TOO_LONG"
+  })
+  void shouldRejectInvalidCaseReferenceNumberInV2Search(String input, String expectedType)
+      throws Exception {
+
+    // when: calling the v2 claims endpoint with an invalid case_reference_number
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", input)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: response should contain the correct validation message constant
+    String responseBody = result.getResponse().getContentAsString();
+
+    String expectedMessage;
+    switch (expectedType) {
+      case "TOO_LONG":
+        expectedMessage =
+            String.format(
+                ClaimSearchRequestValidator.CASE_REFERENCE_TOO_LONG,
+                ClaimSearchRequestValidator.MAX_CASE_REFERENCE_LENGTH);
+        break;
+      case "INVALID":
+      default:
+        expectedMessage = ClaimSearchRequestValidator.CASE_REFERENCE_INVALID;
+        break;
+    }
+
+    assertThat(responseBody).contains(expectedMessage);
   }
 
   private UUID createAndValidateClaimWithCRN(String crn) throws Exception {

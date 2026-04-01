@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.validator;
 
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -38,10 +39,20 @@ public class ClaimSearchRequestValidator {
   /** Minimum permitted length for a (trimmed) case reference number when one is supplied. */
   public static final int MIN_CASE_REFERENCE_LENGTH = 3;
 
+  /** Maximum permitted length for a (trimmed) case reference number when one is supplied. */
+  public static final int MAX_CASE_REFERENCE_LENGTH = 30;
+
   public static final String MISSING_SEARCH_REQUEST = "Missing search request";
   public static final String MISSING_OFFICE_CODE = "Missing office code";
   public static final String CASE_REFERENCE_TOO_SHORT =
       "case_reference_number must be at least %d characters";
+  public static final String CASE_REFERENCE_TOO_LONG =
+      "case_reference_number must be at most %d characters";
+  public static final String CASE_REFERENCE_INVALID =
+      "case_reference_number contains invalid characters; allowed: letters, digits, space, '/', '.', '-'";
+
+  private static final Pattern ALLOWED_CASE_REFERENCE_PATTERN =
+      Pattern.compile("^[a-zA-Z0-9/.\\s-]+$");
 
   /**
    * Validate the provided request.
@@ -81,13 +92,16 @@ public class ClaimSearchRequestValidator {
    *   <li>Trim leading/trailing whitespace. If the trimmed value is empty it is treated as absent
    *       (no validation error).
    *   <li>If the trimmed value is non-empty then it must be at least {@link
-   *       #MIN_CASE_REFERENCE_LENGTH} characters long, otherwise a {@link ClaimBadRequestException}
-   *       is thrown with a descriptive message.
+   *       #MIN_CASE_REFERENCE_LENGTH} and at most {@link #MAX_CASE_REFERENCE_LENGTH} characters
+   *       long, otherwise a {@link ClaimBadRequestException} is thrown with a descriptive message.
+   *   <li>The trimmed value must match the pattern <code>^[a-zA-Z0-9/\.\-\s]+$</code> (letters,
+   *       digits, space, forward slash, dot and hyphen only) otherwise a {@link
+   *       ClaimBadRequestException} is thrown.
    * </ol>
    *
    * @param caseReferenceNumber the raw case reference number supplied by the caller
-   * @throws ClaimBadRequestException when a non-empty trimmed case reference number is shorter than
-   *     {@link #MIN_CASE_REFERENCE_LENGTH}
+   * @throws ClaimBadRequestException when a non-empty trimmed case reference number is outside the
+   *     permitted length bounds or contains disallowed characters
    */
   public void validateCaseReferenceNumber(String caseReferenceNumber) {
     if (caseReferenceNumber == null) {
@@ -96,9 +110,24 @@ public class ClaimSearchRequestValidator {
 
     String trimmed = caseReferenceNumber.trim();
 
-    if (!trimmed.isEmpty() && trimmed.length() < MIN_CASE_REFERENCE_LENGTH) {
+    if (trimmed.isEmpty()) {
+      return;
+    }
+
+    if (trimmed.length() < MIN_CASE_REFERENCE_LENGTH) {
       throw new ClaimBadRequestException(
           String.format(CASE_REFERENCE_TOO_SHORT, MIN_CASE_REFERENCE_LENGTH));
+    }
+
+    if (trimmed.length() > MAX_CASE_REFERENCE_LENGTH) {
+      throw new ClaimBadRequestException(
+          String.format(CASE_REFERENCE_TOO_LONG, MAX_CASE_REFERENCE_LENGTH));
+    }
+
+    // Allowed characters: letters, digits, space, '/', '.', '-'
+    if (!ALLOWED_CASE_REFERENCE_PATTERN.matcher(trimmed).matches()) {
+      System.out.println(String.format("Case reference number '%s' is invalid", trimmed));
+      throw new ClaimBadRequestException(CASE_REFERENCE_INVALID);
     }
   }
 }
