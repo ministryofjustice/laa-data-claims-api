@@ -1,4 +1,5 @@
 name: Pact triggered workflow
+run-name: Pact tests triggered by `${{ github.event.inputs.consumer }}`/`${{ github.event.inputs.consumerBranch }}`
 
 on:
   workflow_dispatch:
@@ -8,7 +9,7 @@ on:
 
 jobs:
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
     permissions:
       contents: write
       packages: write
