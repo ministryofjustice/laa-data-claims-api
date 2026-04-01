@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -93,6 +93,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimServiceTest {
@@ -109,10 +110,32 @@ class ClaimServiceTest {
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private ClaimValidationService claimValidationService;
   @Mock private AssessmentService assessmentService;
+  private final ClaimSearchRequestValidator claimSearchRequestValidator = new ClaimSearchRequestValidator();
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
-  @InjectMocks private ClaimService claimService;
+  private ClaimService claimService;
+
+  @BeforeEach
+  void initServiceWithRealValidator() {
+    // Ensure the ClaimService used in tests has the real (spied) ClaimSearchRequestValidator injected.
+    claimService =
+        new ClaimService(
+            submissionRepository,
+            claimRepository,
+            clientRepository,
+            claimMapper,
+            clientMapper,
+            validationMessageLogRepository,
+            claimResultSetMapper,
+            claimSummaryFeeRepository,
+            calculatedFeeDetailRepository,
+            claimCaseRepository,
+            assessmentRepository,
+            claimValidationService,
+            assessmentService,
+            claimSearchRequestValidator);
+  }
 
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
@@ -670,6 +693,75 @@ class ClaimServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideClaimSearchRequestsForValidation")
+  @DisplayName("getClaimResultSetV2 validation cases")
+  void getClaimResultSetV2_validation_cases(
+      String officeCode, String caseRef, boolean shouldThrow, String expectedMessageContains) {
+
+    // Build the ClaimSearchRequest the same way as the single-case tests do
+    ClaimSearchRequest request =
+        ClaimSearchRequest.builder()
+            .officeCode(officeCode)
+            .submissionId(SUBMISSION_ID.toString())
+            .submissionStatuses(List.of(SubmissionStatus.CREATED))
+            .feeCode(FEE_CODE)
+            .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+            .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
+            .uniqueCaseId(UNIQUE_CASE_ID)
+            .claimStatuses(List.of(ClaimStatus.READY_TO_PROCESS))
+            .submissionPeriod(SUBMISSION_PERIOD)
+            .caseReferenceNumber(caseRef)
+            .build();
+
+    if (shouldThrow) {
+      ClaimBadRequestException ex =
+          assertThrows(
+              ClaimBadRequestException.class,
+              () -> claimService.getClaimResultSetV2(request, Pageable.unpaged()));
+      if (expectedMessageContains != null) {
+        assertThat(ex.getMessage()).contains(expectedMessageContains);
+      }
+    } else {
+      // Ensure repository/mappers return harmless defaults when validation passes
+      Page<Claim> emptyPage = new PageImpl<>(Collections.emptyList());
+      when(claimRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(emptyPage);
+      when(claimResultSetMapper.toClaimResultSetV2(any(Page.class))).thenReturn(new ClaimResultSetV2());
+
+      assertThat(claimService.getClaimResultSetV2(request, Pageable.unpaged())).isNotNull();
+    }
+  }
+
+  private static Stream<Arguments> provideClaimSearchRequestsForValidation() {
+    return Stream.of(
+        // missing office -> should throw (exact message from validator constant)
+        Arguments.of((String) null, null, true, ClaimSearchRequestValidator.MISSING_OFFICE_CODE),
+        Arguments.of("", null, true, ClaimSearchRequestValidator.MISSING_OFFICE_CODE),
+        Arguments.of("   ", null, true, ClaimSearchRequestValidator.MISSING_OFFICE_CODE),
+        // short case reference -> should throw (exact formatted message from validator constant)
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER,
+            "ab",
+            true,
+            String.format(
+                ClaimSearchRequestValidator.CASE_REFERENCE_TOO_SHORT,
+                ClaimSearchRequestValidator.MIN_CASE_REFERENCE_LENGTH)),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER,
+            "  ab  ",
+            true,
+            String.format(
+                ClaimSearchRequestValidator.CASE_REFERENCE_TOO_SHORT,
+                ClaimSearchRequestValidator.MIN_CASE_REFERENCE_LENGTH)),
+        // valid partial/contains/case-insensitive/exact -> should not throw
+        Arguments.of(OFFICE_ACCOUNT_NUMBER, "ABC", false, null),
+        Arguments.of(OFFICE_ACCOUNT_NUMBER, "ATE2/1", false, null),
+        Arguments.of(OFFICE_ACCOUNT_NUMBER, "ate2/1", false, null),
+        Arguments.of(OFFICE_ACCOUNT_NUMBER, "RAC ATE2/1", false, null),
+        // no case reference -> should not throw
+        Arguments.of(OFFICE_ACCOUNT_NUMBER, null, false, null));
   }
 
   @Test

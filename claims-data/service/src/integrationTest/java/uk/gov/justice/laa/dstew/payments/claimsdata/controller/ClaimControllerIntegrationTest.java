@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -443,7 +444,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnAllClaimsForAGivenOfficeCode_v2() throws Exception {
+  void shouldReturnAllClaimsForAGivenOfficeCodeV2() throws Exception {
     // given: required claims exist in the database
 
     // when: calling the GET endpoint to retrieve all claims for an office_code
@@ -467,7 +468,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference_v2() throws Exception {
+  void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
     // given: required claims exist in the database
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
@@ -491,7 +492,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnBadRequestWhenUnknownParametersAreSupplied_v2() throws Exception {
+  void shouldReturnBadRequestWhenUnknownParametersAreSuppliedV2() throws Exception {
     // given: required claims exist in the database
 
     // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
@@ -506,7 +507,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch_v2() throws Exception {
+  void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatchV2() throws Exception {
     // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
 
     // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
@@ -526,10 +527,159 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied_v2() throws Exception {
+  void shouldReturnBadRequestWhenOfficeCodeIsNotSuppliedV2() throws Exception {
     mockMvc
         .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
+  }
+
+  /*
+   * Additional tests covering /api/v2/claims case_reference_number matching behavior
+   */
+
+  @ParameterizedTest
+  @CsvSource(value = {
+    // existingClaimCrn, searchFilter, expectedFound
+    "ABC-1234,ABC,true",
+    "RAC ATE2/1,ATE2/1,true",
+    "RAC ATE2/1,ate2/1,true",
+    "RAC ATE2/1,RAC ATE2/1,true",
+    "RAC ATE2/1,ATE2,true",
+    "RAC ATE2/1,  ,true",
+    "RAC ATE2/1,ATE3,false",
+    "RAC ATE2/1,2/1,true"
+  })
+  void shouldMatchCaseReferenceVariantsV2(String existingCrn, String searchFilter, boolean expectedFound)
+      throws Exception {
+
+    UUID newClaimId = createAndValidateClaimWithCRN(existingCrn);
+
+    // when: calling the v2 claims endpoint with the case_reference_number filter
+    MvcResult getResult =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", searchFilter)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    String resultBody = getResult.getResponse().getContentAsString();
+    var claimResultSet =
+        OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+
+    if (expectedFound) {
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+      assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
+    } else {
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+    }
+  }
+
+  @Test
+  void shouldRejectShortCaseReferenceFiltersV2() throws Exception {
+    // when: calling v2 with a short (trimmed length < 3) case_reference_number
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", "AB")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: user is informed that at least 3 characters are required
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).containsIgnoringCase("at least 3");
+  }
+
+  @Test
+  void shouldReturnNoResultsWhenNoCrnMatchesV2() throws Exception {
+
+    // when: searching for a non-matching value
+    MvcResult getResult =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", "NOPE-123")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    String resultBody = getResult.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+  }
+
+  @Test
+  void shouldNotChangeV1ExactMatchBehaviour() throws Exception {
+
+    UUID newClaimId = createAndValidateClaimWithCRN("V1-EXACT-1");
+
+    // when: calling v1 with the exact CRN
+    MvcResult getResult =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", "V1-EXACT-1")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    String resultBody = getResult.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSet.class);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
+  }
+
+  @Test
+  void paginationAndOtherFiltersUnaffectedWhenUsingCaseReferenceV2() throws Exception {
+
+    UUID newClaimId = createAndValidateClaimWithCRN("PAG-123");
+
+    // when: calling v2 with case_reference_number and pagination/sorting params
+    MvcResult getResult =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("case_reference_number", "PAG")
+                    .param("page", "0")
+                    .param("size", "10")
+                    .param("sort", "submission_period,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    String resultBody = getResult.getResponse().getContentAsString();
+    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+    assertThat(claimResultSet.getTotalElements()).isGreaterThanOrEqualTo(1);
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+        .contains(newClaimId.toString());
+  }
+
+  private UUID createAndValidateClaimWithCRN(String crn) throws Exception {
+
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+
+    MvcResult postResult =
+            mockMvc
+                    .perform(
+                            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                                    .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(crn)))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+    String createdBody = postResult.getResponse().getContentAsString();
+    var created = OBJECT_MAPPER.readValue(createdBody, CreateClaim201Response.class);
+
+    return created.getId();
   }
 
   @Nested

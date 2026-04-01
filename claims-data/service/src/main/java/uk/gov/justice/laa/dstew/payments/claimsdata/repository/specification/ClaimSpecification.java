@@ -211,8 +211,12 @@ public final class ClaimSpecification {
       }
 
       if (StringUtils.hasText(request.getCaseReferenceNumber())) {
+        // Perform a case-insensitive 'contains' search so that partial CRNs (or different casing)
+        // will match stored case reference numbers. Examples: search 'ABC' will match 'ABC-1234',
+        // search 'ate2/1' will match 'RAC ATE2/1'. (DSTEW-1414)
+        String pattern = "%" + request.getCaseReferenceNumber().toLowerCase() + "%";
         predicates.add(
-            cb.and(cb.equal(root.get(CASE_REFERENCE_NUMBER), request.getCaseReferenceNumber())));
+            cb.and(cb.like(cb.lower(root.get(CASE_REFERENCE_NUMBER)), pattern)));
       }
 
       if (StringUtils.hasText(request.getUniqueClientNumber())) {

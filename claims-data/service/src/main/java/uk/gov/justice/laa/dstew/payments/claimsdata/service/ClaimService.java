@@ -55,7 +55,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimW
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 /** Service containing business logic for handling claims. */
 @Service
@@ -77,6 +79,7 @@ public class ClaimService
   private final AssessmentRepository assessmentRepository;
   private final ClaimValidationService claimValidationService;
   private final AssessmentService assessmentService;
+  private final ClaimSearchRequestValidator claimSearchRequestValidator;
 
   @Override
   public SubmissionRepository lookup() {
@@ -270,6 +273,7 @@ public class ClaimService
    * @param pageable a pageable object to yield the paginated claims results
    * @return the paginated result set with all claims that satisfy the filtering criteria above.
    */
+  @Deprecated(since = "Apr 1st 2026")
   public ClaimResultSet getClaimResultSet(
       String officeCode,
       String submissionId,
@@ -283,9 +287,7 @@ public class ClaimService
       String caseReferenceNumber,
       Pageable pageable) {
 
-    if (!StringUtils.hasText(officeCode)) {
-      throw new ClaimBadRequestException("Missing office code");
-    }
+    claimSearchRequestValidator.validateOfficeCode(officeCode);
 
     Page<Claim> page =
         claimRepository.findAll(
@@ -342,9 +344,9 @@ public class ClaimService
    */
   public ClaimResultSetV2 getClaimResultSetV2(ClaimSearchRequest request, Pageable pageable) {
 
-    if (!StringUtils.hasText(request.getOfficeCode())) {
-      throw new ClaimBadRequestException("Missing office code");
-    }
+    // Normalise before validation.
+    DataNormaliser.normaliseClaimSearchRequest(request);
+    claimSearchRequestValidator.validate(request);
 
     Pageable mappedPageable = mapPageableSort(pageable);
 
