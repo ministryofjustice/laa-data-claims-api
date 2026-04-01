@@ -26,8 +26,8 @@ jobs:
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JDK_DISTRIBUTION }}
+          java-version: *JAVA_VERSION
+          distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
@@ -91,8 +91,8 @@ jobs:
     permissions:
       contents: read
     with:
-      java-version: ${{ env.JAVA_VERSION }}
-      distribution: ${{ env.JDK_DISTRIBUTION }}
+      java-version: *JAVA_VERSION
+      distribution: *JDK_DISTRIBUTION
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -142,8 +142,8 @@ jobs:
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JDK_DISTRIBUTION }}
+          java-version: *JAVA_VERSION
+          distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
