@@ -538,19 +538,20 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
    */
 
   @ParameterizedTest
-  @CsvSource(value = {
-    // existingClaimCrn, searchFilter, expectedFound
-    "ABC-1234,ABC,true",
-    "RAC ATE2/1,ATE2/1,true",
-    "RAC ATE2/1,ate2/1,true",
-    "RAC ATE2/1,RAC ATE2/1,true",
-    "RAC ATE2/1,ATE2,true",
-    "RAC ATE2/1,  ,true",
-    "RAC ATE2/1,ATE3,false",
-    "RAC ATE2/1,2/1,true"
-  })
-  void shouldMatchCaseReferenceVariantsV2(String existingCrn, String searchFilter, boolean expectedFound)
-      throws Exception {
+  @CsvSource(
+      value = {
+        // existingClaimCrn, searchFilter, expectedFound
+        "ABC-1234,ABC,true",
+        "RAC ATE2/1,ATE2/1,true",
+        "RAC ATE2/1,ate2/1,true",
+        "RAC ATE2/1,RAC ATE2/1,true",
+        "RAC ATE2/1,ATE2,true",
+        "RAC ATE2/1,  ,true",
+        "RAC ATE2/1,ATE3,false",
+        "RAC ATE2/1,2/1,true"
+      })
+  void shouldMatchCaseReferenceVariantsV2(
+      String existingCrn, String searchFilter, boolean expectedFound) throws Exception {
 
     UUID newClaimId = createAndValidateClaimWithCRN(existingCrn);
 
@@ -566,8 +567,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .andReturn();
 
     String resultBody = getResult.getResponse().getContentAsString();
-    var claimResultSet =
-        OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
 
     if (expectedFound) {
       assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
@@ -667,14 +667,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
 
     MvcResult postResult =
-            mockMvc
-                    .perform(
-                            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
-                                    .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(crn)))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-                    .andExpect(status().isCreated())
-                    .andReturn();
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(crn)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
 
     String createdBody = postResult.getResponse().getContentAsString();
     var created = OBJECT_MAPPER.readValue(createdBody, CreateClaim201Response.class);

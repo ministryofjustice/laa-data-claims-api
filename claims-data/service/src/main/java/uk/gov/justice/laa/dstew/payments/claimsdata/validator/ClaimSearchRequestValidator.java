@@ -15,10 +15,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestExc
  * validations which belong to other services.
  *
  * <p>Validation rules implemented:
+ *
  * <ul>
  *   <li>The request object itself must not be {@code null}.
- *   <li>The {@code officeCode} must be present and contain at least one non-whitespace
- *       character.
+ *   <li>The {@code officeCode} must be present and contain at least one non-whitespace character.
  *   <li>If {@code caseReferenceNumber} is supplied (non-null), it will be trimmed and then:
  *       <ul>
  *         <li>an all-whitespace/empty value is treated as absent (i.e. no validation error);
@@ -73,21 +73,21 @@ public class ClaimSearchRequestValidator {
   }
 
   /**
-   * Validate the case reference number according to these rules:
+   * Validate the case reference number according to these rules.
    *
    * <ol>
-   *   <li>If {@code caseReferenceNumber} is {@code null} it is considered absent and no
-   *       validation error is raised.
-   *   <li>Trim leading/trailing whitespace. If the trimmed value is empty it is treated as
-   *       absent (no validation error).
+   *   <li>If {@code caseReferenceNumber} is {@code null} it is considered absent and no validation
+   *       error is raised.
+   *   <li>Trim leading/trailing whitespace. If the trimmed value is empty it is treated as absent
+   *       (no validation error).
    *   <li>If the trimmed value is non-empty then it must be at least {@link
-   *       #MIN_CASE_REFERENCE_LENGTH} characters long, otherwise a {@link
-   *       ClaimBadRequestException} is thrown with a descriptive message.
+   *       #MIN_CASE_REFERENCE_LENGTH} characters long, otherwise a {@link ClaimBadRequestException}
+   *       is thrown with a descriptive message.
    * </ol>
    *
    * @param caseReferenceNumber the raw case reference number supplied by the caller
-   * @throws ClaimBadRequestException when a non-empty trimmed case reference number is shorter
-   *     than {@link #MIN_CASE_REFERENCE_LENGTH}
+   * @throws ClaimBadRequestException when a non-empty trimmed case reference number is shorter than
+   *     {@link #MIN_CASE_REFERENCE_LENGTH}
    */
   public void validateCaseReferenceNumber(String caseReferenceNumber) {
     if (caseReferenceNumber == null) {

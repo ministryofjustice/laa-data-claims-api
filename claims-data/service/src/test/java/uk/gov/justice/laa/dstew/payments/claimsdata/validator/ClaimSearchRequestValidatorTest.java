@@ -27,8 +27,7 @@ class ClaimSearchRequestValidatorTest {
   void validate_nullRequest_throws() {
     ClaimBadRequestException ex =
         Assertions.assertThrows(ClaimBadRequestException.class, () -> validator.validate(null));
-    Assertions.assertEquals(
-        ClaimSearchRequestValidator.MISSING_SEARCH_REQUEST, ex.getMessage());
+    Assertions.assertEquals(ClaimSearchRequestValidator.MISSING_SEARCH_REQUEST, ex.getMessage());
   }
 
   @ParameterizedTest
@@ -37,17 +36,19 @@ class ClaimSearchRequestValidatorTest {
   @DisplayName("validateOfficeCode should throw when office code is empty or whitespace")
   void validateOfficeCode_missingOrBlank_throws(String officeCode) {
     ClaimBadRequestException ex =
-        Assertions.assertThrows(ClaimBadRequestException.class, () -> validator.validateOfficeCode(officeCode));
+        Assertions.assertThrows(
+            ClaimBadRequestException.class, () -> validator.validateOfficeCode(officeCode));
     Assertions.assertEquals(ClaimSearchRequestValidator.MISSING_OFFICE_CODE, ex.getMessage());
   }
 
   @Test
-  @DisplayName("validateOfficeCode(null) should throw ClaimBadRequestException with missing request message")
+  @DisplayName(
+      "validateOfficeCode(null) should throw ClaimBadRequestException with missing request message")
   void validateOfficeCode_nullRequest_throws() {
     ClaimBadRequestException ex =
-            Assertions.assertThrows(ClaimBadRequestException.class, () -> validator.validateOfficeCode(null));
-    Assertions.assertEquals(
-            ClaimSearchRequestValidator.MISSING_OFFICE_CODE, ex.getMessage());
+        Assertions.assertThrows(
+            ClaimBadRequestException.class, () -> validator.validateOfficeCode(null));
+    Assertions.assertEquals(ClaimSearchRequestValidator.MISSING_OFFICE_CODE, ex.getMessage());
   }
 
   @ParameterizedTest
@@ -60,19 +61,20 @@ class ClaimSearchRequestValidatorTest {
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"   \t  "})
-  @DisplayName("validateCaseReferenceNumber should treat null and blank values as absent (no error)")
+  @DisplayName(
+      "validateCaseReferenceNumber should treat null and blank values as absent (no error)")
   void validateCaseReferenceNumber_nullOrBlank_noThrow(String value) {
     Assertions.assertDoesNotThrow(() -> validator.validateCaseReferenceNumber(value));
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"ab", "  ab  "})
-  @DisplayName("validateCaseReferenceNumber should throw when trimmed value is shorter than minimum")
+  @DisplayName(
+      "validateCaseReferenceNumber should throw when trimmed value is shorter than minimum")
   void validateCaseReferenceNumber_tooShort_throws(String tooShort) {
     ClaimBadRequestException ex =
         Assertions.assertThrows(
-            ClaimBadRequestException.class,
-            () -> validator.validateCaseReferenceNumber(tooShort));
+            ClaimBadRequestException.class, () -> validator.validateCaseReferenceNumber(tooShort));
 
     String expected =
         String.format(
@@ -83,7 +85,8 @@ class ClaimSearchRequestValidatorTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"  abc  ", "xyz", "  123  "})
-  @DisplayName("validateCaseReferenceNumber should trim input and accept values with trimmed length >= min")
+  @DisplayName(
+      "validateCaseReferenceNumber should trim input and accept values with trimmed length >= min")
   void validateCaseReferenceNumber_trimmedLength_ok(String value) {
     Assertions.assertDoesNotThrow(() -> validator.validateCaseReferenceNumber(value));
   }
@@ -110,7 +113,8 @@ class ClaimSearchRequestValidatorTest {
         Arguments.of("O1", "ab", true),
         // valid office and valid case (trimmed) -> should not throw
         Arguments.of("O1", " abc ", false),
-        // Partial match (user supplies starting substring) - minimum length satisfied -> should not throw
+        // Partial match (user supplies starting substring) - minimum length satisfied -> should not
+        // throw
         Arguments.of("OFF1", "ABC", false),
         // Contains match with special characters -> should not throw
         Arguments.of("OFF1", "ATE2/1", false),
@@ -121,7 +125,6 @@ class ClaimSearchRequestValidatorTest {
         // valid office, no case -> should not throw
         Arguments.of("OFF123", null, false),
         // office whitespace only -> should throw even if case is valid
-        Arguments.of("   ", "abcdef", true)
-        );
+        Arguments.of("   ", "abcdef", true));
   }
 }

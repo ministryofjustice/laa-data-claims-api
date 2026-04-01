@@ -110,7 +110,8 @@ class ClaimServiceTest {
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private ClaimValidationService claimValidationService;
   @Mock private AssessmentService assessmentService;
-  private final ClaimSearchRequestValidator claimSearchRequestValidator = new ClaimSearchRequestValidator();
+  private final ClaimSearchRequestValidator claimSearchRequestValidator =
+      new ClaimSearchRequestValidator();
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
@@ -118,7 +119,8 @@ class ClaimServiceTest {
 
   @BeforeEach
   void initServiceWithRealValidator() {
-    // Ensure the ClaimService used in tests has the real (spied) ClaimSearchRequestValidator injected.
+    // Ensure the ClaimService used in tests has the real (spied) ClaimSearchRequestValidator
+    // injected.
     claimService =
         new ClaimService(
             submissionRepository,
@@ -727,8 +729,10 @@ class ClaimServiceTest {
     } else {
       // Ensure repository/mappers return harmless defaults when validation passes
       Page<Claim> emptyPage = new PageImpl<>(Collections.emptyList());
-      when(claimRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(emptyPage);
-      when(claimResultSetMapper.toClaimResultSetV2(any(Page.class))).thenReturn(new ClaimResultSetV2());
+      when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+          .thenReturn(emptyPage);
+      when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+          .thenReturn(new ClaimResultSetV2());
 
       assertThat(claimService.getClaimResultSetV2(request, Pageable.unpaged())).isNotNull();
     }

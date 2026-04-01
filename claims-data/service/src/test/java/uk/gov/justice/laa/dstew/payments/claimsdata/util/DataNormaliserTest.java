@@ -20,13 +20,11 @@ class DataNormaliserTest {
   }
 
   @Test
-  @DisplayName("normaliseClaimSearchRequest should trim caseReferenceNumber and preserve other fields")
+  @DisplayName(
+      "normaliseClaimSearchRequest should trim caseReferenceNumber and preserve other fields")
   void normalise_trimsCaseReferenceAndPreservesOtherFields() {
     ClaimSearchRequest req =
-        ClaimSearchRequest.builder()
-            .officeCode("OFF1")
-            .caseReferenceNumber("  ABC-1234  ")
-            .build();
+        ClaimSearchRequest.builder().officeCode("OFF1").caseReferenceNumber("  ABC-1234  ").build();
 
     DataNormaliser.normaliseClaimSearchRequest(req);
 
