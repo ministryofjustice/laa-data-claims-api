@@ -15,6 +15,15 @@ on:
       gh_token:
         required: true
   workflow_dispatch:
+    inputs:
+      java-version:
+        description: 'Java version to use'
+        required: false
+        default: '21'
+      distribution:
+        description: 'JDK distribution (temurin, corretto, etc.)'
+        required: false
+        default: 'corretto'
 
 jobs:
   sca:
