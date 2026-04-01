@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -32,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
 /** Service containing business logic for handling submissions. */
@@ -107,52 +106,12 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(scaleAmountOrZero(calculatedTotalAmount))
-        .assessedTotalAmount(scaleNullableAmount(assessedTotalAmount))
+        .calculatedTotalAmount(BigDecimalUtils.scaleOrZero(calculatedTotalAmount, DECIMAL_PLACES))
+        .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
         .providerUserId(submission.getProviderUserId())
         .errorMessages(submission.getErrorMessages());
-  }
-
-  /**
-   * Returns a scaled {@link BigDecimal} using the configured {@code DECIMAL_PLACES} and {@link
-   * RoundingMode#HALF_UP}.
-   *
-   * <p>If {@code amount} is {@code null}, this method returns {@link BigDecimal#ZERO}.
-   *
-   * @param amount the value to scale; may be {@code null}
-   * @return the scaled value, or {@code BigDecimal.ZERO} if {@code amount} is {@code null}
-   */
-  private BigDecimal scaleAmountOrZero(BigDecimal amount) {
-    return amount == null ? BigDecimal.ZERO : amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
-  }
-
-  /**
-   * Scales a {@link BigDecimal} to the configured number of decimal places using {@link
-   * RoundingMode#HALF_UP}, with special handling for {@code null} and zero values.
-   *
-   * <p>Behavior:
-   *
-   * <ul>
-   *   <li>If {@code amount} is {@code null}, this method returns {@code null}.
-   *   <li>If {@code amount} is numerically zero (e.g., 0, 0.0, 0.000), this method returns {@link
-   *       BigDecimal#ZERO}.
-   *   <li>Otherwise, the value is scaled to {@code DECIMAL_PLACES} using {@code
-   *       RoundingMode.HALF_UP}.
-   * </ul>
-   *
-   * @param amount the {@code BigDecimal} to process; may be {@code null}
-   * @return a scaled {@code BigDecimal}, {@code null}, or {@code BigDecimal.ZERO}
-   */
-  private BigDecimal scaleNullableAmount(BigDecimal amount) {
-    if (amount == null) {
-      return null;
-    }
-    if (amount.compareTo(BigDecimal.ZERO) == 0) {
-      return BigDecimal.ZERO;
-    }
-    return amount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP);
   }
 
   /**
