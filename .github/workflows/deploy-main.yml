@@ -9,13 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  sca-scan:
-    uses: ./.github/workflows/sca-analysis.yml
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-
   assemble:
-    needs: [ sca-scan ]
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
     permissions:
       contents: write
