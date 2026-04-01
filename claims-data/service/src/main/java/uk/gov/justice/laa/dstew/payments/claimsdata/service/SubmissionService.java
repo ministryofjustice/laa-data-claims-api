@@ -129,16 +129,17 @@ public class SubmissionService
   }
 
   /**
-   * Scales a {@link BigDecimal} to the configured number of decimal places using
-   * {@link RoundingMode#HALF_UP}, with special handling for {@code null} and zero values.
-   * <p>
-   * Behavior:
+   * Scales a {@link BigDecimal} to the configured number of decimal places using {@link
+   * RoundingMode#HALF_UP}, with special handling for {@code null} and zero values.
+   *
+   * <p>Behavior:
+   *
    * <ul>
-   *   <li>If {@code amount} is {@code null}, this method returns {@code null}.</li>
-   *   <li>If {@code amount} is numerically zero (e.g., 0, 0.0, 0.000),
-   *       this method returns {@link BigDecimal#ZERO}.</li>
-   *   <li>Otherwise, the value is scaled to {@code DECIMAL_PLACES} using
-   *       {@code RoundingMode.HALF_UP}.</li>
+   *   <li>If {@code amount} is {@code null}, this method returns {@code null}.
+   *   <li>If {@code amount} is numerically zero (e.g., 0, 0.0, 0.000), this method returns {@link
+   *       BigDecimal#ZERO}.
+   *   <li>Otherwise, the value is scaled to {@code DECIMAL_PLACES} using {@code
+   *       RoundingMode.HALF_UP}.
    * </ul>
    *
    * @param amount the {@code BigDecimal} to process; may be {@code null}
