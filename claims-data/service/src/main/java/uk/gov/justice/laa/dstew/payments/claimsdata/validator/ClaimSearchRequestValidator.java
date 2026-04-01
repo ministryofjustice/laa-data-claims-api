@@ -87,14 +87,12 @@ public class ClaimSearchRequestValidator {
    * Validate the case reference number according to these rules.
    *
    * <ol>
-   *   <li>If {@code caseReferenceNumber} is {@code null} it is considered absent and no validation
+   *   <li>If {@code caseReferenceNumber} is has no text it is considered absent and no validation
    *       error is raised.
-   *   <li>Trim leading/trailing whitespace. If the trimmed value is empty it is treated as absent
-   *       (no validation error).
-   *   <li>If the trimmed value is non-empty then it must be at least {@link
+   *   <li>If the  value is non-empty then it must be at least {@link
    *       #MIN_CASE_REFERENCE_LENGTH} and at most {@link #MAX_CASE_REFERENCE_LENGTH} characters
    *       long, otherwise a {@link ClaimBadRequestException} is thrown with a descriptive message.
-   *   <li>The trimmed value must match the pattern <code>^[a-zA-Z0-9/\.\-\s]+$</code> (letters,
+   *   <li>The value must match the pattern <code>^[a-zA-Z0-9/\.\-\s]+$</code> (letters,
    *       digits, space, forward slash, dot and hyphen only) otherwise a {@link
    *       ClaimBadRequestException} is thrown.
    * </ol>
@@ -104,29 +102,21 @@ public class ClaimSearchRequestValidator {
    *     permitted length bounds or contains disallowed characters
    */
   public void validateCaseReferenceNumber(String caseReferenceNumber) {
-    if (caseReferenceNumber == null) {
+    if (!StringUtils.hasText(caseReferenceNumber)) {
       return;
     }
 
-    String trimmed = caseReferenceNumber.trim();
-
-    if (trimmed.isEmpty()) {
-      return;
-    }
-
-    if (trimmed.length() < MIN_CASE_REFERENCE_LENGTH) {
+    if (caseReferenceNumber.length() < MIN_CASE_REFERENCE_LENGTH) {
       throw new ClaimBadRequestException(
           String.format(CASE_REFERENCE_TOO_SHORT, MIN_CASE_REFERENCE_LENGTH));
     }
 
-    if (trimmed.length() > MAX_CASE_REFERENCE_LENGTH) {
+    if (caseReferenceNumber.length() > MAX_CASE_REFERENCE_LENGTH) {
       throw new ClaimBadRequestException(
           String.format(CASE_REFERENCE_TOO_LONG, MAX_CASE_REFERENCE_LENGTH));
     }
 
-    // Allowed characters: letters, digits, space, '/', '.', '-'
-    if (!ALLOWED_CASE_REFERENCE_PATTERN.matcher(trimmed).matches()) {
-      System.out.println(String.format("Case reference number '%s' is invalid", trimmed));
+    if (!ALLOWED_CASE_REFERENCE_PATTERN.matcher(caseReferenceNumber).matches()) {
       throw new ClaimBadRequestException(CASE_REFERENCE_INVALID);
     }
   }

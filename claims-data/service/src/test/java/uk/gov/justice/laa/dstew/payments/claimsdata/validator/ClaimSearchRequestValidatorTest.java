@@ -68,7 +68,7 @@ class ClaimSearchRequestValidatorTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"ab", "  ab  "})
+  @ValueSource(strings = {"ab", " a"})
   @DisplayName(
       "validateCaseReferenceNumber should throw when trimmed value is shorter than minimum")
   void validateCaseReferenceNumber_tooShort_throws(String tooShort) {
@@ -92,7 +92,7 @@ class ClaimSearchRequestValidatorTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"123456789012345678901234567890", " 12345678901234567890123456789 "})
+  @ValueSource(strings = {"123456789012345678901234567890", " 12345678901234567890123456789"})
   @DisplayName("validateCaseReferenceNumber should accept values up to the max length")
   void validateCaseReferenceNumber_maxLength_ok(String value) {
     Assertions.assertDoesNotThrow(() -> validator.validateCaseReferenceNumber(value));
