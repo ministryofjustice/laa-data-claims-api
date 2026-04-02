@@ -65,3 +65,6 @@ sentry:
   enabled: true
   environment: uat
   tracesSampleRate: 0.25
+
+portForward:
+  enabled: true

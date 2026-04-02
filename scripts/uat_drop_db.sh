@@ -13,8 +13,8 @@ function _uat_drop_db() {
   trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
   trap 'echo "\"${last_command}\" command completed with exit code $?."' EXIT
 
-  current_namespace=$(kubectl config view --minify --output 'jsonpath={..namespace}'; echo)
-  if [[ ! $current_namespace =~ -uat$ ]]; then
+  CURRENT_NAMESPACE=$(kubectl config view --minify --output 'jsonpath={..namespace}'; echo)
+  if [[ ! $CURRENT_NAMESPACE =~ -uat$ ]]; then
     echo "namespace must be UAT!" >&2
     return 1
   fi
@@ -33,7 +33,6 @@ function _uat_drop_db() {
   fi
 
   echo 'Retrieve RDS credentials'
-  DB_HOST=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.rds_instance_address}" | base64 --decode)
   DB_NAME=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.database_name}" | base64 --decode)
   DB_USER=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.database_username}" | base64 --decode)
   DB_PWD=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.database_password}" | base64 --decode)
@@ -48,35 +47,17 @@ function _uat_drop_db() {
       ;;
   esac
 
-  echo "Checking if port-forward-pod exists"
-  FORWARDING_POD=$(kubectl get pods | grep -m1 port-forward-pod | head -n1 | cut -d' ' -f 1 || true)
-  if [[ -z "$FORWARDING_POD" ]]; then
-    echo 'Creating new port-forward-pod...'
-    kubectl run port-forward-pod \
-      --image=ministryofjustice/port-forward \
-      --port=5432 \
-      --env="REMOTE_HOST=${DB_HOST}" \
-      --env="LOCAL_PORT=5432" \
-      --env="REMOTE_PORT=5432"
+  PF_POD_NAME=$(kubectl get pod -l "run=port-forward-pod" -o jsonpath='{.items[0].metadata.name}')
+  if [ -z "$PF_POD_NAME" ]; then
+    echo "Unable to resolve pod for selector 'run=port-forward-pod' in namespace '$CURRENT_NAMESPACE'." >&2
+    exit 1
   fi
 
-  echo 'Waiting for port-forward-pod to be ready...'
-  kubectl wait --for=condition=ready pod port-forward-pod --timeout=60s
-
   echo 'Starting port-forwarding as a background job'
-  kubectl port-forward port-forward-pod 5433:5432 &
+  kubectl port-forward pod/"$PF_POD_NAME" 5433:5432 &
   PF_PID=$!
 
   sleep 5
-
-  # Terminate app pods to close connections
-  echo "Checking for app pods to terminate..."
-  APP_PODS=$(kubectl get pods -l app.kubernetes.io/instance="${RELEASE_NAME}" -o name || true)
-  if [[ -n "$APP_PODS" ]]; then
-    echo "Terminating pods: ${APP_PODS}"
-    kubectl delete $APP_PODS --wait=false || true
-    sleep 5
-  fi
 
   echo "Dropping database: ${RELEASE_NAME}"
   for i in {1..3}; do
