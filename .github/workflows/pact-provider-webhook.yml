@@ -18,6 +18,7 @@ jobs:
       provider_name: 'laa-data-claims-api'
       consumer_name: ${{ github.event.inputs.consumer }}
       consumer_branch: ${{ github.event.inputs.consumerBranch }}
+      java_version: 25
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
