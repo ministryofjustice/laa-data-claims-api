@@ -1,9 +1,16 @@
 {{- if .Values.portForward.enabled }}
+{{- if not (lookup "v1" "Service" .Release.Namespace "laa-data-claims-api-uat-postgresql") }}
 apiVersion: v1
 kind: Service
 metadata:
   name: laa-data-claims-api-uat-postgresql
   namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/resource-policy": keep
+    "meta.helm.sh/release-name": "shared"
+    "meta.helm.sh/release-namespace": {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/managed-by: Helm
 spec:
   ports:
     - protocol: TCP
@@ -17,4 +24,5 @@ spec:
     - IPv4
   ipFamilyPolicy: SingleStack
   internalTrafficPolicy: Cluster
+{{- end }}
 {{- end }}

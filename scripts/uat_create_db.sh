@@ -77,8 +77,6 @@ function _uat_create_db() {
   echo 'Killing port-forwarding background job'
   kill $PF_PID || true
 
-  echo 'Deleting port-forwarding pod'
-  kubectl delete pod port-forward-pod --wait=false || true
 }
 
 #Call the above function with all the script arguments
