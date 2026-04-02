@@ -42,7 +42,7 @@ runs:
       env:
         RELEASE_NAME: "${{ steps.extract_release_name_to_delete.outputs.release-name }}"
         NAMESPACE: "${{ inputs.kube-namespace }}"
-      run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE"
+      run: helm uninstall "$RELEASE_NAME" --namespace "$NAMESPACE" --wait
 
     - name: Delete preview release's database from RDS
       shell: bash
