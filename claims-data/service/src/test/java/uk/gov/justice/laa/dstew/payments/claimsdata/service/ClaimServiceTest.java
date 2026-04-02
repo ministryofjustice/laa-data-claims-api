@@ -42,6 +42,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -719,10 +720,11 @@ class ClaimServiceTest {
             .build();
 
     if (shouldThrow) {
-      ClaimBadRequestException ex =
-          assertThrows(
-              ClaimBadRequestException.class,
-              () -> claimService.getClaimResultSetV2(request, Pageable.unpaged()));
+      // Extract the invocation into a single Executable so the lambda contains only one
+      // invocation that may throw a runtime exception (satisfies static analysis rules
+      // that warn about lambdas with multiple potential throwing invocations).
+      Executable invocation = () -> claimService.getClaimResultSetV2(request, Pageable.unpaged());
+      ClaimBadRequestException ex = assertThrows(ClaimBadRequestException.class, invocation);
       if (expectedMessageContains != null) {
         assertThat(ex.getMessage()).contains(expectedMessageContains);
       }

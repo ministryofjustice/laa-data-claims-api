@@ -258,8 +258,25 @@ public class ClaimService
   }
 
   /**
-   * Returns all the existing claims filtered by some parameters and paginated in a {@link
+   * Returns all existing claims filtered by the supplied parameters and paginated in a {@link
    * ClaimResultSet}.
+   *
+   * <p><strong>Deprecated</strong>: this v1 API is deprecated as of Apr 1st 2026. Use {@link
+   * #getClaimResultSetV2(ClaimSearchRequest, Pageable)} instead. The v2 method accepts a {@link
+   * ClaimSearchRequest}, centralises normalisation and validation, and provides the improved CRN
+   * matching and sorting behaviour expected by clients.
+   *
+   * <p>Migration notes:
+   *
+   * <ul>
+   *   <li>V2 requires an instance of {@link ClaimSearchRequest} rather than a positional parameter
+   *       list. Prefer constructing that DTO and calling {@link
+   *       DataNormaliser#normaliseClaimSearchRequest(ClaimSearchRequest)} before validation if you
+   *       still need the same normalisation behaviour.
+   *   <li>Office code remains mandatory in both versions.
+   *   <li>V2 supports the broader, case-insensitive CRN matching and mapped sorting (for example,
+   *       by totalWarnings and submissionPeriod) and should be used for new clients.
+   * </ul>
    *
    * @param officeCode a mandatory string representing an office code to filter claims by
    * @param submissionId an optional identifier to filter claims by
@@ -272,6 +289,8 @@ public class ClaimService
    * @param claimStatuses an optional list of claim statuses to filter claims by
    * @param pageable a pageable object to yield the paginated claims results
    * @return the paginated result set with all claims that satisfy the filtering criteria above.
+   * @deprecated Use {@link #getClaimResultSetV2(ClaimSearchRequest, Pageable)}. Deprecated as of
+   *     Apr 1st 2026.
    */
   @Deprecated(since = "Apr 1st 2026")
   public ClaimResultSet getClaimResultSet(
