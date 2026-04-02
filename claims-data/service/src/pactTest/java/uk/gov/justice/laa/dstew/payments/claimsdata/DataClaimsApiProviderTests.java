@@ -14,6 +14,7 @@ import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import java.io.Writer;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Collections;
@@ -291,8 +292,9 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a submission exists")
   public void aSubmissionExists() {
     log.info("Setting up state: a submission exists");
+    when(assessmentRepository.getAssessedTotalAmount(any())).thenReturn(BigDecimal.ZERO);
     when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
-    when(claimRepository.findBySubmissionId(any())).thenReturn(Arrays.asList(getClaim()));
+    when(claimRepository.findBySubmissionId(any())).thenReturn(List.of(getClaim()));
   }
 
   @State("a claim exists")

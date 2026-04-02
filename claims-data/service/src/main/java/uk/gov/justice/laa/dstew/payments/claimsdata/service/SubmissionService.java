@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -32,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
 /** Service containing business logic for handling submissions. */
@@ -49,6 +48,7 @@ public class SubmissionService
   private final ValidationMessageLogRepository validationMessageLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
+  private final AssessmentService assessmentService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -89,6 +89,8 @@ public class SubmissionService
     List<UUID> matterStartIds = matterStartService.getMatterStartIdsForSubmission(id);
 
     var calculatedTotalAmount = submissionRepository.getCalculatedTotalAmount(id);
+    var assessedTotalAmount = assessmentService.getAssessedTotalAmount(id);
+
     return new SubmissionResponse()
         .submissionId(submission.getId())
         .bulkSubmissionId(submission.getBulkSubmissionId())
@@ -104,10 +106,8 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(
-            calculatedTotalAmount == null
-                ? BigDecimal.ZERO
-                : calculatedTotalAmount.setScale(DECIMAL_PLACES, RoundingMode.HALF_UP))
+        .calculatedTotalAmount(BigDecimalUtils.scaleOrZero(calculatedTotalAmount, DECIMAL_PLACES))
+        .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
         .providerUserId(submission.getProviderUserId())

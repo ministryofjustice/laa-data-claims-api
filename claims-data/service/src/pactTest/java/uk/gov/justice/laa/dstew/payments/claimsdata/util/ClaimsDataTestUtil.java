@@ -285,6 +285,7 @@ public class ClaimsDataTestUtil {
         .isNilSubmission(false)
         .numberOfClaims(5)
         .submitted(SUBMITTED_DATE)
+        .assessedTotalAmount(BigDecimal.ZERO)
         .build();
   }
 
