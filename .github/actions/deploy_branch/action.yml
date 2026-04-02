@@ -90,6 +90,13 @@ runs:
         helm template "$RELEASE_NAME" .helm/data-claims-api \
           --namespace "$KUBE_NAMESPACE" \
           --values "$VALUES_FILE" \
+          --set image.repository=placeholder \
+          --set image.tag=placeholder \
+          --set spring.profile=placeholder \
+          --set aws.region=placeholder \
+          --set database.name=placeholder \
+          --set namespace=placeholder \
+          --set replicationSummary.schedule=placeholder \
           --show-only templates/port-forward-deployment.yaml \
           --show-only templates/port-forward-service.yaml \
           | kubectl apply -f - --namespace "$KUBE_NAMESPACE"
