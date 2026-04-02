@@ -21,6 +21,8 @@ jobs:
       publish_package: 'true'
       checkstyle_report: 'false'
       jacoco_coverage_report: 'false'
+      java_version: '25'
+      java_distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       aws_region: ${{ vars.AWS_REGION }}
