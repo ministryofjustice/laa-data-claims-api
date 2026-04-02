@@ -24,8 +24,7 @@ class BigDecimalUtilsTest {
         Arguments.of(BigDecimal.ZERO, 2, BigDecimal.ZERO),
         Arguments.of(new BigDecimal("0.000"), 2, BigDecimal.ZERO),
         Arguments.of(new BigDecimal("12.345"), 2, new BigDecimal("12.35")),
-        Arguments.of(new BigDecimal("12.344"), 2, new BigDecimal("12.34"))
-    );
+        Arguments.of(new BigDecimal("12.344"), 2, new BigDecimal("12.34")));
   }
 
   @DisplayName("Scale Or Zero Tests")
@@ -41,7 +40,6 @@ class BigDecimalUtilsTest {
         Arguments.of(BigDecimal.ZERO, 2, BigDecimal.ZERO),
         Arguments.of(new BigDecimal("0.000"), 2, BigDecimal.ZERO),
         Arguments.of(new BigDecimal("99.995"), 2, new BigDecimal("100.00")),
-        Arguments.of(new BigDecimal("99.994"), 2, new BigDecimal("99.99"))
-    );
+        Arguments.of(new BigDecimal("99.994"), 2, new BigDecimal("99.99")));
   }
 }
