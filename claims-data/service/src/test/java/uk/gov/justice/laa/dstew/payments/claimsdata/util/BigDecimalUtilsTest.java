@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@DisplayName("Big Decimal Utils Test")
 class BigDecimalUtilsTest {
 
   @DisplayName("Scale Nullable Tests")
