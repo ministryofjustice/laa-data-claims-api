@@ -36,6 +36,9 @@ function _uat_create_db() {
   DB_USER=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.database_username}" | base64 --decode)
   DB_PWD=$(kubectl get secret rds-postgresql-instance-output -o jsonpath="{.data.database_password}" | base64 --decode)
 
+  echo 'Waiting for port-forward-pod to be ready...'
+  kubectl wait --for=condition=ready pod -l "run=port-forward-pod" --timeout=120s
+
   PF_POD_NAME=$(kubectl get pod -l "run=port-forward-pod" -o jsonpath='{.items[0].metadata.name}')
   if [ -z "$PF_POD_NAME" ]; then
     echo "Unable to resolve pod for selector 'run=port-forward-pod' in namespace '$CURRENT_NAMESPACE'." >&2

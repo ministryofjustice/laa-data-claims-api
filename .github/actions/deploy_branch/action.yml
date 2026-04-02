@@ -111,10 +111,6 @@ runs:
         else
           export SPRING_PROFILE="preview"
           export DB_NAME="$RELEASE_NAME"
-        
-          # Create named database in RDS for this preview branch
-          echo "Creating database: $DB_NAME"
-          scripts/uat_create_db.sh "$DB_NAME"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
@@ -133,3 +129,10 @@ runs:
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m
+
+        if [ "$branch_name" != "main" ] && [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+          # Create named database in RDS for this preview branch
+          echo "Creating database: $DB_NAME"
+          scripts/uat_create_db.sh "$DB_NAME"
+        fi
+

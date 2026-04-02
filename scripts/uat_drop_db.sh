@@ -47,6 +47,9 @@ function _uat_drop_db() {
       ;;
   esac
 
+  echo 'Waiting for port-forward-pod to be ready...'
+  kubectl wait --for=condition=ready pod -l "run=port-forward-pod" --timeout=120s
+
   PF_POD_NAME=$(kubectl get pod -l "run=port-forward-pod" -o jsonpath='{.items[0].metadata.name}')
   if [ -z "$PF_POD_NAME" ]; then
     echo "Unable to resolve pod for selector 'run=port-forward-pod' in namespace '$CURRENT_NAMESPACE'." >&2
