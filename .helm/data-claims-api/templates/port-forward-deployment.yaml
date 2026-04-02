@@ -1,4 +1,5 @@
 {{- if .Values.portForward.enabled }}
+{{- if (not (lookup "apps/v1" "Deployment" .Release.Namespace "port-forward-pod")) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,6 +8,7 @@ metadata:
   labels:
     run: port-forward-pod
   annotations:
+    "helm.sh/resource-policy": keep
     github_teams: laa-data-stewardship-payments-team_laa-data-stewardship-payments-team
 spec:
   replicas: 1
@@ -73,4 +75,5 @@ spec:
       priorityClassName: default
       enableServiceLinks: true
       preemptionPolicy: PreemptLowerPriority
+{{- end }}
 {{- end }}
