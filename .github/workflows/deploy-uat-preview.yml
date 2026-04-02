@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 env:
-  JAVA_VERSION: &JAVA_VERSION '21'
+  JAVA_VERSION: &JAVA_VERSION '25'
   JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
 
 jobs:
@@ -177,6 +177,8 @@ jobs:
     with:
       jar_subproject: 'claims-data:service'
       image_version: ${{ github.sha }}
+      java_version: '25'
+      java_distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
@@ -201,6 +203,8 @@ jobs:
       pacticipant_name: 'laa-data-claims-api'
       consumer_name: 'laa-submit-a-bulk-claim'
       is_provider: true
+      java_version: '25'
+      java_distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
