@@ -54,6 +54,8 @@ dependencies {
     // Upgrade to fix CVE-2026-1225 vulnerability in logback-core
     implementation 'ch.qos.logback:logback-core:1.5.25'
     implementation 'ch.qos.logback:logback-classic:1.5.25'
+    // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
+    implementation 'tools.jackson.core:jackson-core:3.1.1'
 
     implementation project(':claims-data:api')
 
