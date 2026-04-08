@@ -1,0 +1,79 @@
+{{- if .Values.portForward.enabled }}
+{{- if (not (lookup "apps/v1" "Deployment" .Release.Namespace "port-forward-pod")) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: port-forward-pod
+  namespace: laa-data-claims-api-uat
+  labels:
+    run: port-forward-pod
+  annotations:
+    "helm.sh/resource-policy": keep
+    github_teams: laa-data-stewardship-payments-team_laa-data-stewardship-payments-team
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: port-forward-pod
+  template:
+    metadata:
+      labels:
+        run: port-forward-pod
+      annotations:
+        github_teams: laa-data-stewardship-payments-team_laa-data-stewardship-payments-team
+    spec:
+      serviceAccountName: default
+      securityContext:
+        supplementalGroups:
+          - 1
+        fsGroup: 1
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: port-forward-pod
+          image: ministryofjustice/port-forward
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          env:
+            - name: REMOTE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rds-postgresql-instance-output
+                  key: rds_instance_address
+            - name: LOCAL_PORT
+              value: "5432"
+            - name: REMOTE_PORT
+              value: "5432"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1000Mi
+            requests:
+              cpu: 10m
+              memory: 100Mi
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      terminationGracePeriodSeconds: 30
+      schedulerName: default-scheduler
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+      priorityClassName: default
+      enableServiceLinks: true
+      preemptionPolicy: PreemptLowerPriority
+{{- end }}
+{{- end }}
