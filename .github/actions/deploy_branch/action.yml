@@ -79,6 +79,37 @@ runs:
           -o jsonpath='{.data.replication-summary-cronjob-schedule}' | base64 --decode)
         echo "schedule=$schedule" >> $GITHUB_OUTPUT
 
+
+    - name: Apply port-forward deployment and service
+      shell: bash
+      env:
+        KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
+        VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
+        RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
+      run: |
+        helm template "$RELEASE_NAME" .helm/data-claims-api \
+          --namespace "$KUBE_NAMESPACE" \
+          --values "$VALUES_FILE" \
+          --set image.repository=placeholder \
+          --set image.tag=placeholder \
+          --set spring.profile=placeholder \
+          --set aws.region=placeholder \
+          --set database.name=placeholder \
+          --set namespace=placeholder \
+          --set replicationSummary.schedule=placeholder \
+          --show-only templates/port-forward-deployment.yaml \
+          --show-only templates/port-forward-service.yaml \
+          | kubectl apply -f - --namespace "$KUBE_NAMESPACE"
+
+    - name: Create preview database
+      if: ${{ steps.extract_release_name.outputs.branch-name != 'main' && !startsWith(github.ref, 'refs/tags/') }}
+      shell: bash
+      env:
+        RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
+      run: |
+        echo "Creating database: $RELEASE_NAME"
+        scripts/uat_create_db.sh "$RELEASE_NAME"
+
     - name: Helm deployment of branch
       shell: bash
       env:
@@ -111,10 +142,6 @@ runs:
         else
           export SPRING_PROFILE="preview"
           export DB_NAME="$RELEASE_NAME"
-        
-          # Create named database in RDS for this preview branch
-          echo "Creating database: $DB_NAME"
-          scripts/uat_create_db.sh "$DB_NAME"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
@@ -133,3 +160,4 @@ runs:
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m
+
