@@ -96,6 +96,7 @@ dependencies {
     implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation(platform("tools.jackson:jackson-bom:3.1.1"))
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")

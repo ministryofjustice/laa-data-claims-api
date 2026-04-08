@@ -69,6 +69,18 @@ public class ClaimValidationService {
     }
 
     validateUserId(createdByUserId.toString());
+    validateAssessmentReason(assessmentReason);
+  }
+
+  /**
+   * Validates the provided assessment reason to ensure it is not null, empty, or blank.
+   *
+   * <p>This method checks that the assessment reason parameter contains meaningful text.
+   *
+   * @param assessmentReason the assessment reason to validate
+   * @throws ClaimBadRequestException if the assessment reason is null, empty, or blank
+   */
+  public void validateAssessmentReason(String assessmentReason) {
     if (!StringUtils.hasText(assessmentReason)) {
       throw new ClaimBadRequestException(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
     }
