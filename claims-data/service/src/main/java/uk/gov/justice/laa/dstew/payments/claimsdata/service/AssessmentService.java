@@ -41,8 +41,8 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-
     claimValidationService.validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateAssessmentReason(request.getAssessmentReason());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
     ClaimSummaryFee claimSummaryFee =
@@ -216,5 +216,22 @@ public class AssessmentService {
     assessment.setUpdatedByUserId(createdByUserId);
     assessment.setAssessmentReason(assessmentReason);
     assessment.setAssessmentType(assessmentType);
+  }
+
+  /**
+   * Returns the assessed total amount for the given submission.
+   *
+   * <p>The value is calculated as the sum of {@code assessedTotalInclVat} from the most recently
+   * created assessment for each claim in the submission that has one or more assessments.
+   *
+   * <p>Claims with no assessments do not contribute to the total. If no assessments exist for any
+   * claim in the submission, this method returns {@code null}.
+   *
+   * @param submissionId the unique identifier of the submission
+   * @return the summed assessed total amount for the submission, or {@code null} if no assessments
+   *     exist ``
+   */
+  public BigDecimal getAssessedTotalAmount(UUID submissionId) {
+    return assessmentRepository.getAssessedTotalAmount(submissionId);
   }
 }

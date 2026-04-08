@@ -1,5 +1,5 @@
 plugins {
-    id 'io.freefair.lombok' version '8.13.1'
+    id 'io.freefair.lombok' version '9.2.0'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
@@ -38,6 +38,8 @@ jacocoTestCoverageVerification {
 // Upgrade to fix CVE-xxxx-xxxxx
 // ext['dependency-name.version'] = 'x.x.x'
 ext['commons-lang3.version'] = '3.18.0'
+// Upgrade to fix HTTP Request Smuggling (SNYK-JAVA-IONETTY-15789756)
+ext['netty.version'] = '4.2.12.Final'
 
 dependencyManagement {
     dependencies {
@@ -52,6 +54,8 @@ dependencies {
     // Upgrade to fix CVE-2026-1225 vulnerability in logback-core
     implementation 'ch.qos.logback:logback-core:1.5.25'
     implementation 'ch.qos.logback:logback-classic:1.5.25'
+    // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
+    implementation 'tools.jackson.core:jackson-core:3.1.1'
 
     implementation project(':claims-data:api')
 
@@ -74,10 +78,12 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
-    testCompileOnly 'org.projectlombok:lombok:1.18.38'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+    compileOnly 'org.projectlombok:lombok:1.18.44'
+    annotationProcessor 'org.projectlombok:lombok:1.18.44'
+    testCompileOnly 'org.projectlombok:lombok:1.18.44'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
+
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
@@ -90,6 +96,7 @@ dependencies {
     implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation(platform("tools.jackson:jackson-bom:3.1.1"))
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")
@@ -196,7 +203,7 @@ spotless {
         importOrder()
         removeUnusedImports()
         cleanthat()
-        googleJavaFormat()
+        googleJavaFormat('1.27.0')
     }
 }
 

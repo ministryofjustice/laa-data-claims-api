@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
@@ -28,6 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -127,6 +131,29 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
         .contains(
             CLAIM_WITH_ID_DOES_NOT_HAVE_VALID_STATUS_ERROR.formatted(
                 CLAIM_ID_WITHOUT_VALID_STATUS));
+  }
+
+  @ParameterizedTest(name = "Assessment reason: {0}")
+  @NullAndEmptySource
+  @ValueSource(strings = {" "})
+  void shouldReturnBadRequestForInvalidAssessmentReason(String assessmentReason) throws Exception {
+    // when: calling the POST endpoint with assessment reason set to null/empty/blank, 400 should be
+    // returned
+    AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setAssessmentReason(assessmentReason);
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITHOUT_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // then: assert an error message in the response body
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
   }
 
   @Test

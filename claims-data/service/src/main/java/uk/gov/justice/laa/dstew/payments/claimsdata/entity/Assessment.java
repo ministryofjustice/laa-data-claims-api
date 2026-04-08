@@ -48,10 +48,11 @@ public class Assessment {
   @Enumerated(EnumType.STRING)
   private AssessmentOutcome assessmentOutcome;
 
+  @NotNull
   @Enumerated(EnumType.STRING)
   private AssessmentType assessmentType;
 
-  private String assessmentReason;
+  @NotNull private String assessmentReason;
 
   private BigDecimal fixedFeeAmount;
 
