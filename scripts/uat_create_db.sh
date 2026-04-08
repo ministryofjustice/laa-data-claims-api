@@ -44,7 +44,7 @@ function _uat_create_db() {
     echo "Unable to resolve pod for selector 'run=port-forward-pod' in namespace '$CURRENT_NAMESPACE'." >&2
     exit 1
   fi
-  
+
   echo 'Starting port-forwarding as a background job'
   kubectl port-forward pod/"$PF_POD_NAME" 5433:5432 &
   PF_PID=$!
