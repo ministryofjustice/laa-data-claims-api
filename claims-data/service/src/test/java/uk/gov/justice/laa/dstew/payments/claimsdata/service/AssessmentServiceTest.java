@@ -289,4 +289,29 @@ class AssessmentServiceTest {
     assertThat(assessment.getAssessmentReason()).isEqualTo(reason);
     assertThat(assessment.getAssessmentType()).isEqualTo(AssessmentType.ESCAPE_CASE_ASSESSMENT);
   }
+
+  @Test
+  void shouldReturnAssessedTotalAmountForSubmission() {
+    UUID submissionId = UUID.randomUUID();
+    BigDecimal assessedTotalAmount = new BigDecimal("12.34");
+
+    when(assessmentRepository.getAssessedTotalAmount(submissionId)).thenReturn(assessedTotalAmount);
+
+    BigDecimal result = assessmentService.getAssessedTotalAmount(submissionId);
+
+    assertThat(result).isEqualByComparingTo(new BigDecimal("12.34"));
+    verify(assessmentRepository).getAssessedTotalAmount(submissionId);
+  }
+
+  @Test
+  void shouldReturnNullAssessedTotalAmountWhenNoAssessmentsExist() {
+    UUID submissionId = UUID.randomUUID();
+
+    when(assessmentRepository.getAssessedTotalAmount(submissionId)).thenReturn(null);
+
+    BigDecimal result = assessmentService.getAssessedTotalAmount(submissionId);
+
+    assertThat(result).isNull();
+    verify(assessmentRepository).getAssessedTotalAmount(submissionId);
+  }
 }

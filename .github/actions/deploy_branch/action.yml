@@ -25,6 +25,9 @@ inputs:
   app-environment:
     description: "environment to which the app is being deployed [staging, production, etc]"
     required: true
+  pr-number:
+    description: "Pull request number, if applicable"
+    required: false
   image-tag:
     description: "Docker image tag to deploy"
     required: false
@@ -44,6 +47,8 @@ runs:
     - name: Extract release name
       id: extract_release_name
       uses: ./.github/actions/get_release_name
+      with:
+          pr-number: ${{ inputs.pr-number }}
 
     - name: Authenticate to the cluster
       uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
@@ -54,14 +59,14 @@ runs:
         kube-namespace: ${{ inputs.kube-namespace }}
 
     - name: Assume role in Cloud Platform
-      uses: aws-actions/configure-aws-credentials@v6
+      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
       with:
         role-to-assume: ${{ inputs.ecr-role-to-assume }}
         aws-region: ${{ inputs.ecr-region }}
 
     - name: Docker login to ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896 # v2
       with:
         mask-password: 'true'
 
@@ -73,6 +78,37 @@ runs:
         schedule=$(kubectl get secret laa-data-claims-api-secrets \
           -o jsonpath='{.data.replication-summary-cronjob-schedule}' | base64 --decode)
         echo "schedule=$schedule" >> $GITHUB_OUTPUT
+
+
+    - name: Apply port-forward deployment and service
+      shell: bash
+      env:
+        KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
+        VALUES_FILE: .helm/data-claims-api/values/${{ inputs.app-environment }}.yaml
+        RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
+      run: |
+        helm template "$RELEASE_NAME" .helm/data-claims-api \
+          --namespace "$KUBE_NAMESPACE" \
+          --values "$VALUES_FILE" \
+          --set image.repository=placeholder \
+          --set image.tag=placeholder \
+          --set spring.profile=placeholder \
+          --set aws.region=placeholder \
+          --set database.name=placeholder \
+          --set namespace=placeholder \
+          --set replicationSummary.schedule=placeholder \
+          --show-only templates/port-forward-deployment.yaml \
+          --show-only templates/port-forward-service.yaml \
+          | kubectl apply -f - --namespace "$KUBE_NAMESPACE"
+
+    - name: Create preview database
+      if: ${{ steps.extract_release_name.outputs.branch-name != 'main' && !startsWith(github.ref, 'refs/tags/') }}
+      shell: bash
+      env:
+        RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
+      run: |
+        echo "Creating database: $RELEASE_NAME"
+        scripts/uat_create_db.sh "$RELEASE_NAME"
 
     - name: Helm deployment of branch
       shell: bash
@@ -102,14 +138,10 @@ runs:
           export SPRING_PROFILE="main"
         elif [ "$branch_name" == "main" ]; then
           export SPRING_PROFILE="main"
+          export DB_NAME="main"
         else
           export SPRING_PROFILE="preview"
-          # Using Bitnami legacy with PostgreSQL 17.2 (specified in values.yaml)
-          helm upgrade ${RELEASE_NAME}-postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
-            -f .helm/bitnami_postgres/values.yaml \
-            --namespace ${KUBE_NAMESPACE} \
-            --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
-            --install --wait --timeout=10m
+          export DB_NAME="$RELEASE_NAME"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
@@ -123,7 +155,9 @@ runs:
           --set ingressInternal.annotations."external-dns\.alpha\.kubernetes\.io/set-identifier"="$internal_identifier" \
           --set ingressInternal.hosts="{$internal_host}" \
           --set spring.profile="$SPRING_PROFILE" \
+          --set database.name="$DB_NAME" \
           --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \
           --install \
           --wait --timeout=10m
+

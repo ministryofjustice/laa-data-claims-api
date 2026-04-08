@@ -9,7 +9,7 @@ on:
 
 jobs:
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
     permissions:
       contents: write
       packages: write
@@ -18,6 +18,7 @@ jobs:
       provider_name: 'laa-data-claims-api'
       consumer_name: ${{ github.event.inputs.consumer }}
       consumer_branch: ${{ github.event.inputs.consumerBranch }}
+      java_version: 25
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
