@@ -8,15 +8,18 @@ on:
 jobs:
   build:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
     permissions:
       contents: write
       packages: write
+      pull-requests: write
     with:
       integration_test_task: 'integrationTest'
       create_tag: 'true'
       github_bot_username: 'laa-java-service-deployer'
       semgrep_check: 'false'
+      java_version: '25'
+      java_distribution: 'corretto'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       github_app_id: ${{ vars.LAA_CCMS_CAAB_SERVICE_APP_ID }}
