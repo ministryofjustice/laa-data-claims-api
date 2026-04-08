@@ -201,7 +201,6 @@ jobs:
     with:
       pact_test_task: ":claims-data:service:pactTest"
       pacticipant_name: 'laa-data-claims-api'
-      consumer_name: 'laa-submit-a-bulk-claim'
       is_provider: true
       java_version: '25'
       java_distribution: 'corretto'
