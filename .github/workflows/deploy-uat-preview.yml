@@ -169,7 +169,7 @@ jobs:
   ecr-publish-image:
     needs:
       - build-test
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@68d8f5aeccd47fa5baa1fe6c63269569b682e656 # v2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
     permissions:
       contents: read
       id-token: write
@@ -187,7 +187,7 @@ jobs:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
     needs:
       - ecr-publish-image
       - semgrep-scan
@@ -233,7 +233,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -258,7 +258,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@90aa22bf1f55a39b4f10c4f7168356f0669eed77 # v1
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
