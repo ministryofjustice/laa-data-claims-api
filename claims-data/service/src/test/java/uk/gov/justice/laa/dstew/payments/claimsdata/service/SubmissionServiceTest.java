@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -308,10 +309,12 @@ class SubmissionServiceTest {
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
+    var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
     var expectedNonEmptyResultSet =
-        new SubmissionsResultSet().content(Collections.singletonList(new SubmissionBase()));
+        new SubmissionsResultSet().content(Collections.singletonList(submissionBase));
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedNonEmptyResultSet);
+    when(assessmentService.getAssessedTotalAmounts(anyList())).thenReturn(Map.of());
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -326,6 +329,7 @@ class SubmissionServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+    verify(assessmentService).getAssessedTotalAmounts(anyList());
   }
 
   @Test
@@ -338,6 +342,7 @@ class SubmissionServiceTest {
     var expectedEmptyResultSet = new SubmissionsResultSet();
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedEmptyResultSet);
+    when(assessmentService.getAssessedTotalAmounts(any())).thenReturn(Map.of());
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -352,6 +357,7 @@ class SubmissionServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
     assertThat(actualResultSet.getContent()).isEmpty();
+    verify(assessmentService).getAssessedTotalAmounts(Collections.emptyList());
   }
 
   @DisplayName("Should call findAll with  Specification area of law and submission period")
@@ -364,6 +370,8 @@ class SubmissionServiceTest {
 
     when(submissionsResultSetMapper.toSubmissionsResultSet(eq(resultPage)))
         .thenReturn(new SubmissionsResultSet());
+
+    when(assessmentService.getAssessedTotalAmounts(any())).thenReturn(Map.of());
 
     submissionService.getSubmissionsResultSet(
         OFFICE_CODES,
@@ -378,6 +386,7 @@ class SubmissionServiceTest {
     verify(submissionRepository)
         .findAll(
             submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+    verify(assessmentService).getAssessedTotalAmounts(Collections.emptyList());
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }

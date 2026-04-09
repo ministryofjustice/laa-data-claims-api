@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -20,14 +21,28 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
 
   @Query(
       """
-      SELECT SUM(a.assessedTotalInclVat)
+          SELECT SUM(a.assessedTotalInclVat)
+          FROM Assessment a
+          WHERE a.claim.submission.id = :submissionId
+            AND a.createdOn = (
+                SELECT MAX(a2.createdOn)
+                FROM Assessment a2
+                WHERE a2.claim = a.claim
+            )
+          """)
+  BigDecimal getAssessedTotalAmount(@Param("submissionId") UUID submissionId);
+
+  @Query(
+      """
+      SELECT a.claim.submission.id, SUM(a.assessedTotalInclVat)
       FROM Assessment a
-      WHERE a.claim.submission.id = :submissionId
+      WHERE a.claim.submission.id IN :submissionIds
         AND a.createdOn = (
             SELECT MAX(a2.createdOn)
             FROM Assessment a2
             WHERE a2.claim = a.claim
         )
+      GROUP BY a.claim.submission.id
       """)
-  BigDecimal getAssessedTotalAmount(@Param("submissionId") UUID submissionId);
+  List<Object[]> getAssessedTotalAmounts(@Param("submissionIds") List<UUID> submissionIds);
 }

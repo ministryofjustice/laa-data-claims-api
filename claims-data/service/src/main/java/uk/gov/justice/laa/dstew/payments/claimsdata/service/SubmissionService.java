@@ -1,9 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -191,6 +193,20 @@ public class SubmissionService
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
             pageable);
 
-    return submissionsResultSetMapper.toSubmissionsResultSet(page);
+    List<UUID> submissionIds = page.getContent().stream().map(Submission::getId).toList();
+
+    Map<UUID, BigDecimal> assessedTotalAmounts =
+        assessmentService.getAssessedTotalAmounts(submissionIds);
+
+    SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
+    resultSet
+        .getContent()
+        .forEach(
+            submissionBase -> {
+              BigDecimal assessedTotal = assessedTotalAmounts.get(submissionBase.getSubmissionId());
+              submissionBase.setAssessedTotalAmount(
+                  BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES));
+            });
+    return resultSet;
   }
 }

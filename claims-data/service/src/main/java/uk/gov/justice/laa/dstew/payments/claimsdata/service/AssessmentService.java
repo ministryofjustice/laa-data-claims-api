@@ -2,7 +2,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -233,5 +236,10 @@ public class AssessmentService {
    */
   public BigDecimal getAssessedTotalAmount(UUID submissionId) {
     return assessmentRepository.getAssessedTotalAmount(submissionId);
+  }
+
+  public Map<UUID, BigDecimal> getAssessedTotalAmounts(List<UUID> submissionIds) {
+    return assessmentRepository.getAssessedTotalAmounts(submissionIds).stream()
+        .collect(Collectors.toMap(row -> (UUID) row[0], row -> (BigDecimal) row[1]));
   }
 }

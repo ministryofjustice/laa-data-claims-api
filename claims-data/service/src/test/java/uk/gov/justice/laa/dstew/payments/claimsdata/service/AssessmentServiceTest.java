@@ -19,6 +19,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -370,5 +371,39 @@ class AssessmentServiceTest {
 
     assertThat(result).isNull();
     verify(assessmentRepository).getAssessedTotalAmount(submissionId);
+  }
+
+  @Test
+  void shouldReturnAssessedTotalAmountsForMultipleSubmissions() {
+    UUID submissionId1 = UUID.randomUUID();
+    UUID submissionId2 = UUID.randomUUID();
+
+    BigDecimal total1 = new BigDecimal("100.50");
+    BigDecimal total2 = new BigDecimal("25.00");
+
+    List<Object[]> repositoryResult =
+        List.of(new Object[] {submissionId1, total1}, new Object[] {submissionId2, total2});
+
+    when(assessmentRepository.getAssessedTotalAmounts(List.of(submissionId1, submissionId2)))
+        .thenReturn(repositoryResult);
+
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(submissionId1)).isEqualByComparingTo("100.50");
+    assertThat(result.get(submissionId2)).isEqualByComparingTo("25.00");
+
+    verify(assessmentRepository).getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+  }
+
+  @Test
+  void shouldReturnEmptyMapWhenSubmissionIdsListIsEmpty() {
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(Collections.emptyList());
+
+    assertThat(result).isEmpty();
+
+    verify(assessmentRepository).getAssessedTotalAmounts(List.of());
   }
 }
