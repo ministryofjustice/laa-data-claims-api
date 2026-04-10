@@ -305,16 +305,20 @@ class SubmissionServiceTest {
 
   @Test
   void getSubmissionsResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
-    Page<Submission> resultPage = new PageImpl<>(Collections.singletonList(new Submission()));
+    var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
+    var submission = new Submission();
+    submission.setId(submissionBase.getSubmissionId());
+    Page<Submission> resultPage = new PageImpl<>(Collections.singletonList(submission));
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
-    var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
     var expectedNonEmptyResultSet =
         new SubmissionsResultSet().content(Collections.singletonList(submissionBase));
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedNonEmptyResultSet);
-    when(assessmentService.getAssessedTotalAmounts(anyList())).thenReturn(Map.of());
+    when(assessmentService.getAssessedTotalAmounts(
+            Collections.singletonList(submissionBase.getSubmissionId())))
+        .thenReturn(Map.of(submissionBase.getSubmissionId(), new BigDecimal("123.4")));
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -327,9 +331,13 @@ class SubmissionServiceTest {
             SUBMISSION_STATUSES,
             Pageable.ofSize(10).withPage(0));
 
-    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
-    verify(assessmentService).getAssessedTotalAmounts(anyList());
+    assertThat(actualResultSet.getContent().get(0).getSubmissionId())
+        .isEqualTo(submissionBase.getSubmissionId());
+    assertThat(actualResultSet.getContent().get(0).getAssessedTotalAmount())
+        .isEqualTo(new BigDecimal("123.40"));
+    verify(assessmentService)
+        .getAssessedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
   }
 
   @Test

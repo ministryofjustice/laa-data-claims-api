@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
@@ -403,7 +404,6 @@ class AssessmentServiceTest {
         assessmentService.getAssessedTotalAmounts(Collections.emptyList());
 
     assertThat(result).isEmpty();
-
-    verify(assessmentRepository).getAssessedTotalAmounts(List.of());
+    verifyNoInteractions(assessmentRepository);
   }
 }
