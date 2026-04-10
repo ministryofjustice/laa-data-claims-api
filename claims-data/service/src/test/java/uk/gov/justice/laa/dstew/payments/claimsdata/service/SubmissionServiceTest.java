@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
@@ -318,7 +319,7 @@ class SubmissionServiceTest {
         .thenReturn(expectedNonEmptyResultSet);
     when(assessmentService.getAssessedTotalAmounts(
             Collections.singletonList(submissionBase.getSubmissionId())))
-        .thenReturn(Map.of(submissionBase.getSubmissionId(), new BigDecimal("123.4")));
+        .thenReturn(Map.of(submissionBase.getSubmissionId(), new BigDecimal("123.40")));
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -350,7 +351,6 @@ class SubmissionServiceTest {
     var expectedEmptyResultSet = new SubmissionsResultSet();
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedEmptyResultSet);
-    when(assessmentService.getAssessedTotalAmounts(any())).thenReturn(Map.of());
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -365,7 +365,7 @@ class SubmissionServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
     assertThat(actualResultSet.getContent()).isEmpty();
-    verify(assessmentService).getAssessedTotalAmounts(Collections.emptyList());
+    verifyNoInteractions(assessmentService);
   }
 
   @DisplayName("Should call findAll with  Specification area of law and submission period")
@@ -378,8 +378,6 @@ class SubmissionServiceTest {
 
     when(submissionsResultSetMapper.toSubmissionsResultSet(eq(resultPage)))
         .thenReturn(new SubmissionsResultSet());
-
-    when(assessmentService.getAssessedTotalAmounts(any())).thenReturn(Map.of());
 
     submissionService.getSubmissionsResultSet(
         OFFICE_CODES,
@@ -394,7 +392,7 @@ class SubmissionServiceTest {
     verify(submissionRepository)
         .findAll(
             submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
-    verify(assessmentService).getAssessedTotalAmounts(Collections.emptyList());
+    verifyNoInteractions(assessmentService);
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }

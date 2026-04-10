@@ -382,11 +382,34 @@ class AssessmentServiceTest {
     BigDecimal total1 = new BigDecimal("100.50");
     BigDecimal total2 = new BigDecimal("25.00");
 
-    List<Object[]> repositoryResult =
-        List.of(new Object[] {submissionId1, total1}, new Object[] {submissionId2, total2});
+    AssessmentRepository.AssessedTotalAmountProjection projection1 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId1;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total1;
+          }
+        };
+
+    AssessmentRepository.AssessedTotalAmountProjection projection2 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId2;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total2;
+          }
+        };
 
     when(assessmentRepository.getAssessedTotalAmounts(List.of(submissionId1, submissionId2)))
-        .thenReturn(repositoryResult);
+        .thenReturn(List.of(projection1, projection2));
 
     Map<UUID, BigDecimal> result =
         assessmentService.getAssessedTotalAmounts(List.of(submissionId1, submissionId2));

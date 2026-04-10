@@ -230,7 +230,9 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     // Convert to Map for easy assertion
     var totals =
         results.stream()
-            .collect(java.util.stream.Collectors.toMap(r -> (UUID) r[0], r -> (BigDecimal) r[1]));
+            .collect(
+                java.util.stream.Collectors.toMap(
+                    r -> (UUID) r.getSubmissionId(), r -> (BigDecimal) r.getTotal()));
 
     // Assert
     assertThat(totals)
@@ -248,7 +250,7 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     var results = assessmentRepository.getAssessedTotalAmounts(List.of(submission.getId()));
 
     assertThat(results).hasSize(1);
-    assertThat((BigDecimal) results.getFirst()[1]).isEqualByComparingTo("15.00");
+    assertThat((BigDecimal) results.getFirst().getTotal()).isEqualByComparingTo("15.00");
   }
 
   private void assertAssessedTotalIsNull() {

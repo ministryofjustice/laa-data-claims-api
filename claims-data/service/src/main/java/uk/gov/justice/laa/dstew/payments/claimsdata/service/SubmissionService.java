@@ -35,9 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntit
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
-/**
- * Service containing business logic for handling submissions.
- */
+/** Service containing business logic for handling submissions. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -121,7 +119,7 @@ public class SubmissionService
   /**
    * Partially update a submission.
    *
-   * @param id              the submission id
+   * @param id the submission id
    * @param submissionPatch patch object containing updated fields
    */
   @Transactional
@@ -158,16 +156,16 @@ public class SubmissionService
    * Returns all the existing submissions filtered by some parameters and paginated in a {@link
    * SubmissionsResultSet}.
    *
-   * @param offices            a mandatory list of office codes to filter submissions by
-   * @param submissionId       an optional identifier to filter submissions by
-   * @param submittedDateFrom  an optional end date to filter submissions created on or after this
-   *                           date
-   * @param submittedDateTo    an optional end date to filter submissions created on or before this
-   *                           date
+   * @param offices a mandatory list of office codes to filter submissions by
+   * @param submissionId an optional identifier to filter submissions by
+   * @param submittedDateFrom an optional end date to filter submissions created on or after this
+   *     date
+   * @param submittedDateTo an optional end date to filter submissions created on or before this
+   *     date
    * @param submissionStatuses an optional list of submission statuses to filter submissions by
-   * @param pageable           a pageable object to yield the paginated submission results
+   * @param pageable a pageable object to yield the paginated submission results
    * @return the paginated result set with all submissions that satisfy the filtering criteria
-   * above.
+   *     above.
    */
   @Transactional(readOnly = true)
   public SubmissionsResultSet getSubmissionsResultSet(
@@ -195,27 +193,24 @@ public class SubmissionService
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
             pageable);
 
-    List<UUID> submissionIds =
-        page.getContent().stream()
-            .map(Submission::getId)
-            .toList();
+    List<UUID> submissionIds = page.getContent().stream().map(Submission::getId).toList();
 
     Map<UUID, BigDecimal> assessedTotalAmounts =
         submissionIds.isEmpty()
             ? Map.of()
             : assessmentService.getAssessedTotalAmounts(submissionIds);
 
-    SubmissionsResultSet resultSet =
-        submissionsResultSetMapper.toSubmissionsResultSet(page);
+    SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
 
-    resultSet.getContent().forEach(submissionBase -> {
-      BigDecimal assessedTotal =
-          assessedTotalAmounts.get(submissionBase.getSubmissionId());
+    resultSet
+        .getContent()
+        .forEach(
+            submissionBase -> {
+              BigDecimal assessedTotal = assessedTotalAmounts.get(submissionBase.getSubmissionId());
 
-      submissionBase.setAssessedTotalAmount(
-          BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES)
-      );
-    });
+              submissionBase.setAssessedTotalAmount(
+                  BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES));
+            });
 
     return resultSet;
   }
