@@ -10,7 +10,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +36,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /**
- * Integration tests for {@link AssessmentRepository#getAssessedTotalAmount(UUID)}.
+ * Integration tests for assessed total aggregation queries.
  *
- * <p>These tests verify that the assessed total amount for a submission is calculated as the sum of
+ * <p>These tests verify that assessed total amounts for submissions are calculated as the sum of
  * {@code assessedTotalInclVat} from the latest assessment for each claim in the submission.
  *
  * <p>The scenarios covered include:
@@ -47,6 +49,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
  *   <li>summing assessed totals across multiple claims
  *   <li>counting only the most recent assessment when a claim has multiple assessments
  *   <li>returning zero when the latest assessments sum to zero
+ *   <li>returning grouped assessed totals for multiple submissions
  * </ul>
  */
 @Slf4j
@@ -76,7 +79,6 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
             .createdOn(TENTH_APRIL_2024)
             .updatedOn(TENTH_APRIL_2024)
             .build();
-
     bulkSubmissionRepository.saveAndFlush(bulkSubmission);
 
     submission =
@@ -96,7 +98,6 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
             .providerUserId(bulkSubmission.getCreatedByUserId())
             .createdOn(TENTH_APRIL_2024)
             .build();
-
     submissionRepository.saveAndFlush(submission);
   }
 
@@ -110,7 +111,6 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("Should return assessed total for one assessed claim")
   void shouldReturnAssessedTotalForOneAssessedClaim() {
     AssessedClaim claim = createAssessedClaim();
-
     saveAssessment(claim, "12.34", TENTH_APRIL_2024);
 
     assertAssessedTotal("12.34");
@@ -147,9 +147,11 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim1, "12.00", TWELFTH_APRIL_2024);
+
     saveAssessment(claim2, "15.00", TENTH_APRIL_2024);
     saveAssessment(claim2, "33.00", ELEVENTH_APRIL_2024);
     saveAssessment(claim2, "5.00", TWELFTH_APRIL_2024);
+
     assertAssessedTotal("17.00");
   }
 
@@ -165,77 +167,28 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertAssessedTotal("0.00");
   }
 
-  private void assertAssessedTotal(String expected) {
-    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
-    assertThat(result).isEqualByComparingTo(expected);
-  }
-
   @Test
   @DisplayName("Should return assessed totals for multiple submissions")
   void shouldReturnAssessedTotalsForMultipleSubmissions() {
-    // Second submission
-    Submission submission2 =
-        Submission.builder()
-            .id(UUID.randomUUID())
-            .bulkSubmissionId(submission.getBulkSubmissionId())
-            .officeAccountNumber("office2")
-            .submissionPeriod("JAN-25")
-            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
-            .status(SubmissionStatus.CREATED)
-            .createdByUserId(USER_ID)
-            .providerUserId(submission.getProviderUserId())
-            .createdOn(TENTH_APRIL_2024)
-            .build();
+    Submission submission2 = createSubmission("office2");
 
-    submissionRepository.saveAndFlush(submission2);
+    AssessedClaim submission1Claim = createAssessedClaim();
+    AssessedClaim submission2Claim = createAssessedClaim(submission2);
 
-    // Submission 1 assessments
-    AssessedClaim s1Claim1 = createAssessedClaim();
-    saveAssessment(s1Claim1, "10.00", TENTH_APRIL_2024);
+    saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
+    saveAssessment(submission2Claim, "25.50", TENTH_APRIL_2024);
 
-    // Submission 2 assessments
-    Claim claimForSubmission2 =
-        claimRepository.saveAndFlush(
-            Claim.builder()
-                .id(UUID.randomUUID())
-                .submission(submission2)
-                .hasAssessment(true)
-                .matterTypeCode("MTC-444")
-                .status(ClaimStatus.READY_TO_PROCESS)
-                .lineNumber(1)
-                .createdByUserId(USER_ID)
-                .build());
-
-    ClaimSummaryFee feeForSubmission2 =
-        claimSummaryFeeRepository.saveAndFlush(
-            ClaimSummaryFee.builder()
-                .id(UUID.randomUUID())
-                .claim(claimForSubmission2)
-                .createdByUserId(USER_ID)
-                .build());
-
-    saveAssessment(
-        AssessedClaim.builder()
-            .claim(claimForSubmission2)
-            .claimSummaryFee(feeForSubmission2)
-            .build(),
-        "25.50",
-        TENTH_APRIL_2024);
-
-    // Execute
-    var results =
-        assessmentRepository.getAssessedTotalAmounts(
-            List.of(submission.getId(), submission2.getId()));
-
-    // Convert to Map for easy assertion
-    var totals =
-        results.stream()
+    Map<UUID, BigDecimal> totals =
+        assessmentRepository
+            .getAssessedTotalAmounts(List.of(submission.getId(), submission2.getId()))
+            .stream()
             .collect(
-                java.util.stream.Collectors.toMap(
-                    r -> (UUID) r.getSubmissionId(), r -> (BigDecimal) r.getTotal()));
+                Collectors.toMap(
+                    AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                    AssessmentRepository.AssessedTotalAmountProjection::getTotal));
 
-    // Assert
     assertThat(totals)
+        .hasSize(2)
         .containsEntry(submission.getId(), new BigDecimal("10.00"))
         .containsEntry(submission2.getId(), new BigDecimal("25.50"));
   }
@@ -243,14 +196,98 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should only count the latest assessment per claim across submissions")
   void shouldOnlyCountLatestAssessmentPerClaimAcrossSubmissions() {
-    AssessedClaim claim1 = createAssessedClaim();
-    saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
-    saveAssessment(claim1, "15.00", TWELFTH_APRIL_2024); // latest
+    Submission submission2 = createSubmission("office2");
 
-    var results = assessmentRepository.getAssessedTotalAmounts(List.of(submission.getId()));
+    AssessedClaim submission1Claim = createAssessedClaim();
+    AssessedClaim submission2Claim = createAssessedClaim(submission2);
 
-    assertThat(results).hasSize(1);
-    assertThat((BigDecimal) results.getFirst().getTotal()).isEqualByComparingTo("15.00");
+    saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
+    saveAssessment(submission1Claim, "15.00", TWELFTH_APRIL_2024); // latest for submission 1
+
+    saveAssessment(submission2Claim, "20.00", TENTH_APRIL_2024);
+    saveAssessment(submission2Claim, "5.00", ELEVENTH_APRIL_2024); // latest for submission 2
+
+    Map<UUID, BigDecimal> totals =
+        assessmentRepository
+            .getAssessedTotalAmounts(List.of(submission.getId(), submission2.getId()))
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                    AssessmentRepository.AssessedTotalAmountProjection::getTotal));
+
+    assertThat(totals)
+        .hasSize(2)
+        .containsEntry(submission.getId(), new BigDecimal("15.00"))
+        .containsEntry(submission2.getId(), new BigDecimal("5.00"));
+  }
+
+  @Test
+  @DisplayName("Should not return submissions with no assessments in bulk query results")
+  void shouldNotReturnSubmissionsWithNoAssessmentsInBulkQueryResults() {
+    Submission submission2 = createSubmission("office2");
+
+    AssessedClaim submission1Claim = createAssessedClaim();
+    saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
+
+    Map<UUID, BigDecimal> totals =
+        assessmentRepository
+            .getAssessedTotalAmounts(List.of(submission.getId(), submission2.getId()))
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                    AssessmentRepository.AssessedTotalAmountProjection::getTotal));
+
+    assertThat(totals)
+        .hasSize(1)
+        .containsEntry(submission.getId(), new BigDecimal("10.00"))
+        .doesNotContainKey(submission2.getId());
+  }
+
+  @Test
+  @DisplayName(
+      "Should return only submissions with assessments and use latest assessment per claim")
+  void shouldReturnOnlySubmissionsWithAssessmentsAndUseLatestAssessmentPerClaim() {
+    Submission submission2 = createSubmission("office2");
+    Submission submission3 = createSubmission("office3");
+
+    // submission 1 has assessments on two claims
+    AssessedClaim submission1Claim1 = createAssessedClaim();
+    AssessedClaim submission1Claim2 = createAssessedClaim();
+
+    saveAssessment(submission1Claim1, "10.00", TENTH_APRIL_2024);
+    saveAssessment(submission1Claim1, "15.00", TWELFTH_APRIL_2024); // latest for claim 1
+    saveAssessment(submission1Claim2, "7.50", ELEVENTH_APRIL_2024);
+
+    // submission 2 has one assessed claim with multiple assessments
+    AssessedClaim submission2Claim = createAssessedClaim(submission2);
+
+    saveAssessment(submission2Claim, "20.00", TENTH_APRIL_2024);
+    saveAssessment(submission2Claim, "5.00", ELEVENTH_APRIL_2024); // latest for submission 2
+
+    // submission 3 has no assessments
+
+    Map<UUID, BigDecimal> totals =
+        assessmentRepository
+            .getAssessedTotalAmounts(
+                List.of(submission.getId(), submission2.getId(), submission3.getId()))
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                    AssessmentRepository.AssessedTotalAmountProjection::getTotal));
+
+    assertThat(totals)
+        .hasSize(2)
+        .containsEntry(submission.getId(), new BigDecimal("22.50"))
+        .containsEntry(submission2.getId(), new BigDecimal("5.00"))
+        .doesNotContainKey(submission3.getId());
+  }
+
+  private void assertAssessedTotal(String expected) {
+    BigDecimal result = assessmentRepository.getAssessedTotalAmount(submission.getId());
+    assertThat(result).isEqualByComparingTo(expected);
   }
 
   private void assertAssessedTotalIsNull() {
@@ -258,12 +295,38 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertThat(result).isNull();
   }
 
+  private Submission createSubmission(String officeAccountNumber) {
+    Submission newSubmission =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(submission.getBulkSubmissionId())
+            .officeAccountNumber(officeAccountNumber)
+            .submissionPeriod("JAN-25")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .crimeLowerScheduleNumber(officeAccountNumber + "/CRIME")
+            .legalHelpSubmissionReference(officeAccountNumber + "/LEGAL")
+            .mediationSubmissionReference(officeAccountNumber + "/MEDIATION")
+            .isNilSubmission(false)
+            .numberOfClaims(2)
+            .createdByUserId(USER_ID)
+            .providerUserId(submission.getProviderUserId())
+            .createdOn(TENTH_APRIL_2024)
+            .build();
+
+    return submissionRepository.saveAndFlush(newSubmission);
+  }
+
   private AssessedClaim createAssessedClaim() {
+    return createAssessedClaim(submission);
+  }
+
+  private AssessedClaim createAssessedClaim(Submission forSubmission) {
     Claim claim =
         claimRepository.saveAndFlush(
             Claim.builder()
                 .id(UUID.randomUUID())
-                .submission(submission)
+                .submission(forSubmission)
                 .hasAssessment(true)
                 .matterTypeCode("MTC-333")
                 .status(ClaimStatus.READY_TO_PROCESS)
@@ -284,7 +347,6 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   private void saveAssessment(
       AssessedClaim assessedClaim, String assessedTotalInclVat, Instant createdOn) {
-
     Assessment assessment =
         Assessment.builder()
             .id(UUID.randomUUID())
