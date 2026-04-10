@@ -110,7 +110,7 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should return assessed total for one assessed claim")
   void shouldReturnAssessedTotalForOneAssessedClaim() {
-    AssessedClaim claim = createAssessedClaim();
+    ClaimWithFee claim = createClaimWithFee();
     saveAssessment(claim, "12.34", TENTH_APRIL_2024);
 
     assertAssessedTotal("12.34");
@@ -119,8 +119,8 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should sum latest assessments across multiple claims")
   void shouldSumLatestAssessmentsAcrossMultipleClaims() {
-    AssessedClaim claim1 = createAssessedClaim();
-    AssessedClaim claim2 = createAssessedClaim();
+    ClaimWithFee claim1 = createClaimWithFee();
+    ClaimWithFee claim2 = createClaimWithFee();
 
     saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim2, "5.25", ELEVENTH_APRIL_2024);
@@ -131,7 +131,7 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should only count the latest assessment for the same claim")
   void shouldOnlyCountLatestAssessmentForSameClaim() {
-    AssessedClaim claim = createAssessedClaim();
+    ClaimWithFee claim = createClaimWithFee();
 
     saveAssessment(claim, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim, "7.50", TWELFTH_APRIL_2024);
@@ -142,8 +142,8 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should sum latest assessment per claim when any claim has multiple assessments")
   void shouldSumLatestAssessmentPerClaimWhenOneClaimHasMultipleAssessments() {
-    AssessedClaim claim1 = createAssessedClaim();
-    AssessedClaim claim2 = createAssessedClaim();
+    ClaimWithFee claim1 = createClaimWithFee();
+    ClaimWithFee claim2 = createClaimWithFee();
 
     saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim1, "12.00", TWELFTH_APRIL_2024);
@@ -158,8 +158,8 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("Should return zero when latest assessments sum to zero")
   void shouldReturnZeroWhenLatestAssessmentsSumToZero() {
-    AssessedClaim claim1 = createAssessedClaim();
-    AssessedClaim claim2 = createAssessedClaim();
+    ClaimWithFee claim1 = createClaimWithFee();
+    ClaimWithFee claim2 = createClaimWithFee();
 
     saveAssessment(claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(claim2, "-10.00", ELEVENTH_APRIL_2024);
@@ -172,8 +172,8 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   void shouldReturnAssessedTotalsForMultipleSubmissions() {
     Submission submission2 = createSubmission("office2");
 
-    AssessedClaim submission1Claim = createAssessedClaim();
-    AssessedClaim submission2Claim = createAssessedClaim(submission2);
+    ClaimWithFee submission1Claim = createClaimWithFee();
+    ClaimWithFee submission2Claim = createClaimWithFee(submission2);
 
     saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
     saveAssessment(submission2Claim, "25.50", TENTH_APRIL_2024);
@@ -198,8 +198,8 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   void shouldOnlyCountLatestAssessmentPerClaimAcrossSubmissions() {
     Submission submission2 = createSubmission("office2");
 
-    AssessedClaim submission1Claim = createAssessedClaim();
-    AssessedClaim submission2Claim = createAssessedClaim(submission2);
+    ClaimWithFee submission1Claim = createClaimWithFee();
+    ClaimWithFee submission2Claim = createClaimWithFee(submission2);
 
     saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
     saveAssessment(submission1Claim, "15.00", TWELFTH_APRIL_2024); // latest for submission 1
@@ -227,7 +227,7 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   void shouldNotReturnSubmissionsWithNoAssessmentsInBulkQueryResults() {
     Submission submission2 = createSubmission("office2");
 
-    AssessedClaim submission1Claim = createAssessedClaim();
+    ClaimWithFee submission1Claim = createClaimWithFee();
     saveAssessment(submission1Claim, "10.00", TENTH_APRIL_2024);
 
     Map<UUID, BigDecimal> totals =
@@ -253,15 +253,15 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     Submission submission3 = createSubmission("office3");
 
     // submission 1 has assessments on two claims
-    AssessedClaim submission1Claim1 = createAssessedClaim();
-    AssessedClaim submission1Claim2 = createAssessedClaim();
+    ClaimWithFee submission1Claim1 = createClaimWithFee();
+    ClaimWithFee submission1Claim2 = createClaimWithFee();
 
     saveAssessment(submission1Claim1, "10.00", TENTH_APRIL_2024);
     saveAssessment(submission1Claim1, "15.00", TWELFTH_APRIL_2024); // latest for claim 1
     saveAssessment(submission1Claim2, "7.50", ELEVENTH_APRIL_2024);
 
     // submission 2 has one assessed claim with multiple assessments
-    AssessedClaim submission2Claim = createAssessedClaim(submission2);
+    ClaimWithFee submission2Claim = createClaimWithFee(submission2);
 
     saveAssessment(submission2Claim, "20.00", TENTH_APRIL_2024);
     saveAssessment(submission2Claim, "5.00", ELEVENTH_APRIL_2024); // latest for submission 2
@@ -317,11 +317,11 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
     return submissionRepository.saveAndFlush(newSubmission);
   }
 
-  private AssessedClaim createAssessedClaim() {
-    return createAssessedClaim(submission);
+  private ClaimWithFee createClaimWithFee() {
+    return createClaimWithFee(submission);
   }
 
-  private AssessedClaim createAssessedClaim(Submission forSubmission) {
+  private ClaimWithFee createClaimWithFee(Submission forSubmission) {
     Claim claim =
         claimRepository.saveAndFlush(
             Claim.builder()
@@ -342,16 +342,16 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
                 .claim(claim)
                 .build());
 
-    return AssessedClaim.builder().claim(claim).claimSummaryFee(claimSummaryFee).build();
+    return ClaimWithFee.builder().claim(claim).claimSummaryFee(claimSummaryFee).build();
   }
 
   private void saveAssessment(
-      AssessedClaim assessedClaim, String assessedTotalInclVat, Instant createdOn) {
+      ClaimWithFee claimWithFee, String assessedTotalInclVat, Instant createdOn) {
     Assessment assessment =
         Assessment.builder()
             .id(UUID.randomUUID())
-            .claim(assessedClaim.claim())
-            .claimSummaryFee(assessedClaim.claimSummaryFee())
+            .claim(claimWithFee.claim())
+            .claimSummaryFee(claimWithFee.claimSummaryFee())
             .assessedTotalVat(BigDecimal.ZERO)
             .assessedTotalInclVat(new BigDecimal(assessedTotalInclVat))
             .allowedTotalVat(BigDecimal.ZERO)
@@ -367,5 +367,5 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Builder
-  private record AssessedClaim(Claim claim, ClaimSummaryFee claimSummaryFee) {}
+  private record ClaimWithFee(Claim claim, ClaimSummaryFee claimSummaryFee) {}
 }
