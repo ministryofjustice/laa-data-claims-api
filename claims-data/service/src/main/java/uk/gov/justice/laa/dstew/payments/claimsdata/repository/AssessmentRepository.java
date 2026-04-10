@@ -15,6 +15,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 /** Repository for accessing {@link Assessment} entities. */
 @Repository
 public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
+  interface AssessedTotalAmountProjection {
+    UUID getSubmissionId();
+
+    BigDecimal getTotal();
+  }
+
   Optional<Assessment> findByIdAndClaimId(UUID assessmentId, UUID claimId);
 
   Page<Assessment> findByClaimId(UUID claimId, Pageable pageable);
@@ -34,7 +40,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
 
   @Query(
       """
-      SELECT a.claim.submission.id, SUM(a.assessedTotalInclVat)
+      SELECT a.claim.submission.id AS submissionId, SUM(a.assessedTotalInclVat) AS total
       FROM Assessment a
       WHERE a.claim.submission.id IN :submissionIds
         AND a.createdOn = (
@@ -44,5 +50,6 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
         )
       GROUP BY a.claim.submission.id
       """)
-  List<Object[]> getAssessedTotalAmounts(@Param("submissionIds") List<UUID> submissionIds);
+  List<AssessedTotalAmountProjection> getAssessedTotalAmounts(
+      @Param("submissionIds") List<UUID> submissionIds);
 }
