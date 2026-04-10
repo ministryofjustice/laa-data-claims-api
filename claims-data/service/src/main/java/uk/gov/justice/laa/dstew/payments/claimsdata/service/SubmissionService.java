@@ -193,14 +193,15 @@ public class SubmissionService
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
             pageable);
 
+    SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
     List<UUID> submissionIds = page.getContent().stream().map(Submission::getId).toList();
 
-    Map<UUID, BigDecimal> assessedTotalAmounts =
-        submissionIds.isEmpty()
-            ? Map.of()
-            : assessmentService.getAssessedTotalAmounts(submissionIds);
+    if (submissionIds.isEmpty()) {
+      return resultSet;
+    }
 
-    SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
+    Map<UUID, BigDecimal> assessedTotalAmounts =
+        assessmentService.getAssessedTotalAmounts(submissionIds);
 
     resultSet
         .getContent()
