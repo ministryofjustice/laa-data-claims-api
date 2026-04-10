@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
@@ -19,6 +20,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -370,5 +372,61 @@ class AssessmentServiceTest {
 
     assertThat(result).isNull();
     verify(assessmentRepository).getAssessedTotalAmount(submissionId);
+  }
+
+  @Test
+  void shouldReturnAssessedTotalAmountsForMultipleSubmissions() {
+    UUID submissionId1 = UUID.randomUUID();
+    UUID submissionId2 = UUID.randomUUID();
+
+    BigDecimal total1 = new BigDecimal("100.50");
+    BigDecimal total2 = new BigDecimal("25.00");
+
+    AssessmentRepository.AssessedTotalAmountProjection projection1 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId1;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total1;
+          }
+        };
+
+    AssessmentRepository.AssessedTotalAmountProjection projection2 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId2;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total2;
+          }
+        };
+
+    when(assessmentRepository.getAssessedTotalAmounts(List.of(submissionId1, submissionId2)))
+        .thenReturn(List.of(projection1, projection2));
+
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(submissionId1)).isEqualByComparingTo("100.50");
+    assertThat(result.get(submissionId2)).isEqualByComparingTo("25.00");
+
+    verify(assessmentRepository).getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+  }
+
+  @Test
+  void shouldReturnEmptyMapWhenSubmissionIdsListIsEmpty() {
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(Collections.emptyList());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(assessmentRepository);
   }
 }
