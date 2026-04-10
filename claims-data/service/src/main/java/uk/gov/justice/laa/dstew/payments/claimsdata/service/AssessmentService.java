@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -24,7 +25,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
-/** Service containing business logic for handling assessments. */
+/**
+ * Service containing business logic for handling assessments.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -96,7 +99,7 @@ public class AssessmentService {
    * {@code claimId}. If no matching assessment is found, an {@link AssessmentNotFoundException} is
    * thrown.
    *
-   * @param claimId the unique identifier of the claim
+   * @param claimId      the unique identifier of the claim
    * @param assessmentId the unique identifier of the assessment
    * @return an {@link AssessmentGet} DTO containing assessment details
    * @throws AssessmentNotFoundException if the assessment does not exist for the given claim
@@ -128,7 +131,7 @@ public class AssessmentService {
    *
    * @param claimId the unique identifier of the claim; must not be {@code null}.
    * @return an {@link AssessmentResultSet} containing all assessments for the claim.
-   * @throws IllegalArgumentException if {@code claimId} is {@code null}.
+   * @throws IllegalArgumentException    if {@code claimId} is {@code null}.
    * @throws AssessmentNotFoundException if no assessments exist for the given claim ID.
    */
   @Transactional(readOnly = true)
@@ -146,9 +149,9 @@ public class AssessmentService {
    * monetary fields are set to zero and common fields are populated using the provided arguments.
    *
    * @param assessmentReason the reason for creating the void assessment
-   * @param claim the associated {@link Claim} instance
-   * @param claimSummaryFee the related {@link ClaimSummaryFee} instance
-   * @param createdByUserId the UUID of the user creating the assessment
+   * @param claim            the associated {@link Claim} instance
+   * @param claimSummaryFee  the related {@link ClaimSummaryFee} instance
+   * @param createdByUserId  the UUID of the user creating the assessment
    * @return a new {@link Assessment} of type VOID
    */
   public Assessment createVoidAssessment(
@@ -198,12 +201,12 @@ public class AssessmentService {
   /**
    * Populates common fields in the given {@link Assessment} based on the provided parameters.
    *
-   * @param assessment the {@link Assessment} to be updated
-   * @param claim the associated {@link Claim} instance
-   * @param claimSummaryFee the related {@link ClaimSummaryFee} instance
-   * @param createdByUserId the ID of the user creating the assessment
+   * @param assessment       the {@link Assessment} to be updated
+   * @param claim            the associated {@link Claim} instance
+   * @param claimSummaryFee  the related {@link ClaimSummaryFee} instance
+   * @param createdByUserId  the ID of the user creating the assessment
    * @param assessmentReason the reason for the assessment
-   * @param assessmentType the type of the assessment (e.g., VOID)
+   * @param assessmentType   the type of the assessment (e.g., VOID)
    */
   protected void setCommonFields(
       Assessment assessment,
@@ -232,14 +235,22 @@ public class AssessmentService {
    *
    * @param submissionId the unique identifier of the submission
    * @return the summed assessed total amount for the submission, or {@code null} if no assessments
-   *     exist ``
+   * exist ``
    */
   public BigDecimal getAssessedTotalAmount(UUID submissionId) {
     return assessmentRepository.getAssessedTotalAmount(submissionId);
   }
 
   public Map<UUID, BigDecimal> getAssessedTotalAmounts(List<UUID> submissionIds) {
-    return assessmentRepository.getAssessedTotalAmounts(submissionIds).stream()
-        .collect(Collectors.toMap(row -> (UUID) row[0], row -> (BigDecimal) row[1]));
+    if (CollectionUtils.isEmpty(submissionIds)) {
+      return Map.of();
+    }
+
+    return assessmentRepository.getAssessedTotalAmounts(submissionIds)
+        .stream()
+        .collect(Collectors.toMap(
+            AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+            AssessmentRepository.AssessedTotalAmountProjection::getTotal
+        ));
   }
 }
