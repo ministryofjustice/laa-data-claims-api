@@ -71,6 +71,7 @@ public class ClaimController implements ClaimsApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  @Deprecated(since = "Apr 1st 2026")
   public ResponseEntity<ClaimResultSet> getClaims(
       String officeCode,
       String submissionId,

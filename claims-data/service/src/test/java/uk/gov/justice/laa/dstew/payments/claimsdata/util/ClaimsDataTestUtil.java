@@ -60,7 +60,7 @@ public class ClaimsDataTestUtil {
   public static final String UNIQUE_CASE_ID = "UC_ID_123";
   public static final String MATTER_TYPE_CODE = "MTC_123";
   public static final Integer LINE_NUMBER = 123;
-  public static final String CASE_REFERENCE = "CASE_123";
+  public static final String CASE_REFERENCE = "CASE-123";
   public static final String SCHEDULE_REFERENCE = "SCH_123";
   public static final String PROCUREMENT_AREA_CODE = "PAC_123";
   public static final String ACCESS_POINT_CODE = "APC_123";
