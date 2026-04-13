@@ -221,11 +221,7 @@ jobs:
   pact-test:
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
     needs:
-      - ecr-publish-image
-      - semgrep-scan
-      - vulnerability-scan-app
-      - vulnerability-scan-docker
-      - sca-scan
+      - build-test
     permissions:
       contents: write
       packages: write
@@ -247,6 +243,10 @@ jobs:
     needs:
       - ecr-publish-image
       - pact-test
+      - semgrep-scan
+      - vulnerability-scan-app
+      - vulnerability-scan-docker
+      - sca-scan
     environment: uat
     permissions:
       id-token: write
