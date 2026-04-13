@@ -3,6 +3,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.runner;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.*;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,7 +14,9 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 class ReplicationSummaryRunnerTest {
@@ -161,5 +167,67 @@ class ReplicationSummaryRunnerTest {
             any(),
             any(),
             any());
+  }
+
+  @Test
+  void run_shouldPropagateDataAccessExceptionAndLog() {
+    // Arrange: jdbcTemplate throws a DataAccessException when querying tables
+    DataAccessResourceFailureException dae = new DataAccessResourceFailureException("DB down");
+    when(jdbcTemplate.queryForList(anyString())).thenThrow(dae);
+
+    // attach list appender to capture logs
+    Logger logger = (Logger) LoggerFactory.getLogger(ReplicationSummaryRunner.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    logger.addAppender(listAppender);
+
+    // Act & Assert: exception is propagated
+    org.junit.jupiter.api.Assertions.assertThrows(
+        DataAccessResourceFailureException.class,
+        () -> runner.run(mock(ApplicationArguments.class)));
+
+    // Verify an error log was emitted
+    boolean foundError =
+        listAppender.list.stream()
+            .anyMatch(
+                e ->
+                    e.getLevel().equals(Level.ERROR)
+                        && e.getFormattedMessage().contains("Database access error"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        foundError, "Expected an ERROR log for DataAccessException");
+
+    // cleanup
+    logger.detachAppender(listAppender);
+  }
+
+  @Test
+  void run_shouldPropagateUnexpectedExceptionAndLog() {
+    // Arrange: jdbcTemplate throws a generic runtime exception
+    RuntimeException rte = new RuntimeException("boom");
+    when(jdbcTemplate.queryForList(anyString())).thenThrow(rte);
+
+    // attach list appender to capture logs
+    Logger logger = (Logger) LoggerFactory.getLogger(ReplicationSummaryRunner.class);
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    logger.addAppender(listAppender);
+
+    // Act & Assert: runtime exception is propagated
+    org.junit.jupiter.api.Assertions.assertThrows(
+        RuntimeException.class, () -> runner.run(mock(ApplicationArguments.class)));
+
+    // Verify an error log was emitted for unexpected error
+    boolean foundError =
+        listAppender.list.stream()
+            .anyMatch(
+                e ->
+                    e.getLevel().equals(Level.ERROR)
+                        && e.getFormattedMessage()
+                            .contains("Unexpected error while updating replication summary"));
+    org.junit.jupiter.api.Assertions.assertTrue(
+        foundError, "Expected an ERROR log for unexpected exception");
+
+    // cleanup
+    logger.detachAppender(listAppender);
   }
 }
