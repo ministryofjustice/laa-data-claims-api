@@ -2,9 +2,11 @@
   Define environment variables that can be "included" in deployment.yaml
 */}}
 {{- define "dbConnectionDetails" }}
+{{- $database := .Values.database | default dict }}
+{{- $databaseName := $database.name | default "" }}
 - name: DB_NAME
-{{- if and .Values.database.name (ne .Values.database.name "main") }}
-  value: {{ .Values.database.name | quote }}
+{{- if and $databaseName (ne $databaseName "main") }}
+  value: {{ $databaseName | quote }}
 {{- else }}
   valueFrom:
     secretKeyRef:
