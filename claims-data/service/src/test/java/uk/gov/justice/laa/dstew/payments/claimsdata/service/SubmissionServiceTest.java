@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -304,14 +306,20 @@ class SubmissionServiceTest {
 
   @Test
   void getSubmissionsResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
-    Page<Submission> resultPage = new PageImpl<>(Collections.singletonList(new Submission()));
+    var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
+    var submission = new Submission();
+    submission.setId(submissionBase.getSubmissionId());
+    Page<Submission> resultPage = new PageImpl<>(Collections.singletonList(submission));
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new SubmissionsResultSet().content(Collections.singletonList(new SubmissionBase()));
+        new SubmissionsResultSet().content(Collections.singletonList(submissionBase));
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(expectedNonEmptyResultSet);
+    when(assessmentService.getAssessedTotalAmounts(
+            Collections.singletonList(submissionBase.getSubmissionId())))
+        .thenReturn(Map.of(submissionBase.getSubmissionId(), new BigDecimal("123.40")));
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -324,8 +332,13 @@ class SubmissionServiceTest {
             SUBMISSION_STATUSES,
             Pageable.ofSize(10).withPage(0));
 
-    assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+    assertThat(actualResultSet.getContent().get(0).getSubmissionId())
+        .isEqualTo(submissionBase.getSubmissionId());
+    assertThat(actualResultSet.getContent().get(0).getAssessedTotalAmount())
+        .isEqualTo(new BigDecimal("123.40"));
+    verify(assessmentService)
+        .getAssessedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
   }
 
   @Test
@@ -352,6 +365,7 @@ class SubmissionServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedEmptyResultSet);
     assertThat(actualResultSet.getContent()).isEmpty();
+    verifyNoInteractions(assessmentService);
   }
 
   @DisplayName("Should call findAll with  Specification area of law and submission period")
@@ -378,6 +392,7 @@ class SubmissionServiceTest {
     verify(submissionRepository)
         .findAll(
             submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+    verifyNoInteractions(assessmentService);
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
   }
