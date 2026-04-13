@@ -113,7 +113,7 @@ logging:
     ecs:
       service:
         name: ${spring.application.name:default}
-        version: ${spring.application.version:default}
+        version: ${application.version}
         environment: ${spring.profiles.active:default}
         node_name: ${HOSTNAME:unknown}
 
