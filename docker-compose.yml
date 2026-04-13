@@ -21,6 +21,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=dummy-access-key
       - AWS_ENDPOINT_URL=http://host.docker.internal:4566
       - AWS_SQS_ENDPOINT=http://host.docker.internal:4566
+      - SPRING_PROFILES_ACTIVE=local
     depends_on:
       - postgres
   postgres:
