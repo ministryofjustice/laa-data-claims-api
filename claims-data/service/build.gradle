@@ -12,14 +12,6 @@ def versions = [
         testcontainers: '1.20.1'
 ]
 
-processResources {
-    filesMatching('application.yml') {
-        filter {
-            it.replace('@version@', version)
-        }
-    }
-}
-
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
