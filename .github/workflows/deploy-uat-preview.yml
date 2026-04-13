@@ -166,6 +166,38 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+  helm-template-check:
+    runs-on: ubuntu-latest
+    needs:
+      - build-test
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - uat
+          - staging
+          - production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Render chart for ${{ matrix.environment }}
+        run: |
+          helm template laa-data-claims-api .helm/data-claims-api \
+            --namespace test \
+            --values .helm/data-claims-api/values/${{ matrix.environment }}.yaml \
+            --set replicationSummary.schedule="0 1 * * *" \
+            --set image.repository="example/repo" \
+            --set image.tag="test-tag" \
+            --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="127.0.0.1/32" \
+            --set spring.profile="main" \
+            --set aws.region="eu-west-2" \
+            --set database.name="testdb" \
+            --set namespace="test"
+
   ecr-publish-image:
     needs:
       - build-test
@@ -189,11 +221,7 @@ jobs:
   pact-test:
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@dc4173bfc12f714d7e8cbdd9f524d00ef02e25c4 # v2
     needs:
-      - ecr-publish-image
-      - semgrep-scan
-      - vulnerability-scan-app
-      - vulnerability-scan-docker
-      - sca-scan
+      - build-test
     permissions:
       contents: write
       packages: write
@@ -215,6 +243,10 @@ jobs:
     needs:
       - ecr-publish-image
       - pact-test
+      - semgrep-scan
+      - vulnerability-scan-app
+      - vulnerability-scan-docker
+      - sca-scan
     environment: uat
     permissions:
       id-token: write
