@@ -195,7 +195,6 @@ jobs:
             --set ingress.annotations."nginx\.ingress\.kubernetes\.io/whitelist-source-range"="127.0.0.1/32" \
             --set spring.profile="main" \
             --set aws.region="eu-west-2" \
-            --set database.name="testdb" \
             --set namespace="test"
 
   ecr-publish-image:
