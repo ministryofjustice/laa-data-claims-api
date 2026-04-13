@@ -149,12 +149,13 @@ class SubmissionServiceTest {
     when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
     when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
     when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
-    when(assessmentService.getAssessedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
+    when(assessmentService.getAssessedTotalAmount(SUBMISSION_ID))
+        .thenReturn(new BigDecimal("0.00"));
 
     SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
 
     assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
-    assertThat(result.getAssessedTotalAmount()).isEqualTo(BigDecimal.ZERO);
+    assertThat(result.getAssessedTotalAmount()).isEqualTo(new BigDecimal("0.00"));
   }
 
   @Test

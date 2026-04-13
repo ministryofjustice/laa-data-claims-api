@@ -22,8 +22,8 @@ class BigDecimalUtilsTest {
   private static Stream<Arguments> scaleNullableCases() {
     return Stream.of(
         Arguments.of(null, 2, null),
-        Arguments.of(BigDecimal.ZERO, 2, BigDecimal.ZERO),
-        Arguments.of(new BigDecimal("0.000"), 2, BigDecimal.ZERO),
+        Arguments.of(BigDecimal.ZERO, 2, new BigDecimal("0.00")),
+        Arguments.of(new BigDecimal("0.000"), 2, new BigDecimal("0.00")),
         Arguments.of(new BigDecimal("12.345"), 2, new BigDecimal("12.35")),
         Arguments.of(new BigDecimal("12.344"), 2, new BigDecimal("12.34")));
   }

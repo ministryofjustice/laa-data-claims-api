@@ -24,23 +24,16 @@ public final class BigDecimalUtils {
    *
    * <ul>
    *   <li>If {@code amount} is {@code null}, this method returns {@code null}.
-   *   <li>If {@code amount} is numerically zero (e.g., 0, 0.0, 0.000), the method returns {@link
-   *       BigDecimal#ZERO} without applying scaling.
    *   <li>Otherwise, the value is scaled to the specified {@code scale} using HALF_UP rounding.
    * </ul>
    *
    * @param amount the value to scale; may be {@code null}
    * @param scale the number of decimal places to apply when scaling
-   * @return the scaled {@code BigDecimal}, {@code null}, or {@code BigDecimal.ZERO}
+   * @return the scaled {@code BigDecimal}, {@code null}
    */
   public static BigDecimal scaleNullable(BigDecimal amount, int scale) {
-    if (amount == null) {
-      return null;
-    }
-    if (amount.compareTo(BigDecimal.ZERO) == 0) {
-      return BigDecimal.ZERO;
-    }
-    return amount.setScale(scale, RoundingMode.HALF_UP);
+
+    return amount == null ? null : amount.setScale(scale, RoundingMode.HALF_UP);
   }
 
   /**
