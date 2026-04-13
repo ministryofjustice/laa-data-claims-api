@@ -112,7 +112,7 @@ logging:
       console: ecs
     ecs:
       service:
-        name: ${spring.application.name:default}
+        name: LAA Data Stewardship Payments - Claims Data Application
         version: ${application.version}
         environment: ${spring.profiles.active:default}
         node_name: ${HOSTNAME:unknown}
