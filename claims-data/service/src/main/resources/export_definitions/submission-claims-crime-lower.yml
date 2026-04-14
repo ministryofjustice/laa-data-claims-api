@@ -60,6 +60,45 @@ sql: |
   left join claims.claim_case claim_case on claim_case.claim_id = c.id
   left join claims.claim_summary_fee csf on csf.claim_id = c.id
   left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+  left join (
+  select distinct on (assess.claim_id)
+    assess.claim_id                           as assessmentClaimId,
+    assess.outcome                            as assessmentOutcome,
+    assess.assessment_type                    as assessmentType,
+    assess.reason                             as assessmentReason,
+    assess.created_on::date                   as assessmentDate,
+    asstotals.fixed_fee_amount                as assessmentFixedFeeAmount,
+    asstotals.net_profit_costs_amount         as assessmentNetProfitCostsAmount,
+    asstotals.disbursement_amount             as assessmentDisbursementAmount,
+    asstotals.disbursement_vat_amount         as assessmentDisbursementVatAmount,
+    asstotals.net_cost_of_counsel_amount      as assessmentNetCostOfCounselAmount,
+    asstotals.net_travel_costs_amount         as assessmentNetTravelCostsAmount,
+    asstotals.net_waiting_costs_amount        as assessmentNetWaitingCostsAmount,
+    assess.is_vat_applicable                  as assessmentVatIndicator,
+    asstotals.assessed_total_vat              as assessmentTotalVat,
+    asstotals.allowed_total_incl_vat          as assessmentTotalIncVat,
+  coalesce(
+    asstotals.allowed_total_incl_vat,
+  case
+    when cfd.total_amount ~ '^[0-9]+(\\.[0-9]{1,2})?$'
+    then round(cfd.total_amount::numeric, 2)
+    else null
+  end 
+  )                                           as finalClaimValue,
+  coalesce(
+    asstotals.assessed_total_vat,
+  case
+    when cfd.calculated_vat_amount ~ '^[0-9]+(\\.[0-9]{1,2})?$'
+    then round(cfd.calculated_vat_amount::numeric, 2)
+    else null
+  end 
+  )                                           as finalClaimValueVat
+  from claims.assessment assess
+  left join claims.assessment_totals asstotals
+  on asstotals.assessment_id = assess.id
+  order by assess.claim_id, assess.created_on desc, assess.id desc
+  ) ass on assess.assessmentClaimId = c.id
+
   where s.id = :submissionId
     and s.office_account_number = :office
     and s.area_of_law = 'CRIME_LOWER'
@@ -167,6 +206,38 @@ columns:
     header: Calculated Fee Detail - Travel And Waiting Costs Amount
   - key: feeDetailEscapeCaseFlag
     header: Calculated Fee Detail - Escape Case Flag
+  - key: assessmentOutcome
+    header: Assessment - Outcome
+  - key: assessmentType
+    header: Assessment - Type
+  - key: assessmentReason
+    header: Assessment - Reason
+  - key: assessmentDate
+    header: Assessment - Date
+  - key: assessmentFixedFeeAmount
+    header: Assessment - Fixed Fee Amount
+  - key: assessmentNetProfitCostsAmount
+    header: Assessment - Net Profit Costs Amount
+  - key: assessmentDisbursementAmount
+    header: Assessment - Disbursement Amount
+  - key: assessmentDisbursementVatAmount
+    header: Assessment - Disbursement VAT Amount
+  - key: assessmentNetCostOfCounselAmount
+    header: Assessment - Net Cost Of Counsel Amount
+  - key: assessmentNetTravelCostsAmount
+    header: Assessment - Net Travel Costs Amount
+  - key: assessmentNetWaitingCostsAmount
+    header: Assessment - Net Waiting Costs Amount
+  - key: assessmentVatIndicator
+    header: Assessment - VAT Indicator
+  - key: assessmentTotalVat
+    header: Assessment - Total VAT
+  - key: assessmentTotalIncVat
+    header: Assessment - Total Inc VAT
+  - key: finalClaimValueVat
+    header: Assessment Totals - Final Claim Value VAT
+  - key: finalClaimValue
+    header: Assessment Totals - Final Claim Value
 params:
   - name: submissionId
     requestName: submission-id
