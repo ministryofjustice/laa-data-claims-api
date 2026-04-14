@@ -180,16 +180,22 @@ class ClaimValidationServiceTest {
   // Assessment Type Tests
   // =====================================================
   @Test
+  void shouldThrowWhenAssessmentTypeIsNull() {
+    assertThatThrownBy(() -> validationService.validateAssessmentType(null))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("assessmentType must be provided");
+  }
+
+  @Test
   void shouldThrowWhenAssessmentTypeIsVoid() {
-    assertThatThrownBy(() -> validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.VOID))
+    assertThatThrownBy(() -> validationService.validateAssessmentType(AssessmentType.VOID))
         .isInstanceOf(ClaimBadRequestException.class);
   }
 
   @Test
   void shouldNotThrowForOtherAssessmentTypes() {
     assertDoesNotThrow(
-        () ->
-            validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.ESCAPE_CASE_ASSESSMENT));
+        () -> validationService.validateAssessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT));
   }
 
   // =====================================================
