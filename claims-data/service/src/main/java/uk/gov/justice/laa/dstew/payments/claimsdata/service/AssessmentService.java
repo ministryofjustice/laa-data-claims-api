@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
+
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
@@ -123,22 +126,21 @@ public class AssessmentService {
    * <ul>
    *   <li>Validates that the provided {@code claimId} is not null.
    *   <li>Fetches assessments from the repository ordered by creation date (descending).
-   *   <li>If no assessments are found, throws {@link AssessmentNotFoundException}.
    *   <li>Maps the list of assessments to an {@link AssessmentResultSet} using the mapper.
    * </ul>
    *
    * @param claimId the unique identifier of the claim; must not be {@code null}.
    * @return an {@link AssessmentResultSet} containing all assessments for the claim.
    * @throws IllegalArgumentException if {@code claimId} is {@code null}.
-   * @throws AssessmentNotFoundException if no assessments exist for the given claim ID.
+   * @throws ClaimNotFoundException if no claim exists for the given claim ID.
    */
   @Transactional(readOnly = true)
   public AssessmentResultSet getAssessmentsByClaimId(@NotNull UUID claimId, Pageable pageable) {
-    var assessments = assessmentRepository.findByClaimId(claimId, pageable);
-    if (assessments.isEmpty()) {
-      throw new AssessmentNotFoundException(
-          String.format("No assessments found for claimId: %s", claimId));
+    if (!claimRepository.existsById(claimId)) {
+      throw new ClaimNotFoundException(String.format(NO_CLAIM_FOUND_WITH_ID_ERROR, claimId));
     }
+
+    var assessments = assessmentRepository.findByClaimId(claimId, pageable);
     return assessmentMapper.toAssessmentResultSet(assessments);
   }
 
