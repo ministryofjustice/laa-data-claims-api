@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
@@ -260,6 +261,7 @@ class AssessmentServiceTest {
             .assessments(List.of(new AssessmentGet().claimId(CLAIM_1_ID)))
             .totalElements(1);
 
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(true);
     when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class))).thenReturn(page);
     when(assessmentMapper.toAssessmentResultSet(page)).thenReturn(results);
 
@@ -272,14 +274,29 @@ class AssessmentServiceTest {
   }
 
   @Test
-  void shouldThrowExceptionWhenAssessmentsEmpty() {
-    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class)))
-        .thenReturn(new PageImpl<>(Collections.emptyList()));
+  void shouldReturnEmptyResultSetWhenAssessmentsEmpty() {
+    var page = new PageImpl<Assessment>(List.of());
+    var results = AssessmentResultSet.builder().assessments(List.of()).totalElements(0).build();
+
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(true);
+    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class))).thenReturn(page);
+    when(assessmentMapper.toAssessmentResultSet(page)).thenReturn(results);
+
+    AssessmentResultSet result =
+        assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged());
+
+    assertThat(result).isNotNull();
+    assertThat(result.getAssessments()).hasSize(0);
+  }
+
+  @Test
+  void shouldThrowExceptionWhenClaimNotFound() {
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(false);
 
     assertThatThrownBy(
             () -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
-        .isInstanceOf(AssessmentNotFoundException.class)
-        .hasMessageContaining("No assessments found for claimId");
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(CLAIM_1_ID));
   }
 
   @Test
