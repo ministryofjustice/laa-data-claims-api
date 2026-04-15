@@ -61,7 +61,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Submission Month")).isEqualTo("JAN-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("LEGAL_HELP");
     assertThat(firstRow.get("Fee Code")).isEqualTo("FEE_123");
-    assertThat(firstRow.get("Case Reference Number")).isEqualTo("CASE_123");
+    assertThat(firstRow.get("Case Reference Number")).isEqualTo("CASE-123");
     assertThat(firstRow.get("Client Forename")).isEqualTo("Alice");
     assertThat(firstRow.get("Client Surname")).isEqualTo("Smith");
     assertThat(firstRow.get("Case ID")).isEqualTo("CASE_ID_1");

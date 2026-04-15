@@ -436,9 +436,10 @@ paths:
         - name: case_reference_number
           in: query
           required: false
+          allowEmptyValue: false
           schema:
             type: string
-          description: Filter by case reference number
+          description: Filter by case reference number. On this filter a case-insensitive partial match that requires a minimum of 3 characters is performed.
         - name: escaped_case_flag
           in: query
           schema:

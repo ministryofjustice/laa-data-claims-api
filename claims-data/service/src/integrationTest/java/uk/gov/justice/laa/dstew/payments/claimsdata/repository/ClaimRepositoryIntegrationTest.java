@@ -66,7 +66,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
                 "unique-case-id",
                 List.of(ClaimStatus.INVALID),
                 "APR-2024",
-                "CASE_123"),
+                "CASE-123"),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getContent()).isEmpty();
@@ -256,6 +256,6 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             null,
             null),
         Arguments.of("office2", null, null, null, null, null, null, null, "APR-2024", null),
-        Arguments.of("office2", null, null, null, null, null, null, null, null, "CASE_123"));
+        Arguments.of("office2", null, null, null, null, null, null, null, null, "CASE-123"));
   }
 }

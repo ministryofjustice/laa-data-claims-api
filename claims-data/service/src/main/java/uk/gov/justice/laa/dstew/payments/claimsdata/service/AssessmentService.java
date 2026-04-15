@@ -2,12 +2,16 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -41,8 +45,8 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-
     claimValidationService.validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateAssessmentReason(request.getAssessmentReason());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
     ClaimSummaryFee claimSummaryFee =
@@ -233,5 +237,32 @@ public class AssessmentService {
    */
   public BigDecimal getAssessedTotalAmount(UUID submissionId) {
     return assessmentRepository.getAssessedTotalAmount(submissionId);
+  }
+
+  /**
+   * Returns assessed total amounts for the given submissions.
+   *
+   * <p>For each submission ID provided, this method retrieves the summed {@code
+   * assessedTotalInclVat} from the latest assessment for each claim belonging to that submission.
+   * If the input list is {@code null} or empty, this method returns an empty map.
+   *
+   * <p>The returned map is keyed by submission ID, with each value representing the assessed total
+   * amount for that submission. Submissions with no assessments will not be present in the returned
+   * map.
+   *
+   * @param submissionIds the unique identifiers of the submissions
+   * @return a map of submission IDs to assessed total amounts, or an empty map if the input is
+   *     {@code null} or empty
+   */
+  public Map<UUID, BigDecimal> getAssessedTotalAmounts(List<UUID> submissionIds) {
+    if (CollectionUtils.isEmpty(submissionIds)) {
+      return Map.of();
+    }
+
+    return assessmentRepository.getAssessedTotalAmounts(submissionIds).stream()
+        .collect(
+            Collectors.toMap(
+                AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                AssessmentRepository.AssessedTotalAmountProjection::getTotal));
   }
 }
