@@ -1,0 +1,1 @@
+--Dummy migration script to test the github comment action.

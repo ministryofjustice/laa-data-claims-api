@@ -1,0 +1,81 @@
+# This GitHub Action workflow checks for Flyway migration scripts in pull requests and posts a comment if any are found, reminding developers to assess the impact on replication.
+name: Flyway Migration Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-flyway-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Step 2: Check for Flyway migration files in the PR
+      - name: Check for Flyway migration files
+        id: check-flyway
+        run: |
+          # List changed files in the PR
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          
+          # Look for Flyway migration files (adjust pattern as necessary)
+          echo "$CHANGED_FILES" | grep -qE "resources/db/.*/.*\.sql$" && echo "flyway_found=true" >> $GITHUB_ENV || echo "flyway_found=false" >> $GITHUB_ENV
+
+
+      # Step 3: Create or update PR comment
+      - name: Create or update PR comment
+        if: env.flyway_found == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const marker = "<!-- flyway-migration-check -->";
+
+            const commentBody = `${marker}
+            🚨 **Flyway migration scripts detected**
+
+            Please assess their impact on replication:
+
+            1. Ensure that you have mentioned the migration version in the Confluence page titled *Flyway Migration History*
+            2. Check if the migration scripts include any changes to tables that are replicated or need to be replicated
+            3. Assess if the changes will impact or break replication — if unsure, discuss with the Data Stewardship Developers
+            4. If replication is impacted, coordinate with the GLAD team to update the reporting DB accordingly
+            `;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            // Get existing comments
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+            });
+
+            // Look for an existing comment with our marker
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes(marker)
+            );
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body: commentBody,
+              });
+              console.log("Updated existing Flyway comment.");
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: commentBody,
+              });
+              console.log("Created new Flyway comment.");
+            }
