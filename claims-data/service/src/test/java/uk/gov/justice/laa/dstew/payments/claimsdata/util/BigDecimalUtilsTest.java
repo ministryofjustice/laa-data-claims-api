@@ -30,16 +30,17 @@ class BigDecimalUtilsTest {
 
   @DisplayName("Scale Or Zero Tests")
   @ParameterizedTest(name = "[{index}] amount={0}, scale={1} → expected={2}")
-  @MethodSource("scaleOrZeroCases")
-  void scaleOrZero_shouldBehaveAsExpected(BigDecimal amount, int scale, BigDecimal expected) {
-    assertThat(BigDecimalUtils.scaleOrZero(amount, scale)).isEqualTo(expected);
+  @MethodSource("scaleOrZeroWithScaleCases")
+  void scaleOrZero_WithScale_shouldBehaveAsExpected(
+      BigDecimal amount, int scale, BigDecimal expected) {
+    assertThat(BigDecimalUtils.scaleOrZeroWithScale(amount, scale)).isEqualTo(expected);
   }
 
-  private static Stream<Arguments> scaleOrZeroCases() {
+  private static Stream<Arguments> scaleOrZeroWithScaleCases() {
     return Stream.of(
-        Arguments.of(null, 2, BigDecimal.ZERO),
-        Arguments.of(BigDecimal.ZERO, 2, BigDecimal.ZERO),
-        Arguments.of(new BigDecimal("0.000"), 2, BigDecimal.ZERO),
+        Arguments.of(null, 2, new BigDecimal("0.00")),
+        Arguments.of(BigDecimal.ZERO, 2, new BigDecimal("0.00")),
+        Arguments.of(new BigDecimal("0.000"), 2, new BigDecimal("0.00")),
         Arguments.of(new BigDecimal("99.995"), 2, new BigDecimal("100.00")),
         Arguments.of(new BigDecimal("99.994"), 2, new BigDecimal("99.99")));
   }
