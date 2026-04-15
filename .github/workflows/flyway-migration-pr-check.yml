@@ -39,10 +39,10 @@ jobs:
 
             Please assess their impact on replication:
 
-            1. Ensure that you have mentioned the migration version in the Confluence page titled *Flyway Migration History*
+            1. Ensure that you have mentioned the migration version in the Confluence page [Flyway Migration History] (https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5866160240/Flyway+migration+history)
             2. Check if the migration scripts include any changes to tables that are replicated or need to be replicated
-            3. Assess if the changes will impact or break replication — if unsure, discuss with the Data Stewardship Developers (see the Confluence page titled "Data Replication for Reporting Service")
-            4. If replication is impacted, coordinate with the GLAD team to update the reporting DB accordingly
+            3. Assess if the changes will impact or break replication — if unsure, discuss with the Data Stewardship Developers (see the page [Data Replication for Reporting Service] (https://dsdmoj.atlassian.net/wiki/spaces/WHCZA/pages/5967873259/Data+Replication+for+Reporting+Service) for details )
+            4. If replication is impacted, coordinate with the GLAD team to update the reporting DB accordingly (via the Slack channel #laa-bulkclaim-reporting or Slack alias @glad-devs) 
             `;
 
             const { owner, repo } = context.repo;
