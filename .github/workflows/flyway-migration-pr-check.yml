@@ -5,10 +5,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-  permissions:
-    contents: read
-    pull-requests: write
-    issues: write
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   check-flyway-migrations:
@@ -26,7 +26,7 @@ jobs:
         run: |
           # List changed files in the PR
           CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
-          
+
           # Look for Flyway migration files (adjust pattern as necessary)
           echo "$CHANGED_FILES" | grep -qE "resources/db/.*/.*\.sql$" && echo "flyway_found=true" >> $GITHUB_ENV || echo "flyway_found=false" >> $GITHUB_ENV
 
