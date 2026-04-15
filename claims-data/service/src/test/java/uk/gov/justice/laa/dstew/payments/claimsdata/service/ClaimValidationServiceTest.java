@@ -192,10 +192,13 @@ class ClaimValidationServiceTest {
         .isInstanceOf(ClaimBadRequestException.class);
   }
 
-  @Test
-  void shouldNotThrowForOtherAssessmentTypes() {
-    assertDoesNotThrow(
-        () -> validationService.validateAssessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT));
+  @ParameterizedTest
+  @EnumSource(
+      value = AssessmentType.class,
+      names = {"VOID"},
+      mode = EnumSource.Mode.EXCLUDE)
+  void shouldNotThrowForNonVoidAssessmentTypes(AssessmentType type) {
+    assertDoesNotThrow(() -> validationService.validateAssessmentType(type));
   }
 
   // =====================================================

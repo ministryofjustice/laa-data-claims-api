@@ -2109,6 +2109,11 @@ components:
         - ESCAPE_CASE_ASSESSMENT
         - STAGE_DISBURSEMENT_ASSESSMENT
         - VOID
+      description: |
+        The type of assessment being performed on a claim.
+        - ESCAPE_CASE_ASSESSMENT: Assessment for claims that have escaped the fixed fee threshold.
+        - STAGE_DISBURSEMENT_ASSESSMENT: Assessment for stage disbursement claims.
+        - VOID: Used when voiding a previously submitted assessment.
     assessment_base:
       type: object
       properties:
