@@ -55,7 +55,7 @@ public class AssessmentService {
     ClaimSummaryFee claimSummaryFee =
         claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 
-    claimValidationService.ensureAssessmentTypeIsNotVoid(request.getAssessmentType());
+    claimValidationService.validateAssessmentType(request.getAssessmentType());
     updateClaimAssessmentStatus(claim);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
@@ -66,7 +66,7 @@ public class AssessmentService {
         claimSummaryFee,
         request.getCreatedByUserId(),
         request.getAssessmentReason(),
-        AssessmentType.ESCAPE_CASE_ASSESSMENT);
+        request.getAssessmentType());
 
     return assessmentRepository.save(assessment).getId();
   }
