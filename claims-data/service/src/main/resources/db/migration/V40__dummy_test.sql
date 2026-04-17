@@ -1,1 +1,0 @@
--- Dummy migration to test the new github action.
