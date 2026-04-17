@@ -80,6 +80,7 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
+    implementation 'org.springframework.boot:spring-boot-micrometer-tracing-brave'
 
     compileOnly 'org.projectlombok:lombok:1.18.44'
     annotationProcessor 'org.projectlombok:lombok:1.18.44'
