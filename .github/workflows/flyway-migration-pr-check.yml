@@ -3,7 +3,7 @@ name: Flyway Migration Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -84,3 +84,16 @@ jobs:
               });
               console.log("Created new Flyway comment.");
             }
+
+      # Step 4: Fail the check if migrations found and override label is not present
+      - name: Require label override for migrations
+        if: env.flyway_found == 'true'
+        env:
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          if echo "$LABELS" | grep -q "flyway-migration-reviewed"; then
+            echo "Override label 'flyway-migration-reviewed' is present. Check passes."
+          else
+            echo "❌ Flyway migrations found. Review them as per the instructions in the PR comment and add the 'flyway-migration-reviewed' label to this PR to override this check."
+            exit 1
+          fi
