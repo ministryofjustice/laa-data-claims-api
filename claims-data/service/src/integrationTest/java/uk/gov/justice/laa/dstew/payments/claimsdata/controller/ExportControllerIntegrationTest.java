@@ -6,9 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ExportTestUtil.assertCsvHeadersMatchDefinition;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ExportTestUtil.firstDataRowByHeader;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -49,6 +52,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void exportsLegalHelpCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
+    createAssessmentDataForClaimAndSummaryFeeId(CLAIM_1_ID, CLAIM_1_SUMMARY_FEE_ID);
     MvcResult response =
         exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
 
@@ -66,6 +70,14 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Client Surname")).isEqualTo("Smith");
     assertThat(firstRow.get("Case ID")).isEqualTo("CASE_ID_1");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("DISB_ONLY");
+    assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
+    assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")))
+        .isEqualByComparingTo(new BigDecimal("300.00"));
+    assertThat(new BigDecimal(firstRow.get("Assessment - JR Form Filling Amount")))
+        .isEqualByComparingTo(new BigDecimal("99.99"));
+    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
+        .isEqualByComparingTo(new BigDecimal("240.00"));
   }
 
   @Test
@@ -116,6 +128,10 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Mediation fee detail");
+    assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
+    assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
+        .isEqualByComparingTo("240.00");
   }
 
   @ParameterizedTest

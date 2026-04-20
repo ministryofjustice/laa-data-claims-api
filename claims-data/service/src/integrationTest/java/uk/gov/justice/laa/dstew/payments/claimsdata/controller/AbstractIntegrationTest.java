@@ -546,6 +546,8 @@ public abstract class AbstractIntegrationTest {
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
             .assessmentReason("Reason for assessment")
             .createdOn(Instant.now().minusSeconds(60))
+            .allowedTotalVat(new BigDecimal("100.00"))
+            .allowedTotalInclVat(new BigDecimal("120.00"))
             .build();
     Assessment assessment2 =
         getAssessmentBuilder()
@@ -554,6 +556,8 @@ public abstract class AbstractIntegrationTest {
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
             .assessmentReason("Reason for assessment")
+            .allowedTotalVat(new BigDecimal("200.00"))
+            .allowedTotalInclVat(new BigDecimal("240.00"))
             .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
@@ -564,8 +568,35 @@ public abstract class AbstractIntegrationTest {
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
             .assessmentReason("Reason for assessment")
             .createdOn(Instant.now().minusSeconds(60))
+            .allowedTotalVat(new BigDecimal("100.00"))
+            .allowedTotalInclVat(new BigDecimal("120.00"))
             .build();
     assessmentRepository.saveAll(List.of(assessment1, assessment2, assessment3));
+  }
+
+  protected void createAssessmentDataForClaimAndSummaryFeeId(UUID claimId, UUID claimSummaryFeeId) {
+    assessmentRepository.saveAll(
+        List.of(
+            getAssessmentBuilder()
+                .claim(claimRepository.getReferenceById(claimId))
+                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .assessmentReason("Older generic assessment")
+                .createdOn(CREATED_ON.plusSeconds(30))
+                .allowedTotalVat(new BigDecimal("100.00"))
+                .allowedTotalInclVat(new BigDecimal("120.00"))
+                .build(),
+            getAssessmentBuilder()
+                .claim(claimRepository.getReferenceById(claimId))
+                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .assessmentReason("Latest generic assessment")
+                .createdOn(CREATED_ON.plusSeconds(60))
+                .allowedTotalVat(new BigDecimal("200.00"))
+                .allowedTotalInclVat(new BigDecimal("240.00"))
+                .detentionTravelAndWaitingCostsAmount(new BigDecimal("300.00")) // legal help
+                .jrFormFillingAmount(new BigDecimal("99.99")) // legal help
+                .build()));
   }
 
   protected void seedBulkSubmissionsData() {
@@ -696,7 +727,6 @@ public abstract class AbstractIntegrationTest {
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
                 .build()));
-
     return submissionId;
   }
 
@@ -818,7 +848,7 @@ public abstract class AbstractIntegrationTest {
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
                 .build()));
-
+    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId);
     return submissionId;
   }
 

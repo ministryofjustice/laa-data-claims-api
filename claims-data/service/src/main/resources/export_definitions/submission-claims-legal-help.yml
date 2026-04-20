@@ -431,7 +431,7 @@ columns:
   - key: finalClaimValueVat
     header: Assessment - Final Claim Value VAT
   - key: finalClaimValue
-    header: Assessment  - Final Claim Value
+    header: Assessment - Final Claim Value
 params:
   - name: submissionId
     requestName: submission-id
