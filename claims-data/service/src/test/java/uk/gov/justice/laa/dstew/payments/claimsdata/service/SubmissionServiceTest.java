@@ -393,9 +393,10 @@ class SubmissionServiceTest {
         SUBMISSION_STATUSES,
         Pageable.ofSize(10).withPage(0));
 
+    // Service always appends id as tie-breaker sort
+    Pageable expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
     verify(submissionRepository)
-        .findAll(
-            submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+        .findAll(submissionSpecificationArgumentCaptor.capture(), eq(expectedPageable));
     verifyNoInteractions(assessmentService);
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
@@ -406,9 +407,13 @@ class SubmissionServiceTest {
       strings = {"createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status"})
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
+    // Service appends a secondary sort by id using the same direction as the primary sort
+    Pageable expectedPageable =
+        PageRequest.of(
+            0, 10, Sort.by(Sort.Direction.ASC, sortField).and(Sort.by(Sort.Direction.ASC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
-    when(submissionRepository.findAll(any(Specification.class), eq(pageableWithSort)))
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
         .thenReturn(resultPage);
     when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
         .thenReturn(new SubmissionsResultSet());
@@ -423,7 +428,61 @@ class SubmissionServiceTest {
         SUBMISSION_STATUSES,
         pageableWithSort);
 
-    verify(submissionRepository).findAll(any(Specification.class), eq(pageableWithSort));
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortIsDescending_tieBreakerShouldAlsoBeDescending() {
+    Pageable pageableWithDescSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdOn"));
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.DESC, "createdOn").and(Sort.by(Sort.Direction.DESC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithDescSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_alwaysAppendsTieBreakerSortById() {
+    Pageable unorderedPageable = Pageable.ofSize(10).withPage(0);
+    // No primary sort, so tie-breaker defaults to ASC
+    Pageable expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        unorderedPageable);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
   }
 
   @Test

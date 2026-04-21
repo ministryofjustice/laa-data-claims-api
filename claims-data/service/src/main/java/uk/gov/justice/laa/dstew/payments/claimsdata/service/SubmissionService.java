@@ -12,7 +12,9 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -186,18 +188,7 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
-    pageable
-        .getSort()
-        .forEach(
-            order -> {
-              if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-                throw new SubmissionBadRequestException(
-                    "Invalid sort field: '"
-                        + order.getProperty()
-                        + "'. Allowed fields: "
-                        + ALLOWED_SORT_FIELDS);
-              }
-            });
+    Pageable stablePageable = toStablePageable(pageable);
 
     Page<Submission> page =
         submissionRepository.findAll(
@@ -208,7 +199,7 @@ public class SubmissionService
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
                 .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod))
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
-            pageable);
+            stablePageable);
 
     SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
     List<UUID> submissionIds = page.getContent().stream().map(Submission::getId).toList();
@@ -231,5 +222,37 @@ public class SubmissionService
             });
 
     return resultSet;
+  }
+
+  /**
+   * Validates that all sort properties in the given {@link Pageable} are in the allowed set, then
+   * returns a new {@link Pageable} with a stable tie-breaking secondary sort by {@code id}, using
+   * the same direction as the primary sort (defaulting to {@code ASC} if unsorted).
+   *
+   * @param pageable the pageable to validate and augment
+   * @return a new pageable with a tie-breaking sort appended
+   * @throws SubmissionBadRequestException if any sort property is not in {@link
+   *     #ALLOWED_SORT_FIELDS}
+   */
+  private Pageable toStablePageable(Pageable pageable) {
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new SubmissionBadRequestException(
+                    "Invalid sort field: '"
+                        + order.getProperty()
+                        + "'. Allowed fields: "
+                        + ALLOWED_SORT_FIELDS);
+              }
+            });
+
+    Sort.Direction tieBreakerDirection =
+        pageable.getSort().isSorted()
+            ? pageable.getSort().iterator().next().getDirection()
+            : Sort.Direction.ASC;
+    Sort sortWithTieBreaker = pageable.getSort().and(Sort.by(tieBreakerDirection, "id"));
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreaker);
   }
 }
