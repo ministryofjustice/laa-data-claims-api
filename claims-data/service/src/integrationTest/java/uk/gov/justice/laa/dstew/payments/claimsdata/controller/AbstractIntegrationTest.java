@@ -575,11 +575,15 @@ public abstract class AbstractIntegrationTest {
   }
 
   protected void createAssessmentDataForClaimAndSummaryFeeId(UUID claimId, UUID claimSummaryFeeId) {
+    claimRepository.flush();
+    Claim claim = claimRepository.getReferenceById(claimId);
+    ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
+
     assessmentRepository.saveAll(
         List.of(
             getAssessmentBuilder()
-                .claim(claimRepository.getReferenceById(claimId))
-                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .claim(claim)
+                .claimSummaryFee(claimSummaryFee)
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
                 .assessmentReason("Older generic assessment")
                 .createdOn(CREATED_ON.plusSeconds(30))
@@ -587,8 +591,8 @@ public abstract class AbstractIntegrationTest {
                 .allowedTotalInclVat(new BigDecimal("120.00"))
                 .build(),
             getAssessmentBuilder()
-                .claim(claimRepository.getReferenceById(claimId))
-                .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
+                .claim(claim)
+                .claimSummaryFee(claimSummaryFee)
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
                 .assessmentReason("Latest generic assessment")
                 .createdOn(CREATED_ON.plusSeconds(60))
@@ -727,6 +731,7 @@ public abstract class AbstractIntegrationTest {
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
                 .build()));
+    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId);
     return submissionId;
   }
 

@@ -40,14 +40,9 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
   private static final String CRIME_OFFICE = "office-crime-export";
   private static final String MEDIATION_OFFICE = "office-mediation-export";
 
-  private UUID crimeSubmissionId;
-  private UUID mediationSubmissionId;
-
   @BeforeEach
   void setup() {
     seedClaimsData();
-    crimeSubmissionId = createCrimeLowerExportData(CRIME_OFFICE);
-    mediationSubmissionId = createMediationExportData(MEDIATION_OFFICE);
   }
 
   @Test
@@ -83,6 +78,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void exportsCrimeLowerCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
+    UUID crimeSubmissionId = createCrimeLowerExportData(CRIME_OFFICE);
     MvcResult response = exportCsv(CRIME_LOWER_ENDPOINT, crimeSubmissionId, CRIME_OFFICE);
 
     assertCsvHeadersMatchDefinition(
@@ -102,10 +98,15 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Crime fee detail");
+    assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
+    assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
+        .isEqualByComparingTo("240.00");
   }
 
   @Test
   void exportsMediationCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
+    UUID mediationSubmissionId = createMediationExportData(MEDIATION_OFFICE);
     MvcResult response = exportCsv(MEDIATION_ENDPOINT, mediationSubmissionId, MEDIATION_OFFICE);
 
     assertCsvHeadersMatchDefinition(
