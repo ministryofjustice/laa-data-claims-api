@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
+
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of("createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status");
 
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
@@ -181,6 +185,19 @@ public class SubmissionService
     if (offices == null || offices.isEmpty()) {
       throw new SubmissionBadRequestException("Missing offices list");
     }
+
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new SubmissionBadRequestException(
+                    "Invalid sort field: '"
+                        + order.getProperty()
+                        + "'. Allowed fields: "
+                        + ALLOWED_SORT_FIELDS);
+              }
+            });
 
     Page<Submission> page =
         submissionRepository.findAll(

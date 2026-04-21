@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -31,7 +32,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -334,9 +337,9 @@ class SubmissionServiceTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet.getContent()).hasSize(1);
-    assertThat(actualResultSet.getContent().get(0).getSubmissionId())
+    assertThat(actualResultSet.getContent().getFirst().getSubmissionId())
         .isEqualTo(submissionBase.getSubmissionId());
-    assertThat(actualResultSet.getContent().get(0).getAssessedTotalAmount())
+    assertThat(actualResultSet.getContent().getFirst().getAssessedTotalAmount())
         .isEqualTo(new BigDecimal("123.40"));
     verify(assessmentService)
         .getAssessedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
@@ -396,5 +399,51 @@ class SubmissionServiceTest {
     verifyNoInteractions(assessmentService);
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status"})
+  void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
+    Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(pageableWithSort)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(pageableWithSort));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortFieldIsInvalid_shouldThrowSubmissionBadRequestException() {
+    Pageable pageableWithInvalidSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "unknownField"));
+
+    assertThrows(
+        SubmissionBadRequestException.class,
+        () ->
+            submissionService.getSubmissionsResultSet(
+                OFFICE_CODES,
+                SUBMISSION_ID.toString(),
+                SUBMITTED_DATE_FROM,
+                SUBMITTED_DATE_TO,
+                AREA_OF_LAW,
+                SUBMISSION_PERIOD,
+                SUBMISSION_STATUSES,
+                pageableWithInvalidSort));
+
+    verifyNoInteractions(submissionRepository);
   }
 }
