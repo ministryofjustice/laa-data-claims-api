@@ -72,7 +72,8 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("DISB_ONLY");
     assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
     assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
-    assertThat(new BigDecimal(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")))
+    assertThat(
+            new BigDecimal(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")))
         .isEqualByComparingTo(new BigDecimal("300.00"));
     assertThat(new BigDecimal(firstRow.get("Assessment - JR Form Filling Amount")))
         .isEqualByComparingTo(new BigDecimal("99.99"));
