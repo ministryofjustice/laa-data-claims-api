@@ -2,134 +2,132 @@ description: "CRIME LOWER submission claims export"
 provider: submissionClaimsCrimeLowerProvider
 packageName: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
 sql: |
-  select
-    s.office_account_number as officeAccountNumber,
-    s.submission_period as submissionPeriod,
-    s.area_of_law as areaOfLaw,
-    s.crime_lower_schedule_number as scheduleNum,
-    claim_case.stage_reached_code as stageReachedCode,
-    c.fee_code as feeCode,
-    c.status as claimStatus,
-    client.client_surname as clientSurname,
-    client.client_forename as clientForename,
-    client.gender_code as gender,
-    client.ethnicity_code as ethnicity,
-    client.disability_code as disability,
-    c.unique_file_number as ufn,
-    c.representation_order_date as representationOrderDate,
-    claim_case.standard_fee_category_code as standardFeeCategory,
-    claim_case.outcome_code as outcomeCode,
-    c.crime_matter_type_code as crimeMatterType,
-    csf.net_profit_costs_amount as netProfitCosts,
-    csf.net_disbursement_amount as netDisbursementAmount,
-    csf.travel_waiting_costs_amount as netTravelCosts,
-    csf.net_waiting_costs_amount as netWaitingCosts,
-    csf.is_vat_applicable as vatIndicator,
-    csf.disbursements_vat_amount as disbursementsVat,
-    c.case_concluded_date as caseConcludedDate,
-    c.suspects_defendants_count as suspectsDefendantsCount,
-    c.police_station_court_attendances_count as policeStationAttendances,
-    c.police_station_court_prison_id as policeStationCourtPrisonId,
-    c.dscc_number as dsccNumber,
-    c.maat_id as maatId,
-    c.prison_law_prior_approval_number as prisonLawPriorApprovalNumber,
-    c.is_duty_solicitor as dutySolicitor,
-    c.is_youth_court as youthCourt,
-    c.scheme_id as schemeId,
-    cfd.fee_code_description as feeDetailFeeCodeDescription,
-    cfd.fee_type as feeDetailFeeType,
-    cfd.category_of_law as feeDetailCategoryOfLaw,
-    cfd.total_amount as feeDetailTotalAmount,
-    cfd.vat_indicator as feeDetailVatIndicator,
-    cfd.vat_rate_applied as feeDetailVatRateApplied,
-    cfd.calculated_vat_amount as feeDetailCalculatedVatAmount,
-    cfd.disbursement_amount as feeDetailDisbursementAmount,
-    cfd.requested_net_disbursement_amount as feeDetailRequestedNetDisbursementAmount,
-    cfd.disbursement_vat_amount as feeDetailDisbursementVatAmount,
-    cfd.hourly_total_amount as feeDetailHourlyTotalAmount,
-    cfd.fixed_fee_amount as feeDetailFixedFeeAmount,
-    cfd.net_profit_costs_amount as feeDetailNetProfitCostsAmount,
-    cfd.requested_net_profit_costs_amount as feeDetailRequestedNetProfitCostsAmount,
-    cfd.net_travel_costs_amount as feeDetailNetTravelCostsAmount,
-    cfd.net_waiting_costs_amount as feeDetailNetWaitingCostsAmount,
-    cfd.travel_and_waiting_costs_amount as feeDetailTravelAndWaitingCostsAmount,
-    cfd.escape_case_flag as feeDetailEscapeCaseFlag,
-    ass.assessmentOutcome as assessmentOutcome,
-    ass.assessmentType as assessmentType,
-    ass.assessmentReason as assessmentReason,
-    ass.assessmentDate as assessmentDate,
-    ass.assessmentFixedFeeAmount as assessmentFixedFeeAmount,
-    ass.assessmentNetProfitCostsAmount as assessmentNetProfitCostsAmount,
-    ass.assessmentDisbursementAmount as assessmentDisbursementAmount,
-    ass.assessmentDisbursementVatAmount as assessmentDisbursementVatAmount,
-    ass.assessmentNetCostOfCounselAmount as assessmentNetCostOfCounselAmount,
-    ass.assessmentNetTravelCostsAmount as assessmentNetTravelCostsAmount,
-    ass.assessmentNetWaitingCostsAmount as assessmentNetWaitingCostsAmount,
-    ass.assessmentVatIndicator as assessmentVatIndicator,
-    ass.assessmentTotalVat as assessmentTotalVat,
-    ass.assessmentTotalIncVat as assessmentTotalIncVat,
-    ass.finalClaimValueVat as finalClaimValueVat,
-    ass.finalClaimValue as finalClaimValue
+  select s.office_account_number                  as officeAccountNumber,
+         s.submission_period                      as submissionPeriod,
+         s.area_of_law                            as areaOfLaw,
+         s.crime_lower_schedule_number            as scheduleNum,
+         claim_case.stage_reached_code            as stageReachedCode,
+         c.fee_code                               as feeCode,
+         c.status                                 as claimStatus,
+         client.client_surname                    as clientSurname,
+         client.client_forename                   as clientForename,
+         client.gender_code                       as gender,
+         client.ethnicity_code                    as ethnicity,
+         client.disability_code                   as disability,
+         c.unique_file_number                     as ufn,
+         c.representation_order_date              as representationOrderDate,
+         claim_case.standard_fee_category_code    as standardFeeCategory,
+         claim_case.outcome_code                  as outcomeCode,
+         c.crime_matter_type_code                 as crimeMatterType,
+         csf.net_profit_costs_amount              as netProfitCosts,
+         csf.net_disbursement_amount              as netDisbursementAmount,
+         csf.travel_waiting_costs_amount          as netTravelCosts,
+         csf.net_waiting_costs_amount             as netWaitingCosts,
+         csf.is_vat_applicable                    as vatIndicator,
+         csf.disbursements_vat_amount             as disbursementsVat,
+         c.case_concluded_date                    as caseConcludedDate,
+         c.suspects_defendants_count              as suspectsDefendantsCount,
+         c.police_station_court_attendances_count as policeStationAttendances,
+         c.police_station_court_prison_id         as policeStationCourtPrisonId,
+         c.dscc_number                            as dsccNumber,
+         c.maat_id                                as maatId,
+         c.prison_law_prior_approval_number       as prisonLawPriorApprovalNumber,
+         c.is_duty_solicitor                      as dutySolicitor,
+         c.is_youth_court                         as youthCourt,
+         c.scheme_id                              as schemeId,
+         cfd.fee_code_description                 as feeDetailFeeCodeDescription,
+         cfd.fee_type                             as feeDetailFeeType,
+         cfd.category_of_law                      as feeDetailCategoryOfLaw,
+         cfd.total_amount                         as feeDetailTotalAmount,
+         cfd.vat_indicator                        as feeDetailVatIndicator,
+         cfd.vat_rate_applied                     as feeDetailVatRateApplied,
+         cfd.calculated_vat_amount                as feeDetailCalculatedVatAmount,
+         cfd.disbursement_amount                  as feeDetailDisbursementAmount,
+         cfd.requested_net_disbursement_amount    as feeDetailRequestedNetDisbursementAmount,
+         cfd.disbursement_vat_amount              as feeDetailDisbursementVatAmount,
+         cfd.hourly_total_amount                  as feeDetailHourlyTotalAmount,
+         cfd.fixed_fee_amount                     as feeDetailFixedFeeAmount,
+         cfd.net_profit_costs_amount              as feeDetailNetProfitCostsAmount,
+         cfd.requested_net_profit_costs_amount    as feeDetailRequestedNetProfitCostsAmount,
+         cfd.net_travel_costs_amount              as feeDetailNetTravelCostsAmount,
+         cfd.net_waiting_costs_amount             as feeDetailNetWaitingCostsAmount,
+         cfd.travel_and_waiting_costs_amount      as feeDetailTravelAndWaitingCostsAmount,
+         cfd.escape_case_flag                     as feeDetailEscapeCaseFlag,
+         ass.assessmentOutcome                    as assessmentOutcome,
+         ass.assessmentType                       as assessmentType,
+         ass.assessmentReason                     as assessmentReason,
+         ass.assessmentDate                       as assessmentDate,
+         ass.assessmentFixedFeeAmount             as assessmentFixedFeeAmount,
+         ass.assessmentNetProfitCostsAmount       as assessmentNetProfitCostsAmount,
+         ass.assessmentDisbursementAmount         as assessmentDisbursementAmount,
+         ass.assessmentDisbursementVatAmount      as assessmentDisbursementVatAmount,
+         ass.assessmentNetCostOfCounselAmount     as assessmentNetCostOfCounselAmount,
+         ass.assessmentNetTravelCostsAmount       as assessmentNetTravelCostsAmount,
+         ass.assessmentNetWaitingCostsAmount      as assessmentNetWaitingCostsAmount,
+         ass.assessmentVatIndicator               as assessmentVatIndicator,
+         ass.assessmentTotalVat                   as assessmentTotalVat,
+         ass.assessmentTotalIncVat                as assessmentTotalIncVat,
+         ass.finalClaimValueVat                   as finalClaimValueVat,
+         ass.finalClaimValue                      as finalClaimValue
   from claims.submission s
-  join claims.claim c on c.submission_id = s.id
-  left join claims.client client on client.claim_id = c.id
-  left join claims.claim_case claim_case on claim_case.claim_id = c.id
-  left join claims.claim_summary_fee csf on csf.claim_id = c.id
-  left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
-  left join lateral (
-  select distinct on (a.claim_id)
-    a.claim_id,
-    a.assessment_outcome,
-    a.assessment_type,
-    a.assessment_reason,
-    a.created_on::date,
-    a.fixed_fee_amount,
-    a.net_profit_costs_amount,
-    a.disbursement_amount,
-    a.disbursement_vat_amount,
-    a.net_cost_of_counsel_amount,
-    a.net_travel_costs_amount,
-    a.net_waiting_costs_amount,
-    a.is_vat_applicable,
-    a.assessed_total_vat,
-    a.assessed_total_incl_vat,
-  coalesce(
-    a.assessed_total_vat,
-  case
-  when cfd.calculated_vat_amount is not null
-  then round(cfd.calculated_vat_amount::numeric, 2)
-  else null
-  end
-  ),
-  coalesce(
-    a.allowed_total_incl_vat,
-  case
-  when cfd.total_amount is not null
-  then round(cfd.total_amount::numeric, 2)
-  else null
-  end
-  )
-  from claims.assessment a
-  order by a.claim_id, a.created_on desc, a.id desc
-  ) ass (
-    claim_id,
-    assessmentOutcome,
-    assessmentType,
-    assessmentReason,
-    assessmentDate,
-    assessmentFixedFeeAmount,
-    assessmentNetProfitCostsAmount,
-    assessmentDisbursementAmount,
-    assessmentDisbursementVatAmount,
-    assessmentNetCostOfCounselAmount,
-    assessmentNetTravelCostsAmount,
-    assessmentNetWaitingCostsAmount,
-    assessmentVatIndicator,
-    assessmentTotalVat,
-    assessmentTotalIncVat,
-    finalClaimValueVat,
-    finalClaimValue
-  ) on ass.claim_id = c.id
+           join claims.claim c on c.submission_id = s.id
+           left join claims.client client on client.claim_id = c.id
+           left join claims.claim_case claim_case on claim_case.claim_id = c.id
+           left join claims.claim_summary_fee csf on csf.claim_id = c.id
+           left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+           left join lateral (
+      select distinct on (a.claim_id) a.claim_id,
+                                      a.assessment_outcome,
+                                      a.assessment_type,
+                                      a.assessment_reason,
+                                      a.created_on::date,
+                                      a.fixed_fee_amount,
+                                      a.net_profit_costs_amount,
+                                      a.disbursement_amount,
+                                      a.disbursement_vat_amount,
+                                      a.net_cost_of_counsel_amount,
+                                      a.net_travel_costs_amount,
+                                      a.net_waiting_costs_amount,
+                                      a.is_vat_applicable,
+                                      a.assessed_total_vat,
+                                      a.assessed_total_incl_vat,
+                                      coalesce(
+                                              a.assessed_total_vat,
+                                              case
+                                                  when cfd.calculated_vat_amount is not null
+                                                      then round(cfd.calculated_vat_amount::numeric, 2)
+                                                  else null
+                                                  end
+                                      ),
+                                      coalesce(
+                                              a.allowed_total_incl_vat,
+                                              case
+                                                  when cfd.total_amount is not null
+                                                      then round(cfd.total_amount::numeric, 2)
+                                                  else null
+                                                  end
+                                      )
+      from claims.assessment a
+      order by a.claim_id, a.created_on desc, a.id desc
+      ) ass (
+             claim_id,
+             assessmentOutcome,
+             assessmentType,
+             assessmentReason,
+             assessmentDate,
+             assessmentFixedFeeAmount,
+             assessmentNetProfitCostsAmount,
+             assessmentDisbursementAmount,
+             assessmentDisbursementVatAmount,
+             assessmentNetCostOfCounselAmount,
+             assessmentNetTravelCostsAmount,
+             assessmentNetWaitingCostsAmount,
+             assessmentVatIndicator,
+             assessmentTotalVat,
+             assessmentTotalIncVat,
+             finalClaimValueVat,
+             finalClaimValue
+      ) on ass.claim_id = c.id
   where s.id = :submissionId
     and s.office_account_number = :office
     and s.area_of_law = 'CRIME_LOWER'
