@@ -47,7 +47,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void exportsLegalHelpCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
-    createAssessmentDataForClaimAndSummaryFeeId(CLAIM_1_ID, CLAIM_1_SUMMARY_FEE_ID);
+    createAssessmentDataForClaimAndSummaryFeeId(CLAIM_1_ID, CLAIM_1_SUMMARY_FEE_ID, true);
     MvcResult response =
         exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
 
@@ -65,15 +65,12 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Client Surname")).isEqualTo("Smith");
     assertThat(firstRow.get("Case ID")).isEqualTo("CASE_ID_1");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("DISB_ONLY");
-    assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
-    assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
+    assertAssessmentValues(firstRow);
     assertThat(
             new BigDecimal(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")))
         .isEqualByComparingTo(new BigDecimal("300.00"));
     assertThat(new BigDecimal(firstRow.get("Assessment - JR Form Filling Amount")))
         .isEqualByComparingTo(new BigDecimal("99.99"));
-    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
-        .isEqualByComparingTo(new BigDecimal("240.00"));
   }
 
   @Test
@@ -98,10 +95,9 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Crime fee detail");
-    assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
-    assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
-    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
-        .isEqualByComparingTo("240.00");
+    assertAssessmentValues(firstRow);
+    assertThat(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")).isNull();
+    assertThat(firstRow.get("Assessment - JR Form Filling Amount")).isNull();
   }
 
   @Test
@@ -130,8 +126,35 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Mediation fee detail");
+    assertAssessmentValues(firstRow);
+    assertThat(firstRow.get("Assessment - Detention Travel And Waiting Costs Amount")).isNull();
+    assertThat(firstRow.get("Assessment - JR Form Filling Amount")).isNull();
+  }
+
+  private void assertAssessmentValues(Map<String, String> firstRow) {
     assertThat(firstRow.get("Assessment - Type")).isEqualTo("ESCAPE_CASE_ASSESSMENT");
     assertThat(firstRow.get("Assessment - Reason")).isEqualTo("Latest generic assessment");
+    assertThat(firstRow.get("Assessment - Date")).isEqualTo("2026-04-21");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Fixed Fee Amount")))
+        .isEqualByComparingTo(new BigDecimal("100.00"));
+    assertThat(new BigDecimal(firstRow.get("Assessment - Net Profit Costs Amount")))
+        .isEqualByComparingTo("50.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Disbursement Amount")))
+        .isEqualByComparingTo("15.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Disbursement VAT Amount")))
+        .isEqualByComparingTo("3.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Net Cost Of Counsel Amount")))
+        .isEqualByComparingTo("25.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Net Travel Costs Amount")))
+        .isEqualByComparingTo("8.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Net Waiting Costs Amount")))
+        .isEqualByComparingTo("10.0");
+    assertThat(firstRow.get("Assessment - VAT Indicator")).isEqualTo("t");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Total VAT"))).isEqualByComparingTo("1.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Total Inc VAT")))
+        .isEqualByComparingTo("2.0");
+    assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value VAT")))
+        .isEqualByComparingTo("1.0");
     assertThat(new BigDecimal(firstRow.get("Assessment - Final Claim Value")))
         .isEqualByComparingTo("240.00");
   }

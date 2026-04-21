@@ -574,7 +574,8 @@ public abstract class AbstractIntegrationTest {
     assessmentRepository.saveAll(List.of(assessment1, assessment2, assessment3));
   }
 
-  protected void createAssessmentDataForClaimAndSummaryFeeId(UUID claimId, UUID claimSummaryFeeId) {
+  protected void createAssessmentDataForClaimAndSummaryFeeId(
+      UUID claimId, UUID claimSummaryFeeId, boolean legalHelp) {
     claimRepository.flush();
     Claim claim = claimRepository.getReferenceById(claimId);
     ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
@@ -589,6 +590,9 @@ public abstract class AbstractIntegrationTest {
                 .createdOn(CREATED_ON.plusSeconds(30))
                 .allowedTotalVat(new BigDecimal("100.00"))
                 .allowedTotalInclVat(new BigDecimal("120.00"))
+                .detentionTravelAndWaitingCostsAmount(
+                    legalHelp ? new BigDecimal("50.00") : null) // legal help
+                .jrFormFillingAmount(legalHelp ? new BigDecimal("88.88") : null) // legal help
                 .build(),
             getAssessmentBuilder()
                 .claim(claim)
@@ -598,8 +602,9 @@ public abstract class AbstractIntegrationTest {
                 .createdOn(CREATED_ON.plusSeconds(60))
                 .allowedTotalVat(new BigDecimal("200.00"))
                 .allowedTotalInclVat(new BigDecimal("240.00"))
-                .detentionTravelAndWaitingCostsAmount(new BigDecimal("300.00")) // legal help
-                .jrFormFillingAmount(new BigDecimal("99.99")) // legal help
+                .detentionTravelAndWaitingCostsAmount(
+                    legalHelp ? new BigDecimal("300.00") : null) // legal help
+                .jrFormFillingAmount(legalHelp ? new BigDecimal("99.99") : null) // legal help
                 .build()));
   }
 
@@ -731,7 +736,7 @@ public abstract class AbstractIntegrationTest {
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
                 .build()));
-    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId);
+    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
   }
 
@@ -853,7 +858,7 @@ public abstract class AbstractIntegrationTest {
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
                 .build()));
-    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId);
+    createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
   }
 
