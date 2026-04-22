@@ -67,8 +67,22 @@ sql: |
          ass.assessmentVatIndicator               as assessmentVatIndicator,
          ass.assessmentTotalVat                   as assessmentTotalVat,
          ass.assessmentTotalIncVat                as assessmentTotalIncVat,
-         ass.finalClaimValueVat                   as finalClaimValueVat,
-         ass.finalClaimValue                      as finalClaimValue
+         coalesce(
+                 ass.finalClaimValueVat,
+                 case
+                     when cfd.calculated_vat_amount is not null
+                         then round(cfd.calculated_vat_amount::numeric, 2)
+                     else null
+                     end
+         ) as finalClaimValueVat,
+         coalesce(
+                 ass.finalClaimValue,
+                 case
+                     when cfd.total_amount is not null
+                         then round(cfd.total_amount::numeric, 2)
+                     else null
+                     end
+         ) as finalClaimValue
   from claims.submission s
            join claims.claim c on c.submission_id = s.id
            left join claims.client client on client.claim_id = c.id
@@ -91,22 +105,8 @@ sql: |
                                       a.is_vat_applicable,
                                       a.assessed_total_vat,
                                       a.assessed_total_incl_vat,
-                                      coalesce(
-                                              a.assessed_total_vat,
-                                              case
-                                                  when cfd.calculated_vat_amount is not null
-                                                      then round(cfd.calculated_vat_amount::numeric, 2)
-                                                  else null
-                                                  end
-                                      ),
-                                      coalesce(
-                                              a.allowed_total_incl_vat,
-                                              case
-                                                  when cfd.total_amount is not null
-                                                      then round(cfd.total_amount::numeric, 2)
-                                                  else null
-                                                  end
-                                      )
+                                      a.assessed_total_vat,
+                                      a.allowed_total_incl_vat
       from claims.assessment a
       order by a.claim_id, a.created_on desc, a.id desc
       ) ass (
@@ -264,9 +264,9 @@ columns:
   - key: assessmentTotalIncVat
     header: Assessment - Total Inc VAT
   - key: finalClaimValueVat
-    header: Assessment - Final Claim Value VAT
+    header: Final Claim Value VAT
   - key: finalClaimValue
-    header: Assessment - Final Claim Value
+    header: Final Claim Value
 params:
   - name: submissionId
     requestName: submission-id

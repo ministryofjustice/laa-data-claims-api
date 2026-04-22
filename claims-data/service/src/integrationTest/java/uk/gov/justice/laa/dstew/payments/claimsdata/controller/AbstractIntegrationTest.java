@@ -598,7 +598,41 @@ public abstract class AbstractIntegrationTest {
                 .claim(claim)
                 .claimSummaryFee(claimSummaryFee)
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .assessmentReason("Mid generic assessment")
+                .createdOn(CREATED_ON.plusSeconds(45))
+                .allowedTotalVat(new BigDecimal("15.00"))
+                .allowedTotalInclVat(new BigDecimal("60.00"))
+                .detentionTravelAndWaitingCostsAmount(
+                    legalHelp ? new BigDecimal("40.00") : null) // legal help
+                .jrFormFillingAmount(legalHelp ? new BigDecimal("44.44") : null) // legal help
+                .build(),
+            getAssessmentBuilder()
+                .claim(claim)
+                .claimSummaryFee(claimSummaryFee)
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
                 .assessmentReason("Latest generic assessment")
+                .createdOn(CREATED_ON.plusSeconds(60))
+                .allowedTotalVat(new BigDecimal("200.00"))
+                .allowedTotalInclVat(new BigDecimal("240.00"))
+                .detentionTravelAndWaitingCostsAmount(
+                    legalHelp ? new BigDecimal("300.00") : null) // legal help
+                .jrFormFillingAmount(legalHelp ? new BigDecimal("99.99") : null) // legal help
+                .build()));
+  }
+
+  protected void createSingleAssessmentForClaimAndSummaryFeeId(
+      UUID claimId, UUID claimSummaryFeeId, boolean legalHelp) {
+    claimRepository.flush();
+    Claim claim = claimRepository.getReferenceById(claimId);
+    ClaimSummaryFee claimSummaryFee = claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId);
+
+    assessmentRepository.saveAll(
+        List.of(
+            getAssessmentBuilder()
+                .claim(claim)
+                .claimSummaryFee(claimSummaryFee)
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .assessmentReason("Single generic assessment")
                 .createdOn(CREATED_ON.plusSeconds(60))
                 .allowedTotalVat(new BigDecimal("200.00"))
                 .allowedTotalInclVat(new BigDecimal("240.00"))
