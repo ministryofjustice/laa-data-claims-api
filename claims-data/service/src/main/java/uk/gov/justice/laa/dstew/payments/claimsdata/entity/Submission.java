@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -41,6 +42,14 @@ public class Submission {
   @NotNull
   @Column(nullable = false)
   private String submissionPeriod;
+
+  /**
+   * Derived sort key for {@code submissionPeriod}, formatted as {@code YYYYMM} (e.g. {@code
+   * "APR-2026"} → {@code "202604"}). Used internally to sort submissions by period in correct
+   * chronological order, since alphabetic ordering of the period string is incorrect.
+   */
+  @Formula("TO_CHAR(TO_DATE(submission_period, 'MON-YYYY'), 'YYYYMM')")
+  private String submissionPeriodSortKey;
 
   @NotNull
   @Column(nullable = false)

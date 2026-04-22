@@ -252,7 +252,17 @@ public class SubmissionService
         pageable.getSort().isSorted()
             ? pageable.getSort().iterator().next().getDirection()
             : Sort.Direction.ASC;
-    Sort sortWithTieBreaker = pageable.getSort().and(Sort.by(tieBreakerDirection, "id"));
+
+    List<Sort.Order> remappedOrders =
+        pageable.getSort().stream()
+            .map(
+                order ->
+                    "submissionPeriod".equals(order.getProperty())
+                        ? new Sort.Order(order.getDirection(), "submissionPeriodSortKey")
+                        : order)
+            .toList();
+
+    Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
     return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreaker);
   }
 }

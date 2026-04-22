@@ -403,8 +403,7 @@ class SubmissionServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status"})
+  @ValueSource(strings = {"createdOn", "officeAccountNumber", "areaOfLaw", "status"})
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
     // Service appends a secondary sort by id using the same direction as the primary sort
@@ -427,6 +426,37 @@ class SubmissionServiceTest {
         SUBMISSION_PERIOD,
         SUBMISSION_STATUSES,
         pageableWithSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortBySubmissionPeriod_shouldRemapToSortKey() {
+    Pageable pageableWithPeriodSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "submissionPeriod"));
+    // submissionPeriod is remapped to submissionPeriodSortKey for correct chronological ordering
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.ASC, "submissionPeriodSortKey")
+                .and(Sort.by(Sort.Direction.ASC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithPeriodSort);
 
     verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
   }
