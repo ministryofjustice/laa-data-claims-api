@@ -91,7 +91,7 @@ class AssessmentServiceTest {
       assertThat(result).isEqualTo(assessment.getId());
 
       verify(claimValidationService).validateUserId(API_USER_ID);
-      verify(claimValidationService).ensureAssessmentTypeIsNotVoid(post.getAssessmentType());
+      verify(claimValidationService).validateAssessmentType(post.getAssessmentType());
       verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
 
       verify(claimRepository).updateAssessmentStatus(claimId, true);
