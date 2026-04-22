@@ -1,0 +1,354 @@
+meta {
+  name: Get claims by Case Ref
+  type: http
+  seq: 3
+  tags: [
+    Claims
+  ]
+}
+
+get {
+  url: http://{{HOST}}/api/v2/claims?office_code=0P322F&case_reference_number=EV0531CR-OUTC
+  body: none
+  auth: inherit
+}
+
+params:query {
+  office_code: 0P322F
+  case_reference_number: EV0531CR-OUTC
+  ~submission_id: {{SUBMISSION_ID}}
+  ~submission_statuses: CREATED
+  ~submission_statuses: READY_FOR_VALIDATION
+  ~submission_statuses: VALIDATION_IN_PROGRESS
+  ~submission_statuses: VALIDATION_SUCCEEDED
+  ~submission_statuses: VALIDATION_FAILED
+  ~submission_statuses: REPLACED
+  ~area_of_law: CRIME LOWER
+  ~area_of_law: LEGAL HELP
+  ~area_of_law: MEDIATION
+  ~fee_code: 
+  ~unique_file_number: 
+  ~unique_client_number: 
+  ~unique_case_id: 
+  ~claim_statuses: READY_TO_PROCESS
+  ~claim_statuses: VALID
+  ~claim_statuses: INVALID
+  ~claim_statuses: VOID
+  ~submission_period: 
+  ~escaped_case_flag: 
+}
+
+vars:pre-request {
+  baseUrl: http://{{HOST}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}
+
+docs {
+  Get claims for an office, filtering on certain fields.
+}
+
+example {
+  name: 200 Response
+  description: Claims retrieved successfully
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "content": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Bad request
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 401 Response
+  description: Unauthorized
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 401
+      text: Unauthorized
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 403 Response
+  description: Forbidden
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 403
+      text: Forbidden
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 429 Response
+  description: Too many requests
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 429
+      text: Too Many Requests
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
+
+example {
+  name: 500 Response
+  description: Internal server error
+  
+  request: {
+    url: {{baseUrl}}/api/v2/claims
+    method: GET
+    mode: none
+    params:query: {
+      office_code: 
+      ~submission_id: 
+      ~submission_statuses: CREATED
+      ~submission_statuses: READY_FOR_VALIDATION
+      ~submission_statuses: VALIDATION_IN_PROGRESS
+      ~submission_statuses: VALIDATION_SUCCEEDED
+      ~submission_statuses: VALIDATION_FAILED
+      ~submission_statuses: REPLACED
+      ~area_of_law: CRIME LOWER
+      ~area_of_law: LEGAL HELP
+      ~area_of_law: MEDIATION
+      ~fee_code: 
+      ~unique_file_number: 
+      ~unique_client_number: 
+      ~unique_case_id: 
+      ~claim_statuses: READY_TO_PROCESS
+      ~claim_statuses: VALID
+      ~claim_statuses: INVALID
+      ~claim_statuses: VOID
+      ~submission_period: 
+      ~case_reference_number: 
+      ~escaped_case_flag: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 500
+      text: Internal Server Error
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

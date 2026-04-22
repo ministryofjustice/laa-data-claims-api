@@ -8,24 +8,20 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -38,21 +34,24 @@ class ClaimSpecificationTest {
 
   @Mock private CriteriaBuilder cb;
 
-  @Mock private Join<?, ?> submissionJoin;
-
-  @Mock private Join<?, ?> clientJoin;
-
-  @Mock private Join<?, ?> claimCaseJoin;
-
-  @Mock private Join<?, ?> calculatedFeeDetailJoin;
+  @Mock private Join<Claim, Submission> submissionJoin;
 
   @Mock private Predicate predicate1;
 
   @Mock private Predicate predicate2;
 
+  private AutoCloseable mocks;
+
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
+    mocks = MockitoAnnotations.openMocks(this);
+  }
+
+  @AfterEach
+  void tearDown() throws Exception {
+    if (mocks != null) {
+      mocks.close();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -179,6 +178,50 @@ class ClaimSpecificationTest {
     verify(query).subquery(ClaimCase.class);
     verify(cb).exists(clientSubquery);
     verify(cb).exists(claimCaseSubquery);
+  }
+
+  @Test
+  void filterBy_withCaseReferenceNumber_usesCaseInsensitiveLike() {
+    // given
+    String officeCode = "OFF-123";
+    String caseReferenceNumber = "ABC";
+
+    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+
+    // mock office predicate
+    Predicate officePredicate = mock(Predicate.class);
+    when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
+        .thenReturn(officePredicate);
+    when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+
+    // mock case reference handling: root.get(...), cb.lower(...), cb.like(...)
+    Path<String> casePath = mock(Path.class);
+    Expression<String> lowerExpr = mock(Expression.class);
+
+    // use doReturn to avoid generics-related stubbing issues with Mockito
+    doReturn(casePath).when(root).get(ClaimSpecification.CASE_REFERENCE_NUMBER);
+    when(cb.lower(casePath)).thenReturn(lowerExpr);
+
+    String expectedPattern = "%" + caseReferenceNumber.toLowerCase() + "%";
+    when(cb.like(lowerExpr, expectedPattern)).thenReturn(predicate2);
+
+    // build a request-based model to call the request-based filterBy
+    ClaimSearchRequest requestModel =
+        ClaimSearchRequest.builder()
+            .officeCode(officeCode)
+            .caseReferenceNumber(caseReferenceNumber)
+            .build();
+
+    Specification<Claim> spec = ClaimSpecification.filterBy(requestModel);
+
+    // when
+    Predicate result = spec.toPredicate(root, query, cb);
+
+    // then
+    assertThat(result).isNotNull();
+    verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
+    verify(cb).lower(casePath);
+    verify(cb).like(lowerExpr, expectedPattern);
   }
 
   @Nested

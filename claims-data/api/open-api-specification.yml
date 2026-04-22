@@ -436,9 +436,10 @@ paths:
         - name: case_reference_number
           in: query
           required: false
+          allowEmptyValue: false
           schema:
             type: string
-          description: Filter by case reference number
+          description: Filter by case reference number. On this filter a case-insensitive partial match that requires a minimum of 3 characters is performed.
         - name: escaped_case_flag
           in: query
           schema:
@@ -1098,12 +1099,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/assessment_result_set'
-        '404':
-          description: Claim not found
         '401':
           description: Unauthorized
         '403':
           description: Forbidden
+        '404':
+          description: Claim not found
         '429':
           description: 'Too many requests'
         '500':
@@ -2106,7 +2107,13 @@ components:
       type: string
       enum:
         - ESCAPE_CASE_ASSESSMENT
+        - STAGE_DISBURSEMENT_ASSESSMENT
         - VOID
+      description: |
+        The type of assessment being performed on a claim.
+        - ESCAPE_CASE_ASSESSMENT: Assessment for claims that have escaped the fixed fee threshold.
+        - STAGE_DISBURSEMENT_ASSESSMENT: Assessment for stage disbursement claims.
+        - VOID: Used when voiding a previously submitted assessment.
     assessment_base:
       type: object
       properties:

@@ -1,17 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
+
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
@@ -41,14 +48,14 @@ public class AssessmentService {
    */
   @Transactional
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
-
     claimValidationService.validateUserId(request.getCreatedByUserId());
+    claimValidationService.validateAssessmentReason(request.getAssessmentReason());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
     ClaimSummaryFee claimSummaryFee =
         claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 
-    claimValidationService.ensureAssessmentTypeIsNotVoid(request.getAssessmentType());
+    claimValidationService.validateAssessmentType(request.getAssessmentType());
     updateClaimAssessmentStatus(claim);
 
     Assessment assessment = assessmentMapper.toAssessment(request);
@@ -59,7 +66,7 @@ public class AssessmentService {
         claimSummaryFee,
         request.getCreatedByUserId(),
         request.getAssessmentReason(),
-        AssessmentType.ESCAPE_CASE_ASSESSMENT);
+        request.getAssessmentType());
 
     return assessmentRepository.save(assessment).getId();
   }
@@ -119,22 +126,21 @@ public class AssessmentService {
    * <ul>
    *   <li>Validates that the provided {@code claimId} is not null.
    *   <li>Fetches assessments from the repository ordered by creation date (descending).
-   *   <li>If no assessments are found, throws {@link AssessmentNotFoundException}.
    *   <li>Maps the list of assessments to an {@link AssessmentResultSet} using the mapper.
    * </ul>
    *
    * @param claimId the unique identifier of the claim; must not be {@code null}.
    * @return an {@link AssessmentResultSet} containing all assessments for the claim.
    * @throws IllegalArgumentException if {@code claimId} is {@code null}.
-   * @throws AssessmentNotFoundException if no assessments exist for the given claim ID.
+   * @throws ClaimNotFoundException if no claim exists for the given claim ID.
    */
   @Transactional(readOnly = true)
   public AssessmentResultSet getAssessmentsByClaimId(@NotNull UUID claimId, Pageable pageable) {
-    var assessments = assessmentRepository.findByClaimId(claimId, pageable);
-    if (assessments.isEmpty()) {
-      throw new AssessmentNotFoundException(
-          String.format("No assessments found for claimId: %s", claimId));
+    if (!claimRepository.existsById(claimId)) {
+      throw new ClaimNotFoundException(String.format(NO_CLAIM_FOUND_WITH_ID_ERROR, claimId));
     }
+
+    var assessments = assessmentRepository.findByClaimId(claimId, pageable);
     return assessmentMapper.toAssessmentResultSet(assessments);
   }
 
@@ -233,5 +239,32 @@ public class AssessmentService {
    */
   public BigDecimal getAssessedTotalAmount(UUID submissionId) {
     return assessmentRepository.getAssessedTotalAmount(submissionId);
+  }
+
+  /**
+   * Returns assessed total amounts for the given submissions.
+   *
+   * <p>For each submission ID provided, this method retrieves the summed {@code
+   * assessedTotalInclVat} from the latest assessment for each claim belonging to that submission.
+   * If the input list is {@code null} or empty, this method returns an empty map.
+   *
+   * <p>The returned map is keyed by submission ID, with each value representing the assessed total
+   * amount for that submission. Submissions with no assessments will not be present in the returned
+   * map.
+   *
+   * @param submissionIds the unique identifiers of the submissions
+   * @return a map of submission IDs to assessed total amounts, or an empty map if the input is
+   *     {@code null} or empty
+   */
+  public Map<UUID, BigDecimal> getAssessedTotalAmounts(List<UUID> submissionIds) {
+    if (CollectionUtils.isEmpty(submissionIds)) {
+      return Map.of();
+    }
+
+    return assessmentRepository.getAssessedTotalAmounts(submissionIds).stream()
+        .collect(
+            Collectors.toMap(
+                AssessmentRepository.AssessedTotalAmountProjection::getSubmissionId,
+                AssessmentRepository.AssessedTotalAmountProjection::getTotal));
   }
 }

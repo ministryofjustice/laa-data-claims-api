@@ -58,3 +58,10 @@ sentry:
   enabled: true
   environment: production
   tracesSampleRate: 0.2
+
+portForward:
+  enabled: false
+
+replicationSummary:
+  enabled: true
+  schedule: "0 1 * * *"

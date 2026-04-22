@@ -14,7 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPubli
 
 @ExtendWith(SpringExtension.class)
 @Import(TestTransactionConfig.class)
-public class TransactionalPublisherTest {
+class TransactionalPublisherTest {
 
   @Autowired private TransactionTemplate transactionTemplate;
 

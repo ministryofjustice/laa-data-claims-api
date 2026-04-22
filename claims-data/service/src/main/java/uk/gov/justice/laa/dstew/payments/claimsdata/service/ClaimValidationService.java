@@ -43,6 +43,8 @@ public class ClaimValidationService {
       "createdByUserId must be provided";
   public static final String ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR =
       "assessmentReason must be provided";
+  public static final String ASSESSMENT_TYPE_MUST_BE_PROVIDED_ERROR =
+      "assessmentType must be provided";
   public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
       "Claim status VOID cannot be set via %s endpoint. Use POST "
           + ClaimController.VOID_CLAIM_ENDPOINT;
@@ -69,6 +71,18 @@ public class ClaimValidationService {
     }
 
     validateUserId(createdByUserId.toString());
+    validateAssessmentReason(assessmentReason);
+  }
+
+  /**
+   * Validates the provided assessment reason to ensure it is not null, empty, or blank.
+   *
+   * <p>This method checks that the assessment reason parameter contains meaningful text.
+   *
+   * @param assessmentReason the assessment reason to validate
+   * @throws ClaimBadRequestException if the assessment reason is null, empty, or blank
+   */
+  public void validateAssessmentReason(String assessmentReason) {
     if (!StringUtils.hasText(assessmentReason)) {
       throw new ClaimBadRequestException(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
     }
@@ -119,12 +133,15 @@ public class ClaimValidationService {
   }
 
   /**
-   * Ensures that the provided assessment type is not VOID.
+   * Validates the provided assessment type is not null and not VOID.
    *
-   * @param assessmentType the assessment type to check
-   * @throws ClaimBadRequestException if the assessment type is VOID
+   * @param assessmentType the assessment type to validate
+   * @throws ClaimBadRequestException if the assessment type is null or VOID
    */
-  public void ensureAssessmentTypeIsNotVoid(AssessmentType assessmentType) {
+  public void validateAssessmentType(AssessmentType assessmentType) {
+    if (assessmentType == null) {
+      throw new ClaimBadRequestException(ASSESSMENT_TYPE_MUST_BE_PROVIDED_ERROR);
+    }
     if (assessmentType == AssessmentType.VOID) {
       throw new ClaimBadRequestException(
           INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("create assessment"));

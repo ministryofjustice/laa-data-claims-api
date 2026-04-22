@@ -6,9 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
@@ -17,6 +21,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
@@ -85,11 +91,65 @@ class AssessmentServiceTest {
       assertThat(result).isEqualTo(assessment.getId());
 
       verify(claimValidationService).validateUserId(API_USER_ID);
-      verify(claimValidationService).ensureAssessmentTypeIsNotVoid(post.getAssessmentType());
+      verify(claimValidationService).validateAssessmentType(post.getAssessmentType());
+      verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
 
       verify(claimRepository).updateAssessmentStatus(claimId, true);
 
       verify(assessmentRepository).save(assessment);
+    }
+
+    @Test
+    void shouldCallValidateAssessmentReason() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .assessmentReason("VALID_REASON")
+              .build();
+
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).build();
+
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
+
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
+    }
+
+    @Test
+    void shouldThrowExceptionForInvalidAssessmentReason() {
+
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .assessmentReason(null)
+              .build();
+
+      doThrow(new ClaimBadRequestException(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR))
+          .when(claimValidationService)
+          .validateAssessmentReason(post.getAssessmentReason());
+
+      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
+          .isInstanceOf(ClaimBadRequestException.class)
+          .hasMessageContaining(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR);
     }
 
     @Test
@@ -201,6 +261,7 @@ class AssessmentServiceTest {
             .assessments(List.of(new AssessmentGet().claimId(CLAIM_1_ID)))
             .totalElements(1);
 
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(true);
     when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class))).thenReturn(page);
     when(assessmentMapper.toAssessmentResultSet(page)).thenReturn(results);
 
@@ -213,14 +274,29 @@ class AssessmentServiceTest {
   }
 
   @Test
-  void shouldThrowExceptionWhenAssessmentsEmpty() {
-    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class)))
-        .thenReturn(new PageImpl<>(Collections.emptyList()));
+  void shouldReturnEmptyResultSetWhenAssessmentsEmpty() {
+    var page = new PageImpl<Assessment>(List.of());
+    var results = AssessmentResultSet.builder().assessments(List.of()).totalElements(0).build();
+
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(true);
+    when(assessmentRepository.findByClaimId(eq(CLAIM_1_ID), any(Pageable.class))).thenReturn(page);
+    when(assessmentMapper.toAssessmentResultSet(page)).thenReturn(results);
+
+    AssessmentResultSet result =
+        assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged());
+
+    assertThat(result).isNotNull();
+    assertThat(result.getAssessments()).hasSize(0);
+  }
+
+  @Test
+  void shouldThrowExceptionWhenClaimNotFound() {
+    when(claimRepository.existsById(CLAIM_1_ID)).thenReturn(false);
 
     assertThatThrownBy(
             () -> assessmentService.getAssessmentsByClaimId(CLAIM_1_ID, Pageable.unpaged()))
-        .isInstanceOf(AssessmentNotFoundException.class)
-        .hasMessageContaining("No assessments found for claimId");
+        .isInstanceOf(ClaimNotFoundException.class)
+        .hasMessageContaining(NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(CLAIM_1_ID));
   }
 
   @Test
@@ -313,5 +389,61 @@ class AssessmentServiceTest {
 
     assertThat(result).isNull();
     verify(assessmentRepository).getAssessedTotalAmount(submissionId);
+  }
+
+  @Test
+  void shouldReturnAssessedTotalAmountsForMultipleSubmissions() {
+    UUID submissionId1 = UUID.randomUUID();
+    UUID submissionId2 = UUID.randomUUID();
+
+    BigDecimal total1 = new BigDecimal("100.50");
+    BigDecimal total2 = new BigDecimal("25.00");
+
+    AssessmentRepository.AssessedTotalAmountProjection projection1 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId1;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total1;
+          }
+        };
+
+    AssessmentRepository.AssessedTotalAmountProjection projection2 =
+        new AssessmentRepository.AssessedTotalAmountProjection() {
+          @Override
+          public UUID getSubmissionId() {
+            return submissionId2;
+          }
+
+          @Override
+          public BigDecimal getTotal() {
+            return total2;
+          }
+        };
+
+    when(assessmentRepository.getAssessedTotalAmounts(List.of(submissionId1, submissionId2)))
+        .thenReturn(List.of(projection1, projection2));
+
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(submissionId1)).isEqualByComparingTo("100.50");
+    assertThat(result.get(submissionId2)).isEqualByComparingTo("25.00");
+
+    verify(assessmentRepository).getAssessedTotalAmounts(List.of(submissionId1, submissionId2));
+  }
+
+  @Test
+  void shouldReturnEmptyMapWhenSubmissionIdsListIsEmpty() {
+    Map<UUID, BigDecimal> result =
+        assessmentService.getAssessedTotalAmounts(Collections.emptyList());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(assessmentRepository);
   }
 }
