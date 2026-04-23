@@ -165,7 +165,9 @@ sql: |
           a.allowed_total_vat,
           a.allowed_total_incl_vat
       from claims.assessment a
+      where a.claim_id = c.id 
       order by a.claim_id, a.created_on desc, a.id desc
+      limit 1
       ) assess (
              claim_id,
              assessmentOutcome,
