@@ -97,7 +97,7 @@ sql: |
            left join claims.claim_summary_fee csf on csf.claim_id = c.id
            left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
            left join lateral (
-      select distinct on (a.claim_id)
+      select
           a.claim_id,
           a.assessment_outcome,
           a.assessment_type,
@@ -117,7 +117,7 @@ sql: |
           a.allowed_total_incl_vat
       from claims.assessment a
       where a.claim_id = c.id 
-      order by a.claim_id, a.created_on desc, a.id desc
+      order by a.created_on desc, a.id desc
       limit 1
       ) assess (
              claim_id,
