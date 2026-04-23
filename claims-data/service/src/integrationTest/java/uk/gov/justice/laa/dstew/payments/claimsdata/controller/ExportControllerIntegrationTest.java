@@ -146,7 +146,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
   void exportsLegalHelpCsvSeedsMultipleOtherSubmissions() throws Exception {
     createCrimeLowerExportData(CRIME_OFFICE);
     createMediationExportData(MEDIATION_OFFICE);
-    createAssessmentDataForClaimAndSummaryFeeId(CLAIM_1_ID, CLAIM_1_SUMMARY_FEE_ID, true);
+    createSingleAssessmentForClaimAndSummaryFeeId(CLAIM_1_ID, CLAIM_1_SUMMARY_FEE_ID, true);
     MvcResult response =
         exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
 
@@ -159,7 +159,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertLegalHelpValues(firstRow);
     assertAssessmentValues(firstRow);
     assertLegalHelpAssessmentValues(firstRow);
-    assertLatestAssessmentSelected(firstRow);
+    assertSingleAssessmentSelected(firstRow);
   }
 
   @Test
