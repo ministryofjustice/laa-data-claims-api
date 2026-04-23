@@ -162,7 +162,7 @@ sql: |
           a.is_vat_applicable,
           a.assessed_total_vat,
           a.assessed_total_incl_vat,
-          a.assessed_total_vat,
+          a.allowed_total_vat,
           a.allowed_total_incl_vat
       from claims.assessment a
       order by a.claim_id, a.created_on desc, a.id desc

@@ -293,7 +293,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
 
   private void assertAssessmentClaimValues(Map<String, String> firstRow) {
     assertThat(new BigDecimal(firstRow.get("Final Claim Value"))).isEqualByComparingTo("240.00");
-    assertThat(new BigDecimal(firstRow.get("Final Claim Value VAT"))).isEqualByComparingTo("1.0");
+    assertThat(new BigDecimal(firstRow.get("Final Claim Value VAT"))).isEqualByComparingTo("200.0");
   }
 
   private void assertDefaultClaimValues(Map<String, String> firstRow) {
