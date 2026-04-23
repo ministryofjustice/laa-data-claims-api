@@ -51,7 +51,7 @@ runs:
           pr-number: ${{ inputs.pr-number }}
 
     - name: Authenticate to the cluster
-      uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
+      uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6 # unversioned
       with:
         kube-cert: ${{ inputs.kube-cert }}
         kube-token: ${{ inputs.kube-token }}
@@ -59,14 +59,14 @@ runs:
         kube-namespace: ${{ inputs.kube-namespace }}
 
     - name: Assume role in Cloud Platform
-      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
+      uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
       with:
         role-to-assume: ${{ inputs.ecr-role-to-assume }}
         aws-region: ${{ inputs.ecr-region }}
 
     - name: Docker login to ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896 # v2
+      uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896 # v2.1.1
       with:
         mask-password: 'true'
 
@@ -136,16 +136,20 @@ runs:
 
         if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
           export SPRING_PROFILE="main"
+          export CRONJOB_ENABLED="true"
         elif [ "$branch_name" == "main" ]; then
           export SPRING_PROFILE="main"
           export DB_NAME="main"
+          export CRONJOB_ENABLED="true"
         else
           export SPRING_PROFILE="preview"
           export DB_NAME="$RELEASE_NAME"
+          export CRONJOB_ENABLED="false"
         fi
 
         helm upgrade $RELEASE_NAME .helm/data-claims-api \
           --namespace ${KUBE_NAMESPACE} \
+          --set replicationSummary.enabled="${CRONJOB_ENABLED}" \
           --set replicationSummary.schedule="${{ steps.get_schedule.outputs.schedule }}" \
           --set image.repository="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
           --set image.tag="${IMAGE_TAG:-$GIT_SHA}" \

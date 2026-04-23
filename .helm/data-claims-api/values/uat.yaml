@@ -68,3 +68,7 @@ sentry:
 
 portForward:
   enabled: true
+
+replicationSummary:
+  enabled: true
+  schedule: "0 1 * * *"
