@@ -403,13 +403,44 @@ class SubmissionServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"createdOn", "officeAccountNumber", "areaOfLaw", "status"})
+  @ValueSource(strings = {"createdOn", "areaOfLaw", "status"})
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
     // Service appends a secondary sort by id using the same direction as the primary sort
     Pageable expectedPageable =
         PageRequest.of(
             0, 10, Sort.by(Sort.Direction.ASC, sortField).and(Sort.by(Sort.Direction.ASC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldRemapToCaseInsensitiveSortKey() {
+    Pageable pageableWithSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "officeAccountNumber"));
+    // officeAccountNumber is remapped to officeAccountNumberSortKey for case-insensitive ordering
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.ASC, "officeAccountNumberSortKey")
+                .and(Sort.by(Sort.Direction.ASC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
     when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))

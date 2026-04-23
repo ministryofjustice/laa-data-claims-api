@@ -188,7 +188,7 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
-    Pageable stablePageable = toStablePageable(pageable);
+    Pageable stablePageable = validateAndRemapPageable(pageable);
 
     Page<Submission> page =
         submissionRepository.findAll(
@@ -226,15 +226,28 @@ public class SubmissionService
 
   /**
    * Validates that all sort properties in the given {@link Pageable} are in the allowed set, then
-   * returns a new {@link Pageable} with a stable tie-breaking secondary sort by {@code id}, using
-   * the same direction as the primary sort (defaulting to {@code ASC} if unsorted).
+   * returns a new {@link Pageable} with sort field names remapped to their internal equivalents:
    *
-   * @param pageable the pageable to validate and augment
-   * @return a new pageable with a tie-breaking sort appended
-   * @throws SubmissionBadRequestException if any sort property is not in {@link
-   *     #ALLOWED_SORT_FIELDS}
+   * <ul>
+   *   <li>{@code submissionPeriod} → {@code submissionPeriodSortKey} (chronological YYYYMM order)
+   *   <li>{@code officeAccountNumber} → {@code officeAccountNumberSortKey} (case-insensitive)
+   * </ul>
+   *
+   * <p>A stable tie-breaking secondary sort by {@code id} is always appended, using the same
+   * direction as the primary sort (defaulting to {@code ASC} if unsorted).
+   *
+   * <p>Null handling: PostgreSQL applies {@code NULLS LAST} for {@code ASC} and {@code NULLS FIRST}
+   * for {@code DESC} by default. Rows with null values in a sorted column will therefore appear at
+   * the end of ascending results and at the start of descending results.
+   *
+   * <p>@param pageable the pageable to validate and augment
+   *
+   * <p>@return a new pageable with remapped sort fields and a tie-breaking sort appended
+   *
+   * <p>@throws SubmissionBadRequestException if any sort property is not in {@link
+   * #ALLOWED_SORT_FIELDS}
    */
-  private Pageable toStablePageable(Pageable pageable) {
+  private Pageable validateAndRemapPageable(Pageable pageable) {
     pageable
         .getSort()
         .forEach(
@@ -257,12 +270,18 @@ public class SubmissionService
         pageable.getSort().stream()
             .map(
                 order ->
-                    "submissionPeriod".equals(order.getProperty())
-                        ? new Sort.Order(order.getDirection(), "submissionPeriodSortKey")
-                        : order)
+                    switch (order.getProperty()) {
+                      case "submissionPeriod" ->
+                          new Sort.Order(order.getDirection(), "submissionPeriodSortKey");
+                      case "officeAccountNumber" ->
+                          new Sort.Order(order.getDirection(), "officeAccountNumberSortKey");
+                      default -> order;
+                    })
             .toList();
 
     Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
-    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreaker);
+    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : 0;
+    int pageSize = pageable.isPaged() ? pageable.getPageSize() : 20;
+    return PageRequest.of(pageNumber, pageSize, sortWithTieBreaker);
   }
 }

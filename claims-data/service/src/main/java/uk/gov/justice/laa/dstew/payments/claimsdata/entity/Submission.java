@@ -51,6 +51,17 @@ public class Submission {
   @Formula("TO_CHAR(TO_DATE(submission_period, 'MON-YYYY'), 'YYYYMM')")
   private String submissionPeriodSortKey;
 
+  /**
+   * Derived sort key for {@code officeAccountNumber}, lowercased. Used internally to provide
+   * case-insensitive sorting so that e.g. "OFFICE1" and "office1" sort together consistently.
+   *
+   * <p>Null handling: rows with a null {@code office_account_number} sort last when ascending
+   * (PostgreSQL {@code NULLS LAST} default for ASC) and first when descending ({@code NULLS FIRST}
+   * default for DESC).
+   */
+  @Formula("lower(office_account_number)")
+  private String officeAccountNumberSortKey;
+
   @NotNull
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
