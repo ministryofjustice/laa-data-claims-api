@@ -1304,10 +1304,14 @@ components:
           description: Number of claims in this submission.
         calculated_total_amount:
           type: number
+          format: decimal
           description: Total amount calculated from the fee details of each claim.
+          example: "0.00"
         assessed_total_amount:
           type: number
+          format: decimal
           description: Total amount calculated from the latest assessment for each claim.
+          example: "0.00"
         submitted:
           type: string
           format: date-time
