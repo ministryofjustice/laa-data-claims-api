@@ -9,6 +9,7 @@ services:
       secrets:
         - github_actor
         - github_token
+    # Information on why these ports here: https://github.com/ministryofjustice/laa-data-claims-parent#exposed-ports
     ports:
       - "8080:8080"
       - "8180:8081"
