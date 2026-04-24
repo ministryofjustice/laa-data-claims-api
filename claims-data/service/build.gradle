@@ -42,6 +42,8 @@ ext['commons-lang3.version'] = '3.18.0'
 ext['netty.version'] = '4.2.12.Final'
 // Upgrade to fix remaining Apache Tomcat vulnerabilities reported against 11.0.18/11.0.20
 ext['tomcat.version'] = '11.0.21'
+// Upgrade to fix Access Control Bypass and User Impersonation (SNYK-JAVA-ORGSPRINGFRAMEWORKSECURITY-16120588, 16121326, 16121020)
+ext['spring-security.version'] = '7.0.5'
 
 dependencyManagement {
     dependencies {
