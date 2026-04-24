@@ -50,7 +50,9 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final Instant ELEVENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 11).atStartOfDay().toInstant(ZoneOffset.UTC);
-  private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
+  private static final String[] IGNORED_FIELDS = {
+    "updatedOn", "officeAccountNumberSortKey", "submissionPeriodSortKey"
+  };
 
   private Submission submission1;
   private Submission submission2;
@@ -140,7 +142,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -159,7 +161,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     assertThat(result.getTotalElements()).isEqualTo(2);
     assertThat(result.getContent())
-        .usingRecursiveFieldByFieldElementComparatorIgnoringFields(IGNORE_FIELD_UPDATE_ON)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields(IGNORED_FIELDS)
         .containsExactlyInAnyOrder(submission1, submission2);
   }
 
@@ -179,7 +181,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -211,7 +213,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -231,7 +233,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -251,7 +253,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission2);
   }
 
@@ -271,7 +273,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission2);
   }
 
