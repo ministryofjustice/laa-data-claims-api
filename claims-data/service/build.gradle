@@ -193,7 +193,12 @@ tasks.register('pactTest', Test) {
     if (consumerName) {
         systemProperty 'pact.filter.consumers', consumerName
     }
-    def branch = providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
+    
+    // DSTEW-1472: Temporarily verify against DSTEW-1472 branch to allow coordinated merge
+    // Allow override via system property, otherwise use PACT_CONSUMER_BRANCH env var, default to 'main'
+    def branch = System.getProperty('pact.consumer.branch') ?: 
+                 providers.environmentVariable('PACT_CONSUMER_BRANCH').getOrElse('main')
+    
     systemProperty 'pactbroker.consumerversionselectors.rawjson', "[{\"branch\":\"${branch}\"}]"
 
     // Resolve the directory path to a String for the system property

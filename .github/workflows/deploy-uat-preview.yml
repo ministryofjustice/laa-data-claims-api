@@ -226,7 +226,7 @@ jobs:
       packages: write
       pull-requests: write
     with:
-      pact_test_task: ":claims-data:service:pactTest"
+      pact_test_task: ":claims-data:service:pactTest -Dpact.consumer.branch=DSTEW-1472-2"
       pacticipant_name: 'laa-data-claims-api'
       is_provider: true
       java_version: '25'
