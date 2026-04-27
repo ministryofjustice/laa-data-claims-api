@@ -48,6 +48,8 @@ public class SubmissionService
 
   private static final Set<String> ALLOWED_SORT_FIELDS =
       Set.of("createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status");
+  public static final int DEFAULT_PAGE_SIZE = 20;
+  public static final int DEFAULT_PAGE_NUMBER = 0;
 
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
@@ -280,8 +282,8 @@ public class SubmissionService
             .toList();
 
     Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
-    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : 0;
-    int pageSize = pageable.isPaged() ? pageable.getPageSize() : 20;
+    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : DEFAULT_PAGE_NUMBER;
+    int pageSize = pageable.isPaged() ? pageable.getPageSize() : DEFAULT_PAGE_SIZE;
     return PageRequest.of(pageNumber, pageSize, sortWithTieBreaker);
   }
 }

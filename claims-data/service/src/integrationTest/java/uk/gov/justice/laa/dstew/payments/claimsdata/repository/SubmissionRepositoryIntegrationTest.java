@@ -83,7 +83,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .id(SUBMISSION_1_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
-            .submissionPeriod("JAN-25")
+            .submissionPeriod("JAN-2025")
             .areaOfLaw(AreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .crimeLowerScheduleNumber("office1/CRIME")
@@ -101,7 +101,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .id(SUBMISSION_2_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
-            .submissionPeriod("APR-24")
+            .submissionPeriod("APR-2024")
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.REPLACED)
             .crimeLowerScheduleNumber("office2/CRIME")
@@ -328,7 +328,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(actualResults.getContent()).hasSize(1);
     assertThat(actualResults.getContent())
         .extracting("areaOfLaw", "submissionPeriod", "officeAccountNumber")
-        .isEqualTo((List.of(tuple(AREA_OF_LAW, "JAN-25", "office1"))));
+        .isEqualTo((List.of(tuple(AREA_OF_LAW, "JAN-2025", "office1"))));
   }
 
   @DisplayName("Should not return result if area of law does not match the existing database")
@@ -338,7 +338,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.MEDIATION))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2025")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(0);
@@ -352,7 +352,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2029")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(0);
@@ -366,7 +366,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(null))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2025")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(1);
@@ -426,6 +426,30 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @DisplayName(
+      "submissionPeriodSortKey @Formula converts MON-YYYY period to YYYYMM chronological sort key")
+  @Test
+  void submissionPeriodSortKey_producesCorrectYearMonthSortKey() {
+    // Verifies that the @Formula correctly converts e.g. "APR-2025" → "202504",
+    // which enables chronological ordering (alphabetical ordering would give wrong results).
+    var submission =
+        Submission.builder()
+            .id(SUBMISSION_3_ID)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber("office3")
+            .submissionPeriod("APR-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(TENTH_APRIL_2024)
+            .build();
+    submissionRepository.save(submission);
+
+    Submission saved = submissionRepository.findById(SUBMISSION_3_ID).orElseThrow();
+    assertThat(saved.getSubmissionPeriodSortKey()).isEqualTo("202504");
   }
 
   @DisplayName("Should return result even if submission statuses is empty")
