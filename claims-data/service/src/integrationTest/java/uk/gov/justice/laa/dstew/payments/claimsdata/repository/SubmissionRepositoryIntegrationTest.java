@@ -458,10 +458,17 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   @Test
   void submissionPeriodSortKey_throwsForInvalidMonthName() {
     // "ABC-2025" matches the expected MON-YYYY shape but "ABC" is not a valid PostgreSQL month
-    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time — meaning any
-    // query touching that row (not just sort operations) would fail with a PersistenceException.
-    // Upstream validation in the event service prevents this, but this test documents what would
-    // happen if that guard were bypassed or a value were inserted directly into the database.
+    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time.
+    //
+    // Impact depends on context:
+    // - Unsorted queries: only fails when the bad row appears in the fetched page's result set;
+    //   other pages that don't include it will succeed.
+    // - Queries sorted by submissionPeriod (which uses this formula in ORDER BY): PostgreSQL
+    //   evaluates the expression across ALL matching rows before pagination, so a single bad row
+    //   will cause every page of that sorted query to fail.
+    //
+    // Upstream validation in the event service prevents invalid values reaching the database,
+    // but this test documents the failure mode should that guard ever be bypassed.
     var invalidSubmission =
         Submission.builder()
             .id(SUBMISSION_3_ID)
