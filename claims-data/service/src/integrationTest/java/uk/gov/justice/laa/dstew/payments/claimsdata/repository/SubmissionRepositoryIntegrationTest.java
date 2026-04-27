@@ -18,14 +18,17 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -55,8 +58,19 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     "updatedOn", "officeAccountNumberSortKey", "submissionPeriodSortKey"
   };
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   private Submission submission1;
   private Submission submission2;
+
+  @AfterEach
+  public void cleanupInvalidSubmission() {
+    // Use a native SQL delete to remove any submission inserted with an invalid period,
+    // bypassing JPA so the @Formula is never evaluated during cleanup. This runs before
+    // the next @BeforeEach abstractSetup() calls deleteAll(). Safe to run after every test
+    // as the DELETE is a no-op when the row doesn't exist.
+    jdbcTemplate.update("DELETE FROM claims.submission WHERE id = ?", SUBMISSION_3_ID);
+  }
 
   /**
    * This is to set the testing data such as the bulk submission and the corresponding submissions
@@ -454,11 +468,12 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @DisplayName(
-      "submissionPeriodSortKey @Formula causes PersistenceException if an invalid month name is in the database")
+      "submissionPeriodSortKey @Formula causes DataIntegrityViolationException if an invalid month name is in the database")
   @Test
   void submissionPeriodSortKey_throwsForInvalidMonthName() {
     // "ABC-2025" matches the expected MON-YYYY shape but "ABC" is not a valid PostgreSQL month
-    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time.
+    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time, which Spring
+    // wraps as a DataIntegrityViolationException.
     //
     // Impact depends on context:
     // - Unsorted queries: only fails when the bad row appears in the fetched page's result set;
@@ -484,7 +499,9 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     submissionRepository.save(invalidSubmission);
 
     assertThatThrownBy(() -> submissionRepository.findById(SUBMISSION_3_ID))
-        .isInstanceOf(jakarta.persistence.PersistenceException.class);
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class)
+        .hasMessageContaining("invalid value")
+        .hasMessageContaining("MON");
   }
 
   @DisplayName("Should return result even if submission statuses is empty")
