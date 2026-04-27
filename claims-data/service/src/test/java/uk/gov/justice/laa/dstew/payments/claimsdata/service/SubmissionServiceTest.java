@@ -125,7 +125,7 @@ class SubmissionServiceTest {
     SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
 
     assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
-    assertThat(result.getCalculatedTotalAmount()).isEqualTo(BigDecimal.ZERO);
+    assertThat(result.getCalculatedTotalAmount()).isEqualTo(new BigDecimal("0.00"));
   }
 
   @Test
