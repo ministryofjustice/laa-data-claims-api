@@ -985,7 +985,28 @@ paths:
       tags:
         - Validation Messages
       summary: Gets all validation messages
-      description: Returns all the validation messages
+      description: |
+        Returns all the validation messages, optionally sorted by one of the supported fields.
+
+        **Sortable fields** (supplied via the `sort` query parameter, e.g. `sort=client_surname,asc`):
+        - `display_message`
+        - `client_forename`
+        - `client_surname`
+        - `unique_client_number`
+        - `client_2_forename`
+        - `client_2_surname`
+        - `client_2_ucn`
+        - `unique_file_number`
+
+        Sorting is **case-insensitive** (e.g. `"alice"` and `"Alice"` are treated as equal).
+
+        **Null / blank handling:** rows whose sort-field value is `null` are placed **last** for
+        ascending sorts and **first** for descending sorts (PostgreSQL default behaviour).
+        This ensures incomplete records always appear at a predictable position.
+
+        **Stable pagination:** when multiple rows share the same primary sort value the backend
+        automatically appends a secondary sort by `id` in the same direction so that rows do not
+        drift between pages.
       parameters:
         - name: submission-id
           in: query
