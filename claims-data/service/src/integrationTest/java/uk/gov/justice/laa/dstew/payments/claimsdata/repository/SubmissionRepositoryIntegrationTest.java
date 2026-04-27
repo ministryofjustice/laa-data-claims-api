@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
@@ -450,6 +451,33 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     Submission saved = submissionRepository.findById(SUBMISSION_3_ID).orElseThrow();
     assertThat(saved.getSubmissionPeriodSortKey()).isEqualTo("202504");
+  }
+
+  @DisplayName(
+      "submissionPeriodSortKey @Formula causes PersistenceException if an invalid month name is in the database")
+  @Test
+  void submissionPeriodSortKey_throwsForInvalidMonthName() {
+    // "ABC-2025" matches the expected MON-YYYY shape but "ABC" is not a valid PostgreSQL month
+    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time — meaning any
+    // query touching that row (not just sort operations) would fail with a PersistenceException.
+    // Upstream validation in the event service prevents this, but this test documents what would
+    // happen if that guard were bypassed or a value were inserted directly into the database.
+    var invalidSubmission =
+        Submission.builder()
+            .id(SUBMISSION_3_ID)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber("office3")
+            .submissionPeriod("ABC-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(TENTH_APRIL_2024)
+            .build();
+    submissionRepository.save(invalidSubmission);
+
+    assertThatThrownBy(() -> submissionRepository.findById(SUBMISSION_3_ID))
+        .isInstanceOf(jakarta.persistence.PersistenceException.class);
   }
 
   @DisplayName("Should return result even if submission statuses is empty")
