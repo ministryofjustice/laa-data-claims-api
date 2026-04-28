@@ -185,7 +185,9 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
-    Pageable stablePageable = validateAndRemapPageable(pageable);
+    Pageable stablePageable =
+        PageableUtils.validateAndRemap(
+            pageable, SubmissionSortField.values(), SubmissionBadRequestException::new, true);
 
     Page<Submission> page =
         submissionRepository.findAll(
@@ -219,15 +221,5 @@ public class SubmissionService
             });
 
     return resultSet;
-  }
-
-  /**
-   * Delegates to {@link PageableUtils#validateAndRemap} using {@link SubmissionSortField} values
-   * with case-insensitive ordering. {@code submissionPeriod} is mapped to {@code
-   * submissionPeriodSortKey} (a {@code @Formula} field) for correct chronological ordering.
-   */
-  private Pageable validateAndRemapPageable(Pageable pageable) {
-    return PageableUtils.validateAndRemap(
-        pageable, SubmissionSortField.values(), SubmissionBadRequestException::new, true);
   }
 }
