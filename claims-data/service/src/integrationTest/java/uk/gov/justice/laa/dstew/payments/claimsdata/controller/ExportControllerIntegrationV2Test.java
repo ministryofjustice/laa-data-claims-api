@@ -22,20 +22,20 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MvcResult;
 
-class ExportControllerIntegrationTest extends AbstractIntegrationTest {
+class ExportControllerIntegrationV2Test extends AbstractIntegrationTest {
 
   private static final String EXPORTS_BASE_PATH = "/exports";
 
   private static final String LEGAL_HELP_ENDPOINT =
-      EXPORTS_BASE_PATH + "/submission-claims-legal-help";
+      EXPORTS_BASE_PATH + "/v2-submission-claims-legal-help";
   private static final String CRIME_LOWER_ENDPOINT =
-      EXPORTS_BASE_PATH + "/submission-claims-crime-lower";
+      EXPORTS_BASE_PATH + "/v2-submission-claims-crime-lower";
   private static final String MEDIATION_ENDPOINT =
-      EXPORTS_BASE_PATH + "/submission-claims-mediation";
+      EXPORTS_BASE_PATH + "/v2-submission-claims-mediation";
 
-  private static final String LEGAL_HELP_DEFINITION = "submission-claims-legal-help.yml";
-  private static final String CRIME_LOWER_DEFINITION = "submission-claims-crime-lower.yml";
-  private static final String MEDIATION_DEFINITION = "submission-claims-mediation.yml";
+  private static final String LEGAL_HELP_DEFINITION = "v2-submission-claims-legal-help.yml";
+  private static final String CRIME_LOWER_DEFINITION = "v2-submission-claims-crime-lower.yml";
+  private static final String MEDIATION_DEFINITION = "v2-submission-claims-mediation.yml";
 
   private static final String CRIME_OFFICE = "office-crime-export";
   private static final String MEDIATION_OFFICE = "office-mediation-export";

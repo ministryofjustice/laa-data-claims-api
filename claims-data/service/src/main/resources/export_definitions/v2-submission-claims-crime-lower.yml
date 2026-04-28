@@ -1,0 +1,279 @@
+description: "CRIME LOWER submission claims export V2"
+provider: submissionClaimsCrimeLowerV2Provider
+packageName: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v2
+sql: |
+  select s.office_account_number                  as officeAccountNumber,
+         s.submission_period                      as submissionPeriod,
+         s.area_of_law                            as areaOfLaw,
+         s.crime_lower_schedule_number            as scheduleNum,
+         claim_case.stage_reached_code            as stageReachedCode,
+         c.fee_code                               as feeCode,
+         c.status                                 as claimStatus,
+         client.client_surname                    as clientSurname,
+         client.client_forename                   as clientForename,
+         client.gender_code                       as gender,
+         client.ethnicity_code                    as ethnicity,
+         client.disability_code                   as disability,
+         c.unique_file_number                     as ufn,
+         c.representation_order_date              as representationOrderDate,
+         claim_case.standard_fee_category_code    as standardFeeCategory,
+         claim_case.outcome_code                  as outcomeCode,
+         c.crime_matter_type_code                 as crimeMatterType,
+         csf.net_profit_costs_amount              as netProfitCosts,
+         csf.net_disbursement_amount              as netDisbursementAmount,
+         csf.travel_waiting_costs_amount          as netTravelCosts,
+         csf.net_waiting_costs_amount             as netWaitingCosts,
+         csf.is_vat_applicable                    as vatIndicator,
+         csf.disbursements_vat_amount             as disbursementsVat,
+         c.case_concluded_date                    as caseConcludedDate,
+         c.suspects_defendants_count              as suspectsDefendantsCount,
+         c.police_station_court_attendances_count as policeStationAttendances,
+         c.police_station_court_prison_id         as policeStationCourtPrisonId,
+         c.dscc_number                            as dsccNumber,
+         c.maat_id                                as maatId,
+         c.prison_law_prior_approval_number       as prisonLawPriorApprovalNumber,
+         c.is_duty_solicitor                      as dutySolicitor,
+         c.is_youth_court                         as youthCourt,
+         c.scheme_id                              as schemeId,
+         cfd.fee_code_description                 as feeDetailFeeCodeDescription,
+         cfd.fee_type                             as feeDetailFeeType,
+         cfd.category_of_law                      as feeDetailCategoryOfLaw,
+         cfd.total_amount                         as feeDetailTotalAmount,
+         cfd.vat_indicator                        as feeDetailVatIndicator,
+         cfd.vat_rate_applied                     as feeDetailVatRateApplied,
+         cfd.calculated_vat_amount                as feeDetailCalculatedVatAmount,
+         cfd.disbursement_amount                  as feeDetailDisbursementAmount,
+         cfd.requested_net_disbursement_amount    as feeDetailRequestedNetDisbursementAmount,
+         cfd.disbursement_vat_amount              as feeDetailDisbursementVatAmount,
+         cfd.hourly_total_amount                  as feeDetailHourlyTotalAmount,
+         cfd.fixed_fee_amount                     as feeDetailFixedFeeAmount,
+         cfd.net_profit_costs_amount              as feeDetailNetProfitCostsAmount,
+         cfd.requested_net_profit_costs_amount    as feeDetailRequestedNetProfitCostsAmount,
+         cfd.net_travel_costs_amount              as feeDetailNetTravelCostsAmount,
+         cfd.net_waiting_costs_amount             as feeDetailNetWaitingCostsAmount,
+         cfd.travel_and_waiting_costs_amount      as feeDetailTravelAndWaitingCostsAmount,
+         cfd.escape_case_flag                     as feeDetailEscapeCaseFlag,
+         assess.assessmentOutcome                 as assessmentOutcome,
+         assess.assessmentType                    as assessmentType,
+         assess.assessmentReason                  as assessmentReason,
+         assess.assessmentDate                    as assessmentDate,
+         assess.assessmentFixedFeeAmount          as assessmentFixedFeeAmount,
+         assess.assessmentNetProfitCostsAmount    as assessmentNetProfitCostsAmount,
+         assess.assessmentDisbursementAmount      as assessmentDisbursementAmount,
+         assess.assessmentDisbursementVatAmount   as assessmentDisbursementVatAmount,
+         assess.assessmentNetCostOfCounselAmount  as assessmentNetCostOfCounselAmount,
+         assess.assessmentNetTravelCostsAmount    as assessmentNetTravelCostsAmount,
+         assess.assessmentNetWaitingCostsAmount   as assessmentNetWaitingCostsAmount,
+         assess.assessmentVatIndicator            as assessmentVatIndicator,
+         assess.assessmentTotalVat                as assessmentTotalVat,
+         assess.assessmentTotalIncVat             as assessmentTotalIncVat,
+         coalesce(
+                 assess.finalClaimValueVat,
+                 case
+                     when cfd.calculated_vat_amount is not null
+                         then round(cfd.calculated_vat_amount::numeric, 2)
+                     else null
+                     end
+         ) as finalClaimValueVat,
+         coalesce(
+                 assess.finalClaimValue,
+                 case
+                     when cfd.total_amount is not null
+                         then round(cfd.total_amount::numeric, 2)
+                     else null
+                     end
+         ) as finalClaimValue
+  from claims.submission s
+           join claims.claim c on c.submission_id = s.id
+           left join claims.client client on client.claim_id = c.id
+           left join claims.claim_case claim_case on claim_case.claim_id = c.id
+           left join claims.claim_summary_fee csf on csf.claim_id = c.id
+           left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+           left join lateral (
+      select                          a.claim_id,
+                                      a.assessment_outcome,
+                                      a.assessment_type,
+                                      a.assessment_reason,
+                                      a.created_on::date,
+                                      a.fixed_fee_amount,
+                                      a.net_profit_costs_amount,
+                                      a.disbursement_amount,
+                                      a.disbursement_vat_amount,
+                                      a.net_cost_of_counsel_amount,
+                                      a.net_travel_costs_amount,
+                                      a.net_waiting_costs_amount,
+                                      a.is_vat_applicable,
+                                      a.assessed_total_vat,
+                                      a.assessed_total_incl_vat,
+                                      a.allowed_total_vat,
+                                      a.allowed_total_incl_vat
+      from claims.assessment a
+      where a.claim_id = c.id 
+      order by a.created_on desc, a.id desc
+      limit 1
+      ) assess (
+             claim_id,
+             assessmentOutcome,
+             assessmentType,
+             assessmentReason,
+             assessmentDate,
+             assessmentFixedFeeAmount,
+             assessmentNetProfitCostsAmount,
+             assessmentDisbursementAmount,
+             assessmentDisbursementVatAmount,
+             assessmentNetCostOfCounselAmount,
+             assessmentNetTravelCostsAmount,
+             assessmentNetWaitingCostsAmount,
+             assessmentVatIndicator,
+             assessmentTotalVat,
+             assessmentTotalIncVat,
+             finalClaimValueVat,
+             finalClaimValue
+      ) on assess.claim_id = c.id
+  where s.id = :submissionId
+    and s.office_account_number = :office
+    and s.area_of_law = 'CRIME_LOWER'
+  limit :maxRows
+columns:
+  - key: officeAccountNumber
+    header: Providers LAA Office Number
+  - key: submissionPeriod
+    header: Submission Month
+  - key: areaOfLaw
+    header: Area of Law
+  - key: scheduleNum
+    header: Crime Lower Schedule Number
+  - key: stageReachedCode
+    header: Stage Reached (Claim Code)
+  - key: feeCode
+    header: Fee Code
+  - key: claimStatus
+    header: Claim Status
+  - key: clientSurname
+    header: Client surname
+  - key: clientForename
+    header: Client Initial
+  - key: gender
+    header: Gender
+  - key: ethnicity
+    header: Ethnicity
+  - key: disability
+    header: Disability
+  - key: ufn
+    header: UFN
+  - key: representationOrderDate
+    header: Representation Order Date
+  - key: standardFeeCategory
+    header: Standard Fee Category
+  - key: outcomeCode
+    header: Outcome for the client
+  - key: crimeMatterType
+    header: Matter Type
+  - key: netProfitCosts
+    header: Net Profit costs (excluding VAT)
+  - key: netDisbursementAmount
+    header: Net Disbursement amount (excluding VAT)
+  - key: netTravelCosts
+    header: Net Travel costs (excluding VAT)
+  - key: netWaitingCosts
+    header: Net Waiting costs (excluding VAT)
+  - key: vatIndicator
+    header: VAT Indicator
+  - key: disbursementsVat
+    header: VAT Disbursements amount
+  - key: caseConcludedDate
+    header: Case concluded date
+  - key: suspectsDefendantsCount
+    header: No. of suspects/ defendants
+  - key: policeStationAttendances
+    header: No. of Police Station/court attendances
+  - key: policeStationCourtPrisonId
+    header: Police Station/ Court ID/ Prison ID
+  - key: dsccNumber
+    header: DSCC Number
+  - key: maatId
+    header: MAAT ID
+  - key: prisonLawPriorApprovalNumber
+    header: Prison law Prior Approval number
+  - key: dutySolicitor
+    header: Duty Solicitor
+  - key: youthCourt
+    header: Youth Court
+  - key: schemeId
+    header: Scheme ID
+  - key: feeDetailFeeCodeDescription
+    header: Calculated Fee Detail - Fee Code Description
+  - key: feeDetailFeeType
+    header: Calculated Fee Detail - Fee Type
+  - key: feeDetailCategoryOfLaw
+    header: Calculated Fee Detail - Category of Law
+  - key: feeDetailTotalAmount
+    header: Calculated Fee Detail - Total Amount
+  - key: feeDetailVatIndicator
+    header: Calculated Fee Detail - VAT Indicator
+  - key: feeDetailVatRateApplied
+    header: Calculated Fee Detail - VAT Rate Applied
+  - key: feeDetailCalculatedVatAmount
+    header: Calculated Fee Detail - Calculated VAT Amount
+  - key: feeDetailDisbursementAmount
+    header: Calculated Fee Detail - Disbursement Amount
+  - key: feeDetailRequestedNetDisbursementAmount
+    header: Calculated Fee Detail - Requested Net Disbursement Amount
+  - key: feeDetailDisbursementVatAmount
+    header: Calculated Fee Detail - Disbursement VAT Amount
+  - key: feeDetailHourlyTotalAmount
+    header: Calculated Fee Detail - Hourly Total Amount
+  - key: feeDetailFixedFeeAmount
+    header: Calculated Fee Detail - Fixed Fee Amount
+  - key: feeDetailNetProfitCostsAmount
+    header: Calculated Fee Detail - Net Profit Costs Amount
+  - key: feeDetailRequestedNetProfitCostsAmount
+    header: Calculated Fee Detail - Requested Net Profit Costs Amount
+  - key: feeDetailNetTravelCostsAmount
+    header: Calculated Fee Detail - Net Travel Costs Amount
+  - key: feeDetailNetWaitingCostsAmount
+    header: Calculated Fee Detail - Net Waiting Costs Amount
+  - key: feeDetailTravelAndWaitingCostsAmount
+    header: Calculated Fee Detail - Travel And Waiting Costs Amount
+  - key: feeDetailEscapeCaseFlag
+    header: Calculated Fee Detail - Escape Case Flag
+  - key: assessmentOutcome
+    header: Assessment - Outcome
+  - key: assessmentType
+    header: Assessment - Type
+  - key: assessmentReason
+    header: Assessment - Reason
+  - key: assessmentDate
+    header: Assessment - Date
+  - key: assessmentFixedFeeAmount
+    header: Assessment - Fixed Fee Amount
+  - key: assessmentNetProfitCostsAmount
+    header: Assessment - Net Profit Costs Amount
+  - key: assessmentDisbursementAmount
+    header: Assessment - Disbursement Amount
+  - key: assessmentDisbursementVatAmount
+    header: Assessment - Disbursement VAT Amount
+  - key: assessmentNetCostOfCounselAmount
+    header: Assessment - Net Cost Of Counsel Amount
+  - key: assessmentNetTravelCostsAmount
+    header: Assessment - Net Travel Costs Amount
+  - key: assessmentNetWaitingCostsAmount
+    header: Assessment - Net Waiting Costs Amount
+  - key: assessmentVatIndicator
+    header: Assessment - VAT Indicator
+  - key: assessmentTotalVat
+    header: Assessment - Total VAT
+  - key: assessmentTotalIncVat
+    header: Assessment - Total Inc VAT
+  - key: finalClaimValueVat
+    header: Final Claim Value VAT
+  - key: finalClaimValue
+    header: Final Claim Value
+params:
+  - name: submissionId
+    requestName: submission-id
+    type: UUID
+    required: true
+  - name: office
+    type: STRING
+    required: true
