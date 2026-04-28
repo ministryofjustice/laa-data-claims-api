@@ -1,0 +1,31 @@
+meta {
+  name: get submissions
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions?offices={{OFFICE_CODE}}&submission_period=APR-2025&area_of_law=CRIME_LOWER&page=0&size=20&sort=createdOn,desc
+  body: none
+  auth: inherit
+}
+
+params:query {
+  offices: {{OFFICE_CODE}}
+  submission_period: APR-2025
+  area_of_law: CRIME_LOWER
+  ~submission_id:
+  ~submitted_date_from: 2025-01-01
+  ~submitted_date_to: 2025-12-31
+  ~submission_statuses: CREATED
+  page: 0
+  size: 20
+  sort: createdOn,desc
+}
+
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

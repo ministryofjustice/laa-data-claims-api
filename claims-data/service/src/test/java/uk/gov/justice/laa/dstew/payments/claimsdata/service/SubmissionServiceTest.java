@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -31,7 +32,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
@@ -334,9 +337,9 @@ class SubmissionServiceTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResultSet.getContent()).hasSize(1);
-    assertThat(actualResultSet.getContent().get(0).getSubmissionId())
+    assertThat(actualResultSet.getContent().getFirst().getSubmissionId())
         .isEqualTo(submissionBase.getSubmissionId());
-    assertThat(actualResultSet.getContent().get(0).getAssessedTotalAmount())
+    assertThat(actualResultSet.getContent().getFirst().getAssessedTotalAmount())
         .isEqualTo(new BigDecimal("123.40"));
     verify(assessmentService)
         .getAssessedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
@@ -390,11 +393,177 @@ class SubmissionServiceTest {
         SUBMISSION_STATUSES,
         Pageable.ofSize(10).withPage(0));
 
+    // Service always appends id as tie-breaker sort
+    Pageable expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
     verify(submissionRepository)
-        .findAll(
-            submissionSpecificationArgumentCaptor.capture(), eq(Pageable.ofSize(10).withPage(0)));
+        .findAll(submissionSpecificationArgumentCaptor.capture(), eq(expectedPageable));
     verifyNoInteractions(assessmentService);
 
     assertThat(submissionSpecificationArgumentCaptor.getValue()).isNotNull();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"createdOn", "areaOfLaw", "status"})
+  void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
+    Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
+    // Service appends a secondary sort by id using the same direction as the primary sort
+    Pageable expectedPageable =
+        PageRequest.of(
+            0, 10, Sort.by(Sort.Direction.ASC, sortField).and(Sort.by(Sort.Direction.ASC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldRemapToCaseInsensitiveSortKey() {
+    Pageable pageableWithSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "officeAccountNumber"));
+    // officeAccountNumber is remapped to officeAccountNumberSortKey for case-insensitive ordering
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.ASC, "officeAccountNumberSortKey")
+                .and(Sort.by(Sort.Direction.ASC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortBySubmissionPeriod_shouldRemapToSortKey() {
+    Pageable pageableWithPeriodSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "submissionPeriod"));
+    // submissionPeriod is remapped to submissionPeriodSortKey for correct chronological ordering
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.ASC, "submissionPeriodSortKey")
+                .and(Sort.by(Sort.Direction.ASC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithPeriodSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortIsDescending_tieBreakerShouldAlsoBeDescending() {
+    Pageable pageableWithDescSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdOn"));
+    Pageable expectedPageable =
+        PageRequest.of(
+            0,
+            10,
+            Sort.by(Sort.Direction.DESC, "createdOn").and(Sort.by(Sort.Direction.DESC, "id")));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        pageableWithDescSort);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_alwaysAppendsTieBreakerSortById() {
+    Pageable unorderedPageable = Pageable.ofSize(10).withPage(0);
+    // No primary sort, so tie-breaker defaults to ASC
+    Pageable expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
+    Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
+
+    when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
+        .thenReturn(resultPage);
+    when(submissionsResultSetMapper.toSubmissionsResultSet(resultPage))
+        .thenReturn(new SubmissionsResultSet());
+
+    submissionService.getSubmissionsResultSet(
+        OFFICE_CODES,
+        SUBMISSION_ID.toString(),
+        SUBMITTED_DATE_FROM,
+        SUBMITTED_DATE_TO,
+        AREA_OF_LAW,
+        SUBMISSION_PERIOD,
+        SUBMISSION_STATUSES,
+        unorderedPageable);
+
+    verify(submissionRepository).findAll(any(Specification.class), eq(expectedPageable));
+  }
+
+  @Test
+  void getSubmissionsResultSet_whenSortFieldIsInvalid_shouldThrowSubmissionBadRequestException() {
+    Pageable pageableWithInvalidSort =
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "unknownField"));
+
+    assertThrows(
+        SubmissionBadRequestException.class,
+        () ->
+            submissionService.getSubmissionsResultSet(
+                OFFICE_CODES,
+                SUBMISSION_ID.toString(),
+                SUBMITTED_DATE_FROM,
+                SUBMITTED_DATE_TO,
+                AREA_OF_LAW,
+                SUBMISSION_PERIOD,
+                SUBMISSION_STATUSES,
+                pageableWithInvalidSort));
+
+    verifyNoInteractions(submissionRepository);
   }
 }

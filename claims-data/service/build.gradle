@@ -37,11 +37,13 @@ jacocoTestCoverageVerification {
 // example:
 // Upgrade to fix CVE-xxxx-xxxxx
 // ext['dependency-name.version'] = 'x.x.x'
-ext['commons-lang3.version'] = '3.18.0'
-// Upgrade to fix HTTP Request Smuggling (SNYK-JAVA-IONETTY-15789756)
-ext['netty.version'] = '4.2.12.Final'
+
+// **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
+
 // Upgrade to fix remaining Apache Tomcat vulnerabilities reported against 11.0.18/11.0.20
 ext['tomcat.version'] = '11.0.21'
+// Upgrade to fix Access Control Bypass and User Impersonation (SNYK-JAVA-ORGSPRINGFRAMEWORKSECURITY-16120588, 16121326, 16121020)
+ext['spring-security.version'] = '7.0.5'
 
 dependencyManagement {
     dependencies {
@@ -80,6 +82,7 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
+    implementation 'org.springframework.boot:spring-boot-micrometer-tracing-brave'
 
     compileOnly 'org.projectlombok:lombok:1.18.44'
     annotationProcessor 'org.projectlombok:lombok:1.18.44'
