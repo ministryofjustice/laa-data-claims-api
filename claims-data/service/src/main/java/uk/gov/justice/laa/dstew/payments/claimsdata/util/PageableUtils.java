@@ -27,22 +27,8 @@ import org.springframework.data.domain.Sort;
 @UtilityClass
 public class PageableUtils {
 
-  /**
-   * Validates and remaps the sort orders in {@code pageable}.
-   *
-   * @param pageable the original pageable supplied by the controller
-   * @param fieldMap a map from API field name to the internal alias / entity path used in the
-   *     query; only keys present in this map are accepted as valid sort fields
-   * @param exceptionFactory a function that produces the domain-specific bad-request exception for
-   *     an unrecognised field name, e.g. {@code MyBadRequestException::new}
-   * @param ignoreCase when {@code true} each remapped {@link Sort.Order} is flagged with {@link
-   *     Sort.Order#ignoreCase()}, enabling case-insensitive database ordering
-   * @return a new {@link Pageable} with validated, remapped, and (optionally) case-insensitive sort
-   *     orders, plus a deterministic secondary sort by {@code id}
-   * @throws RuntimeException (subtype determined by {@code exceptionFactory}) if an unrecognised
-   *     sort field is requested
-   */
-  public static Pageable validateAndRemap(
+  /** Implementation: validates against {@code fieldMap}, remaps aliases, appends id tie-breaker. */
+  private static Pageable validateAndRemap(
       Pageable pageable,
       Map<String, String> fieldMap,
       Function<String, ? extends RuntimeException> exceptionFactory,
@@ -85,8 +71,8 @@ public class PageableUtils {
   }
 
   /**
-   * Convenience overload that accepts an array of {@link SortField} enum values and builds the
-   * {@code fieldMap} internally, so callers do not need to construct it themselves.
+   * Validates and remaps the sort orders in {@code pageable} using the supplied {@link SortField}
+   * enum values.
    *
    * <p>Example usage:
    *
@@ -113,14 +99,8 @@ public class PageableUtils {
     return validateAndRemap(pageable, buildFieldMap(fields), exceptionFactory, ignoreCase);
   }
 
-  /**
-   * Builds an unmodifiable {@code apiName → entityAlias} map from an array of {@link SortField}
-   * enum values.
-   *
-   * @param fields the enum values to map
-   * @return an unmodifiable map from API name to entity alias
-   */
-  public static <T extends SortField> Map<String, String> buildFieldMap(T[] fields) {
+  /** Builds an {@code apiFieldName → entityAlias} map from a {@link SortField} enum's values. */
+  private static <T extends SortField> Map<String, String> buildFieldMap(T[] fields) {
     return Arrays.stream(fields)
         .collect(Collectors.toUnmodifiableMap(SortField::apiFieldName, SortField::entityAlias));
   }
