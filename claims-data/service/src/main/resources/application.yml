@@ -151,24 +151,24 @@ laa:
         v1-crime-lower:
           description: CRIME LOWER submission claims export V1
           provider: submissionClaimsCrimeLowerProvider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v1
         v1-legal-help:
           description: LEGAL HELP submission claims export V1
           provider: submissionClaimsLegalHelpProvider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v1
         v1-mediation:
           description: MEDIATION submission claims export V1
           provider: submissionClaimsMediationProvider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v1
         v2-crime-lower:
           description: CRIME LOWER submission claims export V2
           provider: submissionClaimsCrimeLowerV2Provider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v2
         v2-legal-help:
           description: LEGAL HELP submission claims export V2
           provider: submissionClaimsLegalHelpV2Provider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v2
         v2-mediation:
           description: MEDIATION submission claims export V2
           provider: submissionClaimsMediationV2Provider
-          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
+          package-name: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated.v2
