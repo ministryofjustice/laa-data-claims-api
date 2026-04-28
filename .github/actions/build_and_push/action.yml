@@ -41,15 +41,19 @@ runs:
 
     - name: Build
       shell: bash
+      env:
+        GIT_SHA: ${{ github.sha }}
+        GIT_REF: ${{ github.ref }}
+        RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
         docker build \
-          --label build.git.sha=${{ github.sha }} \
-          --label build.git.branch=${{ github.ref }} \
-          --label build.date=${{ env.BUILD_DATE }} \
-          --build-arg APP_BUILD_DATE=${{ env.BUILD_DATE }} \
-          --build-arg APP_BUILD_TAG=${{ github.ref }} \
-          --build-arg APP_GIT_COMMIT=${{ github.sha }} \
-          --build-arg APP_BRANCH=${{ steps.extract_release_name.outputs.release-name }} \
+          --label build.git.sha="${GIT_SHA}" \
+          --label build.git.branch="${GIT_REF}" \
+          --label build.date="${BUILD_DATE}" \
+          --build-arg APP_BUILD_DATE="${BUILD_DATE}" \
+          --build-arg APP_BUILD_TAG="${GIT_REF}" \
+          --build-arg APP_GIT_COMMIT="${GIT_SHA}" \
+          --build-arg APP_BRANCH="${RELEASE_NAME}" \
           --pull \
           --tag app .
 
@@ -59,11 +63,12 @@ runs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         GIT_SHA: ${{ github.sha }}
+        GIT_REF: ${{ github.ref }}
       run: |
         docker tag app "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GIT_SHA}"
         docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GIT_SHA}"
 
-        if [ ${{ github.ref }} == 'refs/heads/main' ]; then
+        if [ "${GIT_REF}" == 'refs/heads/main' ]; then
           docker tag app "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
         fi
