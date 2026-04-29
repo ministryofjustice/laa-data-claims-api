@@ -42,8 +42,8 @@ runs:
     - name: Build
       shell: bash
       env:
-        GIT_SHA: ${{ github.sha }}
         GIT_REF: ${{ github.ref }}
+        GIT_SHA: ${{ github.sha }}
         RELEASE_NAME: ${{ steps.extract_release_name.outputs.release-name }}
       run: |
         docker build \
