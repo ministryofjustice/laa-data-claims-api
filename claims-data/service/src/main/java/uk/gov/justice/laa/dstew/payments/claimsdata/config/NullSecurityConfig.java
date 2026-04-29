@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("replication-summary-cronjob")
 @ImportAutoConfiguration(
-    exclude = {uk.gov.laa.springboot.auth.SecurityFilterChainAutoConfiguration.class})
+    exclude = {uk.gov.laa.springboot.oauth2.SecurityFilterChainAutoConfiguration.class})
 public class NullSecurityConfig {
   // No beans needed
 }

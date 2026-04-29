@@ -1,6 +1,12 @@
 spring:
   application:
     name: LAA Data Stewardship Payments - Claims Data Application
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI}
+          audiences: ${OAUTH2_ISSUER_URI}
   mvc:
     problemdetails:
       enabled: true
@@ -119,27 +125,24 @@ logging:
 
 laa:
   springboot.starter:
-    auth:
-      authentication-header: "Authorization"
-      authorized-clients: '[
-          {
-              "name": "test-runner",
-              "roles": [
-                  "ALL"
-              ],
-              "token": "f67f968e-b479-4e61-b66e-f57984931e56"
-          }
-      ]'
+    oauth2:
       authorized-roles: '[
-          {
-              "name": "ALL",
-              "URIs": [
-                  "/**"
-              ]
-          }
+        {
+          "name": "submit-a-bulk-claim",
+          "uris": ["/**"]
+        },
+        {
+          "name": "data-claims-event-service",
+          "uris": ["/**"]
+        },
+        {
+          "name": "amend-a-claim",
+          "uris": ["/**"]
+        }
       ]'
       unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
                           "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico", "/open-api-specification.yml"]
+      scopes-claim-path: scp
     exports:
       enabled: true
       web:
