@@ -13,6 +13,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -91,6 +92,18 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   private static final String TEST_ERROR_MESSAGE =
       "Concatenated test error messages from integration test";
 
+  private static final String SUBMISSIONS_ENDPOINT = API_URI_PREFIX + "/submissions";
+  private static final String SUBMISSION_BY_ID_ENDPOINT = API_URI_PREFIX + "/submissions/{id}";
+  private static final String SUSPICIOUS_SQL_PATTERN_LOG_MSG = "Suspicious SQL-like pattern";
+  private static final String PERIOD_JAN_25 = "JAN-25";
+  private static final String PERIOD_JAN_2025 = "JAN-2025";
+  private static final String PERIOD_DEC_2024 = "DEC-2024";
+  private static final String PERIOD_APR_2025 = "APR-2025";
+  private static final String OFFICE_AAAA01 = "AAAA01";
+  private static final String OFFICE_AAAA02 = "aaaa02";
+  private static final String PARAM_OFFICES = "offices";
+  private static final String PARAM_SORT = "sort";
+
   @BeforeAll
   void initialSetup() {
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
@@ -119,7 +132,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionId(submissionId)
             .bulkSubmissionId(BULK_SUBMISSION_ID)
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
-            .submissionPeriod("JAN-25")
+            .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
@@ -132,7 +145,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling POST endpoint for submissions
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions")
+            post(SUBMISSIONS_ENDPOINT)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
@@ -149,7 +162,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(
             listAppender.list.stream()
                 .filter(
-                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                    event -> event.getFormattedMessage().contains(SUSPICIOUS_SQL_PATTERN_LOG_MSG))
                 .count())
         .isEqualTo(0);
   }
@@ -225,7 +238,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionId(submissionId)
             .bulkSubmissionId(BULK_SUBMISSION_ID)
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
-            .submissionPeriod("JAN-25")
+            .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(maliciousString)
@@ -238,7 +251,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling POST endpoint for submissions
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions")
+            post(SUBMISSIONS_ENDPOINT)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
@@ -253,7 +266,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(
             listAppender.list.stream()
                 .filter(
-                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                    event -> event.getFormattedMessage().contains(SUSPICIOUS_SQL_PATTERN_LOG_MSG))
                 .count())
         .isEqualTo(1);
   }
@@ -268,7 +281,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionId(submissionId)
             .bulkSubmissionId(BULK_SUBMISSION_ID)
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
-            .submissionPeriod("JAN-25")
+            .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(null)
@@ -277,7 +290,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling POST endpoint for submissions, should return a bad request.
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions")
+            post(SUBMISSIONS_ENDPOINT)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
@@ -289,7 +302,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling post endpoint without a valid payload, should return bad request
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions")
+            post(SUBMISSIONS_ENDPOINT)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(new SubmissionPost())))
@@ -304,7 +317,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult result =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+                get(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -337,7 +350,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionId(submissionId)
             .bulkSubmissionId(BULK_SUBMISSION_ID)
             .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
-            .submissionPeriod("JAN-25")
+            .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
             .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
@@ -349,7 +362,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling POST endpoint for submissions
     mockMvc
         .perform(
-            post(API_URI_PREFIX + "/submissions")
+            post(SUBMISSIONS_ENDPOINT)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
@@ -377,7 +390,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult result =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+                get(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -397,7 +410,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling get endpoint without a valid ID, should return not found
     mockMvc
         .perform(
-            get(API_URI_PREFIX + "/submissions/{id}", UUID.randomUUID())
+            get(SUBMISSION_BY_ID_ENDPOINT, UUID.randomUUID())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound())
         .andReturn();
@@ -409,8 +422,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult result =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + "/submissions")
-                    .param("offices", OFFICE_ACCOUNT_NUMBER_1)
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -429,8 +442,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   void getSubmissions_NoOffices_BadRequest() throws Exception {
     // when: calling get all submissions endpoint without an office, should return bad request
     mockMvc
-        .perform(
-            get(API_URI_PREFIX + "/submissions").header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .perform(get(SUBMISSIONS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest())
         .andReturn();
   }
@@ -456,7 +468,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+            patch(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -472,7 +484,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(
             listAppender.list.stream()
                 .filter(
-                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                    event -> event.getFormattedMessage().contains(SUSPICIOUS_SQL_PATTERN_LOG_MSG))
                 .count())
         .isEqualTo(1);
   }
@@ -486,7 +498,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+            patch(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -523,7 +535,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+            patch(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -552,7 +564,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+            patch(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -575,7 +587,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling patch endpoint without a valid submission ID, should return Not Found
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", UUID.randomUUID())
+            patch(SUBMISSION_BY_ID_ENDPOINT, UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -591,7 +603,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint, should return Bad Request
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", SUBMISSION_1_ID)
+            patch(SUBMISSION_BY_ID_ENDPOINT, SUBMISSION_1_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(invalidJson)))
@@ -610,8 +622,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     MvcResult result =
         mockMvc
             .perform(
-                get(API_URI_PREFIX + "/submissions")
-                    .param("offices", officeAccountNumber)
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, officeAccountNumber)
                     .param("areaOfLaw", String.valueOf(areaOfLaw))
                     .param("submissionPeriod", submissionPeriod)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -645,7 +657,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the patch endpoint
     mockMvc
         .perform(
-            patch(API_URI_PREFIX + "/submissions/{id}", submission1.getId().toString())
+            patch(SUBMISSION_BY_ID_ENDPOINT, submission1.getId().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patch)))
@@ -657,5 +669,188 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     claimRepository
         .findBySubmissionId(submission1.getId())
         .forEach(claim -> assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID));
+  }
+
+  // ---- Sorting integration tests ----
+
+  /**
+   * Saves two extra submissions for {@code OFFICE_ACCOUNT_NUMBER_1} with periods {@code "DEC-2024"}
+   * and {@code "APR-2025"}. Together with the seeded {@code submission1} ({@code "JAN-2025"}),
+   * these three periods are chosen so that alphabetical and chronological sort order diverge:
+   *
+   * <ul>
+   *   <li>Alphabetical asc: APR-2025, DEC-2024, JAN-2025 (A &lt; D &lt; J)
+   *   <li>Chronological asc: DEC-2024, JAN-2025, APR-2025
+   * </ul>
+   *
+   * @return the two saved submissions, to be passed to {@link
+   *     #deleteSubmissionPeriodSortFixtures(List)} after the test.
+   */
+  private List<Submission> saveSubmissionPeriodSortFixtures() {
+    Submission submissionDec2024 =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+            .submissionPeriod(PERIOD_DEC_2024)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(CREATED_ON)
+            .build();
+    Submission submissionApr2025 =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+            .submissionPeriod(PERIOD_APR_2025)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(CREATED_ON)
+            .build();
+    submissionRepository.saveAll(List.of(submissionDec2024, submissionApr2025));
+    return List.of(submissionDec2024, submissionApr2025);
+  }
+
+  private void deleteSubmissionPeriodSortFixtures(List<Submission> fixtures) {
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  @Test
+  @DisplayName("Sort by submissionPeriod asc returns chronological order, not alphabetical")
+  void getSubmissions_sortBySubmissionPeriodAsc_returnsChronologicalOrder() throws Exception {
+    // given: DEC-2024 and APR-2025 added alongside seeded submission1 (JAN-2025).
+    // Alphabetical asc would give: APR-2025, DEC-2024, JAN-2025
+    // Chronological asc should give: DEC-2024, JAN-2025, APR-2025
+    List<Submission> fixtures = saveSubmissionPeriodSortFixtures();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                    .param(PARAM_SORT, "submissionPeriod,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var periods =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent()
+            .stream()
+            .map(
+                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
+                    ::getSubmissionPeriod)
+            .toList();
+
+    assertThat(periods).containsExactly(PERIOD_DEC_2024, PERIOD_JAN_2025, PERIOD_APR_2025);
+
+    deleteSubmissionPeriodSortFixtures(fixtures);
+  }
+
+  @Test
+  @DisplayName("Sort by submissionPeriod desc returns reverse chronological order")
+  void getSubmissions_sortBySubmissionPeriodDesc_returnsReverseChronologicalOrder()
+      throws Exception {
+    // given: DEC-2024 and APR-2025 added alongside seeded submission1 (JAN-2025).
+    // Alphabetical desc would give: JAN-2025, DEC-2024, APR-2025
+    // Chronological desc should give: APR-2025, JAN-2025, DEC-2024
+    List<Submission> fixtures = saveSubmissionPeriodSortFixtures();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                    .param(PARAM_SORT, "submissionPeriod,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var periods =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent()
+            .stream()
+            .map(
+                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
+                    ::getSubmissionPeriod)
+            .toList();
+
+    assertThat(periods).containsExactly(PERIOD_APR_2025, PERIOD_JAN_2025, PERIOD_DEC_2024);
+
+    deleteSubmissionPeriodSortFixtures(fixtures);
+  }
+
+  @Test
+  @DisplayName("Sort by officeAccountNumber is case-insensitive")
+  void getSubmissions_sortByOfficeAccountNumber_isCaseInsensitive() throws Exception {
+    // given: two submissions for office1 with mixed-case office numbers
+    Submission submissionUpperCase =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber(OFFICE_AAAA01)
+            .submissionPeriod(PERIOD_JAN_2025)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(CREATED_ON)
+            .build();
+    Submission submissionLowerCase =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(bulkSubmission.getId())
+            .officeAccountNumber(OFFICE_AAAA02)
+            .submissionPeriod(PERIOD_JAN_2025)
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(bulkSubmission.getCreatedByUserId())
+            .createdOn(CREATED_ON)
+            .build();
+    submissionRepository.saveAll(List.of(submissionUpperCase, submissionLowerCase));
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_AAAA01, OFFICE_AAAA02)
+                    .param(PARAM_SORT, "officeAccountNumber,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var resultSet =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionsResultSet.class);
+    var officeNumbers =
+        resultSet.getContent().stream()
+            .map(
+                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
+                    ::getOfficeAccountNumber)
+            .toList();
+
+    // case-insensitive: "AAAA01" (lowercase: aaaa01) before "aaaa02"
+    assertThat(officeNumbers).containsExactly(OFFICE_AAAA01, OFFICE_AAAA02);
+
+    submissionRepository.deleteAll(List.of(submissionUpperCase, submissionLowerCase));
+  }
+
+  @Test
+  @DisplayName("Invalid sort field returns 400 Bad Request")
+  void getSubmissions_invalidSortField_returns400() throws Exception {
+    mockMvc
+        .perform(
+            get(SUBMISSIONS_ENDPOINT)
+                .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                .param(PARAM_SORT, "unknownField,asc")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
   }
 }

@@ -5,15 +5,15 @@ services:
       - application
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        - BUILD_SOURCE=internal
+      dockerfile: Dockerfile_internal
       secrets:
         - github_actor
         - github_token
+    # Information on why these ports here: https://github.com/ministryofjustice/laa-data-claims-parent#exposed-ports
     ports:
       - "8080:8080"
-      - "8183:8081"
+      - "8180:8081"
+      - "5080:5005"
     environment:
       - AWS_REGION=us-east-1
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/laa_data_claims_api_dev
@@ -22,6 +22,7 @@ services:
       - AWS_ENDPOINT_URL=http://host.docker.internal:4566
       - AWS_SQS_ENDPOINT=http://host.docker.internal:4566
       - SPRING_PROFILES_ACTIVE=local
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     depends_on:
       - postgres
   postgres:

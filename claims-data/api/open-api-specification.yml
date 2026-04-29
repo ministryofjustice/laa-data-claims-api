@@ -347,6 +347,19 @@ paths:
             items:
               $ref: "#/components/schemas/submission_status"
           description: Filter by submission statuses
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Sort results by a single field and direction, e.g. `createdOn,desc`.
+            Supported fields: `createdOn`, `officeAccountNumber`, `areaOfLaw`, `submissionPeriod`, `status`.
+            For createdOn and submissionPeriod, the sort is performed on the date value. For officeAccountNumber and areaOfLaw, the sort is performed in a case-insensitive manner.
+            Where multiple rows share the same primary sort value, a deterministic secondary sort by `id` is applied.
+            Null values sort last for ascending and first for descending (PostgreSQL default behaviour).
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
 
       responses:
         '200':
@@ -445,6 +458,13 @@ paths:
           schema:
             type: boolean
           description: Filter by Escaped Case Flag
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
           description: Claims retrieved successfully
@@ -538,6 +558,13 @@ paths:
           schema:
             type: string
           description: Filter by case reference number
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
           description: Claims retrieved successfully
@@ -1013,6 +1040,13 @@ paths:
           description: where the validation message originated
           schema:
             type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
           description: Validations messages found
@@ -1092,6 +1126,13 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
           description: List of assessments retrieved successfully
@@ -1150,6 +1191,25 @@ paths:
           description: Internal server error
 
 components:
+  parameters:
+    pageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Zero-based page index (0..N). Defaults to 0.
+    sizeParam:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+      description: Number of records per page. Defaults to 20.
   schemas:
     bulk_submission_patch:
       type: object
@@ -1304,10 +1364,14 @@ components:
           description: Number of claims in this submission.
         calculated_total_amount:
           type: number
+          format: decimal
           description: Total amount calculated from the fee details of each claim.
+          example: "0.00"
         assessed_total_amount:
           type: number
+          format: decimal
           description: Total amount calculated from the latest assessment for each claim.
+          example: "0.00"
         submitted:
           type: string
           format: date-time

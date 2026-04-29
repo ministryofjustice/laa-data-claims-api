@@ -119,3 +119,10 @@ By default, the application outputs logs in ECS JSON format with distributed tra
     "ecs":{"version":"8.11"}
     }
 ````
+
+
+### Attach debugger to remote JVM
+When running the application in docker, you can attach a debugger to the remote JVM by creating
+a new run configuration in IntelliJ IDEA. The port the JVM is exposed on is 5080.
+
+![RemoteJVMClaimsAPI.png](docs/RemoteJVMClaimsAPI.png)
