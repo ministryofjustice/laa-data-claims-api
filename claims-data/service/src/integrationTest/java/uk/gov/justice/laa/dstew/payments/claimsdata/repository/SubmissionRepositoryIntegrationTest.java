@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
@@ -17,14 +18,17 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -50,10 +54,23 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       LocalDate.of(2024, 4, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
   private static final Instant ELEVENTH_APRIL_2024 =
       LocalDate.of(2024, 4, 11).atStartOfDay().toInstant(ZoneOffset.UTC);
-  private static final String IGNORE_FIELD_UPDATE_ON = "updatedOn";
+  private static final String[] IGNORED_FIELDS = {
+    "updatedOn", "officeAccountNumberSortKey", "submissionPeriodSortKey"
+  };
+
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   private Submission submission1;
   private Submission submission2;
+
+  @AfterEach
+  public void cleanupInvalidSubmission() {
+    // Use a native SQL delete to remove any submission inserted with an invalid period,
+    // bypassing JPA so the @Formula is never evaluated during cleanup. This runs before
+    // the next @BeforeEach abstractSetup() calls deleteAll(). Safe to run after every test
+    // as the DELETE is a no-op when the row doesn't exist.
+    jdbcTemplate.update("DELETE FROM claims.submission WHERE id = ?", SUBMISSION_3_ID);
+  }
 
   /**
    * This is to set the testing data such as the bulk submission and the corresponding submissions
@@ -81,7 +98,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .id(SUBMISSION_1_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office1")
-            .submissionPeriod("JAN-25")
+            .submissionPeriod("JAN-2025")
             .areaOfLaw(AreaOfLaw.LEGAL_HELP)
             .status(SubmissionStatus.CREATED)
             .crimeLowerScheduleNumber("office1/CRIME")
@@ -99,7 +116,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             .id(SUBMISSION_2_ID)
             .bulkSubmissionId(bulkSubmission.getId())
             .officeAccountNumber("office2")
-            .submissionPeriod("APR-24")
+            .submissionPeriod("APR-2024")
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.REPLACED)
             .crimeLowerScheduleNumber("office2/CRIME")
@@ -140,7 +157,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -159,7 +176,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     assertThat(result.getTotalElements()).isEqualTo(2);
     assertThat(result.getContent())
-        .usingRecursiveFieldByFieldElementComparatorIgnoringFields(IGNORE_FIELD_UPDATE_ON)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields(IGNORED_FIELDS)
         .containsExactlyInAnyOrder(submission1, submission2);
   }
 
@@ -179,7 +196,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -211,7 +228,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -231,7 +248,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission1);
   }
 
@@ -251,7 +268,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission2);
   }
 
@@ -271,7 +288,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getContent().getFirst())
         .usingRecursiveComparison()
-        .ignoringFields(IGNORE_FIELD_UPDATE_ON)
+        .ignoringFields(IGNORED_FIELDS)
         .isEqualTo(submission2);
   }
 
@@ -326,7 +343,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(actualResults.getContent()).hasSize(1);
     assertThat(actualResults.getContent())
         .extracting("areaOfLaw", "submissionPeriod", "officeAccountNumber")
-        .isEqualTo((List.of(tuple(AREA_OF_LAW, "JAN-25", "office1"))));
+        .isEqualTo((List.of(tuple(AREA_OF_LAW, "JAN-2025", "office1"))));
   }
 
   @DisplayName("Should not return result if area of law does not match the existing database")
@@ -336,7 +353,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.MEDIATION))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2025")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(0);
@@ -350,7 +367,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(AreaOfLaw.LEGAL_HELP))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-29")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2029")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(0);
@@ -364,7 +381,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(List.of("office1"))
                 .and(SubmissionSpecification.areaOfLawEqual(null))
-                .and(SubmissionSpecification.submissionPeriodEqual("JAN-25")),
+                .and(SubmissionSpecification.submissionPeriodEqual("JAN-2025")),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(1);
@@ -424,6 +441,67 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
             Pageable.ofSize(10).withPage(0));
 
     assertThat(actualResults.getContent()).hasSize(1);
+  }
+
+  @DisplayName(
+      "submissionPeriodSortKey @Formula converts MON-YYYY period to YYYYMM chronological sort key")
+  @Test
+  void submissionPeriodSortKey_producesCorrectYearMonthSortKey() {
+    // Verifies that the @Formula correctly converts e.g. "APR-2025" → "202504",
+    // which enables chronological ordering (alphabetical ordering would give wrong results).
+    var submission =
+        Submission.builder()
+            .id(SUBMISSION_3_ID)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber("office3")
+            .submissionPeriod("APR-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(TENTH_APRIL_2024)
+            .build();
+    submissionRepository.save(submission);
+
+    Submission saved = submissionRepository.findById(SUBMISSION_3_ID).orElseThrow();
+    assertThat(saved.getSubmissionPeriodSortKey()).isEqualTo("202504");
+  }
+
+  @DisplayName(
+      "submissionPeriodSortKey @Formula causes DataIntegrityViolationException if an invalid month name is in the database")
+  @Test
+  void submissionPeriodSortKey_throwsForInvalidMonthName() {
+    // "ABC-2025" matches the expected MON-YYYY shape but "ABC" is not a valid PostgreSQL month
+    // abbreviation. TO_DATE('ABC-2025', 'MON-YYYY') raises an error at SELECT time, which Spring
+    // wraps as a DataIntegrityViolationException.
+    //
+    // Impact depends on context:
+    // - Unsorted queries: only fails when the bad row appears in the fetched page's result set;
+    //   other pages that don't include it will succeed.
+    // - Queries sorted by submissionPeriod (which uses this formula in ORDER BY): PostgreSQL
+    //   evaluates the expression across ALL matching rows before pagination, so a single bad row
+    //   will cause every page of that sorted query to fail.
+    //
+    // Upstream validation in the event service prevents invalid values reaching the database,
+    // but this test documents the failure mode should that guard ever be bypassed.
+    var invalidSubmission =
+        Submission.builder()
+            .id(SUBMISSION_3_ID)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber("office3")
+            .submissionPeriod("ABC-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .status(SubmissionStatus.CREATED)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(TENTH_APRIL_2024)
+            .build();
+    submissionRepository.save(invalidSubmission);
+
+    assertThatThrownBy(() -> submissionRepository.findById(SUBMISSION_3_ID))
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class)
+        .hasMessageContaining("invalid value")
+        .hasMessageContaining("MON");
   }
 
   @DisplayName("Should return result even if submission statuses is empty")
