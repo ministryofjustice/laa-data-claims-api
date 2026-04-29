@@ -59,7 +59,14 @@ class ValidationControllerTest {
             .id(messageId)
             .type(ValidationMessageType.ERROR)
             .source(source)
-            .displayMessage("A display message");
+            .displayMessage("A display message")
+            .clientForename("Alice")
+            .clientSurname("Smith")
+            .uniqueClientNumber("UCN-001")
+            .client2Forename("Bob")
+            .client2Surname("Jones")
+            .client2Ucn("UCN-002")
+            .uniqueFileNumber("UFN-001");
 
     ValidationMessagesResponse response =
         new ValidationMessagesResponse().totalElements(1).content(List.of(message));

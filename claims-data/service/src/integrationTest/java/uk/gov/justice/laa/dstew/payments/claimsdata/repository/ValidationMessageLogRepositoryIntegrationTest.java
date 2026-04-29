@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("ValidationMessageLogRepository Integration Test")
@@ -90,5 +91,56 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     return Stream.of(
         Arguments.of(ValidationMessageType.ERROR, CLAIM_1_ID, "Missing case reference"),
         Arguments.of(ValidationMessageType.WARNING, CLAIM_2_ID, "Missing UFN"));
+  }
+
+  @Test
+  @DisplayName(
+      "findWithClaimDetailsByFilters returns claim UFN and client details for a claim-linked message")
+  void findWithClaimDetailsByFilters_returnsClaimDetails() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    // CLAIM_1_ID has uniqueFileNumber=UFN_123 and a Client with forename=Alice, surname=Smith,
+    // UCN=UCN_111 (seeded via seedValidationMessagesData → seedClaimsData → createClaimsTestData)
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            SUBMISSION_1_ID, CLAIM_1_ID, null, null, pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    ValidationMessageWithClaimDetailsProjection proj = result.getContent().getFirst();
+    assertThat(proj.getClaimId()).isEqualTo(CLAIM_1_ID);
+    assertThat(proj.getUniqueFileNumber()).isEqualTo("UFN_123");
+    assertThat(proj.getClientForename()).isEqualTo("Alice");
+    assertThat(proj.getClientSurname()).isEqualTo("Smith");
+    assertThat(proj.getUniqueClientNumber()).isEqualTo("UCN_111");
+  }
+
+  @Test
+  @DisplayName("findWithClaimDetailsByFilters filters by type")
+  void findWithClaimDetailsByFilters_filtersByType() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    Page<ValidationMessageWithClaimDetailsProjection> errors =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            SUBMISSION_1_ID, null, ValidationMessageType.ERROR, null, pageable);
+    assertThat(errors.getTotalElements()).isEqualTo(1);
+    assertThat(errors.getContent().getFirst().getType()).isEqualTo(ValidationMessageType.ERROR);
+
+    Page<ValidationMessageWithClaimDetailsProjection> warnings =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            SUBMISSION_1_ID, null, ValidationMessageType.WARNING, null, pageable);
+    assertThat(warnings.getTotalElements()).isEqualTo(1);
+    assertThat(warnings.getContent().getFirst().getType()).isEqualTo(ValidationMessageType.WARNING);
+  }
+
+  @Test
+  @DisplayName("findWithClaimDetailsByFilters returns all messages when filters are null")
+  void findWithClaimDetailsByFilters_withNullFilters_returnsAll() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            SUBMISSION_1_ID, null, null, null, pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(2);
   }
 }
