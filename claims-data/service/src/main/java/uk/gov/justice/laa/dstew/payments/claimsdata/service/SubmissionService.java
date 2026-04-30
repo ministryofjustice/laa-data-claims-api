@@ -116,8 +116,7 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(
-            BigDecimalUtils.scaleOrZeroWithScale(calculatedTotalAmount, DECIMAL_PLACES))
+        .calculatedTotalAmount(BigDecimalUtils.scaleNullable(calculatedTotalAmount, DECIMAL_PLACES))
         .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
@@ -219,9 +218,12 @@ public class SubmissionService
         .forEach(
             submissionBase -> {
               BigDecimal assessedTotal = assessedTotalAmounts.get(submissionBase.getSubmissionId());
+              BigDecimal calcTotalAmount = submissionBase.getCalculatedTotalAmount();
 
               submissionBase.setAssessedTotalAmount(
                   BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES));
+              submissionBase.setCalculatedTotalAmount(
+                  BigDecimalUtils.scaleNullable(calcTotalAmount, DECIMAL_PLACES));
             });
 
     return resultSet;
