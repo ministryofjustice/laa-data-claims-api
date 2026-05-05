@@ -79,12 +79,12 @@ sql: |
       coalesce(round(assess.allowed_total_incl_vat::numeric, 2),
                 round(cfd.total_amount::numeric, 2))          as finalClaimValue
   from claims.submission s
-           join claims.claim c on c.submission_id = s.id
-           left join claims.client client on client.claim_id = c.id
-           left join claims.claim_case claim_case on claim_case.claim_id = c.id
-           left join claims.claim_summary_fee csf on csf.claim_id = c.id
-           left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
-           left join lateral (
+  join claims.claim c on c.submission_id = s.id
+  left join claims.client client on client.claim_id = c.id
+  left join claims.claim_case claim_case on claim_case.claim_id = c.id
+  left join claims.claim_summary_fee csf on csf.claim_id = c.id
+  left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+  left join lateral (
       select
           a.claim_id,
           a.assessment_outcome,
