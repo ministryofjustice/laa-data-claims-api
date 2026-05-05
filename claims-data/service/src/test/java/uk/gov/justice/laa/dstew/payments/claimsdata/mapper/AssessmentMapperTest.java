@@ -151,6 +151,19 @@ class AssessmentMapperTest {
     assertEquals(r2.getClaimSummaryFeeId(), a2.getClaimSummaryFee().getId());
   }
 
+  @Test
+  void toAssessmentResultSet_mapsEmptyPage() {
+    var page = new PageImpl<Assessment>(List.of());
+
+    var result = mapper.toAssessmentResultSet(page);
+
+    assertNotNull(result);
+    assertEquals(0, result.getNumber());
+    assertEquals(0, result.getSize());
+    assertEquals(0, result.getTotalElements());
+    assertEquals(1, page.getTotalPages());
+  }
+
   private static Assessment assessment(
       UUID id, UUID claimId, UUID claimSummaryFeeId, Instant createdAt) {
     Assessment a = new Assessment();

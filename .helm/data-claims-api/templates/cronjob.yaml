@@ -1,3 +1,4 @@
+{{- if .Values.replicationSummary.enabled }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -59,3 +60,4 @@ spec:
                   type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
+{{- end }}

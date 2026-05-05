@@ -43,7 +43,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -278,16 +277,33 @@ class AssessmentControllerTest {
     }
 
     @Test
-    void shouldReturnNotFoundWhenNoAssessmentsExist() throws Exception {
+    void shouldReturnEmptyAssessmentsWhenNoAssessmentsExist() throws Exception {
+      UUID claimId = UUID.randomUUID();
+
+      AssessmentResultSet resultSet = new AssessmentResultSet();
+      resultSet.assessments(List.of());
+
+      when(assessmentService.getAssessmentsByClaimId(eq(claimId), any(Pageable.class)))
+          .thenReturn(resultSet);
+
+      mockMvc
+          .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.assessments").isArray())
+          .andExpect(jsonPath("$.assessments").isEmpty());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenNoClaimExists() throws Exception {
       UUID claimId = UUID.randomUUID();
 
       when(assessmentService.getAssessmentsByClaimId(eq(claimId), any(Pageable.class)))
-          .thenThrow(new AssessmentNotFoundException("No assessments found"));
+          .thenThrow(new ClaimNotFoundException("No claim found"));
 
       mockMvc
           .perform(get("/api/v1/claims/{claimId}/assessments", claimId))
           .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.message").value("No assessments found"));
+          .andExpect(jsonPath("$.message").value("No claim found"));
     }
 
     @Test

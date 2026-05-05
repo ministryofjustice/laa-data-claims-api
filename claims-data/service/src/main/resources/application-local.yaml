@@ -1,3 +1,17 @@
 spring:
+  output:
+    ansi:
+      enabled: always
   flyway:
     locations: classpath:db/migration,classpath:db/migration-preview
+
+logging:
+  level:
+    root: ${ROOT_LOGGING_LEVEL:info}
+    org.springframework: ${SPRING_LOGGING_LEVEL:info}
+    uk.gov.justice.laa.dstew.payments.claimsdata: ${APP_LOGGING_LEVEL:info}
+  structured:
+    format:
+      console: "" # disables structured logging locally
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr{faint} %clr([%15.15t]){faint} %clr([%X{traceId:-},%X{spanId:-}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n"

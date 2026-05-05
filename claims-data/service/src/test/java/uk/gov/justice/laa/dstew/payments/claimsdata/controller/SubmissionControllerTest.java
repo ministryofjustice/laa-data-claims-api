@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -215,5 +217,34 @@ class SubmissionControllerTest {
             eq("2205-19"),
             eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
             eq(Pageable.ofSize(20).withPage(0)));
+  }
+
+  @Test
+  void getSubmissions_withValidSortField_returnsOk() throws Exception {
+    when(submissionService.getSubmissionsResultSet(
+            anyList(), any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        .thenReturn(new SubmissionsResultSet());
+
+    mockMvc
+        .perform(
+            get(SUBMISSIONS_URI)
+                .queryParam("offices", "office1")
+                .queryParam("sort", "createdOn,asc"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void getSubmissions_withInvalidSortField_returnsBadRequest() throws Exception {
+    doThrow(new SubmissionBadRequestException("Invalid sort field: 'unknownField'"))
+        .when(submissionService)
+        .getSubmissionsResultSet(
+            any(), any(), any(), any(), any(), any(), any(), any(Pageable.class));
+
+    mockMvc
+        .perform(
+            get(SUBMISSIONS_URI)
+                .queryParam("offices", "office1")
+                .queryParam("sort", "unknownField,asc"))
+        .andExpect(status().isBadRequest());
   }
 }

@@ -6,12 +6,15 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -42,6 +45,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
+
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of("createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status");
+  public static final int DEFAULT_PAGE_SIZE = 20;
+  public static final int DEFAULT_PAGE_NUMBER = 0;
 
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
@@ -108,7 +116,8 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(BigDecimalUtils.scaleOrZero(calculatedTotalAmount, DECIMAL_PLACES))
+        .calculatedTotalAmount(
+            BigDecimalUtils.scaleOrZeroWithScale(calculatedTotalAmount, DECIMAL_PLACES))
         .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
@@ -182,6 +191,8 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
+    Pageable stablePageable = validateAndRemapPageable(pageable);
+
     Page<Submission> page =
         submissionRepository.findAll(
             SubmissionSpecification.filterByOfficeAccountNumberIn(offices)
@@ -191,7 +202,7 @@ public class SubmissionService
                 .and(SubmissionSpecification.areaOfLawEqual(areaOfLaw))
                 .and(SubmissionSpecification.submissionPeriodEqual(submissionPeriod))
                 .and(SubmissionSpecification.submissionStatusIn(submissionStatuses)),
-            pageable);
+            stablePageable);
 
     SubmissionsResultSet resultSet = submissionsResultSetMapper.toSubmissionsResultSet(page);
     List<UUID> submissionIds = page.getContent().stream().map(Submission::getId).toList();
@@ -214,5 +225,66 @@ public class SubmissionService
             });
 
     return resultSet;
+  }
+
+  /**
+   * Validates that all sort properties in the given {@link Pageable} are in the allowed set, then
+   * returns a new {@link Pageable} with sort field names remapped to their internal equivalents:
+   *
+   * <ul>
+   *   <li>{@code submissionPeriod} → {@code submissionPeriodSortKey} (chronological YYYYMM order)
+   *   <li>{@code officeAccountNumber} → {@code officeAccountNumberSortKey} (case-insensitive)
+   * </ul>
+   *
+   * <p>A stable tie-breaking secondary sort by {@code id} is always appended, using the same
+   * direction as the primary sort (defaulting to {@code ASC} if unsorted).
+   *
+   * <p>Null handling: PostgreSQL applies {@code NULLS LAST} for {@code ASC} and {@code NULLS FIRST}
+   * for {@code DESC} by default. Rows with null values in a sorted column will therefore appear at
+   * the end of ascending results and at the start of descending results.
+   *
+   * <p>@param pageable the pageable to validate and augment
+   *
+   * <p>@return a new pageable with remapped sort fields and a tie-breaking sort appended
+   *
+   * <p>@throws SubmissionBadRequestException if any sort property is not in {@link
+   * #ALLOWED_SORT_FIELDS}
+   */
+  private Pageable validateAndRemapPageable(Pageable pageable) {
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new SubmissionBadRequestException(
+                    "Invalid sort field: '"
+                        + order.getProperty()
+                        + "'. Allowed fields: "
+                        + ALLOWED_SORT_FIELDS);
+              }
+            });
+
+    Sort.Direction tieBreakerDirection =
+        pageable.getSort().isSorted()
+            ? pageable.getSort().iterator().next().getDirection()
+            : Sort.Direction.ASC;
+
+    List<Sort.Order> remappedOrders =
+        pageable.getSort().stream()
+            .map(
+                order ->
+                    switch (order.getProperty()) {
+                      case "submissionPeriod" ->
+                          new Sort.Order(order.getDirection(), "submissionPeriodSortKey");
+                      case "officeAccountNumber" ->
+                          new Sort.Order(order.getDirection(), "officeAccountNumberSortKey");
+                      default -> order;
+                    })
+            .toList();
+
+    Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
+    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : DEFAULT_PAGE_NUMBER;
+    int pageSize = pageable.isPaged() ? pageable.getPageSize() : DEFAULT_PAGE_SIZE;
+    return PageRequest.of(pageNumber, pageSize, sortWithTieBreaker);
   }
 }

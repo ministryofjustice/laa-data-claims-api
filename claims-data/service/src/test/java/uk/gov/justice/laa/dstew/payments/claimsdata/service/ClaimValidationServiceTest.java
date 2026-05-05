@@ -180,16 +180,25 @@ class ClaimValidationServiceTest {
   // Assessment Type Tests
   // =====================================================
   @Test
-  void shouldThrowWhenAssessmentTypeIsVoid() {
-    assertThatThrownBy(() -> validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.VOID))
-        .isInstanceOf(ClaimBadRequestException.class);
+  void shouldThrowWhenAssessmentTypeIsNull() {
+    assertThatThrownBy(() -> validationService.validateAssessmentType(null))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("assessmentType must be provided");
   }
 
   @Test
-  void shouldNotThrowForOtherAssessmentTypes() {
-    assertDoesNotThrow(
-        () ->
-            validationService.ensureAssessmentTypeIsNotVoid(AssessmentType.ESCAPE_CASE_ASSESSMENT));
+  void shouldThrowWhenAssessmentTypeIsVoid() {
+    assertThatThrownBy(() -> validationService.validateAssessmentType(AssessmentType.VOID))
+        .isInstanceOf(ClaimBadRequestException.class);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = AssessmentType.class,
+      names = {"VOID"},
+      mode = EnumSource.Mode.EXCLUDE)
+  void shouldNotThrowForNonVoidAssessmentTypes(AssessmentType type) {
+    assertDoesNotThrow(() -> validationService.validateAssessmentType(type));
   }
 
   // =====================================================
