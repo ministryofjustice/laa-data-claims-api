@@ -12,7 +12,7 @@ import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvide
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.TargetRequestFilter;
-import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -91,7 +91,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @Provider(value = "laa-data-claims-api")
-@PactBroker
+@PactFolder("/Users/andrew.johnys/pact_tests/dstew-1472")
 public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @LocalServerPort private int port;
