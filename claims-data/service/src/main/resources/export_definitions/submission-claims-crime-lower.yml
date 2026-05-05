@@ -101,8 +101,8 @@ sql: |
       limit 1
       ) assess on true
   where s.id = :submissionId
-  and s.office_account_number = :office
-  and s.area_of_law = 'CRIME_LOWER'
+    and s.office_account_number = :office
+    and s.area_of_law = 'CRIME_LOWER'
   limit :maxRows
 columns:
   - key: officeAccountNumber
