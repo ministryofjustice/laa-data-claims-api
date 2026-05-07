@@ -32,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
 
 public class ClaimsDataTestUtil {
 
@@ -235,6 +236,76 @@ public class ClaimsDataTestUtil {
     validationMessageLog.setTechnicalMessage("Technical message");
     validationMessageLog.setCreatedOn(SUBMITTED_DATE.toInstant());
     return validationMessageLog;
+  }
+
+  public static ValidationMessageWithClaimDetailsProjection getValidationMessageProjection(
+      ValidationMessageType validationMessageType) {
+    return new ValidationMessageWithClaimDetailsProjection() {
+      @Override
+      public UUID getId() {
+        return MESSAGE_ID;
+      }
+
+      @Override
+      public UUID getSubmissionId() {
+        return SUBMISSION_ID;
+      }
+
+      @Override
+      public UUID getClaimId() {
+        return CLAIM_1_ID;
+      }
+
+      @Override
+      public ValidationMessageType getType() {
+        return validationMessageType;
+      }
+
+      @Override
+      public String getSource() {
+        return "data-claims-api";
+      }
+
+      @Override
+      public String getDisplayMessage() {
+        return "Display message";
+      }
+
+      @Override
+      public String getUniqueFileNumber() {
+        return null;
+      }
+
+      @Override
+      public String getClientForename() {
+        return null;
+      }
+
+      @Override
+      public String getClientSurname() {
+        return null;
+      }
+
+      @Override
+      public String getUniqueClientNumber() {
+        return null;
+      }
+
+      @Override
+      public String getClient2Forename() {
+        return null;
+      }
+
+      @Override
+      public String getClient2Surname() {
+        return null;
+      }
+
+      @Override
+      public String getClient2Ucn() {
+        return null;
+      }
+    };
   }
 
   public static BulkSubmission getBulkSubmission() {

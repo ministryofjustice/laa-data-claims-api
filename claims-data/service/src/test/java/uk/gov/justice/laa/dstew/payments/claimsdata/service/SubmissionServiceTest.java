@@ -420,10 +420,13 @@ class SubmissionServiceTest {
   @ValueSource(strings = {"createdOn", "areaOfLaw", "status"})
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
-    // Service appends a secondary sort by id using the same direction as the primary sort
+    // Service appends a secondary sort by id using the same direction as the primary sort,
+    // and applies ignoreCase to the primary sort order.
     Pageable expectedPageable =
         PageRequest.of(
-            0, 10, Sort.by(Sort.Direction.ASC, sortField).and(Sort.by(Sort.Direction.ASC, "id")));
+            0,
+            10,
+            Sort.by(Sort.Order.asc(sortField).ignoreCase()).and(Sort.by(Sort.Direction.ASC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
     when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
@@ -445,15 +448,15 @@ class SubmissionServiceTest {
   }
 
   @Test
-  void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldRemapToCaseInsensitiveSortKey() {
+  void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldApplyIgnoreCase() {
     Pageable pageableWithSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "officeAccountNumber"));
-    // officeAccountNumber is remapped to officeAccountNumberSortKey for case-insensitive ordering
+    // officeAccountNumber maps to itself with ignoreCase for case-insensitive ordering
     Pageable expectedPageable =
         PageRequest.of(
             0,
             10,
-            Sort.by(Sort.Direction.ASC, "officeAccountNumberSortKey")
+            Sort.by(Sort.Order.asc("officeAccountNumber").ignoreCase())
                 .and(Sort.by(Sort.Direction.ASC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
@@ -484,7 +487,7 @@ class SubmissionServiceTest {
         PageRequest.of(
             0,
             10,
-            Sort.by(Sort.Direction.ASC, "submissionPeriodSortKey")
+            Sort.by(Sort.Order.asc("submissionPeriodSortKey").ignoreCase())
                 .and(Sort.by(Sort.Direction.ASC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
@@ -514,7 +517,8 @@ class SubmissionServiceTest {
         PageRequest.of(
             0,
             10,
-            Sort.by(Sort.Direction.DESC, "createdOn").and(Sort.by(Sort.Direction.DESC, "id")));
+            Sort.by(Sort.Order.desc("createdOn").ignoreCase())
+                .and(Sort.by(Sort.Direction.DESC, "id")));
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
     when(submissionRepository.findAll(any(Specification.class), eq(expectedPageable)))
