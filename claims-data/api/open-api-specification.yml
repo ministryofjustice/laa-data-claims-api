@@ -1012,7 +1012,28 @@ paths:
       tags:
         - Validation Messages
       summary: Gets all validation messages
-      description: Returns all the validation messages
+      description: |
+        Returns all the validation messages, optionally sorted by one of the supported fields.
+
+        **Sortable fields** (supplied via the `sort` query parameter, e.g. `sort=client_surname,asc`):
+        - `display_message`
+        - `client_forename`
+        - `client_surname`
+        - `unique_client_number`
+        - `client_2_forename`
+        - `client_2_surname`
+        - `client_2_ucn`
+        - `unique_file_number`
+
+        Sorting is **case-insensitive** (e.g. `"alice"` and `"Alice"` are treated as equal).
+
+        **Null / blank handling:** rows whose sort-field value is `null` are placed **last** for
+        ascending sorts and **first** for descending sorts (PostgreSQL default behaviour).
+        This ensures incomplete records always appear at a predictable position.
+
+        **Stable pagination:** when multiple rows share the same primary sort value the backend
+        automatically appends a secondary sort by `id` in the same direction so that rows do not
+        drift between pages.
       parameters:
         - name: submission-id
           in: query
@@ -2145,6 +2166,27 @@ components:
           type: string
         display_message:
           type: string
+        client_forename:
+          type: string
+          description: Client 1 forename from the associated claim
+        client_surname:
+          type: string
+          description: Client 1 surname from the associated claim
+        unique_client_number:
+          type: string
+          description: Client 1 Unique Client Number (UCN) from the associated claim
+        client_2_forename:
+          type: string
+          description: Client 2 forename from the associated claim
+        client_2_surname:
+          type: string
+          description: Client 2 surname from the associated claim
+        client_2_ucn:
+          type: string
+          description: Client 2 Unique Client Number (UCN) from the associated claim
+        unique_file_number:
+          type: string
+          description: Unique File Number (UFN) from the associated claim
     validation_message_type:
       type: string
       enum:
