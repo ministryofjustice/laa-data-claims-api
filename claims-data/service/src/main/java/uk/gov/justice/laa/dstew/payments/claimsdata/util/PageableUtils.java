@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,6 +27,9 @@ import org.springframework.data.domain.Sort;
  */
 @UtilityClass
 public class PageableUtils {
+
+  private static final int DEFAULT_PAGE_NUMBER = 0;
+  private static final int DEFAULT_PAGE_SIZE = 20;
 
   /** Implementation: validates against {@code fieldMap}, remaps aliases, appends id tie-breaker. */
   private static Pageable validateAndRemap(
@@ -65,8 +69,8 @@ public class PageableUtils {
             .toList();
 
     Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
-    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : 0;
-    int pageSize = pageable.isPaged() ? pageable.getPageSize() : 20;
+    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : DEFAULT_PAGE_NUMBER;
+    int pageSize = pageable.isPaged() ? pageable.getPageSize() : DEFAULT_PAGE_SIZE;
     return PageRequest.of(pageNumber, pageSize, sortWithTieBreaker);
   }
 
@@ -84,18 +88,28 @@ public class PageableUtils {
    *     true);
    * }</pre>
    *
-   * @param pageable the original pageable supplied by the controller
-   * @param fields the enum values of a {@link SortField} implementation
+   * @param pageable the original pageable supplied by the controller; must not be {@code null}
+   * @param fields the enum values of a {@link SortField} implementation; must not be {@code null}
+   *     or empty
    * @param exceptionFactory produces the domain-specific bad-request exception for unrecognised
-   *     fields
+   *     fields; must not be {@code null}
    * @param ignoreCase when {@code true} applies case-insensitive ordering
    * @return a new validated, remapped {@link Pageable}
+   * @throws NullPointerException if {@code pageable}, {@code fields} or {@code exceptionFactory} is
+   *     {@code null}
+   * @throws IllegalArgumentException if {@code fields} is empty
    */
   public static <T extends SortField> Pageable validateAndRemap(
       Pageable pageable,
       T[] fields,
       Function<String, ? extends RuntimeException> exceptionFactory,
       boolean ignoreCase) {
+    Objects.requireNonNull(pageable, "pageable must not be null");
+    Objects.requireNonNull(fields, "fields must not be null");
+    Objects.requireNonNull(exceptionFactory, "exceptionFactory must not be null");
+    if (fields.length == 0) {
+      throw new IllegalArgumentException("fields must not be empty");
+    }
     return validateAndRemap(pageable, buildFieldMap(fields), exceptionFactory, ignoreCase);
   }
 
