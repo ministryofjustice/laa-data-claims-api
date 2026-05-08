@@ -16,8 +16,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
@@ -35,7 +35,10 @@ class SubmissionEventPublisherServiceTest {
     submissionEventPublisherService =
         new SubmissionEventPublisherService(snsClient, new ObjectMapper());
 
-      ReflectionTestUtils.setField(submissionEventPublisherService, "topicArn", "arn:aws:sns:us-east-1:000000000000:claims-events");
+    ReflectionTestUtils.setField(
+        submissionEventPublisherService,
+        "topicArn",
+        "arn:aws:sns:us-east-1:000000000000:claims-events");
   }
 
   @Test
@@ -79,7 +82,7 @@ class SubmissionEventPublisherServiceTest {
     // given an Sns queue
     UUID submissionId = Uuid7.timeBasedUuid();
 
-      String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
+    String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
 
     // when publish is called with some IDs
     submissionEventPublisherService.publishSubmissionValidationEvent(submissionId);

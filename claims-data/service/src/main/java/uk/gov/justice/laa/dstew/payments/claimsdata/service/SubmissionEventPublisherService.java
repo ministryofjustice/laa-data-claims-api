@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.BulkSubmissionMessage;
@@ -86,7 +86,8 @@ public class SubmissionEventPublisherService {
     Map<String, MessageAttributeValue> messageAttributes =
         Map.of("SubmissionEventType", getSubmissionEventTypeAttribute(submissionEventType));
 
-    snsClient.publish(PublishRequest.builder()
+    snsClient.publish(
+        PublishRequest.builder()
             .topicArn(topicArn)
             .message(messageBody)
             .messageAttributes(messageAttributes)

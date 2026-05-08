@@ -24,31 +24,31 @@ import software.amazon.awssdk.services.sns.SnsClientBuilder;
 @Profile("!test")
 public class SnsConfig {
 
-    /**
-     * Configures and provides a Spring-managed {@link SnsClient} bean for interacting with Amazon
-     * SNS. The client is configured using the specified AWS region
-     *
-     * @param region the AWS region to configure the SNS client for (e.g., "us-east-1").
-     * @return a configured {@link SnsClient} instance.
-     */
-    @Bean
-    public SnsClient snsClient(
-            @Value("${aws.region}") String region,
-            @Value("${aws.sns.endpoint:}") Optional<String> endpoint,
-            Environment environment) {
+  /**
+   * Configures and provides a Spring-managed {@link SnsClient} bean for interacting with Amazon
+   * SNS. The client is configured using the specified AWS region
+   *
+   * @param region the AWS region to configure the SNS client for (e.g., "us-east-1").
+   * @return a configured {@link SnsClient} instance.
+   */
+  @Bean
+  public SnsClient snsClient(
+      @Value("${aws.region}") String region,
+      @Value("${aws.sns.endpoint:}") Optional<String> endpoint,
+      Environment environment) {
 
-        SnsClientBuilder builder = SnsClient.builder().region(Region.of(region));
+    SnsClientBuilder builder = SnsClient.builder().region(Region.of(region));
 
-        if (environment.acceptsProfiles(Profiles.of("default"))) {
-            // Local dev: LocalStack endpoint + dummy creds
-            builder.credentialsProvider(
-                    StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
-            endpoint.ifPresent(e -> builder.endpointOverride(URI.create(e)));
-        } else {
-            // Deployed envs (main, preview): real AWS
-            builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
-        }
-
-        return builder.build();
+    if (environment.acceptsProfiles(Profiles.of("default"))) {
+      // Local dev: LocalStack endpoint + dummy creds
+      builder.credentialsProvider(
+          StaticCredentialsProvider.create(AwsBasicCredentials.create("test", "test")));
+      endpoint.ifPresent(e -> builder.endpointOverride(URI.create(e)));
+    } else {
+      // Deployed envs (main, preview): real AWS
+      builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
     }
+
+    return builder.build();
+  }
 }
