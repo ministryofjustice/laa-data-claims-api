@@ -25,6 +25,7 @@ services:
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     depends_on:
       - postgres
+      - localstack
   postgres:
     image: postgres:18.1-alpine
     container_name: local-postgres
@@ -37,17 +38,17 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-#  local AWS cloud stack for dev
-#  localstack:
-#    image: localstack/localstack:latest
-#    ports:
-#      - "4566:4566"
-#    environment:
-#      - SERVICES=sqs
-#      - DEBUG=1
-#      - LOCALSTACK_INIT_SCRIPTS=/etc/localstack/init/ready.d
-#    volumes:
-#      - "/var/run/docker.sock:/var/run/docker.sock"
-#      - "./localstack-init:/etc/localstack/init/ready.d"
+  #  local AWS cloud stack for dev
+  #  localstack:
+  #    image: localstack/localstack:latest
+  #    ports:
+  #      - "4566:4566"
+  #    environment:
+  #      - SERVICES=sqs
+  #      - DEBUG=1
+  #      - LOCALSTACK_INIT_SCRIPTS=/etc/localstack/init/ready.d
+  #    volumes:
+  #      - "/var/run/docker.sock:/var/run/docker.sock"
+  #      - "./localstack-init:/etc/localstack/init/ready.d"
 volumes:
   postgres-data:

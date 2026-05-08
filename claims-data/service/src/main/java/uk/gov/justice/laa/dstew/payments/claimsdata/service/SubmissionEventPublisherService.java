@@ -8,30 +8,29 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.BulkSubmissionMessage;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
 
-/** Service responsible for publishing submission events to the Amazon SQS queue. */
+/** Service responsible for publishing submission events to the Amazon SNS topic. */
 @Service
 @RequiredArgsConstructor
 public class SubmissionEventPublisherService {
 
-  private final SqsClient sqsClient;
+  private final SnsClient snsClient;
   private final ObjectMapper objectMapper;
 
-  @Value("${aws.sqs.queue-name}")
-  private String queueName;
+  @Value("${aws.sns.topic-arn}")
+  private String topicArn;
 
   /**
    * Publishes a bulk submission identifier and its associated submission identifiers to an Amazon
-   * SQS queue.
+   * SNS topic.
    *
    * @param bulkSubmissionId the unique identifier for the bulk submission
    * @param submissionIds the list of unique identifiers for the individual submissions
@@ -53,7 +52,7 @@ public class SubmissionEventPublisherService {
   }
 
   /**
-   * Publishes a submission id for validation to an Amazon SQS queue.
+   * Publishes a submission id for validation to an Amazon SNS topic.
    *
    * @param submissionId the unique identifier for the submission
    */
@@ -82,18 +81,14 @@ public class SubmissionEventPublisherService {
    */
   private void publishEvent(Object message, SubmissionEventType submissionEventType)
       throws JsonProcessingException {
-    String queueUrl =
-        sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()).queueUrl();
-
     String messageBody = objectMapper.writeValueAsString(message);
 
     Map<String, MessageAttributeValue> messageAttributes =
         Map.of("SubmissionEventType", getSubmissionEventTypeAttribute(submissionEventType));
 
-    sqsClient.sendMessage(
-        SendMessageRequest.builder()
-            .queueUrl(queueUrl)
-            .messageBody(messageBody)
+    snsClient.publish(PublishRequest.builder()
+            .topicArn(topicArn)
+            .message(messageBody)
             .messageAttributes(messageAttributes)
             .build());
   }
