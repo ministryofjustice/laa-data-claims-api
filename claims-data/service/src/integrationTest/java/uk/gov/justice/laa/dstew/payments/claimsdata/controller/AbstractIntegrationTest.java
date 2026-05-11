@@ -47,6 +47,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.SnsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.SqsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
@@ -80,7 +81,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 /** This is used to isolate the common configuration for integration testing in a single class. */
 @ActiveProfiles("test")
 @SpringBootTest
-@Import(SqsTestConfig.class)
+@Import({SnsTestConfig.class})
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {
 
