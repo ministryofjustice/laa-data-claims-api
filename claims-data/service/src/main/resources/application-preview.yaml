@@ -15,6 +15,9 @@ aws:
   sqs:
     endpoint: ""
     queue-name: ${QUEUE_NAME}
+  sns:
+    endpoint: ""
+    topic-arn: ${SNS_TOPIC_ARN}
 laa:
   springboot.starter:
     auth:

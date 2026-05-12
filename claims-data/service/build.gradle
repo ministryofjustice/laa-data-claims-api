@@ -94,8 +94,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
-    implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
+    implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     implementation(platform("tools.jackson:jackson-bom:3.1.1"))
 
@@ -112,6 +112,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation "software.amazon.awssdk:sqs"
     testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     // Add this to ensure Spring Security classes are available during tests

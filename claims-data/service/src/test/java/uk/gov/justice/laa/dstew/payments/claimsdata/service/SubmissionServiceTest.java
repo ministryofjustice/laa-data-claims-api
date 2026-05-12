@@ -120,12 +120,26 @@ class SubmissionServiceTest {
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
     when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
     when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
-    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(null);
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(BigDecimal.ZERO);
 
     SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
 
     assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
     assertThat(result.getCalculatedTotalAmount()).isEqualTo(new BigDecimal("0.00"));
+  }
+
+  @Test
+  void shouldGetSubmissionWithNullCalculatedTotalAmount() {
+    Submission entity = ClaimsDataTestUtil.getSubmission();
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(submissionRepository.getCalculatedTotalAmount(SUBMISSION_ID)).thenReturn(null);
+
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getCalculatedTotalAmount()).isNull();
   }
 
   @Test

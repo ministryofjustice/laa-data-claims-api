@@ -50,6 +50,7 @@ openApiGenerate {
             useJakartaEe        : "true",
             useSpringBoot3      : "true",
             useTags             : "true",
+            openApiNullable     : "false"
     ]
 }
 

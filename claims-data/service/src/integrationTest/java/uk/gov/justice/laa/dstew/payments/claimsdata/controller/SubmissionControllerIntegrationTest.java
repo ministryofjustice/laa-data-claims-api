@@ -22,6 +22,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.RoundingMode;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,10 +37,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -77,8 +79,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Autowired private SqsClient sqsClient;
 
+  @Autowired private SnsClient snsClient;
+
   @Value("${aws.sqs.queue-name}")
   private String queueName;
+
+  @Value("${aws.sns.topic-arn}")
+  private String topicArn;
 
   private String queueUrl;
 
@@ -115,6 +122,28 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     GetQueueUrlResponse queueUrlResponse =
         sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
     this.queueUrl = queueUrlResponse.queueUrl();
+
+    // get queue arn
+    GetQueueAttributesResponse queueAttributes =
+        sqsClient.getQueueAttributes(
+            GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
+                .build());
+
+    String queueArn = queueAttributes.attributes().get(QueueAttributeName.QUEUE_ARN);
+
+    // create SNS topic
+    snsClient.createTopic(CreateTopicRequest.builder().name("claims-events").build());
+
+    // subscribe queue to topic
+    snsClient.subscribe(
+        SubscribeRequest.builder()
+            .topicArn(topicArn)
+            .protocol("sqs")
+            .endpoint(queueArn)
+            .attributes(Map.of("RawMessageDelivery", "true"))
+            .build());
   }
 
   @BeforeEach

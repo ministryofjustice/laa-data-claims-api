@@ -15,6 +15,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,12 +33,11 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
@@ -80,9 +80,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String ERROR_TITLE = "title";
 
   @Autowired private SqsClient sqsClient;
+  @Autowired private SnsClient snsClient;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
+
+  @Value("${aws.sns.topic-arn}")
+  private String topicArn;
 
   private String queueUrl;
 
@@ -95,6 +99,28 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     GetQueueUrlResponse queueUrlResponse =
         sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
     this.queueUrl = queueUrlResponse.queueUrl();
+
+    // get queue arn
+    GetQueueAttributesResponse queueAttributes =
+        sqsClient.getQueueAttributes(
+            GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
+                .build());
+
+    String queueArn = queueAttributes.attributes().get(QueueAttributeName.QUEUE_ARN);
+
+    // create SNS topic
+    snsClient.createTopic(CreateTopicRequest.builder().name("claims-events").build());
+
+    // subscribe queue to topic
+    snsClient.subscribe(
+        SubscribeRequest.builder()
+            .topicArn(topicArn)
+            .protocol("sqs")
+            .endpoint(queueArn)
+            .attributes(Map.of("RawMessageDelivery", "true"))
+            .build());
   }
 
   @ParameterizedTest
