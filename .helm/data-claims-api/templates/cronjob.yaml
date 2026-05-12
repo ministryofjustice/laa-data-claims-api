@@ -28,6 +28,11 @@ spec:
                     secretKeyRef:
                       name: laa-data-claims-api-secrets
                       key: sqs-queue-name
+                - name: SNS_TOPIC_ARN
+                  valueFrom:
+                    secretKeyRef:
+                      name: claims-events-sns-topic
+                      key: topic_arn
                 - name: HIKARI_MIN_POOL_SIZE
                   valueFrom:
                     secretKeyRef:

@@ -41,6 +41,9 @@ aws:
   sqs:
     endpoint: http://localhost:4566  # LocalStack default
     queue-name: claims-api-queue
+  sns:
+    endpoint: http://localhost:4566
+    topic-arn: arn:aws:sns:us-east-1:000000000000:claims-events
 
 javers:
   sqlSchema: javers
