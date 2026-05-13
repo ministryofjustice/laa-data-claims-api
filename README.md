@@ -63,9 +63,9 @@ This API uses the shared CSV export starter:
 
 ### Actuator Endpoints
 The following actuator endpoints have been configured:
-- http://localhost:8080/actuator
-- http://localhost:8080/actuator/health
-- http://localhost:8080/actuator/info
+- http://localhost:8081/actuator
+- http://localhost:8081/actuator/health
+- http://localhost:8081/actuator/info
 
 ## Additional Information
 
