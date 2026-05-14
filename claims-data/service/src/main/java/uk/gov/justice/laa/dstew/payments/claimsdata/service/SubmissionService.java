@@ -232,9 +232,9 @@ public class SubmissionService
   /**
    * Returns Calculated total amounts for the given submissions.
    *
-   * <p>For each submission ID provided, this method retrieves the summed {@code
-   * totalAmount} from the cfd record for each claim belonging to that submission.
-   * If the input list is {@code null} or empty, this method returns an empty map.
+   * <p>For each submission ID provided, this method retrieves the summed {@code totalAmount} from
+   * the cfd record for each claim belonging to that submission. If the input list is {@code null}
+   * or empty, this method returns an empty map.
    *
    * <p>The returned map is keyed by submission ID, with each value representing the Calculated
    * total amount for that submission. Submissions with no cfd records will not be present in the
