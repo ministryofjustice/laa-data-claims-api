@@ -250,6 +250,7 @@ public class SubmissionService
     }
 
     return submissionRepository.getCalculatedTotalAmounts(submissionIds).stream()
+        .filter(p -> p.getSubmissionId() != null && p.getTotal() != null) // Filter out the nulls
         .collect(
             Collectors.toMap(
                 SubmissionRepository.CalculatedTotalAmountProjection::getSubmissionId,
