@@ -135,13 +135,12 @@ public class SubmissionService
       TransactionalPublisher.runAfterCommit(
           () ->
               submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId()));
-    }
-    else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
+    } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
       TransactionalPublisher.runAfterCommit(
           () ->
-              submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submission.getId()));
-    }
-    else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
+              submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                  submission.getId()));
+    } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
           claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
       log.debug("Updated {} claims to INVALID status for submission {}", totalUpdatedClaims, id);

@@ -73,25 +73,27 @@ public class SubmissionEventPublisherService {
     }
   }
 
-    /**
-     * Publishes a submission id for validation succeeded event to an Amazon SNS topic.
-     *
-     * @param submissionId the unique identifier for the submission
-     */
-    public void publishSubmissionValidationSucceededEvent(UUID submissionId) {
-        SubmissionValidationMessage submissionValidationSucceededMessage =
-                new SubmissionValidationMessage(submissionId);
-        try {
-            publishEvent(submissionValidationSucceededMessage, SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
-        } catch (JsonProcessingException e) {
-            throw new SubmissionValidationSucceededQueuePublishException(
-                    "Error when creating validation succeeded message for submission id ["
-                            + submissionId
-                            + "] : "
-                            + e.getMessage(),
-                    e);
-        }
+  /**
+   * Publishes a submission id for validation succeeded event to an Amazon SNS topic.
+   *
+   * @param submissionId the unique identifier for the submission
+   */
+  public void publishSubmissionValidationSucceededEvent(UUID submissionId) {
+    SubmissionValidationMessage submissionValidationSucceededMessage =
+        new SubmissionValidationMessage(submissionId);
+    try {
+      publishEvent(
+          submissionValidationSucceededMessage,
+          SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
+    } catch (JsonProcessingException e) {
+      throw new SubmissionValidationSucceededQueuePublishException(
+          "Error when creating validation succeeded message for submission id ["
+              + submissionId
+              + "] : "
+              + e.getMessage(),
+          e);
     }
+  }
 
   /**
    * Publish a submission event with a message attribute describing the type of submission event.
