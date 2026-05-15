@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationQueuePublishException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationSucceededQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.BulkSubmissionMessage;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
@@ -71,6 +72,26 @@ public class SubmissionEventPublisherService {
           e);
     }
   }
+
+    /**
+     * Publishes a submission id for validation succeeded event to an Amazon SNS topic.
+     *
+     * @param submissionId the unique identifier for the submission
+     */
+    public void publishSubmissionValidationSucceededEvent(UUID submissionId) {
+        SubmissionValidationMessage submissionValidationSucceededMessage =
+                new SubmissionValidationMessage(submissionId);
+        try {
+            publishEvent(submissionValidationSucceededMessage, SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
+        } catch (JsonProcessingException e) {
+            throw new SubmissionValidationSucceededQueuePublishException(
+                    "Error when creating validation succeeded message for submission id ["
+                            + submissionId
+                            + "] : "
+                            + e.getMessage(),
+                    e);
+        }
+    }
 
   /**
    * Publish a submission event with a message attribute describing the type of submission event.
