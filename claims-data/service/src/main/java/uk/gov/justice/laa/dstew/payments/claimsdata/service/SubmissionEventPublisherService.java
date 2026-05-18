@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -13,12 +14,12 @@ import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationQueuePublishException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationSucceededQueuePublishException;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.BulkSubmissionMessage;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
 
 /** Service responsible for publishing submission events to the Amazon SNS topic. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubmissionEventPublisherService {
@@ -85,13 +86,8 @@ public class SubmissionEventPublisherService {
       publishEvent(
           submissionValidationSucceededMessage,
           SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
-    } catch (JsonProcessingException e) {
-      throw new SubmissionValidationSucceededQueuePublishException(
-          "Error when creating validation succeeded message for submission id ["
-              + submissionId
-              + "] : "
-              + e.getMessage(),
-          e);
+    } catch (Exception e) {
+        log.error("Failed to publish SUBMISSION_VALIDATION_SUCCEEDED event for submission id [{}]", submissionId, e);
     }
   }
 

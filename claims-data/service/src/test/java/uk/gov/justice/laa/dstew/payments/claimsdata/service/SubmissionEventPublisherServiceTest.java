@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -138,4 +138,15 @@ class SubmissionEventPublisherServiceTest {
 
     verifyNoMoreInteractions(snsClient);
   }
+
+    @Test
+    void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
+        // given an Sns queue
+        UUID submissionId = Uuid7.timeBasedUuid();
+
+        // simulate an error
+        doThrow(new RuntimeException("SNS unavailable")).when(snsClient).publish(any(PublishRequest.class));
+        assertDoesNotThrow(() -> submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submissionId));
+        verify(snsClient).publish(any(PublishRequest.class));
+    }
 }
