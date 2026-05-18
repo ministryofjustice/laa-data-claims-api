@@ -139,14 +139,19 @@ class SubmissionEventPublisherServiceTest {
     verifyNoMoreInteractions(snsClient);
   }
 
-    @Test
-    void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
-        // given an Sns queue
-        UUID submissionId = Uuid7.timeBasedUuid();
+  @Test
+  void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
+    // given an Sns queue
+    UUID submissionId = Uuid7.timeBasedUuid();
 
-        // simulate an error
-        doThrow(new RuntimeException("SNS unavailable")).when(snsClient).publish(any(PublishRequest.class));
-        assertDoesNotThrow(() -> submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submissionId));
-        verify(snsClient).publish(any(PublishRequest.class));
-    }
+    // simulate an error
+    doThrow(new RuntimeException("SNS unavailable"))
+        .when(snsClient)
+        .publish(any(PublishRequest.class));
+    assertDoesNotThrow(
+        () ->
+            submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                submissionId));
+    verify(snsClient).publish(any(PublishRequest.class));
+  }
 }

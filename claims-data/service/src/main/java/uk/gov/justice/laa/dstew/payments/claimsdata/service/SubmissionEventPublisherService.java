@@ -87,7 +87,10 @@ public class SubmissionEventPublisherService {
           submissionValidationSucceededMessage,
           SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
     } catch (Exception e) {
-        log.error("Failed to publish SUBMISSION_VALIDATION_SUCCEEDED event for submission id [{}]", submissionId, e);
+      log.error(
+          "Failed to publish SUBMISSION_VALIDATION_SUCCEEDED event for submission id [{}]",
+          submissionId,
+          e);
     }
   }
 
