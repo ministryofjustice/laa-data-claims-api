@@ -4,7 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
@@ -53,4 +56,8 @@ public class ValidationMessageLog {
   @CreationTimestamp
   @Column(name = "created_on", nullable = false, updatable = false)
   private Instant createdOn;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "claim_amendment_id")
+  private ClaimAmendment claimAmendment; // New link
 }

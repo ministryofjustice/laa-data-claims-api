@@ -65,14 +65,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -104,6 +107,9 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
   @Autowired protected AssessmentRepository assessmentRepository;
+  @Autowired protected AmendmentReasonReferenceRepository amendmentReasonRepository;
+  @Autowired protected RequestedByReferenceRepository requestedByRepository;
+  @Autowired protected ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired protected MockMvc mockMvc;
 
   protected BulkSubmission bulkSubmission;
@@ -526,7 +532,8 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing case reference",
                 "Field `caseReferenceNumber` is required",
-                CREATED_ON),
+                CREATED_ON,
+                null),
             new ValidationMessageLog(
                 VALIDATION_ID_2,
                 SUBMISSION_1_ID,
@@ -535,7 +542,8 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
-                CREATED_ON)));
+                CREATED_ON,
+                null)));
   }
 
   void createAssessmentsTestData() {
