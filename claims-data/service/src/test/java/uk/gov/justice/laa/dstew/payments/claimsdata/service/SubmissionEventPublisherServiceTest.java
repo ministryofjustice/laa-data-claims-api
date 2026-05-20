@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -106,5 +106,52 @@ class SubmissionEventPublisherServiceTest {
         .containsEntry("SubmissionEventType", expectedAttributeValue);
 
     verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  void publish_ValidationSucceededEvent_sendsMessageWithCorrectPayload() {
+    // given an Sns queue
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
+
+    // when publish is called with some IDs
+    submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submissionId);
+
+    // then the correct message is published to the topic
+    // Capture the actual Publish Request
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
+
+    PublishRequest publishRequest = captor.getValue();
+
+    assertThat(publishRequest.topicArn()).isEqualTo(topicArn);
+    assertThat(publishRequest.message()).contains(submissionId.toString());
+
+    MessageAttributeValue expectedAttributeValue =
+        MessageAttributeValue.builder()
+            .dataType("String")
+            .stringValue(SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED.toString())
+            .build();
+    assertThat(publishRequest.messageAttributes())
+        .containsEntry("SubmissionEventType", expectedAttributeValue);
+
+    verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
+    // given an Sns queue
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    // simulate an error
+    doThrow(new RuntimeException("SNS unavailable"))
+        .when(snsClient)
+        .publish(any(PublishRequest.class));
+    assertDoesNotThrow(
+        () ->
+            submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                submissionId));
+    verify(snsClient).publish(any(PublishRequest.class));
   }
 }

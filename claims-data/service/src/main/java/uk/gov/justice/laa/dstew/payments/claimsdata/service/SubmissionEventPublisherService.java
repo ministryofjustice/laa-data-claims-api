@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -18,6 +19,7 @@ import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionValidationMessage;
 
 /** Service responsible for publishing submission events to the Amazon SNS topic. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubmissionEventPublisherService {
@@ -68,6 +70,26 @@ public class SubmissionEventPublisherService {
               + submissionId
               + "] : "
               + e.getMessage(),
+          e);
+    }
+  }
+
+  /**
+   * Publishes a submission id for validation succeeded event to an Amazon SNS topic.
+   *
+   * @param submissionId the unique identifier for the submission
+   */
+  public void publishSubmissionValidationSucceededEvent(UUID submissionId) {
+    SubmissionValidationMessage submissionValidationSucceededMessage =
+        new SubmissionValidationMessage(submissionId);
+    try {
+      publishEvent(
+          submissionValidationSucceededMessage,
+          SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
+    } catch (Exception e) {
+      log.error(
+          "Failed to publish SUBMISSION_VALIDATION_SUCCEEDED event for submission id [{}]",
+          submissionId,
           e);
     }
   }
