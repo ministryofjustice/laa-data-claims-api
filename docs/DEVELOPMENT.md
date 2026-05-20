@@ -100,3 +100,6 @@ If you encounter issues:
 For more information, see:
 - [pre-commit documentation](https://pre-commit.com/)
 - [MoJ DevSecOps Hooks](https://github.com/ministryofjustice/devsecops-hooks)
+- [Java Cucumber BDD migration checklist](bdd-migration-checklist.md)
+- [BDD migration summary & status](bdd-migration-summary.md)
+- [BDD tag run guide (Behave-style)](bdd-behave-tags-guide.md)
