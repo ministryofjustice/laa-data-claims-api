@@ -34,10 +34,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -57,6 +62,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
   @Mock private SubmissionRepository submissionRepository;
+  @Mock private ValidationService validationService;
   @Mock private ClaimService claimService;
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
@@ -74,12 +80,17 @@ class SubmissionServiceTest {
   private static final String SUBMISSION_PERIOD = "2025-07";
 
   @Test
+  @DisplayName("createSubmission: valid submission is persisted and its ID returned")
   void shouldCreateSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
 
     when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse))
+        .thenReturn(ValidationResult.builder().isValid(true).build());
     when(submissionRepository.save(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
@@ -88,8 +99,60 @@ class SubmissionServiceTest {
     verify(submissionRepository).save(entity);
   }
 
+  @Test
+  @DisplayName(
+      "createSubmission: invalid submission throws SubmissionValidationException with issues and 400 status")
+  void shouldThrowSubmissionValidationExceptionWhenValidationFails() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
+
+    ValidationIssue issue =
+        ValidationIssue.builder()
+            .code("SUB-001")
+            .message("Office code is required")
+            .severity(ValidationSeverity.ERROR)
+            .build();
+    ValidationResult invalidResult =
+        ValidationResult.builder().isValid(false).issues(List.of(issue)).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse)).thenReturn(invalidResult);
+
+    SubmissionValidationException ex =
+        assertThrows(
+            SubmissionValidationException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getIssues()).hasSize(1);
+    assertThat(ex.getIssues().getFirst().getCode()).isEqualTo("SUB-001");
+    assertThat(ex.getHttpStatus().value()).isEqualTo(400);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("createSubmission: invalid submission is never persisted to the repository")
+  void shouldNotPersistSubmissionWhenValidationFails() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse))
+        .thenReturn(ValidationResult.builder().isValid(false).build());
+
+    assertThrows(
+        SubmissionValidationException.class, () -> submissionService.createSubmission(post));
+
+    verify(submissionRepository, never()).save(any());
+  }
+
   @ParameterizedTest
   @MethodSource("getCalculatedTotalAmountArguments")
+  @DisplayName("getSubmission: calculated total amount is rounded to 2 decimal places")
   void shouldGetSubmission(String inputTotalAmount, String expectedTotalAmount) {
     Submission entity = ClaimsDataTestUtil.getSubmission();
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
@@ -113,6 +176,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: calculated total amount of zero is returned as 0.00")
   void shouldGetSubmissionWithZeroCalculatedTotalAmount() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
@@ -127,6 +191,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: null calculated total amount is returned as null")
   void shouldGetSubmissionWithNullCalculatedTotalAmount() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
@@ -141,6 +206,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: assessed total amount is null when no assessments exist")
   void shouldGetSubmissionWithNullAssessedTotalAmountWhenNoAssessmentsExist() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
 
@@ -157,6 +223,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: assessed total amount of zero is returned as 0.00")
   void shouldGetSubmissionWithZeroAssessedTotalAmountWhenAssessmentsTotalZero() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
 
@@ -174,6 +241,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: assessed total amount is rounded to 2 decimal places")
   void shouldGetSubmissionWithAssessedTotalAmountToTwoDecimalPlaces() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
 
@@ -191,6 +259,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: error messages are included in the response")
   void shouldGetSubmissionWithErrorMessages() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
@@ -205,6 +274,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmission: throws SubmissionNotFoundException when submission does not exist")
   void shouldThrowWhenSubmissionNotFoundOnGet() {
     UUID id = Uuid7.timeBasedUuid();
     when(submissionRepository.findById(id)).thenReturn(Optional.empty());
@@ -213,6 +283,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("updateSubmission: submission fields are updated and saved")
   void shouldUpdateSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
@@ -226,6 +297,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("updateSubmission: all claims are marked INVALID when status is VALIDATION_FAILED")
   void shouldUpdateAllClaimsAsInvalidWhenSubmissionStatusIsValidationFailed() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
@@ -240,6 +312,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "updateSubmission: validation succeeded event is published after commit when status is VALIDATION_SUCCEEDED")
   void shouldPublishValidationSucceededEventWhenSubmissionStatusIsValidationSucceeded() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
@@ -254,6 +328,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("updateSubmission: submission is saved with legal help and mediation references")
   void shouldUpdateSubmissionWithCivilAndMediationSubmissionReferences() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
@@ -270,6 +345,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "updateSubmission: throws SubmissionNotFoundException when submission does not exist")
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPatch patch = new SubmissionPatch();
@@ -280,6 +357,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "updateSubmission: validation messages are persisted to the log when included in patch")
   void shouldUpdateSubmissionAndLogValidationErrors() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
@@ -303,6 +382,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: throws SubmissionBadRequestException when offices list is null")
   void getSubmissionsResultSet_whenOfficesIsMissing_shouldThrowSubmissionBadRequestException() {
     assertThrows(
         SubmissionBadRequestException.class,
@@ -319,6 +400,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: throws SubmissionBadRequestException when offices list is empty")
   void getSubmissionsResultSet_whenOfficesIsEmpty_shouldThrowSubmissionBadRequestException() {
     assertThrows(
         SubmissionBadRequestException.class,
@@ -335,6 +418,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: returns populated result set including assessed total amount when data matches filters")
   void getSubmissionsResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
     var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
     var submission = new Submission();
@@ -372,6 +457,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: returns empty result set and skips assessment lookup when no data matches filters")
   void getSubmissionsResultSet_whenFiltersDoNotMatchData_shouldReturnEmptyResultSet() {
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
@@ -398,7 +485,7 @@ class SubmissionServiceTest {
     verifyNoInteractions(assessmentService);
   }
 
-  @DisplayName("Should call findAll with  Specification area of law and submission period")
+  @DisplayName("getSubmissionsResultSet: repository is called with the composed JPA Specification")
   @Test
   void getSubmissionsResultSet_shouldCallFindAllWithSpecification() {
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
@@ -430,6 +517,8 @@ class SubmissionServiceTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"createdOn", "areaOfLaw", "status"})
+  @DisplayName(
+      "getSubmissionsResultSet: valid sort fields are passed through to the repository with ignoreCase")
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
     // Service appends a secondary sort by id using the same direction as the primary sort,
@@ -460,6 +549,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("getSubmissionsResultSet: officeAccountNumber sort is applied with ignoreCase")
   void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldApplyIgnoreCase() {
     Pageable pageableWithSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "officeAccountNumber"));
@@ -491,6 +581,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: submissionPeriod sort is remapped to submissionPeriodSortKey for chronological ordering")
   void getSubmissionsResultSet_whenSortBySubmissionPeriod_shouldRemapToSortKey() {
     Pageable pageableWithPeriodSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "submissionPeriod"));
@@ -522,6 +614,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: descending primary sort causes tie-breaker sort to also be descending")
   void getSubmissionsResultSet_whenSortIsDescending_tieBreakerShouldAlsoBeDescending() {
     Pageable pageableWithDescSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdOn"));
@@ -552,6 +646,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: id tie-breaker sort is always appended even when no primary sort is supplied")
   void getSubmissionsResultSet_alwaysAppendsTieBreakerSortById() {
     Pageable unorderedPageable = Pageable.ofSize(10).withPage(0);
     // No primary sort, so tie-breaker defaults to ASC
@@ -577,6 +673,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "getSubmissionsResultSet: throws SubmissionBadRequestException and never queries repository for an unrecognised sort field")
   void getSubmissionsResultSet_whenSortFieldIsInvalid_shouldThrowSubmissionBadRequestException() {
     Pageable pageableWithInvalidSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "unknownField"));

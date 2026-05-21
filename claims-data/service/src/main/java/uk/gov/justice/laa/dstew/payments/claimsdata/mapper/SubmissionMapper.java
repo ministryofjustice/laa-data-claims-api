@@ -78,4 +78,6 @@ public interface SubmissionMapper {
   @Mapping(target = "source", source = "message.source")
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Submission submission);
+
+  SubmissionResponse toSubmissionResponse(Submission submission);
 }

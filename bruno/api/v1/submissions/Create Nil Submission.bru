@@ -1,0 +1,50 @@
+meta {
+  name: Create Nil Submission
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://{{HOST}}/api/v1/submissions
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "area_of_law": "CRIME LOWER",
+    "bulk_submission_id": null,
+    "calculated_total_amount": 0,
+    "created_by_user_id": "Data-Claims-Event-Service",
+    "crime_lower_schedule_number": "0U099L",
+    "error_messages": "Write Error",
+    "is_nil_submission": true,
+    "legal_help_submission_reference": null,
+    "mediation_submission_reference": null,
+    "number_of_claims": 1,
+    "office_account_number": "0U099L",
+    "previous_submission_id": null,
+    "provider_user_id": "test",
+    "status": "READY_FOR_VALIDATION",
+    "submission_id": "019d05b9-70ad-7310-836a-348be7f8c85d",
+    "submission_period": "FEB-2026"
+  }
+}
+
+tests {
+  if(res.status === 201){
+    const body = res.getBody();
+    bru.setEnvVar("SUBMISSION_ID", body.id);
+  }else{
+    throw new Error("POST failed - cannont set SUBMISSION_ID");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

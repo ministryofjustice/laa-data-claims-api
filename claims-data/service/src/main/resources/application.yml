@@ -150,3 +150,34 @@ laa:
         base-path: /exports
       defaults:
         max-rows: 50000
+
+  provider-details-api:
+    host: ${PROVIDER_DETAILS_API_HOSTNAME}
+    url: ${laa.provider-details-api.host}
+    accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
+    authHeader: "X-Authorization"
+  data-claims-api:
+    host: ${CLAIMS_API_HOSTNAME}
+    url: ${laa.claims-api.host}
+    accessToken: ${CLAIMS_API_ACCESS_TOKEN}
+  fee-scheme-platform-api:
+    host: ${FEE_SCHEME_PLATFORM_API_URL}
+    url: ${laa.fee-scheme-platform-api.host}
+    accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
+
+submission:
+  validation:
+    minimum-period: ${SUBMISSION_VALIDATION_MINIMUM_PERIOD:APR-2025}
+
+resilience4j.retry:
+  instances:
+    pdaRetry:
+      maxAttempts: 5
+      waitDuration: 500ms
+      enableExponentialBackoff: true
+      exponentialBackoffMultiplier: 2
+      exponentialMaxWaitDuration: 5s
+      enableRandomizedWait: true
+      randomizedWaitFactor: 0.5
+      retry-exceptions:
+        - java.lang.RuntimeException
