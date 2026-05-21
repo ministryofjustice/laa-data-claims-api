@@ -77,7 +77,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should reject invalid metadata combinations when a phantom reason reference is provided")
+  @DisplayName(
+      "Should reject invalid metadata combinations when a phantom reason reference is provided")
   void shouldRejectInvalidMetadataCombinations() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
@@ -104,7 +105,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
-  @DisplayName("Should track multiple calculations and return latest calculation using latest wins rule")
+  @DisplayName(
+      "Should track multiple calculations and return latest calculation using latest wins rule")
   void shouldTrackMultipleCalculationsAndReturnLatestWins() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
@@ -125,7 +127,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should protect claim from concurrent modifications by throwing optimistic locking exception")
+  @DisplayName(
+      "Should protect claim from concurrent modifications by throwing optimistic locking exception")
   void shouldProtectClaimFromConcurrentModifications() {
     // 1. Thread A loads the target claim at its initial baseline version (typically 0L)
     Claim claimThreadA = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
@@ -145,21 +148,23 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     // 5. Assert that trying to commit stale data throws AssertJ's fluent exception tracker
     assertThatThrownBy(
-        () -> {
-          claimRepository.saveAndFlush(claimThreadB);
-        })
+            () -> {
+              claimRepository.saveAndFlush(claimThreadB);
+            })
         .isInstanceOf(ObjectOptimisticLockingFailureException.class);
   }
 
   @Test
   @Transactional
-  @DisplayName("Should increment entity version and track latest calculated fee on successful claim amendment")
+  @DisplayName(
+      "Should increment entity version and track latest calculated fee on successful claim amendment")
   void shouldIncrementVersionAndTrackLatestCalculatedFeeOnSuccessfulAmendment() {
     // 1. Fetch a pristine copy of the target claim directly from the seeded Testcontainer DB
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
     long initialVersion = targetClaim.getVersion();
 
-    // Explicitly initialize the child collection array to prevent any legacy builder null pointer states
+    // Explicitly initialize the child collection array to prevent any legacy builder null pointer
+    // states
     if (targetClaim.getCalculatedFeeDetails() == null) {
       targetClaim.setCalculatedFeeDetails(new java.util.ArrayList<>());
     }
@@ -224,7 +229,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 3. Assert precise mapping parity
     assertThat(retrieved.getCreatedByUserId()).isEqualTo(testingUser);
 
-    // Modern Replacement: Assert the timestamp matches within a 1-second window to handle DB truncation safely
+    // Modern Replacement: Assert the timestamp matches within a 1-second window to handle DB
+    // truncation safely
     assertThat(retrieved.getCreatedOn()).isCloseTo(testingTime, within(1, ChronoUnit.SECONDS));
   }
 
