@@ -211,7 +211,6 @@ public class SubmissionService
     Map<UUID, BigDecimal> assessedTotalAmounts =
         assessmentService.getAssessedTotalAmounts(submissionIds);
     Map<UUID, BigDecimal> calculatedTotalAmounts = getCalculatedTotalAmounts(submissionIds);
-
     resultSet
         .getContent()
         .forEach(
