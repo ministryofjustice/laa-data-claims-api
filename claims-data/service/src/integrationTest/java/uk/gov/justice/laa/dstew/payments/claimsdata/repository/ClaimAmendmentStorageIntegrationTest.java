@@ -11,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -25,6 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
+@DisplayName("ClaimAmendmentStorage Integration Test")
 class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
   private RequestedByReference providerRef;
@@ -75,6 +77,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should reject invalid metadata combinations when a phantom reason reference is provided")
   void shouldRejectInvalidMetadataCombinations() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
@@ -101,6 +104,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
+  @DisplayName("Should track multiple calculations and return latest calculation using latest wins rule")
   void shouldTrackMultipleCalculationsAndReturnLatestWins() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
@@ -121,6 +125,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should protect claim from concurrent modifications by throwing optimistic locking exception")
   void shouldProtectClaimFromConcurrentModifications() {
     // 1. Thread A loads the target claim at its initial baseline version (typically 0L)
     Claim claimThreadA = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
@@ -140,21 +145,21 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     // 5. Assert that trying to commit stale data throws AssertJ's fluent exception tracker
     assertThatThrownBy(
-            () -> {
-              claimRepository.saveAndFlush(claimThreadB);
-            })
+        () -> {
+          claimRepository.saveAndFlush(claimThreadB);
+        })
         .isInstanceOf(ObjectOptimisticLockingFailureException.class);
   }
 
   @Test
   @Transactional
+  @DisplayName("Should increment entity version and track latest calculated fee on successful claim amendment")
   void shouldIncrementVersionAndTrackLatestCalculatedFeeOnSuccessfulAmendment() {
     // 1. Fetch a pristine copy of the target claim directly from the seeded Testcontainer DB
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
     long initialVersion = targetClaim.getVersion();
 
-    // Explicitly initialize the child collection array to prevent any legacy builder null pointer
-    // states
+    // Explicitly initialize the child collection array to prevent any legacy builder null pointer states
     if (targetClaim.getCalculatedFeeDetails() == null) {
       targetClaim.setCalculatedFeeDetails(new java.util.ArrayList<>());
     }
@@ -191,6 +196,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
+  @DisplayName("Should accurately persist and track structural auditing metadata context fields")
   void shouldAccuratelyPersistAndTrackAuditingMetadataContext() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
     String testingUser = "INTEGRATION_TEST_USER_99";
@@ -218,8 +224,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 3. Assert precise mapping parity
     assertThat(retrieved.getCreatedByUserId()).isEqualTo(testingUser);
 
-    // Modern Replacement: Assert the timestamp matches within a 1-second window to handle DB
-    // truncation safely
+    // Modern Replacement: Assert the timestamp matches within a 1-second window to handle DB truncation safely
     assertThat(retrieved.getCreatedOn()).isCloseTo(testingTime, within(1, ChronoUnit.SECONDS));
   }
 
