@@ -10,7 +10,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -22,7 +21,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Setter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +32,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -64,28 +61,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
-  @Mock
-  private SubmissionRepository submissionRepository;
-  @Mock
-  private ClaimService claimService;
-  @Mock
-  private MatterStartService matterStartService;
-  @Mock
-  private SubmissionMapper submissionMapper;
-  @Mock
-  private ValidationMessageLogRepository validationMessageLogRepository;
-  @Mock
-  private SubmissionsResultSetMapper submissionsResultSetMapper;
-  @Mock
-  private SubmissionEventPublisherService submissionEventPublisherService;
-  @Mock
-  private AssessmentService assessmentService;
+  @Mock private SubmissionRepository submissionRepository;
+  @Mock private ClaimService claimService;
+  @Mock private MatterStartService matterStartService;
+  @Mock private SubmissionMapper submissionMapper;
+  @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
+  @Mock private SubmissionEventPublisherService submissionEventPublisherService;
+  @Mock private AssessmentService assessmentService;
 
-  @InjectMocks
-  private SubmissionService submissionService;
+  @InjectMocks private SubmissionService submissionService;
 
-  @Captor
-  private ArgumentCaptor<Specification> submissionSpecificationArgumentCaptor;
+  @Captor private ArgumentCaptor<Specification> submissionSpecificationArgumentCaptor;
   private static final LocalDate SUBMITTED_DATE_FROM = LocalDate.of(2025, 1, 1);
   private static final LocalDate SUBMITTED_DATE_TO = LocalDate.of(2025, 12, 31);
   private static final List<String> OFFICE_CODES = List.of("office1", "office2", "office3");
@@ -368,14 +355,13 @@ class SubmissionServiceTest {
 
     assertThat(submissionBase.getSubmissionId()).isNotNull();
     when(assessmentService.getAssessedTotalAmounts(
-        Collections.singletonList(submissionBase.getSubmissionId())))
+            Collections.singletonList(submissionBase.getSubmissionId())))
         .thenReturn(Map.of(submissionBase.getSubmissionId(), new BigDecimal("123.40")));
 
     when(submissionRepository.getCalculatedTotalAmounts(
-        Collections.singletonList(submissionBase.getSubmissionId())))
+            Collections.singletonList(submissionBase.getSubmissionId())))
         .thenReturn(
-            getCalcTotalsProjection(submissionBase.getSubmissionId(),
-                new BigDecimal("789.1")));
+            getCalcTotalsProjection(submissionBase.getSubmissionId(), new BigDecimal("789.1")));
 
     var actualResultSet =
         submissionService.getSubmissionsResultSet(
@@ -397,8 +383,8 @@ class SubmissionServiceTest {
         .isEqualTo(new BigDecimal("789.10"));
     verify(assessmentService)
         .getAssessedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
-    verify(submissionRepository).getCalculatedTotalAmounts(
-        Collections.singletonList(submissionBase.getSubmissionId()));
+    verify(submissionRepository)
+        .getCalculatedTotalAmounts(Collections.singletonList(submissionBase.getSubmissionId()));
   }
 
   @Test
@@ -627,8 +613,8 @@ class SubmissionServiceTest {
     verifyNoInteractions(submissionRepository);
   }
 
-  private List<SubmissionRepository.CalculatedTotalAmountProjection>
-  getCalcTotalsProjection(UUID submissionId, BigDecimal expectedCalcValue) {
+  private List<SubmissionRepository.CalculatedTotalAmountProjection> getCalcTotalsProjection(
+      UUID submissionId, BigDecimal expectedCalcValue) {
 
     TestProjection projection = new TestProjection(submissionId, expectedCalcValue);
     return new ArrayList<>(List.of(projection));
