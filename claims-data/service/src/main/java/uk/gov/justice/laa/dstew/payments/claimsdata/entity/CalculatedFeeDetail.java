@@ -42,7 +42,7 @@ public class CalculatedFeeDetail {
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_id", nullable = false)
-  private Claim claim; // Changed from @OneToOne [cite: 544]
+  private Claim claim; // Changed from @OneToOne
 
   private String feeCode;
 
@@ -123,7 +123,7 @@ public class CalculatedFeeDetail {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_amendment_id")
-  private ClaimAmendment claimAmendment; // New link to amendment [cite: 542]
+  private ClaimAmendment claimAmendment; // New link to amendment
 
-  private Boolean isPriceChanged; // New flag for FSP outcomes [cite: 546]
+  private Boolean isPriceChanged; // New flag for FSP outcomes
 }

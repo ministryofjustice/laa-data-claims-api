@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -17,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonType;
 
 /** Entity representing a claim amendment. */
 @Getter
@@ -27,34 +30,33 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor
 @Table(name = "claim_amendment", schema = "claims")
 public class ClaimAmendment {
-  @Id private UUID id; // UUIDv7 [cite: 519]
+  @Id private UUID id; // UUIDv7
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_id", nullable = false)
-  private Claim claim; // The amended claim [cite: 520]
+  private Claim claim; // The amended claim
 
-  @NotNull
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "amendment_reason_reference_id", nullable = false)
-  private AmendmentReasonReference amendmentReason; // Metadata anchor [cite: 522, 593]
-
-  @NotNull
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "jsonb")
-  private String beforeState; // Snapshot [cite: 523]
+  @Enumerated(EnumType.STRING)
+  @Column(name = "amendment_reason_code", nullable = false)
+  private AmendmentReasonType amendmentReason;
 
   @NotNull
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
-  private String requestPayload; // Sparse payload [cite: 524]
+  private String beforeState; // Snapshot
 
   @NotNull
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
-  private String diff; // Versioned changes [cite: 525, 532]
+  private String requestPayload; // Sparse payload
 
-  @NotNull private String createdByUserId; // Entra UUID [cite: 526]
+  @NotNull
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private String diff; // Versioned changes
 
-  @NotNull private OffsetDateTime createdOn; // Timestamp [cite: 527]
+  @NotNull private String createdByUserId; // Entra UUID
+
+  @NotNull private OffsetDateTime createdOn; // Timestamp
 }
