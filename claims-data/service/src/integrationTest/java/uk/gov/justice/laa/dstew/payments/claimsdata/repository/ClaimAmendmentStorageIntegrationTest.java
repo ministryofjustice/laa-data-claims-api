@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -126,6 +127,16 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
     assertThat(evaluatedClaim.getLatestCalculatedFee().getTotalAmount())
         .isEqualByComparingTo(amendedAmount);
+  }
+
+  @Test
+  @Transactional
+  void shouldHaveNullClaimAmendmentInCalcFeeDetailsWhenThereAreNoAmendments() {
+    CalculatedFeeDetail cfd =
+        calculatedFeeDetailRepository
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID)
+            .get();
+    assertThat(cfd.getClaimAmendment()).isNull();
   }
 
   @Test
