@@ -34,7 +34,6 @@ import org.postgresql.copy.CopyManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.data.domain.Example;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -386,19 +385,25 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no validation messages exist for the search criteria")
   public void noValidationMessagesExistForTheSearchCriteria() {
     log.info("Setting up state: no validation messages exist for the search criteria");
-    when(validationMessageLogRepository.findAll(any(Example.class), any(Pageable.class)))
+    when(validationMessageLogRepository.findWithClaimDetailsByFilters(
+            any(), any(), any(), any(), any(Pageable.class)))
         .thenReturn(new PageImpl(Collections.emptyList()));
+    when(validationMessageLogRepository.countDistinctClaimIdsBySubmissionIdAndType(any(), any()))
+        .thenReturn(0L);
   }
 
   @State("validation messages exist for the search criteria")
   public void validationMessagesExistForTheSearchCriteria() {
     log.info("Setting up state: validation messages exist for the search criteria");
-    when(validationMessageLogRepository.findAll(any(Example.class), any(Pageable.class)))
+    when(validationMessageLogRepository.findWithClaimDetailsByFilters(
+            any(), any(), any(), any(), any(Pageable.class)))
         .thenReturn(
             new PageImpl(
                 Arrays.asList(
-                    getValidationMessage(ValidationMessageType.WARNING),
-                    getValidationMessage(ValidationMessageType.ERROR))));
+                    getValidationMessageProjection(ValidationMessageType.WARNING),
+                    getValidationMessageProjection(ValidationMessageType.ERROR))));
+    when(validationMessageLogRepository.countDistinctClaimIdsBySubmissionIdAndType(any(), any()))
+        .thenReturn(2L);
   }
 
   @State("a submission exists for the search criteria")

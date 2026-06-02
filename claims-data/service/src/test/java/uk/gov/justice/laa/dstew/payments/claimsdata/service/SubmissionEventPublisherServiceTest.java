@@ -1,11 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -16,18 +14,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionEventPublisherServiceTest {
 
-  @Mock private SqsClient sqsClient;
+  @Mock private SnsClient snsClient;
 
   @InjectMocks
   private SubmissionEventPublisherService
@@ -36,36 +33,35 @@ class SubmissionEventPublisherServiceTest {
   @BeforeEach
   void setUp() {
     submissionEventPublisherService =
-        new SubmissionEventPublisherService(sqsClient, new ObjectMapper());
+        new SubmissionEventPublisherService(snsClient, new ObjectMapper());
+
+    ReflectionTestUtils.setField(
+        submissionEventPublisherService,
+        "topicArn",
+        "arn:aws:sns:us-east-1:000000000000:claims-events");
   }
 
   @Test
   void publish_BulkSubmissionEvent_sendsMessageWithCorrectPayload() {
-    // given an Sqs queue
+    // given an Sns topic
     UUID bulkSubmissionId = Uuid7.timeBasedUuid();
     UUID submissionId1 = Uuid7.timeBasedUuid();
     UUID submissionId2 = Uuid7.timeBasedUuid();
 
-    String queueName = "test-queue";
-    String queueUrl = "http://localhost:4566/000000000000/" + queueName;
-
-    // Mock getQueueUrl response
-    when(sqsClient.getQueueUrl(any(GetQueueUrlRequest.class)))
-        .thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
-
+    String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
     // when publish is called with some IDs
     submissionEventPublisherService.publishBulkSubmissionEvent(
         bulkSubmissionId, List.of(submissionId1, submissionId2));
 
-    // then the correct message is sent to the queue
-    // Capture the actual SendMessageRequest
-    var captor = forClass(SendMessageRequest.class);
-    verify(sqsClient).sendMessage(captor.capture());
+    // then the correct message is published to the topic
+    // Capture the actual Publish Request
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
 
-    SendMessageRequest sentRequest = captor.getValue();
+    PublishRequest publishRequest = captor.getValue();
 
-    assertThat(sentRequest.queueUrl()).isEqualTo(queueUrl);
-    assertThat(sentRequest.messageBody())
+    assertThat(publishRequest.topicArn()).isEqualTo(topicArn);
+    assertThat(publishRequest.message())
         .contains(bulkSubmissionId.toString())
         .contains(submissionId1.toString())
         .contains(submissionId2.toString());
@@ -75,49 +71,87 @@ class SubmissionEventPublisherServiceTest {
             .dataType("String")
             .stringValue(SubmissionEventType.PARSE_BULK_SUBMISSION.toString())
             .build();
-    assertThat(sentRequest.messageAttributes())
+    assertThat(publishRequest.messageAttributes())
         .containsEntry("SubmissionEventType", expectedAttributeValue);
 
-    // also verify getQueueUrl was called
-    verify(sqsClient).getQueueUrl(any(GetQueueUrlRequest.class));
-    verifyNoMoreInteractions(sqsClient);
+    verifyNoMoreInteractions(snsClient);
   }
 
   @Test
   void publish_ValidateSubmissionEvent_sendsMessageWithCorrectPayload() {
-    // given an Sqs queue
+    // given an Sns queue
     UUID submissionId = Uuid7.timeBasedUuid();
 
-    String queueName = "test-queue";
-    String queueUrl = "http://localhost:4566/000000000000/" + queueName;
-
-    // Mock getQueueUrl response
-    when(sqsClient.getQueueUrl(any(GetQueueUrlRequest.class)))
-        .thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
+    String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
 
     // when publish is called with some IDs
     submissionEventPublisherService.publishSubmissionValidationEvent(submissionId);
 
-    // then the correct message is sent to the queue
-    // Capture the actual SendMessageRequest
-    var captor = forClass(SendMessageRequest.class);
-    verify(sqsClient).sendMessage(captor.capture());
+    // then the correct message is published to the topic
+    // Capture the actual Publish Request
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
 
-    SendMessageRequest sentRequest = captor.getValue();
+    PublishRequest publishRequest = captor.getValue();
 
-    assertThat(sentRequest.queueUrl()).isEqualTo(queueUrl);
-    assertThat(sentRequest.messageBody()).contains(submissionId.toString());
+    assertThat(publishRequest.topicArn()).isEqualTo(topicArn);
+    assertThat(publishRequest.message()).contains(submissionId.toString());
 
     MessageAttributeValue expectedAttributeValue =
         MessageAttributeValue.builder()
             .dataType("String")
             .stringValue(SubmissionEventType.VALIDATE_SUBMISSION.toString())
             .build();
-    assertThat(sentRequest.messageAttributes())
+    assertThat(publishRequest.messageAttributes())
         .containsEntry("SubmissionEventType", expectedAttributeValue);
 
-    // also verify getQueueUrl was called
-    verify(sqsClient).getQueueUrl(any(GetQueueUrlRequest.class));
-    verifyNoMoreInteractions(sqsClient);
+    verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  void publish_ValidationSucceededEvent_sendsMessageWithCorrectPayload() {
+    // given an Sns queue
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
+
+    // when publish is called with some IDs
+    submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submissionId);
+
+    // then the correct message is published to the topic
+    // Capture the actual Publish Request
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
+
+    PublishRequest publishRequest = captor.getValue();
+
+    assertThat(publishRequest.topicArn()).isEqualTo(topicArn);
+    assertThat(publishRequest.message()).contains(submissionId.toString());
+
+    MessageAttributeValue expectedAttributeValue =
+        MessageAttributeValue.builder()
+            .dataType("String")
+            .stringValue(SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED.toString())
+            .build();
+    assertThat(publishRequest.messageAttributes())
+        .containsEntry("SubmissionEventType", expectedAttributeValue);
+
+    verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
+    // given an Sns queue
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    // simulate an error
+    doThrow(new RuntimeException("SNS unavailable"))
+        .when(snsClient)
+        .publish(any(PublishRequest.class));
+    assertDoesNotThrow(
+        () ->
+            submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                submissionId));
+    verify(snsClient).publish(any(PublishRequest.class));
   }
 }

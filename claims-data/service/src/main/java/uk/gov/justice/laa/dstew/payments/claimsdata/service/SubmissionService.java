@@ -6,17 +6,16 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
@@ -36,6 +35,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.SubmissionSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 
 /** Service containing business logic for handling submissions. */
@@ -45,11 +46,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
-
-  private static final Set<String> ALLOWED_SORT_FIELDS =
-      Set.of("createdOn", "officeAccountNumber", "areaOfLaw", "submissionPeriod", "status");
-  public static final int DEFAULT_PAGE_SIZE = 20;
-  public static final int DEFAULT_PAGE_NUMBER = 0;
 
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
@@ -116,8 +112,7 @@ public class SubmissionService
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
         .claims(claims)
-        .calculatedTotalAmount(
-            BigDecimalUtils.scaleOrZeroWithScale(calculatedTotalAmount, DECIMAL_PLACES))
+        .calculatedTotalAmount(BigDecimalUtils.scaleNullable(calculatedTotalAmount, DECIMAL_PLACES))
         .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
         .matterStarts(matterStartIds)
         .createdByUserId(submission.getCreatedByUserId())
@@ -142,6 +137,11 @@ public class SubmissionService
       TransactionalPublisher.runAfterCommit(
           () ->
               submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId()));
+    } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
+      TransactionalPublisher.runAfterCommit(
+          () ->
+              submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                  submission.getId()));
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
           claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
@@ -191,7 +191,9 @@ public class SubmissionService
       throw new SubmissionBadRequestException("Missing offices list");
     }
 
-    Pageable stablePageable = validateAndRemapPageable(pageable);
+    Pageable stablePageable =
+        PageableUtils.validateAndRemap(
+            pageable, SubmissionSortField.values(), SubmissionBadRequestException::new, true);
 
     Page<Submission> page =
         submissionRepository.findAll(
@@ -213,78 +215,49 @@ public class SubmissionService
 
     Map<UUID, BigDecimal> assessedTotalAmounts =
         assessmentService.getAssessedTotalAmounts(submissionIds);
-
+    Map<UUID, BigDecimal> calculatedTotalAmounts = getCalculatedTotalAmounts(submissionIds);
     resultSet
         .getContent()
         .forEach(
             submissionBase -> {
               BigDecimal assessedTotal = assessedTotalAmounts.get(submissionBase.getSubmissionId());
+              BigDecimal calcTotalAmount =
+                  calculatedTotalAmounts.get(submissionBase.getSubmissionId());
 
               submissionBase.setAssessedTotalAmount(
                   BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES));
+              submissionBase.setCalculatedTotalAmount(
+                  BigDecimalUtils.scaleNullable(calcTotalAmount, DECIMAL_PLACES));
             });
 
     return resultSet;
   }
 
   /**
-   * Validates that all sort properties in the given {@link Pageable} are in the allowed set, then
-   * returns a new {@link Pageable} with sort field names remapped to their internal equivalents:
+   * Returns Calculated total amounts for the given submissions.
    *
-   * <ul>
-   *   <li>{@code submissionPeriod} → {@code submissionPeriodSortKey} (chronological YYYYMM order)
-   *   <li>{@code officeAccountNumber} → {@code officeAccountNumberSortKey} (case-insensitive)
-   * </ul>
+   * <p>For each submission ID provided, this method retrieves the summed {@code totalAmount} from
+   * the cfd record for each claim belonging to that submission. If the input list is {@code null}
+   * or empty, this method returns an empty map.
    *
-   * <p>A stable tie-breaking secondary sort by {@code id} is always appended, using the same
-   * direction as the primary sort (defaulting to {@code ASC} if unsorted).
+   * <p>The returned map is keyed by submission ID, with each value representing the Calculated
+   * total amount for that submission. Submissions with no cfd records will not be present in the
+   * returned map.
    *
-   * <p>Null handling: PostgreSQL applies {@code NULLS LAST} for {@code ASC} and {@code NULLS FIRST}
-   * for {@code DESC} by default. Rows with null values in a sorted column will therefore appear at
-   * the end of ascending results and at the start of descending results.
-   *
-   * <p>@param pageable the pageable to validate and augment
-   *
-   * <p>@return a new pageable with remapped sort fields and a tie-breaking sort appended
-   *
-   * <p>@throws SubmissionBadRequestException if any sort property is not in {@link
-   * #ALLOWED_SORT_FIELDS}
+   * @param submissionIds the unique identifiers of the submissions
+   * @return a map of submission IDs to Calculated total amounts, or an empty map if the input is
+   *     {@code null} or empty
    */
-  private Pageable validateAndRemapPageable(Pageable pageable) {
-    pageable
-        .getSort()
-        .forEach(
-            order -> {
-              if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-                throw new SubmissionBadRequestException(
-                    "Invalid sort field: '"
-                        + order.getProperty()
-                        + "'. Allowed fields: "
-                        + ALLOWED_SORT_FIELDS);
-              }
-            });
+  public Map<UUID, BigDecimal> getCalculatedTotalAmounts(List<UUID> submissionIds) {
+    if (CollectionUtils.isEmpty(submissionIds)) {
+      return Map.of();
+    }
 
-    Sort.Direction tieBreakerDirection =
-        pageable.getSort().isSorted()
-            ? pageable.getSort().iterator().next().getDirection()
-            : Sort.Direction.ASC;
-
-    List<Sort.Order> remappedOrders =
-        pageable.getSort().stream()
-            .map(
-                order ->
-                    switch (order.getProperty()) {
-                      case "submissionPeriod" ->
-                          new Sort.Order(order.getDirection(), "submissionPeriodSortKey");
-                      case "officeAccountNumber" ->
-                          new Sort.Order(order.getDirection(), "officeAccountNumberSortKey");
-                      default -> order;
-                    })
-            .toList();
-
-    Sort sortWithTieBreaker = Sort.by(remappedOrders).and(Sort.by(tieBreakerDirection, "id"));
-    int pageNumber = pageable.isPaged() ? pageable.getPageNumber() : DEFAULT_PAGE_NUMBER;
-    int pageSize = pageable.isPaged() ? pageable.getPageSize() : DEFAULT_PAGE_SIZE;
-    return PageRequest.of(pageNumber, pageSize, sortWithTieBreaker);
+    return submissionRepository.getCalculatedTotalAmounts(submissionIds).stream()
+        .filter(p -> p.getSubmissionId() != null && p.getTotal() != null) // Filter out the nulls
+        .collect(
+            Collectors.toMap(
+                SubmissionRepository.CalculatedTotalAmountProjection::getSubmissionId,
+                SubmissionRepository.CalculatedTotalAmountProjection::getTotal));
   }
 }

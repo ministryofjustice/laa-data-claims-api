@@ -40,10 +40,10 @@ jacocoTestCoverageVerification {
 
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
-// Upgrade to fix remaining Apache Tomcat vulnerabilities reported against 11.0.18/11.0.20
-ext['tomcat.version'] = '11.0.21'
-// Upgrade to fix Access Control Bypass and User Impersonation (SNYK-JAVA-ORGSPRINGFRAMEWORKSECURITY-16120588, 16121326, 16121020)
-ext['spring-security.version'] = '7.0.5'
+// Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
+// (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
+ext['netty.version'] = '4.2.13.Final'
+ext['tomcat.version'] = '11.0.22'
 
 dependencyManagement {
     dependencies {
@@ -55,9 +55,6 @@ dependencyManagement {
 }
 
 dependencies {
-    // Upgrade to fix CVE-2026-1225 vulnerability in logback-core
-    implementation 'ch.qos.logback:logback-core:1.5.25'
-    implementation 'ch.qos.logback:logback-classic:1.5.25'
     // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
     implementation 'tools.jackson.core:jackson-core:3.1.1'
 
@@ -98,8 +95,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
-    implementation "software.amazon.awssdk:sqs"
     implementation 'software.amazon.awssdk:sts'
+    implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     implementation(platform("tools.jackson:jackson-bom:3.1.1"))
 
@@ -111,11 +108,12 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
-    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:postgresql:42.7.11'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation "software.amazon.awssdk:sqs"
     testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     // Add this to ensure Spring Security classes are available during tests
@@ -128,11 +126,6 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
-
-    // Keep embedded Tomcat on the patched line until the managed BOM catches up.
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-el'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket'
 }
 
 bootRun {
