@@ -9,7 +9,7 @@ on:
 
 jobs:
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.0.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
     permissions:
       contents: write
       packages: write
