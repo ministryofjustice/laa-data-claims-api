@@ -121,9 +121,9 @@ public class CalculatedFeeDetail {
 
   @UpdateTimestamp private OffsetDateTime updatedOn;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "claim_amendment_id")
-  private ClaimAmendment claimAmendment; // New link to amendment
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "claim_amendment_id", unique = true) // 'unique = true' ensures a strict 1:1
+  private ClaimAmendment claimAmendment;
 
   private Boolean isPriceChanged; // New flag for FSP outcomes
 }

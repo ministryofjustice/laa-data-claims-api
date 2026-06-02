@@ -24,7 +24,9 @@ COMMENT ON TABLE claims.claim_amendment
 -- -------------------------------------------------------------------
 ALTER TABLE claims.calculated_fee_detail
     ADD COLUMN claim_amendment_id uuid,
-    ADD COLUMN is_price_changed boolean;
+    ADD COLUMN is_price_changed boolean,
+    -- FIX: Adds the database level unique constraint to match Java's @OneToOne
+    ADD CONSTRAINT uq_calculated_fee_detail_claim_amendment UNIQUE (claim_amendment_id);
 
 ALTER TABLE claims.calculated_fee_detail
     ADD CONSTRAINT fk_calculated_fee_detail_claim_amendment
@@ -53,7 +55,8 @@ CREATE INDEX ix_claim_amendment_claim_id
 CREATE INDEX ix_claim_amendment_created_on
     ON claims.claim_amendment (created_on DESC);
 
-CREATE INDEX ix_calculated_fee_detail_claim_amendment_id
+-- FIX: Changed to a UNIQUE index to optimize the One-to-One lookup path
+CREATE UNIQUE INDEX ix_calculated_fee_detail_claim_amendment_id
     ON claims.calculated_fee_detail (claim_amendment_id);
 
 CREATE INDEX ix_validation_message_log_claim_amendment_id

@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
@@ -59,4 +60,7 @@ public class ClaimAmendment {
   @NotNull private String createdByUserId; // Entra UUID
 
   @NotNull private OffsetDateTime createdOn; // Timestamp
+
+  @OneToOne(mappedBy = "claimAmendment")
+  private CalculatedFeeDetail calculatedFeeDetail;
 }

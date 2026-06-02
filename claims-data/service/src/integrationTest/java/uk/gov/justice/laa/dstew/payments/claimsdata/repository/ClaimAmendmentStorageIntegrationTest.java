@@ -77,6 +77,9 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
     assertThat(evaluatedClaim.getLatestCalculatedFee().getTotalAmount())
         .isEqualByComparingTo(BigDecimal.valueOf(789));
+    assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
+    // check claim amendment for latest fee
+    assertThat(evaluatedClaim.getLatestCalculatedFee().getClaimAmendment()).isNotNull();
   }
 
   @Test
