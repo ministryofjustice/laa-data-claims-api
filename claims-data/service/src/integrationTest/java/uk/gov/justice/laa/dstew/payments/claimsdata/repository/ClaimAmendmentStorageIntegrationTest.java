@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -22,6 +23,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
+
+  @Autowired private jakarta.persistence.EntityManager entityManager;
 
   @BeforeEach
   void setUp() {
@@ -37,27 +40,43 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
-  void shouldTrackMultipleCalculationsAndReturnLatestWins() {
+  void shouldTrackMultipleCalculationsAndReturnLatestCFD() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
-    // Pass the Enum value directly into our helper loop
-    CalculatedFeeDetail dynamicFeeUpdate =
+    // 1. Create the older calculation record (Set timestamp to 10 minutes ago)
+    CalculatedFeeDetail firstFeeUpdate =
         amendClaimWithNewCalculation(
-            targetClaim, AmendmentReasonType.TYPING_ERROR, BigDecimal.valueOf(999));
+            targetClaim, AmendmentReasonType.TYPING_ERROR, BigDecimal.valueOf(500));
+    firstFeeUpdate.setCreatedOn(OffsetDateTime.now().minusMinutes(10));
 
-    // Bi-directional synchronization mapping step required for active transaction isolation caches
     if (targetClaim.getCalculatedFeeDetails() == null) {
       targetClaim.setCalculatedFeeDetails(new ArrayList<>());
     }
-    targetClaim.getCalculatedFeeDetails().add(dynamicFeeUpdate);
+    targetClaim.getCalculatedFeeDetails().add(firstFeeUpdate);
 
-    claimRepository.flush();
+    claimRepository.saveAndFlush(targetClaim);
+
+    // 2. Create the latest calculation record (Set timestamp to right now)
+    CalculatedFeeDetail secondFeeUpdate =
+        amendClaimWithNewCalculation(
+            targetClaim, AmendmentReasonType.TYPING_ERROR, BigDecimal.valueOf(789));
+    secondFeeUpdate.setCreatedOn(OffsetDateTime.now());
+
+    targetClaim.getCalculatedFeeDetails().add(secondFeeUpdate);
+
+    claimRepository.saveAndFlush(targetClaim);
+
+    // 3. Clear L1 cache to force Hibernate to rerun the SQL query with the ORDER BY clause
+    entityManager.clear();
+
+    // 4. Reload from scratch
     Claim evaluatedClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
-    assertThat(evaluatedClaim.getCalculatedFeeDetails()).hasSize(1);
+    // Assertions pass reliably because timestamps are explicitly distinct
+    assertThat(evaluatedClaim.getCalculatedFeeDetails()).hasSize(3); // one existing + 2
     assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
     assertThat(evaluatedClaim.getLatestCalculatedFee().getTotalAmount())
-        .isEqualByComparingTo(BigDecimal.valueOf(999));
+        .isEqualByComparingTo(BigDecimal.valueOf(789));
   }
 
   @Test
