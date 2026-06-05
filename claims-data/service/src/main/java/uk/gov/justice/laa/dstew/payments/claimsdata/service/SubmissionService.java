@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
@@ -229,13 +231,14 @@ public class SubmissionService
 
     Map<UUID, BigDecimal> assessedTotalAmounts =
         assessmentService.getAssessedTotalAmounts(submissionIds);
-
+    Map<UUID, BigDecimal> calculatedTotalAmounts = getCalculatedTotalAmounts(submissionIds);
     resultSet
         .getContent()
         .forEach(
             submissionBase -> {
               BigDecimal assessedTotal = assessedTotalAmounts.get(submissionBase.getSubmissionId());
-              BigDecimal calcTotalAmount = submissionBase.getCalculatedTotalAmount();
+              BigDecimal calcTotalAmount =
+                  calculatedTotalAmounts.get(submissionBase.getSubmissionId());
 
               submissionBase.setAssessedTotalAmount(
                   BigDecimalUtils.scaleNullable(assessedTotal, DECIMAL_PLACES));
@@ -251,5 +254,32 @@ public class SubmissionService
         () ->
             submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
                 submissionId));
+  }
+  /**
+   * Returns Calculated total amounts for the given submissions.
+   *
+   * <p>For each submission ID provided, this method retrieves the summed {@code totalAmount} from
+   * the cfd record for each claim belonging to that submission. If the input list is {@code null}
+   * or empty, this method returns an empty map.
+   *
+   * <p>The returned map is keyed by submission ID, with each value representing the Calculated
+   * total amount for that submission. Submissions with no cfd records will not be present in the
+   * returned map.
+   *
+   * @param submissionIds the unique identifiers of the submissions
+   * @return a map of submission IDs to Calculated total amounts, or an empty map if the input is
+   *     {@code null} or empty
+   */
+  public Map<UUID, BigDecimal> getCalculatedTotalAmounts(List<UUID> submissionIds) {
+    if (CollectionUtils.isEmpty(submissionIds)) {
+      return Map.of();
+    }
+
+    return submissionRepository.getCalculatedTotalAmounts(submissionIds).stream()
+        .filter(p -> p.getSubmissionId() != null && p.getTotal() != null) // Filter out the nulls
+        .collect(
+            Collectors.toMap(
+                SubmissionRepository.CalculatedTotalAmountProjection::getSubmissionId,
+                SubmissionRepository.CalculatedTotalAmountProjection::getTotal));
   }
 }
