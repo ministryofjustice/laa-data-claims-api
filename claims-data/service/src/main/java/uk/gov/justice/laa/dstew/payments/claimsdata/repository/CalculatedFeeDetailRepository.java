@@ -10,6 +10,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 @Repository
 public interface CalculatedFeeDetailRepository extends JpaRepository<CalculatedFeeDetail, UUID> {
 
-  // Safely gets only the single latest calculation, matching your DB index strategy
+  // Safely gets only the single latest calculation, matching the DB index strategy
   Optional<CalculatedFeeDetail> findFirstByClaimIdOrderByCreatedOnDescIdDesc(UUID claimId);
 }
