@@ -606,5 +606,4 @@ public class ClaimsDataTestUtil {
         .updatedOn(SUBMITTED_DATE.toInstant())
         .build();
   }
-
 }
