@@ -42,7 +42,7 @@ jacocoTestCoverageVerification {
 
 // Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
 // (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
-ext['netty.version'] = '4.2.13.Final'
+ext['netty.version'] = '4.2.15.Final'
 ext['tomcat.version'] = '11.0.22'
 // Upgrade to fix Inefficient Algorithmic Complexity in spring-expression (SNYK-JAVA-ORGSPRINGFRAMEWORK-17253311)
 ext['spring-framework.version'] = '7.0.8'
