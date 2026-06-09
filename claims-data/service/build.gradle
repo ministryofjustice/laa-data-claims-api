@@ -3,12 +3,12 @@ plugins {
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
-    id "io.sentry.jvm.gradle" version "6.9.0"
+    id "io.sentry.jvm.gradle" version "5.12.2"
     id 'au.com.dius.pact' version '4.6.19'
 }
 
 def versions = [
-        sentry        : '8.43.0',
+        sentry        : '8.28.0',
         testcontainers: '1.20.1'
 ]
 
@@ -44,6 +44,8 @@ jacocoTestCoverageVerification {
 // (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
 ext['netty.version'] = '4.2.13.Final'
 ext['tomcat.version'] = '11.0.22'
+// Upgrade to fix Inefficient Algorithmic Complexity in spring-expression (SNYK-JAVA-ORGSPRINGFRAMEWORK-17253311)
+ext['spring-framework.version'] = '7.0.8'
 
 dependencyManagement {
     dependencies {
