@@ -55,5 +55,9 @@ CREATE INDEX ix_claim_amendment_claim_id
 CREATE INDEX ix_claim_amendment_created_on
     ON claims.claim_amendment (created_on DESC);
 
+-- FIX: Changed to a UNIQUE index to optimize the One-to-One lookup path
+CREATE UNIQUE INDEX ix_calculated_fee_detail_claim_amendment_id
+    ON claims.calculated_fee_detail (claim_amendment_id);
+
 CREATE INDEX ix_validation_message_log_claim_amendment_id
     ON claims.validation_message_log (claim_amendment_id);
