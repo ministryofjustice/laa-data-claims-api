@@ -15,9 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
-import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
@@ -83,7 +83,7 @@ public class SubmissionService
     if (submission.getStatus() != SubmissionStatus.CREATED) {
       ValidationResult validationResult =
           validationService.validateSubmission(submissionMapper.toSubmissionResponse(submission));
-      if (Boolean.FALSE.equals(validationResult.getIsValid())) {
+      if (!validationResult.isValid()) {
         throw new SubmissionValidationException(
             "Submission failed validation", validationResult.getIssues());
       }
@@ -255,6 +255,7 @@ public class SubmissionService
             submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
                 submissionId));
   }
+
   /**
    * Returns Calculated total amounts for the given submissions.
    *
