@@ -3,25 +3,10 @@ version: v1.25.1
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 #
 ignore:
-  CVE-2026-4437:
-    - 'glibc/libc6@2.39-0ubuntu8.7':
-        reason: 'OS component managed upstream by Paketo Noble base image'
-        expires: 2027-06-10T00:00:00.000Z
-  CVE-2026-4438:
-    - 'glibc/libc6@2.39-0ubuntu8.7':
-        reason: 'OS component managed upstream by Paketo Noble base image'
-        expires: 2027-06-10T00:00:00.000Z
-  CVE-2026-4046:
-    - 'glibc/libc6@2.39-0ubuntu8.7':
-        reason: 'OS component managed upstream by Paketo Noble base image'
-        expires: 2027-06-10T00:00:00.000Z
-  CVE-2026-6238:
-    - 'glibc/libc6@2.39-0ubuntu8.7':
-        reason: 'OS component managed upstream by Paketo Noble base image'
-        expires: 2027-06-10T00:00:00.000Z
-  CVE-2026-5435:
-    - 'glibc/libc6@2.39-0ubuntu8.7':
-        reason: 'OS component managed upstream by Paketo Noble base image'
-        expires: 2027-06-10T00:00:00.000Z
-
+# Example entry format:
+#  SNYK-VULNERABILITY-ID:
+#    - '<package>@<version>':
+#        reason: <reason for ignoring>
+#        expires: YYYY-MM-DDTHH:MI:SS.000Z
+#        created: YYYY-MM-DDTHH:MI:SS.000Z
 patch: {}
