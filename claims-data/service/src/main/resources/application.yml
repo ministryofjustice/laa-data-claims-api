@@ -18,6 +18,8 @@ spring:
     placeholders:
       reporting_username: "reporting_user"
       reporting_password: "reporting_password"
+      # Actor recorded in created_by_user_id/updated_by_user_id for reference-data seed migrations.
+      amendment_reference_seed_actor: "DSTEW-1594-migration"
   servlet:
     multipart:
       max-file-size: 10MB
@@ -91,6 +93,9 @@ resilience4j.ratelimiter:
       limitForPeriod: 10
       limitRefreshPeriod: 1s
     assessmentRateLimiter:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+    referenceRateLimiter:
       limitForPeriod: 10
       limitRefreshPeriod: 1s
 
