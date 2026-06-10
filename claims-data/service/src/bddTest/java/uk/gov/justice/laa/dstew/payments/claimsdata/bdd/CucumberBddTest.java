@@ -15,4 +15,3 @@ import org.junit.platform.suite.api.Suite;
     value =
         "uk.gov.justice.laa.dstew.payments.claimsdata.bdd,uk.gov.justice.laa.dstew.payments.claimsdata.bdd.hooks,uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps")
 public class CucumberBddTest {}
-

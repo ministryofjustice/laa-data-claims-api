@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context;
 
 import io.cucumber.spring.ScenarioScope;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +17,15 @@ public class BddScenarioContext {
   private UUID bulkSubmissionId;
   private final List<UUID> bulkSubmissionIds = new ArrayList<>();
   private final List<UUID> submissionIds = new ArrayList<>();
+
+  // ---------------------------------------------------------------------------
+  // Generated-file state (filled in by the "I generate ... file" steps).
+  // ---------------------------------------------------------------------------
+  private Path generatedFilePath;
+  private String generatedFileName;
+  private String lastOffice;
+  private String lastSubmissionPeriod;
+
 
   public int getLastStatusCode() {
     return lastStatusCode;
@@ -49,11 +59,45 @@ public class BddScenarioContext {
     return submissionIds;
   }
 
+  public Path getGeneratedFilePath() {
+    return generatedFilePath;
+  }
+
+  public void setGeneratedFilePath(Path generatedFilePath) {
+    this.generatedFilePath = generatedFilePath;
+    this.generatedFileName =
+        generatedFilePath == null ? null : generatedFilePath.getFileName().toString();
+  }
+
+  public String getGeneratedFileName() {
+    return generatedFileName;
+  }
+
+  public String getLastOffice() {
+    return lastOffice;
+  }
+
+  public void setLastOffice(String lastOffice) {
+    this.lastOffice = lastOffice;
+  }
+
+  public String getLastSubmissionPeriod() {
+    return lastSubmissionPeriod;
+  }
+
+  public void setLastSubmissionPeriod(String lastSubmissionPeriod) {
+    this.lastSubmissionPeriod = lastSubmissionPeriod;
+  }
+
   public void clear() {
     lastStatusCode = 0;
     lastResponseBody = null;
     bulkSubmissionId = null;
     bulkSubmissionIds.clear();
     submissionIds.clear();
+    generatedFilePath = null;
+    generatedFileName = null;
+    lastOffice = null;
+    lastSubmissionPeriod = null;
   }
 }

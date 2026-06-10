@@ -3,9 +3,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BulkSubmissionLifecycleSupport;
 
 /**
  * Spring configuration for Cucumber BDD beans. {@code @Bean} methods cannot live on the
@@ -16,7 +19,12 @@ public class BddBeansConfiguration {
 
   @Bean
   public RestTemplate bddRestTemplate() {
-    return new RestTemplate();
+    // Use Spring's JDK-based request factory (Java 11+ HttpClient) so that HTTP PATCH is
+    // supported out of the box. The default SimpleClientHttpRequestFactory delegates to
+    // HttpURLConnection which still does not implement PATCH on all JDKs, and the BDD
+    // harness needs PATCH to drive the bulk-submission status transitions used by the
+    // duplicate-check scenarios.
+    return new RestTemplate(new JdkClientHttpRequestFactory());
   }
 
   /**
@@ -37,6 +45,17 @@ public class BddBeansConfiguration {
   @Bean
   public BddValidationMessageStepSupport bddValidationMessageStepSupport() {
     return new BddValidationMessageStepSupport();
+  }
+
+  @Bean
+  public LegalHelpFileGenerator legalHelpFileGenerator() {
+    return new LegalHelpFileGenerator();
+  }
+
+
+  @Bean
+  public BulkSubmissionLifecycleSupport bulkSubmissionLifecycleSupport() {
+    return new BulkSubmissionLifecycleSupport();
   }
 
   /** Resolves the running embedded server's base URL on each call. */

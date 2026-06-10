@@ -40,10 +40,7 @@ public class BddValidationMessageStepSupport {
     HttpHeaders headers = new HttpHeaders();
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
     String url =
-        serverInfo.baseUrl()
-            + GET_VALIDATION_MESSAGES_PATH
-            + "?submission-id="
-            + submissionId;
+        serverInfo.baseUrl() + GET_VALIDATION_MESSAGES_PATH + "?submission-id=" + submissionId;
 
     while (System.nanoTime() < deadline) {
       ResponseEntity<String> response =

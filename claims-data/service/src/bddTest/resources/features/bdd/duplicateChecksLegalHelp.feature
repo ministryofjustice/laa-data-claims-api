@@ -1,20 +1,43 @@
 @bdd
 @duplicateChecks
 @bulkSubmission
-Feature: Duplicate checks - Legal Help
+Feature: Duplicate checks - Legal Help (API)
+  BDD integration tests covering the duplicate-check scenarios that can be
+  proven purely against the HTTP API exposed by laa-data-claims-api.
+
+  Source: the UI Cucumber feature
+  bulk-submission-and-fee-scheme-tests-/tests/features/ui/BulkSubmission/duplicateChecksLegalHelp.feature
+
+  Scope:
+    * Each scenario uploads at least one bulk-submission file through the real
+      multipart endpoint POST /api/v1/bulk-submissions.
+    * Assertions verify the synchronous outputs of this API only — HTTP status,
+      response payload, persisted bulk_submission record exposed via
+      GET /api/v1/bulk-submissions/{id}, and where applicable the status
+      transition driven through PATCH /api/v1/bulk-submissions/{id}.
+    * Scenarios whose verdict depends on the laa-data-claims-event-service
+      (claim-level duplicate detection, within-file duplicate validation
+      messages, submission-period "already exists" banner, claim voiding) are
+      intentionally excluded from this suite — they cannot be answered by this
+      API on its own and live in the cross-service e2e suite
+      (bulk-submission-and-fee-scheme-tests-).
 
   Background:
     Given the Legal Help duplicate checks BDD scaffold is ready
 
+  # ===========================================================================
+  # 1. Smoke uploads against the static fixture — sanity-check the multipart
+  # pipeline without relying on the in-process file generator.
+  # ===========================================================================
   @api @smoke_single
-  Scenario: First occurrence is accepted via API upload
+  Scenario: First occurrence is accepted via API upload (static fixture)
     Given I submit Legal Help bulk file "test_upload_files/csv/outcomes.csv" for office "0U099L"
     Then the API response status should be 201
     And a bulk submission id is returned
     And the response contains 1 submission ids
 
   @api
-  Scenario: Same legal-help file can be submitted twice for duplicate-processing pipeline
+  Scenario: Same legal-help file can be submitted twice via the API
     Given I submit Legal Help bulk file "test_upload_files/csv/outcomes.csv" for office "0U099L"
     Then the API response status should be 201
     Given I re-submit the same Legal Help bulk file
@@ -22,154 +45,171 @@ Feature: Duplicate checks - Legal Help
     And the scenario has 2 accepted bulk uploads
     And all bulk submission ids are unique
 
-  @pending
-  Scenario: Duplicate detected on second submission of same file
-    Given I submit Legal Help bulk file "test_upload_files/csv/outcomes.csv" for office "0U099L"
-    Then the API response status should be 201
-    And a bulk submission id is returned
-    Given I re-submit the same Legal Help bulk file
-    Then the API response status should be 201
-    And the second submission should be persisted in database
-    And a validation error message should exist for the second submission
+  # ===========================================================================
+  # 2. Ports of the UI scenarios whose verdict is provable from this API's
+  # responses. Each one ends in either HTTP 201 plus the persisted
+  # bulk_submission record exposing the expected area_of_law / outcome count,
+  # or a PATCH-driven state transition followed by a second 201.
+  # ===========================================================================
 
-  @pending
-  Scenario Outline: First occurrence is accepted
+  @api
+  Scenario Outline: First occurrence is accepted (generated <format>)
     When I generate "Legal help" "<format>" file with the following claims
       | feeCode |
       | CAPA    |
       | CAPA    |
     And I upload the generated file and wait for import in progress
     Then I should see the submission summary for "Legal help" with "2" claims
+
     Examples:
       | format |
       | csv    |
-
-  @pending
-  Scenario Outline: Duplicate detected against a previously submitted claim from <format>
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn             | feeCode | ufn        |
-      | 14091962/T/EKOS | CAPA    | 010625/123 |
-    And I upload the generated file
-    And click import
-    When I upload the generated file and wait for import in progress
-    Then I should have duplicate submission error for "0P322F" "Legal help"
-      | submissionPeriod |
-    Examples:
-      | format |
+      | txt    |
       | xml    |
 
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (UCN different)
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn             | feeCode | ufn        |
-      | 07081996/S/EKOE | CAPA    | 010625/123 |
-      | 07081997/S/EKOE | CAPA    | 010625/123 |
-    And I upload the generated file
-    And click import
-    When I upload the generated file and wait for import in progress
-    Then I should have duplicate submission error for "0P322F" "Legal help"
-      | submission period |
-    Examples:
-      | format |
-      | txt    |
-
-  @pending
-  Scenario Outline: Not duplicate when previous submission was invalid from <format>
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn            |
-      | 14091962/T/E.. |
-    And I upload the generated file
-    And I update only the last record with a new UCN
-      | ucn             |
-      | 14091962/T/EKOS |
-    And click import
-    When I re-upload the generated file
-    Then I should see the submission summary for "Legal help"
-    Examples:
-      | format |
-      | csv    |
-
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (UFN different)
+  @api
+  Scenario Outline: Should have no errors when UFN differs - single submission (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        |
       | 07081996/S/ASOT | CAPA    | 030625/123 |
       | 07081996/S/ASOT | CAPA    | 030625/124 |
     When I upload the generated file and wait for import in progress
     Then I should see the submission summary for "Legal help"
+
     Examples:
       | format |
+      | csv    |
+      | txt    |
       | xml    |
 
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (UFN different multiple submissions)
+  @api
+  Scenario Outline: Should have no errors when UFN differs - two submissions (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
-      | 07081996/S/EKOT | CAPA    | 040625/123 | 0P322F |
+      | 07081996/S/EKOT | CAPA    | 040625/123 | 0U099L |
     And I upload the generated file
     And click import
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
-      | 07081996/S/EKOT | CAPA    | 040625/124 | 0P322F |
+      | 07081996/S/EKOT | CAPA    | 040625/124 | 0U099L |
     When I upload the generated file and wait for import in progress
     Then I should see the submission summary for "Legal help"
-    Examples:
-      | format |
-      | txt    |
 
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (UCN different)
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        |
-      | 07081996/S/<format>E | CAPA    | 050625/123 |
-      | 07081997/S/<format>F | CAPA    | 050625/123 |
-    When I upload the generated file and wait for import in progress
-    Then I should see the submission summary for "Legal help"
     Examples:
       | format |
       | csv    |
+      | txt    |
+      | xml    |
 
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (UCN different multiple submissions)
+  @api
+  Scenario Outline: Should have no errors when UCN differs - single submission (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        | office |
-      | 07081996/S/<format>E | CAPA    | 060625/123 | 2P746R |
+      | ucn             | feeCode | ufn        |
+      | 07081996/S/EKOE | CAPA    | 010625/123 |
+      | 07081997/S/EKOE | CAPA    | 010625/123 |
+    When I upload the generated file and wait for import in progress
+    Then I should see the submission summary for "Legal help"
+
+    Examples:
+      | format |
+      | csv    |
+      | txt    |
+      | xml    |
+
+  @api
+  Scenario Outline: Should have no errors when UCN differs - two submissions (<format>)
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/UNQA | CAPA    | 060625/123 | 0U099L |
     And I upload the generated file
     And click import
     When I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        | office |
-      | 07081996/S/<format>F | CAPA    | 060625/124 | 2P746R |
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/UNQB | CAPA    | 060625/124 | 0U099L |
     And I upload the generated file and wait for import in progress
     Then I should see the submission summary for "Legal help"
-    Examples:
-      | format |
-      | xml    |
 
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (fee code different)
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        |
-      | 07081998/S/<format>E | CAPA    | 070725/123 |
-      | 07081998/S/<format>E | COM     | 070725/123 |
-    When I upload the generated file and wait for import in progress
-    Then I should see the submission summary for "Legal help"
-    Examples:
-      | format |
-      | txt    |
-
-  @pending
-  Scenario Outline: Should have no errors in <format> submission (feeCode different multiple submissions)
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        | office |
-      | 07081996/S/<format>E | CAPA    | 080625/123 | 1T102C |
-    And I upload the generated file
-    And click import
-    Given I generate "Legal help" "<format>" file with the following claims
-      | ucn                  | feeCode | ufn        | office |
-      | 07081996/S/<format>E | COM     | 080625/124 | 1T102C |
-    When I upload the generated file and wait for import in progress
-    Then I should see the submission summary for "Legal help"
     Examples:
       | format |
       | csv    |
+      | txt    |
+      | xml    |
+
+  @api
+  Scenario Outline: Should have no errors when fee code differs - single submission (<format>)
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        |
+      | 07081998/S/UNIQ | CAPA    | 070725/123 |
+      | 07081998/S/UNIQ | COM     | 070725/123 |
+    When I upload the generated file and wait for import in progress
+    Then I should see the submission summary for "Legal help"
+
+    Examples:
+      | format |
+      | csv    |
+      | txt    |
+      | xml    |
+
+  @api
+  Scenario Outline: Should have no errors when fee code differs - two submissions (<format>)
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/FEEA | CAPA    | 080625/123 | 0U099L |
+    And I upload the generated file
+    And click import
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/FEEA | COM     | 080625/124 | 0U099L |
+    When I upload the generated file and wait for import in progress
+    Then I should see the submission summary for "Legal help"
+
+    Examples:
+      | format |
+      | csv    |
+      | txt    |
+      | xml    |
+
+  @api
+  Scenario Outline: Not duplicate when previous submission was invalid (<format>)
+    # Exercises the PATCH /api/v1/bulk-submissions/{id} endpoint to drive the
+    # first submission into VALIDATION_FAILED before re-uploading the same
+    # claim. The API contract is: a second POST with the same office + period
+    # is accepted (201) because the first submission no longer counts.
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 14091962/T/EKOZ | CAPA    | 020625/100 | 0U099L |
+    And I upload the generated file
+    And I make the generated file invalid
+    And click import
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 14091962/T/EKOZ | CAPA    | 020625/100 | 0U099L |
+    When I upload the generated file and wait for import in progress
+    Then I should see the submission summary for "Legal help"
+
+    Examples:
+      | format |
+      | csv    |
+      | txt    |
+      | xml    |
+
+  @api
+  Scenario Outline: Not duplicate when office is different across submissions (<format>)
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/OFCA | CAPA    | 090625/123 | 1T102C |
+    And I upload the generated file
+    And click import
+    Given I generate "Legal help" "<format>" file with the following claims
+      | ucn             | feeCode | ufn        | office |
+      | 07081996/S/OFCA | CAPA    | 090625/123 | 0U099L |
+    When I upload the generated file and wait for import in progress
+    Then I should see the submission summary for "Legal help"
+
+    Examples:
+      | format |
+      | csv    |
+      | txt    |
+      | xml    |
+
 

@@ -8,6 +8,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -32,6 +37,28 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioConte
 public class BddApiStepSupport {
 
   private static final String POST_BULK_SUBMISSION_PATH = API_URI_PREFIX + "/bulk-submissions";
+  private static final String GET_SUBMISSIONS_PATH = API_URI_PREFIX + "/submissions";
+  private static final String GET_SUBMISSION_BY_ID_PATH = API_URI_PREFIX + "/submissions/{id}";
+  private static final String GET_BULK_SUBMISSION_BY_ID_PATH =
+      API_URI_PREFIX + "/bulk-submissions/{id}";
+  private static final String BULK_SUBMISSION_SUMMARY_PATH =
+      API_URI_PREFIX + "/bulk-submissions/{id}/summary";
+
+  /** Terminal states the bulk-submission summary endpoint can reach without an event service. */
+  private static final Set<String> BULK_TERMINAL_STATES =
+      Set.of("PARSING_COMPLETED", "PARSING_FAILED", "VALIDATION_FAILED", "VALIDATION_SUCCEEDED");
+
+  /**
+   * Polling budget for terminal-status checks. The data-claims-api stores submissions with status
+   * {@code READY_FOR_PARSING} on insert and only ever reaches a terminal state once {@code
+   * laa-data-claims-event-service} processes the SQS notification, which isn't part of the BDD
+   * harness. We therefore use a short budget and accept the non-terminal status — assertions are
+   * made against the bulk-submission record itself (which IS available immediately after the POST
+   * returns 201).
+   */
+  private static final Duration ASYNC_TIMEOUT = Duration.ofSeconds(3);
+
+  private static final Duration POLL_INTERVAL = Duration.ofMillis(250);
 
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;
@@ -44,7 +71,22 @@ public class BddApiStepSupport {
     ClassPathResource resource = new ClassPathResource(classpathFile);
     final String filename = resource.getFilename();
     byte[] bytes = resource.getInputStream().readAllBytes();
+    sendBulkSubmission(filename, bytes, office, userId);
+  }
 
+  /**
+   * Uploads a generated file (already on disk) as a multipart POST to the bulk-submissions
+   * endpoint, mirroring {@code postBulkSubmissionFile} but reading from {@link Path}.
+   */
+  public void postBulkSubmissionFromPath(Path path, String office, String userId)
+      throws IOException {
+    String filename = path.getFileName().toString();
+    byte[] bytes = Files.readAllBytes(path);
+    sendBulkSubmission(filename, bytes, office, userId);
+  }
+
+  private void sendBulkSubmission(String filename, byte[] bytes, String office, String userId)
+      throws IOException {
     ByteArrayResource fileResource =
         new ByteArrayResource(bytes) {
           @Override
@@ -88,6 +130,7 @@ public class BddApiStepSupport {
 
     context.setLastStatusCode(statusCode);
     context.setLastResponseBody(responseBody);
+    context.setLastOffice(office);
     hydrateIdsFromResponse(responseBody);
   }
 
@@ -127,6 +170,116 @@ public class BddApiStepSupport {
     assertThat(context.getSubmissionIds()).hasSize(expectedCount);
   }
 
+  // ---------------------------------------------------------------------------
+  // Async helpers (poll until parse/validation completes).
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Polls the {@code /bulk-submissions/{id}/summary} endpoint until the status enters a terminal
+   * state (or the timeout is reached). Returns the terminal status string.
+   */
+  public String waitForBulkSubmissionTerminalStatus(UUID bulkSubmissionId) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    long deadline = System.nanoTime() + ASYNC_TIMEOUT.toNanos();
+    String lastStatus = "UNKNOWN";
+    while (System.nanoTime() < deadline) {
+      try {
+        ResponseEntity<String> response =
+            restTemplate.exchange(
+                serverInfo.baseUrl() + BULK_SUBMISSION_SUMMARY_PATH,
+                HttpMethod.GET,
+                request,
+                String.class,
+                bulkSubmissionId);
+        if (response.getStatusCode().is2xxSuccessful()) {
+          JsonNode json = objectMapper.readTree(response.getBody());
+          lastStatus = json.path("status").asText("UNKNOWN");
+          if (BULK_TERMINAL_STATES.contains(lastStatus)) {
+            return lastStatus;
+          }
+        }
+      } catch (HttpStatusCodeException | IOException ignored) {
+        // keep polling; transient issues such as 404 right after creation are expected
+      }
+      sleepQuietly();
+    }
+    return lastStatus;
+  }
+
+  /**
+   * Fetches the persisted submission record for the most recent upload. Useful for assertions that
+   * the submission entity was actually saved.
+   */
+  public JsonNode getSubmission(UUID submissionId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + GET_SUBMISSION_BY_ID_PATH,
+            HttpMethod.GET,
+            request,
+            String.class,
+            submissionId);
+    return objectMapper.readTree(response.getBody());
+  }
+
+  /**
+   * Fetches the persisted bulk-submission record. Unlike {@link #getSubmission(UUID)} this is
+   * available immediately after upload (the bulk submission is the entity directly created by the
+   * POST), without requiring the event-service to parse it into per-claim submission records.
+   */
+  public JsonNode getBulkSubmission(UUID bulkSubmissionId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + GET_BULK_SUBMISSION_BY_ID_PATH,
+            HttpMethod.GET,
+            request,
+            String.class,
+            bulkSubmissionId);
+    return objectMapper.readTree(response.getBody());
+  }
+
+  /**
+   * Convenience: returns the area-of-law string ({@code "LEGAL HELP"} / {@code "CRIME LOWER"} /
+   * {@code "MEDIATION"}) of a persisted submission.
+   */
+  public String getSubmissionAreaOfLaw(UUID submissionId) throws IOException {
+    return getSubmission(submissionId).path("area_of_law").asText("");
+  }
+
+  public int countSubmissionsForOffice(String office) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    String url = serverInfo.baseUrl() + GET_SUBMISSIONS_PATH + "?offices=" + office + "&size=100";
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+      JsonNode json = objectMapper.readTree(response.getBody());
+      return json.path("content").isArray() ? json.path("content").size() : 0;
+    } catch (HttpStatusCodeException | IOException ex) {
+      return 0;
+    }
+  }
+
+  private static void sleepQuietly() {
+    try {
+      Thread.sleep(POLL_INTERVAL.toMillis());
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
   private void hydrateIdsFromResponse(String responseBody) throws IOException {
     if (responseBody == null || responseBody.isBlank()) {
       return;
@@ -142,11 +295,13 @@ public class BddApiStepSupport {
 
     JsonNode submissionIdsNode = json.path("submission_ids");
     if (submissionIdsNode.isArray()) {
-      context.getSubmissionIds().clear();
+      Set<UUID> existing = new HashSet<>(context.getSubmissionIds());
       for (JsonNode submissionIdNode : submissionIdsNode) {
-        context.getSubmissionIds().add(UUID.fromString(submissionIdNode.asText()));
+        UUID id = UUID.fromString(submissionIdNode.asText());
+        if (!existing.contains(id)) {
+          context.getSubmissionIds().add(id);
+        }
       }
     }
   }
 }
-

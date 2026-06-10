@@ -13,7 +13,8 @@ public class BulkSubmissionApiSteps {
   private String lastOffice;
 
   @Given("I submit Legal Help bulk file {string} for office {string}")
-  public void iSubmitLegalHelpBulkFileForOffice(String classpathFile, String office) throws Exception {
+  public void iSubmitLegalHelpBulkFileForOffice(String classpathFile, String office)
+      throws Exception {
     lastFile = classpathFile;
     lastOffice = office;
     api.postBulkSubmissionFile(classpathFile, office, ClaimsDataTestUtil.API_USER_ID);
@@ -52,4 +53,3 @@ public class BulkSubmissionApiSteps {
     api.assertAllBulkSubmissionIdsAreUnique();
   }
 }
-
