@@ -15,11 +15,13 @@ public interface BulkSubmissionRepository extends JpaRepository<BulkSubmission, 
 
   @Modifying
   @Query(
-      "UPDATE BulkSubmission b SET b.status = COALESCE(:status, b.status), "
-          + "b.errorCode = COALESCE(:errorCode, b.errorCode), "
-          + "b.errorDescription = COALESCE(:errorDescription, b.errorDescription), "
-          + "b.updatedByUserId = COALESCE(:updatedByUserId, b.updatedByUserId) "
-          + "WHERE b.id = :id")
+      """
+        UPDATE BulkSubmission b SET b.status = COALESCE(:status, b.status),
+          b.errorCode = COALESCE(:errorCode, b.errorCode),
+          b.errorDescription = COALESCE(:errorDescription, b.errorDescription),
+          b.updatedByUserId = COALESCE(:updatedByUserId, b.updatedByUserId)
+          WHERE b.id = :id
+      """)
   int updateBulkSubmission(
       UUID id, String status, String errorCode, String errorDescription, String updatedByUserId);
 
