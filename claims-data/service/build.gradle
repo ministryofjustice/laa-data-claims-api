@@ -44,12 +44,6 @@ jacocoTestCoverageVerification {
 // (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
 ext['netty.version'] = '4.2.15.Final'
 ext['tomcat.version'] = '11.0.22'
-// Upgrade to fix Inefficient Algorithmic Complexity in spring-expression (SNYK-JAVA-ORGSPRINGFRAMEWORK-17253311)
-ext['spring-framework.version'] = '7.0.8'
-ext['micrometer-bom.version'] = '1.16.6'
-ext['micrometer.version'] = '1.16.6'
-// Force Reactor Netty up to a safe patch version
-ext['reactor-netty.version'] = '1.3.6'
 
 dependencyManagement {
     dependencies {
