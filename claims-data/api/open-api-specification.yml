@@ -1269,7 +1269,6 @@ components:
         - $ref: '#/components/schemas/submission_base'
       required:
         - submission_id
-        - bulk_submission_id
         - office_account_number
         - submission_period
         - area_of_law

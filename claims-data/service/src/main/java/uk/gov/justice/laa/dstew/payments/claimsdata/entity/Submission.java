@@ -31,8 +31,7 @@ public class Submission {
 
   @Id private UUID id;
 
-  @NotNull
-  @Column(nullable = false)
+  @Column
   private UUID bulkSubmissionId;
 
   @NotNull
