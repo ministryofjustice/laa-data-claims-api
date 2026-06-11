@@ -1272,7 +1272,6 @@ components:
         - office_account_number
         - submission_period
         - area_of_law
-        - status
         - provider_user_id
         - created_by_user_id
     submission_patch:
@@ -1349,7 +1348,7 @@ components:
         bulk_submission_id:
           type: string
           format: uuid
-          description: UUID of the associated bulk submission.
+          description: Optional UUID of the associated bulk submission.
         office_account_number:
           type: string
           description: The office account number.
