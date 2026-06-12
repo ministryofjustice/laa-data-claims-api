@@ -40,9 +40,6 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 // Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
-// (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
-ext['netty.version'] = '4.2.13.Final'
-ext['tomcat.version'] = '11.0.22'
 
 dependencyManagement {
     dependencies {
