@@ -8,8 +8,7 @@ plugins {
 }
 
 def versions = [
-        sentry        : '8.28.0',
-        testcontainers: '1.20.1'
+        sentry        : '8.28.0'
 ]
 
 test {
@@ -41,9 +40,6 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 // Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
-// (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
-ext['netty.version'] = '4.2.13.Final'
-ext['tomcat.version'] = '11.0.22'
 
 dependencyManagement {
     dependencies {
@@ -115,12 +111,14 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation "software.amazon.awssdk:sqs"
-    testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
+    // Testcontainers 2.x renamed the module artifacts with a "testcontainers-" prefix.
+    // Versions are managed by the Spring Boot dependency management BOM.
+    testImplementation "org.testcontainers:testcontainers-junit-jupiter"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     // Add this to ensure Spring Security classes are available during tests
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation "org.testcontainers:postgresql:$versions.testcontainers"
-    testImplementation "org.testcontainers:localstack:$versions.testcontainers"
+    testImplementation "org.testcontainers:testcontainers-postgresql"
+    testImplementation "org.testcontainers:testcontainers-localstack"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 
@@ -148,6 +146,23 @@ configurations {
     }
     pactTestImplementation.extendsFrom(testImplementation)
     pactTestRuntimeOnly.extendsFrom(testRuntimeOnly)
+}
+
+// Hibernate is published under two coordinates that share the capability
+// 'org.hibernate:hibernate-core':
+//   - legacy: org.hibernate:hibernate-core (pulled in transitively by Javers)
+//   - current: org.hibernate.orm:hibernate-core (managed by Spring Boot)
+// This causes a capability conflict. Always prefer the modern org.hibernate.orm module.
+configurations.all {
+    resolutionStrategy.capabilitiesResolution.withCapability('org.hibernate:hibernate-core') {
+        def preferred = candidates.find {
+            it.id instanceof ModuleComponentIdentifier && it.id.group == 'org.hibernate.orm'
+        }
+        if (preferred != null) {
+            select(preferred)
+            because 'Prefer the current org.hibernate.orm:hibernate-core coordinates over the legacy org.hibernate:hibernate-core'
+        }
+    }
 }
 
 
