@@ -13,7 +13,7 @@ cd /Users/raza.ahmed/IdeaProjects/laa-data-claims-api
 Run all BDD scenarios in `features/bdd`:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest'
+./gradlew :claims-data:service:bddTest
 ```
 
 ## Run By Tags
@@ -23,34 +23,35 @@ Use `-Dcucumber.filter.tags='EXPRESSION'`.
 Run only `@api` scenarios:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@api'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@api'
 ```
 
 Run only `@pending` scenarios:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@pending'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@pending'
 ```
 
 Run all except `@pending`:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='not @pending'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='not @pending'
 ```
 
 Run tags with logical operators:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@duplicateChecks and @api'
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@api and not @pending'
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@duplicateChecks or @bulkSubmission'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@duplicateChecks and @api'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@api and not @pending'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@duplicateChecks or @bulkSubmission'
 ```
 
 ## Run A Single Feature File
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.features='classpath:features/bdd/duplicateChecksLegalHelp.feature'
+./gradlew :claims-data:service:bddTest -Dcucumber.features='classpath:features/bdd/duplicateChecksLegalHelp.feature'
 ```
+
 
 ## Notes
 
@@ -59,6 +60,5 @@ Run tags with logical operators:
 - This command was verified locally:
 
 ```zsh
-./gradlew :claims-data:service:integrationTest --tests '*CucumberIntegrationTest' -Dcucumber.filter.tags='@api'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@api'
 ```
-

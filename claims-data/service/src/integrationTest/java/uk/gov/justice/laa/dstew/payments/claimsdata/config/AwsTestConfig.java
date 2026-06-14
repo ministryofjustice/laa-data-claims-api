@@ -17,11 +17,13 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 @TestConfiguration
 public class AwsTestConfig {
 
+  private static final DockerImageName LOCALSTACK_IMAGE =
+      DockerImageName.parse("localstack/localstack:4.14.0");
+
   @Bean
   public static LocalStackContainer localStack() {
     LocalStackContainer localStack =
-        new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2"))
-            .withServices(SQS, SNS);
+        new LocalStackContainer(LOCALSTACK_IMAGE).withServices(SQS, SNS).withStartupAttempts(3);
 
     localStack.start(); // start it before the SqsClient bean is created
     return localStack;
@@ -29,8 +31,6 @@ public class AwsTestConfig {
 
   @Bean
   public SqsClient sqsClient(@Autowired LocalStackContainer localStack) {
-    localStack.start(); // ensure container is running
-
     return SqsClient.builder()
         .endpointOverride(localStack.getEndpointOverride(SQS))
         .region(Region.of(localStack.getRegion()))
@@ -42,7 +42,6 @@ public class AwsTestConfig {
 
   @Bean
   public SnsClient snsClient(@Autowired LocalStackContainer localStack) {
-    localStack.start(); // ensure container is running
 
     return SnsClient.builder()
         .endpointOverride(localStack.getEndpointOverride(SNS))
