@@ -150,24 +150,25 @@ laa:
         base-path: /exports
       defaults:
         max-rows: 50000
+  dstew:
+    payments:
+      validator:
+        provider-details-api:
+          host: ${PROVIDER_DETAILS_API_HOSTNAME}
+          url: ${laa.provider-details-api.host}
+          accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
+          authHeader: "X-Authorization"
+        data-claims-api:
+          host: ${CLAIMS_API_HOSTNAME}
+          url: ${laa.claims-api.host}
+          accessToken: ${CLAIMS_API_ACCESS_TOKEN}
+        fee-scheme-platform-api:
+          host: ${FEE_SCHEME_PLATFORM_API_URL}
+          url: ${laa.fee-scheme-platform-api.host}
+          accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
 
-  provider-details-api:
-    host: ${PROVIDER_DETAILS_API_HOSTNAME}
-    url: ${laa.provider-details-api.host}
-    accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
-    authHeader: "X-Authorization"
-  data-claims-api:
-    host: ${CLAIMS_API_HOSTNAME}
-    url: ${laa.claims-api.host}
-    accessToken: ${CLAIMS_API_ACCESS_TOKEN}
-  fee-scheme-platform-api:
-    host: ${FEE_SCHEME_PLATFORM_API_URL}
-    url: ${laa.fee-scheme-platform-api.host}
-    accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
-
-submission:
-  validation:
-    minimum-period: ${SUBMISSION_VALIDATION_MINIMUM_PERIOD:APR-2025}
+        submission:
+          minimum-period: ${SUBMISSION_VALIDATION_MINIMUM_PERIOD:APR-2025}
 
 resilience4j.retry:
   instances:
