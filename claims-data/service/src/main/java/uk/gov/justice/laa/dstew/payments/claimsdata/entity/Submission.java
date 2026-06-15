@@ -89,7 +89,6 @@ public class Submission {
   @Column(nullable = false)
   private String providerUserId;
 
-  @CreationTimestamp
   @Column(nullable = false)
   private Instant createdOn;
 
