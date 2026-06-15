@@ -49,6 +49,14 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
   Optional<Assessment> findByIdAndClaimId(UUID assessmentId, UUID claimId);
 
   /**
+   * Finds the most recent assessment for the given claim, ordered by creation time descending.
+   *
+   * @param claimId the unique identifier of the claim
+   * @return an {@link Optional} containing the latest assessment, or empty if none found
+   */
+  Optional<Assessment> findFirstByClaimIdOrderByCreatedOnDesc(UUID claimId);
+
+  /**
    * Returns a paginated list of assessments for the given claim.
    *
    * @param claimId the unique identifier of the claim

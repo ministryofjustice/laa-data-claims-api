@@ -94,6 +94,18 @@ public abstract class AbstractIntegrationTest {
   protected static final String OFFICE_ACCOUNT_NUMBER_1 = "office1";
   protected static final String OFFICE_ACCOUNT_NUMBER_2 = "office2";
 
+  // Convention: a seed value is promoted to a named constant only when a test asserts on it, so the
+  // seed below and that assertion share a single source of truth and cannot drift. The remaining
+  // seed literals are deliberately left inline - they are arbitrary, single-use, unasserted fixture
+  // data, so naming them would add noise without any drift or de-duplication benefit. These are the
+  // CLAIM_1 before-state values the amendment integration tests assert on.
+  protected static final String SEEDED_CLIENT_FORENAME = "Alice";
+  protected static final String SEEDED_UNIQUE_CLIENT_NUMBER = "UCN_111";
+  protected static final String SEEDED_CASE_ID = "CASE_ID_1";
+  protected static final int SEEDED_ADVICE_TIME = 120;
+  protected static final String SEEDED_CATEGORY_OF_LAW = "IMMIGRATION";
+  protected static final String SEEDED_LATEST_ASSESSMENT_ALLOWED_TOTAL_INCL_VAT = "240.00";
+
   @Autowired protected ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired protected BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired protected SubmissionRepository submissionRepository;
@@ -281,7 +293,7 @@ public abstract class AbstractIntegrationTest {
         ClaimSummaryFee.builder()
             .id(CLAIM_1_SUMMARY_FEE_ID)
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-            .adviceTime(120)
+            .adviceTime(SEEDED_ADVICE_TIME)
             .travelTime(45)
             .waitingTime(30)
             .netProfitCostsAmount(BigDecimal.valueOf(250))
@@ -369,7 +381,7 @@ public abstract class AbstractIntegrationTest {
             .feeCode("CALC-FEE-1")
             .feeType(FeeCalculationType.DISB_ONLY)
             .feeCodeDescription("Calculated fee for claim 1")
-            .categoryOfLaw("IMMIGRATION")
+            .categoryOfLaw(SEEDED_CATEGORY_OF_LAW)
             .totalAmount(BigDecimal.valueOf(125))
             .vatIndicator(true)
             .vatRateApplied(new BigDecimal("0.20"))
@@ -451,9 +463,9 @@ public abstract class AbstractIntegrationTest {
             Client.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-                .clientForename("Alice")
+                .clientForename(SEEDED_CLIENT_FORENAME)
                 .clientSurname("Smith")
-                .uniqueClientNumber("UCN_111")
+                .uniqueClientNumber(SEEDED_UNIQUE_CLIENT_NUMBER)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build(),
@@ -472,7 +484,7 @@ public abstract class AbstractIntegrationTest {
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-                .caseId("CASE_ID_1")
+                .caseId(SEEDED_CASE_ID)
                 .uniqueCaseId("UC_ID_1")
                 .caseStageCode("CASE_STAGE_CODE")
                 .stageReachedCode("STAGE_REACHED_CODE")
@@ -557,7 +569,7 @@ public abstract class AbstractIntegrationTest {
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
             .assessmentReason("Reason for assessment")
             .allowedTotalVat(new BigDecimal("200.00"))
-            .allowedTotalInclVat(new BigDecimal("240.00"))
+            .allowedTotalInclVat(new BigDecimal(SEEDED_LATEST_ASSESSMENT_ALLOWED_TOTAL_INCL_VAT))
             .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
