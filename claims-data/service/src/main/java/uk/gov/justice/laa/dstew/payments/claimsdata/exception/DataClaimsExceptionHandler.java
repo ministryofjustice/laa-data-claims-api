@@ -52,10 +52,12 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     HttpStatus status = HttpStatus.resolve(exception.getHttpStatus().value());
     if (status == null) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
+    } else {
+      status = HttpStatus.BAD_REQUEST;
     }
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(
-            HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
+            status, exception.getMessage(), exception.getClass(), request);
     if (response.getBody() != null) {
       response.getBody().setProperty("issues", exception.getIssues());
     }
