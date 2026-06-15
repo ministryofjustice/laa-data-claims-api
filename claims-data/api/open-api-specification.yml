@@ -1272,6 +1272,7 @@ components:
         - office_account_number
         - submission_period
         - area_of_law
+        - status
         - provider_user_id
         - created_by_user_id
     submission_patch:
