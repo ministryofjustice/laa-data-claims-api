@@ -9,5 +9,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 /** Repository for handling CRUD operations on calculated fee detail records. */
 @Repository
 public interface CalculatedFeeDetailRepository extends JpaRepository<CalculatedFeeDetail, UUID> {
-  Optional<CalculatedFeeDetail> findByClaimId(UUID claimId);
+
+  // Safely gets only the single latest calculation, matching the DB index strategy
+  Optional<CalculatedFeeDetail> findFirstByClaimIdOrderByCreatedOnDescIdDesc(UUID claimId);
 }
