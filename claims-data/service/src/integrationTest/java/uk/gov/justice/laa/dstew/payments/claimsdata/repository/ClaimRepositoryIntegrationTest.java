@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -27,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * ClaimSpecification} and used by the {@link ClaimRepository}.
  */
+@Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("ClaimRepository Integration Test")
 public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {

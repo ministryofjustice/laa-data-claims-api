@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,11 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -53,8 +56,9 @@ public class Claim {
   @OneToMany(mappedBy = "claim")
   private List<ClaimSummaryFee> claimSummaryFee;
 
-  @OneToOne(mappedBy = "claim")
-  private CalculatedFeeDetail calculatedFeeDetail;
+  @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("createdOn DESC, id DESC") // Matches the DB index for latest selection
+  private List<CalculatedFeeDetail> calculatedFeeDetails = new ArrayList<>();
 
   @NotNull
   @Column(nullable = false)
@@ -146,6 +150,14 @@ public class Claim {
   @Version
   @Column(nullable = false)
   private Long version;
+
+  /**
+   * Convenience method to get the current/active fee calculation. Because of @OrderBy, the latest
+   * record is always at index 0.
+   */
+  public CalculatedFeeDetail getLatestCalculatedFee() {
+    return calculatedFeeDetails.isEmpty() ? null : calculatedFeeDetails.getFirst();
+  }
 
   /**
    * Marks the claim as void by setting its status to {@link ClaimStatus#VOID}. This method also

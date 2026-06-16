@@ -20,7 +20,7 @@ public class AwsTestConfig {
   @Bean
   public static LocalStackContainer localStack() {
     LocalStackContainer localStack =
-        new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2"))
+        new LocalStackContainer(DockerImageName.parse("localstack/localstack:4.9"))
             .withServices(SQS, SNS);
 
     localStack.start(); // start it before the SqsClient bean is created

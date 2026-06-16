@@ -162,7 +162,7 @@ jobs:
         uses: snyk/actions/docker@master # WARNING: Using mutable master branch - consider pinning to specific commit
         with:
           image: image.tar
-          args: --docker --severity-threshold=high --policy-path=.snyk
+          args: --docker --severity-threshold=high --policy-path=.snyk --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 

@@ -236,7 +236,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimCase));
 
@@ -261,7 +261,8 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
+        .thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
@@ -283,7 +284,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
@@ -306,7 +307,8 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
-    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
+        .thenReturn(Optional.empty());
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
@@ -328,7 +330,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
@@ -457,7 +459,7 @@ class ClaimServiceTest {
     final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
     UUID calculatedFeeDetailId = new UUID(0, 1);
     calculatedFeeDetail.setId(calculatedFeeDetailId);
-    when(calculatedFeeDetailRepository.findByClaimId(CLAIM_1_ID))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID))
         .thenReturn(Optional.of(calculatedFeeDetail));
     final CalculatedFeeDetail resultingFeeDetail = new CalculatedFeeDetail();
     when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(resultingFeeDetail);

@@ -68,6 +68,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -104,6 +105,7 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
   @Autowired protected AssessmentRepository assessmentRepository;
+  @Autowired protected ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired protected MockMvc mockMvc;
 
   protected BulkSubmission bulkSubmission;
@@ -139,6 +141,7 @@ public abstract class AbstractIntegrationTest {
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
@@ -526,7 +529,8 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing case reference",
                 "Field `caseReferenceNumber` is required",
-                CREATED_ON),
+                CREATED_ON,
+                null),
             new ValidationMessageLog(
                 VALIDATION_ID_2,
                 SUBMISSION_1_ID,
@@ -535,7 +539,8 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
-                CREATED_ON)));
+                CREATED_ON,
+                null)));
   }
 
   void createAssessmentsTestData() {
