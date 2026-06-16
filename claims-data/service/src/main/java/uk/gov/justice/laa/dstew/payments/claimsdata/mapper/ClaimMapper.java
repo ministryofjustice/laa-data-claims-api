@@ -57,12 +57,14 @@ public interface ClaimMapper {
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
-  @Mapping(target = ".", source = "calculatedFeeDetail.claimSummaryFee")
+  // Use the helper method expression to flatten fields from the latest fee's summary
+  @Mapping(target = ".", source = "latestCalculatedFee.claimSummaryFee")
   @Mapping(target = ".", source = "client")
   @Mapping(target = ".", source = "claimCase")
+  // Extract the specific fee calculation payload from the latest calculated record
   @Mapping(
       target = "feeCalculationResponse",
-      source = "calculatedFeeDetail",
+      source = "latestCalculatedFee",
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
   ClaimResponseV2 toClaimResponseV2(Claim entity);
 
