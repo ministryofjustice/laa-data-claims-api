@@ -14,7 +14,6 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +42,6 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
@@ -151,6 +148,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @BeforeEach
   void setup() {
+//      PurgeQueueRequest request = PurgeQueueRequest.builder().queueUrl(queueUrl).build();
+//      sqsClient.purgeQueue(request);
     seedSubmissionsData();
   }
 
@@ -469,6 +468,11 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
                 .andExpect(status().isCreated()).andReturn();
+
+        // Added this because we publish event after successfully saving and validating
+        ReceiveMessageResponse receiveResp =
+                IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+        IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
     }
 
     @ParameterizedTest
@@ -592,7 +596,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Submission failed validation"))
                 .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD")).andReturn();
-    }
+  }
 
     @Test
     void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenInvalidOffice() throws Exception {
