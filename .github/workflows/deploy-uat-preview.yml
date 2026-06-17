@@ -215,7 +215,7 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   pact-test:
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1

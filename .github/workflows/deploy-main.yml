@@ -64,7 +64,7 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   deploy-uat:
     runs-on: ubuntu-latest
