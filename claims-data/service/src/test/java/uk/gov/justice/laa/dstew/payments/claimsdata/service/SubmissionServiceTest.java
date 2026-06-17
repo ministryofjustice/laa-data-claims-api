@@ -267,6 +267,7 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName("Should retrieve submission scaling the assessed total amount to two decimal places")
   void shouldGetSubmissionWithAssessedTotalAmountToTwoDecimalPlaces() {
     Submission entity = ClaimsDataTestUtil.getSubmission();
 
@@ -426,6 +427,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should throw SubmissionBadRequestException when office accounts list parameter is empty")
   void getSubmissionsResultSet_whenOfficesIsEmpty_shouldThrowSubmissionBadRequestException() {
     assertThrows(
         SubmissionBadRequestException.class,
@@ -442,6 +445,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should return matching paginated submissions array with calculated and assessed values formatted correctly")
   void getSubmissionsResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
     var submissionBase = SubmissionBase.builder().submissionId(UUID.randomUUID()).build();
     var submission = new Submission();
@@ -490,6 +495,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should bypass fetching totals downstream and return empty set structure when query yields no results")
   void getSubmissionsResultSet_whenFiltersDoNotMatchData_shouldReturnEmptyResultSet() {
     Page<Submission> resultPage = new PageImpl<>(Collections.emptyList());
 
@@ -549,6 +556,8 @@ class SubmissionServiceTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"createdOn", "areaOfLaw", "status"})
+  @DisplayName(
+      "Should preserve standard sorting strategies, appending case-insensitive handling and secondary ID tie-breakers")
   void getSubmissionsResultSet_whenSortFieldIsValid_shouldPassSortToRepository(String sortField) {
     Pageable pageableWithSort = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, sortField));
     // Service appends a secondary sort by id using the same direction as the primary sort,
@@ -579,6 +588,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should apply case-insensitive ordering when specific sorting by officeAccountNumber is requested")
   void getSubmissionsResultSet_whenSortByOfficeAccountNumber_shouldApplyIgnoreCase() {
     Pageable pageableWithSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "officeAccountNumber"));
@@ -610,6 +621,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should remap 'submissionPeriod' property to 'submissionPeriodSortKey' ensuring chronological database ordering")
   void getSubmissionsResultSet_whenSortBySubmissionPeriod_shouldRemapToSortKey() {
     Pageable pageableWithPeriodSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "submissionPeriod"));
@@ -641,6 +654,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should match tie-breaker direction (DESC) with primary sorting direction when descending order is requested")
   void getSubmissionsResultSet_whenSortIsDescending_tieBreakerShouldAlsoBeDescending() {
     Pageable pageableWithDescSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdOn"));
@@ -671,6 +686,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should apply ascending sort by primary database identifier ID when no explicit sorting request is given")
   void getSubmissionsResultSet_alwaysAppendsTieBreakerSortById() {
     Pageable unorderedPageable = Pageable.ofSize(10).withPage(0);
     // No primary sort, so tie-breaker defaults to ASC
@@ -696,6 +713,8 @@ class SubmissionServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "Should throw SubmissionBadRequestException and short-circuit operations if requested sort property is invalid")
   void getSubmissionsResultSet_whenSortFieldIsInvalid_shouldThrowSubmissionBadRequestException() {
     Pageable pageableWithInvalidSort =
         PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "unknownField"));

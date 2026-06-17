@@ -147,10 +147,6 @@ public class RepositoryClaimsDataProvider implements ClaimsDataProvider {
     return submissions.stream().map(submissionMapper::toSubmissionBase).toList();
   }
 
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
   private Pageable buildPageable(Integer page, Integer size, String sort) {
     int pageNumber = page != null ? page : DEFAULT_PAGE;
     int pageSize = size != null && size > 0 ? size : DEFAULT_SIZE;

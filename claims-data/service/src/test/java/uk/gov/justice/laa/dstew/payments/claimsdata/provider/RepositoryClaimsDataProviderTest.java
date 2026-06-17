@@ -46,10 +46,6 @@ class RepositoryClaimsDataProviderTest {
 
   @InjectMocks private RepositoryClaimsDataProvider provider;
 
-  // ------------------------------------------------------------------
-  // getClaims
-  // ------------------------------------------------------------------
-
   @Nested
   @DisplayName("getClaims")
   class GetClaims {
@@ -187,10 +183,6 @@ class RepositoryClaimsDataProviderTest {
     }
   }
 
-  // ------------------------------------------------------------------
-  // getSubmissions
-  // ------------------------------------------------------------------
-
   @Nested
   @DisplayName("getSubmissions")
   class GetSubmissions {
@@ -260,10 +252,6 @@ class RepositoryClaimsDataProviderTest {
       verify(submissionRepository).findAll(any(Specification.class));
     }
   }
-
-  // ------------------------------------------------------------------
-  // Helpers
-  // ------------------------------------------------------------------
 
   private Claim buildClaim() {
     return Claim.builder()

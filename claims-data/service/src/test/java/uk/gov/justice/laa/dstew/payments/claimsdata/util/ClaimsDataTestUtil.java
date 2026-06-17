@@ -52,6 +52,7 @@ public class ClaimsDataTestUtil {
   public static final AreaOfLaw AREA_OF_LAW = AreaOfLaw.LEGAL_HELP;
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String VALID_CRIME_SCHEDULE_NUMBER = "0U099L";
+  public static final String VALID_LEGAL_HELP_REF = "0U098L";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
   public static final String API_USER_ID = Uuid7.timeBasedUuid().toString();
@@ -252,11 +253,11 @@ public class ClaimsDataTestUtil {
   public static Submission getNilSubmission() {
     return Submission.builder()
         .id(SUBMISSION_ID)
-        .officeAccountNumber("0P322F")
-        .submissionPeriod("MAR-2026")
+        .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+        .submissionPeriod(SUBMISSION_PERIOD)
         .areaOfLaw(AREA_OF_LAW)
         .status(SubmissionStatus.READY_FOR_VALIDATION)
-        .legalHelpSubmissionReference("0U099L")
+        .legalHelpSubmissionReference(VALID_LEGAL_HELP_REF)
         .isNilSubmission(true)
         .numberOfClaims(0)
         .errorMessages("Test error message")
