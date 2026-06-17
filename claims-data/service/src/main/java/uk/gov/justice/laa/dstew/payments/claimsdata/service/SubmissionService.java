@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -88,6 +89,7 @@ public class SubmissionService
             "Submission failed validation", validationResult.getIssues());
       }
       submission.setStatus(SubmissionStatus.VALIDATION_SUCCEEDED);
+      submission.setCreatedOn(Instant.now());
     }
 
     submissionRepository.save(submission);
