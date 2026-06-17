@@ -71,7 +71,8 @@ class ClaimAmendmentStateServiceTest {
     when(clientRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
+        .thenReturn(Optional.empty());
     when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
 
@@ -113,7 +114,8 @@ class ClaimAmendmentStateServiceTest {
     when(clientRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
+        .thenReturn(Optional.empty());
     when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
 

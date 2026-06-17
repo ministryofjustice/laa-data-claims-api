@@ -63,7 +63,7 @@ public class ClaimAmendmentStateService {
             clientRepository.findByClaimId(claimId),
             claimCaseRepository.findByClaimId(claimId),
             claimSummaryFeeRepository.findByClaimId(claimId),
-            calculatedFeeDetailRepository.findByClaimId(claimId),
+            calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId),
             assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(claimId));
 
     return Optional.of(amendmentStateBuilder.buildAmendmentState(beforeState, payload));
