@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -99,10 +100,31 @@ class SubmissionServiceTest {
     when(submissionRepository.save(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
-
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
     assertThat(result).isEqualTo(id);
     verify(submissionRepository).save(entity);
   }
+
+//    @Test
+//    @DisplayName("Should successfully map and persist a nil new submission")
+//    void shouldCreateNilSubmissionWithCorrectStatus() {
+//        UUID id = Uuid7.timeBasedUuid();
+//        Submission entity = ClaimsDataTestUtil.getNilSubmission();
+//        entity.setId(id);
+//        SubmissionPost post = new SubmissionPost().submissionId(id);
+//        SubmissionResponse submissionResponse = new SubmissionResponse();
+//
+//        when(submissionMapper.toSubmission(post)).thenReturn(entity);
+//        when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+//        when(validationService.validateSubmission(submissionResponse))
+//                .thenReturn(ValidationResult.builder().isValid(true).build());
+//        when(submissionRepository.save(entity)).thenReturn(entity);
+//
+//        UUID result = submissionService.createSubmission(post);
+//        assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+//        assertThat(result).isEqualTo(id);
+//        verify(submissionRepository).save(entity);
+//    }
 
   @Test
   @DisplayName(
@@ -154,6 +176,21 @@ class SubmissionServiceTest {
 
     verify(submissionRepository, never()).save(any());
   }
+
+    @Test
+    @DisplayName(
+            "Should retrieve a direct nil submission with empty matter starts, bulk submission id and no claims")
+    void shouldGetNilSubmission() {
+        Submission entity = ClaimsDataTestUtil.getNilSubmission();
+        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+
+        SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+        assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+        assertThat(result.getClaims().size()).isEqualTo(0);
+        assertThat(result.getMatterStarts()).isEqualTo(List.of());
+        assertNull(result.getBulkSubmissionId());
+    }
 
   @ParameterizedTest
   @MethodSource("getCalculatedTotalAmountArguments")

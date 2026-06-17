@@ -247,7 +247,23 @@ public class ClaimsDataTestUtil {
         .build();
   }
 
-  public static SubmissionBase getSubmissionBase() {
+  public static Submission getNilSubmission() {
+    return Submission.builder()
+        .id(SUBMISSION_ID)
+        .officeAccountNumber("0P322F")
+        .submissionPeriod("MAR-2026")
+        .areaOfLaw(AREA_OF_LAW)
+        .status(SubmissionStatus.READY_FOR_VALIDATION)
+        .legalHelpSubmissionReference("0U099L")
+        .isNilSubmission(true)
+        .numberOfClaims(0)
+        .errorMessages("Test error message")
+        .createdOn(SUBMITTED_DATE.toInstant())
+        .build();
+    }
+
+
+    public static SubmissionBase getSubmissionBase() {
     return SubmissionBase.builder()
         .submissionId(SUBMISSION_ID)
         .bulkSubmissionId(BULK_SUBMISSION_ID)

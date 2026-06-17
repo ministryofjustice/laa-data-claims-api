@@ -327,6 +327,66 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
     @Test
+    void postSubmission_shouldCreateAndNotValidate_WhenStatusIsCreated() throws Exception {
+        final UUID submissionId = Uuid7.timeBasedUuid();
+        // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
+        submissionRepository.deleteAll();
+        SubmissionPost submissionPost =
+                SubmissionPost.builder()
+                        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                        .submissionId(submissionId)
+                        .bulkSubmissionId(null)
+                        .createdByUserId(USER_ID)
+                        .numberOfClaims(1)
+                        .crimeLowerScheduleNumber(null)
+                        .isNilSubmission(false)
+                        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+                        .providerUserId(USER_ID)
+                        .status(SubmissionStatus.CREATED)
+                        .submissionPeriod(PERIOD_APR_2025)
+                        .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+                        .build();
+
+        mockMvc
+                .perform(
+                        post(SUBMISSIONS_ENDPOINT)
+                                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+                .andExpect(status().isCreated()).andReturn();
+    }
+
+    @Test
+    void postSubmission_shouldCreate_WhenValidNilSubmission() throws Exception {
+        final UUID submissionId = Uuid7.timeBasedUuid();
+        // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
+        submissionRepository.deleteAll();
+        SubmissionPost submissionPost =
+                SubmissionPost.builder()
+                        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                        .submissionId(submissionId)
+                        .bulkSubmissionId(null)
+                        .createdByUserId(USER_ID)
+                        .numberOfClaims(0)
+                        .crimeLowerScheduleNumber("0U099L")
+                        .isNilSubmission(true)
+                        .officeAccountNumber("0AB342")
+                        .providerUserId(USER_ID)
+                        .status(SubmissionStatus.READY_FOR_VALIDATION)
+                        .submissionPeriod(PERIOD_APR_2025)
+                        .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+                        .build();
+
+        mockMvc
+                .perform(
+                        post(SUBMISSIONS_ENDPOINT)
+                                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+                .andExpect(status().isCreated()).andReturn();
+    }
+
+    @Test
     void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSchemaValidationFails() throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
         // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
