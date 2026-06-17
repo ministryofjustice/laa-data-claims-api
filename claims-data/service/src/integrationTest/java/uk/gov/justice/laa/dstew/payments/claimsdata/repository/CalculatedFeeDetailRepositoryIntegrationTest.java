@@ -21,7 +21,8 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void findByClaimId_returnsCalculatedFeeDetail() {
-    var result = calculatedFeeDetailRepository.findByClaimId(CLAIM_1_ID);
+    var result =
+        calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID);
 
     assertThat(result).isPresent();
     CalculatedFeeDetail feeDetail = result.get();
@@ -34,7 +35,8 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
     UUID unknownClaimId = Uuid7.timeBasedUuid();
-    var result = calculatedFeeDetailRepository.findByClaimId(unknownClaimId);
+    var result =
+        calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(unknownClaimId);
 
     assertThat(result).isEmpty();
   }

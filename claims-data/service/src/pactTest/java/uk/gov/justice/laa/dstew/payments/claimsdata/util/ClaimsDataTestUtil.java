@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -431,7 +432,7 @@ public class ClaimsDataTestUtil {
   public static Claim getClaimV2() {
     var claim = getClaim();
     claim.setClaimSummaryFee(List.of(getClaimSummaryFee()));
-    claim.setCalculatedFeeDetail(getCalculatedFeeDetail());
+    claim.setCalculatedFeeDetails(new ArrayList<>(List.of(getCalculatedFeeDetail())));
     claim.setClient(getClient());
     return claim;
   }
