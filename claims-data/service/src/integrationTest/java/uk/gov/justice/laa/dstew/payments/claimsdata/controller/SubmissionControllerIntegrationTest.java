@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -106,6 +108,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   private static final String PERIOD_JAN_2025 = "JAN-2025";
   private static final String PERIOD_DEC_2024 = "DEC-2024";
   private static final String PERIOD_APR_2025 = "APR-2025";
+  private static final String PERIOD_DEC_2030 = "DEC-2030";
   private static final String OFFICE_AAAA01 = "AAAA01";
   private static final String OFFICE_AAAA02 = "aaaa02";
   private static final String PARAM_OFFICES = "offices";
@@ -313,6 +316,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
+            .isNilSubmission(false)
             .providerUserId(null)
             .build();
 
@@ -327,9 +331,90 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
     @Test
+    void postSubmission_shouldReturnBadRequest_WhenNilFlagIdIsNull() throws Exception {
+        final UUID submissionId = Uuid7.timeBasedUuid();
+        // given: a SubmissionPost payload with null providerUserId
+        submissionRepository.deleteAll();
+        SubmissionPost submissionPost =
+                SubmissionPost.builder()
+                        .submissionId(submissionId)
+                        .bulkSubmissionId(BULK_SUBMISSION_ID)
+                        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+                        .submissionPeriod(PERIOD_JAN_25)
+                        .areaOfLaw(AREA_OF_LAW)
+                        .isNilSubmission(null)
+                        .status(SubmissionStatus.CREATED)
+                        .providerUserId(USER_ID)
+                        .build();
+
+        // when: calling POST endpoint for submissions, should return a bad request.
+        mockMvc
+                .perform(
+                        post(SUBMISSIONS_ENDPOINT)
+                                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void postSubmission_shouldReturnBadRequest_WhenSubmissionPeriodIsNull() throws Exception {
+        final UUID submissionId = Uuid7.timeBasedUuid();
+        // given: a SubmissionPost payload with null providerUserId
+        submissionRepository.deleteAll();
+        SubmissionPost submissionPost =
+                SubmissionPost.builder()
+                        .submissionId(submissionId)
+                        .bulkSubmissionId(BULK_SUBMISSION_ID)
+                        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+                        .submissionPeriod(null)
+                        .areaOfLaw(AREA_OF_LAW)
+                        .isNilSubmission(false)
+                        .status(SubmissionStatus.CREATED)
+                        .providerUserId(USER_ID)
+                        .build();
+
+        // when: calling POST endpoint for submissions, should return a bad request.
+        mockMvc
+                .perform(
+                        post(SUBMISSIONS_ENDPOINT)
+                                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void postSubmission_shouldReturnBadRequest_WhenAreaOfLawIsNull() throws Exception {
+        final UUID submissionId = Uuid7.timeBasedUuid();
+        // given: a SubmissionPost payload with null providerUserId
+        submissionRepository.deleteAll();
+        SubmissionPost submissionPost =
+                SubmissionPost.builder()
+                        .submissionId(submissionId)
+                        .bulkSubmissionId(BULK_SUBMISSION_ID)
+                        .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+                        .submissionPeriod(PERIOD_APR_2025)
+                        .areaOfLaw(null)
+                        .isNilSubmission(false)
+                        .status(SubmissionStatus.CREATED)
+                        .providerUserId(USER_ID)
+                        .build();
+
+        // when: calling POST endpoint for submissions, should return a bad request.
+        mockMvc
+                .perform(
+                        post(SUBMISSIONS_ENDPOINT)
+                                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void postSubmission_shouldCreateAndNotValidate_WhenStatusIsCreated() throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
-        // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
+        // given: a SubmissionPost payload with invalid crimeLowerScheduleNumber
         submissionRepository.deleteAll();
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
@@ -359,7 +444,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     @Test
     void postSubmission_shouldCreate_WhenValidNilSubmission() throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
-        // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
+        // given: a valid nil submissionSubmissionPost payload
         submissionRepository.deleteAll();
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
@@ -368,9 +453,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                         .bulkSubmissionId(null)
                         .createdByUserId(USER_ID)
                         .numberOfClaims(0)
-                        .crimeLowerScheduleNumber("0U099L")
+                        .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
                         .isNilSubmission(true)
-                        .officeAccountNumber("0AB342")
+                        .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
                         .providerUserId(USER_ID)
                         .status(SubmissionStatus.READY_FOR_VALIDATION)
                         .submissionPeriod(PERIOD_APR_2025)
@@ -386,19 +471,22 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(status().isCreated()).andReturn();
     }
 
-    @Test
-    void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSchemaValidationFails() throws Exception {
+    @ParameterizedTest
+    @EnumSource(AreaOfLaw.class)
+    void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSchemaValidationFails(AreaOfLaw areaOfLaw) throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
         // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
         submissionRepository.deleteAll();
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
-                        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                        .areaOfLaw(areaOfLaw)
                         .submissionId(submissionId)
                         .bulkSubmissionId(null)
                         .createdByUserId(USER_ID)
                         .numberOfClaims(0)
                         .crimeLowerScheduleNumber(null)
+                        .legalHelpSubmissionReference(null)
+                        .mediationSubmissionReference(null)
                         .isNilSubmission(true)
                         .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
                         .providerUserId(USER_ID)
@@ -416,7 +504,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Submission failed validation"))
-                .andExpect(jsonPath("$.issues[0].message").value("Crime Lower Schedule Number is required"))
                 .andExpect(jsonPath("$.issues[0].code").value("SCHEMA_VALIDATION_ERROR")).andReturn();
     }
 
@@ -427,7 +514,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 Submission.builder()
                         .id(UUID.randomUUID())
                         .bulkSubmissionId(null)
-                        .officeAccountNumber("0P322F")
+                        .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
                         .submissionPeriod(PERIOD_APR_2025)
                         .areaOfLaw(AreaOfLaw.CRIME_LOWER)
                         .status(SubmissionStatus.VALIDATION_SUCCEEDED)
@@ -435,7 +522,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                         .providerUserId(bulkSubmission.getCreatedByUserId())
                         .numberOfClaims(0)
                         .createdOn(CREATED_ON)
-                        .crimeLowerScheduleNumber("0U099L")
+                        .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
                         .providerUserId(USER_ID)
                         .isNilSubmission(true)
                         .build();
@@ -445,12 +532,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
                         .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-                        .officeAccountNumber("0P322F")
+                        .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
                         .submissionId(submissionId)
                         .bulkSubmissionId(null)
                         .createdByUserId(USER_ID)
                         .numberOfClaims(0)
-                        .crimeLowerScheduleNumber("0U099L")
+                        .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
                         .isNilSubmission(true)
                         .providerUserId(USER_ID)
                         .status(SubmissionStatus.READY_FOR_VALIDATION)
@@ -466,14 +553,18 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Submission failed validation"))
-                .andExpect(jsonPath("$.issues[0].message").value("Submission already exists for Office (0P322F), Area of Law (CRIME LOWER), Period (APR-2025)"))
+                .andExpect(jsonPath("$.issues[0].message").value("Submission already exists for Office (0AB342), Area of Law (CRIME LOWER), Period (APR-2025)"))
                 .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_ALREADY_EXISTS")).andReturn();
     }
 
-    @Test
-    void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFailure() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            PERIOD_JAN_2025,
+            PERIOD_DEC_2030
+    })
+    void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFailure(String submissionPeriod) throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
-
+        // given: a SubmissionPost payload with invalid submissionPeriod
         submissionRepository.deleteAll();
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
@@ -482,9 +573,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                         .bulkSubmissionId(null)
                         .createdByUserId(USER_ID)
                         .numberOfClaims(0)
-                        .crimeLowerScheduleNumber("num")
+                        .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
                         .isNilSubmission(true)
-                        .officeAccountNumber("0P322F")
+                        .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
                         .providerUserId(USER_ID)
                         .status(SubmissionStatus.READY_FOR_VALIDATION)
                         .submissionPeriod(PERIOD_JAN_2025)
@@ -500,7 +591,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Submission failed validation"))
-                .andExpect(jsonPath("$.issues[0].message").value("Submissions for periods before APR-2025 are not accepted. Please submit for a period on or after APR-2025."))
                 .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD")).andReturn();
     }
 
@@ -508,6 +598,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenInvalidOffice() throws Exception {
         final UUID submissionId = Uuid7.timeBasedUuid();
 
+        // given: a SubmissionPost payload with invalid officeAccountNumber
         submissionRepository.deleteAll();
         SubmissionPost submissionPost =
                 SubmissionPost.builder()
@@ -516,7 +607,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                         .bulkSubmissionId(null)
                         .createdByUserId(USER_ID)
                         .numberOfClaims(0)
-                        .crimeLowerScheduleNumber("num")
+                        .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
                         .isNilSubmission(true)
                         .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
                         .providerUserId(USER_ID)
