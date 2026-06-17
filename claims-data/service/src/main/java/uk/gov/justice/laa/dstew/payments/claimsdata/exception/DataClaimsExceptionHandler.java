@@ -56,8 +56,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       status = HttpStatus.BAD_REQUEST;
     }
     ResponseEntity<ProblemDetail> response =
-        buildProblemDetailResponse(
-            status, exception.getMessage(), exception.getClass(), request);
+        buildProblemDetailResponse(status, exception.getMessage(), exception.getClass(), request);
     if (response.getBody() != null) {
       response.getBody().setProperty("issues", exception.getIssues());
     }

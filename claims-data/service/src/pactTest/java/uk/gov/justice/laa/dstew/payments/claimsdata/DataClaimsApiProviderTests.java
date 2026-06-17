@@ -151,6 +151,11 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("No setup needed: the system is ready to process a valid submission");
   }
 
+  @State("the system is ready to process a valid nil submission")
+  public void theSystemIsReadyToProcessAValidNilSubmission() {
+    log.info("No setup needed: the system is ready to process a valid nil submission");
+  }
+
   @State("the system rejects an invalid submission")
   public void theSystemRejectsAnInvalidSubmission() {
     log.info("Setting up state: the system rejects an invalid submission");
