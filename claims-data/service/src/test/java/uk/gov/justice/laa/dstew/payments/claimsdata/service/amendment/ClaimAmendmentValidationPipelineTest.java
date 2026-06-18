@@ -16,17 +16,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 /**
  * Tests for {@link ClaimAmendmentValidationPipeline}.
  *
- * <p>Proves the seam mechanics in isolation (no Spring): steps run in the configured order, the
- * first rejection short-circuits the remainder, and the real eligibility gate (DSTEW-1764) plugs in
- * via {@link EligibilityValidationStep}.
+ * <p>Proves the seam mechanics in isolation (no Spring) using fake steps: steps run in the
+ * configured order, the first rejection short-circuits the remainder, a step's result is propagated
+ * to the caller, and an empty pipeline passes. Individual step behaviour (e.g. eligibility) is
+ * covered by each step's own test.
  */
 @DisplayName("ClaimAmendmentValidationPipeline Tests")
 class ClaimAmendmentValidationPipelineTest {
 
-  private static ClaimAmendmentState stateWithStatus(ClaimStatus status) {
-    return ClaimAmendmentState.builder()
-        .beforeState(ClaimStateSnapshot.builder().status(status).build())
-        .build();
+  private static ClaimAmendmentState anyState() {
+    return ClaimAmendmentState.builder().beforeState(ClaimStateSnapshot.builder().build()).build();
   }
 
   @Test
@@ -40,7 +39,7 @@ class ClaimAmendmentValidationPipelineTest {
                 new RecordingStep("b", invoked, null),
                 new RecordingStep("c", invoked, null)));
 
-    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(stateWithStatus(null));
+    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(anyState());
 
     assertThat(result).isEmpty();
     assertThat(invoked).containsExactly("a", "b", "c");
@@ -62,7 +61,7 @@ class ClaimAmendmentValidationPipelineTest {
                 new RecordingStep("b", invoked, rejection),
                 new RecordingStep("c", invoked, null)));
 
-    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(stateWithStatus(null));
+    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(anyState());
 
     assertThat(result).containsSame(rejection);
     // "c" must not run once "b" rejects
@@ -74,32 +73,7 @@ class ClaimAmendmentValidationPipelineTest {
   void emptyPipelinePasses() {
     ClaimAmendmentValidationPipeline pipeline = new ClaimAmendmentValidationPipeline(List.of());
 
-    assertThat(pipeline.validate(stateWithStatus(null))).isEmpty();
-  }
-
-  @Test
-  @DisplayName("real eligibility step rejects a voided claim")
-  void integratesRealEligibilityStep_rejectsVoid() {
-    ClaimAmendmentValidationPipeline pipeline =
-        new ClaimAmendmentValidationPipeline(
-            List.of(new EligibilityValidationStep(new ClaimAmendmentEligibilityValidator())));
-
-    Optional<ClaimAmendmentEligibilityError> result =
-        pipeline.validate(stateWithStatus(ClaimStatus.VOID));
-
-    assertThat(result).isPresent();
-    assertThat(result.get().getCode())
-        .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-  }
-
-  @Test
-  @DisplayName("real eligibility step lets a VALID claim through")
-  void integratesRealEligibilityStep_allowsValid() {
-    ClaimAmendmentValidationPipeline pipeline =
-        new ClaimAmendmentValidationPipeline(
-            List.of(new EligibilityValidationStep(new ClaimAmendmentEligibilityValidator())));
-
-    assertThat(pipeline.validate(stateWithStatus(ClaimStatus.VALID))).isEmpty();
+    assertThat(pipeline.validate(anyState())).isEmpty();
   }
 
   /** A step that records its invocation order and returns a preset result. */

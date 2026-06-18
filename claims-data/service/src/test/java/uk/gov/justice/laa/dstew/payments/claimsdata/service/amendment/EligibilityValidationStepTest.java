@@ -9,39 +9,46 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentEligibilityError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
- * Tests for {@link ClaimAmendmentEligibilityValidator}.
+ * Tests for {@link EligibilityValidationStep}.
  *
- * <p>The gate is a pure function with no repositories or clients, so "no PDA/FSP call and no
- * persistence on rejection" holds by construction - there is nothing for it to invoke. These tests
- * pin the eligible/ineligible outcomes and error codes.
+ * <p>The step is a pure function over the before-state claim status with no repositories or
+ * clients, so "no PDA/FSP call and no persistence on rejection" holds by construction - there is
+ * nothing for it to invoke. These tests pin the eligible/ineligible outcomes and error codes.
  */
-@DisplayName("ClaimAmendmentEligibilityValidator Tests")
-class ClaimAmendmentEligibilityValidatorTest {
+@DisplayName("EligibilityValidationStep Tests")
+class EligibilityValidationStepTest {
 
-  private final ClaimAmendmentEligibilityValidator validator =
-      new ClaimAmendmentEligibilityValidator();
+  private final EligibilityValidationStep step = new EligibilityValidationStep();
+
+  private static ClaimAmendmentState stateWithStatus(ClaimStatus status) {
+    return ClaimAmendmentState.builder()
+        .beforeState(ClaimStateSnapshot.builder().status(status).build())
+        .build();
+  }
 
   @Test
   @DisplayName("VALID claim is eligible and can proceed")
   void validClaimIsEligible() {
-    assertThat(validator.checkEligibility(ClaimStatus.VALID)).isEmpty();
+    assertThat(step.validate(stateWithStatus(ClaimStatus.VALID))).isEmpty();
   }
 
   @Test
   @DisplayName("Voided claim is rejected with INVALID_VOIDED_CLAIM_NOT_AMENDABLE")
   void voidedClaimRejected() {
-    Optional<ClaimAmendmentEligibilityError> result = validator.checkEligibility(ClaimStatus.VOID);
+    Optional<ClaimAmendmentEligibilityError> result =
+        step.validate(stateWithStatus(ClaimStatus.VOID));
 
     assertThat(result).isPresent();
     ClaimAmendmentEligibilityError error = result.get();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     assertThat(error.getClaimStatus()).isEqualTo(ClaimStatus.VOID);
-    assertThat(error.getMessage())
-        .isEqualTo(ClaimAmendmentEligibilityValidator.VOIDED_CLAIM_MESSAGE);
+    assertThat(error.getMessage()).isEqualTo(EligibilityValidationStep.VOIDED_CLAIM_MESSAGE);
   }
 
   @ParameterizedTest
@@ -50,7 +57,7 @@ class ClaimAmendmentEligibilityValidatorTest {
       names = {"READY_TO_PROCESS", "INVALID"})
   @DisplayName("Other non-VALID statuses are rejected with INVALID_CLAIM_STATE_NOT_AMENDABLE")
   void otherNonValidStatusRejected(ClaimStatus status) {
-    Optional<ClaimAmendmentEligibilityError> result = validator.checkEligibility(status);
+    Optional<ClaimAmendmentEligibilityError> result = step.validate(stateWithStatus(status));
 
     assertThat(result).isPresent();
     ClaimAmendmentEligibilityError error = result.get();

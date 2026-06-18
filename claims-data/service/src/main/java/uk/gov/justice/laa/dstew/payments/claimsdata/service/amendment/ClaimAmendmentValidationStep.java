@@ -10,6 +10,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
  * <p>Each step inspects the in-memory amendment state and either lets the flow continue ({@link
  * Optional#empty()}) or rejects it with a structured error. Steps are sequenced by {@link
  * ClaimAmendmentValidationPipeline}.
+ *
+ * <p>TODO: once every step in {@link
+ * uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimAmendmentOrchestrationConfig} is a real
+ * implementation, remove the {@link #noop(String)} placeholder factory and make {@link
+ * #validate(ClaimAmendmentState)} abstract (drop the default body) so every step must implement it
+ * and none can silently pass by omission.
  */
 public interface ClaimAmendmentValidationStep {
 
@@ -27,6 +33,8 @@ public interface ClaimAmendmentValidationStep {
    * @param state the in-memory amendment state
    * @return {@link Optional#empty()} to continue, or a populated error to reject and short-circuit
    */
+  // TODO: make abstract (remove default body) once all real steps are implemented - see type
+  // Javadoc
   default Optional<ClaimAmendmentEligibilityError> validate(ClaimAmendmentState state) {
     return Optional.empty();
   }
@@ -38,6 +46,7 @@ public interface ClaimAmendmentValidationStep {
    * @param name label for this placeholder step
    * @return a {@link ClaimAmendmentValidationStep} that always passes
    */
+  // TODO: remove this placeholder factory once all real steps are implemented - see type Javadoc
   static ClaimAmendmentValidationStep noop(String name) {
     return new ClaimAmendmentValidationStep() {
       @Override

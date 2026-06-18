@@ -4,7 +4,6 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentEligibilityValidator;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentValidationPipeline;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.EligibilityValidationStep;
@@ -24,17 +23,17 @@ public class ClaimAmendmentOrchestrationConfig {
    * Builds the ordered validation pipeline. Retrieval runs before the pipeline; PDA and FSP are
    * invoked by the orchestrator at the interleave points noted below.
    *
-   * @param eligibilityValidator the claim-eligibility gate
    * @return the assembled validation pipeline
    */
   @Bean
-  public ClaimAmendmentValidationPipeline claimAmendmentValidationPipeline(
-      ClaimAmendmentEligibilityValidator eligibilityValidator) {
+  public ClaimAmendmentValidationPipeline claimAmendmentValidationPipeline() {
+    // TODO: replace each noop(...) with its real step; then remove
+    // ClaimAmendmentValidationStep.noop and make validate(...) abstract.
     return new ClaimAmendmentValidationPipeline(
         List.of(
             ClaimAmendmentValidationStep.noop(
                 "DSTEW-1751/1752 claim-version contract and early gate"),
-            new EligibilityValidationStep(eligibilityValidator),
+            new EligibilityValidationStep(),
             ClaimAmendmentValidationStep.noop("DSTEW-1765 metadata validation"),
             ClaimAmendmentValidationStep.noop("DSTEW-1766 changed-field classification"),
             ClaimAmendmentValidationStep.noop("DSTEW-1767 amendability and assessed-claim gates"),
