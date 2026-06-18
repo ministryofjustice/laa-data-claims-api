@@ -44,7 +44,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    *
    * @param exception the submission validation exception
    * @param request the HTTP request
-   * @return a 422 Unprocessable Entity response containing the issues list
+   * @return a response containing the issues list
    */
   @ExceptionHandler(SubmissionValidationException.class)
   public ResponseEntity<ProblemDetail> handleSubmissionValidationException(
@@ -52,8 +52,6 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     HttpStatus status = HttpStatus.resolve(exception.getHttpStatus().value());
     if (status == null) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-    } else {
-      status = HttpStatus.BAD_REQUEST;
     }
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, exception.getMessage(), exception.getClass(), request);
