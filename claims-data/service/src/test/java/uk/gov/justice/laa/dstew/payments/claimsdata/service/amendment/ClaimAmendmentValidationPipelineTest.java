@@ -24,8 +24,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 @DisplayName("ClaimAmendmentValidationPipeline Tests")
 class ClaimAmendmentValidationPipelineTest {
 
-  private static ClaimAmendmentState anyState() {
-    return ClaimAmendmentState.builder().beforeState(ClaimStateSnapshot.builder().build()).build();
+  private static ClaimAmendmentState stateWithStatus(ClaimStatus status) {
+    return ClaimAmendmentState.builder()
+        .beforeState(ClaimStateSnapshot.builder().status(status).build())
+        .build();
   }
 
   @Test
@@ -39,7 +41,8 @@ class ClaimAmendmentValidationPipelineTest {
                 new RecordingStep("b", invoked, null),
                 new RecordingStep("c", invoked, null)));
 
-    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(anyState());
+    Optional<ClaimAmendmentEligibilityError> result =
+        pipeline.validate(stateWithStatus(ClaimStatus.VALID));
 
     assertThat(result).isEmpty();
     assertThat(invoked).containsExactly("a", "b", "c");
@@ -61,7 +64,8 @@ class ClaimAmendmentValidationPipelineTest {
                 new RecordingStep("b", invoked, rejection),
                 new RecordingStep("c", invoked, null)));
 
-    Optional<ClaimAmendmentEligibilityError> result = pipeline.validate(anyState());
+    Optional<ClaimAmendmentEligibilityError> result =
+        pipeline.validate(stateWithStatus(ClaimStatus.VALID));
 
     assertThat(result).containsSame(rejection);
     // "c" must not run once "b" rejects
@@ -73,7 +77,26 @@ class ClaimAmendmentValidationPipelineTest {
   void emptyPipelinePasses() {
     ClaimAmendmentValidationPipeline pipeline = new ClaimAmendmentValidationPipeline(List.of());
 
-    assertThat(pipeline.validate(anyState())).isEmpty();
+    assertThat(pipeline.validate(stateWithStatus(ClaimStatus.VALID))).isEmpty();
+  }
+
+  @Test
+  @DisplayName("a real eligibility rejection short-circuits before any downstream step runs")
+  void eligibilityRejectionShortCircuitsBeforeDownstreamSteps() {
+    List<String> invoked = new ArrayList<>();
+    // The eligibility gate sits before the downstream (PDA/FSP) steps. A spy step stands in for
+    // anything downstream; it must never run once the gate rejects a non-VALID claim.
+    ClaimAmendmentValidationStep downstream = new RecordingStep("downstream", invoked, null);
+    ClaimAmendmentValidationPipeline pipeline =
+        new ClaimAmendmentValidationPipeline(List.of(new EligibilityValidationStep(), downstream));
+
+    Optional<ClaimAmendmentEligibilityError> result =
+        pipeline.validate(stateWithStatus(ClaimStatus.VOID));
+
+    assertThat(result)
+        .map(ClaimAmendmentEligibilityError::getCode)
+        .contains(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
+    assertThat(invoked).doesNotContain("downstream");
   }
 
   /** A step that records its invocation order and returns a preset result. */
