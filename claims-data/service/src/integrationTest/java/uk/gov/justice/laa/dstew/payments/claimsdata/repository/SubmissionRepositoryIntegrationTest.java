@@ -213,6 +213,16 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  void shouldPersistSubmissionWhenBulkSubmissionIdIsNull() {
+    submission1.setBulkSubmissionId(null);
+
+    Submission saved = submissionRepository.save(submission1);
+
+    assertThat(saved.getId()).isNotNull();
+    assertThat(saved.getBulkSubmissionId()).isNull();
+  }
+
+  @Test
   @DisplayName("Should only get one Submission for the matching submitted date from")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateFrom() {
     submission1.setCreatedOn(FIRST_JANUARY_2025);
