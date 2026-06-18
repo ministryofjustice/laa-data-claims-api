@@ -153,7 +153,8 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @State("the system is ready to process a submission with created status without pre-validation")
   public void theSystemIsReadyToProcessAValidNilSubmission() {
-    log.info("No setup needed: the system is ready to process a submission with created status without pre-validation");
+    log.info(
+        "No setup needed: the system is ready to process a submission with created status without pre-validation");
   }
 
   @State("the system rejects an invalid submission")

@@ -89,7 +89,9 @@ public class SubmissionService
             "Submission failed validation", validationResult.getIssues());
       }
       submission.setStatus(SubmissionStatus.VALIDATION_SUCCEEDED);
-      submission.setCreatedOn(Instant.now());
+      if (submission.getCreatedOn() == null) {
+        submission.setCreatedOn(Instant.now());
+      }
     }
 
     submissionRepository.save(submission);

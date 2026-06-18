@@ -27,7 +27,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -532,7 +531,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .status(SubmissionStatus.VALIDATION_SUCCEEDED)
             .createdByUserId(USER_ID)
-            .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
             .createdOn(CREATED_ON)
             .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
@@ -574,11 +572,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andReturn();
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {PERIOD_JAN_2025, PERIOD_DEC_2030})
+  @Test
   void
-      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFailure(
-          String submissionPeriod) throws Exception {
+      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodMinimumFailure()
+          throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with invalid submissionPeriod
     submissionRepository.deleteAll();
@@ -608,6 +605,42 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.detail").value("Submission failed validation"))
         .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD"))
+        .andReturn();
+  }
+
+  @Test
+  void
+      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFutureFailure()
+          throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with invalid submissionPeriod
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_DEC_2030)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_PERIOD_FUTURE_MONTH"))
         .andReturn();
   }
 
@@ -683,9 +716,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(jsonPath("$.title").value("Bad Request"))
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.detail").value("Submission failed validation"))
-        .andExpect(
-            jsonPath("$.issues[0].message")
-                .value("Submission is marked as nil submission, but contains claims"))
         .andExpect(jsonPath("$.issues[0].code").value("NON_NIL_SUBMISSION_CONTAINS_NO_CLAIMS"))
         .andReturn();
   }

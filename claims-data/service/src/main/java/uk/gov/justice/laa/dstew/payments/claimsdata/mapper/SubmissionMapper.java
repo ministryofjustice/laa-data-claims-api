@@ -94,5 +94,9 @@ public interface SubmissionMapper {
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Submission submission);
 
+  @Mapping(target = "submissionId", source = "id")
+  @Mapping(target = "submitted", source = "createdOn")
+  @Mapping(target = "calculatedTotalAmount", ignore = true)
+  @Mapping(target = "assessedTotalAmount", ignore = true)
   SubmissionResponse toSubmissionResponse(Submission submission);
 }

@@ -162,6 +162,8 @@ class SubmissionServiceTest {
   void shouldGetNilSubmission() {
     Submission entity = ClaimsDataTestUtil.getNilSubmission();
     when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
 
     SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
 
