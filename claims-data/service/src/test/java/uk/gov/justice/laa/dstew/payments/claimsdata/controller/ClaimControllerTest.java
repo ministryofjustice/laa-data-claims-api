@@ -172,21 +172,22 @@ class ClaimControllerTest {
   void updateClaim_returnsNoContent() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final String body = "{ \"status\": \"INVALID\" }";
+
+    // FIXED: Added the mandatory "version" field to satisfy the new @NotNull contract!
+    final String body = "{ \"status\": \"INVALID\", \"version\": 1 }";
 
     mockMvc
         .perform(
             patch(
-                    SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
-                    submissionId,
-                    claimId)
+                SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
+                submissionId,
+                claimId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .andExpect(status().isNoContent());
 
     verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
   }
-
   @Test
   void getClaims_returnsClaimDetails() throws Exception {
     var claimResponse = new ClaimResponse();
