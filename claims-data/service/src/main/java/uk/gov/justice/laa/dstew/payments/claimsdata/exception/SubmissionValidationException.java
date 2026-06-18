@@ -8,9 +8,9 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 /**
  * Thrown when a submission fails pre-persistence validation.
  *
- * <p>Results in a {@code 422 Unprocessable Entity} response. The {@link ValidationIssue} list is
- * carried on the exception so that {@link DataClaimsExceptionHandler} can surface it as a
- * structured property inside the RFC 9457 Problem Detail response body.
+ * <p>Results in a {@code 400 Bad Request} response. The {@link ValidationIssue} list is carried on
+ * the exception so that {@link DataClaimsExceptionHandler} can surface it as a structured property
+ * inside the RFC 9457 Problem Detail response body.
  */
 @Getter
 public class SubmissionValidationException extends ClaimsDataException {
