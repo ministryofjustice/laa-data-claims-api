@@ -1,15 +1,18 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
-import java.util.Optional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentEligibilityError;
+import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 
 /**
  * A single validation step in the synchronous claim amendment flow.
  *
- * <p>Each step inspects the in-memory amendment state and either lets the flow continue ({@link
- * Optional#empty()}) or rejects it with a structured error. Steps are sequenced by {@link
- * ClaimAmendmentValidationPipeline}.
+ * <p>Each step inspects the in-memory amendment state and returns the errors it found - an empty
+ * list means the step passed. A step may return more than one error. Steps are sequenced by {@link
+ * ClaimAmendmentValidationPipeline}, which collects non-fatal errors and carries on but stops as
+ * soon as a step returns a {@linkplain
+ * uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError#isFatal()
+ * fatal} error.
  *
  * <p>TODO: once every step in {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimAmendmentOrchestrationConfig} is a real
@@ -31,12 +34,12 @@ public interface ClaimAmendmentValidationStep {
    * Validates the amendment state.
    *
    * @param state the in-memory amendment state
-   * @return {@link Optional#empty()} to continue, or a populated error to reject and short-circuit
+   * @return the errors found by this step; an empty list means the step passed
    */
   // TODO: make abstract (remove default body) once all real steps are implemented - see type
   // Javadoc
-  default Optional<ClaimAmendmentEligibilityError> validate(ClaimAmendmentState state) {
-    return Optional.empty();
+  default List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
+    return List.of();
   }
 
   /**

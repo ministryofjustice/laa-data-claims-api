@@ -2,13 +2,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentEligibilityError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentValidationPipeline;
@@ -71,11 +71,12 @@ class ClaimAmendmentOrchestrationConfigTest {
               ClaimAmendmentValidationPipeline pipeline =
                   context.getBean(ClaimAmendmentValidationPipeline.class);
 
-              Optional<ClaimAmendmentEligibilityError> result =
+              List<ClaimAmendmentValidationError> result =
                   pipeline.validate(stateWithStatus(ClaimStatus.VOID));
 
-              assertThat(result).isPresent();
-              assertThat(result.get().getCode())
+              assertThat(result)
+                  .singleElement()
+                  .extracting(ClaimAmendmentValidationError::getCode)
                   .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
             });
   }

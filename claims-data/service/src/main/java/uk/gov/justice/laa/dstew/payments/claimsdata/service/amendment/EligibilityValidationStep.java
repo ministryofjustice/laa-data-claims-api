@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
-import java.util.Optional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentEligibilityError;
+import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
@@ -31,25 +31,27 @@ public class EligibilityValidationStep implements ClaimAmendmentValidationStep {
   }
 
   @Override
-  public Optional<ClaimAmendmentEligibilityError> validate(ClaimAmendmentState state) {
+  public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
     ClaimStatus status = state.getBeforeState().getStatus();
 
     if (status == ClaimStatus.VALID) {
-      return Optional.empty();
+      return List.of();
     }
 
     if (status == ClaimStatus.VOID) {
-      return Optional.of(
-          new ClaimAmendmentEligibilityError(
+      return List.of(
+          new ClaimAmendmentValidationError(
               ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE,
               status,
-              VOIDED_CLAIM_MESSAGE));
+              VOIDED_CLAIM_MESSAGE,
+              true));
     }
 
-    return Optional.of(
-        new ClaimAmendmentEligibilityError(
+    return List.of(
+        new ClaimAmendmentValidationError(
             ClaimAmendmentErrorCode.INVALID_CLAIM_STATE_NOT_AMENDABLE,
             status,
-            CLAIM_STATE_NOT_AMENDABLE_MESSAGE.formatted(status, ClaimStatus.VALID)));
+            CLAIM_STATE_NOT_AMENDABLE_MESSAGE.formatted(status, ClaimStatus.VALID),
+            true));
   }
 }
