@@ -21,7 +21,7 @@ jobs:
       packages: write
       actions: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -30,7 +30,7 @@ jobs:
           distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.0.0
+        uses: gradle/actions/setup-gradle@5e2ebd065dc2488b7a6ad670704656cbbe1e8f60 # v6.0.0
 
       - name: Build and test
         run: ./gradlew build
@@ -103,7 +103,7 @@ jobs:
     container:
       image: returntocorp/semgrep
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Run Semgrep scan
         run: semgrep scan --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token --error --config auto
 
@@ -119,7 +119,7 @@ jobs:
       SNYK_TEST_EXCLUDE: build,generated
       SNYK_TARGET_REFERENCE: main
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run Snyk to check app for vulnerabilities
         uses: snyk/actions/gradle@master # WARNING: Using mutable master branch - consider pinning to specific commit
@@ -137,7 +137,7 @@ jobs:
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -146,7 +146,7 @@ jobs:
           distribution: *JDK_DISTRIBUTION
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.0.0
+        uses: gradle/actions/setup-gradle@5e2ebd065dc2488b7a6ad670704656cbbe1e8f60 # v6.0.0
 
       - name: Build app jar with gradle
         run: ./gradlew build
@@ -162,7 +162,7 @@ jobs:
         uses: snyk/actions/docker@master # WARNING: Using mutable master branch - consider pinning to specific commit
         with:
           image: image.tar
-          args: --docker --severity-threshold=high --policy-path=.snyk
+          args: --docker --severity-threshold=high --policy-path=.snyk --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -179,7 +179,7 @@ jobs:
           - production
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up Helm
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
@@ -200,7 +200,7 @@ jobs:
   ecr-publish-image:
     needs:
       - build-test
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1
     permissions:
       contents: read
       id-token: write
@@ -215,10 +215,10 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1
     needs:
       - build-test
     permissions:
@@ -254,7 +254,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Extract release name
         id: extract_release_name_uat
@@ -264,7 +264,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -289,7 +289,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}

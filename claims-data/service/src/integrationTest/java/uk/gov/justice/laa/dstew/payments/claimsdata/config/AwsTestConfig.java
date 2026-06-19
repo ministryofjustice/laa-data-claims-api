@@ -17,13 +17,11 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 @TestConfiguration
 public class AwsTestConfig {
 
-  private static final DockerImageName LOCALSTACK_IMAGE =
-      DockerImageName.parse("localstack/localstack:4.14.0");
-
   @Bean
   public static LocalStackContainer localStack() {
     LocalStackContainer localStack =
-        new LocalStackContainer(LOCALSTACK_IMAGE).withServices(SQS, SNS).withStartupAttempts(3);
+        new LocalStackContainer(DockerImageName.parse("localstack/localstack:4.9"))
+            .withServices(SQS, SNS);
 
     localStack.start(); // start it before the SqsClient bean is created
     return localStack;
