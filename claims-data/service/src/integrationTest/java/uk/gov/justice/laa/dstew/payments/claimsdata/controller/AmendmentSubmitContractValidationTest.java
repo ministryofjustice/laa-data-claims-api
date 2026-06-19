@@ -16,8 +16,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
 
-  @Autowired
-  private WebApplicationContext webApplicationContext;
+  @Autowired private WebApplicationContext webApplicationContext;
 
   private MockMvc mockMvc;
 
@@ -26,7 +25,8 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
     this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
   }
 
-  private static final String ENDPOINT_URL = "/api/v1/submissions/{submission-id}/claims/{claim-id}";
+  private static final String ENDPOINT_URL =
+      "/api/v1/submissions/{submission-id}/claims/{claim-id}";
 
   @Test
   void shouldPassValidationWhenValidIntegerVersionAndNonEmptyAmendmentsProvided() throws Exception {
@@ -43,9 +43,10 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
             """;
 
     mockMvc
-        .perform(patch(ENDPOINT_URL, submissionId, claimId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(validPayload))
+        .perform(
+            patch(ENDPOINT_URL, submissionId, claimId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validPayload))
         // 404 PROVES IT PASSED THE @Valid GATE AND REACHED THE CONTROLLER DB QUERY!
         .andExpect(status().isNotFound());
   }
@@ -95,15 +96,7 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-          "\"5F\"",
-          "\"\"",
-          "null",
-          "[]",
-          "{}",
-          "5F"
-      })
+  @ValueSource(strings = {"\"5F\"", "\"\"", "null", "[]", "{}", "5F"})
   void shouldReturn400BadRequestWhenVersionIsInvalid(String invalidVersionValue) throws Exception {
     String claimId = UUID.randomUUID().toString();
     String submissionId = UUID.randomUUID().toString();
