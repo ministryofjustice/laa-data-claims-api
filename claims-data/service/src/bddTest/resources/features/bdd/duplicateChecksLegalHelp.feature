@@ -1,6 +1,5 @@
-@bdd
+@Regression
 @duplicateChecks
-@bulkSubmission
 Feature: Duplicate checks - Legal Help (API)
   BDD integration tests covering the duplicate-check scenarios that can be
   proven purely against the HTTP API exposed by laa-data-claims-api.
@@ -29,14 +28,14 @@ Feature: Duplicate checks - Legal Help (API)
   # 1. Smoke uploads against the static fixture — sanity-check the multipart
   # pipeline without relying on the in-process file generator.
   # ===========================================================================
-  @api @smoke_single
+  @smoke_single @DCLH_1
   Scenario: First occurrence is accepted via API upload (static fixture)
     Given I submit Legal Help bulk file "test_upload_files/csv/outcomes.csv" for office "0U099L"
     Then the API response status should be 201
     And a bulk submission id is returned
     And the response contains 1 submission ids
 
-  @api
+  @DCLH_2
   Scenario: Same legal-help file can be submitted twice via the API
     Given I submit Legal Help bulk file "test_upload_files/csv/outcomes.csv" for office "0U099L"
     Then the API response status should be 201
@@ -52,7 +51,7 @@ Feature: Duplicate checks - Legal Help (API)
   # or a PATCH-driven state transition followed by a second 201.
   # ===========================================================================
 
-  @api
+  @DCLH_3
   Scenario Outline: First occurrence is accepted (generated <format>)
     When I generate "Legal help" "<format>" file with the following claims
       | feeCode |
@@ -67,7 +66,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_4
   Scenario Outline: Should have no errors when UFN differs - single submission (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        |
@@ -82,7 +81,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_5
   Scenario Outline: Should have no errors when UFN differs - two submissions (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
@@ -101,7 +100,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_6
   Scenario Outline: Should have no errors when UCN differs - single submission (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        |
@@ -116,7 +115,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_7
   Scenario Outline: Should have no errors when UCN differs - two submissions (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
@@ -135,7 +134,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_8
   Scenario Outline: Should have no errors when fee code differs - single submission (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        |
@@ -150,7 +149,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_9
   Scenario Outline: Should have no errors when fee code differs - two submissions (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
@@ -169,7 +168,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_10
   Scenario Outline: Not duplicate when previous submission was invalid (<format>)
     # Exercises the PATCH /api/v1/bulk-submissions/{id} endpoint to drive the
     # first submission into VALIDATION_FAILED before re-uploading the same
@@ -193,7 +192,7 @@ Feature: Duplicate checks - Legal Help (API)
       | txt    |
       | xml    |
 
-  @api
+  @DCLH_11
   Scenario Outline: Not duplicate when office is different across submissions (<format>)
     Given I generate "Legal help" "<format>" file with the following claims
       | ucn             | feeCode | ufn        | office |
