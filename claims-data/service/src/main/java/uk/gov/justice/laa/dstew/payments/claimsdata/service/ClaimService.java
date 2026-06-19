@@ -149,7 +149,7 @@ public class ClaimService
         .findByClaimId(claimId)
         .ifPresent(fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, response));
     calculatedFeeDetailRepository
-        .findByClaimId(claimId)
+        .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId)
         .ifPresent(
             feeDetail ->
                 claimMapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, response));
@@ -196,7 +196,7 @@ public class ClaimService
 
       // Get existing calculated fee detail, and set the ID if it exists
       calculatedFeeDetailRepository
-          .findByClaimId(claimId)
+          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId)
           .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
@@ -334,7 +334,7 @@ public class ClaimService
             .ifPresent(
                 fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, claimResponse));
         calculatedFeeDetailRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(UUID.fromString(claimResponse.getId()))
             .ifPresent(
                 feeDetail ->
                     claimMapper.updateClaimResponseFromCalculatedFeeDetail(

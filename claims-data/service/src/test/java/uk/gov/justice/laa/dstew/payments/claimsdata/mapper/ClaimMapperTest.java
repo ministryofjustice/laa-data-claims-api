@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -214,6 +215,8 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .claimSummaryFee(new ArrayList<>())
+            .calculatedFeeDetails(new ArrayList<>())
             .submission(
                 Submission.builder()
                     .id(submissionId)

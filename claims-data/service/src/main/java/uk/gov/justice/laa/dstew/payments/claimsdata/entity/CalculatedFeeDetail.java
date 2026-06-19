@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -39,9 +40,9 @@ public class CalculatedFeeDetail {
   private ClaimSummaryFee claimSummaryFee;
 
   @NotNull
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_id", nullable = false)
-  private Claim claim;
+  private Claim claim; // Changed from @OneToOne
 
   private String feeCode;
 
@@ -119,4 +120,10 @@ public class CalculatedFeeDetail {
   private String updatedByUserId;
 
   @UpdateTimestamp private OffsetDateTime updatedOn;
+
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "claim_amendment_id", unique = true) // 'unique = true' ensures a strict 1:1
+  private ClaimAmendment claimAmendment;
+
+  private Boolean isPriceChanged; // New flag for FSP outcomes
 }
