@@ -157,6 +157,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should create a submission")
   void postSubmission_shouldCreate() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload
@@ -306,6 +307,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when provideUserId is not set")
   void postSubmission_shouldReturnBadRequest_WhenProviderUserIdIsNull() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
@@ -333,6 +336,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when nilFlag is not set")
   void postSubmission_shouldReturnBadRequest_WhenNilFlagIdIsNull() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
@@ -360,6 +365,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when missing submission period")
   void postSubmission_shouldReturnBadRequest_WhenSubmissionPeriodIsNull() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
@@ -387,6 +394,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when missing area of law")
   void postSubmission_shouldReturnBadRequest_WhenAreaOfLawIsNull() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
@@ -414,6 +423,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should create a submission and not pre-validate when submission status is CREATED")
   void postSubmission_shouldCreateAndNotValidate_WhenStatusIsCreated() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with invalid crimeLowerScheduleNumber
@@ -445,6 +455,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should validate and create a submission when submission status is not CREATED")
   void postSubmission_shouldCreate_WhenValidNilSubmission() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a valid nil submissionSubmissionPost payload
@@ -481,6 +492,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @ParameterizedTest
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and missing schedule number/reference for selected are of law")
   @EnumSource(AreaOfLaw.class)
   void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSchemaValidationFails(
       AreaOfLaw areaOfLaw) throws Exception {
@@ -519,6 +532,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and there is a duplicate existing submission")
   void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenDuplicateSubmission()
       throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -573,6 +588,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and submission period is too early")
   void
       postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodMinimumFailure()
           throws Exception {
@@ -609,6 +626,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and submission period is in the future")
   void
       postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFutureFailure()
           throws Exception {
@@ -645,6 +664,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and the office code is invalid")
   void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenInvalidOffice()
       throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -685,6 +706,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should validate and not create a submission when status is not CREATED and nil submission flag is true, but there are no related claims")
   void
       postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenNILSubmissionSpecific()
           throws Exception {
@@ -721,6 +744,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should validate and not create a submission when the submission status is invalid")
   void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenStatusIsInvalid()
       throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();

@@ -154,7 +154,6 @@ laa:
     payments:
       validator:
         provider-details-api:
-          host: ${PROVIDER_DETAILS_API_HOSTNAME}
           url: ${laa.provider-details-api.host}
           accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
           authHeader: "X-Authorization"
