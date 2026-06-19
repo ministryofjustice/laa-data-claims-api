@@ -246,6 +246,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setVersion(1L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -274,6 +275,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
+    claimPatch.setVersion(1L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
     MvcResult result =
@@ -302,6 +304,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setVersion(1L); // ADDED VERSION
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()
@@ -330,10 +333,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
 
     assertThat(
-            listAppender.list.stream()
-                .filter(
-                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
-                .count())
+        listAppender.list.stream()
+            .filter(
+                event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+            .count())
         .isEqualTo(1);
   }
 
@@ -343,6 +346,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
 
     ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setVersion(1L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
     // returned.
