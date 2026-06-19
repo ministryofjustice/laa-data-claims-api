@@ -5,7 +5,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
@@ -25,6 +24,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
  * <p>This step performs no persistence and makes no external calls. A missing claim is reported as
  * {@link Optional#empty()} so the parent orchestration can map it to {@code
  * INVALID_CLAIM_NOT_FOUND} without relying on exception flow.
+ *
+ * <p>No transaction is declared here on purpose: this read is one step of the single atomic
+ * amendment transaction (retrieve, validate, then save) owned by the parent orchestrator. It must
+ * therefore run within the caller's transaction, which also keeps the persistence context open for
+ * the mapper's lazy navigation (e.g. {@code claim.submission}).
  */
 @Service
 @Slf4j
@@ -47,7 +51,6 @@ public class ClaimAmendmentStateService {
    * @param payload the sparse amendment payload as submitted
    * @return the built amendment state, or {@link Optional#empty()} if the claim does not exist
    */
-  @Transactional(readOnly = true)
   public Optional<ClaimAmendmentState> retrieveAmendmentState(
       UUID claimId, ClaimAmendmentPayload payload) {
 
@@ -64,7 +67,7 @@ public class ClaimAmendmentStateService {
             claimCaseRepository.findByClaimId(claimId),
             claimSummaryFeeRepository.findByClaimId(claimId),
             calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId),
-            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(claimId));
+            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId));
 
     return Optional.of(amendmentStateBuilder.buildAmendmentState(beforeState, payload));
   }

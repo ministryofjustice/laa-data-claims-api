@@ -73,7 +73,7 @@ class ClaimAmendmentStateServiceTest {
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
-    when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(CLAIM_ID))
+    when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
 
     ClaimStateSnapshot beforeState = ClaimStateSnapshot.builder().claimId(CLAIM_ID).build();
@@ -116,7 +116,7 @@ class ClaimAmendmentStateServiceTest {
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
-    when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDesc(CLAIM_ID))
+    when(assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_ID))
         .thenReturn(Optional.empty());
 
     ClaimStateSnapshot beforeState = ClaimStateSnapshot.builder().claimId(CLAIM_ID).build();

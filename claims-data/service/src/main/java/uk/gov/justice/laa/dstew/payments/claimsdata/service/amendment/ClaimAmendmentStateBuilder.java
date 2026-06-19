@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
+import java.util.function.Consumer;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
@@ -43,185 +44,146 @@ public class ClaimAmendmentStateBuilder {
   ClaimStateSnapshot buildPostAmendmentState(
       ClaimStateSnapshot beforeState, ClaimAmendmentPayload payload) {
 
-    return beforeState.toBuilder()
-        // claim fields
-        .scheduleReference(
-            resolve(payload.getScheduleReference(), beforeState.getScheduleReference()))
-        .lineNumber(resolve(payload.getLineNumber(), beforeState.getLineNumber()))
-        .caseReferenceNumber(
-            resolve(payload.getCaseReferenceNumber(), beforeState.getCaseReferenceNumber()))
-        .uniqueFileNumber(resolve(payload.getUniqueFileNumber(), beforeState.getUniqueFileNumber()))
-        .caseStartDate(resolve(payload.getCaseStartDate(), beforeState.getCaseStartDate()))
-        .caseConcludedDate(
-            resolve(payload.getCaseConcludedDate(), beforeState.getCaseConcludedDate()))
-        .matterTypeCode(resolve(payload.getMatterTypeCode(), beforeState.getMatterTypeCode()))
-        .crimeMatterTypeCode(
-            resolve(payload.getCrimeMatterTypeCode(), beforeState.getCrimeMatterTypeCode()))
-        .feeSchemeCode(resolve(payload.getFeeSchemeCode(), beforeState.getFeeSchemeCode()))
-        .feeCode(resolve(payload.getFeeCode(), beforeState.getFeeCode()))
-        .procurementAreaCode(
-            resolve(payload.getProcurementAreaCode(), beforeState.getProcurementAreaCode()))
-        .accessPointCode(resolve(payload.getAccessPointCode(), beforeState.getAccessPointCode()))
-        .deliveryLocation(resolve(payload.getDeliveryLocation(), beforeState.getDeliveryLocation()))
-        .representationOrderDate(
-            resolve(payload.getRepresentationOrderDate(), beforeState.getRepresentationOrderDate()))
-        .suspectsDefendantsCount(
-            resolve(payload.getSuspectsDefendantsCount(), beforeState.getSuspectsDefendantsCount()))
-        .policeStationCourtAttendancesCount(
-            resolve(
-                payload.getPoliceStationCourtAttendancesCount(),
-                beforeState.getPoliceStationCourtAttendancesCount()))
-        .policeStationCourtPrisonId(
-            resolve(
-                payload.getPoliceStationCourtPrisonId(),
-                beforeState.getPoliceStationCourtPrisonId()))
-        .dsccNumber(resolve(payload.getDsccNumber(), beforeState.getDsccNumber()))
-        .maatId(resolve(payload.getMaatId(), beforeState.getMaatId()))
-        .prisonLawPriorApprovalNumber(
-            resolve(
-                payload.getPrisonLawPriorApprovalNumber(),
-                beforeState.getPrisonLawPriorApprovalNumber()))
-        .dutySolicitor(resolve(payload.getIsDutySolicitor(), beforeState.getDutySolicitor()))
-        .youthCourt(resolve(payload.getIsYouthCourt(), beforeState.getYouthCourt()))
-        .schemeId(resolve(payload.getSchemeId(), beforeState.getSchemeId()))
-        .mediationSessionsCount(
-            resolve(payload.getMediationSessionsCount(), beforeState.getMediationSessionsCount()))
-        .mediationTimeMinutes(
-            resolve(payload.getMediationTimeMinutes(), beforeState.getMediationTimeMinutes()))
-        .outreachLocation(resolve(payload.getOutreachLocation(), beforeState.getOutreachLocation()))
-        .referralSource(resolve(payload.getReferralSource(), beforeState.getReferralSource()))
-        // client fields
-        .clientForename(resolve(payload.getClientForename(), beforeState.getClientForename()))
-        .clientSurname(resolve(payload.getClientSurname(), beforeState.getClientSurname()))
-        .clientDateOfBirth(
-            resolve(payload.getClientDateOfBirth(), beforeState.getClientDateOfBirth()))
-        .uniqueClientNumber(
-            resolve(payload.getUniqueClientNumber(), beforeState.getUniqueClientNumber()))
-        .clientPostcode(resolve(payload.getClientPostcode(), beforeState.getClientPostcode()))
-        .genderCode(resolve(payload.getGenderCode(), beforeState.getGenderCode()))
-        .ethnicityCode(resolve(payload.getEthnicityCode(), beforeState.getEthnicityCode()))
-        .disabilityCode(resolve(payload.getDisabilityCode(), beforeState.getDisabilityCode()))
-        .isLegallyAided(resolve(payload.getIsLegallyAided(), beforeState.getIsLegallyAided()))
-        .clientTypeCode(resolve(payload.getClientTypeCode(), beforeState.getClientTypeCode()))
-        .homeOfficeClientNumber(
-            resolve(payload.getHomeOfficeClientNumber(), beforeState.getHomeOfficeClientNumber()))
-        .claReferenceNumber(
-            resolve(payload.getClaReferenceNumber(), beforeState.getClaReferenceNumber()))
-        .claExemptionCode(resolve(payload.getClaExemptionCode(), beforeState.getClaExemptionCode()))
-        .client2Forename(resolve(payload.getClient2Forename(), beforeState.getClient2Forename()))
-        .client2Surname(resolve(payload.getClient2Surname(), beforeState.getClient2Surname()))
-        .client2DateOfBirth(
-            resolve(payload.getClient2DateOfBirth(), beforeState.getClient2DateOfBirth()))
-        .client2Ucn(resolve(payload.getClient2Ucn(), beforeState.getClient2Ucn()))
-        .client2Postcode(resolve(payload.getClient2Postcode(), beforeState.getClient2Postcode()))
-        .client2GenderCode(
-            resolve(payload.getClient2GenderCode(), beforeState.getClient2GenderCode()))
-        .client2EthnicityCode(
-            resolve(payload.getClient2EthnicityCode(), beforeState.getClient2EthnicityCode()))
-        .client2DisabilityCode(
-            resolve(payload.getClient2DisabilityCode(), beforeState.getClient2DisabilityCode()))
-        .client2IsLegallyAided(
-            resolve(payload.getClient2IsLegallyAided(), beforeState.getClient2IsLegallyAided()))
-        // claim-case fields
-        .caseId(resolve(payload.getCaseId(), beforeState.getCaseId()))
-        .uniqueCaseId(resolve(payload.getUniqueCaseId(), beforeState.getUniqueCaseId()))
-        .caseStageCode(resolve(payload.getCaseStageCode(), beforeState.getCaseStageCode()))
-        .stageReachedCode(resolve(payload.getStageReachedCode(), beforeState.getStageReachedCode()))
-        .standardFeeCategoryCode(
-            resolve(payload.getStandardFeeCategoryCode(), beforeState.getStandardFeeCategoryCode()))
-        .outcomeCode(resolve(payload.getOutcomeCode(), beforeState.getOutcomeCode()))
-        .designatedAccreditedRepresentativeCode(
-            resolve(
-                payload.getDesignatedAccreditedRepresentativeCode(),
-                beforeState.getDesignatedAccreditedRepresentativeCode()))
-        .isPostalApplicationAccepted(
-            resolve(
-                payload.getIsPostalApplicationAccepted(),
-                beforeState.getIsPostalApplicationAccepted()))
-        .isClient2PostalApplicationAccepted(
-            resolve(
-                payload.getIsClient2PostalApplicationAccepted(),
-                beforeState.getIsClient2PostalApplicationAccepted()))
-        .mentalHealthTribunalReference(
-            resolve(
-                payload.getMentalHealthTribunalReference(),
-                beforeState.getMentalHealthTribunalReference()))
-        .isNrmAdvice(resolve(payload.getIsNrmAdvice(), beforeState.getIsNrmAdvice()))
-        .followOnWork(resolve(payload.getFollowOnWork(), beforeState.getFollowOnWork()))
-        .transferDate(resolve(payload.getTransferDate(), beforeState.getTransferDate()))
-        .exemptionCriteriaSatisfied(
-            resolve(
-                payload.getExemptionCriteriaSatisfied(),
-                beforeState.getExemptionCriteriaSatisfied()))
-        .exceptionalCaseFundingReference(
-            resolve(
-                payload.getExceptionalCaseFundingReference(),
-                beforeState.getExceptionalCaseFundingReference()))
-        .isLegacyCase(resolve(payload.getIsLegacyCase(), beforeState.getIsLegacyCase()))
-        // claim-summary-fee fields
-        .adviceTime(resolve(payload.getAdviceTime(), beforeState.getAdviceTime()))
-        .travelTime(resolve(payload.getTravelTime(), beforeState.getTravelTime()))
-        .waitingTime(resolve(payload.getWaitingTime(), beforeState.getWaitingTime()))
-        .netProfitCostsAmount(
-            resolve(payload.getNetProfitCostsAmount(), beforeState.getNetProfitCostsAmount()))
-        .netDisbursementAmount(
-            resolve(payload.getNetDisbursementAmount(), beforeState.getNetDisbursementAmount()))
-        .netCounselCostsAmount(
-            resolve(payload.getNetCounselCostsAmount(), beforeState.getNetCounselCostsAmount()))
-        .disbursementsVatAmount(
-            resolve(payload.getDisbursementsVatAmount(), beforeState.getDisbursementsVatAmount()))
-        .travelWaitingCostsAmount(
-            resolve(
-                payload.getTravelWaitingCostsAmount(), beforeState.getTravelWaitingCostsAmount()))
-        .netWaitingCostsAmount(
-            resolve(payload.getNetWaitingCostsAmount(), beforeState.getNetWaitingCostsAmount()))
-        .isVatApplicable(resolve(payload.getIsVatApplicable(), beforeState.getIsVatApplicable()))
-        .isToleranceApplicable(
-            resolve(payload.getIsToleranceApplicable(), beforeState.getIsToleranceApplicable()))
-        .priorAuthorityReference(
-            resolve(payload.getPriorAuthorityReference(), beforeState.getPriorAuthorityReference()))
-        .isLondonRate(resolve(payload.getIsLondonRate(), beforeState.getIsLondonRate()))
-        .adjournedHearingFeeAmount(
-            resolve(
-                payload.getAdjournedHearingFeeAmount(), beforeState.getAdjournedHearingFeeAmount()))
-        .isAdditionalTravelPayment(
-            resolve(
-                payload.getIsAdditionalTravelPayment(), beforeState.getIsAdditionalTravelPayment()))
-        .costsDamagesRecoveredAmount(
-            resolve(
-                payload.getCostsDamagesRecoveredAmount(),
-                beforeState.getCostsDamagesRecoveredAmount()))
-        .meetingsAttendedCode(
-            resolve(payload.getMeetingsAttendedCode(), beforeState.getMeetingsAttendedCode()))
-        .detentionTravelWaitingCostsAmount(
-            resolve(
-                payload.getDetentionTravelWaitingCostsAmount(),
-                beforeState.getDetentionTravelWaitingCostsAmount()))
-        .jrFormFillingAmount(
-            resolve(payload.getJrFormFillingAmount(), beforeState.getJrFormFillingAmount()))
-        .isEligibleClient(resolve(payload.getIsEligibleClient(), beforeState.getIsEligibleClient()))
-        .courtLocationCode(
-            resolve(payload.getCourtLocationCode(), beforeState.getCourtLocationCode()))
-        .adviceTypeCode(resolve(payload.getAdviceTypeCode(), beforeState.getAdviceTypeCode()))
-        .medicalReportsCount(
-            resolve(payload.getMedicalReportsCount(), beforeState.getMedicalReportsCount()))
-        .isIrcSurgery(resolve(payload.getIsIrcSurgery(), beforeState.getIsIrcSurgery()))
-        .surgeryDate(resolve(payload.getSurgeryDate(), beforeState.getSurgeryDate()))
-        .surgeryClientsCount(
-            resolve(payload.getSurgeryClientsCount(), beforeState.getSurgeryClientsCount()))
-        .surgeryMattersCount(
-            resolve(payload.getSurgeryMattersCount(), beforeState.getSurgeryMattersCount()))
-        .cmrhOralCount(resolve(payload.getCmrhOralCount(), beforeState.getCmrhOralCount()))
-        .cmrhTelephoneCount(
-            resolve(payload.getCmrhTelephoneCount(), beforeState.getCmrhTelephoneCount()))
-        .aitHearingCentreCode(
-            resolve(payload.getAitHearingCentreCode(), beforeState.getAitHearingCentreCode()))
-        .isSubstantiveHearing(
-            resolve(payload.getIsSubstantiveHearing(), beforeState.getIsSubstantiveHearing()))
-        .hoInterview(resolve(payload.getHoInterview(), beforeState.getHoInterview()))
-        .localAuthorityNumber(
-            resolve(payload.getLocalAuthorityNumber(), beforeState.getLocalAuthorityNumber()))
-        .build();
+    // The builder starts as a copy of the before-state, so each helper only needs to overwrite the
+    // fields the payload actually carries; omitted fields keep their before-state value.
+    ClaimStateSnapshot.ClaimStateSnapshotBuilder builder = beforeState.toBuilder();
+    applyClaimFields(builder, payload);
+    applyClientFields(builder, payload);
+    applyClaimCaseFields(builder, payload);
+    applyClaimSummaryFeeFields(builder, payload);
+    return builder.build();
+  }
+
+  /** Applies the provider-amendable claim fields onto the post-amendment builder. */
+  private static void applyClaimFields(
+      ClaimStateSnapshot.ClaimStateSnapshotBuilder builder, ClaimAmendmentPayload payload) {
+
+    applyIfPresent(payload.getScheduleReference(), builder::scheduleReference);
+    applyIfPresent(payload.getLineNumber(), builder::lineNumber);
+    applyIfPresent(payload.getCaseReferenceNumber(), builder::caseReferenceNumber);
+    applyIfPresent(payload.getUniqueFileNumber(), builder::uniqueFileNumber);
+    applyIfPresent(payload.getCaseStartDate(), builder::caseStartDate);
+    applyIfPresent(payload.getCaseConcludedDate(), builder::caseConcludedDate);
+    applyIfPresent(payload.getMatterTypeCode(), builder::matterTypeCode);
+    applyIfPresent(payload.getCrimeMatterTypeCode(), builder::crimeMatterTypeCode);
+    applyIfPresent(payload.getFeeSchemeCode(), builder::feeSchemeCode);
+    applyIfPresent(payload.getFeeCode(), builder::feeCode);
+    applyIfPresent(payload.getProcurementAreaCode(), builder::procurementAreaCode);
+    applyIfPresent(payload.getAccessPointCode(), builder::accessPointCode);
+    applyIfPresent(payload.getDeliveryLocation(), builder::deliveryLocation);
+    applyIfPresent(payload.getRepresentationOrderDate(), builder::representationOrderDate);
+    applyIfPresent(payload.getSuspectsDefendantsCount(), builder::suspectsDefendantsCount);
+    applyIfPresent(
+        payload.getPoliceStationCourtAttendancesCount(),
+        builder::policeStationCourtAttendancesCount);
+    applyIfPresent(payload.getPoliceStationCourtPrisonId(), builder::policeStationCourtPrisonId);
+    applyIfPresent(payload.getDsccNumber(), builder::dsccNumber);
+    applyIfPresent(payload.getMaatId(), builder::maatId);
+    applyIfPresent(
+        payload.getPrisonLawPriorApprovalNumber(), builder::prisonLawPriorApprovalNumber);
+    applyIfPresent(payload.getIsDutySolicitor(), builder::dutySolicitor);
+    applyIfPresent(payload.getIsYouthCourt(), builder::youthCourt);
+    applyIfPresent(payload.getSchemeId(), builder::schemeId);
+    applyIfPresent(payload.getMediationSessionsCount(), builder::mediationSessionsCount);
+    applyIfPresent(payload.getMediationTimeMinutes(), builder::mediationTimeMinutes);
+    applyIfPresent(payload.getOutreachLocation(), builder::outreachLocation);
+    applyIfPresent(payload.getReferralSource(), builder::referralSource);
+  }
+
+  /** Applies the provider-amendable client fields onto the post-amendment builder. */
+  private static void applyClientFields(
+      ClaimStateSnapshot.ClaimStateSnapshotBuilder builder, ClaimAmendmentPayload payload) {
+
+    applyIfPresent(payload.getClientForename(), builder::clientForename);
+    applyIfPresent(payload.getClientSurname(), builder::clientSurname);
+    applyIfPresent(payload.getClientDateOfBirth(), builder::clientDateOfBirth);
+    applyIfPresent(payload.getUniqueClientNumber(), builder::uniqueClientNumber);
+    applyIfPresent(payload.getClientPostcode(), builder::clientPostcode);
+    applyIfPresent(payload.getGenderCode(), builder::genderCode);
+    applyIfPresent(payload.getEthnicityCode(), builder::ethnicityCode);
+    applyIfPresent(payload.getDisabilityCode(), builder::disabilityCode);
+    applyIfPresent(payload.getIsLegallyAided(), builder::isLegallyAided);
+    applyIfPresent(payload.getClientTypeCode(), builder::clientTypeCode);
+    applyIfPresent(payload.getHomeOfficeClientNumber(), builder::homeOfficeClientNumber);
+    applyIfPresent(payload.getClaReferenceNumber(), builder::claReferenceNumber);
+    applyIfPresent(payload.getClaExemptionCode(), builder::claExemptionCode);
+    applyIfPresent(payload.getClient2Forename(), builder::client2Forename);
+    applyIfPresent(payload.getClient2Surname(), builder::client2Surname);
+    applyIfPresent(payload.getClient2DateOfBirth(), builder::client2DateOfBirth);
+    applyIfPresent(payload.getClient2Ucn(), builder::client2Ucn);
+    applyIfPresent(payload.getClient2Postcode(), builder::client2Postcode);
+    applyIfPresent(payload.getClient2GenderCode(), builder::client2GenderCode);
+    applyIfPresent(payload.getClient2EthnicityCode(), builder::client2EthnicityCode);
+    applyIfPresent(payload.getClient2DisabilityCode(), builder::client2DisabilityCode);
+    applyIfPresent(payload.getClient2IsLegallyAided(), builder::client2IsLegallyAided);
+  }
+
+  /** Applies the provider-amendable claim-case fields onto the post-amendment builder. */
+  private static void applyClaimCaseFields(
+      ClaimStateSnapshot.ClaimStateSnapshotBuilder builder, ClaimAmendmentPayload payload) {
+
+    applyIfPresent(payload.getCaseId(), builder::caseId);
+    applyIfPresent(payload.getUniqueCaseId(), builder::uniqueCaseId);
+    applyIfPresent(payload.getCaseStageCode(), builder::caseStageCode);
+    applyIfPresent(payload.getStageReachedCode(), builder::stageReachedCode);
+    applyIfPresent(payload.getStandardFeeCategoryCode(), builder::standardFeeCategoryCode);
+    applyIfPresent(payload.getOutcomeCode(), builder::outcomeCode);
+    applyIfPresent(
+        payload.getDesignatedAccreditedRepresentativeCode(),
+        builder::designatedAccreditedRepresentativeCode);
+    applyIfPresent(payload.getIsPostalApplicationAccepted(), builder::isPostalApplicationAccepted);
+    applyIfPresent(
+        payload.getIsClient2PostalApplicationAccepted(),
+        builder::isClient2PostalApplicationAccepted);
+    applyIfPresent(
+        payload.getMentalHealthTribunalReference(), builder::mentalHealthTribunalReference);
+    applyIfPresent(payload.getIsNrmAdvice(), builder::isNrmAdvice);
+    applyIfPresent(payload.getFollowOnWork(), builder::followOnWork);
+    applyIfPresent(payload.getTransferDate(), builder::transferDate);
+    applyIfPresent(payload.getExemptionCriteriaSatisfied(), builder::exemptionCriteriaSatisfied);
+    applyIfPresent(
+        payload.getExceptionalCaseFundingReference(), builder::exceptionalCaseFundingReference);
+    applyIfPresent(payload.getIsLegacyCase(), builder::isLegacyCase);
+  }
+
+  /** Applies the provider-amendable claim-summary-fee fields onto the post-amendment builder. */
+  private static void applyClaimSummaryFeeFields(
+      ClaimStateSnapshot.ClaimStateSnapshotBuilder builder, ClaimAmendmentPayload payload) {
+
+    applyIfPresent(payload.getAdviceTime(), builder::adviceTime);
+    applyIfPresent(payload.getTravelTime(), builder::travelTime);
+    applyIfPresent(payload.getWaitingTime(), builder::waitingTime);
+    applyIfPresent(payload.getNetProfitCostsAmount(), builder::netProfitCostsAmount);
+    applyIfPresent(payload.getNetDisbursementAmount(), builder::netDisbursementAmount);
+    applyIfPresent(payload.getNetCounselCostsAmount(), builder::netCounselCostsAmount);
+    applyIfPresent(payload.getDisbursementsVatAmount(), builder::disbursementsVatAmount);
+    applyIfPresent(payload.getTravelWaitingCostsAmount(), builder::travelWaitingCostsAmount);
+    applyIfPresent(payload.getNetWaitingCostsAmount(), builder::netWaitingCostsAmount);
+    applyIfPresent(payload.getIsVatApplicable(), builder::isVatApplicable);
+    applyIfPresent(payload.getIsToleranceApplicable(), builder::isToleranceApplicable);
+    applyIfPresent(payload.getPriorAuthorityReference(), builder::priorAuthorityReference);
+    applyIfPresent(payload.getIsLondonRate(), builder::isLondonRate);
+    applyIfPresent(payload.getAdjournedHearingFeeAmount(), builder::adjournedHearingFeeAmount);
+    applyIfPresent(payload.getIsAdditionalTravelPayment(), builder::isAdditionalTravelPayment);
+    applyIfPresent(payload.getCostsDamagesRecoveredAmount(), builder::costsDamagesRecoveredAmount);
+    applyIfPresent(payload.getMeetingsAttendedCode(), builder::meetingsAttendedCode);
+    applyIfPresent(
+        payload.getDetentionTravelWaitingCostsAmount(), builder::detentionTravelWaitingCostsAmount);
+    applyIfPresent(payload.getJrFormFillingAmount(), builder::jrFormFillingAmount);
+    applyIfPresent(payload.getIsEligibleClient(), builder::isEligibleClient);
+    applyIfPresent(payload.getCourtLocationCode(), builder::courtLocationCode);
+    applyIfPresent(payload.getAdviceTypeCode(), builder::adviceTypeCode);
+    applyIfPresent(payload.getMedicalReportsCount(), builder::medicalReportsCount);
+    applyIfPresent(payload.getIsIrcSurgery(), builder::isIrcSurgery);
+    applyIfPresent(payload.getSurgeryDate(), builder::surgeryDate);
+    applyIfPresent(payload.getSurgeryClientsCount(), builder::surgeryClientsCount);
+    applyIfPresent(payload.getSurgeryMattersCount(), builder::surgeryMattersCount);
+    applyIfPresent(payload.getCmrhOralCount(), builder::cmrhOralCount);
+    applyIfPresent(payload.getCmrhTelephoneCount(), builder::cmrhTelephoneCount);
+    applyIfPresent(payload.getAitHearingCentreCode(), builder::aitHearingCentreCode);
+    applyIfPresent(payload.getIsSubstantiveHearing(), builder::isSubstantiveHearing);
+    applyIfPresent(payload.getHoInterview(), builder::hoInterview);
+    applyIfPresent(payload.getLocalAuthorityNumber(), builder::localAuthorityNumber);
   }
 
   /**
@@ -243,15 +205,20 @@ public class ClaimAmendmentStateBuilder {
   }
 
   /**
-   * Resolves a single field: returns the submitted value when present (including an explicit null),
-   * otherwise retains the current value.
+   * Applies a single submitted field onto the builder, but only when the payload carries it.
+   *
+   * <p>The builder is pre-seeded with the before-state, so an omitted field ({@code
+   * JsonNullable.undefined()}) is left untouched and retains its stored value. A present value -
+   * including an explicit {@code null} - overwrites it (an explicit null clears the field for later
+   * validation).
    *
    * @param submitted the submitted tri-state value
-   * @param current the current stored value
+   * @param setter the builder setter for the corresponding field
    * @param <T> the field type
-   * @return the resolved value for the post-amendment state
    */
-  private static <T> T resolve(JsonNullable<T> submitted, T current) {
-    return submitted.isPresent() ? submitted.get() : current;
+  private static <T> void applyIfPresent(JsonNullable<T> submitted, Consumer<T> setter) {
+    if (submitted.isPresent()) {
+      setter.accept(submitted.get());
+    }
   }
 }

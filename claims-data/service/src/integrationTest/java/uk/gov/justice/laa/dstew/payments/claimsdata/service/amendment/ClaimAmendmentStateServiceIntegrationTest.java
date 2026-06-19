@@ -19,6 +19,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -30,7 +31,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * Integration tests for {@link ClaimAmendmentStateService}.
  *
  * <p>These exercise the full Spring wiring (service, MapStruct mapper, builder), the JPA
- * repositories and the read-only transaction boundary against a real PostgreSQL (Testcontainers).
+ * repositories and the retrieve-and-build behaviour against a real PostgreSQL (Testcontainers).
  * They complement the fast, mock-based unit tests by verifying the end-to-end retrieve-and-build
  * behaviour the parent amendment flow relies on:
  *
@@ -44,8 +45,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  *   <li>selection of the latest assessment;
  *   <li>graceful handling of a claim with no associated records.
  * </ul>
+ *
+ * <p>The class is {@code @Transactional} to stand in for the parent orchestrator's single atomic
+ * amendment transaction: the service declares no transaction of its own, so the test must supply
+ * one to keep the persistence context open for the mapper's lazy navigation (e.g. {@code
+ * claim.submission}), exactly as the orchestrator will in production.
  */
 @TestInstance(Lifecycle.PER_CLASS)
+@Transactional
 @DisplayName("ClaimAmendmentStateService Integration Test")
 class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest {
 
