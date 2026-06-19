@@ -82,10 +82,27 @@ public class BddApiStepSupport {
       throws IOException {
     String filename = path.getFileName().toString();
     byte[] bytes = Files.readAllBytes(path);
-    sendBulkSubmission(filename, bytes, office, userId);
+    sendBulkSubmission(filename, bytes, office, userId, null);
+  }
+
+  /**
+   * Same as {@link #postBulkSubmissionFromPath(Path, String, String)} but lets the caller force a
+   * specific MIME type on the multipart file part (used by MIME-validation BDD scenarios).
+   */
+  public void postBulkSubmissionFromPath(
+      Path path, String office, String userId, String mimeType) throws IOException {
+    String filename = path.getFileName().toString();
+    byte[] bytes = Files.readAllBytes(path);
+    sendBulkSubmission(filename, bytes, office, userId, mimeType);
   }
 
   private void sendBulkSubmission(String filename, byte[] bytes, String office, String userId)
+      throws IOException {
+    sendBulkSubmission(filename, bytes, office, userId, null);
+  }
+
+  private void sendBulkSubmission(
+      String filename, byte[] bytes, String office, String userId, String overrideMimeType)
       throws IOException {
     ByteArrayResource fileResource =
         new ByteArrayResource(bytes) {
@@ -96,7 +113,9 @@ public class BddApiStepSupport {
         };
 
     HttpHeaders filePartHeaders = new HttpHeaders();
-    filePartHeaders.setContentType(MediaType.parseMediaType(resolveContentType(filename)));
+    filePartHeaders.setContentType(
+        MediaType.parseMediaType(
+            overrideMimeType != null ? overrideMimeType : resolveContentType(filename)));
 
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new HttpEntity<>(fileResource, filePartHeaders));
