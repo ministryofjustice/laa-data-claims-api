@@ -333,10 +333,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
 
     assertThat(
-        listAppender.list.stream()
-            .filter(
-                event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
-            .count())
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
         .isEqualTo(1);
   }
 
