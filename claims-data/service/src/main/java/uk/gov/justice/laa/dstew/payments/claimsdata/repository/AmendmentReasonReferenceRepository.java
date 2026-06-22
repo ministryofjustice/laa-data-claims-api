@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 
-/** Repository for accessing {@link AmendmentReasonReference} governed reference data. */
+/** Repository for accessing {@link AmendmentReasonReferenceEntity} governed reference data. */
 @Repository
 public interface AmendmentReasonReferenceRepository
-    extends JpaRepository<AmendmentReasonReference, UUID> {
+    extends JpaRepository<AmendmentReasonReferenceEntity, UUID> {
 
   /**
    * Returns the active Amendment Reason reference values ordered by Requested By code and display
@@ -17,5 +17,5 @@ public interface AmendmentReasonReferenceRepository
    *
    * @return active Amendment Reason values ordered for grouping
    */
-  List<AmendmentReasonReference> findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc();
+  List<AmendmentReasonReferenceEntity> findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc();
 }

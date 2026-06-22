@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapperImpl;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
@@ -38,8 +38,8 @@ class AmendmentReferenceServiceTest {
         amendmentReferenceMapper);
   }
 
-  private RequestedByReference requestedBy(String code, String label, int order) {
-    return RequestedByReference.builder()
+  private RequestedByReferenceEntity requestedBy(String code, String label, int order) {
+    return RequestedByReferenceEntity.builder()
         .id(Uuid7.timeBasedUuid())
         .code(code)
         .displayLabel(label)
@@ -50,9 +50,9 @@ class AmendmentReferenceServiceTest {
         .build();
   }
 
-  private AmendmentReasonReference reason(
+  private AmendmentReasonReferenceEntity reason(
       String requestedByCode, String code, String label, int order) {
-    return AmendmentReasonReference.builder()
+    return AmendmentReasonReferenceEntity.builder()
         .id(Uuid7.timeBasedUuid())
         .requestedByCode(requestedByCode)
         .code(code)

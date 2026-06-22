@@ -7,8 +7,8 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -41,8 +41,8 @@ class AmendmentReferenceMapperTest {
     @Test
     @DisplayName("toRequestedByModel maps code, label and display order")
     void toRequestedByModel_mapsCodeLabelAndOrder() {
-      RequestedByReference entity =
-          RequestedByReference.builder()
+      RequestedByReferenceEntity entity =
+          RequestedByReferenceEntity.builder()
               .id(Uuid7.timeBasedUuid())
               .code("PROVIDER")
               .displayLabel("Provider")
@@ -62,8 +62,8 @@ class AmendmentReferenceMapperTest {
     @Test
     @DisplayName("toReasonModel maps code, label and display order")
     void toReasonModel_mapsCodeLabelAndOrder() {
-      AmendmentReasonReference entity =
-          AmendmentReasonReference.builder()
+      AmendmentReasonReferenceEntity entity =
+          AmendmentReasonReferenceEntity.builder()
               .id(Uuid7.timeBasedUuid())
               .requestedByCode("PROVIDER")
               .code("PROVIDER_ERROR")

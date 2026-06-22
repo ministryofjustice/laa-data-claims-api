@@ -38,8 +38,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
@@ -418,6 +420,45 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: no submissions exist for the search criteria");
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl(Collections.emptyList()));
+  }
+
+  @State("amendment reference data exists")
+  public void amendmentReferenceDataExists() {
+    log.info("Setting up state: amendment reference data exists");
+    when(requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                RequestedByReferenceEntity.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000a1"))
+                    .code("PROVIDER")
+                    .displayLabel("Provider")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+    when(amendmentReasonReferenceRepository
+            .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                AmendmentReasonReferenceEntity.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000b1"))
+                    .requestedByCode("PROVIDER")
+                    .code("PROVIDER_ERROR")
+                    .displayLabel("Provider Error")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+  }
+
+  @State("no amendment reference data exists")
+  public void noAmendmentReferenceDataExists() {
+    log.info("Setting up state: no amendment reference data exists");
+    when(requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+    when(amendmentReasonReferenceRepository
+            .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
   }
 
   @TargetRequestFilter

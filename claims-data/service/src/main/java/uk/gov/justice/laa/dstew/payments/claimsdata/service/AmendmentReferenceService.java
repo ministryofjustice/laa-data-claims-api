@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
@@ -36,16 +36,16 @@ public class AmendmentReferenceService {
    */
   @Transactional(readOnly = true)
   public AmendmentRequestedByReferenceList getAmendmentRequestedByReferences() {
-    List<RequestedByReference> requestedByValues =
+    List<RequestedByReferenceEntity> requestedByValues =
         requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
 
-    Map<String, List<AmendmentReasonReference>> reasonsByRequestedByCode =
+    Map<String, List<AmendmentReasonReferenceEntity>> reasonsByRequestedByCode =
         amendmentReasonReferenceRepository
             .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc()
             .stream()
             .collect(
                 Collectors.groupingBy(
-                    AmendmentReasonReference::getRequestedByCode, Collectors.toList()));
+                    AmendmentReasonReferenceEntity::getRequestedByCode, Collectors.toList()));
 
     List<AmendmentRequestedByReference> requestedBy =
         requestedByValues.stream()

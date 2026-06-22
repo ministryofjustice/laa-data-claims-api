@@ -3,6 +3,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,8 +14,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
@@ -35,9 +37,9 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
 
   @AfterEach
   void cleanUpTemporaryRows() {
-    amendmentReasonReferenceRepository
-        .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc()
-        .stream()
+    // Delete all temporary reasons (active and inactive) before their parent Requested By row,
+    // otherwise an inactive reason left behind would block the FK delete and leak into later tests.
+    amendmentReasonReferenceRepository.findAll().stream()
         .filter(r -> TEMP_CODE.equals(r.getRequestedByCode()))
         .forEach(amendmentReasonReferenceRepository::delete);
     requestedByReferenceRepository.findAll().stream()
@@ -74,7 +76,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     @DisplayName("excludes an inactive Requested By value from the lookup")
     void inactiveRequestedByValueIsExcludedFromLookup() throws Exception {
       requestedByReferenceRepository.save(
-          RequestedByReference.builder()
+          RequestedByReferenceEntity.builder()
               .id(Uuid7.timeBasedUuid())
               .code(TEMP_CODE)
               .displayLabel("Temp Party")
@@ -93,7 +95,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     @DisplayName("excludes an inactive reason from its Requested By value in the lookup")
     void inactiveReasonIsExcludedFromLookup() throws Exception {
       requestedByReferenceRepository.save(
-          RequestedByReference.builder()
+          RequestedByReferenceEntity.builder()
               .id(Uuid7.timeBasedUuid())
               .code(TEMP_CODE)
               .displayLabel("Temp Party")
@@ -103,7 +105,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
               .createdOn(Instant.now())
               .build());
       amendmentReasonReferenceRepository.save(
-          AmendmentReasonReference.builder()
+          AmendmentReasonReferenceEntity.builder()
               .id(Uuid7.timeBasedUuid())
               .requestedByCode(TEMP_CODE)
               .code("TEMP_INACTIVE_REASON")
@@ -132,7 +134,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     @Test
     @DisplayName("generates reference ids as UUIDv7")
     void seededReferenceIdsAreUuidV7() {
-      RequestedByReference provider =
+      RequestedByReferenceEntity provider =
           requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc().stream()
               .filter(r -> "PROVIDER".equals(r.getCode()))
               .findFirst()
@@ -144,7 +146,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     @Test
     @DisplayName("populates create audit columns for seeded rows")
     void seededReferenceRowsHaveAuditActorPopulated() {
-      RequestedByReference provider =
+      RequestedByReferenceEntity provider =
           requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc().stream()
               .filter(r -> "PROVIDER".equals(r.getCode()))
               .findFirst()
@@ -159,7 +161,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     void updatingDisplayLabelLeavesCodeUnchanged() {
       UUID id = Uuid7.timeBasedUuid();
       requestedByReferenceRepository.save(
-          RequestedByReference.builder()
+          RequestedByReferenceEntity.builder()
               .id(id)
               .code(TEMP_CODE)
               .displayLabel("Original label")
@@ -169,12 +171,13 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
               .createdOn(Instant.now())
               .build());
 
-      RequestedByReference saved = requestedByReferenceRepository.findById(id).orElseThrow();
+      RequestedByReferenceEntity saved = requestedByReferenceRepository.findById(id).orElseThrow();
       saved.setDisplayLabel("Updated label");
       saved.setUpdatedByUserId("integration-test-update");
       requestedByReferenceRepository.saveAndFlush(saved);
 
-      RequestedByReference reloaded = requestedByReferenceRepository.findById(id).orElseThrow();
+      RequestedByReferenceEntity reloaded =
+          requestedByReferenceRepository.findById(id).orElseThrow();
       assertThat(reloaded.getCode()).isEqualTo(TEMP_CODE);
       assertThat(reloaded.getDisplayLabel()).isEqualTo("Updated label");
       assertThat(reloaded.getUpdatedByUserId()).isEqualTo("integration-test-update");
@@ -182,7 +185,11 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
   }
 
   private AmendmentRequestedByReferenceList callEndpoint() throws Exception {
-    MvcResult mvcResult = mockMvc.perform(get(ENDPOINT)).andExpect(status().isOk()).andReturn();
+    MvcResult mvcResult =
+        mockMvc
+            .perform(get(ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
     return OBJECT_MAPPER.readValue(
         mvcResult.getResponse().getContentAsString(), AmendmentRequestedByReferenceList.class);
   }

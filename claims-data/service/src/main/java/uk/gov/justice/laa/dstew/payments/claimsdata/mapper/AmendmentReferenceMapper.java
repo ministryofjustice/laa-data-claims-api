@@ -2,8 +2,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReference;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 
 /**
@@ -15,10 +16,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByRe
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface AmendmentReferenceMapper {
 
-  /** Map a {@link RequestedByReference} entity to its API model (reasons are set separately). */
-  AmendmentRequestedByReference toRequestedByModel(RequestedByReference entity);
+  /**
+   * Map a {@link RequestedByReferenceEntity} entity to its API model (reasons are set separately).
+   */
+  AmendmentRequestedByReference toRequestedByModel(RequestedByReferenceEntity entity);
 
-  /** Map an {@link AmendmentReasonReference} entity to its API model. */
-  uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonReference toReasonModel(
-      AmendmentReasonReference entity);
+  /** Map an {@link AmendmentReasonReferenceEntity} entity to its API model. */
+  AmendmentReasonReference toReasonModel(AmendmentReasonReferenceEntity entity);
 }
