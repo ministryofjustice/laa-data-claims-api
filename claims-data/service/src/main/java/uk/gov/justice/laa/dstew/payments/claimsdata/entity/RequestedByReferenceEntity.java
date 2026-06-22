@@ -26,7 +26,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 public class RequestedByReferenceEntity {
 
   // Surrogate key kept for schema-wide consistency (every entity uses a UUIDv7 id). The business
-  // key is `code` (unique) - that is what other tables reference via FK; nothing references this id.
+  // key is `code` (unique) - that is what other tables reference via FK; nothing references this
+  // id.
   // TODO(DSTEW-1594): revisit in review - `code` alone could serve as the PK for this table.
   @Id private UUID id;
 
