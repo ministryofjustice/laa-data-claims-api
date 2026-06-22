@@ -213,6 +213,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should save and get submission with no bulkSubmissionId")
   void shouldPersistSubmissionWhenBulkSubmissionIdIsNull() {
     submission1.setBulkSubmissionId(null);
     submissionRepository.save(submission1);
@@ -223,6 +224,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should save and get submission with bulkSubmissionId")
   void shouldPersistSubmissionWhenBulkSubmissionIdIsNotNull() {
     submissionRepository.save(submission1);
     Submission saved = submissionRepository.findById(submission1.getId()).orElseThrow();
