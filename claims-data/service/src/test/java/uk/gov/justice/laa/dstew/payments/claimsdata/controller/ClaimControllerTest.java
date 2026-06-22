@@ -172,7 +172,9 @@ class ClaimControllerTest {
   void updateClaim_returnsNoContent() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final String body = "{ \"status\": \"INVALID\" }";
+
+    // FIXED: Added the mandatory "version" field to satisfy the new @NotNull contract!
+    final String body = "{ \"status\": \"INVALID\", \"version\": 1 }";
 
     mockMvc
         .perform(
