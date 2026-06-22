@@ -212,12 +212,16 @@ public class ClaimAmendmentStateBuilder {
    * including an explicit {@code null} - overwrites it (an explicit null clears the field for later
    * validation).
    *
+   * <p>A {@code null} wrapper (only reachable if a payload is built programmatically with a field
+   * explicitly set to {@code null}, bypassing the {@code JsonNullable.undefined()} defaults) is
+   * treated the same as if that field were omitted: the before-state value is retained.
+   *
    * @param submitted the submitted tri-state value
    * @param setter the builder setter for the corresponding field
    * @param <T> the field type
    */
   private static <T> void applyIfPresent(JsonNullable<T> submitted, Consumer<T> setter) {
-    if (submitted.isPresent()) {
+    if (submitted != null && submitted.isPresent()) {
       setter.accept(submitted.get());
     }
   }
