@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
+package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,8 +17,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * Tests for {@link EligibilityValidationStep}.
  *
  * <p>The step is a pure function over the before-state claim status with no repositories or
- * clients, so "no PDA/FSP call and no persistence on rejection" holds by construction - there is
- * nothing for it to invoke. These tests pin the eligible/ineligible outcomes and error codes.
+ * clients, so "no PDA/FSP call and no persistence on rejection" holds by construction. These tests
+ * pin the eligible/ineligible outcomes and error codes.
  */
 @DisplayName("EligibilityValidationStep Tests")
 class EligibilityValidationStepTest {
@@ -38,7 +38,7 @@ class EligibilityValidationStepTest {
   }
 
   @Test
-  @DisplayName("Voided claim is rejected with INVALID_VOIDED_CLAIM_NOT_AMENDABLE")
+  @DisplayName("Voided claim is rejected with a fatal INVALID_VOIDED_CLAIM_NOT_AMENDABLE")
   void voidedClaimRejected() {
     List<ClaimAmendmentValidationError> result = step.validate(stateWithStatus(ClaimStatus.VOID));
 
@@ -48,7 +48,6 @@ class EligibilityValidationStepTest {
         .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     assertThat(error.getClaimStatus()).isEqualTo(ClaimStatus.VOID);
     assertThat(error.getMessage()).isEqualTo(EligibilityValidationStep.VOIDED_CLAIM_MESSAGE);
-    // eligibility is a hard gate: its errors are fatal and stop the pipeline
     assertThat(error.isFatal()).isTrue();
   }
 
@@ -56,7 +55,7 @@ class EligibilityValidationStepTest {
   @EnumSource(
       value = ClaimStatus.class,
       names = {"READY_TO_PROCESS", "INVALID"})
-  @DisplayName("Other non-VALID statuses are rejected with INVALID_CLAIM_STATE_NOT_AMENDABLE")
+  @DisplayName("Other non-VALID statuses are rejected fatally as not amendable")
   void otherNonValidStatusRejected(ClaimStatus status) {
     List<ClaimAmendmentValidationError> result = step.validate(stateWithStatus(status));
 

@@ -5,7 +5,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment;
  *
  * <p>Each value is a contract identifier that the parent amendment flow maps onto the shared
  * structured validation/error response. This enum is the single home for amendment validation
- * codes; further codes (e.g. assessed-claim and version checks) are added by their owning tickets.
+ * codes.
  */
 public enum ClaimAmendmentErrorCode {
 
