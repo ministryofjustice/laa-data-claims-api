@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,9 +35,11 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimVersionConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
@@ -49,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -880,5 +885,36 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
     }
+  }
+
+  @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - 409 Conflict when claim version is stale")
+  void shouldReturn409ConflictWhenSubmittedVersionIsStale() throws Exception {
+    ClaimService claimService = mock(ClaimService.class);
+    // given: A patch request with a stale version
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setVersion(7L); // Stale version
+
+    // Mock the service to throw the DSTEW-1754 exception
+    doThrow(new ClaimVersionConflictException("CLAIM_VERSION_CONFLICT"))
+        .when(claimService)
+        .updateClaim(
+            Mockito.eq(SUBMISSION_1_ID), Mockito.eq(CLAIM_1_ID), Mockito.any(ClaimPatch.class));
+
+    // when: calling the PATCH endpoint
+    MvcResult result =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isConflict()) // Expect HTTP 409
+            .andReturn();
+
+    // then: Assert the specific error code is returned to the user
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("CLAIM_VERSION_CONFLICT");
   }
 }

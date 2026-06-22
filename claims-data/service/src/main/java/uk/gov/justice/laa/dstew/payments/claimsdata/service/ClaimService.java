@@ -29,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimVersionConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -182,6 +183,19 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+
+    // --- EARLY CLAIM VERSION GATE (DSTEW-1658) ---
+    // Reject stale requests immediately before mapping, processing, or external interactions
+    if (!claim.getVersion().equals(claimPatch.getVersion())) {
+      log.warn(
+          "Early version conflict detected for Claim {}. Expected version {}, but received {}",
+          claimId,
+          claim.getVersion(),
+          claimPatch.getVersion());
+
+      // Throws the exception established in DSTEW-1754
+      throw new ClaimVersionConflictException("CLAIM_VERSION_CONFLICT");
+    }
 
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);

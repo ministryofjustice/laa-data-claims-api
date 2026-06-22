@@ -68,6 +68,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimVersionConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -389,8 +390,10 @@ class ClaimServiceTest {
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final Claim claim = Claim.builder().id(claimId).build();
+    // Added version to mock Claim
+    final Claim claim = Claim.builder().id(claimId).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L); // Added matching version to Patch
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
@@ -419,8 +422,11 @@ class ClaimServiceTest {
   @Test
   void shouldCreateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L); // Added matching version to Patch
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -444,8 +450,11 @@ class ClaimServiceTest {
   @Test
   void shouldUpdateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L); // Added matching version to Patch
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -474,8 +483,11 @@ class ClaimServiceTest {
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L); // Added matching version to Patch
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
 
@@ -512,9 +524,11 @@ class ClaimServiceTest {
     final Claim claim =
         Claim.builder()
             .id(claimId)
+            .version(1L) // Added version to mock Claim
             .submission(Submission.builder().id(submissionId).build())
             .build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L); // Added matching version to Patch
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
 
@@ -1068,5 +1082,60 @@ class ClaimServiceTest {
           .updatedOn(Instant.now())
           .build();
     }
+  }
+
+  @Test
+  @DisplayName(
+      "updateClaim throws ClaimVersionConflictException when patch version does not match database version")
+  void shouldThrowWhenClaimVersionMismatchesOnUpdate() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+
+    // The database holds version 5
+    final Claim claim = Claim.builder().id(claimId).version(5L).build();
+
+    // The patch request provides a stale version 4
+    final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(4L);
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+
+    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
+        .isInstanceOf(ClaimVersionConflictException.class)
+        .hasMessageContaining("CLAIM_VERSION_CONFLICT");
+
+    // Verify the early gate perfectly short-circuits the method
+    verifyNoInteractions(claimMapper);
+    verify(claimRepository, never()).save(any());
+    verifyNoInteractions(calculatedFeeDetailRepository);
+    verifyNoInteractions(validationMessageLogRepository);
+  }
+
+  @Test
+  @DisplayName("updateClaim throws ClaimVersionConflictException when patch version is null")
+  void shouldThrowWhenClaimVersionIsNullOnUpdate() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+
+    // The database holds version 5
+    final Claim claim = Claim.builder().id(claimId).version(5L).build();
+
+    // The patch request provides a null version
+    final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(null);
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+
+    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
+        .isInstanceOf(ClaimVersionConflictException.class)
+        .hasMessageContaining("CLAIM_VERSION_CONFLICT");
+
+    // Verify the early gate perfectly short-circuits the method
+    verifyNoInteractions(claimMapper);
+    verify(claimRepository, never()).save(any());
+    verifyNoInteractions(calculatedFeeDetailRepository);
+    verifyNoInteractions(validationMessageLogRepository);
   }
 }
