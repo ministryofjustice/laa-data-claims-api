@@ -89,8 +89,8 @@ public class BddApiStepSupport {
    * Same as {@link #postBulkSubmissionFromPath(Path, String, String)} but lets the caller force a
    * specific MIME type on the multipart file part (used by MIME-validation BDD scenarios).
    */
-  public void postBulkSubmissionFromPath(
-      Path path, String office, String userId, String mimeType) throws IOException {
+  public void postBulkSubmissionFromPath(Path path, String office, String userId, String mimeType)
+      throws IOException {
     String filename = path.getFileName().toString();
     byte[] bytes = Files.readAllBytes(path);
     sendBulkSubmission(filename, bytes, office, userId, mimeType);

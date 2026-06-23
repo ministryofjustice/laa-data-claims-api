@@ -52,7 +52,6 @@ public class BddBeansConfiguration {
     return new LegalHelpFileGenerator();
   }
 
-
   @Bean
   public BulkSubmissionLifecycleSupport bulkSubmissionLifecycleSupport() {
     return new BulkSubmissionLifecycleSupport();

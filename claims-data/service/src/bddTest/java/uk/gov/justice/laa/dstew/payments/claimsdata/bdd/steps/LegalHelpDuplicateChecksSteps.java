@@ -4,8 +4,8 @@ import io.cucumber.java.en.Given;
 
 /**
  * Glue for the {@code Background:} of {@code duplicateChecksLegalHelp.feature}. Holds a single
- * no-op scaffold step so each scenario starts from a clearly-named anchor that mirrors the
- * "given I am on the bulk import page" baseline of the upstream UI feature.
+ * no-op scaffold step so each scenario starts from a clearly-named anchor that mirrors the "given I
+ * am on the bulk import page" baseline of the upstream UI feature.
  */
 public class LegalHelpDuplicateChecksSteps {
 

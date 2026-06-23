@@ -18,15 +18,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
 /**
- * Step definitions for the API port of the UI {@code mimeChecks.feature}. Each scenario generates
- * a fresh Legal Help bulk-submission file via {@link LegalHelpFileGenerator}, uploads it through
- * the real {@code POST /api/v1/bulk-submissions} multipart endpoint with an explicit MIME type,
- * and asserts the synchronous outcome enforced by {@code BulkSubmissionFileValidator}:
+ * Step definitions for the API port of the UI {@code mimeChecks.feature}. Each scenario generates a
+ * fresh Legal Help bulk-submission file via {@link LegalHelpFileGenerator}, uploads it through the
+ * real {@code POST /api/v1/bulk-submissions} multipart endpoint with an explicit MIME type, and
+ * asserts the synchronous outcome enforced by {@code BulkSubmissionFileValidator}:
  *
  * <ul>
  *   <li>Allowed (extension, content-type) pairs return HTTP 201.
- *   <li>Disallowed pairs return HTTP 415 with the error body
- *       {@code "The selected file must be a valid CSV, XML or TXT file"}.
+ *   <li>Disallowed pairs return HTTP 415 with the error body {@code "The selected file must be a
+ *       valid CSV, XML or TXT file"}.
  * </ul>
  */
 public class BulkSubmissionMimeCheckSteps {
@@ -88,4 +88,3 @@ public class BulkSubmissionMimeCheckSteps {
     }
   }
 }
-

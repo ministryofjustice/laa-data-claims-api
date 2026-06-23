@@ -28,17 +28,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
 /**
- * Step definitions for the API-only port of the UI {@code duplicateChecksLegalHelp.feature}.
- * Every step drives the real laa-data-claims-api HTTP surface:
+ * Step definitions for the API-only port of the UI {@code duplicateChecksLegalHelp.feature}. Every
+ * step drives the real laa-data-claims-api HTTP surface:
  *
  * <ul>
- *   <li>{@code I generate ...} - programmatically build a CSV/TXT/XML body via
- *       {@link LegalHelpFileGenerator} and stash the resulting {@link Path} in
- *       {@link BddScenarioContext}.
- *   <li>{@code I upload ... [and wait for import in progress]} - POST the generated file to
- *       {@code POST /api/v1/bulk-submissions} (and optionally poll
- *       {@code GET /api/v1/bulk-submissions/{id}/summary} until a terminal status is reached or
- *       the polling budget expires).
+ *   <li>{@code I generate ...} - programmatically build a CSV/TXT/XML body via {@link
+ *       LegalHelpFileGenerator} and stash the resulting {@link Path} in {@link BddScenarioContext}.
+ *   <li>{@code I upload ... [and wait for import in progress]} - POST the generated file to {@code
+ *       POST /api/v1/bulk-submissions} (and optionally poll {@code GET
+ *       /api/v1/bulk-submissions/{id}/summary} until a terminal status is reached or the polling
+ *       budget expires).
  *   <li>{@code click import} - no-op carried over from the UI feature (the API ingests on POST).
  *   <li>{@code I make the generated file invalid} - PATCH the previously-uploaded bulk submission
  *       to {@code VALIDATION_FAILED} via {@code PATCH /api/v1/bulk-submissions/{id}}.

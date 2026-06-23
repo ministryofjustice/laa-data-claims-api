@@ -26,7 +26,6 @@ public class BddScenarioContext {
   private String lastOffice;
   private String lastSubmissionPeriod;
 
-
   public int getLastStatusCode() {
     return lastStatusCode;
   }
