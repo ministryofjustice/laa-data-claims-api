@@ -17,4 +17,13 @@ public interface RequestedByReferenceRepository
    * @return active Requested By values in display order
    */
   List<RequestedByReferenceEntity> findByIsActiveTrueOrderByDisplayOrderAsc();
+
+  /**
+   * Returns all Requested By reference values (active and inactive) ordered by display order, so
+   * the lookup can expose every value with its is_active flag (e.g. to resolve display labels for
+   * historical amendments).
+   *
+   * @return all Requested By values in display order
+   */
+  List<RequestedByReferenceEntity> findByOrderByDisplayOrderAsc();
 }

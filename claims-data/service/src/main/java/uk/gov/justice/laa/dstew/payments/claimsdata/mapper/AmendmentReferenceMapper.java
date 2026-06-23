@@ -7,12 +7,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceE
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 
-/**
- * MapStruct mapper for amendment reference data entities to API models.
- *
- * <p>The reason model shares a simple name with its entity counterpart, so it is referenced by its
- * fully-qualified name to avoid an import clash.
- */
+/** MapStruct mapper for amendment reference data entities to API models. */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface AmendmentReferenceMapper {
 

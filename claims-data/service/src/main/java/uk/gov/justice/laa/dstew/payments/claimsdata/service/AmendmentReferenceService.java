@@ -16,8 +16,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 
 /**
- * Read-only service exposing governed amendment reference data: the active Requested By values,
- * each with the active Amendment Reason values valid for that requesting party, in display order.
+ * Read-only service exposing governed amendment reference data: every Requested By value (active
+ * and inactive), each with the Amendment Reason values valid for that requesting party, in display
+ * order. Each value carries an {@code isActive} flag.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,20 +30,20 @@ public class AmendmentReferenceService {
   private final AmendmentReferenceMapper amendmentReferenceMapper;
 
   /**
-   * Builds the amendment reference lookup payload. Inactive Requested By values and inactive
-   * reasons are excluded. Reasons are nested under their Requested By value in display order.
+   * Builds the amendment reference lookup payload. All Requested By values and reasons are returned
+   * (active and inactive) so consumers can resolve display labels for historical amendments; each
+   * carries an {@code isActive} flag indicating whether it is currently selectable. Reasons are
+   * nested under their Requested By value in display order.
    *
    * @return the amendment Requested By reference list with nested reasons
    */
   @Transactional(readOnly = true)
   public AmendmentRequestedByReferenceList getAmendmentRequestedByReferences() {
     List<RequestedByReferenceEntity> requestedByValues =
-        requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc();
+        requestedByReferenceRepository.findByOrderByDisplayOrderAsc();
 
     Map<String, List<AmendmentReasonReferenceEntity>> reasonsByRequestedByCode =
-        amendmentReasonReferenceRepository
-            .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc()
-            .stream()
+        amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc().stream()
             .collect(
                 Collectors.groupingBy(
                     AmendmentReasonReferenceEntity::getRequestedByCode, Collectors.toList()));

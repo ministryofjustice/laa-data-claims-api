@@ -425,7 +425,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("amendment reference data exists")
   public void amendmentReferenceDataExists() {
     log.info("Setting up state: amendment reference data exists");
-    when(requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+    when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(
             List.of(
                 RequestedByReferenceEntity.builder()
@@ -436,8 +436,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                     .displayOrder(10)
                     .createdByUserId("pact-test")
                     .build()));
-    when(amendmentReasonReferenceRepository
-            .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc())
+    when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
         .thenReturn(
             List.of(
                 AmendmentReasonReferenceEntity.builder()
@@ -454,10 +453,9 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no amendment reference data exists")
   public void noAmendmentReferenceDataExists() {
     log.info("Setting up state: no amendment reference data exists");
-    when(requestedByReferenceRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+    when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
-    when(amendmentReasonReferenceRepository
-            .findByIsActiveTrueOrderByRequestedByCodeAscDisplayOrderAsc())
+    when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
   }
 
