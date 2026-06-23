@@ -2,38 +2,42 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.EligibilityValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentValidationSteps;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
 /**
  * Tests for {@link ClaimAmendmentService}.
  *
- * <p>Exercises the orchestration mechanics with the validation steps mocked: the orchestrator
- * delegates to each step, returns the collected errors, and short-circuits on a fatal error before
- * any external call or save. Each step rule is covered by that step's own test (e.g. the test for
- * {@link
- * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.EligibilityValidationStep}).
+ * <p>Exercises the orchestration mechanics with the validation steps mocked: the orchestrator runs
+ * each step in order, returns the collected errors, and short-circuits on a fatal error without
+ * running later steps. Each step rule is covered by that step's own test (e.g. the test for {@link
+ * ClaimStatusValidationStep}).
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimAmendmentService Tests")
 class ClaimAmendmentServiceTest {
 
-  @Mock private EligibilityValidationStep eligibilityValidationStep;
+  @Mock private ClaimStatusValidationStep claimStatusValidationStep;
 
-  @InjectMocks private ClaimAmendmentService orchestrator;
+  private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
+    return new ClaimAmendmentService(new AmendmentValidationSteps(List.of(steps)));
+  }
 
   private static ClaimAmendmentState anyState() {
     return ClaimAmendmentState.builder().beforeState(ClaimStateSnapshot.builder().build()).build();
@@ -42,9 +46,9 @@ class ClaimAmendmentServiceTest {
   @Test
   @DisplayName("returns no errors when every step passes")
   void passesWhenAllStepsPass() {
-    when(eligibilityValidationStep.validate(any())).thenReturn(List.of());
+    when(claimStatusValidationStep.validate(any())).thenReturn(List.of());
 
-    assertThat(orchestrator.orchestrate(anyState())).isEmpty();
+    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState())).isEmpty();
   }
 
   @Test
@@ -52,12 +56,24 @@ class ClaimAmendmentServiceTest {
   void shortCircuitsOnFatalError() {
     ClaimAmendmentValidationError fatal =
         new ClaimAmendmentValidationError(
-            ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE,
-            ClaimStatus.VOID,
-            "rejected",
-            true);
-    when(eligibilityValidationStep.validate(any())).thenReturn(List.of(fatal));
+            ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE, "rejected", true);
+    when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
 
-    assertThat(orchestrator.orchestrate(anyState())).containsExactly(fatal);
+    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState()))
+        .containsExactly(fatal);
+  }
+
+  @Test
+  @DisplayName("does not run later steps after a fatal error")
+  void stopsRunningLaterStepsAfterFatal() {
+    ClaimAmendmentValidationError fatal =
+        new ClaimAmendmentValidationError(
+            ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE, "rejected", true);
+    when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
+    ClaimAmendmentValidationStep laterStep = mock(ClaimAmendmentValidationStep.class);
+
+    orchestratorWith(claimStatusValidationStep, laterStep).orchestrate(anyState());
+
+    verify(laterStep, never()).validate(any());
   }
 }

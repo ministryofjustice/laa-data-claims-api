@@ -14,16 +14,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
- * Tests for {@link EligibilityValidationStep}.
+ * Tests for {@link ClaimStatusValidationStep}.
  *
  * <p>The step is a pure function over the before-state claim status with no repositories or
  * clients, so "no PDA/FSP call and no persistence on rejection" holds by construction. These tests
  * pin the eligible/ineligible outcomes and error codes.
  */
-@DisplayName("EligibilityValidationStep Tests")
-class EligibilityValidationStepTest {
+@DisplayName("ClaimStatusValidationStep Tests")
+class ClaimStatusValidationStepTest {
 
-  private final EligibilityValidationStep step = new EligibilityValidationStep();
+  private final ClaimStatusValidationStep step = new ClaimStatusValidationStep();
 
   private static ClaimAmendmentState stateWithStatus(ClaimStatus status) {
     return ClaimAmendmentState.builder()
@@ -46,8 +46,7 @@ class EligibilityValidationStepTest {
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-    assertThat(error.getClaimStatus()).isEqualTo(ClaimStatus.VOID);
-    assertThat(error.getMessage()).isEqualTo(EligibilityValidationStep.VOIDED_CLAIM_MESSAGE);
+    assertThat(error.getMessage()).isEqualTo(ClaimStatusValidationStep.VOIDED_CLAIM_MESSAGE);
     assertThat(error.isFatal()).isTrue();
   }
 
@@ -63,8 +62,6 @@ class EligibilityValidationStepTest {
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentErrorCode.INVALID_CLAIM_STATE_NOT_AMENDABLE);
-    // the current status is carried through for the structured response
-    assertThat(error.getClaimStatus()).isEqualTo(status);
     assertThat(error.getMessage()).contains(String.valueOf(status));
     assertThat(error.isFatal()).isTrue();
   }

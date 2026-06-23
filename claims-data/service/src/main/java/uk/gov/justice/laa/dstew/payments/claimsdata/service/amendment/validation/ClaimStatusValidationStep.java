@@ -13,14 +13,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * <p>Only claims whose status is {@link ClaimStatus#VALID} may be amended. A voided claim is
  * rejected with {@link ClaimAmendmentErrorCode#INVALID_VOIDED_CLAIM_NOT_AMENDABLE}; any other
  * non-{@code VALID} status is rejected with {@link
- * ClaimAmendmentErrorCode#INVALID_CLAIM_STATE_NOT_AMENDABLE}, carrying the current status. Both
- * rejections are fatal, so the orchestrator stops before any external call or save.
- *
- * <p>This is a pure, in-memory check: it has no repositories or clients, performs no persistence
- * and makes no external (PDA or FSP) calls.
+ * ClaimAmendmentErrorCode#INVALID_CLAIM_STATE_NOT_AMENDABLE}. Both rejections are fatal, so no
+ * later step runs and the amendment is not saved.
  */
 @Component
-public class EligibilityValidationStep implements ClaimAmendmentValidationStep {
+public class ClaimStatusValidationStep implements ClaimAmendmentValidationStep {
 
   static final String VOIDED_CLAIM_MESSAGE = "A voided claim cannot be amended.";
   static final String CLAIM_STATE_NOT_AMENDABLE_MESSAGE =
@@ -38,7 +35,6 @@ public class EligibilityValidationStep implements ClaimAmendmentValidationStep {
       return List.of(
           new ClaimAmendmentValidationError(
               ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE,
-              status,
               VOIDED_CLAIM_MESSAGE,
               true));
     }
@@ -46,7 +42,6 @@ public class EligibilityValidationStep implements ClaimAmendmentValidationStep {
     return List.of(
         new ClaimAmendmentValidationError(
             ClaimAmendmentErrorCode.INVALID_CLAIM_STATE_NOT_AMENDABLE,
-            status,
             CLAIM_STATE_NOT_AMENDABLE_MESSAGE.formatted(status, ClaimStatus.VALID),
             true));
   }

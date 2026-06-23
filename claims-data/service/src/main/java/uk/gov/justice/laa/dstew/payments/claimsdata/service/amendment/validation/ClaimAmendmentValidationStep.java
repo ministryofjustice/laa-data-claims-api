@@ -5,18 +5,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 
 /**
- * A single in-memory validation step in the synchronous claim amendment flow.
+ * A single validation step in the synchronous claim amendment flow.
  *
  * <p>Each step inspects the {@link ClaimAmendmentState} and returns the errors it found - an empty
  * list means the step passed. A step may return several errors and may mark an error fatal to stop
- * the flow. Steps are pure: no repositories, no persistence and no external (PDA/FSP) calls.
+ * the flow. Most steps are pure in-memory checks; some additionally make an external (PDA or FSP)
+ * call, but functionally they are still just validation steps that collect errors.
  *
- * <p>Steps are deliberately <b>not</b> collected into a configurable list. The {@link
- * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService} injects
- * each step it needs and calls them explicitly, in a hardcoded order, so it can interleave the
- * external calls and the atomic save between them - something a flat, in-memory list cannot do.
- * Adding a step therefore means writing a new implementation of this interface and invoking it at
- * the right point in the orchestrator.
+ * <p>The {@link
+ * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService} runs the
+ * steps in sequence, stopping on the first fatal error. The sequence is defined centrally in {@code
+ * AmendmentValidationConfig}; adding a step means writing a new {@code @Component} implementation
+ * of this interface and inserting it, at the right position, into that config's order list.
  *
  * <p>This is a functional interface ({@link #validate} is its single abstract method), so tests can
  * supply lightweight step stubs as lambdas, e.g. {@code state -> List.of()} for a step that passes
