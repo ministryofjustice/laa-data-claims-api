@@ -18,12 +18,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
+
+  // Governed reference codes seeded by Flyway migration V41 (requested_by / amendment reason).
+  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
+  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
+  private static final String REQUESTED_BY_CONTRACT_MANAGEMENT = "CONTRACT_MANAGEMENT";
+  private static final String REASON_OTHER = "OTHER";
 
   @Autowired private jakarta.persistence.EntityManager entityManager;
 
@@ -35,8 +40,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 2. Clear out core transaction data rows from previous test passes if needed
     claimAmendmentRepository.deleteAll();
 
-    // Note: No more lookup queries needed here! The Flyway table seeding logic
-    // is replaced entirely by strong types via the compile-time Enums.
+    // Note: amendment reference codes are validated against the governed reference data seeded
+    // by Flyway migration V41 (requested_by_reference / amendment_reason_reference).
   }
 
   @Test
@@ -46,8 +51,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     // 1. Create the older calculation record (Set timestamp to 10 minutes ago)
     CalculatedFeeDetail firstFeeUpdate =
-        amendClaimWithNewCalculation(
-            targetClaim, AmendmentReasonType.TYPING_ERROR, BigDecimal.valueOf(500));
+        amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(500));
     firstFeeUpdate.setCreatedOn(OffsetDateTime.now().minusMinutes(10));
 
     if (targetClaim.getCalculatedFeeDetails() == null) {
@@ -59,8 +63,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     // 2. Create the latest calculation record (Set timestamp to right now)
     CalculatedFeeDetail secondFeeUpdate =
-        amendClaimWithNewCalculation(
-            targetClaim, AmendmentReasonType.TYPING_ERROR, BigDecimal.valueOf(789));
+        amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(789));
     secondFeeUpdate.setCreatedOn(OffsetDateTime.now());
 
     targetClaim.getCalculatedFeeDetails().add(secondFeeUpdate);
@@ -112,8 +115,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     int baselineSize = targetClaim.getCalculatedFeeDetails().size();
 
     BigDecimal amendedAmount = BigDecimal.valueOf(1250);
-    CalculatedFeeDetail dynamicFeeUpdate =
-        amendClaimWithNewCalculation(targetClaim, AmendmentReasonType.TYPING_ERROR, amendedAmount);
+    CalculatedFeeDetail dynamicFeeUpdate = amendClaimWithNewCalculation(targetClaim, amendedAmount);
 
     targetClaim.setAmended(true);
     targetClaim.getCalculatedFeeDetails().add(dynamicFeeUpdate);
@@ -151,7 +153,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
             ClaimAmendment.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(targetClaim)
-                .amendmentReason(AmendmentReasonType.COMPLIANCE_CORRECTION)
+                .requestedByCode(REQUESTED_BY_CONTRACT_MANAGEMENT)
+                .amendmentReasonCode(REASON_OTHER)
                 .beforeState("{}")
                 .requestPayload("{}")
                 .diff("{}")
@@ -199,7 +202,8 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
             ClaimAmendment.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(targetClaim)
-                .amendmentReason(AmendmentReasonType.TYPING_ERROR)
+                .requestedByCode(REQUESTED_BY_PROVIDER)
+                .amendmentReasonCode(REASON_PROVIDER_ERROR)
                 .beforeState(massiveComplexJson)
                 .requestPayload(massiveComplexJson)
                 .diff(massiveComplexJson)
@@ -222,15 +226,15 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
         .contains("Comprehensive structural audit remediation path loop execution parameters");
   }
 
-  private CalculatedFeeDetail amendClaimWithNewCalculation(
-      Claim claim, AmendmentReasonType reason, BigDecimal updatedAmount) {
+  private CalculatedFeeDetail amendClaimWithNewCalculation(Claim claim, BigDecimal updatedAmount) {
 
     ClaimAmendment validAmendment =
         claimAmendmentRepository.saveAndFlush(
             ClaimAmendment.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claim)
-                .amendmentReason(reason)
+                .requestedByCode(REQUESTED_BY_PROVIDER)
+                .amendmentReasonCode(REASON_PROVIDER_ERROR)
                 .beforeState("{}")
                 .requestPayload("{}")
                 .diff("{}")
