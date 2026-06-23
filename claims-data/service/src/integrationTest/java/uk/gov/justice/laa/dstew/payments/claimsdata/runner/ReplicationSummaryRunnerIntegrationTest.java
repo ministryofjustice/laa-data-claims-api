@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -38,9 +39,9 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
         id, data, status, error_code, error_description, created_by_user_id,
         created_on, updated_by_user_id, updated_on, authorised_offices
     ) VALUES
-        ('11111111-1111-1111-1111-111111111111', '{"ID": "1"}', 'READY_FOR_PARSING', NULL, NULL,
+        ('11111111-1111-1111-1111-111111111111', '{}', 'READY_FOR_PARSING', NULL, NULL,
          'test_user', NOW() - interval '3 day', NULL, NOW() - interval '1 day', 'OfficeA,OfficeB'),
-        ('11111111-1111-1111-1111-111111111112', '{"ID": "2"}', 'READY_FOR_PARSING', NULL, NULL,
+        ('11111111-1111-1111-1111-111111111112', '{}', 'READY_FOR_PARSING', NULL, NULL,
          'test_user', NOW() - interval '4 day', NULL, NOW() - interval '2 day', 'OfficeA,OfficeB');
     """);
 
@@ -52,15 +53,29 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
         error_messages, created_by_user_id, created_on, updated_on, provider_user_id
     ) VALUES
         ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111',
-         'OA001', '2025-04', 'Crime', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
+         'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '3 day', NOW() - interval '3 day', 'test provider user'),
         ('22222222-2222-2222-2222-222222222223', '11111111-1111-1111-1111-111111111112',
-         'OA001', '2025-04', 'Crime', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
+         'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '1 day', NOW() - interval '1 day', 'test provider user'),
         ('22222222-2222-2222-2222-222222222224', '11111111-1111-1111-1111-111111111112',
-         'OA001', '2025-04', 'Crime', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
+         'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '1 day', NOW() - interval '1 day', 'test provider user');
     """);
+  }
+
+  /**
+   * Removes the rows this test inserts via raw SQL. Those rows are not loaded as JPA entities by
+   * this test, but other integration tests clear the database with {@code repository.deleteAll()},
+   * which first materialises every row into a JPA entity; leaving rows behind here would break that
+   * loading if any value were ever invalid for the entity mapping. Cleaning up keeps this test
+   * fully isolated regardless of execution order.
+   */
+  @AfterEach
+  void cleanUpDatabase() {
+    jdbcTemplate.execute("TRUNCATE claims.replication_summary CASCADE");
+    jdbcTemplate.execute("TRUNCATE claims.bulk_submission CASCADE");
+    jdbcTemplate.execute("TRUNCATE claims.submission CASCADE");
   }
 
   @Test
