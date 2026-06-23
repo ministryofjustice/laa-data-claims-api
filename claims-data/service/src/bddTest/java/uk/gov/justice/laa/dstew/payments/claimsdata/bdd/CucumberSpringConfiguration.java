@@ -12,7 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
  * Cucumber Spring boot configuration for BDD end-to-end tests.
  *
  * <p>Boots the full Spring Boot application on a random port so step definitions can exercise the
- * real HTTP stack via {@code TestRestTemplate} — unlike integration tests, BDD tests must NOT use
+ * real HTTP stack via {@code RestTemplate} — unlike integration tests, BDD tests must NOT use
  * {@code MockMvc}.
  */
 @CucumberContextConfiguration
