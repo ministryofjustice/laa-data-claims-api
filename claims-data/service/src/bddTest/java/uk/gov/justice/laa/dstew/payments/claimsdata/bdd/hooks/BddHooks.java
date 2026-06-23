@@ -83,12 +83,25 @@ public class BddHooks {
     String queueArn = queueAttributes.attributes().get(QueueAttributeName.QUEUE_ARN);
 
     snsClient.createTopic(CreateTopicRequest.builder().name("claims-events").build());
-    snsClient.subscribe(
-        SubscribeRequest.builder()
-            .topicArn(topicArn)
-            .protocol("sqs")
-            .endpoint(queueArn)
-            .attributes(Map.of("RawMessageDelivery", "true"))
-            .build());
+
+    boolean alreadySubscribed =
+        snsClient
+            .listSubscriptionsByTopic(
+                software.amazon.awssdk.services.sns.model.ListSubscriptionsByTopicRequest.builder()
+                    .topicArn(topicArn)
+                    .build())
+            .subscriptions()
+            .stream()
+            .anyMatch(s -> queueArn.equals(s.endpoint()));
+
+    if (!alreadySubscribed) {
+      snsClient.subscribe(
+          SubscribeRequest.builder()
+              .topicArn(topicArn)
+              .protocol("sqs")
+              .endpoint(queueArn)
+              .attributes(Map.of("RawMessageDelivery", "true"))
+              .build());
+    }
   }
 }
