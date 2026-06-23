@@ -1427,6 +1427,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/claim_response'
         - type: object
+          required:
+            - version       # <-- This forces the @NotNull generation!
           properties:
             validation_messages:
               type: array

@@ -96,6 +96,28 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handles exceptions thrown when an early optimistic locking gate detects a stale claim version.
+   *
+   * <p>This handler intercepts {@link ClaimVersionConflictException} and translates it into a
+   * standard HTTP 409 (Conflict) response. It ensures that concurrent amendment submissions with
+   * outdated versions are rejected before any expensive external API calls or database operations
+   * are attempted.
+   *
+   * @param ex the exception containing the specific version conflict message
+   * @return a {@link ResponseEntity} containing a structured {@link ProblemDetail} with the 409
+   *     status and error details
+   */
+  @ExceptionHandler(ClaimVersionConflictException.class)
+  public ResponseEntity<ProblemDetail> handleClaimVersionConflict(
+      ClaimVersionConflictException ex) {
+    ProblemDetail problemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    problemDetail.setTitle("Conflict");
+    // Ensure this matches your existing error structure expectations
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(problemDetail);
+  }
+
+  /**
    * Build a standardised RFC 9457 Problem Detail response.
    *
    * @param status the HTTP status
