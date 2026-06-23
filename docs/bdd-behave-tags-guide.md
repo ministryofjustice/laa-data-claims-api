@@ -7,7 +7,7 @@ This project runs BDD tests with **Cucumber (JUnit Platform)**, but tag filterin
 Run from repo root:
 
 ```zsh
-cd /Users/raza.ahmed/IdeaProjects/laa-data-claims-api
+cd /path/to/laa-data-claims-api
 ```
 
 Run all BDD scenarios in `features/bdd`:
