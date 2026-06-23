@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,15 +12,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
-
-  private MockMvc mockMvc;
 
   @BeforeEach
   void setupMockMvcBypassingSecurity() {
@@ -68,6 +67,7 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             patch(ENDPOINT_URL, submissionId, claimId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(emptyAmendmentsPayload))
         .andExpect(status().isNotFound()); // Proves it passes JSON syntax validation
@@ -90,6 +90,7 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             patch(ENDPOINT_URL, submissionId, claimId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(missingVersionPayload))
         .andExpect(status().isBadRequest());
@@ -114,6 +115,7 @@ class AmendmentSubmitContractValidationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             patch(ENDPOINT_URL, submissionId, claimId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidPayload))
         .andExpect(status().isBadRequest());
