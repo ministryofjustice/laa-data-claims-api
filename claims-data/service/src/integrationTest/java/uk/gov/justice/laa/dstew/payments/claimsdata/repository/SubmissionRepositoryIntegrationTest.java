@@ -232,7 +232,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     assertThat(saved.getId()).isEqualTo(submission1.getId());
     assertThat(saved.getBulkSubmissionId()).isNotNull();
     assertThat(saved.getBulkSubmissionId()).isEqualTo(submission1.getBulkSubmissionId());
-    }
+  }
 
   @Test
   @DisplayName("Should only get one Submission for the matching submitted date from")
