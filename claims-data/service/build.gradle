@@ -164,9 +164,9 @@ dependencies {
     bddTestImplementation 'org.junit.platform:junit-platform-suite'
     bddTestImplementation 'org.springframework.boot:spring-boot-starter-test'
     bddTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    bddTestImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
-    bddTestImplementation "org.testcontainers:postgresql:$versions.testcontainers"
-    bddTestImplementation "org.testcontainers:localstack:$versions.testcontainers"
+    bddTestImplementation "org.testcontainers:testcontainers-junit-jupiter"
+    bddTestImplementation "org.testcontainers:testcontainers-postgresql"
+    bddTestImplementation "org.testcontainers:testcontainers-localstack"
     bddTestImplementation "software.amazon.awssdk:sqs"
     bddTestImplementation 'org.projectlombok:lombok:1.18.44'
     bddTestAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
