@@ -129,9 +129,28 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the system is ready to update a claim")
   public void theSystemIsReadyToUpdateAClaim() {
     log.info("Setting up state: the system is ready to update a claim");
+
+    // Grab the mock claim and explicitly set the version to match the Consumer Pact (1L)
+    // so it successfully passes the Early Version Gate!
+    Claim mockedClaim = getClaim();
+    mockedClaim.setVersion(1L);
+
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
-        .thenReturn(Optional.ofNullable(getClaim()));
+        .thenReturn(Optional.of(mockedClaim));
     when(claimRepository.update(any())).thenReturn(1L);
+  }
+
+  @State("the claim patch contains invalid data")
+  public void theClaimPatchContainsInvalidData() {
+    log.info("Setting up state: the claim patch contains invalid data");
+
+    // Also update this state so it passes the Early Gate and fails on the validation error as expected
+    Claim mockedClaim = getClaim();
+    mockedClaim.setVersion(1L);
+
+    when(claimRepository.findByIdAndSubmissionId(any(), any()))
+        .thenReturn(Optional.of(mockedClaim));
+    doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
   }
 
   @State("the system is ready to process a valid claim")
@@ -182,14 +201,6 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     doThrow(new SubmissionBadRequestException("Error found"))
         .when(submissionRepository)
         .save(any());
-  }
-
-  @State("the claim patch contains invalid data")
-  public void theClaimPatchContainsInvalidData() {
-    log.info("Setting up state: the claim patch contains invalid data");
-    when(claimRepository.findByIdAndSubmissionId(any(), any()))
-        .thenReturn(Optional.ofNullable(getClaim()));
-    doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
   }
 
   @State("the claim request contains invalid data")

@@ -391,6 +391,7 @@ class ClaimServiceTest {
     final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
@@ -406,6 +407,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -424,6 +426,7 @@ class ClaimServiceTest {
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
+    patch.setVersion(1L);
 
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
@@ -449,6 +452,7 @@ class ClaimServiceTest {
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
+    patch.setVersion(1L);
 
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
@@ -478,6 +482,7 @@ class ClaimServiceTest {
     final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
         .thenReturn(Optional.of(claim));
@@ -517,6 +522,7 @@ class ClaimServiceTest {
     final ClaimPatch patch = new ClaimPatch();
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));

@@ -181,8 +181,12 @@ public class ClaimService
    */
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
-    Claim claim = requireClaim(submissionId, claimId);
 
+    if (claimPatch.getVersion() == null) {
+      throw new ClaimBadRequestException("claim_version is required and must be a valid integer");
+    }
+
+    Claim claim = requireClaim(submissionId, claimId);
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
