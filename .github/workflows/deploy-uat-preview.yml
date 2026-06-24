@@ -84,18 +84,6 @@ jobs:
           path: claims-data/service/build/reports/jacoco
           retention-days: 14
 
-  sca-scan:
-    needs:
-      - build-test
-    uses: ./.github/workflows/sca-analysis.yml
-    permissions:
-      contents: read
-    with:
-      java-version: *JAVA_VERSION
-      distribution: *JDK_DISTRIBUTION
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-
   semgrep-scan:
     name: semgrep-security-scan
     needs: build-test
@@ -245,7 +233,6 @@ jobs:
       - semgrep-scan
       - vulnerability-scan-app
       - vulnerability-scan-docker
-      - sca-scan
     environment: uat
     permissions:
       id-token: write

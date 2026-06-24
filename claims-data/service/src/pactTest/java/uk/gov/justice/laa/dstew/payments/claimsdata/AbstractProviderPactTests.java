@@ -13,6 +13,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.aop.JaversAuditingAspect;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
@@ -71,6 +73,10 @@ public class AbstractProviderPactTests {
   @MockitoBean protected ValidationMessageLogRepository validationMessageLogRepository;
 
   @MockitoBean protected AssessmentRepository assessmentRepository;
+
+  @MockitoBean protected RequestedByReferenceRepository requestedByReferenceRepository;
+
+  @MockitoBean protected AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
 
   @MockitoBean protected SqsClient sqsClient;
 
