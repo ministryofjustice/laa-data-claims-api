@@ -2,8 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -20,7 +18,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonType;
 
 /** Entity representing a claim amendment. */
 @Getter
@@ -38,9 +35,21 @@ public class ClaimAmendment {
   @JoinColumn(name = "claim_id", nullable = false)
   private Claim claim; // The amended claim
 
-  @Enumerated(EnumType.STRING)
+  /**
+   * Requesting party for the amendment. Validated by a foreign key to {@code
+   * requested_by_reference.code} (governed reference data).
+   */
+  @NotNull
+  @Column(name = "requested_by_code", nullable = false)
+  private String requestedByCode;
+
+  /**
+   * Amendment reason. Validated by a composite foreign key to {@code amendment_reason_reference
+   * (requested_by_code, code)}, so the reason must be valid for the requesting party.
+   */
+  @NotNull
   @Column(name = "amendment_reason_code", nullable = false)
-  private AmendmentReasonType amendmentReason;
+  private String amendmentReasonCode;
 
   @NotNull
   @JdbcTypeCode(SqlTypes.JSON)
