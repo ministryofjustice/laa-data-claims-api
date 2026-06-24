@@ -144,7 +144,8 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void theClaimPatchContainsInvalidData() {
     log.info("Setting up state: the claim patch contains invalid data");
 
-    // Also update this state so it passes the Early Gate and fails on the validation error as expected
+    // Also update this state so it passes the Early Gate and fails on the validation error as
+    // expected
     Claim mockedClaim = getClaim();
     mockedClaim.setVersion(1L);
 
