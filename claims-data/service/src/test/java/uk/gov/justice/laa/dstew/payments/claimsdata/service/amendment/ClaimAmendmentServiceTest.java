@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentValidationSteps;
@@ -55,8 +55,8 @@ class ClaimAmendmentServiceTest {
   @DisplayName("returns the fatal error and stops when a step rejects")
   void shortCircuitsOnFatalError() {
     ClaimAmendmentValidationError fatal =
-        new ClaimAmendmentValidationError(
-            ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE, "rejected", true);
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
 
     assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState()))
@@ -67,8 +67,8 @@ class ClaimAmendmentServiceTest {
   @DisplayName("does not run later steps after a fatal error")
   void stopsRunningLaterStepsAfterFatal() {
     ClaimAmendmentValidationError fatal =
-        new ClaimAmendmentValidationError(
-            ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE, "rejected", true);
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
     ClaimAmendmentValidationStep laterStep = mock(ClaimAmendmentValidationStep.class);
 

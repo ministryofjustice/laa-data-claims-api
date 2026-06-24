@@ -7,10 +7,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentErrorCode;
+import org.springframework.http.HttpStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
@@ -45,8 +47,12 @@ class ClaimStatusValidationStepTest {
     assertThat(result).hasSize(1);
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentErrorCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-    assertThat(error.getMessage()).isEqualTo(ClaimStatusValidationStep.VOIDED_CLAIM_MESSAGE);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
+    assertThat(error.getMessage())
+        .isEqualTo(
+            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE.getMessageTemplate());
+    assertThat(error.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(error.getSeverity()).isEqualTo(ValidationSeverity.FATAL);
     assertThat(error.isFatal()).isTrue();
   }
 
@@ -61,7 +67,7 @@ class ClaimStatusValidationStepTest {
     assertThat(result).hasSize(1);
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentErrorCode.INVALID_CLAIM_STATE_NOT_AMENDABLE);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_STATE_NOT_AMENDABLE);
     assertThat(error.getMessage()).contains(String.valueOf(status));
     assertThat(error.isFatal()).isTrue();
   }
