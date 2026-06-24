@@ -41,10 +41,6 @@ laa:
           url: ${laa.provider-details-api.host}
           accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
           authHeader: "X-Authorization"
-        data-claims-api:
-          host: ${CLAIMS_API_HOSTNAME}
-          url: ${laa.claims-api.host}
-          accessToken: ${CLAIMS_API_ACCESS_TOKEN}
         fee-scheme-platform-api:
           host: ${FEE_SCHEME_PLATFORM_API_URL}
           url: ${laa.fee-scheme-platform-api.host}

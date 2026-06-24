@@ -55,7 +55,7 @@ dependencies {
     implementation 'tools.jackson.core:jackson-core:3.1.1'
 
     implementation project(':claims-data:api')
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.21'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.24'
 
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
