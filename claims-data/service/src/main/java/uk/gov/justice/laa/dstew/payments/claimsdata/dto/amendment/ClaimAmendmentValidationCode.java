@@ -20,10 +20,7 @@ public enum ClaimAmendmentValidationCode {
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
-      ValidationSeverity.FATAL,
-      HttpStatus.BAD_REQUEST,
-      "A voided claim cannot be amended.",
-      null),
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null),
 
   /**
    * The claim is in a non-amendable state - any {@code claim.status} other than {@code VALID} that
@@ -120,25 +117,21 @@ public enum ClaimAmendmentValidationCode {
       "A technical error occurred, please try again after some time",
       "Required amendment metadata reference data was unavailable at submit time");
 
-  /**
-   *  The severity of this error, which determines whether it is fatal.
-   */
+  /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
 
-  /**
-   *  The HTTP status returned to the caller for this error.
-   */
+  /** The HTTP status returned to the caller for this error. */
   private final HttpStatus httpStatus;
 
   /**
-   *  The user-facing message template; may contain
-   *  placeholders that are filled with runtime values when the error is raised.
+   * The user-facing message template; may contain placeholders that are filled with runtime values
+   * when the error is raised.
    */
   private final String messageTemplate;
 
   /**
-   *  The internal, developer-facing technical description of this error, used for diagnostics and
-   *  logging. May be  for codes that have no dedicated technical message.
+   * The internal, developer-facing technical description of this error, used for diagnostics and
+   * logging. May be for codes that have no dedicated technical message.
    */
   private final String technicalMessage;
 
@@ -162,5 +155,4 @@ public enum ClaimAmendmentValidationCode {
   public boolean isFatal() {
     return severity == null || severity.isFatal();
   }
-
 }

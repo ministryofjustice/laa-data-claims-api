@@ -329,7 +329,8 @@ class ClaimReasonValidationStepTest {
     }
 
     @Test
-    @DisplayName("returns a single fatal technical error when the Requested By reference data is empty")
+    @DisplayName(
+        "returns a single fatal technical error when the Requested By reference data is empty")
     void returnsFatalErrorWhenRequestedByReferenceEmpty() {
       when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
@@ -345,7 +346,8 @@ class ClaimReasonValidationStepTest {
     }
 
     @Test
-    @DisplayName("returns a single fatal technical error when the Amendment Reason reference data is empty")
+    @DisplayName(
+        "returns a single fatal technical error when the Amendment Reason reference data is empty")
     void returnsFatalErrorWhenReasonReferenceEmpty() {
       when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
@@ -360,4 +362,3 @@ class ClaimReasonValidationStepTest {
     }
   }
 }
-

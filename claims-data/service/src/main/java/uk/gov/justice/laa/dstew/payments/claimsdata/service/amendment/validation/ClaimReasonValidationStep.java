@@ -39,8 +39,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *   <li>Validation errors are collected (not thrown) so the flow can continue to gather further
  *       messages.
  *   <li>If the governed reference data is unavailable, the step fails safely by returning a single
- *       fatal {@link ClaimAmendmentValidationCode#TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA}
- *       error so that the flow stops and nothing is saved.
+ *       fatal {@link
+ *       ClaimAmendmentValidationCode#TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA} error so
+ *       that the flow stops and nothing is saved.
  * </ul>
  *
  * <p>Each issue is returned as a {@link ClaimAmendmentValidationError} carrying the stable {@link
@@ -251,4 +252,3 @@ public class ClaimReasonValidationStep implements ClaimAmendmentValidationStep {
     }
   }
 }
-
