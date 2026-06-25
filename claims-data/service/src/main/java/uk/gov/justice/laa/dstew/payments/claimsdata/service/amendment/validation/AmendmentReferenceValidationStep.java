@@ -22,11 +22,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonRefere
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AmendmentReferenceDataUnavailableException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
- * Amendment metadata validation step: validates the Requested By code, the Amendment Reason code
- * and the submitting user's Entra UUID supplied with a claim amendment, returning any issues found.
+ * Amendment metadata validation step: validates the Requested By code and the Amendment Reason code
+ * supplied with a claim amendment against the governed reference data, returning any issues found.
  *
  * <p>Required behaviour:
  *
@@ -34,8 +33,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *   <li>Requested By and Amendment Reason are mandatory and must be supplied as stable codes.
  *   <li>Requested By must exist and be active.
  *   <li>Amendment Reason must exist, be active, and be valid for the submitted Requested By code.
- *   <li>The Entra user id must be structurally valid as a UUID; the Claims API does not check
- *       whether the user currently exists.
  *   <li>Validation errors are collected (not thrown) so the flow can continue to gather further
  *       messages.
  *   <li>If the governed reference data is unavailable, the step fails safely by returning a single
@@ -44,13 +41,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *       that the flow stops and nothing is saved.
  * </ul>
  *
+ * <p>The submitting user's Entra identifier is validated separately by {@link
+ * AmendmentUserIdValidationStep}, as it is a pure structural check with no reference-data
+ * dependency.
+ *
  * <p>Each issue is returned as a {@link ClaimAmendmentValidationError} carrying the stable {@link
  * ClaimAmendmentValidationCode} that identifies the failure.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ClaimReasonValidationStep implements ClaimAmendmentValidationStep {
+public class AmendmentReferenceValidationStep implements ClaimAmendmentValidationStep {
 
   private static final String REFERENCE_DATA_UNAVAILABLE_MESSAGE =
       "Required amendment metadata reference data was unavailable at submit time";
@@ -84,12 +85,10 @@ public class ClaimReasonValidationStep implements ClaimAmendmentValidationStep {
 
     String requestedByCode = unwrap(payload.getAmendmentRequestedBy());
     String amendmentReasonCode = unwrap(payload.getAmendmentReasonCode());
-    String userId = unwrap(payload.getAmendmentUserId());
 
     List<ClaimAmendmentValidationError> errors = new ArrayList<>();
     validateRequestedBy(requestedByCode, reference).ifPresent(errors::add);
     validateAmendmentReason(requestedByCode, amendmentReasonCode, reference).ifPresent(errors::add);
-    validateUserId(userId).ifPresent(errors::add);
     return errors;
   }
 
@@ -190,15 +189,6 @@ public class ClaimReasonValidationStep implements ClaimAmendmentValidationStep {
       return Optional.of(
           ClaimAmendmentValidationError.of(
               ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_INACTIVE, amendmentReasonCode));
-    }
-    return Optional.empty();
-  }
-
-  private Optional<ClaimAmendmentValidationError> validateUserId(String userId) {
-    if (!Uuid7.isValidUuid(userId)) {
-      return Optional.of(
-          ClaimAmendmentValidationError.of(
-              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT));
     }
     return Optional.empty();
   }

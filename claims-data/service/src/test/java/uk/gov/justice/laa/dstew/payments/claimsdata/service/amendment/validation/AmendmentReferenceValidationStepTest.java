@@ -26,14 +26,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimReasonValidationStep")
-class ClaimReasonValidationStepTest {
+class AmendmentReferenceValidationStepTest {
 
   private static final String VALID_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
   private static final Instant FIXED_INSTANT = Instant.parse("2026-01-01T00:00:00Z");
 
   @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
 
-  @InjectMocks private ClaimReasonValidationStep step;
+  @InjectMocks private AmendmentReferenceValidationStep step;
 
   private RequestedByReferenceEntity requestedBy(String code, String label, boolean active) {
     return RequestedByReferenceEntity.builder()
@@ -257,49 +257,20 @@ class ClaimReasonValidationStepTest {
   }
 
   @Nested
-  @DisplayName("submitting user id")
-  class UserId {
-
-    @Test
-    @DisplayName("non-UUID -> INVALID_USER_IDENTIFIER_FORMAT")
-    void rejectsNonUuidValue() {
-      stubReferenceData();
-      ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", "not-a-uuid");
-
-      ClaimAmendmentValidationError error = onlyError(step.validate(state));
-
-      assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
-      assertThat(error.getMessage()).isEqualTo("The user identifier must be a valid UUID");
-    }
-
-    @Test
-    @DisplayName("null -> INVALID_USER_IDENTIFIER_FORMAT")
-    void nullUserId() {
-      stubReferenceData();
-      ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", null);
-
-      assertThat(onlyError(step.validate(state)).getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
-    }
-  }
-
-  @Nested
   @DisplayName("multiple errors collected together")
   class MultipleErrors {
 
     @Test
-    @DisplayName("missing Requested By, missing Reason and bad UUID all collected")
+    @DisplayName("missing Requested By and missing Reason are both collected")
     void collectsAll() {
       stubReferenceData();
-      ClaimAmendmentState state = stateWith(null, null, "bad");
+      ClaimAmendmentState state = stateWith(null, null, VALID_UUID);
 
       assertThat(step.validate(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactlyInAnyOrder(
               ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
-              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING,
-              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING);
     }
   }
 
