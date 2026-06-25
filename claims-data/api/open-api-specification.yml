@@ -14,6 +14,8 @@ tags:
     description: Operations related to claims
   - name: Matter Starts
     description: Operations related to matter starts
+  - name: System References
+    description: Read-only governed reference data lookups (e.g. amendment metadata)
 
 paths:
   /api/v1/bulk-submissions:
@@ -1211,6 +1213,35 @@ paths:
         '500':
           description: Internal server error
 
+  /api/v1/system/references/amendment-requested-by:
+    get:
+      operationId: getAmendmentRequestedByReferences
+      tags:
+        - System References
+      summary: Get amendment Requested By reference data with nested Amendment Reasons
+      description: |
+        Returns the governed Requested By reference values and, for each one, the Amendment
+        Reason values valid for that requesting party, in configured display order. Both active
+        and inactive values are returned, each flagged with is_active, so consumers can resolve
+        display labels for historical amendments while still identifying which values are
+        currently selectable. The response is stable enough for consumers (e.g. AaBC) to cache
+        once at startup and reuse for the lifetime of the running pod.
+      responses:
+        '200':
+          description: Amendment reference data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/amendment_requested_by_reference_list'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: Internal server error
+
 components:
   parameters:
     pageParam:
@@ -1232,6 +1263,60 @@ components:
         default: 20
       description: Number of records per page. Defaults to 20.
   schemas:
+    amendment_requested_by_reference_list:
+      type: object
+      description: Top-level wrapper for the amendment Requested By reference lookup.
+      properties:
+        requested_by:
+          type: array
+          description: >
+            All Requested By values in display order (active and inactive), each with its reasons
+            and an is_active flag.
+          items:
+            $ref: '#/components/schemas/amendment_requested_by_reference'
+    amendment_requested_by_reference:
+      type: object
+      description: A governed Requested By reference value with its valid Amendment Reasons.
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable business code persisted on the amendment record.
+        display_label:
+          type: string
+          description: Human-readable label for dropdown rendering.
+        display_order:
+          type: integer
+          description: Lower values render first.
+        is_active:
+          type: boolean
+          description: >
+            Whether the value is currently selectable. Inactive values are still returned so
+            consumers can resolve display labels for historical amendments.
+        reasons:
+          type: array
+          description: >
+            Amendment Reason values valid for this Requested By value, in display order (active and
+            inactive, each flagged with is_active).
+          items:
+            $ref: '#/components/schemas/amendment_reason_reference'
+    amendment_reason_reference:
+      type: object
+      description: A governed Amendment Reason reference value scoped to a Requested By value.
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable business code persisted on the amendment record.
+        display_label:
+          type: string
+          description: Human-readable label for dropdown rendering.
+        display_order:
+          type: integer
+          description: Lower values render first.
+        is_active:
+          type: boolean
+          description: >
+            Whether the reason is currently selectable. Inactive reasons are still returned so
+            consumers can resolve display labels for historical amendments.
     bulk_submission_patch:
       type: object
       description: bulk submission patch details

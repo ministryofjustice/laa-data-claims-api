@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     if: ${{ github.event.pull_request.merged == true }}
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@3eaf64bb987ef0648a2380d4e49927d1693ec195 # v2.2.1
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@a5b870c152d0bc4a7f67a23f2c226868f94d7041 # v2.2.2
     permissions:
       contents: write
       packages: write
