@@ -26,7 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /** Service containing business logic for handling assessments. */
 @Service
@@ -215,7 +215,7 @@ public class AssessmentService {
       String createdByUserId,
       String assessmentReason,
       AssessmentType assessmentType) {
-    assessment.setId(Uuid7.timeBasedUuid());
+    assessment.setId(UUID7.timeBasedUuid());
     assessment.setClaim(claim);
     assessment.setClaimSummaryFee(claimSummaryFee);
     assessment.setCreatedByUserId(createdByUserId);

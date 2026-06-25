@@ -93,7 +93,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 @ExtendWith(MockitoExtension.class)
@@ -143,7 +143,7 @@ class ClaimServiceTest {
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
   void shouldCreateClaimAndClient(Client client) {
-    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     post.setCreatedByUserId(API_USER_ID);
@@ -187,7 +187,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
     final Submission submission = Submission.builder().id(submissionId).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
@@ -210,7 +210,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenSubmissionNotFoundOnCreate() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
     final ClaimPost post = new ClaimPost();
 
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
@@ -222,8 +222,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaim() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final Client client = Client.builder().clientForename("John").build();
@@ -251,8 +251,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimWithoutClient() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
 
@@ -273,8 +273,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimWithoutClaimSummaryFee() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
@@ -296,8 +296,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimWithoutCalculatedFeeDetail() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
@@ -319,8 +319,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimWithoutClaimCase() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponse fields = new ClaimResponse();
     final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
@@ -343,8 +343,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimNotFound() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -357,8 +357,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimV2() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimResponseV2 fields = new ClaimResponseV2();
 
@@ -373,8 +373,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimV2NotFound() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -387,8 +387,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldUpdateClaim() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).build();
     final ClaimPatch patch = new ClaimPatch();
 
@@ -403,8 +403,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimNotFoundOnUpdate() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final ClaimPatch patch = new ClaimPatch();
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
@@ -426,7 +426,7 @@ class ClaimServiceTest {
     patch.setValidationMessages(Collections.emptyList());
 
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
-    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setId(UUID7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
         .thenReturn(Optional.of(claim));
@@ -451,7 +451,7 @@ class ClaimServiceTest {
     patch.setValidationMessages(Collections.emptyList());
 
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
-    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setId(UUID7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
         .thenReturn(Optional.of(claim));
@@ -493,7 +493,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldGetClaimsForSubmission() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
     final Claim claim = Claim.builder().build();
     final SubmissionClaim inner = new SubmissionClaim();
 
@@ -507,8 +507,8 @@ class ClaimServiceTest {
 
   @Test
   void shouldUpdateClaimAndLogValidationErrors() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     final Claim claim =
         Claim.builder()
             .id(claimId)
@@ -667,7 +667,7 @@ class ClaimServiceTest {
 
   @Test
   void getClaimResultSet_v2_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
-    Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
+    Claim claim = Claim.builder().id(UUID7.timeBasedUuid()).build();
 
     Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(claim));
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -807,8 +807,8 @@ class ClaimServiceTest {
 
     @Test
     void shouldVoidClaimAndCreateAssessment() {
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
       String reason = "VOID CLAIM";
 
       ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().id(claimId).build();
@@ -855,12 +855,12 @@ class ClaimServiceTest {
 
     @Test
     void shouldValidateVoidClaimParametersBeforeProcessing() {
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
       String reason = "VOID CLAIM";
 
       Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
-      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(Uuid7.timeBasedUuid()).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(UUID7.timeBasedUuid()).build();
       Assessment assessment = getAssessment(claim, fee, reason, userId);
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
@@ -877,8 +877,8 @@ class ClaimServiceTest {
     @Test
     void shouldThrowExceptionWhenReasonIsBlank() {
 
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       doThrow(new ClaimBadRequestException(ASSESSMENT_REASON_MUST_BE_PROVIDED_ERROR))
           .when(claimValidationService)
@@ -895,11 +895,11 @@ class ClaimServiceTest {
     @Test
     void shouldNotSaveAssessmentWhenFactoryFails() {
 
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
-      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(Uuid7.timeBasedUuid()).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(UUID7.timeBasedUuid()).build();
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
       when(claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId)).thenReturn(fee);
@@ -917,8 +917,8 @@ class ClaimServiceTest {
     @Test
     void shouldNotVoidClaimWhenAlreadyVoid() {
 
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       when(claimValidationService.getValidClaimOrThrow(claimId))
           .thenThrow(
@@ -936,13 +936,13 @@ class ClaimServiceTest {
     @Test
     void shouldVoidClaimWhenClaimAlreadyHasAssessment() {
 
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       Claim claim =
           Claim.builder().id(claimId).status(ClaimStatus.VALID).hasAssessment(true).build();
 
-      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(Uuid7.timeBasedUuid()).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(UUID7.timeBasedUuid()).build();
       Assessment assessment = getAssessment(claim, fee, "VOID", userId);
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
@@ -958,8 +958,8 @@ class ClaimServiceTest {
 
     @Test
     void shouldThrowExceptionWhenClaimNotFound() {
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       when(claimValidationService.getValidClaimOrThrow(claimId))
           .thenThrow(new ClaimNotFoundException(NO_CLAIM_FOUND_WITH_ID_ERROR.formatted(claimId)));
@@ -975,8 +975,8 @@ class ClaimServiceTest {
 
     @Test
     void shouldThrowExceptionWhenClaimStatusIsNotValid() {
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       when(claimValidationService.getValidClaimOrThrow(claimId))
           .thenThrow(
@@ -994,8 +994,8 @@ class ClaimServiceTest {
 
     @Test
     void shouldThrowExceptionWhenClaimSummaryFeeNotFound() {
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
@@ -1016,11 +1016,11 @@ class ClaimServiceTest {
     @Test
     void shouldPropagateExceptionWhenSavingAssessmentFails() {
 
-      UUID claimId = Uuid7.timeBasedUuid();
-      UUID userId = Uuid7.timeBasedUuid();
+      UUID claimId = UUID7.timeBasedUuid();
+      UUID userId = UUID7.timeBasedUuid();
 
       Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
-      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(Uuid7.timeBasedUuid()).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(UUID7.timeBasedUuid()).build();
       Assessment assessment = getAssessment(claim, fee, "VOID", userId);
 
       when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
@@ -1038,7 +1038,7 @@ class ClaimServiceTest {
     private static Assessment getAssessment(
         Claim claim, ClaimSummaryFee claimSummaryFee, String reason, UUID userId) {
       return Assessment.builder()
-          .id(Uuid7.timeBasedUuid())
+          .id(UUID7.timeBasedUuid())
           .claim(claim)
           .claimSummaryFee(claimSummaryFee)
           .assessmentOutcome(null)

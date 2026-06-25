@@ -56,7 +56,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Cla
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 /** Service containing business logic for handling claims. */
@@ -103,26 +103,26 @@ public class ClaimService
     Submission submission = requireEntity(submissionId);
 
     Claim claim = claimMapper.toClaim(claimPost);
-    claim.setId(Uuid7.timeBasedUuid());
+    claim.setId(UUID7.timeBasedUuid());
     claim.setSubmission(submission);
     claim.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimRepository.save(claim);
 
     ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
-    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setId(UUID7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     claimSummaryFee.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimSummaryFeeRepository.save(claimSummaryFee);
 
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
-    claimCase.setId(Uuid7.timeBasedUuid());
+    claimCase.setId(UUID7.timeBasedUuid());
     claimCase.setClaim(claim);
     claimCase.setCreatedByUserId(claimPost.getCreatedByUserId());
     claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);
     if (hasClientData(client)) {
-      client.setId(Uuid7.timeBasedUuid());
+      client.setId(UUID7.timeBasedUuid());
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);

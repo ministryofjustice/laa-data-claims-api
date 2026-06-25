@@ -48,6 +48,11 @@ aws:
 javers:
   sqlSchema: javers
 
+# Governed amendment reference data caching (TTL eviction; lazy reload on next access after expiry)
+amendment:
+  reference:
+    refresh-minutes: ${AMENDMENT_REFERENCE_REFRESH_MINUTES:30}
+
 # used by actuator info endpoint
 info:
   app:

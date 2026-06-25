@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.*;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ValidationMessagesControllerIntegrationTest extends AbstractIntegrationTest {
@@ -28,7 +28,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
   void getValidationMessages_shouldReturn200() throws Exception {
     // given: a validation message not linked to any claim (no client details expected)
     ValidationMessageLog log = new ValidationMessageLog();
-    log.setId(Uuid7.timeBasedUuid());
+    log.setId(UUID7.timeBasedUuid());
     log.setSubmissionId(submission1.getId());
     log.setType(ValidationMessageType.ERROR);
     log.setSource("SOURCE1");
@@ -67,7 +67,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     // with clientForename="Alice", clientSurname="Smith", uniqueClientNumber="UCN_111"
     // and the claim itself has uniqueFileNumber=UNIQUE_FILE_NUMBER ("UFN_123")
     ValidationMessageLog log = new ValidationMessageLog();
-    log.setId(Uuid7.timeBasedUuid());
+    log.setId(UUID7.timeBasedUuid());
     log.setSubmissionId(submission1.getId());
     log.setClaimId(CLAIM_1_ID);
     log.setType(ValidationMessageType.ERROR);

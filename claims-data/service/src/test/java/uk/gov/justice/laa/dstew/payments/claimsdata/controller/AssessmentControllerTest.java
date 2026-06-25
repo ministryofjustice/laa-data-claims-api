@@ -50,7 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AssessmentService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @WebMvcTest(AssessmentController.class)
 @ImportAutoConfiguration(
@@ -70,8 +70,8 @@ class AssessmentControllerTest {
 
   @Test
   void createAssessment_returnsCreatedStatusAndLocationHeader() throws Exception {
-    final UUID claimId = Uuid7.timeBasedUuid();
-    final UUID assessmentId = Uuid7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID assessmentId = UUID7.timeBasedUuid();
     when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
         .thenReturn(assessmentId);
 
@@ -107,7 +107,7 @@ class AssessmentControllerTest {
 
   @Test
   void createAssessment_whenClaimBadRequestExceptionThrown_returnsBadRequest() throws Exception {
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
         .thenThrow(new ClaimBadRequestException(""));
 
@@ -137,7 +137,7 @@ class AssessmentControllerTest {
 
   @Test
   void createAssessment_whenClaimDoesNotExist_returnsNotFoundStatus() throws Exception {
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
         .thenThrow(new ClaimNotFoundException(""));
 
@@ -167,7 +167,7 @@ class AssessmentControllerTest {
 
   @Test
   void createAssessment_whenClaimSummaryFeeDoesNotExist_returnsNotFoundStatus() throws Exception {
-    final UUID claimId = Uuid7.timeBasedUuid();
+    final UUID claimId = UUID7.timeBasedUuid();
     when(assessmentService.createAssessment(eq(claimId), any(AssessmentPost.class)))
         .thenThrow(new ClaimSummaryFeeNotFoundException(""));
 

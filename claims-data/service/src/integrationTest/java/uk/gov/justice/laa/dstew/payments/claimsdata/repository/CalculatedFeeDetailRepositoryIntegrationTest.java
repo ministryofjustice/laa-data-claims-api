@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -34,7 +34,7 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    UUID unknownClaimId = Uuid7.timeBasedUuid();
+    UUID unknownClaimId = UUID7.timeBasedUuid();
     var result =
         calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(unknownClaimId);
 

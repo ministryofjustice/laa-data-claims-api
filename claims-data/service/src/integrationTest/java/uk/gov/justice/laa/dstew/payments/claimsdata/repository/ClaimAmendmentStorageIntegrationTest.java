@@ -20,7 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
@@ -151,7 +151,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     ClaimAmendment auditAmendment =
         claimAmendmentRepository.saveAndFlush(
             ClaimAmendment.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(targetClaim)
                 .requestedByCode(REQUESTED_BY_CONTRACT_MANAGEMENT)
                 .amendmentReasonCode(REASON_OTHER)
@@ -200,7 +200,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     ClaimAmendment heavyAmendment =
         claimAmendmentRepository.saveAndFlush(
             ClaimAmendment.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(targetClaim)
                 .requestedByCode(REQUESTED_BY_PROVIDER)
                 .amendmentReasonCode(REASON_PROVIDER_ERROR)
@@ -231,7 +231,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     ClaimAmendment validAmendment =
         claimAmendmentRepository.saveAndFlush(
             ClaimAmendment.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claim)
                 .requestedByCode(REQUESTED_BY_PROVIDER)
                 .amendmentReasonCode(REASON_PROVIDER_ERROR)
@@ -244,7 +244,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     return calculatedFeeDetailRepository.saveAndFlush(
         CalculatedFeeDetail.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .claimSummaryFee(
                 claimSummaryFeeRepository.getReferenceById(
                     ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID))

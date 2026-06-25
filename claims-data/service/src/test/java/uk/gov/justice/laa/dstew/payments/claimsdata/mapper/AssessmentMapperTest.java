@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 class AssessmentMapperTest {
@@ -77,10 +77,10 @@ class AssessmentMapperTest {
 
   @Test
   void toValidationMessageLog_mapsFields() {
-    final Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
-    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).submission(submission).build();
+    final Submission submission = Submission.builder().id(UUID7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(UUID7.timeBasedUuid()).submission(submission).build();
     final Assessment assessment =
-        Assessment.builder().id(Uuid7.timeBasedUuid()).claim(claim).build();
+        Assessment.builder().id(UUID7.timeBasedUuid()).claim(claim).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

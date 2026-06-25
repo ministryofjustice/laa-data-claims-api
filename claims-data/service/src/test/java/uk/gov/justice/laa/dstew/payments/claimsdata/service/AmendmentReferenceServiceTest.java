@@ -14,20 +14,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentReferenceData;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapperImpl;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AmendmentReferenceService")
 class AmendmentReferenceServiceTest {
 
-  @Mock private RequestedByReferenceRepository requestedByReferenceRepository;
-  @Mock private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
 
   // Use the real generated MapStruct implementation (spied) rather than mocking the mapping, so the
   // tests exercise the actual entity -> model mapping. Repos and mapper are injected by Mockito.
@@ -42,7 +41,7 @@ class AmendmentReferenceServiceTest {
   private RequestedByReferenceEntity requestedBy(
       String code, String label, int order, boolean active) {
     return RequestedByReferenceEntity.builder()
-        .id(Uuid7.timeBasedUuid())
+        .id(UUID7.timeBasedUuid())
         .code(code)
         .displayLabel(label)
         .isActive(active)
@@ -60,7 +59,7 @@ class AmendmentReferenceServiceTest {
   private AmendmentReasonReferenceEntity reason(
       String requestedByCode, String code, String label, int order, boolean active) {
     return AmendmentReasonReferenceEntity.builder()
-        .id(Uuid7.timeBasedUuid())
+        .id(UUID7.timeBasedUuid())
         .requestedByCode(requestedByCode)
         .code(code)
         .displayLabel(label)
@@ -78,9 +77,8 @@ class AmendmentReferenceServiceTest {
     @Test
     @DisplayName("returns an empty list when there are no Requested By values")
     void returnsEmptyListWhenNoRequestedByValues() {
-      when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc()).thenReturn(List.of());
-      when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
-          .thenReturn(List.of());
+      when(amendmentReferenceDataProvider.getReferenceData())
+          .thenReturn(new ClaimAmendmentReferenceData(List.of(), List.of()));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 
@@ -90,13 +88,13 @@ class AmendmentReferenceServiceTest {
     @Test
     @DisplayName("returns a single Requested By value with its reasons in order")
     void returnsSingleRequestedByWithItsReasons() {
-      when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
-          .thenReturn(List.of(requestedBy("PROVIDER", "Provider", 10)));
-      when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
+      when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
-              List.of(
-                  reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10),
-                  reason("PROVIDER", "CASE_REOPENED_REBILLED", "Case re-opened", 20)));
+              new ClaimAmendmentReferenceData(
+                  List.of(requestedBy("PROVIDER", "Provider", 10)),
+                  List.of(
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10),
+                      reason("PROVIDER", "CASE_REOPENED_REBILLED", "Case re-opened", 20))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 
@@ -110,10 +108,10 @@ class AmendmentReferenceServiceTest {
     @Test
     @DisplayName("returns an empty reason list for a Requested By value that has no reasons")
     void requestedByWithNoReasonsReturnsEmptyReasonList() {
-      when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
-          .thenReturn(List.of(requestedBy("AUDITOR", "Auditor", 40)));
-      when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
-          .thenReturn(List.of());
+      when(amendmentReferenceDataProvider.getReferenceData())
+          .thenReturn(
+              new ClaimAmendmentReferenceData(
+                  List.of(requestedBy("AUDITOR", "Auditor", 40)), List.of()));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 
@@ -129,16 +127,15 @@ class AmendmentReferenceServiceTest {
     @Test
     @DisplayName("includes inactive values flagged is_active=false alongside active ones")
     void includesInactiveValuesFlaggedInactive() {
-      when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
+      when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
-              List.of(
-                  requestedBy("PROVIDER", "Provider", 10, true),
-                  requestedBy("LEGACY_PARTY", "Legacy Party", 20, false)));
-      when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
-          .thenReturn(
-              List.of(
-                  reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10, true),
-                  reason("PROVIDER", "OLD_REASON", "Old reason", 20, false)));
+              new ClaimAmendmentReferenceData(
+                  List.of(
+                      requestedBy("PROVIDER", "Provider", 10, true),
+                      requestedBy("LEGACY_PARTY", "Legacy Party", 20, false)),
+                  List.of(
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10, true),
+                      reason("PROVIDER", "OLD_REASON", "Old reason", 20, false))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 
@@ -158,18 +155,20 @@ class AmendmentReferenceServiceTest {
     @Test
     @DisplayName("nests each reason under only the Requested By value it is valid for")
     void scopesReasonsToTheirRequestedByValue() {
-      when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
+      when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
-              List.of(
-                  requestedBy("PROVIDER", "Provider", 10),
-                  requestedBy("ASSURANCE", "Assurance", 20)));
-      when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
-          .thenReturn(
-              List.of(
-                  reason(
-                      "ASSURANCE", "INCORRECT_MEANS_ASSESSMENT", "Incorrect Means Assessment", 10),
-                  reason("ASSURANCE", "OTHER", "Other", 20),
-                  reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10)));
+              new ClaimAmendmentReferenceData(
+                  List.of(
+                      requestedBy("PROVIDER", "Provider", 10),
+                      requestedBy("ASSURANCE", "Assurance", 20)),
+                  List.of(
+                      reason(
+                          "ASSURANCE",
+                          "INCORRECT_MEANS_ASSESSMENT",
+                          "Incorrect Means Assessment",
+                          10),
+                      reason("ASSURANCE", "OTHER", "Other", 20),
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 

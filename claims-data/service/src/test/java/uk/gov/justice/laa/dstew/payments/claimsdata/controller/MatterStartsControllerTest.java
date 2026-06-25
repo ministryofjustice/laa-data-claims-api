@@ -38,7 +38,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.MatterStartService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @WebMvcTest(MatterStartsController.class)
 @ImportAutoConfiguration(
@@ -63,8 +63,8 @@ class MatterStartsControllerTest {
 
     @Test
     void createMatterStart_returnsCreatedStatusAndLocationHeader() throws Exception {
-      final UUID submissionId = Uuid7.timeBasedUuid();
-      final UUID matterStartId = Uuid7.timeBasedUuid();
+      final UUID submissionId = UUID7.timeBasedUuid();
+      final UUID matterStartId = UUID7.timeBasedUuid();
       when(matterStartService.createMatterStart(eq(submissionId), any(MatterStartPost.class)))
           .thenReturn(matterStartId);
 
@@ -109,8 +109,8 @@ class MatterStartsControllerTest {
     @DisplayName("Should return 200 response")
     void shouldReturn200() throws JsonProcessingException {
       // Given
-      UUID id = Uuid7.timeBasedUuid();
-      UUID submissionId = Uuid7.timeBasedUuid();
+      UUID id = UUID7.timeBasedUuid();
+      UUID submissionId = UUID7.timeBasedUuid();
       Optional<MatterStartGet> expected =
           Optional.of(new MatterStartGet().categoryCode(CategoryCode.AAP));
       when(matterStartService.getMatterStart(submissionId, id)).thenReturn(expected);
@@ -129,7 +129,7 @@ class MatterStartsControllerTest {
     @DisplayName("Should call service once and return list of matter start")
     @Test
     void shouldCallServiceOnceAndReturnListOfMatterStart() throws Exception {
-      var submissionId = Uuid7.timeBasedUuid();
+      var submissionId = UUID7.timeBasedUuid();
       MatterStartGet matterStartGet = new MatterStartGet().categoryCode(CategoryCode.AAP);
       MatterStartResultSet matterStartResultSet =
           MatterStartResultSet.builder()
@@ -154,7 +154,7 @@ class MatterStartsControllerTest {
     @DisplayName("Should return 404 when submission not found")
     @Test
     void shouldReturn404WhenSubmissionNotFound() throws Exception {
-      var submissionId = Uuid7.timeBasedUuid();
+      var submissionId = UUID7.timeBasedUuid();
       when(matterStartService.getAllMatterStartsForSubmission(submissionId))
           .thenThrow(new SubmissionNotFoundException("No entity found with id:" + submissionId));
 

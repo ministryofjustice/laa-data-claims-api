@@ -46,7 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @WebMvcTest(SubmissionController.class)
 @ImportAutoConfiguration(
@@ -64,7 +64,7 @@ class SubmissionControllerTest {
 
   @Test
   void createSubmission_returnsCreatedStatusAndLocationHeader() throws Exception {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     when(submissionService.createSubmission(any(SubmissionPost.class))).thenReturn(id);
 
     String body =
@@ -73,7 +73,7 @@ class SubmissionControllerTest {
             + id
             + "\","
             + "\"bulk_submission_id\": \""
-            + Uuid7.timeBasedUuid()
+            + UUID7.timeBasedUuid()
             + "\","
             + "\"office_account_number\": \"12345\","
             + "\"submission_period\": \"2025-07\","
@@ -107,11 +107,11 @@ class SubmissionControllerTest {
 
   @Test
   void getSubmission_returnsSubmissionDetails() throws Exception {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     SubmissionResponse response =
         new SubmissionResponse()
             .submissionId(id)
-            .bulkSubmissionId(Uuid7.timeBasedUuid())
+            .bulkSubmissionId(UUID7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw(AREA_OF_LAW)
@@ -128,7 +128,7 @@ class SubmissionControllerTest {
 
   @Test
   void updateSubmission_returnsNoContent() throws Exception {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     String body = "{\"crime_lower_schedule_number\":\"123\"}";
 
     mockMvc

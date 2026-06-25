@@ -22,7 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /**
  * This contains integration tests to verify the filtering logic implemented in the {@link
@@ -60,7 +60,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         claimRepository.findAll(
             ClaimSpecification.filterBy(
                 "office_test",
-                Uuid7.timeBasedUuid().toString(),
+                UUID7.timeBasedUuid().toString(),
                 List.of(SubmissionStatus.REPLACED),
                 "fee-code",
                 "unique-file-number",

@@ -29,7 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimValidationServiceTest {
@@ -71,7 +71,7 @@ class ClaimValidationServiceTest {
 
     @Test
     void shouldNotThrowWhenUserIdValid() {
-      assertDoesNotThrow(() -> validationService.validateUserId(Uuid7.timeBasedUuid().toString()));
+      assertDoesNotThrow(() -> validationService.validateUserId(UUID7.timeBasedUuid().toString()));
     }
   }
 
@@ -89,8 +89,8 @@ class ClaimValidationServiceTest {
   }
 
   static Stream<Object[]> invalidVoidClaimParameters() {
-    UUID validUserId = Uuid7.timeBasedUuid();
-    UUID validClaimId = Uuid7.timeBasedUuid();
+    UUID validUserId = UUID7.timeBasedUuid();
+    UUID validClaimId = UUID7.timeBasedUuid();
     return Stream.of(
         new Object[] {null, validUserId, "Valid reason", "claimId must be provided"},
         new Object[] {validClaimId, null, "Valid reason", "createdByUserId must be provided"},
@@ -99,8 +99,8 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldNotThrowWhenVoidClaimParametersValid() {
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID userId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
+    UUID userId = UUID7.timeBasedUuid();
     String reason = "Valid reason";
 
     assertDoesNotThrow(
@@ -112,7 +112,7 @@ class ClaimValidationServiceTest {
   // =====================================================
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFound() {
-    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> validationService.getClaimSummaryFeeByClaimIdOrThrow(claimId))
@@ -124,7 +124,7 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldReturnClaimSummaryFeeWhenExists() {
-    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
     ClaimSummaryFee fee = new ClaimSummaryFee();
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(fee));
 
@@ -134,7 +134,7 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldThrowWhenClaimSummaryFeeDoesNotExistById() {
-    UUID feeId = Uuid7.timeBasedUuid();
+    UUID feeId = UUID7.timeBasedUuid();
     when(claimSummaryFeeRepository.existsById(feeId)).thenReturn(false);
 
     assertThatThrownBy(() -> validationService.getClaimSummaryFeeByIdOrThrow(feeId))
@@ -144,7 +144,7 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldReturnReferenceWhenClaimSummaryFeeExistsById() {
-    UUID feeId = Uuid7.timeBasedUuid();
+    UUID feeId = UUID7.timeBasedUuid();
     ClaimSummaryFee fee = new ClaimSummaryFee();
     when(claimSummaryFeeRepository.existsById(feeId)).thenReturn(true);
     when(claimSummaryFeeRepository.getReferenceById(feeId)).thenReturn(fee);
@@ -158,7 +158,7 @@ class ClaimValidationServiceTest {
   // =====================================================
   @Test
   void shouldThrowWhenClaimNotFound() {
-    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
     when(claimRepository.findById(claimId)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> validationService.getValidClaimOrThrow(claimId))
@@ -168,7 +168,7 @@ class ClaimValidationServiceTest {
 
   @Test
   void shouldReturnClaimWhenValid() {
-    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
     when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
 
@@ -210,7 +210,7 @@ class ClaimValidationServiceTest {
       names = {"VALID"},
       mode = EnumSource.Mode.EXCLUDE)
   void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
-    UUID claimId = Uuid7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).status(status).build();
 
     assertThatThrownBy(() -> validationService.ensureClaimIsValid(claim))

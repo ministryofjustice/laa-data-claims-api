@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /**
  * Service for performing validation related to claims and claim operations.
@@ -104,7 +105,7 @@ public class ClaimValidationService {
    */
   public void validateUserId(String userId) {
     validateUserIdIsNotNullOrBlank(userId);
-    if (!isValidUuid(userId)) {
+    if (!UUID7.isValidUuid(userId)) {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
     }
@@ -114,21 +115,6 @@ public class ClaimValidationService {
     if (!StringUtils.hasText(userId)) {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.NULL_OR_BLANK.getMessage());
-    }
-  }
-
-  /**
-   * Checks whether the provided string is a valid UUID format.
-   *
-   * @param uuid the string to validate as a UUID
-   * @return true if the string is a valid UUID, false otherwise
-   */
-  private boolean isValidUuid(String uuid) {
-    try {
-      UUID.fromString(uuid);
-      return true;
-    } catch (IllegalArgumentException | NullPointerException e) {
-      return false;
     }
   }
 

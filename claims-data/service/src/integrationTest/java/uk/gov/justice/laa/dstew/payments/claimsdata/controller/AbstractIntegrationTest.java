@@ -76,7 +76,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /** This is used to isolate the common configuration for integration testing in a single class. */
 @ActiveProfiles("test")
@@ -85,8 +85,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {
 
-  protected static final UUID VALIDATION_ID_1 = Uuid7.timeBasedUuid();
-  protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
+  protected static final UUID VALIDATION_ID_1 = UUID7.timeBasedUuid();
+  protected static final UUID VALIDATION_ID_2 = UUID7.timeBasedUuid();
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
   protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
@@ -378,7 +378,7 @@ public abstract class AbstractIntegrationTest {
 
     calculatedFeeDetail1 =
         CalculatedFeeDetail.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
             .feeCode("CALC-FEE-1")
@@ -420,7 +420,7 @@ public abstract class AbstractIntegrationTest {
 
     calculatedFeeDetail2 =
         CalculatedFeeDetail.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_2_SUMMARY_FEE_ID))
             .claim(claimRepository.getReferenceById(CLAIM_2_ID))
             .feeCode("CALC-FEE-2")
@@ -464,7 +464,7 @@ public abstract class AbstractIntegrationTest {
     clientRepository.saveAll(
         List.of(
             Client.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
                 .clientForename(SEEDED_CLIENT_FORENAME)
                 .clientSurname("Smith")
@@ -473,7 +473,7 @@ public abstract class AbstractIntegrationTest {
                 .createdOn(CREATED_ON)
                 .build(),
             Client.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_3_ID))
                 .clientForename("Bob")
                 .clientSurname("Jones")
@@ -485,7 +485,7 @@ public abstract class AbstractIntegrationTest {
     claimCaseRepository.saveAll(
         List.of(
             ClaimCase.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
                 .caseId(SEEDED_CASE_ID)
                 .uniqueCaseId("UC_ID_1")
@@ -507,7 +507,7 @@ public abstract class AbstractIntegrationTest {
                 .createdOn(CREATED_ON)
                 .build(),
             ClaimCase.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_3_ID))
                 .caseId("CASE_ID_2")
                 .uniqueCaseId("UC_ID_2")
@@ -579,7 +579,7 @@ public abstract class AbstractIntegrationTest {
             .build();
     Assessment assessment3 =
         getAssessmentBuilder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .claim(claimRepository.getReferenceById(CLAIM_2_ID))
             .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_2_SUMMARY_FEE_ID))
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
@@ -684,9 +684,9 @@ public abstract class AbstractIntegrationTest {
   }
 
   protected UUID createCrimeLowerExportData(String officeAccountNumber) {
-    UUID submissionId = Uuid7.timeBasedUuid();
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
+    UUID submissionId = UUID7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
+    UUID claimSummaryFeeId = UUID7.timeBasedUuid();
 
     submissionRepository.saveAll(
         List.of(
@@ -726,7 +726,7 @@ public abstract class AbstractIntegrationTest {
     clientRepository.saveAll(
         List.of(
             Client.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
                 .clientForename("Chris")
                 .clientSurname("Davis")
@@ -737,7 +737,7 @@ public abstract class AbstractIntegrationTest {
     claimCaseRepository.saveAll(
         List.of(
             ClaimCase.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
                 .stageReachedCode("CRIME-STAGE")
                 .outcomeCode("CRIME-OUTCOME")
@@ -763,7 +763,7 @@ public abstract class AbstractIntegrationTest {
     calculatedFeeDetailRepository.saveAll(
         List.of(
             CalculatedFeeDetail.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
                 .claim(claimRepository.getReferenceById(claimId))
                 .feeCodeDescription("Crime fee detail")
@@ -792,9 +792,9 @@ public abstract class AbstractIntegrationTest {
   }
 
   protected UUID createMediationExportData(String officeAccountNumber) {
-    UUID submissionId = Uuid7.timeBasedUuid();
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
+    UUID submissionId = UUID7.timeBasedUuid();
+    UUID claimId = UUID7.timeBasedUuid();
+    UUID claimSummaryFeeId = UUID7.timeBasedUuid();
 
     submissionRepository.saveAll(
         List.of(
@@ -836,7 +836,7 @@ public abstract class AbstractIntegrationTest {
     clientRepository.saveAll(
         List.of(
             Client.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
                 .clientForename("Mia")
                 .clientSurname("Green")
@@ -863,7 +863,7 @@ public abstract class AbstractIntegrationTest {
     claimCaseRepository.saveAll(
         List.of(
             ClaimCase.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
                 .outcomeCode("MED-OUTCOME")
                 .isPostalApplicationAccepted(true)
@@ -887,7 +887,7 @@ public abstract class AbstractIntegrationTest {
     calculatedFeeDetailRepository.saveAll(
         List.of(
             CalculatedFeeDetail.builder()
-                .id(Uuid7.timeBasedUuid())
+                .id(UUID7.timeBasedUuid())
                 .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(claimSummaryFeeId))
                 .claim(claimRepository.getReferenceById(claimId))
                 .feeCodeDescription("Mediation fee detail")

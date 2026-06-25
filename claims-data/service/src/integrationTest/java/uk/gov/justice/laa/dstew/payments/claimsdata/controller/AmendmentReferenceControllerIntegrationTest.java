@@ -21,7 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceE
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /**
  * Integration tests for the amendment reference lookup. Read assertions run against the Flyway seed
@@ -78,7 +78,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     void inactiveRequestedByValueIsIncludedFlaggedInactive() throws Exception {
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .code(TEMP_CODE)
               .displayLabel("Temp Party")
               .isActive(false)
@@ -103,7 +103,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     void inactiveReasonIsIncludedFlaggedInactive() throws Exception {
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .code(TEMP_CODE)
               .displayLabel("Temp Party")
               .isActive(true)
@@ -113,7 +113,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
               .build());
       amendmentReasonReferenceRepository.save(
           AmendmentReasonReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .requestedByCode(TEMP_CODE)
               .code("TEMP_INACTIVE_REASON")
               .displayLabel("Temp inactive reason")
@@ -172,7 +172,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     @Test
     @DisplayName("leaves the underlying code unchanged when the display label is updated")
     void updatingDisplayLabelLeavesCodeUnchanged() {
-      UUID id = Uuid7.timeBasedUuid();
+      UUID id = UUID7.timeBasedUuid();
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
               .id(id)
@@ -212,7 +212,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     void excludesInactiveReasons() {
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .code(TEMP_CODE)
               .displayLabel("Temp Party")
               .isActive(true)
@@ -244,7 +244,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
       String partyZ = "ZZZ_TEST_PARTY";
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .code(partyA)
               .displayLabel("Party A")
               .isActive(true)
@@ -254,7 +254,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
               .build());
       requestedByReferenceRepository.save(
           RequestedByReferenceEntity.builder()
-              .id(Uuid7.timeBasedUuid())
+              .id(UUID7.timeBasedUuid())
               .code(partyZ)
               .displayLabel("Party Z")
               .isActive(true)
@@ -283,7 +283,7 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     private AmendmentReasonReferenceEntity reason(
         String requestedByCode, String code, String label, int order, boolean active) {
       return AmendmentReasonReferenceEntity.builder()
-          .id(Uuid7.timeBasedUuid())
+          .id(UUID7.timeBasedUuid())
           .requestedByCode(requestedByCode)
           .code(code)
           .displayLabel(label)

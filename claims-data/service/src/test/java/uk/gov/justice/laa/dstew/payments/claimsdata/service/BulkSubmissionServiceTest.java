@@ -47,7 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatu
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 class BulkSubmissionServiceTest {
@@ -310,7 +310,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Returns the bulk submission")
   void returnsBulkSubmission() {
-    var id = Uuid7.timeBasedUuid();
+    var id = UUID7.timeBasedUuid();
     var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
     var expectedBulkSubmission = new BulkSubmission();
     expectedBulkSubmission.setId(id);
@@ -332,7 +332,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Returns bulk submission status summary")
   void returnsBulkSubmissionStatusSummary() {
-    var id = Uuid7.timeBasedUuid();
+    var id = UUID7.timeBasedUuid();
     var expectedBulkSubmission = new BulkSubmission();
     expectedBulkSubmission.setId(id);
     expectedBulkSubmission.setStatus(BulkSubmissionStatus.PARSING_COMPLETED);
@@ -350,7 +350,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when summary not found")
   void shouldThrowWhenBulkSubmissionStatusNotFound() {
-    var id = Uuid7.timeBasedUuid();
+    var id = UUID7.timeBasedUuid();
     when(bulkSubmissionRepository.findStatusById(id)).thenReturn(Optional.empty());
 
     assertThrows(
@@ -361,7 +361,7 @@ class BulkSubmissionServiceTest {
   @Test
   @DisplayName("Throws BulkSubmissionNotFoundException when bulk submission not found")
   void shouldThrowWhenBulkSubmissionNotFound() {
-    var id = Uuid7.timeBasedUuid();
+    var id = UUID7.timeBasedUuid();
     when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(

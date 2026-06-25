@@ -31,20 +31,20 @@ public class ClaimsDataTestUtil {
 
   public static final String API_URI_PREFIX = "/api/v1";
   public static final String API_V2_URI_PREFIX = "/api/v2";
-  public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID SUBMISSION_3_ID = Uuid7.timeBasedUuid();
-  public static final UUID BULK_SUBMISSION_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_3_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
-  public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_1_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
-  public static final UUID CLAIM_2_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
+  public static final UUID SUBMISSION_ID = UUID7.timeBasedUuid();
+  public static final UUID SUBMISSION_1_ID = UUID7.timeBasedUuid();
+  public static final UUID SUBMISSION_2_ID = UUID7.timeBasedUuid();
+  public static final UUID SUBMISSION_3_ID = UUID7.timeBasedUuid();
+  public static final UUID BULK_SUBMISSION_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_1_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_2_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_3_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_4_ID = UUID7.timeBasedUuid();
+  public static final UUID CLIENT_1_ID = UUID7.timeBasedUuid();
+  public static final UUID ASSESSMENT_1_ID = UUID7.timeBasedUuid();
+  public static final UUID ASSESSMENT_2_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_1_SUMMARY_FEE_ID = UUID7.timeBasedUuid();
+  public static final UUID CLAIM_2_SUMMARY_FEE_ID = UUID7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
@@ -52,7 +52,7 @@ public class ClaimsDataTestUtil {
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
   public static final String SUBMISSION_PERIOD = "APR-2025";
   public static final String USER_ID = "12345";
-  public static final String API_USER_ID = Uuid7.timeBasedUuid().toString();
+  public static final String API_USER_ID = UUID7.timeBasedUuid().toString();
   public static final String BULK_SUBMISSION_CREATED_BY_USER_ID = "a-provider-user-id";
   public static final String FEE_CODE = "FEE_123";
   public static final String UNIQUE_FILE_NUMBER = "UFN_123";

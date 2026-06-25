@@ -23,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionMapperTest {
@@ -37,8 +37,8 @@ class SubmissionMapperTest {
   @ParameterizedTest
   @EnumSource(AreaOfLaw.class)
   void shouldMapToSubmissionEntity(AreaOfLaw areaOfLaw) {
-    UUID id = Uuid7.timeBasedUuid();
-    UUID bulkId = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
+    UUID bulkId = UUID7.timeBasedUuid();
     SubmissionPost post =
         new SubmissionPost()
             .submissionId(id)
@@ -64,8 +64,8 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapErrorMessagesToSubmissionEntity() {
-    UUID id = Uuid7.timeBasedUuid();
-    UUID bulkId = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
+    UUID bulkId = UUID7.timeBasedUuid();
     SubmissionPost post =
         new SubmissionPost()
             .submissionId(id)
@@ -83,11 +83,11 @@ class SubmissionMapperTest {
 
   @Test
   void shouldMapToSubmissionBase() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission submission =
         Submission.builder()
             .id(id)
-            .bulkSubmissionId(Uuid7.timeBasedUuid())
+            .bulkSubmissionId(UUID7.timeBasedUuid())
             .officeAccountNumber("12345")
             .submissionPeriod("2025-07")
             .areaOfLaw(AREA_OF_LAW)
@@ -129,7 +129,7 @@ class SubmissionMapperTest {
 
   @Test
   void toValidationErrorLog_mapsFields() {
-    Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
+    Submission submission = Submission.builder().id(UUID7.timeBasedUuid()).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()

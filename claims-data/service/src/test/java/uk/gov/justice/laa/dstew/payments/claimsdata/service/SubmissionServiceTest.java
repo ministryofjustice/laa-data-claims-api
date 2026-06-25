@@ -58,7 +58,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubmissionService Unit Tests")
@@ -83,7 +83,7 @@ class SubmissionServiceTest {
   @Test
   @DisplayName("Should successfully map and persist a new submission")
   void shouldCreateSubmission() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).build();
 
@@ -228,7 +228,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should throw SubmissionNotFoundException when retrieving a non-existent submission ID")
   void shouldThrowWhenSubmissionNotFoundOnGet() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     when(submissionRepository.findById(id)).thenReturn(Optional.empty());
 
     assertThrows(SubmissionNotFoundException.class, () -> submissionService.getSubmission(id));
@@ -237,7 +237,7 @@ class SubmissionServiceTest {
   @Test
   @DisplayName("Should successfully apply patch fields and update submission entity details")
   void shouldUpdateSubmission() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().crimeLowerScheduleNumber("456");
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
@@ -252,7 +252,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should cascadingly update all associated claims to INVALID when submission status changes to VALIDATION_FAILED")
   void shouldUpdateAllClaimsAsInvalidWhenSubmissionStatusIsValidationFailed() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED);
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
@@ -268,7 +268,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should trigger submission validation succeeded domain event when status changes to VALIDATION_SUCCEEDED")
   void shouldPublishValidationSucceededEventWhenSubmissionStatusIsValidationSucceeded() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_SUCCEEDED);
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
@@ -283,7 +283,7 @@ class SubmissionServiceTest {
   @Test
   @DisplayName("Should update submission with Legal Help and Mediation references via patch")
   void shouldUpdateSubmissionWithCivilAndMediationSubmissionReferences() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
         new SubmissionPatch()
@@ -301,7 +301,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should throw SubmissionNotFoundException when trying to patch a non-existent submission")
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     SubmissionPatch patch = new SubmissionPatch();
     when(submissionRepository.findById(id)).thenReturn(Optional.empty());
 
@@ -312,7 +312,7 @@ class SubmissionServiceTest {
   @Test
   @DisplayName("Should process patch and map/persist incoming validation error logging collections")
   void shouldUpdateSubmissionAndLogValidationErrors() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
 
     final ValidationMessagePatch messagePatch =
@@ -664,7 +664,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should trigger submission validation initialization domain event when status becomes READY_FOR_VALIDATION")
   void updateSubmission_whenStatusIsReadyForValidation_shouldPublishValidationEvent() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.READY_FOR_VALIDATION);
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
@@ -680,7 +680,7 @@ class SubmissionServiceTest {
   @DisplayName(
       "Should bypass validation logging entirely if provided validation messages collection list payload is empty")
   void updateSubmission_whenValidationMessagesListIsEmpty_shouldNotSaveLogs() {
-    UUID id = Uuid7.timeBasedUuid();
+    UUID id = UUID7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().validationMessages(Collections.emptyList());
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));

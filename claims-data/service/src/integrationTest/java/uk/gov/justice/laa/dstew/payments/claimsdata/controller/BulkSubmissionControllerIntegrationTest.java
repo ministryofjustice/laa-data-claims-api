@@ -50,7 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 /**
  * Integration tests for the Bulk Submission Controller. Tests the endpoints for creating,
@@ -706,7 +706,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
         BulkSubmission.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .data(bulkSubmission200ResponseDetails)
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
@@ -752,7 +752,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
         BulkSubmission.builder()
-            .id(Uuid7.timeBasedUuid())
+            .id(UUID7.timeBasedUuid())
             .data(bulkSubmission200ResponseDetails)
             .status(BulkSubmissionStatus.READY_FOR_PARSING)
             .createdByUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
@@ -805,7 +805,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // status.
     mockMvc
         .perform(
-            get(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+            get(BULK_SUBMISSION_ENDPOINT, UUID7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
@@ -817,7 +817,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // unauthorized status.
     mockMvc
         .perform(
-            get(BULK_SUBMISSION_ENDPOINT + "/summary", Uuid7.timeBasedUuid())
+            get(BULK_SUBMISSION_ENDPOINT + "/summary", UUID7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
@@ -879,7 +879,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     // status.
     mockMvc
         .perform(
-            patch(BULK_SUBMISSION_ENDPOINT, Uuid7.timeBasedUuid())
+            patch(BULK_SUBMISSION_ENDPOINT, UUID7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, INVALID_AUTH_TOKEN))
         .andExpect(status().isUnauthorized());
   }
