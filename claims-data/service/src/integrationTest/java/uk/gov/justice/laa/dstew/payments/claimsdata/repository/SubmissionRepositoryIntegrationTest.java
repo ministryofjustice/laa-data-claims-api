@@ -213,6 +213,28 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should save and get submission with no bulkSubmissionId")
+  void shouldPersistSubmissionWhenBulkSubmissionIdIsNull() {
+    submission1.setBulkSubmissionId(null);
+    submissionRepository.save(submission1);
+    Submission saved = submissionRepository.findById(submission1.getId()).orElseThrow();
+    assertThat(saved.getId()).isNotNull();
+    assertThat(saved.getId()).isEqualTo(submission1.getId());
+    assertThat(saved.getBulkSubmissionId()).isNull();
+  }
+
+  @Test
+  @DisplayName("Should save and get submission with bulkSubmissionId")
+  void shouldPersistSubmissionWhenBulkSubmissionIdIsNotNull() {
+    submissionRepository.save(submission1);
+    Submission saved = submissionRepository.findById(submission1.getId()).orElseThrow();
+    assertThat(saved.getId()).isNotNull();
+    assertThat(saved.getId()).isEqualTo(submission1.getId());
+    assertThat(saved.getBulkSubmissionId()).isNotNull();
+    assertThat(saved.getBulkSubmissionId()).isEqualTo(submission1.getBulkSubmissionId());
+  }
+
+  @Test
   @DisplayName("Should only get one Submission for the matching submitted date from")
   void shouldOnlyGetOneSubmissionForTheMatchingSubmittedDateFrom() {
     submission1.setCreatedOn(FIRST_JANUARY_2025);

@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
+package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.AMENDED_CASE_ID;

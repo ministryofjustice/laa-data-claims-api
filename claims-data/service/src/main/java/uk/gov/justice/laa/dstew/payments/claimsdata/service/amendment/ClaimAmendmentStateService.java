@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseReposito
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.state.ClaimAmendmentStateBuilder;
 
 /**
  * Retrieves the current claim aggregate by id, captures the before-state, and builds the in-memory
