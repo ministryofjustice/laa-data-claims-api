@@ -162,12 +162,17 @@ public class LegacyDuplicateChecksCompatibilitySteps {
         .isEqualToIgnoringCase(expected);
   }
 
-  private void assertBulkSubmissionContainsExpectedOutcomeCount(int expectedClaimCount) {
+  private void assertBulkSubmissionContainsExpectedOutcomeCount(int expectedClaimCount)
+      throws IOException {
     UUID bulkId = context.getBulkSubmissionId();
     assertThat(bulkId).as("Bulk submission id must be present").isNotNull();
-    int actualOutcomes = countOutcomeLinesInLastGeneratedFile();
+
+    JsonNode bulk = api.getBulkSubmission(bulkId);
+    JsonNode outcomes = bulk.path("details").path("outcomes");
+    int actualOutcomes = outcomes.isArray() ? outcomes.size() : 0;
+
     assertThat(actualOutcomes)
-        .as("Generated file should contain %d OUTCOME rows", expectedClaimCount)
+        .as("Bulk submission %s should contain %d outcome(s)", bulkId, expectedClaimCount)
         .isEqualTo(expectedClaimCount);
   }
 

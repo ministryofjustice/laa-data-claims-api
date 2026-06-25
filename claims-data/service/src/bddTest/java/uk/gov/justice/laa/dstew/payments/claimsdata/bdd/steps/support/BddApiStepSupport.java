@@ -52,7 +52,10 @@ public class BddApiStepSupport {
       throws IOException {
     ClassPathResource resource = new ClassPathResource(classpathFile);
     final String filename = resource.getFilename();
-    byte[] bytes = resource.getInputStream().readAllBytes();
+    byte[] bytes;
+    try (var in = resource.getInputStream()) {
+      bytes = in.readAllBytes();
+    }
     sendBulkSubmission(filename, bytes, office, userId);
   }
 

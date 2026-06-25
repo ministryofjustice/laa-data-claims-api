@@ -32,7 +32,7 @@ Feature: MIME validation checks (API)
       | xml    | text/xml                 |
       | csv    | application/vnd.ms-excel |
 
-   @MC_2
+  @MC_2
   Scenario Outline: Reject submission when <format> has Mime Type <mimeType>
     Given I generate "Legal help" "<format>" file with "1" outcomes
     When I upload the generated file with mime type "<mimeType>"
