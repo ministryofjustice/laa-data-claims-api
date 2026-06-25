@@ -48,10 +48,6 @@ aws:
 javers:
   sqlSchema: javers
 
-# Governed amendment reference data caching (TTL eviction; lazy reload on next access after expiry)
-amendment:
-  reference:
-    refresh-minutes: ${AMENDMENT_REFERENCE_REFRESH_MINUTES:30}
 
 # used by actuator info endpoint
 info:
@@ -129,6 +125,16 @@ logging:
         node_name: ${HOSTNAME:unknown}
 
 laa:
+  # Claims API application settings (typed via ClaimsApiProperties). Keep all Claims API config
+  # under this namespace, grouped by feature, so paths stay consistent and discoverable.
+  claims:
+    api:
+      amendments:
+        # Feature toggle for the amendments capability (reserved; not yet enforced).
+        enabled: true
+        cache:
+          # TTL for the governed amendment reference data cache; lazy reload after expiry.
+          refresh: 30m
   springboot.starter:
     auth:
       authentication-header: "Authorization"

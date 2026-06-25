@@ -26,7 +26,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByRefere
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
 
 @SpringJUnitConfig(classes = {CacheConfig.class, AmendmentReferenceDataProvider.class})
-@TestPropertySource(properties = "amendment.reference.refresh-minutes=30")
+@TestPropertySource(properties = "laa.claims.api.amendments.cache.refresh=30m")
 @DisplayName("AmendmentReferenceDataProvider caching")
 class ClaimAmendmentReferenceDataProviderCachingTest {
 
