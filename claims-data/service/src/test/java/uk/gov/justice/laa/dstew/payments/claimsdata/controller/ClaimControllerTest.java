@@ -44,7 +44,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(ClaimController.class)
 @ImportAutoConfiguration(
@@ -63,8 +63,8 @@ class ClaimControllerTest {
 
   @Test
   void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
-    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
 
     final String body =
@@ -100,8 +100,8 @@ class ClaimControllerTest {
 
   @Test
   void getClaim_returnsClaimDetails() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
-    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimResponse claimFields =
         new ClaimResponse()
             .status(ClaimStatus.VALID)
@@ -135,8 +135,8 @@ class ClaimControllerTest {
 
   @Test
   void getClaimV2_returnsClaimDetails() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
-    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimResponseV2 claimFields =
         new ClaimResponseV2()
             .status(ClaimStatus.VALID)
@@ -170,8 +170,8 @@ class ClaimControllerTest {
 
   @Test
   void updateClaim_returnsNoContent() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
-    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final String body = "{ \"status\": \"INVALID\" }";
 
     mockMvc
@@ -269,8 +269,8 @@ class ClaimControllerTest {
   @Test
   void voidClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
 
-    UUID claimId = UUID7.timeBasedUuid();
-    UUID assessmentId = UUID7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    UUID assessmentId = Uuid7.timeBasedUuid();
     UUID createdByUserId = UUID.randomUUID();
 
     when(claimService.voidClaimByIdAndCreateAssessment(
@@ -305,7 +305,7 @@ class ClaimControllerTest {
 
   @Test
   void voidClaim_missingBody_returnsBadRequest() throws Exception {
-    UUID claimId = UUID7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
     mockMvc
         .perform(
             post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)

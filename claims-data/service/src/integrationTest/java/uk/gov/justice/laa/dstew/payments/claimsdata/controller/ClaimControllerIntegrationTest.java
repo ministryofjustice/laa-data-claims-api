@@ -50,7 +50,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -80,7 +80,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldReturnNotFoundWhenSubmissionIdAndClaimIdDoNotExist() throws Exception {
     mockMvc
         .perform(
-            get(GET_A_CLAIM_ENDPOINT, UUID7.timeBasedUuid(), UUID7.timeBasedUuid())
+            get(GET_A_CLAIM_ENDPOINT, Uuid7.timeBasedUuid(), Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound());
   }
@@ -348,7 +348,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // returned.
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, UUID7.timeBasedUuid())
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_ID, Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                 .contentType(MediaType.APPLICATION_JSON))
@@ -766,7 +766,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void shouldVoidClaimAndCreateAssessment() throws Exception {
 
-      UUID userId = UUID7.timeBasedUuid();
+      UUID userId = Uuid7.timeBasedUuid();
 
       String requestBody =
           "{"
@@ -837,7 +837,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .perform(
               post(
                       ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
-                      UUID7.timeBasedUuid())
+                      Uuid7.timeBasedUuid())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -873,7 +873,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
               post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
-                  .header(AUTHORIZATION_HEADER, UUID7.timeBasedUuid()))
+                  .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
     }
   }

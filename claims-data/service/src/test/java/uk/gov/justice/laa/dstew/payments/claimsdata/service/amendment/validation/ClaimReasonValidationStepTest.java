@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -17,13 +16,13 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentReferenceData;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AmendmentReferenceDataUnavailableException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimReasonValidationStep")
@@ -38,7 +37,7 @@ class ClaimReasonValidationStepTest {
 
   private RequestedByReferenceEntity requestedBy(String code, String label, boolean active) {
     return RequestedByReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .code(code)
         .displayLabel(label)
         .isActive(active)
@@ -51,7 +50,7 @@ class ClaimReasonValidationStepTest {
   private AmendmentReasonReferenceEntity reason(
       String requestedByCode, String code, String label, boolean active) {
     return AmendmentReasonReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .requestedByCode(requestedByCode)
         .code(code)
         .displayLabel(label)
@@ -90,11 +89,9 @@ class ClaimReasonValidationStepTest {
     return ClaimAmendmentState.builder().requestPayload(payload).build();
   }
 
-  private ValidationMessagePatch onlyIssue(ClaimAmendmentState state) {
-    assertThat(state.getValidationIssues()).hasSize(1);
-    ValidationMessagePatch issue = state.getValidationIssues().getFirst();
-    assertThat(issue.getType()).isEqualTo(ValidationMessageType.ERROR);
-    return issue;
+  private ClaimAmendmentValidationError onlyError(List<ClaimAmendmentValidationError> errors) {
+    assertThat(errors).hasSize(1);
+    return errors.getFirst();
   }
 
   @Nested
@@ -102,15 +99,12 @@ class ClaimReasonValidationStepTest {
   class HappyPath {
 
     @Test
-    @DisplayName("returns true and collects no issues when all metadata is valid")
-    void noIssuesWhenAllValid() {
+    @DisplayName("returns no errors when all metadata is valid")
+    void noErrorsWhenAllValid() {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", VALID_UUID);
 
-      boolean valid = step.validate(state);
-
-      assertThat(valid).isTrue();
-      assertThat(state.getValidationIssues()).isEmpty();
+      assertThat(step.validate(state)).isEmpty();
     }
   }
 
@@ -124,12 +118,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("  ", "PROVIDER_ERROR", VALID_UUID);
 
-      boolean valid = step.validate(state);
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(valid).isFalse();
-      ValidationMessagePatch issue = onlyIssue(state);
-      assertThat(issue.getSource()).isEqualTo("INVALID_REQUESTED_BY_MISSING");
-      assertThat(issue.getDisplayMessage()).isEqualTo("Requested By is required");
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING);
+      assertThat(error.getMessage()).isEqualTo("Requested By is required");
     }
 
     @Test
@@ -138,12 +131,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("MADE_UP", "PROVIDER_ERROR", VALID_UUID);
 
-      step.validate(state);
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      ValidationMessagePatch issue = onlyIssue(state);
-      assertThat(issue.getSource()).isEqualTo("INVALID_REQUESTED_BY_UNKNOWN");
-      assertThat(issue.getDisplayMessage())
-          .isEqualTo("Requested By 'MADE_UP' is not a recognised value");
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
+      assertThat(error.getMessage()).isEqualTo("Requested By 'MADE_UP' is not a recognised value");
     }
 
     @Test
@@ -153,15 +145,14 @@ class ClaimReasonValidationStepTest {
       // Reason omitted to isolate the Requested By assertion (LEGACY_PARTY has no reasons).
       ClaimAmendmentState state = stateWith("LEGACY_PARTY", null, VALID_UUID);
 
-      step.validate(state);
+      List<ClaimAmendmentValidationError> errors = step.validate(state);
 
-      assertThat(state.getValidationIssues())
-          .extracting(ValidationMessagePatch::getSource)
-          .contains("INVALID_REQUESTED_BY_INACTIVE");
-      assertThat(state.getValidationIssues())
-          .filteredOn(m -> "INVALID_REQUESTED_BY_INACTIVE".equals(m.getSource()))
+      assertThat(errors)
+          .filteredOn(
+              error ->
+                  error.getCode() == ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE)
           .singleElement()
-          .extracting(ValidationMessagePatch::getDisplayMessage)
+          .extracting(ClaimAmendmentValidationError::getMessage)
           .isEqualTo("Requested By 'LEGACY_PARTY' is no longer in use");
     }
 
@@ -171,11 +162,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("Provider", "PROVIDER_ERROR", VALID_UUID);
 
-      step.validate(state);
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      ValidationMessagePatch issue = onlyIssue(state);
-      assertThat(issue.getSource()).isEqualTo("INVALID_REQUESTED_BY_NOT_A_CODE");
-      assertThat(issue.getDisplayMessage())
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_NOT_A_CODE);
+      assertThat(error.getMessage())
           .isEqualTo("Requested By must be supplied as a code, not a display label");
     }
   }
@@ -190,10 +181,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", null, VALID_UUID);
 
-      ValidationMessagePatch issue = onlyIssue(validateAndReturn(state));
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(issue.getSource()).isEqualTo("INVALID_AMENDMENT_REASON_MISSING");
-      assertThat(issue.getDisplayMessage()).isEqualTo("Amendment Reason is required");
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING);
+      assertThat(error.getMessage()).isEqualTo("Amendment Reason is required");
     }
 
     @Test
@@ -202,10 +194,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "MADE_UP", VALID_UUID);
 
-      ValidationMessagePatch issue = onlyIssue(validateAndReturn(state));
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(issue.getSource()).isEqualTo("INVALID_AMENDMENT_REASON_UNKNOWN");
-      assertThat(issue.getDisplayMessage())
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_UNKNOWN);
+      assertThat(error.getMessage())
           .isEqualTo("Amendment Reason 'MADE_UP' is not a recognised value");
     }
 
@@ -215,10 +208,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "Provider Error", VALID_UUID);
 
-      ValidationMessagePatch issue = onlyIssue(validateAndReturn(state));
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(issue.getSource()).isEqualTo("INVALID_AMENDMENT_REASON_NOT_A_CODE");
-      assertThat(issue.getDisplayMessage())
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_NOT_A_CODE);
+      assertThat(error.getMessage())
           .isEqualTo("Amendment Reason must be supplied as a code, not a display label");
     }
 
@@ -228,11 +222,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("ASSURANCE", "OLD_REASON", VALID_UUID);
 
-      ValidationMessagePatch issue = onlyIssue(validateAndReturn(state));
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(issue.getSource()).isEqualTo("INVALID_AMENDMENT_REASON_INACTIVE");
-      assertThat(issue.getDisplayMessage())
-          .isEqualTo("Amendment Reason 'OLD_REASON' is no longer in use");
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_INACTIVE);
+      assertThat(error.getMessage()).isEqualTo("Amendment Reason 'OLD_REASON' is no longer in use");
     }
 
     @Test
@@ -241,10 +235,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "INCORRECT_MEANS_ASSESSMENT", VALID_UUID);
 
-      ValidationMessagePatch issue = onlyIssue(validateAndReturn(state));
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      assertThat(issue.getSource()).isEqualTo("INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY");
-      assertThat(issue.getDisplayMessage())
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY);
+      assertThat(error.getMessage())
           .isEqualTo(
               "Amendment Reason 'INCORRECT_MEANS_ASSESSMENT' is not valid for Requested By 'PROVIDER'");
     }
@@ -255,16 +250,9 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("MADE_UP", "INCORRECT_MEANS_ASSESSMENT", VALID_UUID);
 
-      step.validate(state);
-
-      assertThat(state.getValidationIssues())
-          .extracting(ValidationMessagePatch::getSource)
-          .containsExactly("INVALID_REQUESTED_BY_UNKNOWN");
-    }
-
-    private ClaimAmendmentState validateAndReturn(ClaimAmendmentState state) {
-      step.validate(state);
-      return state;
+      assertThat(step.validate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
     }
   }
 
@@ -278,11 +266,11 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", "not-a-uuid");
 
-      step.validate(state);
+      ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
-      ValidationMessagePatch issue = onlyIssue(state);
-      assertThat(issue.getSource()).isEqualTo("INVALID_USER_IDENTIFIER_FORMAT");
-      assertThat(issue.getDisplayMessage()).isEqualTo("The user identifier must be a valid UUID");
+      assertThat(error.getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+      assertThat(error.getMessage()).isEqualTo("The user identifier must be a valid UUID");
     }
 
     @Test
@@ -291,9 +279,8 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", null);
 
-      step.validate(state);
-
-      assertThat(onlyIssue(state).getSource()).isEqualTo("INVALID_USER_IDENTIFIER_FORMAT");
+      assertThat(onlyError(step.validate(state)).getCode())
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
     }
   }
 
@@ -307,15 +294,12 @@ class ClaimReasonValidationStepTest {
       stubReferenceData();
       ClaimAmendmentState state = stateWith(null, null, "bad");
 
-      boolean valid = step.validate(state);
-
-      assertThat(valid).isFalse();
-      assertThat(state.getValidationIssues())
-          .extracting(ValidationMessagePatch::getSource)
+      assertThat(step.validate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactlyInAnyOrder(
-              "INVALID_REQUESTED_BY_MISSING",
-              "INVALID_AMENDMENT_REASON_MISSING",
-              "INVALID_USER_IDENTIFIER_FORMAT");
+              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING,
+              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
     }
   }
 
@@ -324,21 +308,29 @@ class ClaimReasonValidationStepTest {
   class TechnicalFailure {
 
     @Test
-    @DisplayName("propagates the unavailable error and saves nothing when the provider fails")
-    void propagatesUnavailableError() {
+    @DisplayName("returns a single fatal technical error when the provider fails")
+    void returnsFatalErrorWhenProviderFails() {
       when(amendmentReferenceDataProvider.getReferenceData())
           .thenThrow(new AmendmentReferenceDataUnavailableException());
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", VALID_UUID);
 
-      assertThatThrownBy(() -> step.validate(state))
-          .isInstanceOf(AmendmentReferenceDataUnavailableException.class)
-          .hasMessage("A technical error occurred, please try again after some time");
-      assertThat(state.getValidationIssues()).isEmpty();
+      List<ClaimAmendmentValidationError> errors = step.validate(state);
+
+      assertThat(errors)
+          .singleElement()
+          .satisfies(
+              error -> {
+                assertThat(error.getCode())
+                    .isEqualTo(
+                        ClaimAmendmentValidationCode
+                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
+                assertThat(error.isFatal()).isTrue();
+              });
     }
 
     @Test
-    @DisplayName("throws when the Requested By reference data is empty")
-    void throwsWhenRequestedByReferenceEmpty() {
+    @DisplayName("returns a single fatal technical error when the Requested By reference data is empty")
+    void returnsFatalErrorWhenRequestedByReferenceEmpty() {
       when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
               new ClaimAmendmentReferenceData(
@@ -346,21 +338,26 @@ class ClaimReasonValidationStepTest {
                   List.of(reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", true))));
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", VALID_UUID);
 
-      assertThatThrownBy(() -> step.validate(state))
-          .isInstanceOf(AmendmentReferenceDataUnavailableException.class);
+      assertThat(step.validate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(
+              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
     }
 
     @Test
-    @DisplayName("throws when the Amendment Reason reference data is empty")
-    void throwsWhenReasonReferenceEmpty() {
+    @DisplayName("returns a single fatal technical error when the Amendment Reason reference data is empty")
+    void returnsFatalErrorWhenReasonReferenceEmpty() {
       when(amendmentReferenceDataProvider.getReferenceData())
           .thenReturn(
               new ClaimAmendmentReferenceData(
                   List.of(requestedBy("PROVIDER", "Provider", true)), List.of()));
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", VALID_UUID);
 
-      assertThatThrownBy(() -> step.validate(state))
-          .isInstanceOf(AmendmentReferenceDataUnavailableException.class);
+      assertThat(step.validate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(
+              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
     }
   }
 }
+

@@ -12,11 +12,11 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @DisplayName("Uuid7")
-class UUID7Test {
+class Uuid7Test {
   @Test
   @DisplayName("timeBasedUuid generates a version 7 UUID")
   void timeBasedUuidGeneratesVersion7() {
-    UUID uuid = UUID7.timeBasedUuid();
+    UUID uuid = Uuid7.timeBasedUuid();
     assertThat(uuid).isNotNull();
     assertThat(uuid.version()).isEqualTo(7);
   }
@@ -24,13 +24,13 @@ class UUID7Test {
   @Test
   @DisplayName("timeBasedUuid generates unique values")
   void timeBasedUuidGeneratesUniqueValues() {
-    assertThat(UUID7.timeBasedUuid()).isNotEqualTo(UUID7.timeBasedUuid());
+    assertThat(Uuid7.timeBasedUuid()).isNotEqualTo(Uuid7.timeBasedUuid());
   }
 
   @Test
   @DisplayName("the constructor cannot be invoked")
   void constructorCannotBeInvoked() throws Exception {
-    Constructor<UUID7> constructor = UUID7.class.getDeclaredConstructor();
+    Constructor<Uuid7> constructor = Uuid7.class.getDeclaredConstructor();
     constructor.setAccessible(true);
     assertThatThrownBy(constructor::newInstance).hasCauseInstanceOf(IllegalStateException.class);
   }
@@ -45,7 +45,7 @@ class UUID7Test {
         "123e4567-e89b-12d3-a456-426614174000"
       })
   void isValidUuidAcceptsCanonical(String value) {
-    assertThat(UUID7.isValidUuid(value)).isTrue();
+    assertThat(Uuid7.isValidUuid(value)).isTrue();
   }
 
   @ParameterizedTest
@@ -64,6 +64,6 @@ class UUID7Test {
         "0190b6a09b7e7c8a9e2d2f3a4b5c6d7e"
       })
   void isValidUuidRejectsInvalid(String value) {
-    assertThat(UUID7.isValidUuid(value)).isFalse();
+    assertThat(Uuid7.isValidUuid(value)).isFalse();
   }
 }

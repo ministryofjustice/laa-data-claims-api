@@ -23,7 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceE
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @SpringJUnitConfig(classes = {CacheConfig.class, AmendmentReferenceDataProvider.class})
 @TestPropertySource(properties = "laa.claims.api.amendments.cache.refresh=30m")
@@ -46,7 +46,7 @@ class ClaimAmendmentReferenceDataProviderCachingTest {
 
   private RequestedByReferenceEntity requestedBy() {
     return RequestedByReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .code("PROVIDER")
         .displayLabel("Provider")
         .isActive(true)
@@ -58,7 +58,7 @@ class ClaimAmendmentReferenceDataProviderCachingTest {
 
   private AmendmentReasonReferenceEntity reason() {
     return AmendmentReasonReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .requestedByCode("PROVIDER")
         .code("PROVIDER_ERROR")
         .displayLabel("Provider Error")

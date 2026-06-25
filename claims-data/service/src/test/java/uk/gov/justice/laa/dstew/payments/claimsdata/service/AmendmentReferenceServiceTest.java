@@ -20,7 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceE
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapperImpl;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AmendmentReferenceService")
@@ -41,7 +41,7 @@ class AmendmentReferenceServiceTest {
   private RequestedByReferenceEntity requestedBy(
       String code, String label, int order, boolean active) {
     return RequestedByReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .code(code)
         .displayLabel(label)
         .isActive(active)
@@ -59,7 +59,7 @@ class AmendmentReferenceServiceTest {
   private AmendmentReasonReferenceEntity reason(
       String requestedByCode, String code, String label, int order, boolean active) {
     return AmendmentReasonReferenceEntity.builder()
-        .id(UUID7.timeBasedUuid())
+        .id(Uuid7.timeBasedUuid())
         .requestedByCode(requestedByCode)
         .code(code)
         .displayLabel(label)

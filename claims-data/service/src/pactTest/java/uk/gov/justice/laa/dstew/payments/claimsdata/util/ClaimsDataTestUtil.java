@@ -37,12 +37,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.Valida
 
 public class ClaimsDataTestUtil {
 
-  public static final UUID SUBMISSION_ID = UUID7.timeBasedUuid();
-  public static final UUID BULK_SUBMISSION_ID = UUID7.timeBasedUuid();
-  public static final UUID CLAIM_1_ID = UUID7.timeBasedUuid();
-  public static final UUID CLIENT_1_ID = UUID7.timeBasedUuid();
-  public static final UUID MESSAGE_ID = UUID7.timeBasedUuid();
-  public static final UUID MATTER_START_ID = UUID7.timeBasedUuid();
+  public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
+  public static final UUID BULK_SUBMISSION_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_1_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
+  public static final UUID MESSAGE_ID = Uuid7.timeBasedUuid();
+  public static final UUID MATTER_START_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
   public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";

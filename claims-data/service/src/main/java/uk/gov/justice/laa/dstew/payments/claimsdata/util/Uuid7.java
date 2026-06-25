@@ -6,14 +6,14 @@ import java.util.regex.Pattern;
 
 /** This is used to generate UUIDs version 7 based on timestamp values. */
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-public final class UUID7 {
+public final class Uuid7 {
 
   /** Canonical (RFC 4122) 8-4-4-4-12 hexadecimal UUID form. */
   private static final Pattern UUID_PATTERN =
       Pattern.compile(
           "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
-  private UUID7() {
+  private Uuid7() {
     throw new IllegalStateException("Cannot instantiate Uuid7 class");
   }
 

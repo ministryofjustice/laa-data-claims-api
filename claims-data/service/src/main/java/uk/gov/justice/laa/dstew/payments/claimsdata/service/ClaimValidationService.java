@@ -16,7 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
  * Service for performing validation related to claims and claim operations.
@@ -105,7 +105,7 @@ public class ClaimValidationService {
    */
   public void validateUserId(String userId) {
     validateUserIdIsNotNullOrBlank(userId);
-    if (!UUID7.isValidUuid(userId)) {
+    if (!Uuid7.isValidUuid(userId)) {
       throw new AssessmentInvalidUserException(
           AssessmentInvalidUserException.ErrorMessage.INVALID_UUID_FORMAT.getMessage(userId));
     }

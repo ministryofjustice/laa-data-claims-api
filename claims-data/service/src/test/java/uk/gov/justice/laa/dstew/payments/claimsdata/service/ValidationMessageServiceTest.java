@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class ValidationMessageServiceTest {
@@ -42,8 +42,8 @@ class ValidationMessageServiceTest {
   @DisplayName(
       "should return validation errors enriched with claim details when claimId is present")
   void shouldReturnValidationErrorsForClaim() {
-    final UUID submissionId = UUID7.timeBasedUuid();
-    final UUID claimId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 10);
     final var page =
         new PageImpl<>(List.of(mock(ValidationMessageWithClaimDetailsProjection.class)));
@@ -81,7 +81,7 @@ class ValidationMessageServiceTest {
       "should return validation errors enriched with claim details and count distinct claims when"
           + " claimId is null")
   void shouldReturnValidationErrorsAndCountDistinctClaims() {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 5);
     final var page =
         new PageImpl<>(List.of(mock(ValidationMessageWithClaimDetailsProjection.class)));
@@ -121,7 +121,7 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should pass null type and source through to the repository")
   void shouldPassNullFiltersToRepository() {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 20);
     final var page = new PageImpl<ValidationMessageWithClaimDetailsProjection>(List.of());
     final ValidationMessagesResponse mappedResponse = new ValidationMessagesResponse();
@@ -146,7 +146,7 @@ class ValidationMessageServiceTest {
   @DisplayName(
       "should map API sort field to projection alias, apply ignoreCase and append secondary sort by id")
   void shouldMapSortFieldAndApplyIgnoreCaseWithSecondarySort() {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("client_surname")));
     final var page = new PageImpl<ValidationMessageWithClaimDetailsProjection>(List.of());
     final ValidationMessagesResponse mappedResponse = new ValidationMessagesResponse();
@@ -180,7 +180,7 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should apply secondary sort by id ASC when pageable is unsorted")
   void shouldApplySecondaryIdSortWhenUnsorted() {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 10);
     final var page = new PageImpl<ValidationMessageWithClaimDetailsProjection>(List.of());
     final ValidationMessagesResponse mappedResponse = new ValidationMessagesResponse();
@@ -206,7 +206,7 @@ class ValidationMessageServiceTest {
   @Test
   @DisplayName("should throw ValidationMessageBadRequestException for an unsupported sort field")
   void shouldThrowForUnsupportedSortField() {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     final Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("unsupported_field")));
 
     assertThatThrownBy(() -> service.getValidationErrors(submissionId, null, null, null, pageable))

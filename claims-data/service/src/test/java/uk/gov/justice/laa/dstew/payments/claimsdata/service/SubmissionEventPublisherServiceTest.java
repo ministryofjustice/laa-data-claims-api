@@ -18,7 +18,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,9 +44,9 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_BulkSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sns topic
-    UUID bulkSubmissionId = UUID7.timeBasedUuid();
-    UUID submissionId1 = UUID7.timeBasedUuid();
-    UUID submissionId2 = UUID7.timeBasedUuid();
+    UUID bulkSubmissionId = Uuid7.timeBasedUuid();
+    UUID submissionId1 = Uuid7.timeBasedUuid();
+    UUID submissionId2 = Uuid7.timeBasedUuid();
 
     String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
     // when publish is called with some IDs
@@ -80,7 +80,7 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_ValidateSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sns queue
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
 
     String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
 
@@ -111,7 +111,7 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_ValidationSucceededEvent_sendsMessageWithCorrectPayload() {
     // given an Sns queue
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
 
     String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
 
@@ -142,7 +142,7 @@ class SubmissionEventPublisherServiceTest {
   @Test
   void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
     // given an Sns queue
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
 
     // simulate an error
     doThrow(new RuntimeException("SNS unavailable"))

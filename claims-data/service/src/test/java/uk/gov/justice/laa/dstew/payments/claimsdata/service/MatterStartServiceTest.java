@@ -24,7 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class MatterStartServiceTest {
@@ -41,7 +41,7 @@ class MatterStartServiceTest {
 
     @Test
     void shouldCreateMatterStart() {
-      final UUID submissionId = UUID7.timeBasedUuid();
+      final UUID submissionId = Uuid7.timeBasedUuid();
       final Submission submission = Submission.builder().id(submissionId).build();
       final MatterStartPost request = new MatterStartPost();
       request.setCreatedByUserId(API_USER_ID);
@@ -62,7 +62,7 @@ class MatterStartServiceTest {
 
     @Test
     void shouldThrowWhenSubmissionNotFound() {
-      final UUID missingSubmissionId = UUID7.timeBasedUuid();
+      final UUID missingSubmissionId = Uuid7.timeBasedUuid();
       final MatterStartPost request = new MatterStartPost();
 
       when(submissionRepository.findById(missingSubmissionId)).thenReturn(Optional.empty());
@@ -79,8 +79,8 @@ class MatterStartServiceTest {
 
     @Test
     void shouldGetMatterStartIdsForSubmission() {
-      final UUID submissionId = UUID7.timeBasedUuid();
-      final MatterStart ms = MatterStart.builder().id(UUID7.timeBasedUuid()).build();
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final MatterStart ms = MatterStart.builder().id(Uuid7.timeBasedUuid()).build();
 
       when(matterStartRepository.findBySubmissionId(submissionId)).thenReturn(List.of(ms));
 
@@ -98,8 +98,8 @@ class MatterStartServiceTest {
     @DisplayName("Should return matter start")
     void shouldReturnMatterStart() {
       // Given
-      final UUID submissionId = UUID7.timeBasedUuid();
-      final UUID matterStartsId = UUID7.timeBasedUuid();
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID matterStartsId = Uuid7.timeBasedUuid();
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.of(MatterStart.builder().id(matterStartsId).build()));
       MatterStartGet expected =
@@ -119,8 +119,8 @@ class MatterStartServiceTest {
     @DisplayName("Should return empty")
     void shouldReturnEmpty() {
       // Given
-      final UUID submissionId = UUID7.timeBasedUuid();
-      final UUID matterStartsId = UUID7.timeBasedUuid();
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID matterStartsId = Uuid7.timeBasedUuid();
       when(matterStartRepository.findBySubmissionIdAndId(submissionId, matterStartsId))
           .thenReturn(Optional.empty());
       // When
@@ -137,7 +137,7 @@ class MatterStartServiceTest {
     @DisplayName("Should throw exception when submission id does not exist")
     @Test
     void shouldThrowExceptionWhenSubmissionIdDoesNotExist() {
-      var missingSubmissionId = UUID7.timeBasedUuid();
+      var missingSubmissionId = Uuid7.timeBasedUuid();
       when(submissionRepository.findById(missingSubmissionId)).thenReturn(Optional.empty());
 
       assertThatThrownBy(
@@ -151,8 +151,8 @@ class MatterStartServiceTest {
     @DisplayName("Should return list of Matter Starts for a valid submission id")
     @Test
     void shouldReturnListMatterStartsForValidSubmissionId() {
-      var submissionId = UUID7.timeBasedUuid();
-      var matterStartEntity = MatterStart.builder().id(UUID7.timeBasedUuid()).build();
+      var submissionId = Uuid7.timeBasedUuid();
+      var matterStartEntity = MatterStart.builder().id(Uuid7.timeBasedUuid()).build();
       when(submissionRepository.findById(submissionId))
           .thenReturn(Optional.of(Submission.builder().id(submissionId).build()));
       when(matterStartRepository.findBySubmissionId(submissionId))
@@ -174,7 +174,7 @@ class MatterStartServiceTest {
         "Should return empty list of Matter Starts when submission id has no associated matter starts")
     @Test
     void shouldReturnEmptyListOfMatterStarts() {
-      var submissionId = UUID7.timeBasedUuid();
+      var submissionId = Uuid7.timeBasedUuid();
       when(submissionRepository.findById(submissionId))
           .thenReturn(Optional.of(Submission.builder().id(submissionId).build()));
       when(matterStartRepository.findBySubmissionId(submissionId))

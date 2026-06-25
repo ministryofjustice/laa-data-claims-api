@@ -23,7 +23,7 @@ import org.mockito.Mockito;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 class SubmissionSpecificationTest {
 
@@ -53,7 +53,7 @@ class SubmissionSpecificationTest {
   @DisplayName("should return equals predicate when submission id present")
   @Test
   void shouldBuildSpecificationWithSubmissionId() {
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
     Specification<Submission> spec =
         SubmissionSpecification.submissionIdEqualTo(submissionId.toString());
 

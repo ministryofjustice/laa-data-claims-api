@@ -43,7 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFileValidator;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,7 +86,7 @@ class BulkSubmissionControllerTest {
     @DisplayName("Should return 201 response")
     void shouldReturn201Response() throws IOException {
       CreateBulkSubmission201Response expected = new CreateBulkSubmission201Response();
-      expected.setBulkSubmissionId(UUID7.timeBasedUuid());
+      expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
       when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any()))
@@ -182,7 +182,7 @@ class BulkSubmissionControllerTest {
     @Test
     @DisplayName("Should return 200 response")
     void shouldReturn200Response() {
-      UUID id = UUID7.timeBasedUuid();
+      UUID id = Uuid7.timeBasedUuid();
 
       var expectedDetails = ClaimsDataTestUtil.getBulkSubmission200ResponseDetails();
 
@@ -199,7 +199,7 @@ class BulkSubmissionControllerTest {
     @Test
     @DisplayName("Should return 200 response for summary")
     void shouldReturn200ResponseForSummary() {
-      UUID id = UUID7.timeBasedUuid();
+      UUID id = Uuid7.timeBasedUuid();
 
       var expectedResponse = new GetBulkSubmissionStatusById200Response();
       expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
@@ -216,7 +216,7 @@ class BulkSubmissionControllerTest {
     @Test
     @DisplayName("Should return 404 when summary not found")
     void shouldReturn404ForSummaryWhenNotFound() {
-      UUID id = UUID7.timeBasedUuid();
+      UUID id = Uuid7.timeBasedUuid();
 
       when(bulkSubmissionService.getBulkSubmissionStatusById(id))
           .thenThrow(

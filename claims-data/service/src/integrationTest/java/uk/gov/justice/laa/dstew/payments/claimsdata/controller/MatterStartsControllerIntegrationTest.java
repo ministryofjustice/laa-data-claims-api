@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MatterStartPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTest {
@@ -143,7 +143,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     // given: a MatterStart created on DB
     MatterStart matterStart =
         MatterStart.builder()
-            .id(UUID7.timeBasedUuid())
+            .id(Uuid7.timeBasedUuid())
             .submission(submissionRepository.findById(submission1.getId()).orElseThrow())
             .scheduleReference("REF1")
             .categoryCode(CategoryCode.AAP.getValue())
@@ -197,7 +197,7 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     void getAllMatterStart_shouldReturnOK() throws Exception {
       var matterStartEntity =
           MatterStart.builder()
-              .id(UUID7.timeBasedUuid())
+              .id(Uuid7.timeBasedUuid())
               .submission(submission1)
               .scheduleReference("REF1")
               .categoryCode(CategoryCode.AAP.getValue())

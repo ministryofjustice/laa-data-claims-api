@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -34,7 +34,7 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   void findByClaimId_whenUnknown_returnsEmpty() {
-    UUID unknownClaimId = UUID7.timeBasedUuid();
+    UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = claimCaseRepository.findByClaimId(unknownClaimId);
 
     assertThat(result).isEmpty();

@@ -37,7 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /** Service responsible for handling the processing of bulk submission objects. */
 @Service
@@ -83,7 +83,7 @@ public class BulkSubmissionService
 
     validateAreaOfLaw(areaOfLaw);
 
-    UUID bulkSubmissionId = UUID7.timeBasedUuid();
+    UUID bulkSubmissionId = Uuid7.timeBasedUuid();
 
     BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder =
         BulkSubmission.builder()
@@ -105,7 +105,7 @@ public class BulkSubmissionService
 
     bulkSubmissionRepository.save(authorised);
 
-    UUID newSubmissionId = UUID7.timeBasedUuid();
+    UUID newSubmissionId = Uuid7.timeBasedUuid();
     submissionEventPublisherService.publishBulkSubmissionEvent(
         authorised.getId(), List.of(newSubmissionId));
 

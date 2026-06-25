@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @DisplayName("AmendmentReferenceMapper")
 class AmendmentReferenceMapperTest {
@@ -43,7 +43,7 @@ class AmendmentReferenceMapperTest {
     void toRequestedByModel_mapsCodeLabelAndOrder() {
       RequestedByReferenceEntity entity =
           RequestedByReferenceEntity.builder()
-              .id(UUID7.timeBasedUuid())
+              .id(Uuid7.timeBasedUuid())
               .code("PROVIDER")
               .displayLabel("Provider")
               .isActive(true)
@@ -64,7 +64,7 @@ class AmendmentReferenceMapperTest {
     void toReasonModel_mapsCodeLabelAndOrder() {
       AmendmentReasonReferenceEntity entity =
           AmendmentReasonReferenceEntity.builder()
-              .id(UUID7.timeBasedUuid())
+              .id(Uuid7.timeBasedUuid())
               .requestedByCode("PROVIDER")
               .code("PROVIDER_ERROR")
               .displayLabel("Provider Error")

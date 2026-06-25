@@ -36,7 +36,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimMapperTest {
@@ -109,7 +109,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimFields_mapsAllResponse() {
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
     final Claim entity =
         Claim.builder()
             .dutySolicitor(true)
@@ -184,7 +184,7 @@ class ClaimMapperTest {
 
   @Test
   void toClaimFieldsV2_mapsAllResponse() {
-    UUID submissionId = UUID7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
     final Claim entity =
         Claim.builder()
             .dutySolicitor(true)
@@ -272,7 +272,7 @@ class ClaimMapperTest {
 
   @Test
   void toSubmissionClaim_mapsFields() {
-    final UUID id = UUID7.timeBasedUuid();
+    final UUID id = Uuid7.timeBasedUuid();
     final Claim entity = Claim.builder().id(id).status(ClaimStatus.READY_TO_PROCESS).build();
 
     final SubmissionClaim response = mapper.toSubmissionClaim(entity);
@@ -316,8 +316,8 @@ class ClaimMapperTest {
 
   @Test
   void toValidationMessageLog_mapsFields() {
-    final Submission submission = Submission.builder().id(UUID7.timeBasedUuid()).build();
-    final Claim claim = Claim.builder().id(UUID7.timeBasedUuid()).submission(submission).build();
+    final Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).submission(submission).build();
 
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()
@@ -546,13 +546,13 @@ class ClaimMapperTest {
   @Test
   void updateClaimResponseFromCalculatedFeeDetail_createsNestedResponseWhenMissing() {
     final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
-    UUID claimSummaryFeeId = UUID7.timeBasedUuid();
+    UUID claimSummaryFeeId = Uuid7.timeBasedUuid();
     claimSummaryFee.setId(claimSummaryFeeId);
 
-    UUID calculatedFeeDetailId = UUID7.timeBasedUuid();
+    UUID calculatedFeeDetailId = Uuid7.timeBasedUuid();
 
     final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
-    final Claim claim = Claim.builder().id(UUID7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
     feeDetail.setId(calculatedFeeDetailId);
     feeDetail.setClaim(claim);
     feeDetail.setFeeCode("FEE001");
@@ -662,7 +662,7 @@ class ClaimMapperTest {
   @Test
   void updateClaimResponseFromCalculatedFeeDetail_reusesExistingNestedObjects() {
     final CalculatedFeeDetail feeDetail = new CalculatedFeeDetail();
-    final Claim claim = Claim.builder().id(UUID7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
     feeDetail.setClaim(claim);
     feeDetail.setFeeCode("NEW-CODE");
     feeDetail.setBoltOnTotalFeeAmount(new BigDecimal("12.34"));
@@ -811,8 +811,8 @@ class ClaimMapperTest {
   private static FeeCalculationPatch getFeeCalculationPatch() {
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     feeCalculationPatch.calculatedFeeDetailId("FEE_DETAIL_ID");
-    feeCalculationPatch.claimSummaryFeeId(UUID7.timeBasedUuid());
-    feeCalculationPatch.claimId(UUID7.timeBasedUuid());
+    feeCalculationPatch.claimSummaryFeeId(Uuid7.timeBasedUuid());
+    feeCalculationPatch.claimId(Uuid7.timeBasedUuid());
     feeCalculationPatch.feeCode("FEE_CODE");
     feeCalculationPatch.feeCodeDescription("FEE_DESCRIPTION");
     feeCalculationPatch.feeType(FeeCalculationType.DISB_ONLY);

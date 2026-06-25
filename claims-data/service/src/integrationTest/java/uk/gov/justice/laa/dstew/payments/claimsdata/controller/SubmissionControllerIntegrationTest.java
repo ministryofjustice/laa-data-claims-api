@@ -60,7 +60,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartReposi
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.UUID7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest {
@@ -153,7 +153,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void postSubmission_shouldCreate() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload
     submissionRepository.deleteAll();
     SubmissionPost submissionPost =
@@ -259,7 +259,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
       })
   void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields(String maliciousString)
       throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload
     submissionRepository.deleteAll();
     SubmissionPost submissionPost =
@@ -302,7 +302,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void postSubmission_shouldReturnBadRequest_WhenProviderUserIdIsNull() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
     submissionRepository.deleteAll();
     SubmissionPost submissionPost =
@@ -371,7 +371,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   void postSubmission_shouldCreateWithErrorMessages() throws Exception {
-    final UUID submissionId = UUID7.timeBasedUuid();
+    final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with errorMessages
     submissionRepository.deleteAll();
     SubmissionPost submissionPost =

@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
 /**
  * In-memory aggregate describing a claim amendment in progress, passed from the retrieval/build
@@ -25,9 +23,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
  * <p>The before/after snapshots plus the payload's field presence are sufficient to compute the
  * {@code diff} JSONB.
  *
- * <p>Validation steps accumulate any issues they find in {@link #validationIssues} via {@link
- * #addValidationIssue(ValidationMessagePatch)}, so the flow can collect every message before
- * deciding whether the amendment may proceed.
+ * <p>It also carries the running {@link #errors} collected as the validation steps run, so the
+ * accumulating result travels with the state rather than being threaded separately through the
+ * orchestrator.
  */
 @Data
 @Builder
@@ -39,30 +37,27 @@ public class ClaimAmendmentState {
 
   private ClaimStateSnapshot postAmendmentState;
 
-  @Builder.Default private List<ValidationMessagePatch> validationIssues = new ArrayList<>();
+  /**
+   * The validation errors collected so far as the amendment validation steps run.
+   */
+  @Builder.Default private final List<ClaimAmendmentValidationError> errors = new ArrayList<>();
 
   /**
-   * Records a validation issue against this amendment.
+   * Adds the errors a validation step found to the running collection.
    *
-   * @param issue the issue to add
+   * @param newErrors the errors returned by a step; may be empty
    */
-  public void addValidationIssue(ValidationMessagePatch issue) {
-    if (validationIssues == null) {
-      validationIssues = new ArrayList<>();
-    }
-    validationIssues.add(issue);
+  public void addErrors(List<ClaimAmendmentValidationError> newErrors) {
+    errors.addAll(newErrors);
   }
 
   /**
-   * Indicates whether any collected validation issue is fatal, i.e. of type {@link
-   * ValidationMessageType#ERROR}. A fatal issue means the amendment must not be saved; non-fatal
-   * issues (e.g. {@link ValidationMessageType#WARNING}) do not block the amendment.
+   * Reports whether the collected errors include a fatal one, i.e. a show-stopper that must end the
+   * flow immediately - no further step runs and nothing is saved.
    *
-   * @return {@code true} if at least one validation issue is an error; {@code false} otherwise
+   * @return {@code true} if any collected error is fatal
    */
-  public boolean hasFatalValidationIssues() {
-    return validationIssues != null
-        && validationIssues.stream()
-            .anyMatch(issue -> issue.getType() == ValidationMessageType.ERROR);
+  public boolean containsFatal() {
+    return errors.stream().anyMatch(ClaimAmendmentValidationError::isFatal);
   }
 }
