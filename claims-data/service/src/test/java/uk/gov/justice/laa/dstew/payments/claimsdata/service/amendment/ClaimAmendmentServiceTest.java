@@ -14,10 +14,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.env.MockEnvironment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -90,7 +92,11 @@ class ClaimAmendmentServiceTest {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
     ClaimAmendmentService service =
-        new ClaimAmendmentService(List.of(extraStep, new ClaimStatusValidationStep()));
+        new ClaimAmendmentService(
+            List.of(
+                extraStep,
+                new AmendmentFeatureFlagValidationStep(new MockEnvironment()),
+                new ClaimStatusValidationStep()));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }

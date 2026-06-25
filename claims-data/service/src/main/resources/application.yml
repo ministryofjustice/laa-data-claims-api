@@ -48,6 +48,11 @@ aws:
 javers:
   sqlSchema: javers
 
+claims:
+  api:
+    amendments:
+      # Feature toggle for the amendments capability (reserved; not yet enforced).
+      enabled:
 # used by actuator info endpoint
 info:
   app:
