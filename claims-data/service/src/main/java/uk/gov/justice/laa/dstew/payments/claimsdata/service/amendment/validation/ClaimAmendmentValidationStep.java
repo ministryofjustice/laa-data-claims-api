@@ -15,8 +15,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
  * <p>The {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService} runs the
  * steps in sequence, stopping on the first fatal error. The sequence is defined centrally in {@code
- * AmendmentValidationConfig}; adding a step means writing a new {@code @Component} implementation
- * of this interface and inserting it, at the right position, into that config's order list.
+ * ClaimAmendmentService.STEP_ORDER}; adding a step means writing a new {@code @Component}
+ * implementation of this interface and inserting it, at the right position, into that order list.
  *
  * <p>This is a functional interface ({@link #validate} is its single abstract method), so tests can
  * supply lightweight step stubs as lambdas, e.g. {@code state -> List.of()} for a step that passes

@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -17,7 +19,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentValidationSteps;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -26,7 +27,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  *
  * <p>Exercises the orchestration mechanics with the validation steps mocked: the orchestrator runs
  * each step in order, returns the collected errors, and short-circuits on a fatal error without
- * running later steps. Each step rule is covered by that step's own test (e.g. the test for {@link
+ * running later steps. It also covers how the discovered step beans are sorted into {@code
+ * STEP_ORDER}. Each step rule is covered by that step's own test (e.g. the test for {@link
  * ClaimStatusValidationStep}).
  */
 @ExtendWith(MockitoExtension.class)
@@ -36,7 +38,7 @@ class ClaimAmendmentServiceTest {
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
 
   private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
-    return new ClaimAmendmentService(new AmendmentValidationSteps(List.of(steps)));
+    return new ClaimAmendmentService(steps);
   }
 
   private static ClaimAmendmentState anyState() {
@@ -75,5 +77,30 @@ class ClaimAmendmentServiceTest {
     orchestratorWith(claimStatusValidationStep, laterStep).orchestrate(anyState());
 
     verify(laterStep, never()).validate(any());
+  }
+
+  @Test
+  @DisplayName("declared step order has no duplicates")
+  void declaredOrderHasNoDuplicates() {
+    assertThat(ClaimAmendmentService.STEP_ORDER).doesNotHaveDuplicates();
+  }
+
+  @Test
+  @DisplayName("sorts the discovered step beans into the declared order, ignoring extras")
+  void sortsDiscoveredStepsIntoDeclaredOrder() {
+    ClaimAmendmentValidationStep extraStep = state -> List.of();
+
+    ClaimAmendmentService service =
+        new ClaimAmendmentService(List.of(extraStep, new ClaimStatusValidationStep()));
+
+    assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
+  }
+
+  @Test
+  @DisplayName("fails fast when a declared step has no matching bean")
+  void failsFastWhenDeclaredStepHasNoBean() {
+    assertThatThrownBy(() -> new ClaimAmendmentService(List.of()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No bean found for declared amendment validation step");
   }
 }
