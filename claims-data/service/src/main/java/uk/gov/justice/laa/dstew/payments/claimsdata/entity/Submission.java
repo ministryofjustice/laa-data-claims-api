@@ -19,7 +19,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
-/** Entity representing a submission associated with a bulk submission. */
+/** Entity representing a submission, optionally associated with a bulk submission. */
 @Getter
 @Setter
 @Builder
@@ -31,6 +31,7 @@ public class Submission {
 
   @Id private UUID id;
 
+  @Column
   private UUID bulkSubmissionId;
 
   @NotNull

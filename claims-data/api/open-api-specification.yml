@@ -1434,7 +1434,7 @@ components:
         bulk_submission_id:
           type: string
           format: uuid
-          description: UUID of the associated bulk submission.
+          description: Optional UUID of the associated bulk submission.
         office_account_number:
           type: string
           description: The office account number.
