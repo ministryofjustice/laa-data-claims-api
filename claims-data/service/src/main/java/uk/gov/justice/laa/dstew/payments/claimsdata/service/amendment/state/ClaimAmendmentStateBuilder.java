@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
+package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.state;
 
 import java.util.function.Consumer;
 import org.openapitools.jackson.nullable.JsonNullable;
