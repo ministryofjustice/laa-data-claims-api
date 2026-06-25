@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment;
 
+import java.util.Objects;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
@@ -101,6 +102,13 @@ public enum ClaimAmendmentValidationCode {
 
   // ----- Amendment metadata: submitting user (DSTEW-1765) -----
 
+  /** The submitting user's Entra identifier was not supplied. */
+  INVALID_USER_IDENTIFIER_MISSING(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "The user identifier is required",
+      "Submitting user's Entra UUID is absent"),
+
   /** The submitting user's Entra identifier is not a structurally valid UUID. */
   INVALID_USER_IDENTIFIER_FORMAT(
       ValidationSeverity.ERROR,
@@ -140,7 +148,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus httpStatus,
       String messageTemplate,
       String technicalMessage) {
-    this.severity = severity;
+    this.severity = Objects.requireNonNull(severity, "severity");
     this.httpStatus = httpStatus;
     this.messageTemplate = messageTemplate;
     this.technicalMessage = technicalMessage;
@@ -153,6 +161,6 @@ public enum ClaimAmendmentValidationCode {
    * @return {@code true} if fatal
    */
   public boolean isFatal() {
-    return severity == null || severity.isFatal();
+    return severity.isFatal();
   }
 }

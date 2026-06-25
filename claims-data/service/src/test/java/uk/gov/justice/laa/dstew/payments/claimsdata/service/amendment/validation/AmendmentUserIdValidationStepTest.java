@@ -40,11 +40,24 @@ class AmendmentUserIdValidationStepTest {
   }
 
   @Test
-  @DisplayName("null -> INVALID_USER_IDENTIFIER_FORMAT")
+  @DisplayName("null -> INVALID_USER_IDENTIFIER_MISSING")
   void rejectsNullValue() {
-    assertThat(step.validate(stateWithUserId(null)))
+    ClaimAmendmentValidationError error = step.validate(stateWithUserId(null)).getFirst();
+
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
+    assertThat(error.getMessage()).isEqualTo("The user identifier is required");
+  }
+
+  @Test
+  @DisplayName("absent JsonNullable -> INVALID_USER_IDENTIFIER_MISSING")
+  void rejectsAbsentValue() {
+    ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().requestPayload(payload).build();
+
+    assertThat(step.validate(state))
         .singleElement()
         .extracting(ClaimAmendmentValidationError::getCode)
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
   }
 }

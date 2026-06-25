@@ -24,7 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AmendmentReferenceDataProvider")
-class ClaimAmendmentReferenceDataProviderTest {
+class AmendmentReferenceDataProviderTest {
 
   private static final Instant FIXED_INSTANT = Instant.parse("2026-01-01T00:00:00Z");
 

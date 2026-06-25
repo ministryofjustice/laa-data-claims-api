@@ -28,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @SpringJUnitConfig(classes = {CacheConfig.class, AmendmentReferenceDataProvider.class})
 @TestPropertySource(properties = "laa.claims.api.amendments.cache.refresh=30m")
 @DisplayName("AmendmentReferenceDataProvider caching")
-class ClaimAmendmentReferenceDataProviderCachingTest {
+class AmendmentReferenceDataProviderCachingTest {
 
   private static final Instant FIXED_INSTANT = Instant.parse("2026-01-01T00:00:00Z");
 
