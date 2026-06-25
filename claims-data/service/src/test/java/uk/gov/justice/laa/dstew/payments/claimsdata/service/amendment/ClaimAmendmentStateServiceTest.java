@@ -28,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseReposito
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.state.ClaimAmendmentStateBuilder;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimAmendmentStateService Tests")
