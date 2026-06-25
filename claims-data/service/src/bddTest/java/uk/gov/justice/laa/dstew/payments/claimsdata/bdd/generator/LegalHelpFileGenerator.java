@@ -8,13 +8,13 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants;
 
 /**
  * Java port of {@code tests/utils/scripts/dataGenartor/generateCivilFiles.ts} + {@code
@@ -98,9 +98,6 @@ public final class LegalHelpFileGenerator {
   public record GeneratedFile(Path path, String office, String submissionPeriod) {}
 
   private static final DateTimeFormatter DDMMYYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-  private static final List<String> MONTHS =
-      List.of("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC");
-  private static final List<String> DEFAULT_FEE_CODES = List.of("CAPA", "COM");
 
   private final Path outputDir;
 
@@ -187,7 +184,9 @@ public final class LegalHelpFileGenerator {
 
   private static String buildOutcomeLine(String office, int caseNum, ClaimOverride override) {
     String feeCode =
-        override.feeCode() != null ? override.feeCode() : randomChoice(DEFAULT_FEE_CODES);
+        override.feeCode() != null
+            ? override.feeCode()
+            : randomChoice(BddTestConstants.DEFAULT_FEE_CODES);
 
     LocalDate caseStart =
         override.caseStartDate() != null
@@ -295,11 +294,11 @@ public final class LegalHelpFileGenerator {
   public static String defaultSubmissionPeriod() {
     LocalDate today = LocalDate.now();
     LocalDate latest = today.minusMonths(24).withDayOfMonth(1);
-    LocalDate earliest = LocalDate.of(2018, 1, 1);
+    LocalDate earliest = LocalDate.of(BddTestConstants.EARLIEST_SUBMISSION_YEAR, 1, 1);
     long monthsBetween = java.time.temporal.ChronoUnit.MONTHS.between(earliest, latest);
     long randomOffset = ThreadLocalRandom.current().nextLong(0, Math.max(1, monthsBetween + 1));
     LocalDate picked = earliest.plusMonths(randomOffset);
-    return MONTHS.get(picked.getMonthValue() - 1) + "-" + picked.getYear();
+    return BddTestConstants.MONTHS.get(picked.getMonthValue() - 1) + "-" + picked.getYear();
   }
 
   /**
@@ -315,8 +314,4 @@ public final class LegalHelpFileGenerator {
     }
     return result;
   }
-
-  /** Available default offices (kept package-private so the helper can share the list). */
-  static final List<String> DEFAULT_OFFICES =
-      Arrays.asList("0U099L", "0P322F", "2L847Q", "2N199K", "2P746R", "1T102C");
 }

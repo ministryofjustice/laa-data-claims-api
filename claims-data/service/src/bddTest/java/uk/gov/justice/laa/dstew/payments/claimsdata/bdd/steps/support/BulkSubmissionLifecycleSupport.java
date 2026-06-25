@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
@@ -21,9 +21,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
  * doesn't run the event-service, so we drive the state transition directly via the public API.
  */
 public class BulkSubmissionLifecycleSupport {
-
-  private static final String PATCH_BULK_SUBMISSION_PATH =
-      API_URI_PREFIX + "/bulk-submissions/{id}";
 
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;

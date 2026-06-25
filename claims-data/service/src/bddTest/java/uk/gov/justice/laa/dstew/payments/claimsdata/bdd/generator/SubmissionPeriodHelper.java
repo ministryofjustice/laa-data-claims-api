@@ -1,12 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 
@@ -21,11 +21,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
  */
 @Component
 public class SubmissionPeriodHelper {
-
-  private static final List<String> MONTHS =
-      List.of("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC");
-
-  private static final int EARLIEST_YEAR = 2018;
 
   /**
    * In-process cache of periods already handed out per (office, area-of-law) tuple — guards against
@@ -49,7 +44,7 @@ public class SubmissionPeriodHelper {
     Set<String> used = issued.computeIfAbsent(cacheKey, k -> ConcurrentHashMap.newKeySet());
 
     LocalDate cursor = LocalDate.now().minusMonths(1).withDayOfMonth(1);
-    LocalDate floor = LocalDate.of(EARLIEST_YEAR, 1, 1);
+    LocalDate floor = LocalDate.of(BddTestConstants.EARLIEST_SUBMISSION_YEAR, 1, 1);
 
     while (!cursor.isBefore(floor)) {
       String candidate = formatPeriod(cursor);
@@ -81,6 +76,6 @@ public class SubmissionPeriodHelper {
   }
 
   private static String formatPeriod(LocalDate date) {
-    return MONTHS.get(date.getMonthValue() - 1) + "-" + date.getYear();
+    return BddTestConstants.MONTHS.get(date.getMonthValue() - 1) + "-" + date.getYear();
   }
 }

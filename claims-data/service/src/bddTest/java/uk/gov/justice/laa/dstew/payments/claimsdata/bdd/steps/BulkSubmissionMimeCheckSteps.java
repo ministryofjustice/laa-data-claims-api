@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.DEFAULT_OFFICE;
 
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -30,9 +31,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
  * </ul>
  */
 public class BulkSubmissionMimeCheckSteps {
-
-  /** Default office reused across every MIME-check scenario. */
-  private static final String DEFAULT_OFFICE = "0U099L";
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;

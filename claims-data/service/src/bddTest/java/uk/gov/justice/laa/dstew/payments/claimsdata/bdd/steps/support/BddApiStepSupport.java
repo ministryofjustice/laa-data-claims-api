@@ -1,7 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_STATUS_POLL_TIMEOUT;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_SUBMISSION_SUMMARY_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_TERMINAL_STATES;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
@@ -10,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -35,30 +41,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioConte
  * {@link RestTemplate} — no {@code MockMvc}.
  */
 public class BddApiStepSupport {
-
-  private static final String POST_BULK_SUBMISSION_PATH = API_URI_PREFIX + "/bulk-submissions";
-  private static final String GET_SUBMISSIONS_PATH = API_URI_PREFIX + "/submissions";
-  private static final String GET_SUBMISSION_BY_ID_PATH = API_URI_PREFIX + "/submissions/{id}";
-  private static final String GET_BULK_SUBMISSION_BY_ID_PATH =
-      API_URI_PREFIX + "/bulk-submissions/{id}";
-  private static final String BULK_SUBMISSION_SUMMARY_PATH =
-      API_URI_PREFIX + "/bulk-submissions/{id}/summary";
-
-  /** Terminal states the bulk-submission summary endpoint can reach without an event service. */
-  private static final Set<String> BULK_TERMINAL_STATES =
-      Set.of("PARSING_COMPLETED", "PARSING_FAILED", "VALIDATION_FAILED", "VALIDATION_SUCCEEDED");
-
-  /**
-   * Polling budget for terminal-status checks. The data-claims-api stores submissions with status
-   * {@code READY_FOR_PARSING} on insert and only ever reaches a terminal state once {@code
-   * laa-data-claims-event-service} processes the SQS notification, which isn't part of the BDD
-   * harness. We therefore use a short budget and accept the non-terminal status — assertions are
-   * made against the bulk-submission record itself (which IS available immediately after the POST
-   * returns 201).
-   */
-  private static final Duration ASYNC_TIMEOUT = Duration.ofSeconds(3);
-
-  private static final Duration POLL_INTERVAL = Duration.ofMillis(250);
 
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;
@@ -202,7 +184,7 @@ public class BddApiStepSupport {
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
     HttpEntity<Void> request = new HttpEntity<>(headers);
 
-    long deadline = System.nanoTime() + ASYNC_TIMEOUT.toNanos();
+    long deadline = System.nanoTime() + BULK_STATUS_POLL_TIMEOUT.toNanos();
     String lastStatus = "UNKNOWN";
     while (System.nanoTime() < deadline) {
       try {

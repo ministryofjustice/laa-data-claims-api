@@ -1,13 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_VALIDATION_MESSAGES_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VALIDATION_POLL_TIMEOUT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -21,11 +22,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 /** End-to-end support for asserting async validation messages via real HTTP polling. */
 public class BddValidationMessageStepSupport {
 
-  private static final String GET_VALIDATION_MESSAGES_PATH =
-      API_URI_PREFIX + "/validation-messages";
-  private static final Duration ASYNC_TIMEOUT = Duration.ofSeconds(10);
-  private static final Duration POLL_INTERVAL = Duration.ofMillis(250);
-
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;
   @Autowired private SubmissionRepository submissionRepository;
@@ -34,7 +30,7 @@ public class BddValidationMessageStepSupport {
 
   public void assertSubmissionErrorExists(UUID submissionId, String expectedErrorMessage)
       throws Exception {
-    long deadline = System.nanoTime() + ASYNC_TIMEOUT.toNanos();
+    long deadline = System.nanoTime() + VALIDATION_POLL_TIMEOUT.toNanos();
     String expectedLower = expectedErrorMessage.toLowerCase();
 
     HttpHeaders headers = new HttpHeaders();
@@ -68,11 +64,11 @@ public class BddValidationMessageStepSupport {
     throw new AssertionError(
         String.format(
             "Expected validation messages containing '%s' for submission %s within %d ms",
-            expectedErrorMessage, submissionId, ASYNC_TIMEOUT.toMillis()));
+            expectedErrorMessage, submissionId, VALIDATION_POLL_TIMEOUT.toMillis()));
   }
 
   public void assertSubmissionExists(UUID submissionId) {
-    long deadline = System.nanoTime() + ASYNC_TIMEOUT.toNanos();
+    long deadline = System.nanoTime() + VALIDATION_POLL_TIMEOUT.toNanos();
     while (System.nanoTime() < deadline) {
       if (submissionRepository.findById(submissionId).isPresent()) {
         return;

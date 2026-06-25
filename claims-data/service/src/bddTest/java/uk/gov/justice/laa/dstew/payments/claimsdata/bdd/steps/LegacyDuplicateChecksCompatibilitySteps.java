@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.DEFAULT_OFFICE;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.datatable.DataTable;
@@ -47,9 +48,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
  * </ul>
  */
 public class LegacyDuplicateChecksCompatibilitySteps {
-
-  /** Office that has a Legal Help schedule in the local test data setup. */
-  private static final String DEFAULT_OFFICE = "0U099L";
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
