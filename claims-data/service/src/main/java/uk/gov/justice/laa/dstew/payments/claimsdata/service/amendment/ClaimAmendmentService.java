@@ -83,22 +83,20 @@ public class ClaimAmendmentService {
    *     was applied
    */
   public List<ClaimAmendmentValidationError> orchestrate(ClaimAmendmentState state) {
-    List<ClaimAmendmentValidationError> errors = new ArrayList<>();
-
     for (ClaimAmendmentValidationStep step : validationSteps) {
-      errors.addAll(step.validate(state));
-      if (containsFatal(errors)) {
-        return errors;
+      state.addErrors(step.validate(state));
+      if (state.containsFatal()) {
+        return state.getErrors();
       }
     }
 
-    if (!errors.isEmpty()) {
-      return errors;
+    if (!state.getErrors().isEmpty()) {
+      return state.getErrors();
     }
 
     // ----- atomic save: only when every step has passed -----
     // TODO(DSTEW-176x): persist the amendment atomically within the orchestrator transaction.
-    return errors;
+    return state.getErrors();
   }
 
   /**
@@ -125,16 +123,5 @@ public class ClaimAmendmentService {
                               + " (declared in ClaimAmendmentService.STEP_ORDER).")));
     }
     return List.copyOf(orderedSteps);
-  }
-
-  /**
-   * Reports whether the collected errors include a fatal one, i.e. a show-stopper that must end the
-   * flow immediately - no further step runs and nothing is saved.
-   *
-   * @param errors the running list of collected errors
-   * @return {@code true} if any collected error is fatal
-   */
-  private static boolean containsFatal(List<ClaimAmendmentValidationError> errors) {
-    return errors.stream().anyMatch(ClaimAmendmentValidationError::isFatal);
   }
 }
