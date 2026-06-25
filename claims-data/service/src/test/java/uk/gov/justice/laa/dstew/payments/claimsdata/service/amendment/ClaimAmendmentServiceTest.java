@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 class ClaimAmendmentServiceTest {
 
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
+  @Mock private ClaimAmendmentValidationStep laterStep;
 
   private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
     return new ClaimAmendmentService(steps);
@@ -72,7 +72,6 @@ class ClaimAmendmentServiceTest {
         ClaimAmendmentValidationError.of(
             ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
-    ClaimAmendmentValidationStep laterStep = mock(ClaimAmendmentValidationStep.class);
 
     orchestratorWith(claimStatusValidationStep, laterStep).orchestrate(anyState());
 
