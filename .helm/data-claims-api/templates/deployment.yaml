@@ -115,6 +115,11 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: provider-details-api-access-token
+            - name: PROVIDER_DETAILS_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: provider-details-api-url
             - name: FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
