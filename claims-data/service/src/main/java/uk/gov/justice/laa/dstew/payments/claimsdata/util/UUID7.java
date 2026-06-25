@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /** This is used to generate UUIDs version 7 based on timestamp values. */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class UUID7 {
 
   /** Canonical (RFC 4122) 8-4-4-4-12 hexadecimal UUID form. */
