@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,7 +40,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * <p>This bean is only registered when no other {@link ClaimsDataProvider} bean is present in the
  * application context (see {@link ClaimsDataProviderConfig}).
  */
-@Component
+@ConditionalOnMissingBean(ClaimsDataProvider.class)
 @RequiredArgsConstructor
 @Slf4j
 public class RepositoryClaimsDataProvider implements ClaimsDataProvider {
