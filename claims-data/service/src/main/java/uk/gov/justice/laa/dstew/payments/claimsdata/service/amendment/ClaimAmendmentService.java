@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
@@ -51,7 +53,10 @@ public class ClaimAmendmentService {
 
   /** Canonical amendment validation order; add each step here, in position, as it is built. */
   static final List<Class<? extends ClaimAmendmentValidationStep>> STEP_ORDER =
-      List.of(ClaimStatusValidationStep.class, ClaimVersionValidationStep.class);
+      List.of(
+          ClaimStatusValidationStep.class,
+          AmendmentUserIdValidationStep.class,
+          AmendmentReferenceValidationStep.class);
 
   private final List<ClaimAmendmentValidationStep> validationSteps;
 

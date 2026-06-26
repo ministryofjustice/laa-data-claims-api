@@ -7,13 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentReferenceData;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AmendmentReferenceMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 
 /**
  * Read-only service exposing governed amendment reference data: every Requested By value (active
@@ -25,8 +25,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByRefere
 @Slf4j
 public class AmendmentReferenceService {
 
-  private final RequestedByReferenceRepository requestedByReferenceRepository;
-  private final AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  private final AmendmentReferenceDataProvider amendmentReferenceDataProvider;
   private final AmendmentReferenceMapper amendmentReferenceMapper;
 
   /**
@@ -39,11 +38,11 @@ public class AmendmentReferenceService {
    */
   @Transactional(readOnly = true)
   public AmendmentRequestedByReferenceList getAmendmentRequestedByReferences() {
-    List<RequestedByReferenceEntity> requestedByValues =
-        requestedByReferenceRepository.findByOrderByDisplayOrderAsc();
+    ClaimAmendmentReferenceData referenceData = amendmentReferenceDataProvider.getReferenceData();
+    List<RequestedByReferenceEntity> requestedByValues = referenceData.requestedBy();
 
     Map<String, List<AmendmentReasonReferenceEntity>> reasonsByRequestedByCode =
-        amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc().stream()
+        referenceData.reasons().stream()
             .collect(
                 Collectors.groupingBy(
                     AmendmentReasonReferenceEntity::getRequestedByCode, Collectors.toList()));

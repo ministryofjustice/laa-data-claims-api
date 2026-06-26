@@ -201,4 +201,11 @@ public class ClaimAmendmentPayload {
   @Builder.Default private JsonNullable<Boolean> isSubstantiveHearing = JsonNullable.undefined();
   @Builder.Default private JsonNullable<Integer> hoInterview = JsonNullable.undefined();
   @Builder.Default private JsonNullable<String> localAuthorityNumber = JsonNullable.undefined();
+
+  // ---------------------------------------------------------------------------
+  // Amendment metadata (provider-submitted)
+  // ---------------------------------------------------------------------------
+  @Builder.Default private JsonNullable<String> amendmentRequestedBy = JsonNullable.undefined();
+  @Builder.Default private JsonNullable<String> amendmentUserId = JsonNullable.undefined();
+  @Builder.Default private JsonNullable<String> amendmentReasonCode = JsonNullable.undefined();
 }
