@@ -230,10 +230,8 @@ public class ClaimService
   }
 
   private void amendClaim(Claim claim, ClaimPatch claimPatch) {
-    // 1. Map your ClaimPatch to the sparse payload Vid's service expects
     ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
 
-    // 2. Retrieve the built state
     ClaimAmendmentState state =
         claimAmendmentStateService
             .retrieveAmendmentState(claim.getId(), payload)
@@ -242,12 +240,9 @@ public class ClaimService
                     new ClaimNotFoundException(
                         String.format("No claim %s found during amendment", claim.getId())));
 
-    // 3. Run the orchestrator loop
     List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
 
-    // 4. Handle failures
     if (!errors.isEmpty()) {
-      // Throw your exception here so ControllerAdvice can map it to a 400 with the errors
       throw new ClaimAmendmentValidationException(errors);
     }
   }
