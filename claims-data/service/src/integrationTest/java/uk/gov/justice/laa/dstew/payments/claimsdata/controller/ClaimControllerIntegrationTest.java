@@ -394,11 +394,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(4);
+    assertThat(claimResultSet.getContent()).hasSize(4);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test
@@ -489,11 +492,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(4);
+    assertThat(claimResultSet.getContent()).hasSize(4);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test

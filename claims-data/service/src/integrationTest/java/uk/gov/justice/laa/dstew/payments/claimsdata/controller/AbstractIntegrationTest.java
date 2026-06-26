@@ -90,6 +90,8 @@ public abstract class AbstractIntegrationTest {
   protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
+  protected static final Instant CREATED_ON_OLDER =
+      LocalDate.of(2025, 7, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
   protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -301,11 +303,11 @@ public abstract class AbstractIntegrationTest {
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
-            .caseStartDate(LocalDate.of(2025, 8, 1))
-            .caseConcludedDate(LocalDate.of(2025, 8, 10))
+            .caseStartDate(LocalDate.of(2025, 6, 1))
+            .caseConcludedDate(LocalDate.of(2025, 6, 10))
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
-            .createdOn(CREATED_ON)
+            .createdOn(CREATED_ON_OLDER)
             .build();
 
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4, claim5));
