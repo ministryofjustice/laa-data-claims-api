@@ -54,8 +54,8 @@ public class ClaimAmendmentService {
   /** Canonical amendment validation order; add each step here, in position, as it is built. */
   static final List<Class<? extends ClaimAmendmentValidationStep>> STEP_ORDER =
       List.of(
-          ClaimStatusValidationStep.class,
           AmendmentFeatureFlagValidationStep.class,
+          ClaimStatusValidationStep.class,
           AmendmentReferenceValidationStep.class,
           AmendmentUserIdValidationStep.class);
 
