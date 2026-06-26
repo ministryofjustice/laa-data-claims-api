@@ -17,8 +17,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants;
 
 /**
- * Java port of {@code tests/utils/scripts/dataGenartor/generateCivilFiles.ts} + {@code
- * generateCivilFilesWithOverides.ts} from the {@code bulk-submission-and-fee-scheme-tests-}
+ * Java port of {@code tests/utils/scripts/dataGenerator/generateCivilFiles.ts} + {@code
+ * generateCivilFilesWithOverrides.ts} from the {@code bulk-submission-and-fee-scheme-tests-}
  * project. Generates Legal Help bulk-submission files (CSV/TXT/XML) for BDD scenarios that need
  * fresh, uniquely-keyed payloads (e.g. duplicate-detection scenarios).
  *

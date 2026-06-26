@@ -66,9 +66,14 @@ public final class BddTestConstants {
   /** Longer polling budget for async validation-message / DB-persistence assertions. */
   public static final Duration VALIDATION_POLL_TIMEOUT = Duration.ofSeconds(10);
 
-  /** Terminal states the bulk-submission summary endpoint can legitimately reach. */
+  /** States at which the bulk-submission summary polling can stop in this harness. */
   public static final Set<String> BULK_TERMINAL_STATES =
-      Set.of("PARSING_COMPLETED", "PARSING_FAILED", "VALIDATION_FAILED", "VALIDATION_SUCCEEDED");
+      Set.of(
+          "READY_FOR_PARSING",
+          "PARSING_COMPLETED",
+          "PARSING_FAILED",
+          "VALIDATION_FAILED",
+          "VALIDATION_SUCCEEDED");
 
   // ---------------------------------------------------------------------------
   // API paths (relative to the running server's base URL)
