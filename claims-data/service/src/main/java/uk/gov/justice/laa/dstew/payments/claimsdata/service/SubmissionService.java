@@ -81,6 +81,9 @@ public class SubmissionService
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
 
+    // This is to ensure that we are only validating form NIL submissions where SubmissionStatus is
+    // always READY_FOR_VALIDATION. All other submissions will skip this validation, as they get
+    // created by the event service with CREATED status
     if (submission.getStatus() != SubmissionStatus.CREATED) {
       ValidationResult validationResult =
           validationService.validateSubmission(submissionMapper.toSubmissionResponse(submission));
