@@ -18,6 +18,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -36,6 +39,7 @@ class ClaimAmendmentServiceTest {
 
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
   @Mock private ClaimAmendmentValidationStep laterStep;
+  @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
 
   private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
     return new ClaimAmendmentService(steps);
@@ -89,8 +93,16 @@ class ClaimAmendmentServiceTest {
   void sortsDiscoveredStepsIntoDeclaredOrder() {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
+    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The status step
+    // returns a fatal error for the empty state below, so the orchestrator short-circuits before
+    // the later steps run.
     ClaimAmendmentService service =
-        new ClaimAmendmentService(List.of(extraStep, new ClaimStatusValidationStep()));
+        new ClaimAmendmentService(
+            List.of(
+                extraStep,
+                new ClaimStatusValidationStep(),
+                new AmendmentUserIdValidationStep(),
+                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }
