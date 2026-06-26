@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
@@ -95,27 +96,27 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus.INTERNAL_SERVER_ERROR, errorMessage, exception.getClass(), request);
   }
 
-  /**
-   * Handles exceptions thrown when an early optimistic locking gate detects a stale claim version.
-   *
-   * <p>This handler intercepts {@link ClaimVersionConflictException} and translates it into a
-   * standard HTTP 409 (Conflict) response. It ensures that concurrent amendment submissions with
-   * outdated versions are rejected before any expensive external API calls or database operations
-   * are attempted.
-   *
-   * @param ex the exception containing the specific version conflict message
-   * @return a {@link ResponseEntity} containing a structured {@link ProblemDetail} with the 409
-   *     status and error details
-   */
-  @ExceptionHandler(ClaimVersionConflictException.class)
-  public ResponseEntity<ProblemDetail> handleClaimVersionConflict(
-      ClaimVersionConflictException ex) {
-    ProblemDetail problemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    problemDetail.setTitle("Conflict");
-    // Ensure this matches your existing error structure expectations
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(problemDetail);
+  @ExceptionHandler(ClaimAmendmentValidationException.class)
+  public ResponseEntity<Object> handleClaimAmendmentValidationException(
+      ClaimAmendmentValidationException ex) {
+
+    // 1. Check if the error list contains the specific version conflict code
+    boolean hasVersionConflict = ex.getErrors().stream()
+        .anyMatch(error -> ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.equals(error.getCode()));
+
+    // 2. Map the errors to whatever standard API Error response object your project uses
+    // (e.g., ApiErrorResponse, ErrorDTO, or just returning the list directly)
+    Object responseBody = ex.getErrors();
+
+    // 3. Route to 409 or 400
+    if (hasVersionConflict) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).body(responseBody);
+    }
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
   }
+
+
 
   /**
    * Build a standardised RFC 9457 Problem Detail response.
