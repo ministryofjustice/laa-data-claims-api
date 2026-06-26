@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -57,6 +59,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -68,7 +72,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimVersionConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -93,6 +96,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -112,34 +117,16 @@ class ClaimServiceTest {
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private ClaimValidationService claimValidationService;
   @Mock private AssessmentService assessmentService;
+  @Mock private ClaimAmendmentService claimAmendmentService;
+  @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+
+  @Spy
   private final ClaimSearchRequestValidator claimSearchRequestValidator =
       new ClaimSearchRequestValidator();
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
-  private ClaimService claimService;
-
-  @BeforeEach
-  void initServiceWithRealValidator() {
-    // Ensure the ClaimService used in tests has the real (spied) ClaimSearchRequestValidator
-    // injected.
-    claimService =
-        new ClaimService(
-            submissionRepository,
-            claimRepository,
-            clientRepository,
-            claimMapper,
-            clientMapper,
-            validationMessageLogRepository,
-            claimResultSetMapper,
-            claimSummaryFeeRepository,
-            calculatedFeeDetailRepository,
-            claimCaseRepository,
-            assessmentRepository,
-            claimValidationService,
-            assessmentService,
-            claimSearchRequestValidator);
-  }
+  @InjectMocks private ClaimService claimService;
 
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
@@ -409,6 +396,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -1086,54 +1074,43 @@ class ClaimServiceTest {
 
   @Test
   @DisplayName(
-      "updateClaim throws ClaimVersionConflictException when patch version does not match database version")
-  void shouldThrowWhenClaimVersionMismatchesOnUpdate() {
+      "updateClaim throws ClaimAmendmentValidationException when amendment validation fails")
+  void shouldThrowWhenAmendmentValidationFails() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
 
-    // The database holds version 5
-    final Claim claim = Claim.builder().id(claimId).version(5L).build();
+    // 1. Status MUST be VALID to pass the new gate and trigger amendClaim()
+    final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).version(5L).build();
 
-    // The patch request provides a stale version 4
     final ClaimPatch patch = new ClaimPatch();
     patch.setVersion(4L);
 
-    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
-        .thenReturn(Optional.of(claim));
+    final ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
+    final ClaimAmendmentState state = ClaimAmendmentState.builder().build();
 
-    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
-        .isInstanceOf(ClaimVersionConflictException.class)
-        .hasMessageContaining("CLAIM_VERSION_CONFLICT");
-
-    // Verify the early gate perfectly short-circuits the method
-    verifyNoInteractions(claimMapper);
-    verify(claimRepository, never()).save(any());
-    verifyNoInteractions(calculatedFeeDetailRepository);
-    verifyNoInteractions(validationMessageLogRepository);
-  }
-
-  @Test
-  @DisplayName("updateClaim throws ClaimVersionConflictException when patch version is null")
-  void shouldThrowWhenClaimVersionIsNullOnUpdate() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-
-    // The database holds version 5
-    final Claim claim = Claim.builder().id(claimId).version(5L).build();
-
-    // The patch request provides a null version
-    final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(null);
+    // Mock an error being returned by the orchestrator
+    final uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError
+        mockError =
+            mock(
+                uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment
+                    .ClaimAmendmentValidationError.class);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
 
+    // 2. Mock the new amendment state retrieval and orchestrator flow
+    when(claimMapper.toAmendmentPayload(patch)).thenReturn(payload);
+    when(claimAmendmentStateService.retrieveAmendmentState(claimId, payload))
+        .thenReturn(Optional.of(state));
+    when(claimAmendmentService.orchestrate(state)).thenReturn(List.of(mockError));
+
+    // 3. Assert it throws our new exception instead of the old version conflict one
     assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
-        .isInstanceOf(ClaimVersionConflictException.class)
-        .hasMessageContaining("CLAIM_VERSION_CONFLICT");
+        .isInstanceOf(
+            uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException
+                .class);
 
     // Verify the early gate perfectly short-circuits the method
-    verifyNoInteractions(claimMapper);
     verify(claimRepository, never()).save(any());
     verifyNoInteractions(calculatedFeeDetailRepository);
     verifyNoInteractions(validationMessageLogRepository);

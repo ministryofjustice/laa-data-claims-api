@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 
 /**
  * Tests for {@link ClaimAmendmentService}.
@@ -90,7 +91,8 @@ class ClaimAmendmentServiceTest {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
     ClaimAmendmentService service =
-        new ClaimAmendmentService(List.of(extraStep, new ClaimStatusValidationStep()));
+        new ClaimAmendmentService(
+            List.of(new ClaimStatusValidationStep(), new ClaimVersionValidationStep()));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }

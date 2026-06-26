@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -26,10 +29,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimVersionConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -54,6 +57,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
@@ -81,6 +86,8 @@ public class ClaimService
   private final ClaimValidationService claimValidationService;
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
+  private final ClaimAmendmentService claimAmendmentService;
+  private final ClaimAmendmentStateService claimAmendmentStateService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -183,20 +190,11 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
-
-    // --- EARLY CLAIM VERSION GATE (DSTEW-1658) ---
-    // Reject stale requests immediately before mapping, processing, or external interactions
-    if (!claim.getVersion().equals(claimPatch.getVersion())) {
-      log.warn(
-          "Early version conflict detected for Claim {}. Expected version {}, but received {}",
-          claimId,
-          claim.getVersion(),
-          claimPatch.getVersion());
-
-      // Throws the exception established in DSTEW-1754
-      throw new ClaimVersionConflictException("CLAIM_VERSION_CONFLICT");
+    if (claim.getStatus() == ClaimStatus.VALID) {
+      amendClaim(claim, claimPatch);
     }
 
+    // existing claim update code - NOT claim amendments
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
@@ -228,6 +226,29 @@ public class ClaimService
                 ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
                 validationMessageLogRepository.save(log);
               });
+    }
+  }
+
+  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
+    // 1. Map your ClaimPatch to the sparse payload Vid's service expects
+    ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
+
+    // 2. Retrieve the built state
+    ClaimAmendmentState state =
+        claimAmendmentStateService
+            .retrieveAmendmentState(claim.getId(), payload)
+            .orElseThrow(
+                () ->
+                    new ClaimNotFoundException(
+                        String.format("No claim %s found during amendment", claim.getId())));
+
+    // 3. Run the orchestrator loop
+    List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
+
+    // 4. Handle failures
+    if (!errors.isEmpty()) {
+      // Throw your exception here so ControllerAdvice can map it to a 400 with the errors
+      throw new ClaimAmendmentValidationException(errors);
     }
   }
 

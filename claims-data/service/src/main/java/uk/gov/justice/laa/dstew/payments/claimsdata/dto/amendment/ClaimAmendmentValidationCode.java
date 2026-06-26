@@ -17,6 +17,10 @@ import org.springframework.http.HttpStatus;
 public enum ClaimAmendmentValidationCode {
 
   /** The claim is voided and therefore cannot be amended. */
+  INVALID_CLAIM_VERSION_CONFLICT(
+      ValidationSeverity.FATAL, HttpStatus.CONFLICT, "Claim Version conflict exists"),
+
+  /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended."),
 
