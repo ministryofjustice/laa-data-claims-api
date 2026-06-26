@@ -59,11 +59,7 @@ public enum FeeSchemeRequestField {
   IMMIGRATION_PRIOR_AUTHORITY_NUMBER(
       "immigrationPriorAuthorityNumber", "priorAuthorityReference", allAreas()),
 
-  // Row 21 - the FSP request field is not yet available, so this maps to no area of law and always
-  // returns false. Kept here so the mapping remains complete and auditable.
-  // TODO(DSTEW-xxxx): enable representationOrderDate once the FSP request field exists.
-  REPRESENTATION_ORDER_DATE(
-      "representationOrderDate", "representationOrderDate", EnumSet.noneOf(AreaOfLaw.class)),
+  REPRESENTATION_ORDER_DATE("representationOrderDate", "representationOrderDate", allAreas()),
 
   LONDON_RATE("londonRate", "isLondonRate", allAreas()),
 
