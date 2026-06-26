@@ -900,7 +900,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                     .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isConflict()) // Expect HTTP 409
+            .andExpect(status().isConflict()) // Expect HTTP 409
             .andReturn();
 
     // then: Assert the specific error code is returned to the user in the response

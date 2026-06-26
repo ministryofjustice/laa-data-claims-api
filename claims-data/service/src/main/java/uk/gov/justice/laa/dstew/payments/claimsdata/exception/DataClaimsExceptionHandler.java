@@ -96,13 +96,30 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus.INTERNAL_SERVER_ERROR, errorMessage, exception.getClass(), request);
   }
 
+  /**
+   * Handles validation failures originating from the synchronous claim amendment orchestrator.
+   *
+   * <p>Inspects the collection of validation errors returned by the orchestrator. If the error list
+   * contains an optimistic locking failure (stale claim version), the response is elevated to a
+   * {@code 409 Conflict} to prompt the client to refresh their state. For all other standard
+   * validation failures (e.g., missing fields, invalid formatting), it returns a standard {@code
+   * 400 Bad Request}.
+   *
+   * @param ex the exception containing the list of collected validation errors
+   * @return a {@link ResponseEntity} containing the list of errors, with an HTTP status of 409
+   *     (Conflict) or 400 (Bad Request) depending on the error contents
+   */
   @ExceptionHandler(ClaimAmendmentValidationException.class)
   public ResponseEntity<Object> handleClaimAmendmentValidationException(
       ClaimAmendmentValidationException ex) {
 
     // 1. Check if the error list contains the specific version conflict code
-    boolean hasVersionConflict = ex.getErrors().stream()
-        .anyMatch(error -> ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.equals(error.getCode()));
+    boolean hasVersionConflict =
+        ex.getErrors().stream()
+            .anyMatch(
+                error ->
+                    ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.equals(
+                        error.getCode()));
 
     // 2. Map the errors to whatever standard API Error response object your project uses
     // (e.g., ApiErrorResponse, ErrorDTO, or just returning the list directly)
@@ -115,8 +132,6 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
   }
-
-
 
   /**
    * Build a standardised RFC 9457 Problem Detail response.
