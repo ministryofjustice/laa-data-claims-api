@@ -121,7 +121,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
                     ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.equals(
                         error.getCode()));
 
-    // 2. Map the errors to whatever standard API Error response object your project uses
+    // 2. Map the errors to whatever standard API Error response object the project uses
     // (e.g., ApiErrorResponse, ErrorDTO, or just returning the list directly)
     Object responseBody = ex.getErrors();
 
