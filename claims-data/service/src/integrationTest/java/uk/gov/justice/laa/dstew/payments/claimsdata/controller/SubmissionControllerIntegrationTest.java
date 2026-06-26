@@ -721,12 +721,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .bulkSubmissionId(null)
             .createdByUserId(USER_ID)
             .numberOfClaims(0)
-            .crimeLowerScheduleNumber("num")
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
             .isNilSubmission(false)
-            .officeAccountNumber("0P322F")
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
             .providerUserId(USER_ID)
             .status(SubmissionStatus.READY_FOR_VALIDATION)
-            .submissionPeriod(PERIOD_JAN_2025)
+            .submissionPeriod(PERIOD_APR_2025)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
             .build();
 
     mockMvc
