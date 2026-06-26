@@ -5,13 +5,9 @@ meta {
 }
 
 get {
-  url: http://{{HOST}}/api/v1/bulk-submissions/:bulksubmission_id
+  url: http://{{HOST}}/api/v1/system/references/amendment-requested-by
   body: multipartForm
   auth: inherit
-}
-
-params:path {
-  bulksubmission_id: {{BULKSUBMISSION_ID}}
 }
 
 headers {
