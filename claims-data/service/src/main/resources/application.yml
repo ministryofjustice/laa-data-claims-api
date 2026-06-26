@@ -48,11 +48,6 @@ aws:
 javers:
   sqlSchema: javers
 
-claims:
-  api:
-    amendments:
-      # Feature toggle for the amendments capability (reserved; not yet enforced).
-      enabled:
 # used by actuator info endpoint
 info:
   app:
@@ -129,6 +124,18 @@ logging:
         node_name: ${HOSTNAME:unknown}
 
 laa:
+  # Claims API application settings (typed via ClaimsApiProperties). Keep all Claims API config
+  # under this namespace, grouped by feature, so paths stay consistent and discoverable.
+  claims:
+    api:
+      amendments:
+        # Feature toggle for the amendments capability, supplied via the CLAIMS_API_AMENDMENTS_ENABLED
+        # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
+        # value is off).
+        enabled: ${CLAIMS_API_AMENDMENTS_ENABLED:false}
+        cache:
+          # TTL for the governed amendment reference data cache; lazy reload after expiry.
+          refresh: 30m
   springboot.starter:
     auth:
       authentication-header: "Authorization"

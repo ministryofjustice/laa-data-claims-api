@@ -43,6 +43,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -120,6 +121,12 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired protected MockMvc mockMvc;
 
+  // Caching is active in the full application context, so cached snapshots (e.g. the amendment
+  // reference data) must be evicted between tests; otherwise a snapshot built from one test's
+  // rolled-back rows would leak into the next test.
+  @Autowired(required = false)
+  protected CacheManager cacheManager;
+
   protected BulkSubmission bulkSubmission;
   protected Submission submission1;
   protected Submission submission2;
@@ -139,6 +146,7 @@ public abstract class AbstractIntegrationTest {
 
   @BeforeEach
   public void abstractSetup() {
+    clearCaches();
     clearIntegrationData();
   }
 
@@ -147,6 +155,20 @@ public abstract class AbstractIntegrationTest {
 
   static {
     postgresContainer.start();
+  }
+
+  private void clearCaches() {
+    if (cacheManager != null) {
+      cacheManager
+          .getCacheNames()
+          .forEach(
+              name -> {
+                var cache = cacheManager.getCache(name);
+                if (cache != null) {
+                  cache.clear();
+                }
+              });
+    }
   }
 
   private void clearIntegrationData() {

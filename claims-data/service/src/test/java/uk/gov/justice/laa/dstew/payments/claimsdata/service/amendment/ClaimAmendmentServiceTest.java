@@ -14,12 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.env.MockEnvironment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -38,6 +41,7 @@ class ClaimAmendmentServiceTest {
 
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
   @Mock private ClaimAmendmentValidationStep laterStep;
+  @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
 
   private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
     return new ClaimAmendmentService(steps);
@@ -91,12 +95,17 @@ class ClaimAmendmentServiceTest {
   void sortsDiscoveredStepsIntoDeclaredOrder() {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
+    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The status step
+    // returns a fatal error for the empty state below, so the orchestrator short-circuits before
+    // the later steps run.
     ClaimAmendmentService service =
         new ClaimAmendmentService(
             List.of(
                 extraStep,
-                new AmendmentFeatureFlagValidationStep(new MockEnvironment()),
-                new ClaimStatusValidationStep()));
+                new AmendmentFeatureFlagValidationStep(new ClaimsApiProperties()),
+                new ClaimStatusValidationStep(),
+                new AmendmentUserIdValidationStep(),
+                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }

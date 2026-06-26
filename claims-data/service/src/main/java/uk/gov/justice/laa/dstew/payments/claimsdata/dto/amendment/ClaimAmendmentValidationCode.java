@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment;
 
+import java.util.Objects;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -14,17 +16,19 @@ import org.springframework.http.HttpStatus;
  * {@link String#formatted(Object...) format placeholders} that are filled with runtime values when
  * the error is raised (see {@code ClaimAmendmentValidationError.of}).
  */
+@Getter
 public enum ClaimAmendmentValidationCode {
 
   /** The Amendments feature is disabled by configuration. */
   INVALID_AMENDMENTS_FEATURE_DISABLED(
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
-      "Amendments are not currently enabled."),
+      "Amendments are not currently enabled.",
+      "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled"),
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended."),
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null),
 
   /**
    * The claim is in a non-amendable state - any {@code claim.status} other than {@code VALID} that
@@ -33,26 +37,128 @@ public enum ClaimAmendmentValidationCode {
   INVALID_CLAIM_STATE_NOT_AMENDABLE(
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
-      "Claim status %s is not amendable; only claims with status %s can be amended.");
+      "Claim status %s is not amendable; only claims with status %s can be amended.",
+      null),
 
+  // ----- Amendment metadata: Requested By (DSTEW-1765) -----
+
+  /** Requested By code was not supplied. */
+  INVALID_REQUESTED_BY_MISSING(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Requested By is required",
+      "Requested By code is absent"),
+
+  /** Requested By code is not present in the reference-data lookup. */
+  INVALID_REQUESTED_BY_UNKNOWN(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Requested By '%s' is not a recognised value",
+      "Requested By code is not present in the Reference Data lookup"),
+
+  /** Requested By code exists in the lookup but is currently inactive. */
+  INVALID_REQUESTED_BY_INACTIVE(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Requested By '%s' is no longer in use",
+      "Requested By code is present in the lookup but currently inactive"),
+
+  /** Requested By value is a display label rather than a stable code. */
+  INVALID_REQUESTED_BY_NOT_A_CODE(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Requested By must be supplied as a code, not a display label",
+      "Requested By value is a display label rather than a code"),
+
+  // ----- Amendment metadata: Amendment Reason (DSTEW-1765) -----
+
+  /** Amendment Reason code was not supplied. */
+  INVALID_AMENDMENT_REASON_MISSING(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Amendment Reason is required",
+      "Amendment Reason code is absent"),
+
+  /** Amendment Reason code is not present in the reference-data lookup. */
+  INVALID_AMENDMENT_REASON_UNKNOWN(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Amendment Reason '%s' is not a recognised value",
+      "Amendment Reason code is not present in the Reference Data lookup"),
+
+  /** Amendment Reason code exists in the lookup but is currently inactive. */
+  INVALID_AMENDMENT_REASON_INACTIVE(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Amendment Reason '%s' is no longer in use",
+      "Amendment Reason code is present in the lookup but currently inactive"),
+
+  /** Amendment Reason value is a display label rather than a stable code. */
+  INVALID_AMENDMENT_REASON_NOT_A_CODE(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Amendment Reason must be supplied as a code, not a display label",
+      "Amendment Reason value is a display label rather than a code"),
+
+  /** Amendment Reason code exists but is not valid for the submitted Requested By code. */
+  INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Amendment Reason '%s' is not valid for Requested By '%s'",
+      "Amendment Reason code exists but is not valid for the submitted Requested By code"),
+
+  // ----- Amendment metadata: submitting user (DSTEW-1765) -----
+
+  /** The submitting user's Entra identifier was not supplied. */
+  INVALID_USER_IDENTIFIER_MISSING(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "The user identifier is required",
+      "Submitting user's Entra UUID is absent"),
+
+  /** The submitting user's Entra identifier is not a structurally valid UUID. */
+  INVALID_USER_IDENTIFIER_FORMAT(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "The user identifier must be a valid UUID",
+      "Submitting user's Entra UUID is not a structurally valid UUID"),
+
+  // ----- Amendment metadata: technical failures (DSTEW-1765) -----
+
+  /** The governed amendment metadata reference data was unavailable at submit time. */
+  TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred, please try again after some time",
+      "Required amendment metadata reference data was unavailable at submit time");
+
+  /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
-  private final HttpStatus httpStatus;
-  private final String messageTemplate;
 
-  ClaimAmendmentValidationCode(
-      ValidationSeverity severity, HttpStatus httpStatus, String messageTemplate) {
-    this.severity = severity;
-    this.httpStatus = httpStatus;
-    this.messageTemplate = messageTemplate;
-  }
+  /** The HTTP status returned to the caller for this error. */
+  private final HttpStatus httpStatus;
 
   /**
-   * The severity of this error, which determines whether it is fatal.
-   *
-   * @return the severity
+   * The user-facing message template; may contain placeholders that are filled with runtime values
+   * when the error is raised.
    */
-  public ValidationSeverity getSeverity() {
-    return severity;
+  private final String messageTemplate;
+
+  /**
+   * The internal, developer-facing technical description of this error, used for diagnostics and
+   * logging. May be for codes that have no dedicated technical message.
+   */
+  private final String technicalMessage;
+
+  ClaimAmendmentValidationCode(
+      ValidationSeverity severity,
+      HttpStatus httpStatus,
+      String messageTemplate,
+      String technicalMessage) {
+    this.severity = Objects.requireNonNull(severity, "severity");
+    this.httpStatus = httpStatus;
+    this.messageTemplate = messageTemplate;
+    this.technicalMessage = technicalMessage;
   }
 
   /**
@@ -63,24 +169,5 @@ public enum ClaimAmendmentValidationCode {
    */
   public boolean isFatal() {
     return severity.isFatal();
-  }
-
-  /**
-   * The HTTP status returned to the caller for this error.
-   *
-   * @return the HTTP status
-   */
-  public HttpStatus getHttpStatus() {
-    return httpStatus;
-  }
-
-  /**
-   * The user-facing message template; may contain {@link String#formatted(Object...)} placeholders
-   * that are filled with runtime values when the error is raised.
-   *
-   * @return the message template
-   */
-  public String getMessageTemplate() {
-    return messageTemplate;
   }
 }
