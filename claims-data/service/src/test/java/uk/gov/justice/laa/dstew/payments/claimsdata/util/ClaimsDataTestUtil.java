@@ -40,6 +40,7 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_2_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_3_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_5_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
