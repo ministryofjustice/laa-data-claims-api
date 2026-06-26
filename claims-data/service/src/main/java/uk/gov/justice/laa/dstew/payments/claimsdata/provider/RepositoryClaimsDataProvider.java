@@ -39,7 +39,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * <p>This bean is only registered when no other {@link ClaimsDataProvider} bean is present in the
  * application context (see {@link ClaimsDataProviderConfig}).
  */
-@ConditionalOnMissingBean(ClaimsDataProvider.class)
 @RequiredArgsConstructor
 @Slf4j
 public class RepositoryClaimsDataProvider implements ClaimsDataProvider {
