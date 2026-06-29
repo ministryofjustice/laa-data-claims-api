@@ -110,6 +110,26 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: hikari-connection-timeout
+            - name: PROVIDER_DETAILS_API_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: provider-details-api-access-token
+            - name: PROVIDER_DETAILS_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: provider-details-api-url
+            - name: FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-access-token
+            - name: FEE_SCHEME_PLATFORM_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-url
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
