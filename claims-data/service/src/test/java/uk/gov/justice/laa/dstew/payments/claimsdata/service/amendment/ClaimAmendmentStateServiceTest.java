@@ -91,8 +91,7 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentPayload.builder().feeCode(JsonNullable.of(AMENDED_FEE_CODE)).build();
     ClaimAmendmentState expected =
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
-    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 5L))
-        .thenReturn(expected);
+    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 5L)).thenReturn(expected);
 
     Optional<ClaimAmendmentState> result = service.retrieveAmendmentState(CLAIM_ID, payload, 5L);
 

@@ -377,10 +377,9 @@ class ClaimServiceTest {
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    // Added version to mock Claim
     final Claim claim = Claim.builder().id(claimId).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L); // Added matching version to Patch
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
@@ -414,7 +413,7 @@ class ClaimServiceTest {
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L); // Added matching version to Patch
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -442,7 +441,7 @@ class ClaimServiceTest {
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L); // Added matching version to Patch
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -471,7 +470,7 @@ class ClaimServiceTest {
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
     final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L); // Added matching version to Patch
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
     final Claim claim =
@@ -516,7 +515,7 @@ class ClaimServiceTest {
             .submission(Submission.builder().id(submissionId).build())
             .build();
     final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L); // Added matching version to Patch
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
 

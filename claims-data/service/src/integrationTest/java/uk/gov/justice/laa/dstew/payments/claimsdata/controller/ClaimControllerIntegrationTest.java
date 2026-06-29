@@ -247,7 +247,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
-    claimPatch.setVersion(0L); // ADDED VERSION
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -276,7 +276,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
-    claimPatch.setVersion(0L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
     MvcResult result =
@@ -305,7 +304,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(caseReference);
-    claimPatch.setVersion(0L); // ADDED VERSION
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()

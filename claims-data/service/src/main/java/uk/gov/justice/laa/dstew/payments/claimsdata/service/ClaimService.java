@@ -190,8 +190,145 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
-    if (claim.getStatus() == ClaimStatus.VALID) {
+
+    if (isAnAmendment(claim, claimPatch)) {
       amendClaim(claim, claimPatch);
+    } else {
+      updateClaimStatusAndFeeDetails(claim, claimPatch);
+    }
+  }
+
+  private boolean isAnAmendment(Claim claim, ClaimPatch claimPatch) {
+    // Rule 1: If there is no status, it must be an amendment
+    if (claimPatch.getStatus() == null) {
+      return true;
+    }
+
+    // Rule 2: Status is present, but there are other business fields attached
+    return hasAdditionalFieldUpdates(claimPatch);
+  }
+
+  /**
+   * Checks if the patch contains any fields outside of the standard status/fee update flow.
+   * Leverages short-circuit evaluation for maximum performance.
+   */
+  private boolean hasAdditionalFieldUpdates(ClaimPatch patch) {
+    return patch.getScheduleReference() != null
+        || patch.getLineNumber() != null
+        || patch.getUniqueFileNumber() != null
+        || patch.getCaseStartDate() != null
+        || patch.getCaseConcludedDate() != null
+        || patch.getMatterTypeCode() != null
+        || patch.getCrimeMatterTypeCode() != null
+        || patch.getFeeSchemeCode() != null
+        || patch.getProcurementAreaCode() != null
+        || patch.getAccessPointCode() != null
+        || patch.getDeliveryLocation() != null
+        || patch.getRepresentationOrderDate() != null
+        || patch.getSuspectsDefendantsCount() != null
+        || patch.getPoliceStationCourtAttendancesCount() != null
+        || patch.getPoliceStationCourtPrisonId() != null
+        || patch.getDsccNumber() != null
+        || patch.getMaatId() != null
+        || patch.getPrisonLawPriorApprovalNumber() != null
+        || patch.getIsDutySolicitor() != null
+        || patch.getIsYouthCourt() != null
+        || patch.getSchemeId() != null
+        || patch.getMediationSessionsCount() != null
+        || patch.getMediationTimeMinutes() != null
+        || patch.getOutreachLocation() != null
+        || patch.getReferralSource() != null
+        || patch.getClientForename() != null
+        || patch.getClientSurname() != null
+        || patch.getClientDateOfBirth() != null
+        || patch.getUniqueClientNumber() != null
+        || patch.getClientPostcode() != null
+        || patch.getGenderCode() != null
+        || patch.getEthnicityCode() != null
+        || patch.getDisabilityCode() != null
+        || patch.getIsLegallyAided() != null
+        || patch.getClientTypeCode() != null
+        || patch.getHomeOfficeClientNumber() != null
+        || patch.getClaReferenceNumber() != null
+        || patch.getClaExemptionCode() != null
+        || patch.getClient2Forename() != null
+        || patch.getClient2Surname() != null
+        || patch.getClient2DateOfBirth() != null
+        || patch.getClient2Ucn() != null
+        || patch.getClient2Postcode() != null
+        || patch.getClient2GenderCode() != null
+        || patch.getClient2EthnicityCode() != null
+        || patch.getClient2DisabilityCode() != null
+        || patch.getClient2IsLegallyAided() != null
+        || patch.getCaseId() != null
+        || patch.getUniqueCaseId() != null
+        || patch.getCaseStageCode() != null
+        || patch.getStageReachedCode() != null
+        || patch.getStandardFeeCategoryCode() != null
+        || patch.getOutcomeCode() != null
+        || patch.getDesignatedAccreditedRepresentativeCode() != null
+        || patch.getIsPostalApplicationAccepted() != null
+        || patch.getIsClient2PostalApplicationAccepted() != null
+        || patch.getMentalHealthTribunalReference() != null
+        || patch.getIsNrmAdvice() != null
+        || patch.getFollowOnWork() != null
+        || patch.getTransferDate() != null
+        || patch.getExemptionCriteriaSatisfied() != null
+        || patch.getExceptionalCaseFundingReference() != null
+        || patch.getIsLegacyCase() != null
+        || patch.getAdviceTime() != null
+        || patch.getTravelTime() != null
+        || patch.getWaitingTime() != null
+        || patch.getNetProfitCostsAmount() != null
+        || patch.getNetDisbursementAmount() != null
+        || patch.getNetCounselCostsAmount() != null
+        || patch.getDisbursementsVatAmount() != null
+        || patch.getTravelWaitingCostsAmount() != null
+        || patch.getNetWaitingCostsAmount() != null
+        || patch.getIsVatApplicable() != null
+        || patch.getIsToleranceApplicable() != null
+        || patch.getPriorAuthorityReference() != null
+        || patch.getIsLondonRate() != null
+        || patch.getAdjournedHearingFeeAmount() != null
+        || patch.getIsAdditionalTravelPayment() != null
+        || patch.getCostsDamagesRecoveredAmount() != null
+        || patch.getMeetingsAttendedCode() != null
+        || patch.getDetentionTravelWaitingCostsAmount() != null
+        || patch.getJrFormFillingAmount() != null
+        || patch.getIsEligibleClient() != null
+        || patch.getCourtLocationCode() != null
+        || patch.getAdviceTypeCode() != null
+        || patch.getMedicalReportsCount() != null
+        || patch.getIsIrcSurgery() != null
+        || patch.getSurgeryDate() != null
+        || patch.getSurgeryClientsCount() != null
+        || patch.getSurgeryMattersCount() != null
+        || patch.getCmrhOralCount() != null
+        || patch.getCmrhTelephoneCount() != null
+        || patch.getAitHearingCentreCode() != null
+        || patch.getIsSubstantiveHearing() != null
+        || patch.getHoInterview() != null
+        || patch.getLocalAuthorityNumber() != null
+        || patch.getSubmissionPeriod() != null
+        || patch.getIsAmended() != null
+        || patch.getHasAssessment() != null
+        || patch.getTotalWarnings() != null
+        || patch.getAmendmentRequestedBy() != null
+        || patch.getAmendmentUserId() != null
+        || patch.getAmendmentReasonCode() != null;
+  }
+
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
+
+    if (claimPatch.getValidationMessages() != null
+        && !claimPatch.getValidationMessages().isEmpty()) {
+      claimPatch
+          .getValidationMessages()
+          .forEach(
+              message -> {
+                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(log);
+              });
     }
 
     // existing claim update code - NOT claim amendments
@@ -208,24 +345,13 @@ public class ClaimService
 
       // Get existing calculated fee detail, and set the ID if it exists
       calculatedFeeDetailRepository
-          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId)
+          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
           .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
       calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
-    }
-
-    if (claimPatch.getValidationMessages() != null
-        && !claimPatch.getValidationMessages().isEmpty()) {
-      claimPatch
-          .getValidationMessages()
-          .forEach(
-              message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
-                validationMessageLogRepository.save(log);
-              });
     }
   }
 

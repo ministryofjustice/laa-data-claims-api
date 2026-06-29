@@ -31,10 +31,9 @@ public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep 
     Long submittedVersion = state.getSubmittedVersion();
 
     if (submittedVersion == null) {
-      return List.of();
-    }
-
-    if (expectedVersion.intValue() != submittedVersion.intValue()) {
+      return List.of(
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.INVALID_NULL_VERSION));
+    } else if (expectedVersion.intValue() != submittedVersion.intValue()) {
       return List.of(
           ClaimAmendmentValidationError.of(
               ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT));
