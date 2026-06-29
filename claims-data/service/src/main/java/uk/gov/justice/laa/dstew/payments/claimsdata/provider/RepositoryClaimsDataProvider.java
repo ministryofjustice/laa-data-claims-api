@@ -35,8 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * service, which owns the database. Queries are executed via Spring Data JPA repositories,
  * bypassing any HTTP transport layer.
  *
- * <p>This bean is only registered when no other {@link ClaimsDataProvider} bean is present in the
- * application context.
+ * <p>This bean is always registered.
  */
 @RequiredArgsConstructor
 @Component
