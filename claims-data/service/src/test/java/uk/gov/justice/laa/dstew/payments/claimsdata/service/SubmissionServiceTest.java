@@ -1,12 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
@@ -40,10 +39,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -64,6 +68,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @DisplayName("SubmissionService Unit Tests")
 class SubmissionServiceTest {
   @Mock private SubmissionRepository submissionRepository;
+  @Mock private ValidationService validationService;
   @Mock private ClaimService claimService;
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
@@ -86,14 +91,86 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
 
     when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse))
+        .thenReturn(ValidationResult.builder().isValid(true).build());
     when(submissionRepository.save(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
-
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
     assertThat(result).isEqualTo(id);
     verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: invalid submission throws SubmissionValidationException with issues and 400 status")
+  void shouldThrowSubmissionValidationExceptionWhenValidationFails() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
+
+    ValidationIssue issue =
+        ValidationIssue.builder()
+            .code("SUB-001")
+            .message("Office code is required")
+            .severity(ValidationSeverity.ERROR)
+            .build();
+    ValidationResult invalidResult =
+        ValidationResult.builder().isValid(false).issues(List.of(issue)).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse)).thenReturn(invalidResult);
+
+    SubmissionValidationException ex =
+        assertThrows(
+            SubmissionValidationException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getIssues()).hasSize(1);
+    assertThat(ex.getIssues().getFirst().getCode()).isEqualTo("SUB-001");
+    assertThat(ex.getHttpStatus().value()).isEqualTo(400);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("createSubmission: invalid submission is never persisted to the repository")
+  void shouldNotPersistSubmissionWhenValidationFails() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionResponse submissionResponse = new SubmissionResponse();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
+    when(validationService.validateSubmission(submissionResponse))
+        .thenReturn(ValidationResult.builder().isValid(false).build());
+
+    assertThrows(
+        SubmissionValidationException.class, () -> submissionService.createSubmission(post));
+
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName(
+      "Should retrieve a direct nil submission with empty matter starts, bulk submission id and no claims")
+  void shouldGetNilSubmission() {
+    Submission entity = ClaimsDataTestUtil.getNilSubmission();
+    when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(entity));
+    when(claimService.getClaimsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+    when(matterStartService.getMatterStartIdsForSubmission(SUBMISSION_ID)).thenReturn(List.of());
+
+    SubmissionResponse result = submissionService.getSubmission(SUBMISSION_ID);
+
+    assertThat(result.getSubmissionId()).isEqualTo(SUBMISSION_ID);
+    assertThat(result.getClaims().size()).isEqualTo(0);
+    assertThat(result.getMatterStarts()).isEqualTo(List.of());
+    assertNull(result.getBulkSubmissionId());
   }
 
   @ParameterizedTest
