@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.regex.Pattern;
@@ -7,10 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
@@ -116,10 +118,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     // 1. Check if the error list contains the specific version conflict code
     boolean hasVersionConflict =
         ex.getErrors().stream()
-            .anyMatch(
-                error ->
-                    ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.equals(
-                        error.getCode()));
+            .anyMatch(error -> INVALID_CLAIM_VERSION_CONFLICT.equals(error.getCode()));
 
     // 2. Map the errors to whatever standard API Error response object the project uses
     // (e.g., ApiErrorResponse, ErrorDTO, or just returning the list directly)
@@ -131,6 +130,28 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
+  }
+
+  /**
+   * Handles database-level optimistic locking failures during entity persistence.
+   *
+   * <p>This exception is thrown by Spring Data JPA (translating underlying ORM exceptions like
+   * Hibernate's {@code StaleObjectStateException}) when a concurrent modification is detected. This
+   * typically occurs if another transaction modifies and saves the entity after it was read by the
+   * current transaction, but before the current transaction can commit.
+   *
+   * <p>The handler intercepts this failure and returns an HTTP {@code 409 Conflict} status. This
+   * indicates to the client that their request was based on stale data and they must refresh their
+   * state before attempting the operation again.
+   *
+   * @param ex the optimistic locking exception thrown by the persistence layer
+   * @return a {@link ResponseEntity} containing a 409 status code and the exception message
+   */
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<Object> handleDatabaseOptimisticLockingException(
+      ObjectOptimisticLockingFailureException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate());
   }
 
   /**
