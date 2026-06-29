@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +20,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Assembled-chain integration tests for {@link ClaimAmendmentService}.
@@ -54,9 +54,12 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
   // INCORRECT_MEANS_ASSESSMENT is seeded only for CONTRACT_MANAGEMENT / ASSURANCE, never PROVIDER.
   private static final String SEEDED_REASON_OTHER_PARTY = "INCORRECT_MEANS_ASSESSMENT";
 
-  @Autowired private ClaimAmendmentService claimAmendmentService;
-  @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
-  @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Autowired
+  private ClaimAmendmentService claimAmendmentService;
+  @Autowired
+  private RequestedByReferenceRepository requestedByReferenceRepository;
+  @Autowired
+  private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
 
   @Nested
   @DisplayName("happy path")
@@ -198,18 +201,53 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Fixtures
-  // ---------------------------------------------------------------------------
+  @Nested
+  @DisplayName("version validation step")
+  class VersionValidation {
+
+    @Test
+    @DisplayName("a null submitted version bypasses the version check for internal updates")
+    void nullSubmittedVersionBypassesCheck() {
+      // Use the overloaded method to pass 'null' as the submitted version
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, null);
+
+      assertThat(claimAmendmentService.orchestrate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    }
+
+    @Test
+    @DisplayName("a mismatched submitted version returns a version conflict error")
+    void mismatchedSubmittedVersionReturnsError() {
+      // The DB version is hardcoded to 1L in the fixture, so passing 99L forces a mismatch
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, 99L);
+
+      // It should specifically return the optimistic locking conflict code
+      assertThat(claimAmendmentService.orchestrate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT);
+    }
+  }
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
 
   private ClaimAmendmentState stateOf(
       ClaimStatus status, String requestedBy, String reason, String userId) {
+    return stateOf(status, requestedBy, reason, userId, 1L); // Default submitted version to 1L
+  }
+
+  private ClaimAmendmentState stateOf(
+      ClaimStatus status, String requestedBy, String reason, String userId, Long submittedVersion) {
     return ClaimAmendmentState.builder()
         .beforeState(
             ClaimStateSnapshot.builder()
                 .claimId(Uuid7.timeBasedUuid())
                 .status(status)
-                .version(1L)
+                .version(1L) // Hardcode DB version to 1L for all tests
                 .build())
         .requestPayload(
             ClaimAmendmentPayload.builder()
@@ -217,7 +255,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))
                 .build())
-        .submittedVersion(1L)
+        .submittedVersion(submittedVersion) // Inject the version here!
         .build();
   }
 
