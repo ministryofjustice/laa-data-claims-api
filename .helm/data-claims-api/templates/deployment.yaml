@@ -110,6 +110,7 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: amendments-enabled
+                  optional: true
             - name: HIKARI_CONNECTION_TIMEOUT
               valueFrom:
                 secretKeyRef:

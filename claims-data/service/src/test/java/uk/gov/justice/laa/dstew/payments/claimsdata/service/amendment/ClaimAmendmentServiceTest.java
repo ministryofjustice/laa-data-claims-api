@@ -51,6 +51,12 @@ class ClaimAmendmentServiceTest {
     return ClaimAmendmentState.builder().beforeState(ClaimStateSnapshot.builder().build()).build();
   }
 
+  private static ClaimsApiProperties amendmentsEnabledProperties() {
+    ClaimsApiProperties properties = new ClaimsApiProperties();
+    properties.getAmendments().setEnabled("true");
+    return properties;
+  }
+
   @Test
   @DisplayName("returns no errors when every step passes")
   void passesWhenAllStepsPass() {
@@ -95,14 +101,14 @@ class ClaimAmendmentServiceTest {
   void sortsDiscoveredStepsIntoDeclaredOrder() {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
-    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The status step
-    // returns a fatal error for the empty state below, so the orchestrator short-circuits before
-    // the later steps run.
+    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. Amendments are
+    // enabled so the feature-flag step passes; the status step then returns a fatal error for the
+    // empty state below, so the orchestrator short-circuits before the later steps run.
     ClaimAmendmentService service =
         new ClaimAmendmentService(
             List.of(
                 extraStep,
-                new AmendmentFeatureFlagValidationStep(new ClaimsApiProperties()),
+                new AmendmentFeatureFlagValidationStep(amendmentsEnabledProperties()),
                 new ClaimStatusValidationStep(),
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
