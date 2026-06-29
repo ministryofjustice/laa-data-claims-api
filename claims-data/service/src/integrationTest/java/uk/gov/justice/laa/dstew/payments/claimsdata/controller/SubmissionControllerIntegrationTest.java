@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService.DECIMAL_PLACES;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
@@ -14,6 +15,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.VALID_CRIME_SCHEDULE_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.VALID_OFFICE_ACCOUNT_NUMBER;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -31,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -106,6 +110,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   private static final String PERIOD_JAN_2025 = "JAN-2025";
   private static final String PERIOD_DEC_2024 = "DEC-2024";
   private static final String PERIOD_APR_2025 = "APR-2025";
+  private static final String PERIOD_DEC_2030 = "DEC-2030";
   private static final String OFFICE_AAAA01 = "AAAA01";
   private static final String OFFICE_AAAA02 = "aaaa02";
   private static final String PARAM_OFFICES = "offices";
@@ -152,6 +157,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Should create a submission")
   void postSubmission_shouldCreate() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload
@@ -301,6 +307,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when provideUserId is not set")
   void postSubmission_shouldReturnBadRequest_WhenProviderUserIdIsNull() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with null providerUserId
@@ -313,6 +321,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionPeriod(PERIOD_JAN_25)
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.CREATED)
+            .isNilSubmission(false)
             .providerUserId(null)
             .build();
 
@@ -324,6 +333,454 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when nilFlag is not set")
+  void postSubmission_shouldReturnBadRequest_WhenNilFlagIdIsNull() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with null providerUserId
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+            .submissionPeriod(PERIOD_JAN_25)
+            .areaOfLaw(AREA_OF_LAW)
+            .isNilSubmission(null)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(USER_ID)
+            .build();
+
+    // when: calling POST endpoint for submissions, should return a bad request.
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when missing submission period")
+  void postSubmission_shouldReturnBadRequest_WhenSubmissionPeriodIsNull() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with null providerUserId
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+            .submissionPeriod(null)
+            .areaOfLaw(AREA_OF_LAW)
+            .isNilSubmission(false)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(USER_ID)
+            .build();
+
+    // when: calling POST endpoint for submissions, should return a bad request.
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName(
+      "Should not create a submission and should return bad request when missing area of law")
+  void postSubmission_shouldReturnBadRequest_WhenAreaOfLawIsNull() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with null providerUserId
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER_1)
+            .submissionPeriod(PERIOD_APR_2025)
+            .areaOfLaw(null)
+            .isNilSubmission(false)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(USER_ID)
+            .build();
+
+    // when: calling POST endpoint for submissions, should return a bad request.
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Should create a submission and not pre-validate when submission status is CREATED")
+  void postSubmission_shouldCreateAndNotValidate_WhenStatusIsCreated() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with invalid crimeLowerScheduleNumber
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(1)
+            .crimeLowerScheduleNumber(null)
+            .isNilSubmission(false)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.CREATED)
+            .submissionPeriod(PERIOD_APR_2025)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated())
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName("Should validate and create a submission when submission status is not CREATED")
+  void postSubmission_shouldCreate_WhenValidNilSubmission() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a valid nil submissionSubmissionPost payload
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated())
+        .andReturn();
+
+    // Added this because we publish event after successfully saving and validating
+    ReceiveMessageResponse receiveResp =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  @ParameterizedTest
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and missing schedule number/reference for selected are of law")
+  @EnumSource(AreaOfLaw.class)
+  void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSchemaValidationFails(
+      AreaOfLaw areaOfLaw) throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with null/invalid crimeLowerScheduleNumber
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(areaOfLaw)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(null)
+            .legalHelpSubmissionReference(null)
+            .mediationSubmissionReference(null)
+            .isNilSubmission(true)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(jsonPath("$.issues[0].code").value("SCHEMA_VALIDATION_ERROR"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and there is a duplicate existing submission")
+  void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenDuplicateSubmission()
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    Submission submission1 =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(null)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_APR_2025)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .status(SubmissionStatus.VALIDATION_SUCCEEDED)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .createdOn(CREATED_ON)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .providerUserId(USER_ID)
+            .isNilSubmission(true)
+            .build();
+
+    submissionRepository.save(submission1);
+
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .build();
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(
+            jsonPath("$.issues[0].message")
+                .value(
+                    "Submission already exists for Office (0AB342), Area of Law (CRIME LOWER), Period (APR-2025)"))
+        .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_ALREADY_EXISTS"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and submission period is too early")
+  void
+      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodMinimumFailure()
+          throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with invalid submissionPeriod
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_JAN_2025)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and submission period is in the future")
+  void
+      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenSubmissionPeriodFutureFailure()
+          throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    // given: a SubmissionPost payload with invalid submissionPeriod
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_DEC_2030)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_PERIOD_FUTURE_MONTH"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should validate and not create a submission when when status is not CREATED and the office code is invalid")
+  void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenInvalidOffice()
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+
+    // given: a SubmissionPost payload with invalid officeAccountNumber
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(
+            jsonPath("$.issues[0].message")
+                .value(
+                    "Office Account Number must be exactly 6 characters containing uppercase letters and numbers."))
+        .andExpect(jsonPath("$.issues[0].code").value("SCHEMA_VALIDATION_ERROR"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should validate and not create a submission when status is not CREATED and nil submission flag is true, but there are no related claims")
+  void
+      postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenNILSubmissionSpecific()
+          throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(false)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(jsonPath("$.issues[0].code").value("NON_NIL_SUBMISSION_CONTAINS_NO_CLAIMS"))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName("Should validate and not create a submission when the submission status is invalid")
+  void postNilSubmission_shouldReturnBadRequestWithValidationErrorDetails_WhenStatusIsInvalid()
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+
+    submissionRepository.deleteAll();
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber("num")
+            .isNilSubmission(true)
+            .officeAccountNumber("0P322F")
+            .providerUserId(USER_ID)
+            .submissionPeriod(PERIOD_APR_2025)
+            .status(SubmissionStatus.VALIDATION_FAILED)
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.title").value("Bad Request"))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+        .andExpect(
+            jsonPath("$.issues[0].message")
+                .value("Submission cannot be validated in state VALIDATION_FAILED"))
+        .andExpect(jsonPath("$.issues[0].code").value("INCORRECT_SUBMISSION_STATUS_FOR_VALIDATION"))
+        .andReturn();
   }
 
   @Test

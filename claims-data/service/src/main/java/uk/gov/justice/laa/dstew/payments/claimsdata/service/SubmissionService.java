@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -16,10 +17,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -47,6 +51,7 @@ public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
 
+  private final ValidationService validationService;
   private final SubmissionRepository submissionRepository;
   private final SubmissionMapper submissionMapper;
   private final ClaimService claimService;
@@ -76,7 +81,28 @@ public class SubmissionService
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
 
+    // This is to ensure that we are only validating form NIL submissions where SubmissionStatus is
+    // always READY_FOR_VALIDATION. All other submissions will skip this validation, as they get
+    // created by the event service with CREATED status
+    if (submission.getStatus() != SubmissionStatus.CREATED) {
+      ValidationResult validationResult =
+          validationService.validateSubmission(submissionMapper.toSubmissionResponse(submission));
+      if (!validationResult.isValid()) {
+        throw new SubmissionValidationException(
+            "Submission failed validation", validationResult.getIssues());
+      }
+      submission.setStatus(SubmissionStatus.VALIDATION_SUCCEEDED);
+      if (submission.getCreatedOn() == null) {
+        submission.setCreatedOn(Instant.now());
+      }
+    }
+
     submissionRepository.save(submission);
+
+    if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
+      publishValidationSucceededAfterCommit(submission.getId());
+    }
+
     return submission.getId();
   }
 
@@ -138,10 +164,7 @@ public class SubmissionService
           () ->
               submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId()));
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
-      TransactionalPublisher.runAfterCommit(
-          () ->
-              submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
-                  submission.getId()));
+      publishValidationSucceededAfterCommit(submission.getId());
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
           claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
@@ -231,6 +254,13 @@ public class SubmissionService
             });
 
     return resultSet;
+  }
+
+  private void publishValidationSucceededAfterCommit(UUID submissionId) {
+    TransactionalPublisher.runAfterCommit(
+        () ->
+            submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+                submissionId));
   }
 
   /**

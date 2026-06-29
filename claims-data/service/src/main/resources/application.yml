@@ -164,3 +164,20 @@ laa:
         base-path: /exports
       defaults:
         max-rows: 50000
+  dstew:
+    payments:
+      validator:
+        provider-details-api:
+          url: ${PROVIDER_DETAILS_API_URL}
+          accessToken: ${PROVIDER_DETAILS_API_ACCESS_TOKEN}
+          authHeader: "X-Authorization"
+        fee-scheme-platform-api:
+          url: ${FEE_SCHEME_PLATFORM_API_URL}
+          accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
+        submission:
+          minimum-period: ${SUBMISSION_VALIDATION_MINIMUM_PERIOD:APR-2025}
+
+resilience4j.retry:
+  instances:
+    pdaRetry:
+      maxAttempts: 1
