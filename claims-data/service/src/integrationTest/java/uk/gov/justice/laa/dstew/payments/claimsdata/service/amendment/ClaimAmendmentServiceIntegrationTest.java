@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -20,8 +22,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Assembled-chain integration tests for {@link ClaimAmendmentService}.
@@ -54,12 +54,9 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
   // INCORRECT_MEANS_ASSESSMENT is seeded only for CONTRACT_MANAGEMENT / ASSURANCE, never PROVIDER.
   private static final String SEEDED_REASON_OTHER_PARTY = "INCORRECT_MEANS_ASSESSMENT";
 
-  @Autowired
-  private ClaimAmendmentService claimAmendmentService;
-  @Autowired
-  private RequestedByReferenceRepository requestedByReferenceRepository;
-  @Autowired
-  private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Autowired private ClaimAmendmentService claimAmendmentService;
+  @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
+  @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
 
   @Nested
   @DisplayName("happy path")
@@ -231,9 +228,9 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
     }
   }
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Fixtures
+  // ---------------------------------------------------------------------------
 
   private ClaimAmendmentState stateOf(
       ClaimStatus status, String requestedBy, String reason, String userId) {
