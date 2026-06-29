@@ -206,13 +206,18 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimStatus status, String requestedBy, String reason, String userId) {
     return ClaimAmendmentState.builder()
         .beforeState(
-            ClaimStateSnapshot.builder().claimId(Uuid7.timeBasedUuid()).status(status).build())
+            ClaimStateSnapshot.builder()
+                .claimId(Uuid7.timeBasedUuid())
+                .status(status)
+                .version(1L)
+                .build())
         .requestPayload(
             ClaimAmendmentPayload.builder()
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))
                 .build())
+        .submittedVersion(1L)
         .build();
   }
 
