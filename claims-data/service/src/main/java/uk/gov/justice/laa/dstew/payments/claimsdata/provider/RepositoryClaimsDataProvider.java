@@ -10,10 +10,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.ClaimsDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsDataProviderConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -36,9 +36,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.Sub
  * bypassing any HTTP transport layer.
  *
  * <p>This bean is only registered when no other {@link ClaimsDataProvider} bean is present in the
- * application context (see {@link ClaimsDataProviderConfig}).
+ * application context.
  */
 @RequiredArgsConstructor
+@Component
 @Slf4j
 public class RepositoryClaimsDataProvider implements ClaimsDataProvider {
 
