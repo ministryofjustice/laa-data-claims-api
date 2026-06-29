@@ -176,4 +176,3 @@ class PdaRequestFieldTest {
     assertThat(PdaRequestField.affectsPdaRequest("clientForename", state)).isFalse();
   }
 }
-

@@ -11,8 +11,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
  * <ul>
  *   <li>{@code officeCode} — sourced directly from the submission's {@code officeAccountNumber}, so
  *       it always affects the request.
- *   <li>{@code effectiveDate} — derived from a claim using a strict priority order: {@code PROD} fee
- *       with a {@code caseConcludedDate}, otherwise {@code caseStartDate}, otherwise {@code
+ *   <li>{@code effectiveDate} — derived from a claim using a strict priority order: {@code PROD}
+ *       fee with a {@code caseConcludedDate}, otherwise {@code caseStartDate}, otherwise {@code
  *       representationOrderDate}, otherwise a date derived from {@code uniqueFileNumber}.
  *   <li>{@code requireOpenStatus} — a hardcoded {@code false}, influenced by nothing.
  * </ul>
@@ -57,5 +57,3 @@ public final class PdaRequestField {
     };
   }
 }
-
-
