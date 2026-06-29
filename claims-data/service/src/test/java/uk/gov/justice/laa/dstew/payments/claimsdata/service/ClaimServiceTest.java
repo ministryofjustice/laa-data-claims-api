@@ -1100,7 +1100,7 @@ class ClaimServiceTest {
 
     // 2. Mock the new amendment state retrieval and orchestrator flow
     when(claimMapper.toAmendmentPayload(patch)).thenReturn(payload);
-    when(claimAmendmentStateService.retrieveAmendmentState(claimId, payload))
+    when(claimAmendmentStateService.retrieveAmendmentState(claimId, payload, 4L))
         .thenReturn(Optional.of(state));
     when(claimAmendmentService.orchestrate(state)).thenReturn(List.of(mockError));
 

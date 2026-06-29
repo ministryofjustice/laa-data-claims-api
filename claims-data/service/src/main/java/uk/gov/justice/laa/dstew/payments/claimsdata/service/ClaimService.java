@@ -234,7 +234,7 @@ public class ClaimService
 
     ClaimAmendmentState state =
         claimAmendmentStateService
-            .retrieveAmendmentState(claim.getId(), payload)
+            .retrieveAmendmentState(claim.getId(), payload, claimPatch.getVersion())
             .orElseThrow(
                 () ->
                     new ClaimNotFoundException(

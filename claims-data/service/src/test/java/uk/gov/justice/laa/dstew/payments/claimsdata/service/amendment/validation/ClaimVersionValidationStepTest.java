@@ -29,7 +29,7 @@ class ClaimVersionValidationStepTest {
     ClaimAmendmentState state = mock(ClaimAmendmentState.class, RETURNS_DEEP_STUBS);
 
     when(state.getBeforeState().getVersion()).thenReturn(5L);
-    when(state.getRequestPayload().getVersion().get()).thenReturn(5L);
+    when(state.getSubmittedVersion()).thenReturn(5L);
 
     // Act
     List<ClaimAmendmentValidationError> errors = step.validate(state);
@@ -45,7 +45,7 @@ class ClaimVersionValidationStepTest {
     ClaimAmendmentState state = mock(ClaimAmendmentState.class, RETURNS_DEEP_STUBS);
 
     when(state.getBeforeState().getVersion()).thenReturn(5L); // Current DB version
-    when(state.getRequestPayload().getVersion().get()).thenReturn(4L); // Stale request version
+    when(state.getSubmittedVersion()).thenReturn(4L); // Stale request version
 
     // Act
     List<ClaimAmendmentValidationError> errors = step.validate(state);

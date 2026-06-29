@@ -99,13 +99,12 @@ class ClaimAmendmentServiceTest {
     // the later steps run.
     ClaimAmendmentService service =
         new ClaimAmendmentService(
-            List.of(new ClaimStatusValidationStep(), new ClaimVersionValidationStep()));
-        new ClaimAmendmentService(
             List.of(
                 extraStep,
                 new ClaimStatusValidationStep(),
                 new AmendmentUserIdValidationStep(),
-                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
+                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
+                new ClaimVersionValidationStep()));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }

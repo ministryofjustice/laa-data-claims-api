@@ -37,6 +37,8 @@ public class ClaimAmendmentState {
 
   private ClaimStateSnapshot postAmendmentState;
 
+  private Long submittedVersion;
+
   /** The validation errors collected so far as the amendment validation steps run. */
   @Builder.Default private final List<ClaimAmendmentValidationError> errors = new ArrayList<>();
 

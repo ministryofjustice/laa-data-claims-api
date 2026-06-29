@@ -28,9 +28,13 @@ public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep 
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
     Long expectedVersion = state.getBeforeState().getVersion();
-    Long receivedVersion = state.getRequestPayload().getVersion().get();
+    Long submittedVersion = state.getSubmittedVersion();
 
-    if (expectedVersion.intValue() != receivedVersion.intValue()) {
+    if (submittedVersion == null) {
+      return List.of();
+    }
+
+    if (expectedVersion.intValue() != submittedVersion.intValue()) {
       return List.of(
           ClaimAmendmentValidationError.of(
               ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT));

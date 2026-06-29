@@ -53,7 +53,7 @@ public class ClaimAmendmentStateService {
    * @return the built amendment state, or {@link Optional#empty()} if the claim does not exist
    */
   public Optional<ClaimAmendmentState> retrieveAmendmentState(
-      UUID claimId, ClaimAmendmentPayload payload) {
+      UUID claimId, ClaimAmendmentPayload payload, Long submittedVersion) {
 
     Optional<Claim> claim = claimRepository.findById(claimId);
     if (claim.isEmpty()) {
@@ -70,6 +70,7 @@ public class ClaimAmendmentStateService {
             calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId),
             assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId));
 
-    return Optional.of(amendmentStateBuilder.buildAmendmentState(beforeState, payload));
+    return Optional.of(
+        amendmentStateBuilder.buildAmendmentState(beforeState, payload, submittedVersion));
   }
 }

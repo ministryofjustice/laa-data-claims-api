@@ -51,7 +51,7 @@ class ClaimAmendmentStateServiceTest {
     when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.empty());
 
     Optional<ClaimAmendmentState> result =
-        service.retrieveAmendmentState(CLAIM_ID, ClaimAmendmentPayload.builder().build());
+        service.retrieveAmendmentState(CLAIM_ID, ClaimAmendmentPayload.builder().build(), 1L);
 
     assertThat(result).isEmpty();
     verifyNoInteractions(
@@ -61,7 +61,7 @@ class ClaimAmendmentStateServiceTest {
         calculatedFeeDetailRepository,
         assessmentRepository,
         snapshotMapper);
-    verify(amendmentStateBuilder, never()).buildAmendmentState(any(), any());
+    verify(amendmentStateBuilder, never()).buildAmendmentState(any(), any(), any());
   }
 
   @Test
@@ -91,9 +91,10 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentPayload.builder().feeCode(JsonNullable.of(AMENDED_FEE_CODE)).build();
     ClaimAmendmentState expected =
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
-    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload)).thenReturn(expected);
+    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 5L))
+        .thenReturn(expected);
 
-    Optional<ClaimAmendmentState> result = service.retrieveAmendmentState(CLAIM_ID, payload);
+    Optional<ClaimAmendmentState> result = service.retrieveAmendmentState(CLAIM_ID, payload, 5L);
 
     assertThat(result).containsSame(expected);
     verify(snapshotMapper)
@@ -104,7 +105,7 @@ class ClaimAmendmentStateServiceTest {
             any(Optional.class),
             any(Optional.class),
             any(Optional.class));
-    verify(amendmentStateBuilder).buildAmendmentState(beforeState, payload);
+    verify(amendmentStateBuilder).buildAmendmentState(beforeState, payload, 5L);
   }
 
   @Test
@@ -131,10 +132,10 @@ class ClaimAmendmentStateServiceTest {
         .thenReturn(beforeState);
 
     ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
-    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload))
+    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 1L))
         .thenReturn(ClaimAmendmentState.builder().beforeState(beforeState).build());
 
-    service.retrieveAmendmentState(CLAIM_ID, payload);
+    service.retrieveAmendmentState(CLAIM_ID, payload, 1L);
 
     // no persistence: none of the repositories' save/delete methods are invoked
     verify(claimRepository, never()).save(any());

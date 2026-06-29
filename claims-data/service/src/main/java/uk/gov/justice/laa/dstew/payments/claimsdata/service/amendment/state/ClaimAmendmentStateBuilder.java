@@ -195,12 +195,13 @@ public class ClaimAmendmentStateBuilder {
    * @return the amendment state aggregate
    */
   public ClaimAmendmentState buildAmendmentState(
-      ClaimStateSnapshot beforeState, ClaimAmendmentPayload payload) {
+      ClaimStateSnapshot beforeState, ClaimAmendmentPayload payload, Long submittedVersion) {
 
     return ClaimAmendmentState.builder()
         .beforeState(beforeState)
         .requestPayload(payload)
         .postAmendmentState(buildPostAmendmentState(beforeState, payload))
+        .submittedVersion(submittedVersion)
         .build();
   }
 

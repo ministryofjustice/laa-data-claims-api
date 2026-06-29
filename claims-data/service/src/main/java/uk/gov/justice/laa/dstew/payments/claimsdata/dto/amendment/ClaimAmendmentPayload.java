@@ -57,7 +57,6 @@ public class ClaimAmendmentPayload {
   @Builder.Default private JsonNullable<String> procurementAreaCode = JsonNullable.undefined();
   @Builder.Default private JsonNullable<String> accessPointCode = JsonNullable.undefined();
   @Builder.Default private JsonNullable<String> deliveryLocation = JsonNullable.undefined();
-  @Builder.Default private JsonNullable<Long> version = JsonNullable.undefined();
 
   @Builder.Default
   private JsonNullable<LocalDate> representationOrderDate = JsonNullable.undefined();

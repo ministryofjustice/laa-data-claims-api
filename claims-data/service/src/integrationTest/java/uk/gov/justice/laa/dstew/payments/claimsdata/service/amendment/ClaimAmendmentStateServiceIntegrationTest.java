@@ -80,7 +80,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .build();
 
     Optional<ClaimAmendmentState> result =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload);
+        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L);
 
     assertThat(result).isPresent();
     ClaimAmendmentState state = result.get();
@@ -136,7 +136,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     Optional<ClaimAmendmentState> result =
         amendmentStateService.retrieveAmendmentState(
-            UUID.randomUUID(), ClaimAmendmentPayload.builder().build());
+            UUID.randomUUID(), ClaimAmendmentPayload.builder().build(), 1L);
 
     assertThat(result).isEmpty();
   }
@@ -160,7 +160,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .caseReferenceNumber(JsonNullable.of((String) null))
             .build();
 
-    amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload);
+    amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L);
 
     assertThat(claimRepository.count()).isEqualTo(claims);
     assertThat(clientRepository.count()).isEqualTo(clients);
@@ -185,7 +185,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
         ClaimAmendmentPayload.builder().scheduleReference(JsonNullable.of((String) null)).build();
 
     ClaimAmendmentState state =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload).orElseThrow();
+        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L).orElseThrow();
 
     assertThat(state.getBeforeState().getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
     assertThat(state.getPostAmendmentState().getScheduleReference()).isNull();
@@ -206,7 +206,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     ClaimStateSnapshot after =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, payload)
+            .retrieveAmendmentState(CLAIM_1_ID, payload, 1L)
             .orElseThrow()
             .getPostAmendmentState();
 
@@ -226,7 +226,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, ClaimAmendmentPayload.builder().build())
+            .retrieveAmendmentState(CLAIM_1_ID, ClaimAmendmentPayload.builder().build(), 1L)
             .orElseThrow()
             .getBeforeState();
 
@@ -244,7 +244,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_4_ID, ClaimAmendmentPayload.builder().build())
+            .retrieveAmendmentState(CLAIM_4_ID, ClaimAmendmentPayload.builder().build(), 1L)
             .orElseThrow()
             .getBeforeState();
 

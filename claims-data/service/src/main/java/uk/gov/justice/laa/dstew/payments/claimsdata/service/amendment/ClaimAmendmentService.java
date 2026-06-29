@@ -56,7 +56,8 @@ public class ClaimAmendmentService {
       List.of(
           ClaimStatusValidationStep.class,
           AmendmentUserIdValidationStep.class,
-          AmendmentReferenceValidationStep.class);
+          AmendmentReferenceValidationStep.class,
+          ClaimVersionValidationStep.class);
 
   private final List<ClaimAmendmentValidationStep> validationSteps;
 
