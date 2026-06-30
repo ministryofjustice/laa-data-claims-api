@@ -1,14 +1,16 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import java.util.Comparator;
 import java.util.List;
 import lombok.Getter;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 
 /**
- * Thrown when the synchronous claim amendment orchestrator detects validation failures. Carries the
- * complete list of collected errors so the global exception handler can map them into a 400 Bad
- * Request response.
+ * Exception for issues encountered during validation of a claim amendment.
+ * <p>Extending {@link RuntimeException} allows the exception to be caught
+ * by the {@link DataClaimsExceptionHandler}.
  */
+
 @Getter
 public class ClaimAmendmentValidationException extends RuntimeException {
 
@@ -16,6 +18,23 @@ public class ClaimAmendmentValidationException extends RuntimeException {
 
   public ClaimAmendmentValidationException(List<ClaimAmendmentValidationError> errors) {
     super("Claim amendment validation failed with " + errors.size() + " errors");
-    this.errors = errors;
+
+    // Sort errors: fatal first (true -> false), then HTTP status code descending (500 -> 400)
+    this.errors =
+        errors.stream()
+            .sorted(
+                Comparator.comparing(
+                        ClaimAmendmentValidationError::isFatal, Comparator.reverseOrder())
+                    .thenComparing(
+                        error -> error.getHttpStatus().value(), Comparator.reverseOrder()))
+            .toList();
+  }
+
+  /**
+   * Helper method to grab the highest priority error (e.g., if you need to throw or inspect the
+   * first fatal error).
+   */
+  public ClaimAmendmentValidationError getPrimaryError() {
+    return errors.isEmpty() ? null : errors.get(0);
   }
 }

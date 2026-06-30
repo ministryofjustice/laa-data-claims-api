@@ -13,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
@@ -138,20 +139,14 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<Object> handleClaimAmendmentValidationException(
       ClaimAmendmentValidationException ex) {
 
-    // 1. Check if the error list contains the specific version conflict code
-    boolean hasVersionConflict =
-        ex.getErrors().stream()
-            .anyMatch(error -> INVALID_CLAIM_VERSION_CONFLICT.equals(error.getCode()));
+    ClaimAmendmentValidationError error = ex.getErrors().getFirst();
 
-    // 2. Map the errors to whatever standard API Error response object the project uses
-    // (e.g., ApiErrorResponse, ErrorDTO, or just returning the list directly)
-    Object responseBody = ex.getErrors();
-
-    // 3. Route to 409 or 400
-    if (hasVersionConflict) {
-      return ResponseEntity.status(HttpStatus.CONFLICT).body(responseBody);
+    if (error.isFatal()) {
+      Object responseBody = error.getMessage();
+      return ResponseEntity.status(error.getHttpStatus()).body(responseBody);
     }
 
+    Object responseBody = ex.getErrors();
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
   }
 

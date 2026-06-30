@@ -69,6 +69,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -1104,9 +1105,7 @@ class ClaimServiceTest {
 
     // 3. Assert it throws our new exception instead of the old version conflict one
     assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
-        .isInstanceOf(
-            uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException
-                .class);
+        .isInstanceOf(ClaimAmendmentValidationException.class);
 
     // Verify the early gate perfectly short-circuits the method
     verify(claimRepository, never()).save(any());
