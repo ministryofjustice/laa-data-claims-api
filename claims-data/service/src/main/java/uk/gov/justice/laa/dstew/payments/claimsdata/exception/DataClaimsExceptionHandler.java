@@ -42,6 +42,29 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
 
   /**
+   * Handle {@link SubmissionValidationException} and include the list of validation issues as a
+   * structured property inside the RFC 9457 Problem Detail body.
+   *
+   * @param exception the submission validation exception
+   * @param request the HTTP request
+   * @return a response containing the issues list
+   */
+  @ExceptionHandler(SubmissionValidationException.class)
+  public ResponseEntity<ProblemDetail> handleSubmissionValidationException(
+      SubmissionValidationException exception, HttpServletRequest request) {
+    HttpStatus status = HttpStatus.resolve(exception.getHttpStatus().value());
+    if (status == null) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(status, exception.getMessage(), exception.getClass(), request);
+    if (response.getBody() != null) {
+      response.getBody().setProperty("issues", exception.getIssues());
+    }
+    return response;
+  }
+
+  /**
    * Handle {@link ClaimsDataException} instances and convert them to RFC 9457 Problem Details.
    *
    * <p>This is the primary exception handler for the service's custom exceptions.

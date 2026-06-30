@@ -55,6 +55,7 @@ dependencies {
     implementation 'tools.jackson.core:jackson-core:3.1.1'
 
     implementation project(':claims-data:api')
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.24'
 
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
@@ -145,6 +146,10 @@ sourceSets {
             runtimeClasspath += main.output + test.output
         }
     }
+    bddTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
+    }
 }
 
 configurations {
@@ -153,6 +158,45 @@ configurations {
     }
     pactTestImplementation.extendsFrom(testImplementation)
     pactTestRuntimeOnly.extendsFrom(testRuntimeOnly)
+
+    bddTestImplementation.extendsFrom(testImplementation, integrationTestImplementation)
+    bddTestRuntimeOnly.extendsFrom(testRuntimeOnly, integrationTestRuntimeOnly)
+    bddTestCompileOnly.extendsFrom(testCompileOnly)
+    bddTestAnnotationProcessor.extendsFrom(testAnnotationProcessor)
+}
+
+dependencies {
+    // Cucumber BDD scaffolding (end-to-end tests against the running application)
+    bddTestImplementation 'io.cucumber:cucumber-java:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-junit-platform-engine:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-spring:7.22.1'
+    bddTestImplementation 'org.junit.platform:junit-platform-suite'
+    bddTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    bddTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    bddTestImplementation "org.testcontainers:testcontainers-junit-jupiter"
+    bddTestImplementation "org.testcontainers:testcontainers-postgresql"
+    bddTestImplementation "org.testcontainers:testcontainers-localstack"
+    bddTestImplementation "software.amazon.awssdk:sqs"
+    bddTestImplementation 'org.projectlombok:lombok:1.18.44'
+    bddTestAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
+    bddTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    bddTestRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+}
+
+tasks.register('bddTest', Test) {
+    description = 'Runs the BDD (Cucumber) end-to-end tests against the embedded application.'
+    group = 'verification'
+    useJUnitPlatform()
+
+    testClassesDirs = sourceSets.bddTest.output.classesDirs
+    classpath = sourceSets.bddTest.runtimeClasspath
+    shouldRunAfter test
+
+    // Allow Behave-style tag filtering via -Dcucumber.filter.tags='@api'
+    def tagFilter = providers.systemProperty('cucumber.filter.tags').getOrElse('')
+    if (tagFilter?.trim()) {
+        systemProperty 'cucumber.filter.tags', tagFilter
+    }
 }
 
 // Hibernate is published under two coordinates that share the capability
