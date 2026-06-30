@@ -56,11 +56,13 @@ class PdaRequestFieldTest {
     }
 
     @Test
-    @DisplayName("does not affect when not PROD")
-    void notProd() {
+    @DisplayName("affects when a concluded date is present even if new fee code is not PROD")
+    void notProdButConcludedPresent() {
+      // A PROD -> non-PROD amendment with a concluded date moves the effective date off the
+      // concluded date onto caseStartDate/repOrder/UFN, so the change must trigger a refresh.
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("OTHER").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("feeCode", state)).isFalse();
+      assertThat(PdaRequestField.affectsPdaRequest("feeCode", state)).isTrue();
     }
   }
 

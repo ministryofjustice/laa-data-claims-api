@@ -35,24 +35,24 @@ public final class PdaRequestField {
    * request, given the claim's fully-merged effective state.
    *
    * @param fieldName the claim-side field name being checked
-   * @param state the post-amendment (effective) claim snapshot
+   * @param mergedStateSnapshot the post-amendment (effective) claim snapshot
    * @return {@code true} if the field could influence the request, otherwise {@code false}
    */
-  public static boolean affectsPdaRequest(String fieldName, ClaimStateSnapshot state) {
+  public static boolean affectsPdaRequest(String fieldName, ClaimStateSnapshot mergedStateSnapshot) {
 
     boolean prodWithConcluded =
-        PROD_FEE_CODE.equals(state.getFeeCode()) && state.getCaseConcludedDate() != null;
+        PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode()) && mergedStateSnapshot.getCaseConcludedDate() != null;
 
     return switch (fieldName) {
       case "officeAccountNumber" -> true;
-      case "feeCode" -> prodWithConcluded;
-      case "caseConcludedDate" -> PROD_FEE_CODE.equals(state.getFeeCode());
+      case "feeCode" -> mergedStateSnapshot.getCaseConcludedDate() != null;
+      case "caseConcludedDate" -> PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode());
       case "caseStartDate" -> !prodWithConcluded;
-      case "representationOrderDate" -> !prodWithConcluded && state.getCaseStartDate() == null;
+      case "representationOrderDate" -> !prodWithConcluded && mergedStateSnapshot.getCaseStartDate() == null;
       case "uniqueFileNumber" ->
           !prodWithConcluded
-              && state.getCaseStartDate() == null
-              && state.getRepresentationOrderDate() == null;
+              && mergedStateSnapshot.getCaseStartDate() == null
+              && mergedStateSnapshot.getRepresentationOrderDate() == null;
       default -> false;
     };
   }
