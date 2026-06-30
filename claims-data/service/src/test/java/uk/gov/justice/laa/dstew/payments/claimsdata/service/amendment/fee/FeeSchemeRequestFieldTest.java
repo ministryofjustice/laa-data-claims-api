@@ -2,7 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField.mapsToFeeSchemeRequest;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField.impactsPricing;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -60,7 +60,7 @@ class FeeSchemeRequestFieldTest {
   @DisplayName("unconditional fields map for every area of law")
   void unconditionalFieldsMapForEveryArea(String claimField) {
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
-      assertThat(mapsToFeeSchemeRequest(claimField, areaOfLaw))
+      assertThat(impactsPricing(claimField, areaOfLaw))
           .as("%s for %s", claimField, areaOfLaw)
           .isTrue();
     }
@@ -72,7 +72,7 @@ class FeeSchemeRequestFieldTest {
   void travelWaitingCostsMapsForCrimeLowerAndLegalHelpOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER, AreaOfLaw.LEGAL_HELP);
 
-    assertThat(mapsToFeeSchemeRequest("travelWaitingCostsAmount", areaOfLaw))
+    assertThat(impactsPricing("travelWaitingCostsAmount", areaOfLaw))
         .as("travelWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
@@ -83,7 +83,7 @@ class FeeSchemeRequestFieldTest {
   void netWaitingCostsMapsForCrimeLowerOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER);
 
-    assertThat(mapsToFeeSchemeRequest("netWaitingCostsAmount", areaOfLaw))
+    assertThat(impactsPricing("netWaitingCostsAmount", areaOfLaw))
         .as("netWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
@@ -92,7 +92,7 @@ class FeeSchemeRequestFieldTest {
   @EnumSource(AreaOfLaw.class)
   @DisplayName("an unknown field never maps")
   void unknownFieldNeverMaps(AreaOfLaw areaOfLaw) {
-    assertThat(mapsToFeeSchemeRequest("notAField", areaOfLaw)).isFalse();
+    assertThat(impactsPricing("notAField", areaOfLaw)).isFalse();
   }
 
   @Test
@@ -100,7 +100,7 @@ class FeeSchemeRequestFieldTest {
   void everyRegistryEntryMapsForItsDeclaredAreas() {
     for (FeeSchemeRequestField entry : FeeSchemeRequestField.values()) {
       for (AreaOfLaw areaOfLaw : entry.getAreasOfLaw()) {
-        assertThat(mapsToFeeSchemeRequest(entry.getClaimField(), areaOfLaw))
+        assertThat(impactsPricing(entry.getClaimField(), areaOfLaw))
             .as("%s (claim field '%s') for %s", entry.name(), entry.getClaimField(), areaOfLaw)
             .isTrue();
       }
@@ -122,7 +122,7 @@ class FeeSchemeRequestFieldTest {
         continue;
       }
       for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
-        assertThat(mapsToFeeSchemeRequest(requestField, areaOfLaw))
+        assertThat(impactsPricing(requestField, areaOfLaw))
             .as("request-only field '%s' (%s) for %s", requestField, entry.name(), areaOfLaw)
             .isFalse();
       }
@@ -134,23 +134,21 @@ class FeeSchemeRequestFieldTest {
   @DisplayName("blank or wrong-case field names never map (lookup is exact and case-sensitive)")
   void blankOrWrongCaseFieldNamesDoNotMap(String field) {
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
-      assertThat(mapsToFeeSchemeRequest(field, areaOfLaw))
-          .as("'%s' for %s", field, areaOfLaw)
-          .isFalse();
+      assertThat(impactsPricing(field, areaOfLaw)).as("'%s' for %s", field, areaOfLaw).isFalse();
     }
   }
 
   @Test
   @DisplayName("a null field returns false")
   void nullFieldReturnsFalse() {
-    assertThat(mapsToFeeSchemeRequest(null, AreaOfLaw.CRIME_LOWER)).isFalse();
+    assertThat(impactsPricing(null, AreaOfLaw.CRIME_LOWER)).isFalse();
   }
 
   @Test
   @DisplayName("a null area of law throws")
   void nullAreaOfLawThrows() {
     assertThatNullPointerException()
-        .isThrownBy(() -> mapsToFeeSchemeRequest("feeCode", null))
+        .isThrownBy(() -> impactsPricing("feeCode", null))
         .withMessageContaining("areaOfLaw");
   }
 }

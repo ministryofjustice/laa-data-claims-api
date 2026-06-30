@@ -21,7 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
  * <ul>
  *   <li>{@link #getRequestField() requestField} - the FSP request field name (target);
  *   <li>{@link #getClaimField() claimField} - the claim field it is mapped from (source, and the
- *       value matched by {@link #mapsToFeeSchemeRequest(String, AreaOfLaw)});
+ *       value matched by {@link #impactsPricing(String, AreaOfLaw)});
  *   <li>{@link #getAreasOfLaw() areasOfLaw} - the areas of law for which the mapping applies. Most
  *       fields apply to every area; only the travel/waiting-cost fields are area-specific.
  * </ul>
@@ -88,7 +88,7 @@ public enum FeeSchemeRequestField {
    * @return {@code true} if the field maps to the fee-scheme request for that area of law
    * @throws NullPointerException if {@code areaOfLaw} is {@code null}
    */
-  public static boolean mapsToFeeSchemeRequest(String field, AreaOfLaw areaOfLaw) {
+  public static boolean impactsPricing(String field, AreaOfLaw areaOfLaw) {
     Objects.requireNonNull(areaOfLaw, "areaOfLaw must not be null");
     if (field == null) {
       return false;
