@@ -253,6 +253,11 @@ public class ClaimService
     return hasUpdates.get();
   }
 
+  /**
+   * This method is called to allow legacy updates to still work
+   * @param claim claim
+   * @param claimPatch claim patch
+   */
   private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
