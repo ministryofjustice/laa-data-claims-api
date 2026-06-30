@@ -70,9 +70,9 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentPayload.builder().feeCode(JsonNullable.of(AMENDED_FEE_CODE)).build();
     ClaimAmendmentState expected =
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
-    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 5L)).thenReturn(expected);
+    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload)).thenReturn(expected);
 
-    ClaimAmendmentState result = service.retrieveAmendmentState(claim, payload, 5L);
+    ClaimAmendmentState result = service.retrieveAmendmentState(claim, payload);
 
     assertThat(result).isEqualTo(expected);
     verify(snapshotMapper)
@@ -83,7 +83,7 @@ class ClaimAmendmentStateServiceTest {
             any(Optional.class),
             any(Optional.class),
             any(Optional.class));
-    verify(amendmentStateBuilder).buildAmendmentState(beforeState, payload, 5L);
+    verify(amendmentStateBuilder).buildAmendmentState(beforeState, payload);
   }
 
   @Test
@@ -109,10 +109,10 @@ class ClaimAmendmentStateServiceTest {
         .thenReturn(beforeState);
 
     ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
-    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload, 1L))
+    when(amendmentStateBuilder.buildAmendmentState(beforeState, payload))
         .thenReturn(ClaimAmendmentState.builder().beforeState(beforeState).build());
 
-    service.retrieveAmendmentState(claim, payload, 1L);
+    service.retrieveAmendmentState(claim, payload);
 
     // no persistence: none of the repositories' save/delete methods are invoked
     verify(claimRepository, never()).save(any());

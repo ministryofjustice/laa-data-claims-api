@@ -218,7 +218,7 @@ class ClaimAmendmentStateBuilderTest {
       ClaimAmendmentPayload payload =
           ClaimAmendmentPayload.builder().feeCode(JsonNullable.of(AMENDED_FEE_CODE)).build();
 
-      ClaimAmendmentState state = builder.buildAmendmentState(before, payload, 1L);
+      ClaimAmendmentState state = builder.buildAmendmentState(before, payload);
 
       assertThat(state.getBeforeState()).isSameAs(before);
       assertThat(state.getRequestPayload()).isSameAs(payload);
@@ -235,7 +235,7 @@ class ClaimAmendmentStateBuilderTest {
       ClaimAmendmentPayload payload =
           ClaimAmendmentPayload.builder().feeCode(JsonNullable.of(AMENDED_FEE_CODE)).build();
 
-      ClaimAmendmentState state = builder.buildAmendmentState(before, payload, 1L);
+      ClaimAmendmentState state = builder.buildAmendmentState(before, payload);
 
       // An omitted field must not be recorded as a requested change.
       assertThat(state.getRequestPayload().getCaseReferenceNumber().isPresent()).isFalse();

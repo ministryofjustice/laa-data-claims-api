@@ -51,8 +51,7 @@ public class ClaimAmendmentStateService {
    * @param payload the sparse amendment payload as submitted
    * @return the built amendment state, or {@link Optional#empty()} if the claim does not exist
    */
-  public ClaimAmendmentState retrieveAmendmentState(
-      Claim claim, ClaimAmendmentPayload payload, Long submittedVersion) {
+  public ClaimAmendmentState retrieveAmendmentState(Claim claim, ClaimAmendmentPayload payload) {
 
     ClaimStateSnapshot beforeState =
         snapshotMapper.toSnapshot(
@@ -64,6 +63,6 @@ public class ClaimAmendmentStateService {
                 claim.getId()),
             assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId()));
 
-    return amendmentStateBuilder.buildAmendmentState(beforeState, payload, submittedVersion);
+    return amendmentStateBuilder.buildAmendmentState(beforeState, payload);
   }
 }

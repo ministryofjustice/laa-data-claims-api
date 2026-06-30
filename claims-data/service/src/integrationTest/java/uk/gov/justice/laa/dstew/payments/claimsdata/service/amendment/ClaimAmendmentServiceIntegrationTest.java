@@ -251,8 +251,8 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))
+                .version(JsonNullable.of(submittedVersion))
                 .build())
-        .submittedVersion(submittedVersion) // Inject the version here!
         .build();
   }
 

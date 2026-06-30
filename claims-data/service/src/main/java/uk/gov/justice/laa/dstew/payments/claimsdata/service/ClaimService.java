@@ -358,8 +358,7 @@ public class ClaimService
   private void amendClaim(Claim claim, ClaimPatch claimPatch) {
     ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
 
-    ClaimAmendmentState state =
-        claimAmendmentStateService.retrieveAmendmentState(claim, payload, claimPatch.getVersion());
+    ClaimAmendmentState state = claimAmendmentStateService.retrieveAmendmentState(claim, payload);
 
     List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
 
