@@ -910,6 +910,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // then: Assert the specific error code is returned to the user in the response
     String responseBody = result.getResponse().getContentAsString();
-    assertThat(responseBody).contains("INVALID_CLAIM_VERSION_CONFLICT");
+    assertThat(responseBody).contains("Claim Version conflict exists");
   }
 }

@@ -102,9 +102,9 @@ class ClaimAmendmentServiceTest {
             List.of(
                 extraStep,
                 new ClaimStatusValidationStep(),
+                new ClaimVersionValidationStep(),
                 new AmendmentUserIdValidationStep(),
-                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
-                new ClaimVersionValidationStep()));
+                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
 
     assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
   }

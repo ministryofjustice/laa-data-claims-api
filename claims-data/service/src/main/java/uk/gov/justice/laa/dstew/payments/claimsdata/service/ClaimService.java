@@ -4,7 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
@@ -88,6 +91,20 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
+
+  private static final Set<String> IGNORED_FIELDS =
+      Set.of(
+          "serialVersionUID",
+          "id",
+          "status",
+          "version",
+          "feeCode",
+          "validationMessages",
+          "amendmentRequestedBy",
+          "amendmentUserId",
+          "amendmentReasonCode",
+          "feeCalculationResponse",
+          "caseReferenceNumber");
 
   @Override
   public SubmissionRepository lookup() {
@@ -191,14 +208,14 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
-    if (isAnAmendment(claim, claimPatch)) {
+    if (isAnAmendment(claimPatch)) {
       amendClaim(claim, claimPatch);
     } else {
       updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
   }
 
-  private boolean isAnAmendment(Claim claim, ClaimPatch claimPatch) {
+  private boolean isAnAmendment(ClaimPatch claimPatch) {
     // Rule 1: If there is no status, it must be an amendment
     if (claimPatch.getStatus() == null) {
       return true;
@@ -213,109 +230,27 @@ public class ClaimService
    * Leverages short-circuit evaluation for maximum performance.
    */
   private boolean hasAdditionalFieldUpdates(ClaimPatch patch) {
-    return patch.getScheduleReference() != null
-        || patch.getLineNumber() != null
-        || patch.getUniqueFileNumber() != null
-        || patch.getCaseStartDate() != null
-        || patch.getCaseConcludedDate() != null
-        || patch.getMatterTypeCode() != null
-        || patch.getCrimeMatterTypeCode() != null
-        || patch.getFeeSchemeCode() != null
-        || patch.getProcurementAreaCode() != null
-        || patch.getAccessPointCode() != null
-        || patch.getDeliveryLocation() != null
-        || patch.getRepresentationOrderDate() != null
-        || patch.getSuspectsDefendantsCount() != null
-        || patch.getPoliceStationCourtAttendancesCount() != null
-        || patch.getPoliceStationCourtPrisonId() != null
-        || patch.getDsccNumber() != null
-        || patch.getMaatId() != null
-        || patch.getPrisonLawPriorApprovalNumber() != null
-        || patch.getIsDutySolicitor() != null
-        || patch.getIsYouthCourt() != null
-        || patch.getSchemeId() != null
-        || patch.getMediationSessionsCount() != null
-        || patch.getMediationTimeMinutes() != null
-        || patch.getOutreachLocation() != null
-        || patch.getReferralSource() != null
-        || patch.getClientForename() != null
-        || patch.getClientSurname() != null
-        || patch.getClientDateOfBirth() != null
-        || patch.getUniqueClientNumber() != null
-        || patch.getClientPostcode() != null
-        || patch.getGenderCode() != null
-        || patch.getEthnicityCode() != null
-        || patch.getDisabilityCode() != null
-        || patch.getIsLegallyAided() != null
-        || patch.getClientTypeCode() != null
-        || patch.getHomeOfficeClientNumber() != null
-        || patch.getClaReferenceNumber() != null
-        || patch.getClaExemptionCode() != null
-        || patch.getClient2Forename() != null
-        || patch.getClient2Surname() != null
-        || patch.getClient2DateOfBirth() != null
-        || patch.getClient2Ucn() != null
-        || patch.getClient2Postcode() != null
-        || patch.getClient2GenderCode() != null
-        || patch.getClient2EthnicityCode() != null
-        || patch.getClient2DisabilityCode() != null
-        || patch.getClient2IsLegallyAided() != null
-        || patch.getCaseId() != null
-        || patch.getUniqueCaseId() != null
-        || patch.getCaseStageCode() != null
-        || patch.getStageReachedCode() != null
-        || patch.getStandardFeeCategoryCode() != null
-        || patch.getOutcomeCode() != null
-        || patch.getDesignatedAccreditedRepresentativeCode() != null
-        || patch.getIsPostalApplicationAccepted() != null
-        || patch.getIsClient2PostalApplicationAccepted() != null
-        || patch.getMentalHealthTribunalReference() != null
-        || patch.getIsNrmAdvice() != null
-        || patch.getFollowOnWork() != null
-        || patch.getTransferDate() != null
-        || patch.getExemptionCriteriaSatisfied() != null
-        || patch.getExceptionalCaseFundingReference() != null
-        || patch.getIsLegacyCase() != null
-        || patch.getAdviceTime() != null
-        || patch.getTravelTime() != null
-        || patch.getWaitingTime() != null
-        || patch.getNetProfitCostsAmount() != null
-        || patch.getNetDisbursementAmount() != null
-        || patch.getNetCounselCostsAmount() != null
-        || patch.getDisbursementsVatAmount() != null
-        || patch.getTravelWaitingCostsAmount() != null
-        || patch.getNetWaitingCostsAmount() != null
-        || patch.getIsVatApplicable() != null
-        || patch.getIsToleranceApplicable() != null
-        || patch.getPriorAuthorityReference() != null
-        || patch.getIsLondonRate() != null
-        || patch.getAdjournedHearingFeeAmount() != null
-        || patch.getIsAdditionalTravelPayment() != null
-        || patch.getCostsDamagesRecoveredAmount() != null
-        || patch.getMeetingsAttendedCode() != null
-        || patch.getDetentionTravelWaitingCostsAmount() != null
-        || patch.getJrFormFillingAmount() != null
-        || patch.getIsEligibleClient() != null
-        || patch.getCourtLocationCode() != null
-        || patch.getAdviceTypeCode() != null
-        || patch.getMedicalReportsCount() != null
-        || patch.getIsIrcSurgery() != null
-        || patch.getSurgeryDate() != null
-        || patch.getSurgeryClientsCount() != null
-        || patch.getSurgeryMattersCount() != null
-        || patch.getCmrhOralCount() != null
-        || patch.getCmrhTelephoneCount() != null
-        || patch.getAitHearingCentreCode() != null
-        || patch.getIsSubstantiveHearing() != null
-        || patch.getHoInterview() != null
-        || patch.getLocalAuthorityNumber() != null
-        || patch.getSubmissionPeriod() != null
-        || patch.getIsAmended() != null
-        || patch.getHasAssessment() != null
-        || patch.getTotalWarnings() != null
-        || patch.getAmendmentRequestedBy() != null
-        || patch.getAmendmentUserId() != null
-        || patch.getAmendmentReasonCode() != null;
+    if (patch == null) {
+      return false;
+    }
+    AtomicBoolean hasUpdates = new AtomicBoolean(false);
+
+    ReflectionUtils.doWithFields(
+        patch.getClass(),
+        field -> {
+          if (hasUpdates.get() || IGNORED_FIELDS.contains(field.getName())) {
+            return; // Already found an update or field is ignored, skip
+          }
+
+          ReflectionUtils.makeAccessible(field);
+          if (field.get(patch) != null) {
+            System.out.println(field.getName());
+            hasUpdates.set(true);
+          }
+        },
+        ReflectionUtils.COPYABLE_FIELDS);
+
+    return hasUpdates.get();
   }
 
   private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {

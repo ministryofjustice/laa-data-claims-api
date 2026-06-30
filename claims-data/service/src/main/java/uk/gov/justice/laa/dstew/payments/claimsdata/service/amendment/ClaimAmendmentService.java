@@ -55,9 +55,9 @@ public class ClaimAmendmentService {
   static final List<Class<? extends ClaimAmendmentValidationStep>> STEP_ORDER =
       List.of(
           ClaimStatusValidationStep.class,
+          ClaimVersionValidationStep.class,
           AmendmentUserIdValidationStep.class,
-          AmendmentReferenceValidationStep.class,
-          ClaimVersionValidationStep.class);
+          AmendmentReferenceValidationStep.class);
 
   private final List<ClaimAmendmentValidationStep> validationSteps;
 

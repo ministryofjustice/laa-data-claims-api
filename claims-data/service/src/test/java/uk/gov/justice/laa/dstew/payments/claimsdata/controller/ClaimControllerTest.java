@@ -172,7 +172,7 @@ class ClaimControllerTest {
   void updateClaim_returnsNoContent() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final String body = "{ \"status\": \"INVALID\", \"version\": 1 }";
+    final String body = "{ \"status\": \"INVALID\" }";
 
     mockMvc
         .perform(
