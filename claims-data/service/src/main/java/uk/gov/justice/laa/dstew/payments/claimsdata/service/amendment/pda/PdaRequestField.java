@@ -38,17 +38,20 @@ public final class PdaRequestField {
    * @param mergedStateSnapshot the post-amendment (effective) claim snapshot
    * @return {@code true} if the field could influence the request, otherwise {@code false}
    */
-  public static boolean affectsPdaRequest(String fieldName, ClaimStateSnapshot mergedStateSnapshot) {
+  public static boolean affectsPdaRequest(
+      String fieldName, ClaimStateSnapshot mergedStateSnapshot) {
 
     boolean prodWithConcluded =
-        PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode()) && mergedStateSnapshot.getCaseConcludedDate() != null;
+        PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode())
+            && mergedStateSnapshot.getCaseConcludedDate() != null;
 
     return switch (fieldName) {
       case "officeAccountNumber" -> true;
       case "feeCode" -> mergedStateSnapshot.getCaseConcludedDate() != null;
       case "caseConcludedDate" -> PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode());
       case "caseStartDate" -> !prodWithConcluded;
-      case "representationOrderDate" -> !prodWithConcluded && mergedStateSnapshot.getCaseStartDate() == null;
+      case "representationOrderDate" ->
+          !prodWithConcluded && mergedStateSnapshot.getCaseStartDate() == null;
       case "uniqueFileNumber" ->
           !prodWithConcluded
               && mergedStateSnapshot.getCaseStartDate() == null
