@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -57,6 +60,58 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
   @Autowired private ClaimAmendmentService claimAmendmentService;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Autowired private ClaimsApiProperties claimsApiProperties;
+
+  private String originalAmendmentsEnabled;
+
+  /**
+   * Enables the amendments feature before each test so the validation chain runs past the
+   * feature-flag gate (which is off by default). The original value is captured and restored
+   * afterwards to avoid leaking state into other tests that share the Spring context.
+   */
+  @BeforeEach
+  void enableAmendmentsFeature() {
+    originalAmendmentsEnabled = claimsApiProperties.getAmendments().getEnabled();
+    claimsApiProperties.getAmendments().setEnabled("true");
+  }
+
+  @AfterEach
+  void restoreAmendmentsFeature() {
+    claimsApiProperties.getAmendments().setEnabled(originalAmendmentsEnabled);
+  }
+
+  @Nested
+  @DisplayName("feature-flag gate")
+  class FeatureFlag {
+
+    @Test
+    @DisplayName(
+        "when disabled, a fully valid amendment is rejected with only the fatal gate error")
+    void disabledShortCircuitsBeforeOtherSteps() {
+      claimsApiProperties.getAmendments().setEnabled("false");
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
+
+      assertThat(claimAmendmentService.orchestrate(state))
+          .singleElement()
+          .satisfies(
+              error -> {
+                assertThat(error.getCode())
+                    .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED);
+                assertThat(error.isFatal()).isTrue();
+              });
+    }
+
+    @Test
+    @DisplayName("when enabled, a fully valid amendment passes the gate and the chain runs")
+    void enabledAllowsProcessing() {
+      claimsApiProperties.getAmendments().setEnabled("true");
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
+
+      assertThat(claimAmendmentService.orchestrate(state)).isEmpty();
+    }
+  }
 
   @Nested
   @DisplayName("happy path")

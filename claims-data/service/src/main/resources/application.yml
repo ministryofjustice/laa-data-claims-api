@@ -48,7 +48,6 @@ aws:
 javers:
   sqlSchema: javers
 
-
 # used by actuator info endpoint
 info:
   app:
@@ -130,8 +129,10 @@ laa:
   claims:
     api:
       amendments:
-        # Feature toggle for the amendments capability (reserved; not yet enforced).
-        enabled: true
+        # Feature toggle for the amendments capability, supplied via the CLAIMS_API_AMENDMENTS_ENABLED
+        # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
+        # value is off).
+        enabled: ${CLAIMS_API_AMENDMENTS_ENABLED:false}
         cache:
           # TTL for the governed amendment reference data cache; lazy reload after expiry.
           refresh: 30m
