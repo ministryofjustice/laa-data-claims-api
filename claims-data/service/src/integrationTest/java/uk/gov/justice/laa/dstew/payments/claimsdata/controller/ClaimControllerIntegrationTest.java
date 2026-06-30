@@ -71,6 +71,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
+  private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
+
   @BeforeEach
   void setUp() {
     seedClaimsData();
@@ -393,8 +395,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(4);
-    assertThat(claimResultSet.getContent()).hasSize(4);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
         .containsExactlyInAnyOrder(
             CLAIM_1_ID.toString(),
@@ -491,8 +493,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(4);
-    assertThat(claimResultSet.getContent()).hasSize(4);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .containsExactlyInAnyOrder(
             CLAIM_1_ID.toString(),
