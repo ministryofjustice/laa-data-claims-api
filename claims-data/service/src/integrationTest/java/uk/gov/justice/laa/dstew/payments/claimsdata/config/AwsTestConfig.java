@@ -29,8 +29,6 @@ public class AwsTestConfig {
 
   @Bean
   public SqsClient sqsClient(@Autowired LocalStackContainer localStack) {
-    localStack.start(); // ensure container is running
-
     return SqsClient.builder()
         .endpointOverride(localStack.getEndpointOverride(SQS))
         .region(Region.of(localStack.getRegion()))
@@ -42,7 +40,6 @@ public class AwsTestConfig {
 
   @Bean
   public SnsClient snsClient(@Autowired LocalStackContainer localStack) {
-    localStack.start(); // ensure container is running
 
     return SnsClient.builder()
         .endpointOverride(localStack.getEndpointOverride(SNS))
