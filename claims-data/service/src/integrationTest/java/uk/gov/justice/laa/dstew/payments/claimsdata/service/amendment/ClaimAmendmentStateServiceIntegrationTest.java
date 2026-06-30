@@ -12,7 +12,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -79,11 +78,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .isVatApplicable(JsonNullable.of(false))
             .build();
 
-    Optional<ClaimAmendmentState> result =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L);
-
-    assertThat(result).isPresent();
-    ClaimAmendmentState state = result.get();
+    ClaimAmendmentState state = amendmentStateService.retrieveAmendmentState(claim1, payload, 1L);
 
     // requestPayload is carried through as submitted
     assertThat(state.getRequestPayload()).isSameAs(payload);
@@ -130,18 +125,6 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
   }
 
   @Test
-  @DisplayName("Returns empty when the claim does not exist")
-  void retrievesAmendmentState_whenClaimMissing_returnsEmpty() {
-    seedClaimsData();
-
-    Optional<ClaimAmendmentState> result =
-        amendmentStateService.retrieveAmendmentState(
-            UUID.randomUUID(), ClaimAmendmentPayload.builder().build(), 1L);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
   @DisplayName("Performs no database writes (read-only step)")
   void retrievesAmendmentState_doesNotMutateDatabase() {
     seedAssessmentsData();
@@ -160,7 +143,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .caseReferenceNumber(JsonNullable.of((String) null))
             .build();
 
-    amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L);
+    amendmentStateService.retrieveAmendmentState(claim1, payload, 1L);
 
     assertThat(claimRepository.count()).isEqualTo(claims);
     assertThat(clientRepository.count()).isEqualTo(clients);
@@ -184,8 +167,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
     ClaimAmendmentPayload payload =
         ClaimAmendmentPayload.builder().scheduleReference(JsonNullable.of((String) null)).build();
 
-    ClaimAmendmentState state =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload, 1L).orElseThrow();
+    ClaimAmendmentState state = amendmentStateService.retrieveAmendmentState(claim1, payload, 1L);
 
     assertThat(state.getBeforeState().getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
     assertThat(state.getPostAmendmentState().getScheduleReference()).isNull();
@@ -205,10 +187,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .build();
 
     ClaimStateSnapshot after =
-        amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, payload, 1L)
-            .orElseThrow()
-            .getPostAmendmentState();
+        amendmentStateService.retrieveAmendmentState(claim1, payload, 1L).getPostAmendmentState();
 
     // amended identity inputs applied
     assertThat(after.getClientForename()).isEqualTo(AMENDED_FORENAME);
@@ -226,8 +205,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, ClaimAmendmentPayload.builder().build(), 1L)
-            .orElseThrow()
+            .retrieveAmendmentState(claim1, ClaimAmendmentPayload.builder().build(), 1L)
             .getBeforeState();
 
     assertThat(before.getLatestAssessment()).isNotNull();
@@ -244,8 +222,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_4_ID, ClaimAmendmentPayload.builder().build(), 1L)
-            .orElseThrow()
+            .retrieveAmendmentState(claim4, ClaimAmendmentPayload.builder().build(), 1L)
             .getBeforeState();
 
     assertThat(before.getClaimId()).isEqualTo(CLAIM_4_ID);

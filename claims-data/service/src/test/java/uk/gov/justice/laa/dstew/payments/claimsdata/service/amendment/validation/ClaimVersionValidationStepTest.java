@@ -58,4 +58,24 @@ class ClaimVersionValidationStepTest {
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT);
   }
+
+  @Test
+  @DisplayName("validate returns INVALID_NULL_VERSION when submitted version is null")
+  void shouldReturnErrorWhenSubmittedVersionIsNull() {
+    // Arrange: Mock the state with a valid current DB version but a null submitted version
+    ClaimAmendmentState state = mock(ClaimAmendmentState.class, RETURNS_DEEP_STUBS);
+
+    when(state.getBeforeState().getVersion()).thenReturn(5L); // Current DB version
+    when(state.getSubmittedVersion()).thenReturn(null); // Missing request version
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = step.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+
+    // Verify it returns the correct validation code for null inputs
+    ClaimAmendmentValidationError error = errors.get(0);
+    assertThat(error.getCode()).isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+  }
 }

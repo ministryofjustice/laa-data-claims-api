@@ -359,12 +359,7 @@ public class ClaimService
     ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
 
     ClaimAmendmentState state =
-        claimAmendmentStateService
-            .retrieveAmendmentState(claim.getId(), payload, claimPatch.getVersion())
-            .orElseThrow(
-                () ->
-                    new ClaimNotFoundException(
-                        String.format("No claim %s found during amendment", claim.getId())));
+        claimAmendmentStateService.retrieveAmendmentState(claim, payload, claimPatch.getVersion());
 
     List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
 

@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,29 +47,23 @@ public class ClaimAmendmentStateService {
   /**
    * Retrieves the claim and builds the amendment state.
    *
-   * @param claimId the claim identifier
+   * @param claim the claim
    * @param payload the sparse amendment payload as submitted
    * @return the built amendment state, or {@link Optional#empty()} if the claim does not exist
    */
-  public Optional<ClaimAmendmentState> retrieveAmendmentState(
-      UUID claimId, ClaimAmendmentPayload payload, Long submittedVersion) {
-
-    Optional<Claim> claim = claimRepository.findById(claimId);
-    if (claim.isEmpty()) {
-      log.debug("No claim found for id {} during amendment retrieval", claimId);
-      return Optional.empty();
-    }
+  public ClaimAmendmentState retrieveAmendmentState(
+      Claim claim, ClaimAmendmentPayload payload, Long submittedVersion) {
 
     ClaimStateSnapshot beforeState =
         snapshotMapper.toSnapshot(
-            claim.get(),
-            clientRepository.findByClaimId(claimId),
-            claimCaseRepository.findByClaimId(claimId),
-            claimSummaryFeeRepository.findByClaimId(claimId),
-            calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId),
-            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId));
+            claim,
+            clientRepository.findByClaimId(claim.getId()),
+            claimCaseRepository.findByClaimId(claim.getId()),
+            claimSummaryFeeRepository.findByClaimId(claim.getId()),
+            calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(
+                claim.getId()),
+            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId()));
 
-    return Optional.of(
-        amendmentStateBuilder.buildAmendmentState(beforeState, payload, submittedVersion));
+    return amendmentStateBuilder.buildAmendmentState(beforeState, payload, submittedVersion);
   }
 }
