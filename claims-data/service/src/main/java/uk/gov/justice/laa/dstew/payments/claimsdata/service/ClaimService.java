@@ -254,7 +254,7 @@ public class ClaimService
   }
 
   /**
-   * This method is called to allow legacy updates to still work
+   * This method is called to allow legacy updates to still work.
    * @param claim claim
    * @param claimPatch claim patch
    */
