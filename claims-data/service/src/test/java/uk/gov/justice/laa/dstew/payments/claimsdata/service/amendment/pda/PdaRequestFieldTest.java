@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 
 /**
- * Tests for {@link PdaRequestField#affectsPdaRequest(String, ClaimStateSnapshot)}.
+ * Tests for {@link PdaRequestField#impactsPda(String, ClaimStateSnapshot)}.
  *
  * <p>Each amended field is checked against the claim's fully-merged effective state to decide
  * whether changing it could alter the downstream PDA {@code getProviderFirmSchedules} request.
@@ -30,7 +30,7 @@ class PdaRequestFieldTest {
     @DisplayName("always affects the request regardless of dates")
     void alwaysAffects() {
       assertThat(
-              PdaRequestField.affectsPdaRequest(
+              PdaRequestField.impactsPda(
                   "officeAccountNumber", ClaimStateSnapshot.builder().build()))
           .isTrue();
     }
@@ -45,14 +45,14 @@ class PdaRequestFieldTest {
     void prodWithConcluded() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("PROD").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("feeCode", state)).isTrue();
+      assertThat(PdaRequestField.impactsPda("feeCode", state)).isTrue();
     }
 
     @Test
     @DisplayName("does not affect when PROD but no concluded date")
     void prodWithoutConcluded() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("PROD").build();
-      assertThat(PdaRequestField.affectsPdaRequest("feeCode", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("feeCode", state)).isFalse();
     }
 
     @Test
@@ -62,7 +62,7 @@ class PdaRequestFieldTest {
       // concluded date onto caseStartDate/repOrder/UFN, so the change must trigger a refresh.
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("OTHER").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("feeCode", state)).isTrue();
+      assertThat(PdaRequestField.impactsPda("feeCode", state)).isTrue();
     }
   }
 
@@ -74,14 +74,14 @@ class PdaRequestFieldTest {
     @DisplayName("affects when PROD")
     void prod() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("PROD").build();
-      assertThat(PdaRequestField.affectsPdaRequest("caseConcludedDate", state)).isTrue();
+      assertThat(PdaRequestField.impactsPda("caseConcludedDate", state)).isTrue();
     }
 
     @Test
     @DisplayName("does not affect when not PROD")
     void notProd() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("OTHER").build();
-      assertThat(PdaRequestField.affectsPdaRequest("caseConcludedDate", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("caseConcludedDate", state)).isFalse();
     }
   }
 
@@ -93,7 +93,7 @@ class PdaRequestFieldTest {
     @DisplayName("affects unless PROD+concluded already wins")
     void affectsWhenProdNotConcluding() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("OTHER").build();
-      assertThat(PdaRequestField.affectsPdaRequest("caseStartDate", state)).isTrue();
+      assertThat(PdaRequestField.impactsPda("caseStartDate", state)).isTrue();
     }
 
     @Test
@@ -101,7 +101,7 @@ class PdaRequestFieldTest {
     void noEffectWhenProdConcluded() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("PROD").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("caseStartDate", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("caseStartDate", state)).isFalse();
     }
   }
 
@@ -113,7 +113,7 @@ class PdaRequestFieldTest {
     @DisplayName("affects when no higher-priority date present")
     void affectsWhenNothingHigher() {
       assertThat(
-              PdaRequestField.affectsPdaRequest(
+              PdaRequestField.impactsPda(
                   "representationOrderDate", ClaimStateSnapshot.builder().build()))
           .isTrue();
     }
@@ -122,7 +122,7 @@ class PdaRequestFieldTest {
     @DisplayName("does not affect when caseStartDate present")
     void noEffectWhenCaseStart() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().caseStartDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("representationOrderDate", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("representationOrderDate", state)).isFalse();
     }
 
     @Test
@@ -130,7 +130,7 @@ class PdaRequestFieldTest {
     void noEffectWhenProdConcluded() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("PROD").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("representationOrderDate", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("representationOrderDate", state)).isFalse();
     }
   }
 
@@ -142,7 +142,7 @@ class PdaRequestFieldTest {
     @DisplayName("affects when no higher-priority date present")
     void affectsWhenNothingHigher() {
       assertThat(
-              PdaRequestField.affectsPdaRequest(
+              PdaRequestField.impactsPda(
                   "uniqueFileNumber", ClaimStateSnapshot.builder().build()))
           .isTrue();
     }
@@ -152,14 +152,14 @@ class PdaRequestFieldTest {
     void noEffectWhenProdConcluded() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("PROD").caseConcludedDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("uniqueFileNumber", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("uniqueFileNumber", state)).isFalse();
     }
 
     @Test
     @DisplayName("does not affect when caseStartDate present")
     void noEffectWhenCaseStart() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().caseStartDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("uniqueFileNumber", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("uniqueFileNumber", state)).isFalse();
     }
 
     @Test
@@ -167,7 +167,7 @@ class PdaRequestFieldTest {
     void noEffectWhenRepOrder() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().representationOrderDate(ANY_DATE).build();
-      assertThat(PdaRequestField.affectsPdaRequest("uniqueFileNumber", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("uniqueFileNumber", state)).isFalse();
     }
   }
 
@@ -175,6 +175,6 @@ class PdaRequestFieldTest {
   @DisplayName("unrelated field never affects the request")
   void unrelatedField() {
     ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("PROD").build();
-    assertThat(PdaRequestField.affectsPdaRequest("clientForename", state)).isFalse();
+    assertThat(PdaRequestField.impactsPda("clientForename", state)).isFalse();
   }
 }
