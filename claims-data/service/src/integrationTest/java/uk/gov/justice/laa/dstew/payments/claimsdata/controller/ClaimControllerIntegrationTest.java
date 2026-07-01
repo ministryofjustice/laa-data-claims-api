@@ -24,6 +24,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -34,8 +35,10 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
@@ -58,6 +61,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequest
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
+  @Autowired private ClaimsApiProperties claimsApiProperties;
+
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
 
@@ -73,9 +78,19 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
+  private Boolean amendmentSwitch;
+
   @BeforeEach
   void setUp() {
+    // Capture the original boolean state
+    amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
     seedClaimsData();
+  }
+
+  @AfterEach
+  void tearDown() {
+    // Use String.valueOf() for a null-safe string conversion
+    claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
   }
 
   @Test
@@ -893,6 +908,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("PATCH submissions/{id}/claims/{id} - 409 Conflict when claim version is stale")
   void shouldReturn409ConflictWhenSubmittedVersionIsStale() throws Exception {
+    claimsApiProperties.getAmendments().setEnabled(Boolean.TRUE.toString());
+    // Then inside your specific test case before calling perform():
     // given: A patch request with a deliberately stale version
     // (The claim in the DB seeded by setUp() will likely have version 0L or 1L)
     ClaimPatch claimPatch = new ClaimPatch();
