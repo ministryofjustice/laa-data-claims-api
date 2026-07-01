@@ -80,14 +80,13 @@ public class ClaimAmendmentService {
   }
 
   /**
-   * Runs each validation step in order, stopping as soon as a fatal error is collected, and applies
-   * the amendment only when every step passes.
+   * Runs each validation step in order, collecting any validation errors found, stopping as soon as
+   * a fatal error is collected.
    *
    * @param state the in-memory amendment state produced by retrieval (DSTEW-1763)
-   * @return every validation error found; an empty list means validation passed and the amendment
-   *     was applied
+   * @return every validation error found; an empty list means validation passed
    */
-  public List<ClaimAmendmentValidationError> orchestrate(ClaimAmendmentState state) {
+  public List<ClaimAmendmentValidationError> validateAmendmentRequest(ClaimAmendmentState state) {
     for (ClaimAmendmentValidationStep step : validationSteps) {
       state.addErrors(step.validate(state));
       if (state.containsFatal()) {
@@ -95,12 +94,6 @@ public class ClaimAmendmentService {
       }
     }
 
-    if (!state.getErrors().isEmpty()) {
-      return state.getErrors();
-    }
-
-    // ----- atomic save: only when every step has passed -----
-    // TODO(DSTEW-176x): persist the amendment atomically within the orchestrator transaction.
     return state.getErrors();
   }
 

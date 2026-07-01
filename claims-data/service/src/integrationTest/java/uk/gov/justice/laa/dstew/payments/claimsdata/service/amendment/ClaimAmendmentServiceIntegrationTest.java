@@ -68,7 +68,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
 
-      assertThat(claimAmendmentService.orchestrate(state)).isEmpty();
+      assertThat(claimAmendmentService.validateAmendmentRequest(state)).isEmpty();
     }
   }
 
@@ -84,7 +84,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", "not-a-uuid");
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     }
@@ -99,7 +99,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
     void unknownRequestedBy() {
       ClaimAmendmentState state = stateOf(ClaimStatus.VALID, "MADE_UP", SEEDED_REASON, VALID_UUID);
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .contains(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
     }
@@ -111,7 +111,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON_OTHER_PARTY, VALID_UUID);
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY);
     }
@@ -129,7 +129,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VALID, inactiveParty, partyReason, VALID_UUID);
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE);
     }
@@ -145,7 +145,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, "not-a-uuid");
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
     }
@@ -160,7 +160,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
     void collectsErrorsFromMultipleSteps() {
       ClaimAmendmentState state = stateOf(ClaimStatus.VALID, null, null, "bad");
 
-      assertThat(claimAmendmentService.orchestrate(state))
+      assertThat(claimAmendmentService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactlyInAnyOrder(
               ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
@@ -183,7 +183,8 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
       ClaimAmendmentState state =
           stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
 
-      List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
+      List<ClaimAmendmentValidationError> errors =
+          claimAmendmentService.validateAmendmentRequest(state);
 
       assertThat(errors)
           .singleElement()

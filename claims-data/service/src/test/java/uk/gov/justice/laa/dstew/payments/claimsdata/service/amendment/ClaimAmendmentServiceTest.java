@@ -54,7 +54,8 @@ class ClaimAmendmentServiceTest {
   void passesWhenAllStepsPass() {
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of());
 
-    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState())).isEmpty();
+    assertThat(orchestratorWith(claimStatusValidationStep).validateAmendmentRequest(anyState()))
+        .isEmpty();
   }
 
   @Test
@@ -65,7 +66,7 @@ class ClaimAmendmentServiceTest {
             ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
 
-    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState()))
+    assertThat(orchestratorWith(claimStatusValidationStep).validateAmendmentRequest(anyState()))
         .containsExactly(fatal);
   }
 
@@ -77,7 +78,7 @@ class ClaimAmendmentServiceTest {
             ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
     when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
 
-    orchestratorWith(claimStatusValidationStep, laterStep).orchestrate(anyState());
+    orchestratorWith(claimStatusValidationStep, laterStep).validateAmendmentRequest(anyState());
 
     verify(laterStep, never()).validate(any());
   }
@@ -104,7 +105,7 @@ class ClaimAmendmentServiceTest {
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
 
-    assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
+    assertThatCode(() -> service.validateAmendmentRequest(anyState())).doesNotThrowAnyException();
   }
 
   @Test
