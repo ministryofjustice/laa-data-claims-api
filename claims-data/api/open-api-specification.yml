@@ -2246,6 +2246,9 @@ components:
           type: string
         technical_message:
           type: string
+        message_code:
+          type: string
+          description: Message code from FSP payload (e.g. WARFAM1, ERRALL1). Set only when source is FSP and type is ERROR or WARNING.
     validation_message_base:
       type: object
       description: Validation message
@@ -2265,6 +2268,9 @@ components:
           type: string
         display_message:
           type: string
+        message_code:
+          type: string
+          description: Message code from FSP payload. Only present when source is FSP and type is ERROR or WARNING.
         client_forename:
           type: string
           description: Client 1 forename from the associated claim
