@@ -38,8 +38,7 @@ public final class PdaRequestField {
    * @param mergedStateSnapshot the post-amendment (effective) claim snapshot
    * @return {@code true} if the field could influence the request, otherwise {@code false}
    */
-  public static boolean impactsPda(
-      String fieldName, ClaimStateSnapshot mergedStateSnapshot) {
+  public static boolean impactsPda(String fieldName, ClaimStateSnapshot mergedStateSnapshot) {
 
     boolean prodWithConcluded =
         PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode())

@@ -142,8 +142,7 @@ class PdaRequestFieldTest {
     @DisplayName("affects when no higher-priority date present")
     void affectsWhenNothingHigher() {
       assertThat(
-              PdaRequestField.impactsPda(
-                  "uniqueFileNumber", ClaimStateSnapshot.builder().build()))
+              PdaRequestField.impactsPda("uniqueFileNumber", ClaimStateSnapshot.builder().build()))
           .isTrue();
     }
 
