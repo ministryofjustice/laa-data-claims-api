@@ -230,11 +230,8 @@ public class ClaimService
    * Leverages short-circuit evaluation for maximum performance.
    */
   private boolean hasAdditionalFieldUpdates(ClaimPatch patch) {
-    if (patch == null) {
-      return false;
-    }
-    AtomicBoolean hasUpdates = new AtomicBoolean(false);
 
+    AtomicBoolean hasUpdates = new AtomicBoolean(false);
     ReflectionUtils.doWithFields(
         patch.getClass(),
         field -> {

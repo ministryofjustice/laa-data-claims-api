@@ -123,53 +123,63 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Handles validation failures originating from the synchronous claim amendment orchestrator.
+   * Handles validation failures originating from the claim amendment orchestrator.
    *
    * <p>Inspects the collection of validation errors returned by the orchestrator. If the error list
-   * contains an optimistic locking failure (stale claim version), the response is elevated to a
-   * {@code 409 Conflict} to prompt the client to refresh their state. For all other standard
-   * validation failures (e.g., missing fields, invalid formatting), it returns a standard {@code
-   * 400 Bad Request}.
+   * contains a fatal failure, the highest priority status code is surfaced. For standard errors, a
+   * 400 Bad Request status code is returned. The collection of underlying validation errors is
+   * attached as a structured property to the {@link ProblemDetail} payload.
    *
    * @param ex the exception containing the list of collected validation errors
-   * @return a {@link ResponseEntity} containing the list of errors, with an HTTP status of 409
-   *     (Conflict) or 400 (Bad Request) depending on the error contents
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} detailing the amendment failures
    */
   @ExceptionHandler(ClaimAmendmentValidationException.class)
-  public ResponseEntity<Object> handleClaimAmendmentValidationException(
-      ClaimAmendmentValidationException ex) {
+  public ResponseEntity<ProblemDetail> handleClaimAmendmentValidationException(
+      ClaimAmendmentValidationException ex, HttpServletRequest request) {
 
-    ClaimAmendmentValidationError error = ex.getErrors().getFirst();
+    log.warn("ClaimAmendmentValidationException occurred with {} errors", ex.getErrors().size());
+    ClaimAmendmentValidationError primaryError = ex.getErrors().getFirst();
 
-    if (error.isFatal()) {
-      Object responseBody = error.getMessage();
-      return ResponseEntity.status(error.getHttpStatus()).body(responseBody);
+    HttpStatus status = HttpStatus.BAD_REQUEST;
+    if (primaryError != null && primaryError.isFatal()) {
+      status = HttpStatus.resolve(primaryError.getHttpStatus().value());
+      if (status == null) {
+        status = HttpStatus.BAD_REQUEST;
+      }
     }
 
-    Object responseBody = ex.getErrors();
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
+
+    if (response.getBody() != null) {
+      response.getBody().setProperty("errors", ex.getErrors());
+    }
+
+    return response;
   }
 
   /**
    * Handles database-level optimistic locking failures during entity persistence.
    *
-   * <p>This exception is thrown by Spring Data JPA (translating underlying ORM exceptions like
-   * Hibernate's {@code StaleObjectStateException}) when a concurrent modification is detected. This
-   * typically occurs if another transaction modifies and saves the entity after it was read by the
-   * current transaction, but before the current transaction can commit.
-   *
-   * <p>The handler intercepts this failure and returns an HTTP {@code 409 Conflict} status. This
-   * indicates to the client that their request was based on stale data and they must refresh their
-   * state before attempting the operation again.
+   * <p>This exception is thrown by Spring Data JPA when a concurrent modification is detected. This
+   * handler intercepts this failure and returns an HTTP {@code 409 Conflict} status wrapped in an
+   * RFC 9457 Problem Detail.
    *
    * @param ex the optimistic locking exception thrown by the persistence layer
-   * @return a {@link ResponseEntity} containing a 409 status code and the exception message
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
    */
   @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-  public ResponseEntity<Object> handleDatabaseOptimisticLockingException(
-      ObjectOptimisticLockingFailureException ex) {
-    return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate());
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockingException(
+      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+
+    log.warn("Database level optimistic locking failure occurred: {}", ex.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.CONFLICT,
+        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+        ex.getClass(),
+        request);
   }
 
   /**
