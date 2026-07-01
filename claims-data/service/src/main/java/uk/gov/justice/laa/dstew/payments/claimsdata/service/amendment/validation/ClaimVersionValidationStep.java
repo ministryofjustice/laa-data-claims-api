@@ -27,6 +27,19 @@ public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep 
    */
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
+    if (state == null) {
+      return List.of(
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.INVALID_NULL_STATE));
+    }
+    if (state.getBeforeState() == null) {
+      return List.of(
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.INVALID_NULL_BEFORE_STATE));
+    }
+    if (state.getRequestPayload() == null) {
+      return List.of(
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.INVALID_NULL_PAYLOAD));
+    }
+
     Long expectedVersion = state.getBeforeState().getVersion();
     Long submittedVersion = state.getRequestPayload().getVersion().get();
 

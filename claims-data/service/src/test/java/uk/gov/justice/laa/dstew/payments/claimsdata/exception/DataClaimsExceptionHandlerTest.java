@@ -8,6 +8,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 class DataClaimsExceptionHandlerTest {
@@ -118,5 +121,76 @@ class DataClaimsExceptionHandlerTest {
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "Filter submissionId must be a UUID");
+  }
+
+  @Test
+  void handleClaimAmendmentValidationException_returnsBadRequestWithErrorsPropertyWhenNonFatal() {
+    // Arrange: Create a non-fatal validation error scenario
+    ClaimAmendmentValidationError nonFatalError = ClaimAmendmentValidationError.of(
+        ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT); // isFatal = false
+    ClaimAmendmentValidationException ex = new ClaimAmendmentValidationException(List.of(nonFatalError));
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    // Assert
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(BAD_REQUEST);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(BAD_REQUEST.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
+    assertThat(result.getBody().getType().toString())
+        .contains("claim-amendment-validation");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+
+    // Verify our custom properties structure
+    assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
+    assertThat(result.getBody().getProperties()).containsEntry("message", ex.getMessage());
+  }
+
+  @Test
+  void handleClaimAmendmentValidationException_returnsCustomStatusWhenFatal() {
+    // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural checks)
+    ClaimAmendmentValidationError fatalError = ClaimAmendmentValidationError.of(
+        ClaimAmendmentValidationCode.INVALID_NULL_STATE); // isFatal = true, status maps to 400 or custom status if applicable
+    ClaimAmendmentValidationException ex = new ClaimAmendmentValidationException(List.of(fatalError));
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    // Assert
+    HttpStatus expectedStatus = HttpStatus.resolve(fatalError.getHttpStatus().value());
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(expectedStatus);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(expectedStatus.value());
+    assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
+  }
+
+  @Test
+  void handleDatabaseOptimisticLockingException_returnsConflictStatusWithPredefinedMessage() {
+    // Arrange
+    org.springframework.orm.ObjectOptimisticLockingFailureException ex =
+        new org.springframework.orm.ObjectOptimisticLockingFailureException(
+            "Row was updated or deleted by another transaction", null);
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockingException(ex, mockRequest);
+
+    // Assert
+    String expectedMessage = ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate();
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail()).isEqualTo(expectedMessage);
+    assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
   }
 }

@@ -10,9 +10,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
  *
  * <p>This exception automatically sorts the underlying validation errors upon construction.
  * High-priority errors—defined as fatal errors first, followed by errors with the highest HTTP
- * status values (e.g., 500, 409, 400)—are bubbled up to the top of the list. This structure allows
- * downstream exception handlers to easily inspect or react to the most critical failure via {@link
- * #getPrimaryError()}.
+ * status values (e.g., 500, 409, 400)—are bubbled up to the top of the list.
  */
 @Getter
 public class ClaimAmendmentValidationException extends RuntimeException {

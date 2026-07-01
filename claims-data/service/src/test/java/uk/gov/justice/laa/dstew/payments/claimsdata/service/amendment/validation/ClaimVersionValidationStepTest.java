@@ -23,6 +23,50 @@ class ClaimVersionValidationStepTest {
   }
 
   @Test
+  @DisplayName("validate returns INVALID_NULL_STATE when state object is null")
+  void shouldReturnErrorWhenStateIsNull() {
+    // Act
+    List<ClaimAmendmentValidationError> errors = step.validate(null);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    assertThat(errors.get(0).getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_STATE);
+  }
+
+  @Test
+  @DisplayName("validate returns INVALID_NULL_BEFORE_STATE when database snapshot is null")
+  void shouldReturnErrorWhenBeforeStateIsNull() {
+    // Arrange: Create a standard mock that returns null for getBeforeState()
+    ClaimAmendmentState state = mock(ClaimAmendmentState.class);
+    when(state.getBeforeState()).thenReturn(null);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = step.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    assertThat(errors.get(0).getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_BEFORE_STATE);
+  }
+
+  @Test
+  @DisplayName("validate returns INVALID_NULL_PAYLOAD when request payload is null")
+  void shouldReturnErrorWhenRequestPayloadIsNull() {
+    // Arrange: Mock the first layer but return null for the patch request layer
+    ClaimAmendmentState state = mock(ClaimAmendmentState.class, RETURNS_DEEP_STUBS);
+    when(state.getRequestPayload()).thenReturn(null);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = step.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    assertThat(errors.get(0).getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_PAYLOAD);
+  }
+
+  @Test
   @DisplayName("validate returns empty list when expected and received versions match")
   void shouldReturnEmptyListWhenVersionsMatch() {
     // Arrange: Create a deeply stubbed mock so we don't have to instantiate the nested DTOs
