@@ -244,7 +244,6 @@ public class ClaimService
 
           ReflectionUtils.makeAccessible(field);
           if (field.get(patch) != null) {
-            System.out.println(field.getName());
             hasUpdates.set(true);
           }
         },
