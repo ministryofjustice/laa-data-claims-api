@@ -41,6 +41,15 @@ jacocoTestCoverageVerification {
 
 // Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
 
+// Upgrade logback to fix Expression Injection (SNYK-JAVA-CHQOSLOGBACK-17675439)
+// Overrides the Spring Boot managed logback.version for logback-core and logback-classic.
+ext['logback.version'] = '1.5.36'
+
+// Upgrade Tomcat to fix Improper Authentication (SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890)
+// and Detection of Error Condition Without Action (SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746),
+// plus related Medium-severity CVEs, present in the BOM-managed 11.0.22.
+ext['tomcat.version'] = '11.0.23'
+
 dependencyManagement {
     dependencies {
         dependencySet(group: 'io.sentry', version: versions.sentry) {
