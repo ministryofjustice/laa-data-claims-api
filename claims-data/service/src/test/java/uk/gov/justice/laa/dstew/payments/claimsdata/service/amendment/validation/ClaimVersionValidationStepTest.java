@@ -30,8 +30,7 @@ class ClaimVersionValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_STATE);
+    assertThat(errors.get(0).getCode()).isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_STATE);
   }
 
   @Test

@@ -16,6 +16,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.PATCH_CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
@@ -291,7 +292,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setCaseReferenceNumber(PATCH_CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
@@ -317,15 +318,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
     // given: required claims exist in the database
 
-    String caseReference = "' OR name LIKE '%'";
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    String createdByUserId = "' OR name LIKE '%'";
+    claimPatch.setCreatedByUserId(createdByUserId);
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()
-                .displayMessage(caseReference + "is not allowed")
+                .displayMessage("createdByUserId" + "is not allowed")
                 .source("test")
                 .type(ValidationMessageType.ERROR)));
     // Get the logger used by the class under test
@@ -347,7 +349,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
-    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
+    assertThat(updatedClaim.getCreatedByUserId()).isEqualTo(createdByUserId);
 
     assertThat(
             listAppender.list.stream()

@@ -126,9 +126,11 @@ class DataClaimsExceptionHandlerTest {
   @Test
   void handleClaimAmendmentValidationException_returnsBadRequestWithErrorsPropertyWhenNonFatal() {
     // Arrange: Create a non-fatal validation error scenario
-    ClaimAmendmentValidationError nonFatalError = ClaimAmendmentValidationError.of(
-        ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT); // isFatal = false
-    ClaimAmendmentValidationException ex = new ClaimAmendmentValidationException(List.of(nonFatalError));
+    ClaimAmendmentValidationError nonFatalError =
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT); // isFatal = false
+    ClaimAmendmentValidationException ex =
+        new ClaimAmendmentValidationException(List.of(nonFatalError));
 
     // Act
     ResponseEntity<ProblemDetail> result =
@@ -140,8 +142,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(BAD_REQUEST.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
-    assertThat(result.getBody().getType().toString())
-        .contains("claim-amendment-validation");
+    assertThat(result.getBody().getType().toString()).contains("claim-amendment-validation");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
 
     // Verify our custom properties structure
@@ -151,10 +152,15 @@ class DataClaimsExceptionHandlerTest {
 
   @Test
   void handleClaimAmendmentValidationException_returnsCustomStatusWhenFatal() {
-    // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural checks)
-    ClaimAmendmentValidationError fatalError = ClaimAmendmentValidationError.of(
-        ClaimAmendmentValidationCode.INVALID_NULL_STATE); // isFatal = true, status maps to 400 or custom status if applicable
-    ClaimAmendmentValidationException ex = new ClaimAmendmentValidationException(List.of(fatalError));
+    // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural
+    // checks)
+    ClaimAmendmentValidationError fatalError =
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode
+                .INVALID_NULL_STATE); // isFatal = true, status maps to 400 or custom status if
+    // applicable
+    ClaimAmendmentValidationException ex =
+        new ClaimAmendmentValidationException(List.of(fatalError));
 
     // Act
     ResponseEntity<ProblemDetail> result =
@@ -181,7 +187,8 @@ class DataClaimsExceptionHandlerTest {
         dataClaimsExceptionHandler.handleDatabaseOptimisticLockingException(ex, mockRequest);
 
     // Assert
-    String expectedMessage = ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate();
+    String expectedMessage =
+        ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate();
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);

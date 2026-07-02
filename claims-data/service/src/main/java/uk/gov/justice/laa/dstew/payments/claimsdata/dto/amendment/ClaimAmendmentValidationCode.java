@@ -31,8 +31,7 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),
 
   /** The claim has a null State so cannot be amended. */
-  INVALID_NULL_STATE(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim State is null", null),
+  INVALID_NULL_STATE(ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim State is null", null),
 
   /** The claim has a null Before State so cannot be amended. */
   INVALID_NULL_BEFORE_STATE(

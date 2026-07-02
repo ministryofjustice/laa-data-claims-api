@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -94,17 +95,12 @@ public class ClaimService
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
-          "serialVersionUID",
-          "id",
           "status",
+          "validationMessages",
+          "feeCalculationResponse",
           "version",
           "feeCode",
-          "validationMessages",
-          "amendmentRequestedBy",
-          "amendmentUserId",
-          "amendmentReasonCode",
-          "feeCalculationResponse",
-          "caseReferenceNumber");
+          "createdByUserId");
 
   @Override
   public SubmissionRepository lookup() {
@@ -208,39 +204,69 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
-    if (isAnAmendment(claimPatch)) {
+    if (isAnAmendment(claimPatch, claim)) {
       amendClaim(claim, claimPatch);
     } else {
       updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
   }
 
-  private boolean isAnAmendment(ClaimPatch claimPatch) {
+  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
     // Rule 1: If there is no status, it must be an amendment
     if (claimPatch.getStatus() == null) {
       return true;
     }
 
-    // Rule 2: Status is present, but there are other business fields attached
-    return hasAdditionalFieldUpdates(claimPatch);
+    // Rule 2: Status is present, but there are other updated business fields attached
+    return hasAdditionalFieldUpdates(claimPatch, claim);
   }
 
   /**
    * Checks if the patch contains any fields outside of the standard status/fee update flow.
    * Leverages short-circuit evaluation for maximum performance.
    */
-  private boolean hasAdditionalFieldUpdates(ClaimPatch patch) {
+  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+    if (patch == null) {
+      return false;
+    }
 
     AtomicBoolean hasUpdates = new AtomicBoolean(false);
+
     ReflectionUtils.doWithFields(
         patch.getClass(),
-        field -> {
-          if (hasUpdates.get() || IGNORED_FIELDS.contains(field.getName())) {
-            return; // Already found an update or field is ignored, skip
+        patchField -> {
+          // Fast-fail out if an update is already found or field is ignored
+          if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
+            return;
           }
 
-          ReflectionUtils.makeAccessible(field);
-          if (field.get(patch) != null) {
+          ReflectionUtils.makeAccessible(patchField);
+          Object patchValue = patchField.get(patch);
+
+          // If the patch field is provided (not null), check if it's an actual change
+          if (patchValue != null) {
+            // Attempt to locate a field with the exact same name on the Claim entity
+            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
+
+            if (claimField != null) {
+              ReflectionUtils.makeAccessible(claimField);
+              Object claimValue = claimField.get(claim);
+
+              System.out.println("Patch Value: " + patchValue + " ClaimValue: " + claimValue);
+
+              // If the values are completely identical, ignore it (no true business change)
+              if (Objects.equals(patchValue, claimValue)) {
+                return;
+              }
+            }
+
+            // If the matching entity field wasn't found, or the values are different:
+            log.info(
+                "Field has real updates: {} (New: '{}', Current: '{}')",
+                patchField.getName(),
+                patchValue,
+                claimField != null ? claimField.get(claim) : "N/A");
+            System.out.println(patchField.getName());
             hasUpdates.set(true);
           }
         },

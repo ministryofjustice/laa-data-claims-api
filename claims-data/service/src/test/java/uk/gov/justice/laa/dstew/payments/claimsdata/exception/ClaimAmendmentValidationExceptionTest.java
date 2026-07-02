@@ -13,7 +13,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 class ClaimAmendmentValidationExceptionTest {
 
   @Test
-  @DisplayName("Constructor automatically sorts errors by fatality first, then by HTTP status code descending")
+  @DisplayName(
+      "Constructor automatically sorts errors by fatality first, then by HTTP status code descending")
   void shouldSortErrorsByFatalityThenHttpStatusDescending() {
     // Arrange: Create a mixed pool of fatal and non-fatal errors with various HTTP statuses
 
@@ -40,23 +41,20 @@ class ClaimAmendmentValidationExceptionTest {
     when(fatal500.getHttpStatus()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR); // 500
 
     // Supply them completely out of order to the constructor
-    List<ClaimAmendmentValidationError> unsortedErrors = List.of(
-        nonFatal400,
-        fatal400,
-        nonFatal500,
-        fatal500,
-        fatal409
-    );
+    List<ClaimAmendmentValidationError> unsortedErrors =
+        List.of(nonFatal400, fatal400, nonFatal500, fatal500, fatal409);
 
     // Act
-    ClaimAmendmentValidationException exception = new ClaimAmendmentValidationException(unsortedErrors);
+    ClaimAmendmentValidationException exception =
+        new ClaimAmendmentValidationException(unsortedErrors);
 
     // Assert: Verify strict priority ordering constraints are met
     List<ClaimAmendmentValidationError> sortedResult = exception.getErrors();
 
     assertThat(sortedResult).hasSize(5);
 
-    // Priority 1: Fatal errors take precedence, sorted highest HTTP status code first (500 -> 409 -> 400)
+    // Priority 1: Fatal errors take precedence, sorted highest HTTP status code first (500 -> 409
+    // -> 400)
     assertThat(sortedResult.get(0)).isSameAs(fatal500);
     assertThat(sortedResult.get(1)).isSameAs(fatal409);
     assertThat(sortedResult.get(2)).isSameAs(fatal400);
@@ -75,10 +73,10 @@ class ClaimAmendmentValidationExceptionTest {
     when(error.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST);
 
     // Act
-    ClaimAmendmentValidationException exception = new ClaimAmendmentValidationException(List.of(error, error));
+    ClaimAmendmentValidationException exception =
+        new ClaimAmendmentValidationException(List.of(error, error));
 
     // Assert
-    assertThat(exception.getMessage())
-        .isEqualTo("Claim amendment validation failed with 2 errors");
+    assertThat(exception.getMessage()).isEqualTo("Claim amendment validation failed with 2 errors");
   }
 }
