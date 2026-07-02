@@ -20,6 +20,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -50,7 +51,7 @@ class ClaimAmendmentStateServiceTest {
   void returnsEmptyWhenClaimNotFound() {
     when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.empty());
 
-    Optional<ClaimAmendmentState> result =
+    Optional<PreparedAmendment> result =
         service.retrieveAmendmentState(CLAIM_ID, ClaimAmendmentPayload.builder().build());
 
     assertThat(result).isEmpty();
@@ -93,9 +94,11 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
     when(amendmentStateBuilder.buildAmendmentState(beforeState, payload)).thenReturn(expected);
 
-    Optional<ClaimAmendmentState> result = service.retrieveAmendmentState(CLAIM_ID, payload);
+    Optional<PreparedAmendment> result = service.retrieveAmendmentState(CLAIM_ID, payload);
 
-    assertThat(result).containsSame(expected);
+    assertThat(result).isPresent();
+    assertThat(result.get().state()).isSameAs(expected);
+    assertThat(result.get().claim()).isSameAs(claim);
     verify(snapshotMapper)
         .toSnapshot(
             any(Claim.class),

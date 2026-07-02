@@ -5,65 +5,106 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ChangeSource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 
 /**
- * Derives the provider-requested changed fields of an amendment by comparing the before-state with
- * the post-amendment state field by field, emitting one {@link DiffEntry} per changed field tagged
- * {@link ChangeSource#REQUESTED}.
+ * Derives the changed fields of an amendment by comparing before and after values, section by
+ * section, emitting one {@link DiffEntry} per changed field tagged with that section's {@link
+ * ChangeSource}.
  *
- * <p>Because the post-amendment state is the sparse payload already applied onto the before-state
- * (omitted fields retained, explicit nulls cleared, values set), comparing the two yields exactly
- * the changed fields: an omitted field is unchanged and absent from the diff; an explicit null over
- * a non-null value is a clear; a value differing from the stored value is a set. No-op
- * resubmissions (a value equal to the stored value) produce no change - the diff carries changed
- * fields only.
+ * <p>Two sections are compared:
+ *
+ * <ul>
+ *   <li>the provider-requested claim state - the before-state against the post-amendment state,
+ *       tagged {@link ChangeSource#REQUESTED} (DSTEW-1766). Because the post-amendment state is the
+ *       sparse payload already applied onto the before-state (omitted fields retained, explicit
+ *       nulls cleared, values set), comparing the two yields exactly the changed fields: an omitted
+ *       field is unchanged and absent from the diff; an explicit null over a non-null value is a
+ *       clear; a value differing from the stored value is a set; a no-op resubmission produces no
+ *       change.
+ *   <li>the Fee Scheme Platform calculated fee - the before-fee against the after-fee, tagged
+ *       {@link ChangeSource#FSP} (DSTEW-1762). The FSP handoff supplies both fee snapshots; if
+ *       either side is {@code null} the section yields no changes.
+ * </ul>
  */
 @Component
 public class AmendmentChangeDetector {
 
-  private record FieldDescriptor(
-      String fieldIdentifier, Function<ClaimStateSnapshot, Object> accessor) {}
-
-  private static final List<FieldDescriptor> FIELDS = buildFieldDescriptors();
+  /** A single comparable field within a {@link DiffSection}. */
+  private record FieldAccessor<T>(String fieldIdentifier, Function<T, Object> accessor) {}
 
   /**
-   * Detects the provider-requested changed fields for the given amendment.
+   * A group of fields compared between a before and after object of the same type, whose changes
+   * are all attributed to the section's {@link ChangeSource}.
+   */
+  private record DiffSection<T>(
+      ChangeSource source,
+      Function<ClaimAmendmentState, T> beforeExtractor,
+      Function<ClaimAmendmentState, T> afterExtractor,
+      List<FieldAccessor<T>> fields) {
+
+    List<DiffEntry> detect(ClaimAmendmentState state) {
+      T before = beforeExtractor.apply(state);
+      T after = afterExtractor.apply(state);
+      if (before == null || after == null) {
+        return List.of();
+      }
+      List<DiffEntry> changes = new ArrayList<>();
+      for (FieldAccessor<T> field : fields) {
+        Object beforeValue = field.accessor().apply(before);
+        Object afterValue = field.accessor().apply(after);
+        if (!Objects.equals(beforeValue, afterValue)) {
+          changes.add(new DiffEntry(field.fieldIdentifier(), source, beforeValue, afterValue));
+        }
+      }
+      return changes;
+    }
+  }
+
+  /** Provider-requested claim-state changes: before-state versus post-amendment state. */
+  private static final DiffSection<ClaimStateSnapshot> REQUESTED_CLAIM_STATE_SECTION =
+      new DiffSection<>(
+          ChangeSource.REQUESTED,
+          ClaimAmendmentState::getBeforeState,
+          ClaimAmendmentState::getPostAmendmentState,
+          claimStateFields());
+
+  /** FSP calculated-fee consequences: before-fee versus after-fee. */
+  private static final DiffSection<CalculatedFeeDetailSnapshot> FSP_FEE_SECTION =
+      new DiffSection<>(
+          ChangeSource.FSP,
+          ClaimAmendmentState::getBeforeFee,
+          ClaimAmendmentState::getAfterFee,
+          feeFields());
+
+  private static final List<DiffSection<?>> SECTIONS =
+      List.of(REQUESTED_CLAIM_STATE_SECTION, FSP_FEE_SECTION);
+
+  /**
+   * Detects the changed fields for the given amendment across all sections.
    *
-   * @param state the in-memory amendment state (before/after snapshots)
-   * @return the changed fields as {@link ChangeSource#REQUESTED} diff entries; never {@code null},
-   *     may be empty
+   * @param state the in-memory amendment state (before/after snapshots and fee snapshots)
+   * @return the changed fields as {@link DiffEntry} entries tagged by section {@link ChangeSource};
+   *     never {@code null}, may be empty
    */
   public List<DiffEntry> detectChanges(ClaimAmendmentState state) {
-    ClaimStateSnapshot before = state.getBeforeState();
-    ClaimStateSnapshot after = state.getPostAmendmentState();
-    if (before == null || after == null) {
-      return List.of();
-    }
-
     List<DiffEntry> changes = new ArrayList<>();
-    for (FieldDescriptor field : FIELDS) {
-      Object beforeValue = field.accessor().apply(before);
-      Object afterValue = field.accessor().apply(after);
-      if (!Objects.equals(beforeValue, afterValue)) {
-        changes.add(
-            new DiffEntry(
-                field.fieldIdentifier(), ChangeSource.REQUESTED, beforeValue, afterValue));
-      }
+    for (DiffSection<?> section : SECTIONS) {
+      changes.addAll(section.detect(state));
     }
     return changes;
   }
 
-  private static FieldDescriptor field(
-      String identifier, Function<ClaimStateSnapshot, Object> accessor) {
-    return new FieldDescriptor(identifier, accessor);
+  private static <T> FieldAccessor<T> field(String identifier, Function<T, Object> accessor) {
+    return new FieldAccessor<>(identifier, accessor);
   }
 
-  private static List<FieldDescriptor> buildFieldDescriptors() {
-    List<FieldDescriptor> fields = new ArrayList<>();
+  private static List<FieldAccessor<ClaimStateSnapshot>> claimStateFields() {
+    List<FieldAccessor<ClaimStateSnapshot>> fields = new ArrayList<>();
 
     // Claim fields.
     fields.add(field("claim.scheduleReference", ClaimStateSnapshot::getScheduleReference));
@@ -241,6 +282,88 @@ public class AmendmentChangeDetector {
     fields.add(field("claimSummaryFee.hoInterview", ClaimStateSnapshot::getHoInterview));
     fields.add(
         field("claimSummaryFee.localAuthorityNumber", ClaimStateSnapshot::getLocalAuthorityNumber));
+
+    return List.copyOf(fields);
+  }
+
+  private static List<FieldAccessor<CalculatedFeeDetailSnapshot>> feeFields() {
+    List<FieldAccessor<CalculatedFeeDetailSnapshot>> fields = new ArrayList<>();
+
+    fields.add(field("fee.feeCode", CalculatedFeeDetailSnapshot::getFeeCode));
+    fields.add(field("fee.feeType", CalculatedFeeDetailSnapshot::getFeeType));
+    fields.add(field("fee.feeCodeDescription", CalculatedFeeDetailSnapshot::getFeeCodeDescription));
+    fields.add(field("fee.categoryOfLaw", CalculatedFeeDetailSnapshot::getCategoryOfLaw));
+    fields.add(field("fee.totalAmount", CalculatedFeeDetailSnapshot::getTotalAmount));
+    fields.add(field("fee.vatIndicator", CalculatedFeeDetailSnapshot::getVatIndicator));
+    fields.add(field("fee.vatRateApplied", CalculatedFeeDetailSnapshot::getVatRateApplied));
+    fields.add(
+        field("fee.calculatedVatAmount", CalculatedFeeDetailSnapshot::getCalculatedVatAmount));
+    fields.add(field("fee.disbursementAmount", CalculatedFeeDetailSnapshot::getDisbursementAmount));
+    fields.add(
+        field(
+            "fee.requestedNetDisbursementAmount",
+            CalculatedFeeDetailSnapshot::getRequestedNetDisbursementAmount));
+    fields.add(
+        field("fee.disbursementVatAmount", CalculatedFeeDetailSnapshot::getDisbursementVatAmount));
+    fields.add(field("fee.hourlyTotalAmount", CalculatedFeeDetailSnapshot::getHourlyTotalAmount));
+    fields.add(field("fee.fixedFeeAmount", CalculatedFeeDetailSnapshot::getFixedFeeAmount));
+    fields.add(
+        field("fee.netProfitCostsAmount", CalculatedFeeDetailSnapshot::getNetProfitCostsAmount));
+    fields.add(
+        field(
+            "fee.requestedNetProfitCostsAmount",
+            CalculatedFeeDetailSnapshot::getRequestedNetProfitCostsAmount));
+    fields.add(
+        field(
+            "fee.netCostOfCounselAmount", CalculatedFeeDetailSnapshot::getNetCostOfCounselAmount));
+    fields.add(
+        field("fee.netTravelCostsAmount", CalculatedFeeDetailSnapshot::getNetTravelCostsAmount));
+    fields.add(
+        field("fee.netWaitingCostsAmount", CalculatedFeeDetailSnapshot::getNetWaitingCostsAmount));
+    fields.add(
+        field(
+            "fee.detentionTravelAndWaitingCostsAmount",
+            CalculatedFeeDetailSnapshot::getDetentionTravelAndWaitingCostsAmount));
+    fields.add(
+        field("fee.jrFormFillingAmount", CalculatedFeeDetailSnapshot::getJrFormFillingAmount));
+    fields.add(
+        field(
+            "fee.travelAndWaitingCostsAmount",
+            CalculatedFeeDetailSnapshot::getTravelAndWaitingCostsAmount));
+    fields.add(
+        field("fee.boltOnTotalFeeAmount", CalculatedFeeDetailSnapshot::getBoltOnTotalFeeAmount));
+    fields.add(
+        field(
+            "fee.boltOnAdjournedHearingCount",
+            CalculatedFeeDetailSnapshot::getBoltOnAdjournedHearingCount));
+    fields.add(
+        field(
+            "fee.boltOnAdjournedHearingFee",
+            CalculatedFeeDetailSnapshot::getBoltOnAdjournedHearingFee));
+    fields.add(
+        field(
+            "fee.boltOnCmrhTelephoneCount",
+            CalculatedFeeDetailSnapshot::getBoltOnCmrhTelephoneCount));
+    fields.add(
+        field(
+            "fee.boltOnCmrhTelephoneFee", CalculatedFeeDetailSnapshot::getBoltOnCmrhTelephoneFee));
+    fields.add(
+        field("fee.boltOnCmrhOralCount", CalculatedFeeDetailSnapshot::getBoltOnCmrhOralCount));
+    fields.add(field("fee.boltOnCmrhOralFee", CalculatedFeeDetailSnapshot::getBoltOnCmrhOralFee));
+    fields.add(
+        field(
+            "fee.boltOnHomeOfficeInterviewCount",
+            CalculatedFeeDetailSnapshot::getBoltOnHomeOfficeInterviewCount));
+    fields.add(
+        field(
+            "fee.boltOnHomeOfficeInterviewFee",
+            CalculatedFeeDetailSnapshot::getBoltOnHomeOfficeInterviewFee));
+    fields.add(
+        field(
+            "fee.boltOnSubstantiveHearingFee",
+            CalculatedFeeDetailSnapshot::getBoltOnSubstantiveHearingFee));
+    fields.add(field("fee.escapeCaseFlag", CalculatedFeeDetailSnapshot::getEscapeCaseFlag));
+    fields.add(field("fee.schemeId", CalculatedFeeDetailSnapshot::getSchemeId));
 
     return List.copyOf(fields);
   }

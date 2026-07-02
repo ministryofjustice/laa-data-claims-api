@@ -9,12 +9,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 
 /**
- * Assembles the versioned amendment {@link AmendmentDiff} from the change sources owned by sibling
- * tickets.
+ * Assembles the versioned amendment {@link AmendmentDiff} from its change sources.
  *
  * <p>Requested entries come from the {@link AmendmentChangeDetector} already tagged {@code
- * ChangeSource.REQUESTED}. FSP entries come from the FSP handoff (DSTEW-1762) and are added when
- * that ticket lands; until then the diff contains the Requested entries only.
+ * ChangeSource.REQUESTED}. FSP entries come from the FSP handoff and are added on top, so the diff
+ * carries both the Requested and FSP-sourced entries.
  */
 @Component
 @RequiredArgsConstructor
@@ -31,7 +30,7 @@ public class AmendmentDiffAssembler {
   public AmendmentDiff assemble(ClaimAmendmentState state) {
     List<DiffEntry> changes = new ArrayList<>(changeDetector.detectChanges(state));
 
-    // FSP-sourced consequence entries (ChangeSource.FSP) are added by DSTEW-1762's handoff.
+    // Appends the FSP-sourced consequence entries (ChangeSource.FSP) from the FSP handoff.
 
     return AmendmentDiff.of(changes);
   }

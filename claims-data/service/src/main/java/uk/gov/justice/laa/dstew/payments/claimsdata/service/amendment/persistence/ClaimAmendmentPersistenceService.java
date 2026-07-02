@@ -79,8 +79,8 @@ public class ClaimAmendmentPersistenceService {
     // owned by DSTEW-1753; we never issue our own save here.
     entitiesWriter.applyAmendedValues(claim, state.getPostAmendmentState());
 
-    // Attach the amendment-driven calculated_fee_detail row (one per pricing amendment). The no-op
-    // default attaches nothing until DSTEW-1762 supplies the FSP handoff.
+    // Attach the amendment-driven calculated_fee_detail row (one per pricing amendment) from the
+    // FSP handoff; a non-pricing amendment attaches nothing.
     calculatedFeeWriter.attach(savedAmendment, state);
 
     return savedAmendment;

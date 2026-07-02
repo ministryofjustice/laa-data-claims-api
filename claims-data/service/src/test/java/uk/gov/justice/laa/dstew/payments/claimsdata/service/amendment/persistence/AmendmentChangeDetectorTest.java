@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ChangeSource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
@@ -80,5 +81,45 @@ class AmendmentChangeDetectorTest {
     assertThat(changes).hasSize(1);
     assertThat(changes.getFirst().fieldIdentifier())
         .isEqualTo("claimSummaryFee.netProfitCostsAmount");
+  }
+
+  @Test
+  @DisplayName("emits fee deltas tagged FSP when the before/after fee snapshots differ")
+  void emitsFeeDeltasTaggedFsp() {
+    CalculatedFeeDetailSnapshot beforeFee =
+        CalculatedFeeDetailSnapshot.builder()
+            .totalAmount(new java.math.BigDecimal("100.00"))
+            .build();
+    CalculatedFeeDetailSnapshot afterFee =
+        CalculatedFeeDetailSnapshot.builder()
+            .totalAmount(new java.math.BigDecimal("150.00"))
+            .build();
+
+    ClaimAmendmentState state =
+        ClaimAmendmentState.builder().beforeFee(beforeFee).afterFee(afterFee).build();
+
+    List<DiffEntry> changes = detector.detectChanges(state);
+
+    assertThat(changes).hasSize(1);
+    DiffEntry change = changes.getFirst();
+    assertThat(change.fieldIdentifier()).isEqualTo("fee.totalAmount");
+    assertThat(change.changeSource()).isEqualTo(ChangeSource.FSP);
+    assertThat(change.before()).isEqualTo(new java.math.BigDecimal("100.00"));
+    assertThat(change.after()).isEqualTo(new java.math.BigDecimal("150.00"));
+  }
+
+  @Test
+  @DisplayName("fee section is a no-op when a fee snapshot side is absent")
+  void feeSectionNoOpWhenFeeSnapshotMissing() {
+    CalculatedFeeDetailSnapshot afterFee =
+        CalculatedFeeDetailSnapshot.builder()
+            .totalAmount(new java.math.BigDecimal("150.00"))
+            .build();
+
+    ClaimAmendmentState state = ClaimAmendmentState.builder().afterFee(afterFee).build();
+
+    List<DiffEntry> changes = detector.detectChanges(state);
+
+    assertThat(changes).isEmpty();
   }
 }
