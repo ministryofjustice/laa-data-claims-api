@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("ValidationMessageLogRepository Integration Test")
@@ -142,5 +144,157 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
             SUBMISSION_1_ID, null, null, null, pageable);
 
     assertThat(result.getTotalElements()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Should persist messageCode for FSP messages with ERROR type")
+  void shouldPersistMessageCodeForFspErrorMessage() {
+    UUID submissionId = SUBMISSION_1_ID;
+    UUID claimId = CLAIM_1_ID;
+    String messageCode = "ERRALL1";
+
+    ValidationMessageLog fspErrorMessage = new ValidationMessageLog();
+    fspErrorMessage.setId(Uuid7.timeBasedUuid());
+    fspErrorMessage.setSubmissionId(submissionId);
+    fspErrorMessage.setClaimId(claimId);
+    fspErrorMessage.setType(ValidationMessageType.ERROR);
+    fspErrorMessage.setSource("FSP");
+    fspErrorMessage.setDisplayMessage("Enter a valid Fee Code.");
+    fspErrorMessage.setTechnicalMessage("Fee Code is invalid");
+    fspErrorMessage.setMessageCode(messageCode);
+
+    validationMessageLogRepository.save(fspErrorMessage);
+
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            submissionId, claimId, ValidationMessageType.ERROR, "FSP", pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
+    assertThat(retrieved.getMessageCode()).isEqualTo(messageCode);
+    assertThat(retrieved.getSource()).isEqualTo("FSP");
+    assertThat(retrieved.getType()).isEqualTo(ValidationMessageType.ERROR);
+  }
+
+  @Test
+  @DisplayName("Should persist messageCode for FSP messages with WARNING type")
+  void shouldPersistMessageCodeForFspWarningMessage() {
+    UUID submissionId = SUBMISSION_1_ID;
+    UUID claimId = CLAIM_2_ID;
+    String messageCode = "WARFAM1";
+
+    ValidationMessageLog fspWarningMessage = new ValidationMessageLog();
+    fspWarningMessage.setId(Uuid7.timeBasedUuid());
+    fspWarningMessage.setSubmissionId(submissionId);
+    fspWarningMessage.setClaimId(claimId);
+    fspWarningMessage.setType(ValidationMessageType.WARNING);
+    fspWarningMessage.setSource("FSP");
+    fspWarningMessage.setDisplayMessage(
+        "The claim exceeds the Escape Case Threshold. "
+            + "An Escape Case Claim must be submitted for further costs to be paid. ");
+    fspWarningMessage.setTechnicalMessage("Claim exceeds the Escape Case Threshold.");
+    fspWarningMessage.setMessageCode(messageCode);
+
+    validationMessageLogRepository.save(fspWarningMessage);
+
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            submissionId, claimId, ValidationMessageType.WARNING, "FSP", pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
+    assertThat(retrieved.getMessageCode()).isEqualTo(messageCode);
+    assertThat(retrieved.getSource()).isEqualTo("FSP");
+    assertThat(retrieved.getType()).isEqualTo(ValidationMessageType.WARNING);
+  }
+
+  @Test
+  @DisplayName("Should have null messageCode for non-FSP messages")
+  void shouldHaveNullMessageCodeForNonFspMessages() {
+    Pageable pageable = PageRequest.of(0, 10);
+
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            SUBMISSION_1_ID, CLAIM_1_ID, ValidationMessageType.ERROR, "SYSTEM", pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
+    assertThat(retrieved.getMessageCode()).isNull();
+    assertThat(retrieved.getSource()).isEqualTo("SYSTEM");
+  }
+
+  @Test
+  @DisplayName(
+      "Should retain distinct messages with same display_message but different messageCode")
+  void shouldRetainDistinctMessagesWithSameDisplayMessageButDifferentCode() {
+    UUID submissionId = SUBMISSION_1_ID;
+    UUID claimId = CLAIM_1_ID;
+    String identicalDisplayMessage = "FSP validation issue";
+
+    // Create two FSP messages with same display text but different codes
+    ValidationMessageLog fspMessage1 = new ValidationMessageLog();
+    fspMessage1.setId(Uuid7.timeBasedUuid());
+    fspMessage1.setSubmissionId(submissionId);
+    fspMessage1.setClaimId(claimId);
+    fspMessage1.setType(ValidationMessageType.ERROR);
+    fspMessage1.setSource("FSP");
+    fspMessage1.setDisplayMessage(identicalDisplayMessage);
+    fspMessage1.setTechnicalMessage("Case start date not found");
+    fspMessage1.setMessageCode("ERRIA2");
+
+    ValidationMessageLog fspMessage2 = new ValidationMessageLog();
+    fspMessage2.setId(Uuid7.timeBasedUuid());
+    fspMessage2.setSubmissionId(submissionId);
+    fspMessage2.setClaimId(claimId);
+    fspMessage2.setType(ValidationMessageType.ERROR);
+    fspMessage2.setSource("FSP");
+    fspMessage2.setDisplayMessage(identicalDisplayMessage);
+    fspMessage2.setTechnicalMessage("Invalid Case start date");
+    fspMessage2.setMessageCode("ERRIA1");
+
+    validationMessageLogRepository.saveAll(List.of(fspMessage1, fspMessage2));
+
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            submissionId, claimId, ValidationMessageType.ERROR, "FSP", pageable);
+
+    // Both messages should be retrieved and distinguishable by their unique messageCode
+    assertThat(result.getTotalElements()).isEqualTo(2);
+    var codes =
+        result.getContent().stream()
+            .map(ValidationMessageWithClaimDetailsProjection::getMessageCode)
+            .toList();
+    assertThat(codes).contains("ERRIA1", "ERRIA2");
+  }
+
+  @Test
+  @DisplayName("Should have null messageCode for FSP message with WARNING type when not provided")
+  void shouldHaveNullMessageCodeForFspMessageWhenNotProvided() {
+    UUID submissionId = SUBMISSION_1_ID;
+    UUID claimId = CLAIM_2_ID;
+
+    ValidationMessageLog fspWarningNoCode = new ValidationMessageLog();
+    fspWarningNoCode.setId(Uuid7.timeBasedUuid());
+    fspWarningNoCode.setSubmissionId(submissionId);
+    fspWarningNoCode.setClaimId(claimId);
+    fspWarningNoCode.setType(ValidationMessageType.WARNING);
+    fspWarningNoCode.setSource("FSP");
+    fspWarningNoCode.setDisplayMessage("Warning without code");
+    fspWarningNoCode.setTechnicalMessage("Technical details for FSP warning");
+    // messageCode not set, should be null
+
+    validationMessageLogRepository.save(fspWarningNoCode);
+
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<ValidationMessageWithClaimDetailsProjection> result =
+        validationMessageLogRepository.findWithClaimDetailsByFilters(
+            submissionId, claimId, ValidationMessageType.WARNING, "FSP", pageable);
+
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
+    assertThat(retrieved.getMessageCode()).isNull();
   }
 }
