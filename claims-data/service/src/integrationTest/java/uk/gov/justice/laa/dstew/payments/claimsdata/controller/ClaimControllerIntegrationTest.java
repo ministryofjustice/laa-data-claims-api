@@ -888,9 +888,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: we use an existing office code from the setup
 
     // when: calling the v2 claims endpoint with the escaped_case_flag filter
-    // Note: This is currently expected to FAIL with a 500 error because ClaimSpecification
-    // is attempting to join on a scalar "calculatedFeeDetail" field, but the Claim entity
-    // now uses a List "calculatedFeeDetails".
+    // Note: This was FAILing with a 500 error because ClaimSpecification
+    // attempted to join on a scalar "calculatedFeeDetail" field, but the Claim entity
+    // now uses a List "calculatedFeeDetails" and gets the first (latest) item
     mockMvc
         .perform(
             get(GET_CLAIMS_ENDPOINT_V2)
@@ -916,8 +916,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // Add these mandatory fields to satisfy Bean Validation
     claimA.setMatterTypeCode("TEST-MTC");
-    claimA.setLineNumber(1); // (Assuming this is an Integer, use "1" if it's a String)
-    claimA.setStatus(ClaimStatus.READY_TO_PROCESS); // Use any valid enum value
+    claimA.setLineNumber(1);
+    claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     claimA = claimRepository.saveAndFlush(claimA);
 
@@ -953,7 +953,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1") // <-- Change this to "office1"
+                    .param("office_code", "office1")
                     .param("escaped_case_flag", "true")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
@@ -971,7 +971,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   // Helper method to cleanly persist fee records for the scenario
   private void createCalculatedFeeDetail(
       Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
-    // 1. Create and persist the ClaimSummaryFee FIRST
+    // 1. Create and persist the ClaimSummaryFee
     ClaimSummaryFee summaryFee =
         ClaimSummaryFee.builder()
             .claim(claim)
@@ -979,9 +979,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .createdByUserId("Test")
             .build();
 
-    // Save it to the DB so the foreign key exists
-    // (If you don't have claimSummaryFeeRepository injected, you can use
-    // entityManager.persist(summaryFee); )
     claimSummaryFeeRepository.saveAndFlush(summaryFee);
 
     // 2. Create and persist the CalculatedFeeDetail, linking the newly saved summary fee
@@ -992,7 +989,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setCreatedOn(createdOn);
     cfd.setFeeCode("FEE-123");
     cfd.setCreatedByUserId("Test");
-    cfd.setClaimSummaryFee(summaryFee); // Attach the saved entity
+    cfd.setClaimSummaryFee(summaryFee);
 
     calculatedFeeDetailRepository.saveAndFlush(cfd);
   }
