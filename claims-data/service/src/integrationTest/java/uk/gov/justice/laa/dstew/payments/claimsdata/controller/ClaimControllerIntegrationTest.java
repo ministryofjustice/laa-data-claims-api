@@ -877,4 +877,23 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isUnauthorized());
     }
   }
+
+  @Test
+  @DisplayName(
+      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-XXXX)")
+  void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
+    // given: we use an existing office code from the setup
+
+    // when: calling the v2 claims endpoint with the escaped_case_flag filter
+    // Note: This is currently expected to FAIL with a 500 error because ClaimSpecification
+    // is attempting to join on a scalar "calculatedFeeDetail" field, but the Claim entity
+    // now uses a List "calculatedFeeDetails".
+    mockMvc
+        .perform(
+            get(GET_CLAIMS_ENDPOINT_V2)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                .param("escaped_case_flag", "true")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isOk()); // Will fail here until the specification bug is fixed
+  }
 }
