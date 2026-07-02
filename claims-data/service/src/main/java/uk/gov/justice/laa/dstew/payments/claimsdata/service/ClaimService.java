@@ -252,8 +252,6 @@ public class ClaimService
               ReflectionUtils.makeAccessible(claimField);
               Object claimValue = claimField.get(claim);
 
-              System.out.println("Patch Value: " + patchValue + " ClaimValue: " + claimValue);
-
               // If the values are completely identical, ignore it (no true business change)
               if (Objects.equals(patchValue, claimValue)) {
                 return;
@@ -266,7 +264,6 @@ public class ClaimService
                 patchField.getName(),
                 patchValue,
                 claimField != null ? claimField.get(claim) : "N/A");
-            System.out.println(patchField.getName());
             hasUpdates.set(true);
           }
         },
