@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,15 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.";
 
   /**
+   * Field keys whose values may legitimately contain printable Unicode (e.g. accented letters and
+   * apostrophes in personal names such as {@code O’Brien} or {@code Siân}). Values for these keys
+   * are cleaned leniently (only non-printable characters removed); every other field is restricted
+   * to printable ASCII. Add new free-text/name keys here as they are introduced.
+   */
+  static final Set<String> NAME_FIELD_KEYS =
+      Set.of("CLIENT_FORENAME", "CLIENT_SURNAME", "CLIENT2_FORENAME", "CLIENT2_SURNAME");
+
+  /**
    * Converts the given file to a {@link CsvSubmission} object.
    *
    * @param file the input file
@@ -63,7 +73,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       while (rowIterator.hasNextValue()) {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
         List<String> row = rowIterator.nextValue();
-        String rawHeader = row.getFirst().replaceAll("[^\\p{Print}]", "").trim();
+        String rawHeader = stripToAscii(row.getFirst()).trim();
         Map<String, String> values = getValues(row, rawHeader);
         // Check if this row is really empty (OK) or if only the record type is missing (Error).
         if (rawHeader.isEmpty()) {
@@ -195,23 +205,69 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
 
   private Map<String, String> getValues(List<String> row, String header) {
     Map<String, String> values = new LinkedHashMap<>();
-    row.subList(1, row.size())
-        .forEach(
-            rowValue -> {
-              rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
-              if (StringUtils.isBlank(rowValue)) {
-                log.debug("Blank row value found for {} row. Skipping...", header);
-                return;
-              }
-              String[] entry = rowValue.split("=", 2);
-              if (entry.length == 2) {
-                values.put(entry[0], entry[1]);
-              } else {
-                throw new BulkSubmissionFileReadException(
-                    "Unable to read entry for %s:'%s'".formatted(header, rowValue));
-              }
-            });
+    row.subList(1, row.size()).forEach(rawCell -> addCell(values, header, rawCell));
     return values;
+  }
+
+  /**
+   * Parses a single {@code KEY=VALUE} cell and adds it to {@code values}. Blank cells are skipped;
+   * the value is cleaned according to its field key (see {@link #cleanFieldValue(String, String)}).
+   *
+   * @param values the map to populate
+   * @param header the record type header, used only for logging context
+   * @param rawCell the raw cell text straight from the parsed row
+   */
+  private void addCell(Map<String, String> values, String header, String rawCell) {
+    // Strip only non-printable characters first so that blank detection and the '=' split work,
+    // while preserving any printable Unicode that a name field may legitimately contain.
+    String cell = stripNonPrintable(rawCell).trim();
+    if (StringUtils.isBlank(cell)) {
+      log.debug("Blank row value found for {} row. Skipping...", header);
+      return;
+    }
+    String[] entry = cell.split("=", 2);
+    if (entry.length != 2) {
+      throw new BulkSubmissionFileReadException(
+          "Unable to read entry for %s:'%s'".formatted(header, cell));
+    }
+    String key = entry[0];
+    values.put(key, cleanFieldValue(key, entry[1]));
+  }
+
+  /**
+   * Cleans a field value based on its key. Name fields ({@link #NAME_FIELD_KEYS}) keep printable
+   * Unicode (only non-printable characters are removed); all other fields are restricted to
+   * printable ASCII.
+   *
+   * @param key the field key
+   * @param value the value already stripped of non-printable characters
+   * @return the cleaned value
+   */
+  static String cleanFieldValue(String key, String value) {
+    return NAME_FIELD_KEYS.contains(key) ? value : stripToAscii(value);
+  }
+
+  /**
+   * Removes only non-printable characters (the Unicode "Other" category {@code \p{C}}: control,
+   * format, surrogate, private-use and unassigned code points) such as a BOM, zero-width and
+   * control bytes, while preserving all printable characters including Unicode letters.
+   *
+   * @param value the value to clean (may be {@code null})
+   * @return the value with non-printable characters removed, or an empty string if {@code null}
+   */
+  static String stripNonPrintable(String value) {
+    return value == null ? "" : value.replaceAll("\\p{C}", "");
+  }
+
+  /**
+   * Removes every character outside printable ASCII ({@code 0x20}-{@code 0x7E}). Used for coded and
+   * structured fields that must not contain non-ASCII content.
+   *
+   * @param value the value to clean (may be {@code null})
+   * @return the value with non-ASCII characters removed, or an empty string if {@code null}
+   */
+  static String stripToAscii(String value) {
+    return value == null ? "" : value.replaceAll("[^\\p{Print}]", "");
   }
 
   private CsvHeader getHeader(String rawHeader) {

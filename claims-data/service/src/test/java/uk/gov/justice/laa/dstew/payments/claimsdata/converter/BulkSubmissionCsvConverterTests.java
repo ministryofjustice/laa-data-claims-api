@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -343,6 +346,106 @@ class BulkSubmissionCsvConverterTests {
     @DisplayName("Returns false for xml extensions")
     void doesNotHandleXml() {
       assertFalse(bulkSubmissionCsvConverter.handles(FileExtension.XML));
+    }
+  }
+
+  @Nested
+  @DisplayName("value cleaning - helper methods")
+  class ValueCleaningHelpers {
+
+    // U+FEFF BOM, U+2019 right single quote (’), U+00E9 é, U+200B zero-width space, U+00EB ë.
+
+    @Test
+    @DisplayName("stripNonPrintable removes control/format characters but keeps printable Unicode")
+    void stripNonPrintableKeepsPrintableUnicode() {
+      String input = "\uFEFFO\u2019Bri\u00e9n\u200b";
+      assertThat(BulkSubmissionCsvConverter.stripNonPrintable(input))
+          .isEqualTo("O\u2019Bri\u00e9n");
+    }
+
+    @Test
+    @DisplayName("stripNonPrintable returns an empty string for null")
+    void stripNonPrintableHandlesNull() {
+      assertThat(BulkSubmissionCsvConverter.stripNonPrintable(null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("stripToAscii removes every non-ASCII character")
+    void stripToAsciiRemovesNonAscii() {
+      assertThat(BulkSubmissionCsvConverter.stripToAscii("T\u00ebst-123")).isEqualTo("Tst-123");
+    }
+
+    @Test
+    @DisplayName("stripToAscii returns an empty string for null")
+    void stripToAsciiHandlesNull() {
+      assertThat(BulkSubmissionCsvConverter.stripToAscii(null)).isEmpty();
+    }
+
+    @ParameterizedTest(name = "{0} keeps printable Unicode")
+    @ValueSource(
+        strings = {"CLIENT_FORENAME", "CLIENT_SURNAME", "CLIENT2_FORENAME", "CLIENT2_SURNAME"})
+    @DisplayName("cleanFieldValue keeps printable Unicode for name fields")
+    void cleanFieldValueKeepsUnicodeForNameFields(String key) {
+      assertThat(BulkSubmissionCsvConverter.cleanFieldValue(key, "Si\u00e2n O\u2019Brien"))
+          .isEqualTo("Si\u00e2n O\u2019Brien");
+    }
+
+    @Test
+    @DisplayName("cleanFieldValue strips non-ASCII for non-name fields")
+    void cleanFieldValueStripsNonAsciiForOtherFields() {
+      assertThat(BulkSubmissionCsvConverter.cleanFieldValue("CASE_REF_NUMBER", "R\u00e9f123"))
+          .isEqualTo("Rf123");
+    }
+  }
+
+  @Nested
+  @DisplayName("value cleaning - end to end")
+  class ValueCleaningEndToEnd {
+
+    @Test
+    @DisplayName("preserves accented and apostrophe characters in client name fields")
+    void preservesUnicodeInNameFields() {
+      String csv =
+          String.join(
+              "\n",
+              "OFFICE,account=2A300G",
+              "SCHEDULE,submissionPeriod=MAR-2010,areaOfLaw=LEGAL HELP,scheduleNum=2A300G/LEGAL_HELP",
+              "OUTCOME,matterType=IALB:IFRA,CLIENT_FORENAME=Zo\u00eb,"
+                  + "CLIENT_SURNAME=O\u2019Bri\u00e9n,CASE_REF_NUMBER=R\u00e9f01");
+
+      CsvSubmission submission = convertInMemory(csv);
+
+      var outcome = submission.outcomes().getFirst();
+      assertThat(outcome.clientForename()).isEqualTo("Zo\u00eb");
+      assertThat(outcome.clientSurname()).isEqualTo("O\u2019Bri\u00e9n");
+      // Non-name field is still restricted to ASCII (é removed): "Réf01" -> "Rf01".
+      assertThat(outcome.caseRefNumber()).isEqualTo("Rf01");
+    }
+
+    @Test
+    @DisplayName("throws a clear error for a non-blank cell with no key=value separator")
+    void throwsForCellWithoutSeparator() {
+      String csv =
+          String.join(
+              "\n",
+              "OFFICE,account=2A300G",
+              "SCHEDULE,submissionPeriod=MAR-2010,areaOfLaw=LEGAL HELP,scheduleNum=2A300G/LEGAL_HELP",
+              "OUTCOME,matterType=IALB:IFRA,\u65e5\u672c");
+
+      MultipartFile file =
+          new MockMultipartFile(
+              "file", "test.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+
+      assertThatThrownBy(() -> bulkSubmissionCsvConverter.convert(file))
+          .isInstanceOf(BulkSubmissionFileReadException.class)
+          .hasMessageContaining("Unable to read entry");
+    }
+
+    private CsvSubmission convertInMemory(String csv) {
+      MultipartFile file =
+          new MockMultipartFile(
+              "file", "test.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+      return bulkSubmissionCsvConverter.convert(file);
     }
   }
 }
