@@ -11,6 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 
 /**
  * Runs the synchronous claim amendment flow as an ordered list of validation steps executed in
@@ -56,6 +57,7 @@ public class ClaimAmendmentService {
       List.of(
           AmendmentFeatureFlagValidationStep.class,
           ClaimStatusValidationStep.class,
+          ClaimVersionValidationStep.class,
           AmendmentUserIdValidationStep.class,
           AmendmentReferenceValidationStep.class);
 

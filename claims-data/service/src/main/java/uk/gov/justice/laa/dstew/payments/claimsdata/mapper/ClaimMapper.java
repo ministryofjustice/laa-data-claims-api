@@ -8,6 +8,8 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
+import org.openapitools.jackson.nullable.JsonNullable;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -200,5 +202,33 @@ public interface ClaimMapper {
     // reuse your existing update method to avoid duplicating mapping config:
     updateFeeCalculationResponseFromCalculatedFeeDetail(entity, target);
     return target;
+  }
+
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  ClaimAmendmentPayload toAmendmentPayload(ClaimPatch claimPatch);
+
+  // Explicit OpenAPI JsonNullable wrappers for MapStruct
+  default JsonNullable<String> map(String value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Integer> map(Integer value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Long> map(Long value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Boolean> map(Boolean value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<java.math.BigDecimal> map(java.math.BigDecimal value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<java.time.LocalDate> map(java.time.LocalDate value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 }

@@ -26,6 +26,25 @@ public enum ClaimAmendmentValidationCode {
       "Amendments are not currently enabled.",
       "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled"),
 
+  /** The claim has a null version number so cannot be amended. */
+  INVALID_NULL_VERSION(
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),
+
+  /** The claim has a null State so cannot be amended. */
+  INVALID_NULL_STATE(ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim State is null", null),
+
+  /** The claim has a null Before State so cannot be amended. */
+  INVALID_NULL_BEFORE_STATE(
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Before State is null", null),
+
+  /** The claim has a null Before State so cannot be amended. */
+  INVALID_NULL_PAYLOAD(
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Amendment Payload is null", null),
+
+  /** The claim has a stale version number so cannot be amended. */
+  INVALID_CLAIM_VERSION_CONFLICT(
+      ValidationSeverity.FATAL, HttpStatus.CONFLICT, "Claim Version conflict exists", null),
+
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null),

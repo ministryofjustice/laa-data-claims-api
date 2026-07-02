@@ -10,6 +10,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_3_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CRIME_SCHEDULE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.MATTER_TYPE_CODE;
@@ -90,6 +91,8 @@ public abstract class AbstractIntegrationTest {
   protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
       LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
+  protected static final Instant CREATED_ON_OLDER =
+      LocalDate.of(2025, 7, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
   protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -134,6 +137,7 @@ public abstract class AbstractIntegrationTest {
   protected Claim claim2;
   protected Claim claim3;
   protected Claim claim4;
+  protected Claim claim5;
   protected ClaimSummaryFee claimSummaryFee1;
   protected ClaimSummaryFee claimSummaryFee2;
   protected CalculatedFeeDetail calculatedFeeDetail1;
@@ -311,7 +315,24 @@ public abstract class AbstractIntegrationTest {
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .build();
-    claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
+    claim5 =
+        Claim.builder()
+            .id(CLAIM_5_ID)
+            .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
+            .status(ClaimStatus.VALID)
+            .scheduleReference(SCHEDULE_REFERENCE)
+            .lineNumber(1)
+            .caseReferenceNumber(CASE_REFERENCE)
+            .feeCode(FEE_CODE)
+            .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+            .caseStartDate(LocalDate.of(2025, 6, 1))
+            .caseConcludedDate(LocalDate.of(2025, 6, 10))
+            .matterTypeCode(MATTER_TYPE_CODE)
+            .createdByUserId(USER_ID)
+            .createdOn(CREATED_ON_OLDER)
+            .build();
+
+    claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4, claim5));
 
     var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
     claimSummaryFee1 =

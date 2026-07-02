@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.regex.Pattern;
@@ -7,9 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
@@ -116,6 +120,66 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     log.error(errorMessage, exception);
     return buildProblemDetailResponse(
         HttpStatus.INTERNAL_SERVER_ERROR, errorMessage, exception.getClass(), request);
+  }
+
+  /**
+   * Handles validation failures originating from the claim amendment orchestrator.
+   *
+   * <p>Inspects the collection of validation errors returned by the orchestrator. If the error list
+   * contains a fatal failure, the highest priority status code is surfaced. For standard errors, a
+   * 400 Bad Request status code is returned. The collection of underlying validation errors is
+   * attached as a structured property to the {@link ProblemDetail} payload.
+   *
+   * @param ex the exception containing the list of collected validation errors
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} detailing the amendment failures
+   */
+  @ExceptionHandler(ClaimAmendmentValidationException.class)
+  public ResponseEntity<ProblemDetail> handleClaimAmendmentValidationException(
+      ClaimAmendmentValidationException ex, HttpServletRequest request) {
+
+    log.warn("ClaimAmendmentValidationException occurred with {} errors", ex.getErrors().size());
+    ClaimAmendmentValidationError primaryError = ex.getErrors().getFirst();
+
+    HttpStatus status = HttpStatus.BAD_REQUEST;
+    if (primaryError != null && primaryError.isFatal()) {
+      status = HttpStatus.resolve(primaryError.getHttpStatus().value());
+      if (status == null) {
+        status = HttpStatus.BAD_REQUEST;
+      }
+    }
+
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
+
+    if (response.getBody() != null) {
+      response.getBody().setProperty("errors", ex.getErrors());
+    }
+
+    return response;
+  }
+
+  /**
+   * Handles database-level optimistic locking failures during entity persistence.
+   *
+   * <p>This exception is thrown by Spring Data JPA when a concurrent modification is detected. This
+   * handler intercepts this failure and returns an HTTP {@code 409 Conflict} status wrapped in an
+   * RFC 9457 Problem Detail.
+   *
+   * @param ex the optimistic locking exception thrown by the persistence layer
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
+   */
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockingException(
+      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+
+    log.warn("Database level optimistic locking failure occurred: {}", ex.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.CONFLICT,
+        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+        ex.getClass(),
+        request);
   }
 
   /**

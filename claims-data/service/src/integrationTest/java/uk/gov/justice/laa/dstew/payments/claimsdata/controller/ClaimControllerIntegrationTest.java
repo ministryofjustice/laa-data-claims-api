@@ -13,8 +13,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.PATCH_CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
@@ -23,6 +25,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -33,8 +36,10 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
@@ -57,6 +62,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequest
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
+  @Autowired private ClaimsApiProperties claimsApiProperties;
+
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
 
@@ -70,9 +77,21 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
+  private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
+
+  private Boolean amendmentSwitch;
+
   @BeforeEach
   void setUp() {
+    // Capture the original boolean state
+    amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
     seedClaimsData();
+  }
+
+  @AfterEach
+  void tearDown() {
+    // Use String.valueOf() for a null-safe string conversion
+    claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
   }
 
   @Test
@@ -246,6 +265,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -272,7 +292,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setCaseReferenceNumber(PATCH_CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
@@ -298,14 +318,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
     // given: required claims exist in the database
 
-    String caseReference = "' OR name LIKE '%'";
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    String createdByUserId = "' OR name LIKE '%'";
+    claimPatch.setCreatedByUserId(createdByUserId);
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()
-                .displayMessage(caseReference + "is not allowed")
+                .displayMessage("createdByUserId" + "is not allowed")
                 .source("test")
                 .type(ValidationMessageType.ERROR)));
     // Get the logger used by the class under test
@@ -327,7 +349,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
-    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
+    assertThat(updatedClaim.getCreatedByUserId()).isEqualTo(createdByUserId);
 
     assertThat(
             listAppender.list.stream()
@@ -343,6 +365,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
 
     ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setVersion(1L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
     // returned.
@@ -389,11 +412,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test
@@ -484,11 +510,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test
@@ -876,5 +905,32 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
     }
+  }
+
+  @Test
+  @DisplayName("PATCH submissions/{id}/claims/{id} - 409 Conflict when claim version is stale")
+  void shouldReturn409ConflictWhenSubmittedVersionIsStale() throws Exception {
+    claimsApiProperties.getAmendments().setEnabled(Boolean.TRUE.toString());
+    // Then inside your specific test case before calling perform():
+    // given: A patch request with a deliberately stale version
+    // (The claim in the DB seeded by setUp() will likely have version 0L or 1L)
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setFeeCode(FEE_CODE);
+    claimPatch.setVersion(7L); // Stale version
+
+    // when: calling the PATCH endpoint
+    MvcResult result =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isConflict()) // Expect HTTP 409
+            .andReturn();
+
+    // then: Assert the specific error code is returned to the user in the response
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("Claim Version conflict exists");
   }
 }

@@ -253,20 +253,60 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
     }
   }
 
+  @Nested
+  @DisplayName("version validation step")
+  class VersionValidation {
+
+    @Test
+    @DisplayName("a null submitted version bypasses the version check for internal updates")
+    void nullSubmittedVersionBypassesCheck() {
+      // Use the overloaded method to pass 'null' as the submitted version
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, null);
+
+      assertThat(claimAmendmentService.orchestrate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    }
+
+    @Test
+    @DisplayName("a mismatched submitted version returns a version conflict error")
+    void mismatchedSubmittedVersionReturnsError() {
+      // The DB version is hardcoded to 1L in the fixture, so passing 99L forces a mismatch
+      ClaimAmendmentState state =
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, 99L);
+
+      // It should specifically return the optimistic locking conflict code
+      assertThat(claimAmendmentService.orchestrate(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Fixtures
   // ---------------------------------------------------------------------------
 
   private ClaimAmendmentState stateOf(
       ClaimStatus status, String requestedBy, String reason, String userId) {
+    return stateOf(status, requestedBy, reason, userId, 1L); // Default submitted version to 1L
+  }
+
+  private ClaimAmendmentState stateOf(
+      ClaimStatus status, String requestedBy, String reason, String userId, Long submittedVersion) {
     return ClaimAmendmentState.builder()
         .beforeState(
-            ClaimStateSnapshot.builder().claimId(Uuid7.timeBasedUuid()).status(status).build())
+            ClaimStateSnapshot.builder()
+                .claimId(Uuid7.timeBasedUuid())
+                .status(status)
+                .version(1L) // Hardcode DB version to 1L for all tests
+                .build())
         .requestPayload(
             ClaimAmendmentPayload.builder()
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))
+                .version(JsonNullable.of(submittedVersion))
                 .build())
         .build();
   }

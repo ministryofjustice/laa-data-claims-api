@@ -12,7 +12,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -69,7 +68,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   @DisplayName("Builds before-state and applies sparse payload to produce post-amendment state")
-  void retrievesAmendmentState_happyPath_buildsBeforeAndPostState() {
+  void retrievesAmendmentStateHappyPathBuildsBeforeAndPostState() {
     seedAssessmentsData();
 
     ClaimAmendmentPayload payload =
@@ -79,11 +78,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .isVatApplicable(JsonNullable.of(false))
             .build();
 
-    Optional<ClaimAmendmentState> result =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload);
-
-    assertThat(result).isPresent();
-    ClaimAmendmentState state = result.get();
+    ClaimAmendmentState state = amendmentStateService.retrieveAmendmentState(claim1, payload);
 
     // requestPayload is carried through as submitted
     assertThat(state.getRequestPayload()).isSameAs(payload);
@@ -130,20 +125,8 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
   }
 
   @Test
-  @DisplayName("Returns empty when the claim does not exist")
-  void retrievesAmendmentState_whenClaimMissing_returnsEmpty() {
-    seedClaimsData();
-
-    Optional<ClaimAmendmentState> result =
-        amendmentStateService.retrieveAmendmentState(
-            UUID.randomUUID(), ClaimAmendmentPayload.builder().build());
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
   @DisplayName("Performs no database writes (read-only step)")
-  void retrievesAmendmentState_doesNotMutateDatabase() {
+  void retrievesAmendmentStateDoesNotMutateDatabase() {
     seedAssessmentsData();
 
     final long claims = claimRepository.count();
@@ -160,7 +143,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .caseReferenceNumber(JsonNullable.of((String) null))
             .build();
 
-    amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload);
+    amendmentStateService.retrieveAmendmentState(claim1, payload);
 
     assertThat(claimRepository.count()).isEqualTo(claims);
     assertThat(clientRepository.count()).isEqualTo(clients);
@@ -178,14 +161,13 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   @DisplayName("Explicit null in the payload clears the field in the post-state only")
-  void retrievesAmendmentState_explicitNull_clearsPostStateButKeepsBeforeState() {
+  void retrievesAmendmentStateExplicitNullClearsPostStateButKeepsBeforeState() {
     seedClaimsData();
 
     ClaimAmendmentPayload payload =
         ClaimAmendmentPayload.builder().scheduleReference(JsonNullable.of((String) null)).build();
 
-    ClaimAmendmentState state =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload).orElseThrow();
+    ClaimAmendmentState state = amendmentStateService.retrieveAmendmentState(claim1, payload);
 
     assertThat(state.getBeforeState().getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
     assertThat(state.getPostAmendmentState().getScheduleReference()).isNull();
@@ -193,7 +175,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   @DisplayName("UCN and UFN are never recomputed when name, DOB or case id are amended")
-  void retrievesAmendmentState_doesNotRecomputeUcnOrUfn() {
+  void retrievesAmendmentStateDoesNotRecomputeUcnOrUfn() {
     seedClaimsData();
 
     ClaimAmendmentPayload payload =
@@ -205,10 +187,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .build();
 
     ClaimStateSnapshot after =
-        amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, payload)
-            .orElseThrow()
-            .getPostAmendmentState();
+        amendmentStateService.retrieveAmendmentState(claim1, payload).getPostAmendmentState();
 
     // amended identity inputs applied
     assertThat(after.getClientForename()).isEqualTo(AMENDED_FORENAME);
@@ -220,14 +199,13 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   @DisplayName("Selects the latest assessment for the before-state")
-  void retrievesAmendmentState_selectsLatestAssessment() {
+  void retrievesAmendmentStateSelectsLatestAssessment() {
     // CLAIM_1 has two assessments; the later one (240.00) must win over the earlier (120.00).
     seedAssessmentsData();
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_1_ID, ClaimAmendmentPayload.builder().build())
-            .orElseThrow()
+            .retrieveAmendmentState(claim1, ClaimAmendmentPayload.builder().build())
             .getBeforeState();
 
     assertThat(before.getLatestAssessment()).isNotNull();
@@ -237,15 +215,14 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
 
   @Test
   @DisplayName("Builds a snapshot for a claim that has no associated records")
-  void retrievesAmendmentState_claimWithoutAssociations_buildsSnapshotWithNulls() {
+  void retrievesAmendmentStateClaimWithoutAssociationsBuildsSnapshotWithNulls() {
     // CLAIM_4 is persisted with a submission but no client, case, summary fee, calc fee or
     // assessment.
     seedClaimsData();
 
     ClaimStateSnapshot before =
         amendmentStateService
-            .retrieveAmendmentState(CLAIM_4_ID, ClaimAmendmentPayload.builder().build())
-            .orElseThrow()
+            .retrieveAmendmentState(claim4, ClaimAmendmentPayload.builder().build())
             .getBeforeState();
 
     assertThat(before.getClaimId()).isEqualTo(CLAIM_4_ID);
