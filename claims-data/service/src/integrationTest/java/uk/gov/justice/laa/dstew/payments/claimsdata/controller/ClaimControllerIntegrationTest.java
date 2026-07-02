@@ -883,7 +883,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-XXXX)")
+      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-1943)")
   void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
     // given: we use an existing office code from the setup
 
