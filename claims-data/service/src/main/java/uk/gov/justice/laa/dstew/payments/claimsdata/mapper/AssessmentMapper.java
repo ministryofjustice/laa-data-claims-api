@@ -36,6 +36,7 @@ public interface AssessmentMapper {
   @Mapping(target = "technicalMessage", source = "message.technicalMessage")
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
+  @Mapping(target = "messageCode", source = "message.messageCode")
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Assessment assessment);
 

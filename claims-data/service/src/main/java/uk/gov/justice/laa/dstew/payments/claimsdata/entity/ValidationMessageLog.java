@@ -53,6 +53,9 @@ public class ValidationMessageLog {
   @Column(name = "technical_message")
   private String technicalMessage;
 
+  @Column(name = "message_code")
+  private String messageCode;
+
   @CreationTimestamp
   @Column(name = "created_on", nullable = false, updatable = false)
   private Instant createdOn;
