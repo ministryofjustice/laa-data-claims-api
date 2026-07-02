@@ -128,7 +128,7 @@ class DataClaimsExceptionHandlerTest {
     // Arrange: Create a non-fatal validation error scenario
     ClaimAmendmentValidationError nonFatalError =
         ClaimAmendmentValidationError.of(
-            ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT); // isFatal = false
+            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE); // isFatal = false
     ClaimAmendmentValidationException ex =
         new ClaimAmendmentValidationException(List.of(nonFatalError));
 
