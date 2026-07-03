@@ -122,4 +122,58 @@ class AmendmentChangeDetectorTest {
 
     assertThat(changes).isEmpty();
   }
+
+  @Test
+  @DisplayName("ignores a BigDecimal amount that differs only in scale (no spurious diff)")
+  void ignoresBigDecimalScaleOnlyDifference() {
+    ClaimStateSnapshot before =
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new java.math.BigDecimal("10.0")).build();
+    ClaimStateSnapshot after =
+        ClaimStateSnapshot.builder()
+            .netProfitCostsAmount(new java.math.BigDecimal("10.00"))
+            .build();
+
+    List<DiffEntry> changes = detector.detectChanges(state(before, after));
+
+    assertThat(changes).isEmpty();
+  }
+
+  @Test
+  @DisplayName("ignores an FSP fee amount that differs only in scale (no spurious diff)")
+  void ignoresFspFeeScaleOnlyDifference() {
+    CalculatedFeeDetailSnapshot beforeFee =
+        CalculatedFeeDetailSnapshot.builder()
+            .totalAmount(new java.math.BigDecimal("100.0"))
+            .build();
+    CalculatedFeeDetailSnapshot afterFee =
+        CalculatedFeeDetailSnapshot.builder()
+            .totalAmount(new java.math.BigDecimal("100.000"))
+            .build();
+
+    ClaimAmendmentState state =
+        ClaimAmendmentState.builder().beforeFee(beforeFee).afterFee(afterFee).build();
+
+    List<DiffEntry> changes = detector.detectChanges(state);
+
+    assertThat(changes).isEmpty();
+  }
+
+  @Test
+  @DisplayName("still emits a change for a genuine BigDecimal value difference")
+  void emitsChangeForGenuineBigDecimalDifference() {
+    ClaimStateSnapshot before =
+        ClaimStateSnapshot.builder()
+            .netProfitCostsAmount(new java.math.BigDecimal("10.00"))
+            .build();
+    ClaimStateSnapshot after =
+        ClaimStateSnapshot.builder()
+            .netProfitCostsAmount(new java.math.BigDecimal("10.01"))
+            .build();
+
+    List<DiffEntry> changes = detector.detectChanges(state(before, after));
+
+    assertThat(changes).hasSize(1);
+    assertThat(changes.getFirst().fieldIdentifier())
+        .isEqualTo("claimSummaryFee.netProfitCostsAmount");
+  }
 }

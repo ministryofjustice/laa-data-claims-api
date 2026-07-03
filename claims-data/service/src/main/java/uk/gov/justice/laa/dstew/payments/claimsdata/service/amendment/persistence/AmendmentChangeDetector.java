@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -57,12 +58,30 @@ public class AmendmentChangeDetector {
       for (FieldAccessor<T> field : fields) {
         Object beforeValue = field.accessor().apply(before);
         Object afterValue = field.accessor().apply(after);
-        if (!Objects.equals(beforeValue, afterValue)) {
+        if (!valuesEqual(beforeValue, afterValue)) {
           changes.add(new DiffEntry(field.fieldIdentifier(), source, beforeValue, afterValue));
         }
       }
       return changes;
     }
+  }
+
+  /**
+   * Value equality for change detection. {@link BigDecimal} values are compared with {@link
+   * BigDecimal#compareTo} so that numerically equal amounts differing only in scale (e.g. {@code
+   * 1.0} versus {@code 1.00}) are treated as unchanged - avoiding spurious diff entries for money
+   * fields whose scale can differ between the stored value and an external (FSP) response. All
+   * other types fall back to {@link Objects#equals}.
+   *
+   * @param before the before value (may be {@code null})
+   * @param after the after value (may be {@code null})
+   * @return {@code true} if the two values are considered equal for diffing
+   */
+  private static boolean valuesEqual(Object before, Object after) {
+    if (before instanceof BigDecimal beforeAmount && after instanceof BigDecimal afterAmount) {
+      return beforeAmount.compareTo(afterAmount) == 0;
+    }
+    return Objects.equals(before, after);
   }
 
   /** Provider-requested claim-state changes: before-state versus post-amendment state. */
