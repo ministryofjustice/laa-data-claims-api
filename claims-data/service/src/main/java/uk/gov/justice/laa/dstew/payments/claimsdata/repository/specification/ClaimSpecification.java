@@ -202,9 +202,7 @@ public final class ClaimSpecification {
                     // ...or createdOn matches exactly, but the UUIDv7 string/value breaks the tie
                     cb.and(
                         cb.equal(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
-                        cb.greaterThan(
-                            newerFeeRoot.get(ID).as(String.class),
-                            feeRoot.get(ID).as(String.class)))));
+                        cb.greaterThan(newerFeeRoot.get(ID), feeRoot.get(ID)))));
 
         // Now assemble the main filter matching your original query block
         latestFeeSubquery
