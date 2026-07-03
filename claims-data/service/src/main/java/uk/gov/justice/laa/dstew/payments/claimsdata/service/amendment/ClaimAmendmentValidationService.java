@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -26,7 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  * external (PDA or FSP) call, but functionally they are ordinary validation steps that collect
  * errors, so they sit in the same list.
  *
- * <p>The full canonical sequence is:
+ * <p>The planned canonical sequence (steps are added as their tickets land) is:
  *
  * <ol>
  *   <li>DSTEW-1751/1752 claim-version contract
@@ -122,7 +123,7 @@ public class ClaimAmendmentValidationService {
     for (Class<? extends ClaimAmendmentValidationStep> stepClass : STEP_ORDER) {
       orderedSteps.add(
           discoveredSteps.stream()
-              .filter(step -> step.getClass().equals(stepClass))
+              .filter(step -> AopUtils.getTargetClass(step).equals(stepClass))
               .findFirst()
               .orElseThrow(
                   () ->

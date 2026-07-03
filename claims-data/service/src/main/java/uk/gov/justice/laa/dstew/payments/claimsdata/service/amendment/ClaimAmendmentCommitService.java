@@ -15,8 +15,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  * <p>It reattaches the already-validated {@link Claim} carried from the prepare phase, then
  * persists the amendment record and applies the claim/related writes (DSTEW-1907). Reattaching
  * (rather than re-reading) is what anchors the {@code @Version} optimistic-lock guard to the
- * version seen at validation time: {@link EntityManager#merge} performs the version check against
- * the detached instance, so a concurrent modification since validation raises {@code
+ * version read at prepare time: {@link EntityManager#merge} performs the version check against the
+ * detached instance, so a concurrent modification since prepare raises {@code
  * jakarta.persistence.OptimisticLockException} (mapped to HTTP 409) and the whole transaction rolls
  * back.
  *
@@ -42,7 +42,7 @@ public class ClaimAmendmentCommitService {
   @Transactional
   public ClaimAmendment commit(Claim validatedClaim, ClaimAmendmentState state) {
     // Reattach the validated instance so the versioned UPDATE guards against changes since
-    // validation. Merge returns the managed instance to write through.
+    // the prepare step. Merge returns the managed instance to write through.
     Claim managedClaim = entityManager.merge(validatedClaim);
     return persistenceService.persistSuccessfulAmendment(managedClaim, state);
   }
