@@ -31,6 +31,40 @@ Maintaining this collection well means teams can debug faster, reproduce issues 
 - Use Bruno UI for daily work (open collection, select environment, edit variable values, run requests).
 - Before commit, review generated `.bru` diffs manually for quality and portability.
 - Convert machine-specific absolute upload paths to repo-relative paths before pushing.
+- Never commit `.bru` files that reference absolute personal paths (for example `/Users/<name>/...`). Use repo-committed assets instead.
+
+## Upload assets (`test-assets/`)
+
+Upload files used by requests live in `bruno/test-assets/` so the collection is
+self-contained and portable across machines and CI.
+
+- Put shared sample files directly under `bruno/test-assets/`.
+- Group ticket- or scenario-specific files in a subfolder, e.g. `bruno/test-assets/DSTEW-1256/`.
+- `@file(...)` paths are resolved relative to the collection root (`bruno/`), so
+  reference assets as `@file(test-assets/<name>)`.
+
+Examples:
+
+```
+body:multipart-form {
+  file: @file(test-assets/outcomes_crime_lower_no_schedule.csv) @contentType(text/csv)
+}
+```
+
+```
+body:multipart-form {
+  file: @file(test-assets/DSTEW-1256/DEC-2025.csv) @contentType(text/csv)
+}
+```
+
+When adding a new upload:
+
+1. Copy a sanitised sample file into `bruno/test-assets/` (never real client / PII data).
+2. Reference it with a repo-relative `@file(test-assets/...)` path.
+3. Reuse existing samples where possible instead of duplicating.
+
+All upload requests in this collection reference files under `bruno/test-assets/`, so the
+collection is fully self-contained and does not depend on files elsewhere in the repo.
 
 ## Quick start (UI)
 
@@ -104,7 +138,9 @@ Path portability rule:
 
 - Bruno UI will save upload file paths as absolute local paths.
 - Bruno UI does not currently provide a feature to convert those file paths to repo-relative paths.
-- Before commit, manually edit the request `.bru` file and change upload paths to repo-relative values..
+- Before commit, manually edit the request `.bru` file and change the upload path to a
+  repo-relative `@file(test-assets/...)` value (see "Upload assets" above), copying the
+  file into `bruno/test-assets/` if it is not already committed.
 
 Helpful docs:
 
