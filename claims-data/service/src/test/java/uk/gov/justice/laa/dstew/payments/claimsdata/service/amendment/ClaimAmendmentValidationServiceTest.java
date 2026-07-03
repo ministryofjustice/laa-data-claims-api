@@ -14,11 +14,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentPdaValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
@@ -97,6 +99,11 @@ class ClaimAmendmentValidationServiceTest {
   void sortsDiscoveredStepsIntoDeclaredOrder() {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
+    // Enable the amendments feature so the feature-flag step (first in STEP_ORDER) passes rather
+    // than short-circuiting at step one.
+    ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
+    claimsApiProperties.getAmendments().setEnabled("true");
+
     // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The status step
     // returns a fatal error for the empty state below, so the orchestrator short-circuits before
     // the later steps run.
@@ -104,6 +111,7 @@ class ClaimAmendmentValidationServiceTest {
         new ClaimAmendmentValidationService(
             List.of(
                 extraStep,
+                new AmendmentFeatureFlagValidationStep(claimsApiProperties),
                 new ClaimStatusValidationStep(),
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
