@@ -143,10 +143,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
 
     HttpStatus status = HttpStatus.BAD_REQUEST;
     if (primaryError != null && primaryError.isFatal()) {
-      status = HttpStatus.resolve(primaryError.getHttpStatus().value());
-      if (status == null) {
-        status = HttpStatus.BAD_REQUEST;
-      }
+      status = primaryError.getHttpStatus();
     }
 
     ResponseEntity<ProblemDetail> response =
