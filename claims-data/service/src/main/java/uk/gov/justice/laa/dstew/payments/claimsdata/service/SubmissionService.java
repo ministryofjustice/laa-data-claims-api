@@ -180,13 +180,6 @@ public class SubmissionService
                 ValidationMessageLog validationLog =
                     submissionMapper.toValidationMessageLog(message, submission);
                 validationMessageLogRepository.save(validationLog);
-                if (validationLog.getMessageCode() == null) {
-                  log.debug(
-                      "FSP message with null code detected - submission_id: {}, message_id: {}, type: {}",
-                      submission.getId(),
-                      validationLog.getId(),
-                      message.getType());
-                }
               });
     }
   }

@@ -53,7 +53,7 @@ public class ValidationMessageLog {
   @Column(name = "technical_message")
   private String technicalMessage;
 
-  @Column(name = "message_code")
+  @Column(name = "message_code", length = 20)
   private String messageCode;
 
   @CreationTimestamp
