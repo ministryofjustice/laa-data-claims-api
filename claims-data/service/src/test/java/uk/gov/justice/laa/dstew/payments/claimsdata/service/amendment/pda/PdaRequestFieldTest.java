@@ -41,7 +41,7 @@ class PdaRequestFieldTest {
   class FeeCode {
 
     @Test
-    @DisplayName("affects when PROD and concluded date present")
+    @DisplayName("always affects when PROD and concluded date present")
     void prodWithConcluded() {
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("PROD").caseConcludedDate(ANY_DATE).build();
@@ -49,19 +49,26 @@ class PdaRequestFieldTest {
     }
 
     @Test
-    @DisplayName("does not affect when PROD but no concluded date")
+    @DisplayName("always affects even when PROD but no concluded date")
     void prodWithoutConcluded() {
       ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("PROD").build();
-      assertThat(PdaRequestField.impactsPda("feeCode", state)).isFalse();
+      assertThat(PdaRequestField.impactsPda("feeCode", state)).isTrue();
     }
 
     @Test
-    @DisplayName("affects when a concluded date is present even if new fee code is not PROD")
+    @DisplayName("always affects when a concluded date is present even if new fee code is not PROD")
     void notProdButConcludedPresent() {
-      // A PROD -> non-PROD amendment with a concluded date moves the effective date off the
-      // concluded date onto caseStartDate/repOrder/UFN, so the change must trigger a refresh.
+      // feeCode-derived data is compared against the PDA response for validation, so any feeCode
+      // change affects the requirement to use the PDA regardless of the other fields.
       ClaimStateSnapshot state =
           ClaimStateSnapshot.builder().feeCode("OTHER").caseConcludedDate(ANY_DATE).build();
+      assertThat(PdaRequestField.impactsPda("feeCode", state)).isTrue();
+    }
+
+    @Test
+    @DisplayName("always affects even with no relevant dates populated")
+    void alwaysImpacts() {
+      ClaimStateSnapshot state = ClaimStateSnapshot.builder().feeCode("OTHER").build();
       assertThat(PdaRequestField.impactsPda("feeCode", state)).isTrue();
     }
   }

@@ -21,6 +21,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
  * request when no higher-priority field is populated. The fully-merged effective values are read
  * from {@link ClaimStateSnapshot}, so the priority is evaluated against the claim's resolved state
  * rather than a sparse amendment delta.
+ *
+ * <p>{@code feeCode} is treated as always impacting the request: in addition to contributing to the
+ * {@code effectiveDate} priority, {@code feeCode}-derived data is later compared against the PDA
+ * response to determine a validation value. Any change to {@code feeCode} therefore affects the
+ * requirement to use the PDA, regardless of the other fields.
  */
 public final class PdaRequestField {
 
@@ -46,7 +51,11 @@ public final class PdaRequestField {
 
     return switch (fieldName) {
       case "officeAccountNumber" -> true;
-      case "feeCode" -> mergedStateSnapshot.getCaseConcludedDate() != null;
+      // feeCode always impacts the PDA outcome: beyond its role in deriving the
+      // effectiveDate, feeCode-derived data is compared against the PDA response to
+      // determine a validation value, so any change to feeCode affects whether the
+      // PDA request is required.
+      case "feeCode" -> true;
       case "caseConcludedDate" -> PROD_FEE_CODE.equals(mergedStateSnapshot.getFeeCode());
       case "caseStartDate" -> !prodWithConcluded;
       case "representationOrderDate" ->
