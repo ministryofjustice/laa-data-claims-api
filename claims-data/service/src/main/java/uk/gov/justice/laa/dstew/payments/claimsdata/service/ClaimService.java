@@ -211,8 +211,16 @@ public class ClaimService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
-                validationMessageLogRepository.save(log);
+                ValidationMessageLog validationLog =
+                    claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(validationLog);
+                if (validationLog.getMessageCode() == null) {
+                  log.debug(
+                      "FSP message with null code detected - claim_id: {}, message_id: {}, type: {}",
+                      claim.getId(),
+                      validationLog.getId(),
+                      message.getType());
+                }
               });
     }
   }

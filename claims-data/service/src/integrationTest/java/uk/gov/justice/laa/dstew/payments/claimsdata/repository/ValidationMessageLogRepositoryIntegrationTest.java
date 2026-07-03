@@ -24,7 +24,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("ValidationMessageLogRepository Integration Test")
@@ -149,14 +148,11 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   @Test
   @DisplayName("Should persist messageCode for FSP messages with ERROR type")
   void shouldPersistMessageCodeForFspErrorMessage() {
-    UUID submissionId = SUBMISSION_1_ID;
-    UUID claimId = CLAIM_1_ID;
     String messageCode = "ERRALL1";
 
     ValidationMessageLog fspErrorMessage = new ValidationMessageLog();
-    fspErrorMessage.setId(Uuid7.timeBasedUuid());
-    fspErrorMessage.setSubmissionId(submissionId);
-    fspErrorMessage.setClaimId(claimId);
+    fspErrorMessage.setSubmissionId(SUBMISSION_1_ID);
+    fspErrorMessage.setClaimId(CLAIM_1_ID);
     fspErrorMessage.setType(ValidationMessageType.ERROR);
     fspErrorMessage.setSource("FSP");
     fspErrorMessage.setDisplayMessage("Enter a valid Fee Code.");
@@ -168,7 +164,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     Pageable pageable = PageRequest.of(0, 10);
     Page<ValidationMessageWithClaimDetailsProjection> result =
         validationMessageLogRepository.findWithClaimDetailsByFilters(
-            submissionId, claimId, ValidationMessageType.ERROR, "FSP", pageable);
+            SUBMISSION_1_ID, CLAIM_1_ID, ValidationMessageType.ERROR, "FSP", pageable);
 
     assertThat(result.getTotalElements()).isEqualTo(1);
     ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
@@ -180,14 +176,11 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   @Test
   @DisplayName("Should persist messageCode for FSP messages with WARNING type")
   void shouldPersistMessageCodeForFspWarningMessage() {
-    UUID submissionId = SUBMISSION_1_ID;
-    UUID claimId = CLAIM_2_ID;
     String messageCode = "WARFAM1";
 
     ValidationMessageLog fspWarningMessage = new ValidationMessageLog();
-    fspWarningMessage.setId(Uuid7.timeBasedUuid());
-    fspWarningMessage.setSubmissionId(submissionId);
-    fspWarningMessage.setClaimId(claimId);
+    fspWarningMessage.setSubmissionId(SUBMISSION_1_ID);
+    fspWarningMessage.setClaimId(CLAIM_2_ID);
     fspWarningMessage.setType(ValidationMessageType.WARNING);
     fspWarningMessage.setSource("FSP");
     fspWarningMessage.setDisplayMessage(
@@ -201,7 +194,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     Pageable pageable = PageRequest.of(0, 10);
     Page<ValidationMessageWithClaimDetailsProjection> result =
         validationMessageLogRepository.findWithClaimDetailsByFilters(
-            submissionId, claimId, ValidationMessageType.WARNING, "FSP", pageable);
+            SUBMISSION_1_ID, CLAIM_2_ID, ValidationMessageType.WARNING, "FSP", pageable);
 
     assertThat(result.getTotalElements()).isEqualTo(1);
     ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
@@ -229,15 +222,12 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   @DisplayName(
       "Should retain distinct messages with same display_message but different messageCode")
   void shouldRetainDistinctMessagesWithSameDisplayMessageButDifferentCode() {
-    UUID submissionId = SUBMISSION_1_ID;
-    UUID claimId = CLAIM_1_ID;
     String identicalDisplayMessage = "FSP validation issue";
 
     // Create two FSP messages with same display text but different codes
     ValidationMessageLog fspMessage1 = new ValidationMessageLog();
-    fspMessage1.setId(Uuid7.timeBasedUuid());
-    fspMessage1.setSubmissionId(submissionId);
-    fspMessage1.setClaimId(claimId);
+    fspMessage1.setSubmissionId(SUBMISSION_1_ID);
+    fspMessage1.setClaimId(CLAIM_1_ID);
     fspMessage1.setType(ValidationMessageType.ERROR);
     fspMessage1.setSource("FSP");
     fspMessage1.setDisplayMessage(identicalDisplayMessage);
@@ -245,9 +235,8 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     fspMessage1.setMessageCode("ERRIA2");
 
     ValidationMessageLog fspMessage2 = new ValidationMessageLog();
-    fspMessage2.setId(Uuid7.timeBasedUuid());
-    fspMessage2.setSubmissionId(submissionId);
-    fspMessage2.setClaimId(claimId);
+    fspMessage2.setSubmissionId(SUBMISSION_1_ID);
+    fspMessage2.setClaimId(CLAIM_1_ID);
     fspMessage2.setType(ValidationMessageType.ERROR);
     fspMessage2.setSource("FSP");
     fspMessage2.setDisplayMessage(identicalDisplayMessage);
@@ -259,7 +248,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     Pageable pageable = PageRequest.of(0, 10);
     Page<ValidationMessageWithClaimDetailsProjection> result =
         validationMessageLogRepository.findWithClaimDetailsByFilters(
-            submissionId, claimId, ValidationMessageType.ERROR, "FSP", pageable);
+            SUBMISSION_1_ID, CLAIM_1_ID, ValidationMessageType.ERROR, "FSP", pageable);
 
     // Both messages should be retrieved and distinguishable by their unique messageCode
     assertThat(result.getTotalElements()).isEqualTo(2);
@@ -273,13 +262,10 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   @Test
   @DisplayName("Should have null messageCode for FSP message with WARNING type when not provided")
   void shouldHaveNullMessageCodeForFspMessageWhenNotProvided() {
-    UUID submissionId = SUBMISSION_1_ID;
-    UUID claimId = CLAIM_2_ID;
 
     ValidationMessageLog fspWarningNoCode = new ValidationMessageLog();
-    fspWarningNoCode.setId(Uuid7.timeBasedUuid());
-    fspWarningNoCode.setSubmissionId(submissionId);
-    fspWarningNoCode.setClaimId(claimId);
+    fspWarningNoCode.setSubmissionId(SUBMISSION_1_ID);
+    fspWarningNoCode.setClaimId(CLAIM_2_ID);
     fspWarningNoCode.setType(ValidationMessageType.WARNING);
     fspWarningNoCode.setSource("FSP");
     fspWarningNoCode.setDisplayMessage("Warning without code");
@@ -291,7 +277,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     Pageable pageable = PageRequest.of(0, 10);
     Page<ValidationMessageWithClaimDetailsProjection> result =
         validationMessageLogRepository.findWithClaimDetailsByFilters(
-            submissionId, claimId, ValidationMessageType.WARNING, "FSP", pageable);
+            SUBMISSION_1_ID, CLAIM_2_ID, ValidationMessageType.WARNING, "FSP", pageable);
 
     assertThat(result.getTotalElements()).isEqualTo(1);
     ValidationMessageWithClaimDetailsProjection retrieved = result.getContent().getFirst();
