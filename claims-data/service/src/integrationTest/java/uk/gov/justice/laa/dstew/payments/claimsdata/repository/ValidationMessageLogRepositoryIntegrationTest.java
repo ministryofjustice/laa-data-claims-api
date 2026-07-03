@@ -151,6 +151,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     String messageCode = "ERRALL1";
 
     ValidationMessageLog fspErrorMessage = new ValidationMessageLog();
+    fspErrorMessage.setId(UUID.randomUUID());
     fspErrorMessage.setSubmissionId(SUBMISSION_1_ID);
     fspErrorMessage.setClaimId(CLAIM_1_ID);
     fspErrorMessage.setType(ValidationMessageType.ERROR);
@@ -179,6 +180,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     String messageCode = "WARFAM1";
 
     ValidationMessageLog fspWarningMessage = new ValidationMessageLog();
+    fspWarningMessage.setId(UUID.randomUUID());
     fspWarningMessage.setSubmissionId(SUBMISSION_1_ID);
     fspWarningMessage.setClaimId(CLAIM_2_ID);
     fspWarningMessage.setType(ValidationMessageType.WARNING);
@@ -226,6 +228,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
 
     // Create two FSP messages with same display text but different codes
     ValidationMessageLog fspMessage1 = new ValidationMessageLog();
+    fspMessage1.setId(UUID.randomUUID());
     fspMessage1.setSubmissionId(SUBMISSION_1_ID);
     fspMessage1.setClaimId(CLAIM_1_ID);
     fspMessage1.setType(ValidationMessageType.ERROR);
@@ -235,6 +238,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     fspMessage1.setMessageCode("ERRIA2");
 
     ValidationMessageLog fspMessage2 = new ValidationMessageLog();
+    fspMessage2.setId(UUID.randomUUID());
     fspMessage2.setSubmissionId(SUBMISSION_1_ID);
     fspMessage2.setClaimId(CLAIM_1_ID);
     fspMessage2.setType(ValidationMessageType.ERROR);
@@ -264,6 +268,7 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   void shouldHaveNullMessageCodeForFspMessageWhenNotProvided() {
 
     ValidationMessageLog fspWarningNoCode = new ValidationMessageLog();
+    fspWarningNoCode.setId(UUID.randomUUID());
     fspWarningNoCode.setSubmissionId(SUBMISSION_1_ID);
     fspWarningNoCode.setClaimId(CLAIM_2_ID);
     fspWarningNoCode.setType(ValidationMessageType.WARNING);
