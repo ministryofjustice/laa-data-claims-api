@@ -66,6 +66,20 @@ When adding a new upload:
 All upload requests in this collection reference files under `bruno/test-assets/`, so the
 collection is fully self-contained and does not depend on files elsewhere in the repo.
 
+### No PII / synthetic data only
+
+Files in `bruno/test-assets/` must contain synthetic test data only — never real
+client or personal data. When adding or editing an asset, use obvious placeholder
+values, for example:
+
+- Names: `Test` / `Person 001` (avoid real forenames/surnames).
+- Dates of birth: placeholder dates (e.g. `01/01/1990`).
+- Postcodes: non-residential values (e.g. `SW1H 9EA`).
+- Identifiers (UCN, case refs, DSCC numbers, scheme IDs): made-up test values.
+
+Do not include National Insurance numbers, email addresses, phone numbers, or any
+real addresses. Review new assets before commit to confirm they are PII-free.
+
 ## Quick start (UI)
 
 1. Install Bruno from https://www.usebruno.com/downloads
