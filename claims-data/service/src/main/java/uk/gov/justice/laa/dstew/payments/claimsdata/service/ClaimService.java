@@ -101,7 +101,6 @@ public class ClaimService
           "validationMessages",
           "feeCalculationResponse",
           "version",
-          "feeCode",
           "createdByUserId");
 
   @Override
@@ -259,13 +258,6 @@ public class ClaimService
                 return;
               }
             }
-
-            // If the matching entity field wasn't found, or the values are different:
-            log.info(
-                "Field has real updates: {} (New: '{}', Current: '{}')",
-                patchField.getName(),
-                patchValue,
-                claimField != null ? claimField.get(claim) : "N/A");
             hasUpdates.set(true);
           }
         },

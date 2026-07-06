@@ -16,7 +16,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.PATCH_CASE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
@@ -289,17 +288,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("PATCH submissions/{id}/claims/{id} - 400 when attempting invalid void update")
   void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
+    claimsApiProperties.getAmendments().setEnabled("false");
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(PATCH_CASE_REFERENCE);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
     MvcResult result =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_2_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                     .contentType(MediaType.APPLICATION_JSON))
