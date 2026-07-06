@@ -2248,6 +2248,7 @@ components:
           type: string
         message_code:
           type: string
+          maxLength: 20
           description: Message code from FSP payload (e.g. WARFAM1, ERRALL1).
     validation_message_base:
       type: object
