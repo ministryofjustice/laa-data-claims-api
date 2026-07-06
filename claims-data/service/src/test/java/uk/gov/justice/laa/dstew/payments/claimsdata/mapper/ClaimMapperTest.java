@@ -345,7 +345,7 @@ class ClaimMapperTest {
     final ValidationMessagePatch patch =
         new ValidationMessagePatch()
             .type(ValidationMessageType.ERROR)
-            .source("Data-Claims-Event-Service")
+            .source("FSP")
             .displayMessage("FSP error message")
             .technicalMessage("FSP technical details")
             .messageCode("ERRALL1");
@@ -356,7 +356,7 @@ class ClaimMapperTest {
     assertEquals(submission.getId(), log.getSubmissionId());
     assertEquals(claim.getId(), log.getClaimId());
     assertEquals(ValidationMessageType.ERROR, log.getType());
-    assertEquals("Data-Claims-Event-Service", log.getSource());
+    assertEquals("FSP", log.getSource());
     assertEquals("FSP error message", log.getDisplayMessage());
     assertEquals("FSP technical details", log.getTechnicalMessage());
     assertEquals("ERRALL1", log.getMessageCode());
