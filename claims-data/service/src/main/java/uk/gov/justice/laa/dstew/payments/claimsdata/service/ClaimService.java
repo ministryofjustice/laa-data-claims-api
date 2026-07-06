@@ -95,6 +95,8 @@ public class ClaimService
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
+          "id",
+          "submissionId",
           "status",
           "validationMessages",
           "feeCalculationResponse",

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -38,6 +39,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -97,10 +99,23 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @LocalServerPort private int port;
 
+  @Autowired private ClaimsApiProperties claimsApiProperties;
+
+  private Boolean originalAmendmentState;
+
   @BeforeEach
   void setUp(PactVerificationContext context) {
     HttpTestTarget target = new HttpTestTarget("localhost", port);
     context.setTarget(target);
+
+    // 1. Capture the original state from the application context
+    originalAmendmentState = claimsApiProperties.getAmendments().isEnabled();
+  }
+
+  @org.junit.jupiter.api.AfterEach
+  void tearDown() {
+    // Safely restore the original state using String.valueOf() just like your integration tests
+    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
   }
 
   @State("the system is ready to process a valid bulk submission")
@@ -189,6 +204,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the claim patch contains invalid data")
   public void theClaimPatchContainsInvalidData() {
     log.info("Setting up state: the claim patch contains invalid data");
+    claimsApiProperties.getAmendments().setEnabled("true");
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
