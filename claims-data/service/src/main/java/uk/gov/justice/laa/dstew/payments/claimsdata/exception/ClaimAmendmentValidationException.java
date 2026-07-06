@@ -20,20 +20,14 @@ public class ClaimAmendmentValidationException extends RuntimeException {
   /**
    * Constructs a new exception containing the provided list of validation errors.
    *
-   * <p>The incoming errors are automatically sorted in descending priority order:
-   *
-   * <ol>
-   *   <li>Fatal errors ({@code isFatal() == true}) take precedence over non-fatal errors.
-   *   <li>Errors are then sorted by their numeric HTTP status code values in descending order
-   *       (e.g., 500 before 400).
-   * </ol>
+   * <p>The provided errors are preserved in the exact order they are received. Any prioritization
+   * or sorting (e.g., by fatality or HTTP status code) is expected to be handled by the caller
+   * (such as the Data Handler) prior to throwing this exception.
    *
    * @param errors the collected validation errors discovered during the amendment process
    */
   public ClaimAmendmentValidationException(List<ClaimAmendmentValidationError> errors) {
     super("Claim amendment validation failed with " + errors.size() + " errors");
-
-    // Sort errors: fatal first (true -> false), then HTTP status code descending (500 -> 400)
     this.errors = errors;
   }
 }
