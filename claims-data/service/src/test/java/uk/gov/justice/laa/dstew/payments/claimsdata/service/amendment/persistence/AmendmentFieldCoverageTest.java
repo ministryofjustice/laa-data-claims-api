@@ -121,13 +121,7 @@ class AmendmentFieldCoverageTest {
     @DisplayName("every amendable entity field is represented in the diff detector")
     void everyAmendableFieldIsInTheDiffDetector() {
       for (AmendableEntity<?> entity : AMENDABLE_ENTITIES) {
-        List<String> missing =
-            amendableFieldNames(entity).stream()
-                .map(name -> entity.prefix() + "." + name)
-                .filter(identifier -> !detectorIdentifiers.contains(identifier))
-                .toList();
-
-        assertThat(missing)
+        assertThat(missingIdentifiers(entity, detectorIdentifiers))
             .as(
                 "%s field(s) not represented in AmendmentChangeDetector - add them to "
                     + "claimStateFields(), or to this test's ignore list if not amendable",
@@ -192,6 +186,52 @@ class AmendmentFieldCoverageTest {
     }
   }
 
+  @Nested
+  @DisplayName("Coverage-logic self-test (meta)")
+  class CoverageLogicSelfTest {
+
+    /**
+     * A synthetic stand-in entity, used only to prove the detection primitive itself flags an
+     * unmapped field. It exercises the same reflection path as the real entities - a static field
+     * and an ignore-listed field must be skipped, leaving exactly the two "amendable" fields - so a
+     * regression in {@link #amendableFieldNames}/{@link #missingIdentifiers} would fail here
+     * without needing to perturb a production entity.
+     */
+    @SuppressWarnings("unused") // fields are inspected reflectively, never read directly
+    private static final class SampleEntity {
+      private static final String STATIC_CONSTANT = "must be ignored (static)";
+      private String mappedField;
+      private String unmappedField;
+      private String deliberatelyIgnoredField;
+    }
+
+    private final AmendableEntity<SampleEntity> sampleEntity =
+        new AmendableEntity<>(SampleEntity.class, "sample", Set.of("deliberatelyIgnoredField"));
+
+    @Test
+    @DisplayName("amendable fields exclude static and ignore-listed fields")
+    void amendableFieldsExcludeStaticAndIgnored() {
+      assertThat(amendableFieldNames(sampleEntity))
+          .containsExactlyInAnyOrder("mappedField", "unmappedField");
+    }
+
+    @Test
+    @DisplayName("an amendable field absent from the covered set is reported as missing")
+    void reportsUnmappedField() {
+      Set<String> covered = Set.of("sample.mappedField"); // omits sample.unmappedField
+
+      assertThat(missingIdentifiers(sampleEntity, covered)).containsExactly("sample.unmappedField");
+    }
+
+    @Test
+    @DisplayName("nothing is reported when every amendable field is covered")
+    void reportsNothingWhenAllCovered() {
+      Set<String> covered = Set.of("sample.mappedField", "sample.unmappedField");
+
+      assertThat(missingIdentifiers(sampleEntity, covered)).isEmpty();
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
@@ -235,6 +275,18 @@ class AmendmentFieldCoverageTest {
         .filter(field -> !field.isSynthetic()) // e.g. JaCoCo's $jacocoData
         .map(Field::getName)
         .filter(name -> !entity.ignoredFields().contains(name))
+        .toList();
+  }
+
+  /**
+   * The amendable-field identifiers ({@code prefix.field}) of the entity that are absent from the
+   * supplied {@code covered} set. The single detection primitive shared by the real diff-coverage
+   * test and the meta test below.
+   */
+  private static List<String> missingIdentifiers(AmendableEntity<?> entity, Set<String> covered) {
+    return amendableFieldNames(entity).stream()
+        .map(name -> entity.prefix() + "." + name)
+        .filter(identifier -> !covered.contains(identifier))
         .toList();
   }
 
