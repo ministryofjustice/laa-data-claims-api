@@ -4,6 +4,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAm
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.Comparator;
+import java.util.List;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -139,7 +141,8 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       ClaimAmendmentValidationException ex, HttpServletRequest request) {
 
     log.warn("ClaimAmendmentValidationException occurred with {} errors", ex.getErrors().size());
-    ClaimAmendmentValidationError primaryError = ex.getErrors().getFirst();
+    ClaimAmendmentValidationError primaryError =
+        sortValidationErrorsByFatalAndStatus(ex).getFirst();
 
     HttpStatus status = HttpStatus.BAD_REQUEST;
     if (primaryError != null && primaryError.isFatal()) {
@@ -154,6 +157,15 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     return response;
+  }
+
+  List<ClaimAmendmentValidationError> sortValidationErrorsByFatalAndStatus(
+      ClaimAmendmentValidationException ex) {
+    return ex.getErrors().stream()
+        .sorted(
+            Comparator.comparing(ClaimAmendmentValidationError::isFatal, Comparator.reverseOrder())
+                .thenComparing(error -> error.getHttpStatus().value(), Comparator.reverseOrder()))
+        .toList();
   }
 
   /**

@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
-import java.util.Comparator;
 import java.util.List;
 import lombok.Getter;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
@@ -35,13 +34,6 @@ public class ClaimAmendmentValidationException extends RuntimeException {
     super("Claim amendment validation failed with " + errors.size() + " errors");
 
     // Sort errors: fatal first (true -> false), then HTTP status code descending (500 -> 400)
-    this.errors =
-        errors.stream()
-            .sorted(
-                Comparator.comparing(
-                        ClaimAmendmentValidationError::isFatal, Comparator.reverseOrder())
-                    .thenComparing(
-                        error -> error.getHttpStatus().value(), Comparator.reverseOrder()))
-            .toList();
+    this.errors = errors;
   }
 }

@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -151,13 +152,13 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
-  void handleClaimAmendmentValidationException_returnsCustomStatusWhenFatal() {
+  void handleClaimAmendmentVersionValidationException_returnsCustomStatusWhenFatal() {
     // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural
     // checks)
     ClaimAmendmentValidationError fatalError =
         ClaimAmendmentValidationError.of(
             ClaimAmendmentValidationCode
-                .INVALID_NULL_STATE); // isFatal = true, status maps to 400 or custom status if
+                .INVALID_NULL_VERSION); // isFatal = true, status maps to 400 or custom status if
     // applicable
     ClaimAmendmentValidationException ex =
         new ClaimAmendmentValidationException(List.of(fatalError));
@@ -199,5 +200,57 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
+  }
+
+  @Test
+  @DisplayName(
+      "Constructor automatically sorts errors by fatality first, then by HTTP status code descending")
+  void shouldSortErrorsByFatalityThenHttpStatusDescending() {
+    // Arrange: Create a mixed pool of fatal and non-fatal errors with various HTTP statuses
+
+    // 1. Non-fatal errors
+    ClaimAmendmentValidationError nonFatal400 = mock(ClaimAmendmentValidationError.class);
+    when(nonFatal400.isFatal()).thenReturn(false);
+    when(nonFatal400.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST); // 400
+
+    ClaimAmendmentValidationError nonFatal500 = mock(ClaimAmendmentValidationError.class);
+    when(nonFatal500.isFatal()).thenReturn(false);
+    when(nonFatal500.getHttpStatus()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR); // 500
+
+    // 2. Fatal errors
+    ClaimAmendmentValidationError fatal400 = mock(ClaimAmendmentValidationError.class);
+    when(fatal400.isFatal()).thenReturn(true);
+    when(fatal400.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST); // 400
+
+    ClaimAmendmentValidationError fatal409 = mock(ClaimAmendmentValidationError.class);
+    when(fatal409.isFatal()).thenReturn(true);
+    when(fatal409.getHttpStatus()).thenReturn(HttpStatus.CONFLICT); // 409
+
+    ClaimAmendmentValidationError fatal500 = mock(ClaimAmendmentValidationError.class);
+    when(fatal500.isFatal()).thenReturn(true);
+    when(fatal500.getHttpStatus()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR); // 500
+
+    // Supply them completely out of order to the constructor
+    List<ClaimAmendmentValidationError> unsortedErrors =
+        List.of(nonFatal400, fatal400, nonFatal500, fatal500, fatal409);
+
+    // Act
+    ClaimAmendmentValidationException exception =
+        new ClaimAmendmentValidationException(unsortedErrors);
+
+    List<ClaimAmendmentValidationError> sortedResult =
+        dataClaimsExceptionHandler.sortValidationErrorsByFatalAndStatus(exception);
+
+    assertThat(sortedResult).hasSize(5);
+
+    // Priority 1: Fatal errors take precedence, sorted highest HTTP status code first (500 -> 409
+    // -> 400)
+    assertThat(sortedResult.get(0)).isSameAs(fatal500);
+    assertThat(sortedResult.get(1)).isSameAs(fatal409);
+    assertThat(sortedResult.get(2)).isSameAs(fatal400);
+
+    // Priority 2: Non-fatal errors follow, sorted highest HTTP status code first (500 -> 400)
+    assertThat(sortedResult.get(3)).isSameAs(nonFatal500);
+    assertThat(sortedResult.get(4)).isSameAs(nonFatal400);
   }
 }
