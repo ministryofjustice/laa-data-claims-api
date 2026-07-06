@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.AMENDED_FEE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.validPayload;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import jakarta.persistence.EntityManager;
@@ -14,11 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
@@ -46,12 +46,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  */
 @DisplayName("Amendment persists nothing when any single validation step fails")
 class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
-
-  // Governed reference codes seeded by Flyway migration V41, and a valid submitting user.
-  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
-  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
-  private static final String VALID_USER_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
-  private static final String AMENDED_FEE_CODE = "AMENDED_FEE_CODE";
 
   // A distinct, non-fatal error forced onto whichever step is under test. Non-fatal so the loop
   // still runs every other (genuine) step, maximising the exercised surface.
@@ -125,14 +119,5 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
 
     return new ClaimAmendmentService(
         preparationService, new ClaimAmendmentValidationService(steps), commitService);
-  }
-
-  private ClaimAmendmentPayload validPayload() {
-    return ClaimAmendmentPayload.builder()
-        .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
-        .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
-        .amendmentUserId(JsonNullable.of(VALID_USER_UUID))
-        .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
-        .build();
   }
 }

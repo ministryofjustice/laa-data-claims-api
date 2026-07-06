@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.validPayload;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import jakarta.persistence.OptimisticLockException;
@@ -9,10 +10,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
@@ -39,12 +38,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  */
 @DisplayName("Amendment rolls back the commit on a concurrent modification")
 class AmendmentCommitRollbackIntegrationTest extends AbstractIntegrationTest {
-
-  // Governed reference codes seeded by Flyway migration V41, and a valid submitting user.
-  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
-  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
-  private static final String VALID_USER_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
-  private static final String AMENDED_FEE_CODE = "AMENDED_FEE_CODE";
 
   @Autowired private ClaimAmendmentPreparationService preparationService;
   @Autowired private ClaimAmendmentCommitService commitService;
@@ -94,14 +87,5 @@ class AmendmentCommitRollbackIntegrationTest extends AbstractIntegrationTest {
     Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(reloaded.isAmended()).isFalse();
     assertThat(reloaded.getFeeCode()).isEqualTo(originalFeeCode);
-  }
-
-  private ClaimAmendmentPayload validPayload() {
-    return ClaimAmendmentPayload.builder()
-        .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
-        .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
-        .amendmentUserId(JsonNullable.of(VALID_USER_UUID))
-        .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
-        .build();
   }
 }

@@ -1,6 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.AMENDED_FEE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.AMENDED_NET_PROFIT_COSTS;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REASON_PROVIDER_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REQUESTED_BY_PROVIDER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import jakarta.persistence.EntityManager;
@@ -26,12 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
  * computed diff and the applied claim and claim-summary-fee column writes.
  */
 class ClaimAmendmentPersistenceServiceIntegrationTest extends AbstractIntegrationTest {
-
-  // Governed reference codes seeded by Flyway migration V41.
-  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
-  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
-  private static final String AMENDED_FEE_CODE = "AMENDED_FEE_CODE";
-  private static final BigDecimal AMENDED_NET_PROFIT_COSTS = new BigDecimal("99.99");
 
   @Autowired private ClaimAmendmentPersistenceService persistenceService;
   @Autowired private EntityManager entityManager;
