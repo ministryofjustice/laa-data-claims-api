@@ -24,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
@@ -79,11 +80,11 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
             .isVatApplicable(JsonNullable.of(false))
             .build();
 
-    Optional<ClaimAmendmentState> result =
+    Optional<PreparedAmendment> result =
         amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload);
 
     assertThat(result).isPresent();
-    ClaimAmendmentState state = result.get();
+    ClaimAmendmentState state = result.get().state();
 
     // requestPayload is carried through as submitted
     assertThat(state.getRequestPayload()).isSameAs(payload);
@@ -134,7 +135,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
   void retrievesAmendmentState_whenClaimMissing_returnsEmpty() {
     seedClaimsData();
 
-    Optional<ClaimAmendmentState> result =
+    Optional<PreparedAmendment> result =
         amendmentStateService.retrieveAmendmentState(
             UUID.randomUUID(), ClaimAmendmentPayload.builder().build());
 
@@ -185,7 +186,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
         ClaimAmendmentPayload.builder().scheduleReference(JsonNullable.of((String) null)).build();
 
     ClaimAmendmentState state =
-        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload).orElseThrow();
+        amendmentStateService.retrieveAmendmentState(CLAIM_1_ID, payload).orElseThrow().state();
 
     assertThat(state.getBeforeState().getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
     assertThat(state.getPostAmendmentState().getScheduleReference()).isNull();
@@ -208,6 +209,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
         amendmentStateService
             .retrieveAmendmentState(CLAIM_1_ID, payload)
             .orElseThrow()
+            .state()
             .getPostAmendmentState();
 
     // amended identity inputs applied
@@ -228,6 +230,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
         amendmentStateService
             .retrieveAmendmentState(CLAIM_1_ID, ClaimAmendmentPayload.builder().build())
             .orElseThrow()
+            .state()
             .getBeforeState();
 
     assertThat(before.getLatestAssessment()).isNotNull();
@@ -246,6 +249,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
         amendmentStateService
             .retrieveAmendmentState(CLAIM_4_ID, ClaimAmendmentPayload.builder().build())
             .orElseThrow()
+            .state()
             .getBeforeState();
 
     assertThat(before.getClaimId()).isEqualTo(CLAIM_4_ID);
