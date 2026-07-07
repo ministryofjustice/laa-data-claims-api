@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Stream;
@@ -20,10 +22,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
+@DisplayName("DataClaimsExceptionHandler Tests")
 class DataClaimsExceptionHandlerTest {
   private static final String TEST_REQUEST_URI = "/api/v1/test";
 
@@ -37,6 +41,7 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("An unhandled RuntimeException maps to a 500 Internal Server Error Problem Detail")
   void handleGenericException_returnsProblemDetailWithInternalServerErrorStatus() {
     ResponseEntity<ProblemDetail> result =
         dataClaimsExceptionHandler.handleGenericException(
@@ -59,6 +64,7 @@ class DataClaimsExceptionHandlerTest {
 
   @ParameterizedTest(name = "{0} returns {1} status")
   @MethodSource("claimsDataExceptionTestCases")
+  @DisplayName("A ClaimsDataException maps to its carried HTTP status and error type")
   void handleClaimsDataException_returnsProblemDetailWithCorrectStatus(
       ClaimsDataException exception, HttpStatus expectedStatus, String expectedTypeFragment) {
 
@@ -104,6 +110,7 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("An ExportValidationException maps to a 400 Bad Request carrying its message")
   void handleExportValidationException_returnsBadRequestWithMessage() {
     ExportValidationException ex =
         new ExportValidationException("Filter submissionId must be a UUID");
@@ -252,5 +259,49 @@ class DataClaimsExceptionHandlerTest {
     // Priority 2: Non-fatal errors follow, sorted highest HTTP status code first (500 -> 400)
     assertThat(sortedResult.get(3)).isSameAs(nonFatal500);
     assertThat(sortedResult.get(4)).isSameAs(nonFatal400);
+  }
+
+  @Test
+  @DisplayName(
+      "Spring's ObjectOptimisticLockingFailureException maps to a 409 Conflict Problem Detail")
+  void handleOptimisticLockingFailure_returnsConflict() {
+    ObjectOptimisticLockingFailureException ex =
+        new ObjectOptimisticLockingFailureException("Claim", "some-id");
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail())
+        .isEqualTo(
+            "The record was modified concurrently; please re-read the latest version and retry.");
+    assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+  }
+
+  @Test
+  @DisplayName("The JPA OptimisticLockException also maps to a 409 Conflict (not a generic 500)")
+  void handleOptimisticLockingFailure_returnsConflict_forJpaOptimisticLockException() {
+    // Hibernate raises the JPA type when the stale version is caught during merge/flush; it must
+    // also map to 409 (not fall through to the generic 500 handler).
+    OptimisticLockException ex = new OptimisticLockException("Row was already updated");
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail())
+        .isEqualTo(
+            "The record was modified concurrently; please re-read the latest version and retry.");
+    assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
   }
 }

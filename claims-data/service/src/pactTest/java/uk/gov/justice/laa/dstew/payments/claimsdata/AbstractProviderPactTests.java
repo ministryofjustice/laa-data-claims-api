@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -17,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -62,6 +64,9 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected ClaimRepository claimRepository;
 
+  // Amendment persistence (DSTEW-1907) repository; needed by ClaimAmendmentPersistenceService.
+  @MockitoBean protected ClaimAmendmentRepository claimAmendmentRepository;
+
   @MockitoBean protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   @MockitoBean protected ClientRepository clientRepository;
@@ -87,6 +92,11 @@ public class AbstractProviderPactTests {
   // Mocked various DB beans to allow application to run properly without dependencies
   @MockitoBean protected Flyway flyway;
   @MockitoBean protected EntityManagerFactory entityManagerFactory;
+
+  // ClaimAmendmentCommitService injects a bare EntityManager; JPA auto-config is excluded here, so
+  // provide a mock to satisfy that dependency and let the context load.
+  @MockitoBean protected EntityManager entityManager;
+
   @MockitoBean protected PathMappedEndpoints pathMappedEndpoints;
   @MockitoBean protected DataSource dataSource;
 }

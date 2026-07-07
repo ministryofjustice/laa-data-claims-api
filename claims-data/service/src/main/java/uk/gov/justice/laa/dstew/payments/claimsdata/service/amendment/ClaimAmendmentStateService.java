@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -24,6 +25,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.state.Clai
  * <p>This step performs no persistence and makes no external calls. A missing claim is reported as
  * {@link Optional#empty()} so the parent orchestration can map it to {@code
  * INVALID_CLAIM_NOT_FOUND} without relying on exception flow.
+ *
+ * <p>On success it returns a {@link PreparedAmendment} carrying both the built state and the
+ * managed {@link Claim} entity read here, so the caller can thread that exact instance (with its
+ * {@code @Version}) into the commit phase rather than re-reading the row.
  *
  * <p>No transaction is declared here on purpose: this read is one step of the single atomic
  * amendment transaction (retrieve, validate, then save) owned by the parent orchestrator. It must
@@ -49,9 +54,17 @@ public class ClaimAmendmentStateService {
    *
    * @param claim the claim
    * @param payload the sparse amendment payload as submitted
-   * @return the built amendment state, or {@link Optional#empty()} if the claim does not exist
+   * @return the prepared amendment (the managed claim and the built state), or {@link
+   *     Optional#empty()} if the claim does not exist
    */
-  public ClaimAmendmentState retrieveAmendmentState(Claim claim, ClaimAmendmentPayload payload) {
+  public Optional<PreparedAmendment> retrieveAmendmentState(
+      UUID claimId, ClaimAmendmentPayload payload) {
+
+    Optional<Claim> claim = claimRepository.findById(claimId);
+    if (claim.isEmpty()) {
+      log.debug("No claim found for id {} during amendment retrieval", claimId);
+      return Optional.empty();
+    }
 
     ClaimStateSnapshot beforeState =
         snapshotMapper.toSnapshot(
@@ -63,6 +76,7 @@ public class ClaimAmendmentStateService {
                 claim.getId()),
             assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId()));
 
-    return amendmentStateBuilder.buildAmendmentState(beforeState, payload);
+    ClaimAmendmentState state = amendmentStateBuilder.buildAmendmentState(beforeState, payload);
+    return Optional.of(new PreparedAmendment(claim.get(), state));
   }
 }

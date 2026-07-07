@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Comparator;
@@ -188,6 +189,34 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus.CONFLICT,
         INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
         ex.getClass(),
+        request);
+  }
+
+  /**
+   * Handles optimistic-locking failures raised when a concurrent modification is detected while
+   * saving (e.g. the final claim-version guard during an amendment save).
+   *
+   * <p>Both the Spring {@link ObjectOptimisticLockingFailureException} and the JPA {@link
+   * OptimisticLockException} are handled: which one surfaces depends on when the conflict is
+   * detected - Hibernate raises the JPA type when the stale version is caught during {@code
+   * merge}/flush, while Spring's {@code JpaTransactionManager} translates a conflict detected at
+   * transaction commit into its own type. Either way the caller sees the same response.
+   *
+   * <p>Returns HTTP {@code 409 Conflict} as an RFC 9457 Problem Detail so the caller can re-read
+   * the current claim and resubmit against the latest version.
+   *
+   * @param exception the optimistic-locking failure raised by the persistence layer
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
+   */
+  @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+  public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(
+      Exception exception, HttpServletRequest request) {
+    log.warn("Optimistic locking failure (concurrent modification): {}", exception.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.CONFLICT,
+        "The record was modified concurrently; please re-read the latest version and retry.",
+        exception.getClass(),
         request);
   }
 

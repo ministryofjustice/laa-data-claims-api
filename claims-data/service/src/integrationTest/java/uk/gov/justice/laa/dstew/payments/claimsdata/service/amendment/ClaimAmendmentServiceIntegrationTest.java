@@ -1,339 +1,111 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
-import java.time.Instant;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
- * Assembled-chain integration tests for {@link ClaimAmendmentService}.
+ * End-to-end integration test for {@link ClaimAmendmentService}: drives the real orchestration
+ * (retrieve {@literal ->} validate {@literal ->} persist) against a real PostgreSQL
+ * (Testcontainers) and the Flyway-seeded reference data (V41), proving the atomic-save behaviour of
+ * DSTEW-1771 for the currently-available flow (non-pricing amendment, no PDA/FSP).
  *
- * <p>These complement the mock-based {@code ClaimAmendmentServiceTest} (orchestration mechanics)
- * and the per-step unit tests (exhaustive rule coverage) by exercising the <b>real</b> wiring end
- * to end: the real {@code STEP_ORDER}, the real validation step beans, and the real {@code
- * AmendmentReferenceDataProvider} reading the governed reference data from a real PostgreSQL
- * (Testcontainers). The reference-data reads run against the Flyway seed (V41).
- *
- * <p>Scope is deliberately <b>representative</b>, not exhaustive: it proves the chain is assembled
- * correctly (ordering, fatal short-circuit, multi-error collection) and that the steps interact
- * with real reference data and the DB-backed active flags - it does not re-test every validation
- * code, which stays at the unit level.
- *
- * <p>The class is {@link Transactional} so temporary reference rows (and the deletion used to
- * simulate an unavailable reference dataset) are rolled back after each test, leaving the seeded
- * data untouched. The provider's read shares the test transaction, so it sees the uncommitted
- * changes.
+ * <p>The class is transactional so all writes roll back after each test, leaving the seed
+ * untouched.
  */
-@DisplayName("ClaimAmendmentService assembled-chain integration test")
-@Transactional
 class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
 
-  private static final String VALID_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
+  // Governed reference codes seeded by Flyway migration V41.
+  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
+  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
+  private static final String VALID_USER_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
+  private static final String AMENDED_FEE_CODE = "AMENDED_FEE_CODE";
 
-  // Seeded (V41) codes used by the happy-path and lookup scenarios.
-  private static final String SEEDED_PARTY = "PROVIDER";
-  private static final String SEEDED_REASON = "PROVIDER_ERROR";
-  // INCORRECT_MEANS_ASSESSMENT is seeded only for CONTRACT_MANAGEMENT / ASSURANCE, never PROVIDER.
-  private static final String SEEDED_REASON_OTHER_PARTY = "INCORRECT_MEANS_ASSESSMENT";
+  @Autowired private ClaimAmendmentService amendmentService;
+  @Autowired private EntityManager entityManager;
 
-  @Autowired private ClaimAmendmentService claimAmendmentService;
-  @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
-  @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
-  @Autowired private ClaimsApiProperties claimsApiProperties;
-
-  private String originalAmendmentsEnabled;
-
-  /**
-   * Enables the amendments feature before each test so the validation chain runs past the
-   * feature-flag gate (which is off by default). The original value is captured and restored
-   * afterwards to avoid leaking state into other tests that share the Spring context.
-   */
   @BeforeEach
-  void enableAmendmentsFeature() {
-    originalAmendmentsEnabled = claimsApiProperties.getAmendments().getEnabled();
-    claimsApiProperties.getAmendments().setEnabled("true");
+  void setUp() {
+    seedClaimsData();
+    claimAmendmentRepository.deleteAll();
   }
 
-  @AfterEach
-  void restoreAmendmentsFeature() {
-    claimsApiProperties.getAmendments().setEnabled(originalAmendmentsEnabled);
+  @Test
+  @Transactional
+  @DisplayName("valid non-pricing amendment is retrieved, validated and persisted atomically")
+  void submitsValidAmendmentAtomically() {
+    // Ensure the claim is in an amendable state for the status gate.
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(ClaimStatus.VALID);
+
+    ClaimAmendmentPayload payload =
+        ClaimAmendmentPayload.builder()
+            .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
+            .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
+            .amendmentUserId(JsonNullable.of(VALID_USER_UUID))
+            .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
+            .build();
+
+    ClaimAmendmentResult result = amendmentService.submitAmendment(CLAIM_1_ID, payload);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.errors()).isEmpty();
+
+    // Flush the amendment insert and the dirty (mutated) managed claim, then re-read.
+    entityManager.flush();
+    entityManager.clear();
+
+    ClaimAmendment reloaded =
+        claimAmendmentRepository.findById(result.amendment().getId()).orElseThrow();
+    assertThat(reloaded.getRequestedByCode()).isEqualTo(REQUESTED_BY_PROVIDER);
+    assertThat(reloaded.getAmendmentReasonCode()).isEqualTo(REASON_PROVIDER_ERROR);
+    assertThat(reloaded.getDiff()).contains("schema_version").contains("claim.feeCode");
+
+    Claim reloadedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(reloadedClaim.getFeeCode()).isEqualTo(AMENDED_FEE_CODE);
+    assertThat(reloadedClaim.isAmended()).isTrue();
   }
 
-  @Nested
-  @DisplayName("feature-flag gate")
-  class FeatureFlag {
+  @Test
+  @Transactional
+  @DisplayName("invalid amendment is rejected with errors and nothing is persisted")
+  void rejectsInvalidAmendmentAndPersistsNothing() {
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(ClaimStatus.VALID);
 
-    @Test
-    @DisplayName(
-        "when disabled, a fully valid amendment is rejected with only the fatal gate error")
-    void disabledShortCircuitsBeforeOtherSteps() {
-      claimsApiProperties.getAmendments().setEnabled("false");
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
+    long amendmentsBefore = claimAmendmentRepository.count();
 
-      assertThat(claimAmendmentService.orchestrate(state))
-          .singleElement()
-          .satisfies(
-              error -> {
-                assertThat(error.getCode())
-                    .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED);
-                assertThat(error.isFatal()).isTrue();
-              });
-    }
+    // Missing Requested By and Amendment Reason, and a malformed user id: all non-fatal errors.
+    ClaimAmendmentPayload payload =
+        ClaimAmendmentPayload.builder()
+            .amendmentUserId(JsonNullable.of("not-a-uuid"))
+            .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
+            .build();
 
-    @Test
-    @DisplayName("when enabled, a fully valid amendment passes the gate and the chain runs")
-    void enabledAllowsProcessing() {
-      claimsApiProperties.getAmendments().setEnabled("true");
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
+    ClaimAmendmentResult result = amendmentService.submitAmendment(CLAIM_1_ID, payload);
 
-      assertThat(claimAmendmentService.orchestrate(state)).isEmpty();
-    }
-  }
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).isNotEmpty();
 
-  @Nested
-  @DisplayName("happy path")
-  class HappyPath {
+    entityManager.flush();
+    entityManager.clear();
 
-    @Test
-    @DisplayName("valid status, requested-by, reason and user id produce no errors")
-    void allValidProducesNoErrors() {
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
-
-      assertThat(claimAmendmentService.orchestrate(state)).isEmpty();
-    }
-  }
-
-  @Nested
-  @DisplayName("fatal short-circuit")
-  class FatalShortCircuit {
-
-    @Test
-    @DisplayName("a voided claim returns only the fatal status error; later steps do not run")
-    void voidClaimReturnsOnlyFatalAndSkipsLaterSteps() {
-      // Requested-by, reason and user id are all invalid too, but the fatal status error must
-      // short-circuit the flow before the reference and user-id steps run.
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", "not-a-uuid");
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-    }
-  }
-
-  @Nested
-  @DisplayName("reference-data lookups against the seeded data")
-  class ReferenceLookups {
-
-    @Test
-    @DisplayName("an unknown requested-by code is rejected as unknown")
-    void unknownRequestedBy() {
-      ClaimAmendmentState state = stateOf(ClaimStatus.VALID, "MADE_UP", SEEDED_REASON, VALID_UUID);
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .contains(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
-    }
-
-    @Test
-    @DisplayName("a reason valid for another party is rejected for the submitted party")
-    void reasonNotValidForRequestedBy() {
-      // INCORRECT_MEANS_ASSESSMENT exists, but not under PROVIDER.
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON_OTHER_PARTY, VALID_UUID);
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY);
-    }
-
-    @Test
-    @DisplayName("an inactive requested-by value (read from the DB active flag) is rejected")
-    void inactiveRequestedBy() {
-      String inactiveParty = "ZZ_TEST_INACTIVE_PARTY";
-      String partyReason = "ZZ_TEST_INACTIVE_PARTY_REASON";
-      requestedByReferenceRepository.save(
-          requestedByRow(inactiveParty, "Temp Inactive Party", false));
-      amendmentReasonReferenceRepository.save(
-          reasonRow(inactiveParty, partyReason, "Temp reason", true));
-
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, inactiveParty, partyReason, VALID_UUID);
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE);
-    }
-  }
-
-  @Nested
-  @DisplayName("user-id step")
-  class UserIdStep {
-
-    @Test
-    @DisplayName("a structurally invalid user id is rejected while the metadata is valid")
-    void invalidUserId() {
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, "not-a-uuid");
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
-    }
-  }
-
-  @Nested
-  @DisplayName("multi-error collection across steps")
-  class MultiError {
-
-    @Test
-    @DisplayName("missing metadata and a bad user id are all collected when no error is fatal")
-    void collectsErrorsFromMultipleSteps() {
-      ClaimAmendmentState state = stateOf(ClaimStatus.VALID, null, null, "bad");
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactlyInAnyOrder(
-              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
-              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING,
-              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
-    }
-  }
-
-  @Nested
-  @DisplayName("controlled technical failure")
-  class TechnicalFailure {
-
-    @Test
-    @DisplayName("an unavailable (empty) reference dataset yields a single fatal technical error")
-    void emptyReferenceDataReturnsFatalTechnicalError() {
-      // Reasons reference the parties (FK ON DELETE RESTRICT), so clear reasons first. Rolled back.
-      amendmentReasonReferenceRepository.deleteAllInBatch();
-      requestedByReferenceRepository.deleteAllInBatch();
-
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID);
-
-      List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
-
-      assertThat(errors)
-          .singleElement()
-          .satisfies(
-              error -> {
-                assertThat(error.getCode())
-                    .isEqualTo(
-                        ClaimAmendmentValidationCode
-                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
-                assertThat(error.isFatal()).isTrue();
-              });
-    }
-  }
-
-  @Nested
-  @DisplayName("version validation step")
-  class VersionValidation {
-
-    @Test
-    @DisplayName("a null submitted version bypasses the version check for internal updates")
-    void nullSubmittedVersionBypassesCheck() {
-      // Use the overloaded method to pass 'null' as the submitted version
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, null);
-
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
-    }
-
-    @Test
-    @DisplayName("a mismatched submitted version returns a version conflict error")
-    void mismatchedSubmittedVersionReturnsError() {
-      // The DB version is hardcoded to 1L in the fixture, so passing 99L forces a mismatch
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, VALID_UUID, 99L);
-
-      // It should specifically return the optimistic locking conflict code
-      assertThat(claimAmendmentService.orchestrate(state))
-          .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Fixtures
-  // ---------------------------------------------------------------------------
-
-  private ClaimAmendmentState stateOf(
-      ClaimStatus status, String requestedBy, String reason, String userId) {
-    return stateOf(status, requestedBy, reason, userId, 1L); // Default submitted version to 1L
-  }
-
-  private ClaimAmendmentState stateOf(
-      ClaimStatus status, String requestedBy, String reason, String userId, Long submittedVersion) {
-    return ClaimAmendmentState.builder()
-        .beforeState(
-            ClaimStateSnapshot.builder()
-                .claimId(Uuid7.timeBasedUuid())
-                .status(status)
-                .version(1L) // Hardcode DB version to 1L for all tests
-                .build())
-        .requestPayload(
-            ClaimAmendmentPayload.builder()
-                .amendmentRequestedBy(JsonNullable.of(requestedBy))
-                .amendmentReasonCode(JsonNullable.of(reason))
-                .amendmentUserId(JsonNullable.of(userId))
-                .version(JsonNullable.of(submittedVersion))
-                .build())
-        .build();
-  }
-
-  private RequestedByReferenceEntity requestedByRow(String code, String label, boolean active) {
-    return RequestedByReferenceEntity.builder()
-        .id(Uuid7.timeBasedUuid())
-        .code(code)
-        .displayLabel(label)
-        .isActive(active)
-        .displayOrder(999)
-        .createdByUserId("integration-test")
-        .createdOn(Instant.now())
-        .build();
-  }
-
-  private AmendmentReasonReferenceEntity reasonRow(
-      String requestedByCode, String code, String label, boolean active) {
-    return AmendmentReasonReferenceEntity.builder()
-        .id(Uuid7.timeBasedUuid())
-        .requestedByCode(requestedByCode)
-        .code(code)
-        .displayLabel(label)
-        .isActive(active)
-        .displayOrder(10)
-        .createdByUserId("integration-test")
-        .createdOn(Instant.now())
-        .build();
+    assertThat(claimAmendmentRepository.count()).isEqualTo(amendmentsBefore);
+    Claim reloadedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(reloadedClaim.isAmended()).isFalse();
+    assertThat(reloadedClaim.getFeeCode()).isNotEqualTo(AMENDED_FEE_CODE);
   }
 }

@@ -37,6 +37,20 @@ public class ClaimAmendmentState {
 
   private ClaimStateSnapshot postAmendmentState;
 
+  /**
+   * The calculated fee detail as it stood before the amendment (the "before" side of the FSP diff
+   * section). Populated from the stored calculated fee state; if {@code null} the FSP diff section
+   * yields no changes.
+   */
+  private CalculatedFeeDetailSnapshot beforeFee;
+
+  /**
+   * The freshly calculated fee detail returned by the Fee Scheme Platform for the amended claim
+   * (the "after" side of the FSP diff section). Populated by the FSP handoff (DSTEW-1762); if
+   * {@code null} the FSP diff section yields no changes.
+   */
+  private CalculatedFeeDetailSnapshot afterFee;
+
   /** The validation errors collected so far as the amendment validation steps run. */
   @Builder.Default private final List<ClaimAmendmentValidationError> errors = new ArrayList<>();
 

@@ -19,6 +19,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -43,6 +44,25 @@ class ClaimAmendmentStateServiceTest {
   @Mock private ClaimAmendmentStateBuilder amendmentStateBuilder;
 
   @InjectMocks private ClaimAmendmentStateService service;
+
+  @Test
+  @DisplayName("returns empty when the claim does not exist and does no further work")
+  void returnsEmptyWhenClaimNotFound() {
+    when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.empty());
+
+    Optional<PreparedAmendment> result =
+        service.retrieveAmendmentState(CLAIM_ID, ClaimAmendmentPayload.builder().build());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(
+        clientRepository,
+        claimCaseRepository,
+        claimSummaryFeeRepository,
+        calculatedFeeDetailRepository,
+        assessmentRepository,
+        snapshotMapper);
+    verify(amendmentStateBuilder, never()).buildAmendmentState(any(), any());
+  }
 
   @Test
   @DisplayName("builds amendment state from the loaded aggregate when the claim exists")
@@ -72,9 +92,11 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
     when(amendmentStateBuilder.buildAmendmentState(beforeState, payload)).thenReturn(expected);
 
-    ClaimAmendmentState result = service.retrieveAmendmentState(claim, payload);
+    Optional<PreparedAmendment> result = service.retrieveAmendmentState(CLAIM_ID, payload);
 
-    assertThat(result).isEqualTo(expected);
+    assertThat(result).isPresent();
+    assertThat(result.get().state()).isSameAs(expected);
+    assertThat(result.get().claim()).isSameAs(claim);
     verify(snapshotMapper)
         .toSnapshot(
             any(Claim.class),
