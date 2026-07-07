@@ -26,6 +26,20 @@ public class BddScenarioContext {
   private String lastOffice;
   private String lastSubmissionPeriod;
 
+  // ---------------------------------------------------------------------------
+  // Paired-submission state (used by scenarios that upload two related files:
+  // "first"/"second" naming mirrors the disbursement duplicate-check feature).
+  // ---------------------------------------------------------------------------
+  private Path firstGeneratedFilePath;
+  private Path secondGeneratedFilePath;
+  private String firstOffice;
+  private String secondOffice;
+  private String firstSubmissionPeriod;
+  private String secondSubmissionPeriod;
+  private UUID firstBulkSubmissionId;
+  private UUID secondBulkSubmissionId;
+  private final List<UUID> firstSubmissionClaimIds = new ArrayList<>();
+
   public int getLastStatusCode() {
     return lastStatusCode;
   }
@@ -98,5 +112,86 @@ public class BddScenarioContext {
     generatedFileName = null;
     lastOffice = null;
     lastSubmissionPeriod = null;
+    firstGeneratedFilePath = null;
+    secondGeneratedFilePath = null;
+    firstOffice = null;
+    secondOffice = null;
+    firstSubmissionPeriod = null;
+    secondSubmissionPeriod = null;
+    firstBulkSubmissionId = null;
+    secondBulkSubmissionId = null;
+    firstSubmissionClaimIds.clear();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Paired-submission accessors
+  // ---------------------------------------------------------------------------
+
+  public Path getFirstGeneratedFilePath() {
+    return firstGeneratedFilePath;
+  }
+
+  public void setFirstGeneratedFilePath(Path firstGeneratedFilePath) {
+    this.firstGeneratedFilePath = firstGeneratedFilePath;
+  }
+
+  public Path getSecondGeneratedFilePath() {
+    return secondGeneratedFilePath;
+  }
+
+  public void setSecondGeneratedFilePath(Path secondGeneratedFilePath) {
+    this.secondGeneratedFilePath = secondGeneratedFilePath;
+  }
+
+  public String getFirstOffice() {
+    return firstOffice;
+  }
+
+  public void setFirstOffice(String firstOffice) {
+    this.firstOffice = firstOffice;
+  }
+
+  public String getSecondOffice() {
+    return secondOffice;
+  }
+
+  public void setSecondOffice(String secondOffice) {
+    this.secondOffice = secondOffice;
+  }
+
+  public String getFirstSubmissionPeriod() {
+    return firstSubmissionPeriod;
+  }
+
+  public void setFirstSubmissionPeriod(String firstSubmissionPeriod) {
+    this.firstSubmissionPeriod = firstSubmissionPeriod;
+  }
+
+  public String getSecondSubmissionPeriod() {
+    return secondSubmissionPeriod;
+  }
+
+  public void setSecondSubmissionPeriod(String secondSubmissionPeriod) {
+    this.secondSubmissionPeriod = secondSubmissionPeriod;
+  }
+
+  public UUID getFirstBulkSubmissionId() {
+    return firstBulkSubmissionId;
+  }
+
+  public void setFirstBulkSubmissionId(UUID firstBulkSubmissionId) {
+    this.firstBulkSubmissionId = firstBulkSubmissionId;
+  }
+
+  public UUID getSecondBulkSubmissionId() {
+    return secondBulkSubmissionId;
+  }
+
+  public void setSecondBulkSubmissionId(UUID secondBulkSubmissionId) {
+    this.secondBulkSubmissionId = secondBulkSubmissionId;
+  }
+
+  public List<UUID> getFirstSubmissionClaimIds() {
+    return firstSubmissionClaimIds;
   }
 }

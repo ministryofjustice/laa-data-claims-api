@@ -27,10 +27,18 @@ public class BulkSubmissionLifecycleSupport {
 
   /** Sets the given bulk-submission's status to {@link BulkSubmissionStatus#VALIDATION_FAILED}. */
   public void markBulkSubmissionAsInvalid(UUID bulkSubmissionId) {
+    patchBulkSubmissionStatus(bulkSubmissionId, BulkSubmissionStatus.VALIDATION_FAILED);
+  }
+
+  /**
+   * Forces the given bulk-submission to the requested terminal status. Used by BDD scenarios
+   * running in local mode (no real event-service) to simulate a duplicate-check outcome.
+   */
+  public void patchBulkSubmissionStatus(UUID bulkSubmissionId, BulkSubmissionStatus status) {
     BulkSubmissionPatch patch = new BulkSubmissionPatch();
     patch.setBulkSubmissionId(bulkSubmissionId);
-    patch.setStatus(BulkSubmissionStatus.VALIDATION_FAILED);
-    patch.setUpdatedByUserId("bdd-invalid-mark");
+    patch.setStatus(status);
+    patch.setUpdatedByUserId("bdd-mock-event-service");
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);

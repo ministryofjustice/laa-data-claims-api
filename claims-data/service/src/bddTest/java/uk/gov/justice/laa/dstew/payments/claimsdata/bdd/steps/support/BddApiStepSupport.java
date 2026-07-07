@@ -8,7 +8,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
@@ -282,6 +285,120 @@ public class BddApiStepSupport {
     } catch (InterruptedException ie) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  /**
+   * Voids a single claim via {@code POST /api/v1/claims/{claimId}/void}. Used by the disbursement
+   * duplicate-check scenarios that re-submit a claim after voiding.
+   *
+   * @param userId a UUID identifying the caller; the endpoint's {@code created_by_user_id} field
+   *     is typed as {@link UUID} in the OpenAPI schema, so a UUID string must be supplied.
+   */
+  public int voidClaim(UUID claimId, UUID userId, String reason) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    String body =
+        "{\"created_by_user_id\":\"" + userId + "\",\"assessment_reason\":\"" + reason + "\"}";
+
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + VOID_CLAIM_PATH,
+              HttpMethod.POST,
+              new HttpEntity<>(body, headers),
+              String.class,
+              claimId);
+      return response.getStatusCode().value();
+    } catch (HttpStatusCodeException ex) {
+      // Preserve the response body in the context so the step can log/assert against it.
+      context.setLastResponseBody(ex.getResponseBodyAsString());
+      return ex.getStatusCode().value();
+    }
+  }
+
+  /**
+   * Creates a Submission entity via {@code POST /api/v1/submissions} so that follow-up steps
+   * (e.g. claim creation, claim voiding) have a real DB row to act on. Normally the event-service
+   * materialises submissions during file parsing; in local BDD mode we do it explicitly.
+   */
+  public void createSubmission(
+      UUID submissionId, UUID bulkSubmissionId, String office, String submissionPeriod)
+      throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    String body =
+        "{"
+            + "\"submission_id\":\"" + submissionId + "\","
+            + "\"bulk_submission_id\":\"" + bulkSubmissionId + "\","
+            + "\"office_account_number\":\"" + office + "\","
+            + "\"submission_period\":\"" + submissionPeriod + "\","
+            + "\"area_of_law\":\"LEGAL HELP\","
+            + "\"provider_user_id\":\"test-user\","
+            + "\"status\":\"READY_FOR_VALIDATION\","
+            + "\"created_by_user_id\":\"test-user\","
+            + "\"is_nil_submission\":true,"
+            + "\"number_of_claims\":0,"
+            + "\"legal_help_submission_reference\":\"BDDLHREF001\""
+            + "}";
+
+    restTemplate.exchange(
+        serverInfo.baseUrl() + CREATE_SUBMISSION_PATH,
+        HttpMethod.POST,
+        new HttpEntity<>(body, headers),
+        String.class);
+  }
+
+  /**
+   * Creates a minimal Legal Help claim against the given submission via {@code POST
+   * /api/v1/submissions/{id}/claims} and returns the new claim's UUID.
+   *
+   * <p>Used by BDD scenarios running in local mode (no event-service) to materialise a claim ID so
+   * downstream steps like voiding can exercise real API endpoints.
+   */
+  public UUID createClaim(UUID submissionId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    // Build a coherent ClaimPost using the generated model to guarantee JSON shape matches the
+    // OpenAPI schema. Values mirror the Legal Help disbursement claim style used by the file
+    // generator, plus every field the ClaimsDataTestUtil.getClaimPost fixture sets, so any
+    // bean-validation constraints downstream are satisfied.
+    // Payload mirrors the working shape used by ClaimControllerTest.createClaim (unit-test) —
+    // guarantees every field the OpenAPI bean-validation / @ScanForSql checks accepts.
+    String body =
+        "{"
+            + "\"status\":\"VALID\","
+            + "\"schedule_reference\":\"SCH-BDD\","
+            + "\"line_number\":1,"
+            + "\"case_reference_number\":\"CRN-BDD\","
+            + "\"unique_file_number\":\"UFN-BDD\","
+            + "\"case_start_date\":\"01/07/2025\","
+            + "\"case_concluded_date\":\"31/07/2025\","
+            + "\"matter_type_code\":\"MAT01\","
+            + "\"outcome_code\":\"OUT01\","
+            + "\"created_by_user_id\":\"test-user\""
+            + "}";
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + CREATE_CLAIM_PATH,
+            HttpMethod.POST,
+            new HttpEntity<>(body, headers),
+            String.class,
+            submissionId);
+
+    JsonNode json = objectMapper.readTree(response.getBody());
+    JsonNode idNode = json.path("id");
+    if (idNode.isMissingNode() || idNode.isNull()) {
+      throw new IllegalStateException(
+          "POST /submissions/" + submissionId + "/claims did not return an id: " + response.getBody());
+    }
+    return UUID.fromString(idNode.asText());
   }
 
   private void hydrateIdsFromResponse(String responseBody) throws IOException {
