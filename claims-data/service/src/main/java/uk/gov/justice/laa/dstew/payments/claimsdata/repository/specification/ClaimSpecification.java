@@ -50,10 +50,10 @@ public final class ClaimSpecification {
   public static final String UNIQUE_CASE_ID = "uniqueCaseId";
   public static final String CLIENT_ENTITY = "client";
   public static final String CLAIM_CASE_ENTITY = "claimCase";
-  public static final String CALCULATED_FEE_DETAIL_ENTITY = "calculatedFeeDetail";
   public static final String SUBMISSION_ENTITY = "submission";
   public static final String UNIQUE_CLIENT_NUMBER = "uniqueClientNumber";
   public static final String CLAIM_ENTITY = "claim";
+  public static final String CREATED_ON = "createdOn";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
@@ -184,16 +184,35 @@ public final class ClaimSpecification {
       }
 
       if (Optional.ofNullable(request.getEscapedCaseFlag()).isPresent()) {
-        Join<Claim, CalculatedFeeDetail> calculatedFeeDetailJoin =
-            root.join(CALCULATED_FEE_DETAIL_ENTITY);
-        predicates.add(
-            cb.and(
-                cb.equal(
-                    calculatedFeeDetailJoin.get(ESCAPE_CASE_FLAG), request.getEscapedCaseFlag())));
-      }
+        Subquery<UUID> latestFeeSubquery = query.subquery(UUID.class);
+        Root<CalculatedFeeDetail> feeRoot = latestFeeSubquery.from(CalculatedFeeDetail.class);
 
-      if (Optional.ofNullable(request.getAreaOfLaw()).isPresent()) {
-        predicates.add(cb.and(cb.equal(submissionJoin.get("areaOfLaw"), request.getAreaOfLaw())));
+        // Correlation: Look for a "newer" record than the current one we are inspecting
+        Subquery<Integer> newerRecordSubquery = query.subquery(Integer.class);
+        Root<CalculatedFeeDetail> newerFeeRoot =
+            newerRecordSubquery.from(CalculatedFeeDetail.class);
+
+        newerRecordSubquery
+            .select(cb.literal(1))
+            .where(
+                cb.equal(newerFeeRoot.get(CLAIM_ENTITY), feeRoot.get(CLAIM_ENTITY)), // Same claim
+                cb.or(
+                    // Strategy: Either createdOn is strictly newer...
+                    cb.greaterThan(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                    // ...or createdOn matches exactly, but the UUIDv7 string/value breaks the tie
+                    cb.and(
+                        cb.equal(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                        cb.greaterThan(newerFeeRoot.get(ID), feeRoot.get(ID)))));
+
+        // Now assemble the main filter matching your original query block
+        latestFeeSubquery
+            .select(feeRoot.get(ID))
+            .where(
+                cb.equal(feeRoot.get(CLAIM_ENTITY), root), // Tied to parent claim
+                cb.not(cb.exists(newerRecordSubquery)), // Guarantees feeRoot IS the latest record
+                cb.equal(feeRoot.get(ESCAPE_CASE_FLAG), request.getEscapedCaseFlag()));
+
+        predicates.add(cb.exists(latestFeeSubquery));
       }
 
       // Filter on Claim fields
