@@ -170,19 +170,20 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Handles database-level optimistic locking failures during entity persistence.
+   * Handles raw JPA-level optimistic locking failures during entity persistence.
    *
-   * <p>This exception is thrown by Spring Data JPA when a concurrent modification is detected. This
-   * handler intercepts this failure and returns an HTTP {@code 409 Conflict} status wrapped in an
-   * RFC 9457 Problem Detail.
+   * <p>This exception is typically thrown directly by the underlying ORM (e.g., Hibernate) when a
+   * concurrent modification is detected, often during a manual flush operation before Spring's
+   * transaction manager has the opportunity to translate the exception. This handler intercepts the
+   * failure and returns an HTTP {@code 409 Conflict} status wrapped in an RFC 9457 Problem Detail.
    *
-   * @param ex the optimistic locking exception thrown by the persistence layer
+   * @param ex the raw JPA optimistic lock exception thrown by the persistence layer
    * @param request the HTTP request
    * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
    */
-  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockingException(
-      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+  @ExceptionHandler(OptimisticLockException.class)
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockException(
+      OptimisticLockException ex, HttpServletRequest request) {
 
     log.warn("Database level optimistic locking failure occurred: {}", ex.getMessage());
     return buildProblemDetailResponse(
@@ -193,30 +194,26 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Handles optimistic-locking failures raised when a concurrent modification is detected while
-   * saving (e.g. the final claim-version guard during an amendment save).
+   * Handles Spring-translated optimistic locking failures during entity persistence.
    *
-   * <p>Both the Spring {@link ObjectOptimisticLockingFailureException} and the JPA {@link
-   * OptimisticLockException} are handled: which one surfaces depends on when the conflict is
-   * detected - Hibernate raises the JPA type when the stale version is caught during {@code
-   * merge}/flush, while Spring's {@code JpaTransactionManager} translates a conflict detected at
-   * transaction commit into its own type. Either way the caller sees the same response.
+   * <p>This exception is thrown by Spring's data access layer when it intercepts and translates a
+   * concurrent modification exception from the underlying persistence provider (e.g., typically at
+   * the transaction commit boundary). This handler intercepts the failure and returns an HTTP
+   * {@code 409 Conflict} status wrapped in an RFC 9457 Problem Detail.
    *
-   * <p>Returns HTTP {@code 409 Conflict} as an RFC 9457 Problem Detail so the caller can re-read
-   * the current claim and resubmit against the latest version.
-   *
-   * @param exception the optimistic-locking failure raised by the persistence layer
+   * @param ex the Spring-translated optimistic locking exception
    * @param request the HTTP request
    * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
    */
-  @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
-  public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(
-      Exception exception, HttpServletRequest request) {
-    log.warn("Optimistic locking failure (concurrent modification): {}", exception.getMessage());
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockException(
+      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+
+    log.warn("Database level object optimistic locking failure occurred: {}", ex.getMessage());
     return buildProblemDetailResponse(
         HttpStatus.CONFLICT,
-        "The record was modified concurrently; please re-read the latest version and retry.",
-        exception.getClass(),
+        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+        ex.getClass(),
         request);
   }
 

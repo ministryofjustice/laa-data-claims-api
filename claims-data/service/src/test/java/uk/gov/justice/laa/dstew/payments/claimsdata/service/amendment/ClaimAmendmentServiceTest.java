@@ -19,14 +19,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
@@ -56,12 +48,12 @@ class ClaimAmendmentServiceTest {
   @DisplayName("prepares, validates and commits, returning the saved amendment on success")
   void commitsWhenValidationPasses() {
     ClaimAmendment amendment = ClaimAmendment.builder().id(Uuid7.timeBasedUuid()).build();
-    when(preparationService.prepare(CLAIM_ID, payload))
+    when(preparationService.prepare(claim, payload))
         .thenReturn(new PreparedAmendment(claim, state));
     when(validationService.validateAmendmentRequest(state)).thenReturn(List.of());
     when(commitService.commit(claim, state)).thenReturn(amendment);
 
-    ClaimAmendmentResult result = service.submitAmendment(CLAIM_ID, payload);
+    ClaimAmendmentResult result = service.submitAmendment(claim, payload);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.amendment()).isSameAs(amendment);
@@ -74,11 +66,11 @@ class ClaimAmendmentServiceTest {
     ClaimAmendmentValidationError error =
         ClaimAmendmentValidationError.of(
             ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
-    when(preparationService.prepare(CLAIM_ID, payload))
+    when(preparationService.prepare(claim, payload))
         .thenReturn(new PreparedAmendment(claim, state));
     when(validationService.validateAmendmentRequest(state)).thenReturn(List.of(error));
 
-    ClaimAmendmentResult result = service.submitAmendment(CLAIM_ID, payload);
+    ClaimAmendmentResult result = service.submitAmendment(claim, payload);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly(error);
@@ -88,10 +80,10 @@ class ClaimAmendmentServiceTest {
   @Test
   @DisplayName("propagates ClaimNotFoundException from prepare without validating or committing")
   void throwsWhenClaimNotFound() {
-    when(preparationService.prepare(CLAIM_ID, payload))
+    when(preparationService.prepare(claim, payload))
         .thenThrow(new ClaimNotFoundException("No claim found with id " + CLAIM_ID));
 
-    assertThatThrownBy(() -> service.submitAmendment(CLAIM_ID, payload))
+    assertThatThrownBy(() -> service.submitAmendment(claim, payload))
         .isInstanceOf(ClaimNotFoundException.class);
 
     verifyNoInteractions(validationService, commitService);

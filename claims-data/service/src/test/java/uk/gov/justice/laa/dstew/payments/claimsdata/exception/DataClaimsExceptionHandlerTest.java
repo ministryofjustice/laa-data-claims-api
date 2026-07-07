@@ -186,13 +186,12 @@ class DataClaimsExceptionHandlerTest {
   @Test
   void handleDatabaseOptimisticLockingException_returnsConflictStatusWithPredefinedMessage() {
     // Arrange
-    org.springframework.orm.ObjectOptimisticLockingFailureException ex =
-        new org.springframework.orm.ObjectOptimisticLockingFailureException(
-            "Row was updated or deleted by another transaction", null);
+    OptimisticLockException ex =
+        new OptimisticLockException("Row was updated or deleted by another transaction", null);
 
     // Act
     ResponseEntity<ProblemDetail> result =
-        dataClaimsExceptionHandler.handleDatabaseOptimisticLockingException(ex, mockRequest);
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
 
     // Assert
     String expectedMessage =
@@ -204,7 +203,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(expectedMessage);
-    assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
+    assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
   }
@@ -266,20 +265,18 @@ class DataClaimsExceptionHandlerTest {
       "Spring's ObjectOptimisticLockingFailureException maps to a 409 Conflict Problem Detail")
   void handleOptimisticLockingFailure_returnsConflict() {
     ObjectOptimisticLockingFailureException ex =
-        new ObjectOptimisticLockingFailureException("Claim", "some-id");
+        new ObjectOptimisticLockingFailureException("Claim", new Exception());
 
     ResponseEntity<ProblemDetail> result =
-        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail())
-        .isEqualTo(
-            "The record was modified concurrently; please re-read the latest version and retry.");
-    assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
+    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
+    assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
   }
 
@@ -291,16 +288,14 @@ class DataClaimsExceptionHandlerTest {
     OptimisticLockException ex = new OptimisticLockException("Row was already updated");
 
     ResponseEntity<ProblemDetail> result =
-        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail())
-        .isEqualTo(
-            "The record was modified concurrently; please re-read the latest version and retry.");
+    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
   }

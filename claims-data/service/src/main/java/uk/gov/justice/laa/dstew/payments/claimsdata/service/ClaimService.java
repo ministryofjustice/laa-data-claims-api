@@ -22,9 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -33,7 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -310,14 +306,37 @@ public class ClaimService
   }
 
   private void amendClaim(Claim claim, ClaimPatch claimPatch) {
-    ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
+    // 1. FAST FAIL: Optimistic Locking Guard
+    // Prevent heavy orchestration and external API calls if the client's version is already stale.
+    // A null version bypasses the check for internal system events.
+    if (claimPatch.getVersion() != null && !claimPatch.getVersion().equals(claim.getVersion())) {
+      throw new jakarta.persistence.OptimisticLockException("The record was modified concurrently");
+    }
 
-    ClaimAmendmentState state = claimAmendmentStateService.retrieveAmendmentState(claim, payload);
+    // 2. Retain logic for saving incoming validation messages
+    if (claimPatch.getValidationMessages() != null
+        && !claimPatch.getValidationMessages().isEmpty()) {
+      claimPatch
+          .getValidationMessages()
+          .forEach(
+              message -> {
+                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(log);
+              });
+    }
 
-    List<ClaimAmendmentValidationError> errors = claimAmendmentService.orchestrate(state);
+    // 3. Map the patch to the payload
+    uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload payload =
+        claimMapper.toAmendmentPayload(claimPatch);
 
-    if (!errors.isEmpty()) {
-      throw new ClaimAmendmentValidationException(errors);
+    // 4. Delegate the entire end-to-end flow to the unified method
+    uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult result =
+        claimAmendmentService.submitAmendment(claim, payload);
+
+    // 5. Catch any rejections and throw your exception to trigger the 400 handler
+    if (result.errors() != null && !result.errors().isEmpty()) {
+      throw new uk.gov.justice.laa.dstew.payments.claimsdata.exception
+          .ClaimAmendmentValidationException(result.errors());
     }
   }
 

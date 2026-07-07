@@ -57,14 +57,7 @@ public class ClaimAmendmentStateService {
    * @return the prepared amendment (the managed claim and the built state), or {@link
    *     Optional#empty()} if the claim does not exist
    */
-  public Optional<PreparedAmendment> retrieveAmendmentState(
-      UUID claimId, ClaimAmendmentPayload payload) {
-
-    Optional<Claim> claim = claimRepository.findById(claimId);
-    if (claim.isEmpty()) {
-      log.debug("No claim found for id {} during amendment retrieval", claimId);
-      return Optional.empty();
-    }
+  public PreparedAmendment retrieveAmendmentState(Claim claim, ClaimAmendmentPayload payload) {
 
     ClaimStateSnapshot beforeState =
         snapshotMapper.toSnapshot(
@@ -77,6 +70,6 @@ public class ClaimAmendmentStateService {
             assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId()));
 
     ClaimAmendmentState state = amendmentStateBuilder.buildAmendmentState(beforeState, payload);
-    return Optional.of(new PreparedAmendment(claim.get(), state));
+    return new PreparedAmendment(claim, state);
   }
 }

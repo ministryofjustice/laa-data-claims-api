@@ -913,9 +913,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // Then inside your specific test case before calling perform():
     // given: A patch request with a deliberately stale version
     // (The claim in the DB seeded by setUp() will likely have version 0L or 1L)
-    ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setVersion(7L); // Stale version
+    ClaimPatch claimPatch =
+        ClaimPatch.builder()
+            .feeCode("FEE_123")
+            .version(7L)
+            .amendmentRequestedBy("PROVIDER")
+            .amendmentReasonCode("PROVIDER_ERROR")
+            .amendmentUserId(UUID.randomUUID())
+            .build();
 
     // when: calling the PATCH endpoint
     MvcResult result =

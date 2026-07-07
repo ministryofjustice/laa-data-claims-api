@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,8 +58,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -69,7 +66,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -1070,46 +1066,5 @@ class ClaimServiceTest {
           .updatedOn(Instant.now())
           .build();
     }
-  }
-
-  @Test
-  @DisplayName(
-      "updateClaim throws ClaimAmendmentValidationException when amendment validation fails")
-  void shouldThrowWhenAmendmentValidationFails() {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-
-    // 1. Status MUST be VALID to pass the new gate and trigger amendClaim()
-    final Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).version(5L).build();
-
-    final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(4L);
-
-    final ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
-    final ClaimAmendmentState state = ClaimAmendmentState.builder().build();
-
-    // Mock an error being returned by the orchestrator
-    final uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError
-        mockError =
-            mock(
-                uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment
-                    .ClaimAmendmentValidationError.class);
-
-    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
-        .thenReturn(Optional.of(claim));
-
-    // 2. Mock the new amendment state retrieval and orchestrator flow
-    when(claimMapper.toAmendmentPayload(patch)).thenReturn(payload);
-    when(claimAmendmentStateService.retrieveAmendmentState(claim, payload)).thenReturn(state);
-    when(claimAmendmentService.orchestrate(state)).thenReturn(List.of(mockError));
-
-    // 3. Assert it throws our new exception instead of the old version conflict one
-    assertThatThrownBy(() -> claimService.updateClaim(submissionId, claimId, patch))
-        .isInstanceOf(ClaimAmendmentValidationException.class);
-
-    // Verify the early gate perfectly short-circuits the method
-    verify(claimRepository, never()).save(any());
-    verifyNoInteractions(calculatedFeeDetailRepository);
-    verifyNoInteractions(validationMessageLogRepository);
   }
 }

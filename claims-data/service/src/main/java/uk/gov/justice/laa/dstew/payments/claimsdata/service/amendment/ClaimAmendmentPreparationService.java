@@ -1,11 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 
 /**
@@ -31,15 +31,13 @@ public class ClaimAmendmentPreparationService {
   /**
    * Retrieves the claim and builds the amendment state.
    *
-   * @param claimId the claim being amended
+   * @param claim the claim being amended
    * @param payload the sparse, presence-aware amendment payload as submitted
    * @return the prepared amendment (the read claim and the built state)
    * @throws ClaimNotFoundException if no claim exists for {@code claimId}
    */
   @Transactional(readOnly = true)
-  public PreparedAmendment prepare(UUID claimId, ClaimAmendmentPayload payload) {
-    return stateService
-        .retrieveAmendmentState(claimId, payload)
-        .orElseThrow(() -> new ClaimNotFoundException("No claim found with id " + claimId));
+  public PreparedAmendment prepare(Claim claim, ClaimAmendmentPayload payload) {
+    return stateService.retrieveAmendmentState(claim, payload);
   }
 }
