@@ -368,7 +368,7 @@ public class BulkSubmissionXmlConverterTests {
     }
 
     @Test
-    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1899)")
+    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1863)")
     void preservesAccentedLettersAndCurlyApostrophesInNameFields() {
       String xml =
           outcomeXml(

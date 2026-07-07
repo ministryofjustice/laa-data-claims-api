@@ -312,7 +312,7 @@ class BulkSubmissionCsvConverterTests {
     }
 
     @Test
-    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1899)")
+    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1863)")
     void preservesAccentedLettersAndCurlyApostrophesInNameFields() {
       // Curly apostrophe and accented letters must survive import so that validation - not this
       // hygiene step - decides whether they are acceptable.
