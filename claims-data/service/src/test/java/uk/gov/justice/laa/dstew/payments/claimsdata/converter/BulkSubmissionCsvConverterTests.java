@@ -16,6 +16,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,9 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 
 class BulkSubmissionCsvConverterTests {
@@ -307,6 +310,87 @@ class BulkSubmissionCsvConverterTests {
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_INPUT_FILE,
           OUTCOMES_WITH_EMPTY_SPARSE_ROWS_CONVERTED_FILE);
     }
+
+    @Test
+    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1899)")
+    void preservesAccentedLettersAndCurlyApostrophesInNameFields() {
+      // Curly apostrophe and accented letters must survive import so that validation - not this
+      // hygiene step - decides whether they are acceptable.
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA"
+              + ",CLIENT_FORENAME=Si\u00e2n" // U+00E2 a-circumflex
+              + ",CLIENT_SURNAME=O\u2019Brien" // U+2019 right single quotation mark
+              + ",CLIENT2_SURNAME=\u0141ukasz\n"; // U+0141 L with stroke
+
+      CsvOutcome outcome = convert(content).outcomes().getFirst();
+
+      assertEquals("Si\u00e2n", outcome.clientForename()); // a-circumflex preserved
+      assertEquals("O\u2019Brien", outcome.clientSurname()); // curly apostrophe preserved
+      assertEquals("\u0141ukasz", outcome.client2Surname()); // L with stroke preserved
+    }
+
+    @Test
+    @DisplayName(
+        "Removes invisible characters and normalises non-breaking space to a regular space")
+    void removesInvisibleCharactersAndNormalisesNonBreakingSpace() {
+      // BOM, zero-width space and soft hyphen are invisible and removed; non-breaking space is
+      // normalised to a regular space so the word break survives.
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA"
+              + ",CLIENT_FORENAME=\uFEFFSi\u00e2\u200bn" // BOM + a-circumflex + zero-width space
+              + ",CLIENT_SURNAME=O\u00adBrien" // U+00AD soft hyphen
+              + ",CLIENT_POST_CODE=SW1H\u00a09EA\n"; // U+00A0 non-breaking space
+
+      CsvOutcome outcome = convert(content).outcomes().getFirst();
+
+      assertEquals("Si\u00e2n", outcome.clientForename()); // invisible chars stripped
+      assertEquals("OBrien", outcome.clientSurname());
+      assertEquals("SW1H 9EA", outcome.clientPostCode());
+    }
+
+    @Test
+    @DisplayName("Recognises a record-type header preceded by a byte order mark")
+    void recognisesRecordTypeHeaderWithLeadingByteOrderMark() {
+      // A leading BOM (U+FEFF) on the first row must not prevent the OFFICE record type from being
+      // recognised - the header is sanitised the same way as cell values.
+      String content =
+          "\uFEFFOFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Test\n";
+
+      CsvSubmission submission = convert(content);
+
+      assertThat(submission.office().account()).isEqualTo("0U099L");
+      assertThat(submission.outcomes()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Skips a cell that contains only invisible characters instead of failing to read")
+    void skipsCellContainingOnlyInvisibleCharacters() {
+      // After the sanitiser removes zero-width/BOM characters the cell is blank (no '='), so it
+      // must
+      // be skipped rather than raising "Unable to read entry".
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA,\u200b\uFEFF,CLIENT_SURNAME=Test\n";
+
+      CsvOutcome outcome = convert(content).outcomes().getFirst();
+
+      assertEquals("IALB:IFRA", outcome.matterType());
+      assertEquals("Test", outcome.clientSurname());
+    }
+  }
+
+  private CsvSubmission convert(String content) {
+    MultipartFile file =
+        new MockMultipartFile(
+            "file", "outcomes.csv", "text/csv", content.getBytes(StandardCharsets.UTF_8));
+    return bulkSubmissionCsvConverter.convert(file);
   }
 
   private void runTest(String inputFileName, String outputFileName) throws IOException {
