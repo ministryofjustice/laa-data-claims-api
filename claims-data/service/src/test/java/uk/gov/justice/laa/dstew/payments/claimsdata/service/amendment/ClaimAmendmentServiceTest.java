@@ -1,126 +1,91 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
- * Tests for {@link ClaimAmendmentService}.
- *
- * <p>Exercises the orchestration mechanics with the validation steps mocked: the orchestrator runs
- * each step in order, returns the collected errors, and short-circuits on a fatal error without
- * running later steps. It also covers how the discovered step beans are sorted into {@code
- * STEP_ORDER}. Each step rule is covered by that step's own test (e.g. the test for {@link
- * ClaimStatusValidationStep}).
+ * Tests for {@link ClaimAmendmentService#submitAmendment}: the phase orchestration (prepare,
+ * validate - which includes the inline external steps - then commit).
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimAmendmentService Tests")
 class ClaimAmendmentServiceTest {
 
-  @Mock private ClaimStatusValidationStep claimStatusValidationStep;
-  @Mock private ClaimAmendmentValidationStep laterStep;
-  @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
+  @Mock private ClaimAmendmentPreparationService preparationService;
+  @Mock private ClaimAmendmentValidationService validationService;
+  @Mock private ClaimAmendmentCommitService commitService;
 
-  private static ClaimAmendmentService orchestratorWith(ClaimAmendmentValidationStep... steps) {
-    return new ClaimAmendmentService(steps);
-  }
+  @InjectMocks private ClaimAmendmentService service;
 
-  private static ClaimAmendmentState anyState() {
-    return ClaimAmendmentState.builder().beforeState(ClaimStateSnapshot.builder().build()).build();
-  }
+  private static final UUID CLAIM_ID = Uuid7.timeBasedUuid();
+  private final ClaimAmendmentPayload payload = ClaimAmendmentPayload.builder().build();
+  private final ClaimAmendmentState state = ClaimAmendmentState.builder().build();
+  private final Claim claim = Claim.builder().id(CLAIM_ID).build();
 
-  private static ClaimsApiProperties amendmentsEnabledProperties() {
-    ClaimsApiProperties properties = new ClaimsApiProperties();
-    properties.getAmendments().setEnabled("true");
-    return properties;
+  @Test
+  @DisplayName("prepares, validates and commits, returning the saved amendment on success")
+  void commitsWhenValidationPasses() {
+    ClaimAmendment amendment = ClaimAmendment.builder().id(Uuid7.timeBasedUuid()).build();
+    when(preparationService.prepare(CLAIM_ID, payload))
+        .thenReturn(new PreparedAmendment(claim, state));
+    when(validationService.validateAmendmentRequest(state)).thenReturn(List.of());
+    when(commitService.commit(claim, state)).thenReturn(amendment);
+
+    ClaimAmendmentResult result = service.submitAmendment(CLAIM_ID, payload);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.amendment()).isSameAs(amendment);
+    verify(commitService).commit(claim, state);
   }
 
   @Test
-  @DisplayName("returns no errors when every step passes")
-  void passesWhenAllStepsPass() {
-    when(claimStatusValidationStep.validate(any())).thenReturn(List.of());
-
-    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState())).isEmpty();
-  }
-
-  @Test
-  @DisplayName("returns the fatal error and stops when a step rejects")
-  void shortCircuitsOnFatalError() {
-    ClaimAmendmentValidationError fatal =
+  @DisplayName("rejects on validation errors without committing")
+  void rejectsWhenValidationFails() {
+    ClaimAmendmentValidationError error =
         ClaimAmendmentValidationError.of(
-            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-    when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
+            ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
+    when(preparationService.prepare(CLAIM_ID, payload))
+        .thenReturn(new PreparedAmendment(claim, state));
+    when(validationService.validateAmendmentRequest(state)).thenReturn(List.of(error));
 
-    assertThat(orchestratorWith(claimStatusValidationStep).orchestrate(anyState()))
-        .containsExactly(fatal);
+    ClaimAmendmentResult result = service.submitAmendment(CLAIM_ID, payload);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(error);
+    verifyNoInteractions(commitService);
   }
 
   @Test
-  @DisplayName("does not run later steps after a fatal error")
-  void stopsRunningLaterStepsAfterFatal() {
-    ClaimAmendmentValidationError fatal =
-        ClaimAmendmentValidationError.of(
-            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
-    when(claimStatusValidationStep.validate(any())).thenReturn(List.of(fatal));
+  @DisplayName("propagates ClaimNotFoundException from prepare without validating or committing")
+  void throwsWhenClaimNotFound() {
+    when(preparationService.prepare(CLAIM_ID, payload))
+        .thenThrow(new ClaimNotFoundException("No claim found with id " + CLAIM_ID));
 
-    orchestratorWith(claimStatusValidationStep, laterStep).orchestrate(anyState());
+    assertThatThrownBy(() -> service.submitAmendment(CLAIM_ID, payload))
+        .isInstanceOf(ClaimNotFoundException.class);
 
-    verify(laterStep, never()).validate(any());
-  }
-
-  @Test
-  @DisplayName("declared step order has no duplicates")
-  void declaredOrderHasNoDuplicates() {
-    assertThat(ClaimAmendmentService.STEP_ORDER).doesNotHaveDuplicates();
-  }
-
-  @Test
-  @DisplayName("sorts the discovered step beans into the declared order, ignoring extras")
-  void sortsDiscoveredStepsIntoDeclaredOrder() {
-    ClaimAmendmentValidationStep extraStep = state -> List.of();
-
-    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. Amendments are
-    // enabled so the feature-flag step passes; the status step then returns a fatal error for the
-    // empty state below, so the orchestrator short-circuits before the later steps run.
-    ClaimAmendmentService service =
-        new ClaimAmendmentService(
-            List.of(
-                extraStep,
-                new AmendmentFeatureFlagValidationStep(amendmentsEnabledProperties()),
-                new ClaimStatusValidationStep(),
-                new AmendmentUserIdValidationStep(),
-                new AmendmentReferenceValidationStep(amendmentReferenceDataProvider)));
-
-    assertThatCode(() -> service.orchestrate(anyState())).doesNotThrowAnyException();
-  }
-
-  @Test
-  @DisplayName("fails fast when a declared step has no matching bean")
-  void failsFastWhenDeclaredStepHasNoBean() {
-    assertThatThrownBy(() -> new ClaimAmendmentService(List.of()))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("No bean found for declared amendment validation step");
+    verifyNoInteractions(validationService, commitService);
   }
 }

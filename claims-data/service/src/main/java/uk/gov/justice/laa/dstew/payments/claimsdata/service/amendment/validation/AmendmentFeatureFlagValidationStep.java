@@ -22,7 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
  *       later step runs and nothing is saved.
  * </ul>
  *
- * <p>It is placed first in {@code ClaimAmendmentService.STEP_ORDER} so a disabled feature
+ * <p>It is placed first in {@code ClaimAmendmentValidationService.STEP_ORDER} so a disabled feature
  * short-circuits the pipeline before any other work is done.
  */
 @Slf4j
