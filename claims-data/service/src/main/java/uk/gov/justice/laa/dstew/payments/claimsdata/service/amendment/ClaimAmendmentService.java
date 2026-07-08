@@ -1,134 +1,79 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
-import java.util.ArrayList;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 
 /**
- * Runs the synchronous claim amendment flow as an ordered list of validation steps executed in
- * sequence. Each step inspects the amendment state and returns the errors it found; the
- * orchestrator collects them and stops as soon as a fatal error is seen.
- *
- * <p>{@link #STEP_ORDER} is the single source of truth for the sequence. Spring discovers every
- * {@link ClaimAmendmentValidationStep} bean and this service sorts them into that order at
- * construction. Each declared step must have a corresponding bean (startup fails fast otherwise);
- * any extra discovered steps that are not declared are ignored. Some steps additionally make an
- * external (PDA or FSP) call, but functionally they are ordinary validation steps that collect
- * errors, so they sit in the same list.
- *
- * <p>The full canonical sequence (steps are added as their tickets land) is:
+ * End-to-end orchestrator for a single claim amendment (the atomic-save story, DSTEW-1771). It
+ * sequences the flow, keeping each part in the right transaction boundary:
  *
  * <ol>
- *   <li>DSTEW-1751/1752 claim-version contract
- *   <li>DSTEW-1764 claim-status eligibility
- *   <li>DSTEW-1765 metadata validation
- *   <li>DSTEW-1766 changed-field classification
- *   <li>DSTEW-1767 amendability / assessed-claim
- *   <li>DSTEW-1768 fee-code lookup and gates
- *   <li>DSTEW-176x PDA call (external)
- *   <li>DSTEW-1769 duplicate validation
- *   <li>DSTEW-1770 validation outcome check
- *   <li>DSTEW-176x FSP trigger/call (external)
- *   <li>DSTEW-1753/1754 final version guard
+ *   <li><b>Prepare</b> ({@link ClaimAmendmentPreparationService}, read-only transaction): retrieve
+ *       the claim and build the state (DSTEW-1763). This is the only part that needs an open
+ *       persistence context (for the mapper's lazy navigation).
+ *   <li><b>Validate</b> ({@link ClaimAmendmentValidationService}, <b>no held transaction</b>): run
+ *       the ordered validation steps. This includes the external PDA (DSTEW-1646/1772-1774) and FSP
+ *       (DSTEW-1758-1762) steps, which are ordinary error-collecting steps interspersed in {@code
+ *       STEP_ORDER}; running with no held transaction is exactly what lets those external calls sit
+ *       inline without holding a DB connection or claim-row lock open. On any error the amendment
+ *       is rejected and nothing is written.
+ *   <li><b>Commit</b> ({@link ClaimAmendmentCommitService}, write transaction): reattach the
+ *       prepared claim (anchoring the {@code @Version} optimistic-lock guard to the version read at
+ *       prepare time) and persist the amendment record and claim/related writes (DSTEW-1907)
+ *       atomically.
  * </ol>
  *
- * <p>Error handling: a <b>fatal</b> error stops the flow immediately (no later step runs);
- * <b>non-fatal</b> errors are collected so the caller can be shown every failure at once. Any
- * non-empty error set means the amendment is not applied and nothing is saved.
- *
- * <p>Claim retrieval (building the {@link ClaimAmendmentState}) and not-found mapping remain the
- * caller's responsibility (see {@link ClaimAmendmentStateService}); this class operates on the
- * already-built before/after state.
+ * <p>This class is intentionally <b>not</b> {@code @Transactional}: only prepare (read) and commit
+ * (write) own a transaction, and the validation sequence in between owns none - so the external
+ * calls it contains never run inside a transaction. A concurrent modification detected by the
+ * commit guard raises {@code jakarta.persistence.OptimisticLockException} (mapped to HTTP 409) and
+ * rolls the write back.
  */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class ClaimAmendmentService {
 
-  /** Canonical amendment validation order; add each step here, in position, as it is built. */
-  static final List<Class<? extends ClaimAmendmentValidationStep>> STEP_ORDER =
-      List.of(
-          AmendmentFeatureFlagValidationStep.class,
-          ClaimStatusValidationStep.class,
-          AmendmentUserIdValidationStep.class,
-          AmendmentReferenceValidationStep.class);
-
-  private final List<ClaimAmendmentValidationStep> validationSteps;
+  private final ClaimAmendmentPreparationService preparationService;
+  private final ClaimAmendmentValidationService validationService;
+  private final ClaimAmendmentCommitService commitService;
 
   /**
-   * Sorts the discovered validation step beans into {@link #STEP_ORDER}.
+   * Submits an amendment for the given claim end to end: prepare (retrieve), validate (including
+   * the external PDA/FSP steps), then an atomic commit.
    *
-   * @param discoveredSteps every validation step bean, in arbitrary (Spring-determined) order
+   * @param claimId the claim being amended
+   * @param payload the sparse, presence-aware amendment payload as submitted
+   * @return a success result carrying the persisted amendment, or a rejection carrying the
+   *     collected validation errors
+   * @throws ClaimNotFoundException if no claim exists for {@code claimId}
    */
-  @Autowired
-  public ClaimAmendmentService(List<ClaimAmendmentValidationStep> discoveredSteps) {
-    this.validationSteps = ordered(discoveredSteps);
-  }
+  public ClaimAmendmentResult submitAmendment(UUID claimId, ClaimAmendmentPayload payload) {
+    // Phase 1 - prepare: retrieve + build state in a read-only transaction (no writes).
+    PreparedAmendment prepared = preparationService.prepare(claimId, payload);
 
-  /**
-   * Holds an already-ordered sequence of steps directly, for tests that exercise the orchestration
-   * loop without going through {@link #STEP_ORDER}.
-   *
-   * @param orderedSteps the validation steps, in the order they should run
-   */
-  ClaimAmendmentService(ClaimAmendmentValidationStep... orderedSteps) {
-    this.validationSteps = List.of(orderedSteps);
-  }
-
-  /**
-   * Runs each validation step in order, stopping as soon as a fatal error is collected, and applies
-   * the amendment only when every step passes.
-   *
-   * @param state the in-memory amendment state produced by retrieval (DSTEW-1763)
-   * @return every validation error found; an empty list means validation passed and the amendment
-   *     was applied
-   */
-  public List<ClaimAmendmentValidationError> orchestrate(ClaimAmendmentState state) {
-    for (ClaimAmendmentValidationStep step : validationSteps) {
-      state.addErrors(step.validate(state));
-      if (state.containsFatal()) {
-        return state.getErrors();
-      }
+    // Phase 2 - validate: run the ordered steps with no held transaction, so the inline external
+    // PDA/FSP steps never hold a DB connection open.
+    List<ClaimAmendmentValidationError> errors =
+        validationService.validateAmendmentRequest(prepared.state());
+    if (!errors.isEmpty()) {
+      log.debug(
+          "Amendment for claim {} rejected with {} validation error(s)", claimId, errors.size());
+      return ClaimAmendmentResult.rejected(errors);
     }
 
-    if (!state.getErrors().isEmpty()) {
-      return state.getErrors();
-    }
-
-    // ----- atomic save: only when every step has passed -----
-    // TODO(DSTEW-176x): persist the amendment atomically within the orchestrator transaction.
-    return state.getErrors();
-  }
-
-  /**
-   * Picks each step declared in {@link #STEP_ORDER}, in that order, from the discovered beans.
-   * Every declared step must have a matching bean; any extra discovered steps are ignored.
-   *
-   * @param discoveredSteps every validation step bean, in arbitrary order
-   * @return the declared steps in canonical order
-   * @throws IllegalStateException if a declared step has no matching bean
-   */
-  private static List<ClaimAmendmentValidationStep> ordered(
-      List<ClaimAmendmentValidationStep> discoveredSteps) {
-    List<ClaimAmendmentValidationStep> orderedSteps = new ArrayList<>();
-    for (Class<? extends ClaimAmendmentValidationStep> stepClass : STEP_ORDER) {
-      orderedSteps.add(
-          discoveredSteps.stream()
-              .filter(step -> step.getClass().equals(stepClass))
-              .findFirst()
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          "No bean found for declared amendment validation step "
-                              + stepClass.getName()
-                              + " (declared in ClaimAmendmentService.STEP_ORDER).")));
-    }
-    return List.copyOf(orderedSteps);
+    // Phase 3 - commit: single atomic write transaction; reattaches the prepared claim.
+    ClaimAmendment amendment = commitService.commit(prepared.claim(), prepared.state());
+    log.debug("Persisted amendment {} for claim {}", amendment.getId(), claimId);
+    return ClaimAmendmentResult.success(amendment);
   }
 }

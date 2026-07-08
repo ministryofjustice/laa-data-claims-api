@@ -21,6 +21,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
@@ -876,5 +879,118 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
     }
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-1943)")
+  void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
+    // given: we use an existing office code from the setup
+
+    // when: calling the v2 claims endpoint with the escaped_case_flag filter
+    // Note: This was FAILing with a 500 error because ClaimSpecification
+    // attempted to join on a scalar "calculatedFeeDetail" field, but the Claim entity
+    // now uses a List "calculatedFeeDetails" and gets the first (latest) item
+    mockMvc
+        .perform(
+            get(GET_CLAIMS_ENDPOINT_V2)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                .param("escaped_case_flag", "true")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isOk()); // Will fail here until the specification bug is fixed
+  }
+
+  @Test
+  @DisplayName("GET /api/v2/claims - filtering by escaped_case_flag isolates the latest fee record")
+  void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
+    // given: set up a submission context to satisfy the mandatory office code check
+    OffsetDateTime now = OffsetDateTime.now();
+
+    // 1. Claim A: Historical records are false, but the LATEST is true -> Should be FOUND
+    Claim claimA = new Claim();
+    claimA.setId(Uuid7.timeBasedUuid());
+    claimA.setSubmission(submission1);
+    claimA.setCaseReferenceNumber("CRN-AAA");
+    claimA.setUniqueFileNumber("UFN-AAA");
+    claimA.setCreatedByUserId(API_USER_ID);
+
+    // Add these mandatory fields to satisfy Bean Validation
+    claimA.setMatterTypeCode("TEST-MTC");
+    claimA.setLineNumber(1);
+    claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+    claimA = claimRepository.saveAndFlush(claimA);
+
+    // ... (CFD creations)
+    createCalculatedFeeDetail(claimA, false, now.minusDays(3));
+    createCalculatedFeeDetail(claimA, false, now.minusDays(2));
+    createCalculatedFeeDetail(claimA, true, now.minusDays(1)); // latest
+
+    // 2. Claim B: Historical records are true, but the LATEST is false -> Should be IGNORED
+    Claim claimB = new Claim();
+    claimB.setId(Uuid7.timeBasedUuid());
+    claimB.setSubmission(submission1);
+    claimB.setCaseReferenceNumber("CRN-BBB");
+    claimB.setUniqueFileNumber("UFN-BBB");
+    claimB.setCreatedByUserId(API_USER_ID);
+
+    // Add these mandatory fields to satisfy Bean Validation
+    claimB.setMatterTypeCode("TEST-MTC");
+    claimB.setLineNumber(2);
+    claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+    claimB = claimRepository.saveAndFlush(claimB);
+
+    createCalculatedFeeDetail(claimB, true, now.minusDays(3));
+    createCalculatedFeeDetail(claimB, true, now.minusDays(2));
+    createCalculatedFeeDetail(claimB, false, now.minusDays(1)); // latest
+
+    // Ensure Hibernate flushes state to the database before running the query
+    claimRepository.flush();
+
+    // when: filtering for escaped_case_flag = true
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", "office1")
+                    .param("escaped_case_flag", "true")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: unpack and verify that only Claim A is returned
+    var claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+        .contains(claimA.getId().toString())
+        .doesNotContain(claimB.getId().toString());
+  }
+
+  // Helper method to cleanly persist fee records for the scenario
+  private void createCalculatedFeeDetail(
+      Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
+    // 1. Create and persist the ClaimSummaryFee
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .claim(claim)
+            .id(Uuid7.timeBasedUuid())
+            .createdByUserId("Test")
+            .build();
+
+    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+    // 2. Create and persist the CalculatedFeeDetail, linking the newly saved summary fee
+    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
+    cfd.setId(Uuid7.timeBasedUuid());
+    cfd.setClaim(claim);
+    cfd.setEscapeCaseFlag(escapeCaseFlag);
+    cfd.setCreatedOn(createdOn);
+    cfd.setFeeCode("FEE-123");
+    cfd.setCreatedByUserId("Test");
+    cfd.setClaimSummaryFee(summaryFee);
+
+    calculatedFeeDetailRepository.saveAndFlush(cfd);
   }
 }
