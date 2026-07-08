@@ -3,11 +3,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.DEFAULT_OFFICE;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
@@ -75,6 +77,30 @@ public class BulkSubmissionMimeCheckSteps {
         .as("Expected the API error response body to contain the validation message")
         .isNotNull()
         .contains(expectedMessage);
+  }
+
+  /**
+   * Asserts that the previous MIME-checked upload was accepted end-to-end: HTTP 201, a bulk
+   * submission id was returned, and the persisted bulk_submission record exposes the expected
+   * area of law. Kept here (rather than in the duplicate-checks step class) so that
+   * {@code mimeChecks.feature} owns the definitions of the steps it uses.
+   */
+  @Then("I should see the submission summary for {string}")
+  public void iShouldSeeTheSubmissionSummaryFor(String areaOfLaw) throws IOException {
+    assertThat(context.getLastStatusCode())
+        .as("Expected POST /bulk-submissions to return 201 but got %s",
+            context.getLastStatusCode())
+        .isEqualTo(201);
+    UUID id = context.getBulkSubmissionId();
+    assertThat(id).as("Bulk submission id must be populated").isNotNull();
+
+    JsonNode bulk = api.getBulkSubmission(id);
+    String actual = bulk.path("details").path("schedule").path("area_of_law").asText("");
+    String expected =
+        "LEGALHELP".equalsIgnoreCase(areaOfLaw.replace(" ", "")) ? "LEGAL HELP" : areaOfLaw;
+    assertThat(actual)
+        .as("Bulk submission %s should expose details.schedule.area_of_law=%s", id, expected)
+        .isEqualToIgnoringCase(expected);
   }
 
   private static void requireLegalHelp(String areaOfLaw) {

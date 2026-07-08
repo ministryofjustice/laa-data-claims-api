@@ -26,7 +26,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileG
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BulkSubmissionLifecycleSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
@@ -54,7 +53,6 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
   @Autowired private BddScenarioContext context;
   @Autowired private LegalHelpFileGenerator generator;
   @Autowired private SubmissionPeriodHelper periodHelper;
-  @Autowired private BulkSubmissionLifecycleSupport lifecycle;
   @Autowired private BddValidationMessageStepSupport validationMessages;
 
   // ---------------------------------------------------------------------------
@@ -249,7 +247,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     if (isUatMode() || bulkSubmissionId == null) {
       return;
     }
-    lifecycle.patchBulkSubmissionStatus(bulkSubmissionId, expected);
+    api.patchBulkSubmissionStatus(bulkSubmissionId, expected);
   }
 
   private void assertLastUploadAccepted() throws IOException {

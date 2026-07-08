@@ -10,6 +10,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -38,6 +39,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddBeansConfiguration.BddServerInfo;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 
 /**
  * End-to-end HTTP support for BDD steps. Calls the running application over the network using
@@ -399,6 +402,40 @@ public class BddApiStepSupport {
           "POST /submissions/" + submissionId + "/claims did not return an id: " + response.getBody());
     }
     return UUID.fromString(idNode.asText());
+  }
+
+  // ---------------------------------------------------------------------------
+  // PATCH bulk-submission (used by BDD scenarios to simulate event-service
+  // driving a submission into a terminal status when the event-service is not
+  // running locally).
+  // ---------------------------------------------------------------------------
+
+  /** Sets the given bulk-submission's status to {@link BulkSubmissionStatus#VALIDATION_FAILED}. */
+  public void markBulkSubmissionAsInvalid(UUID bulkSubmissionId) {
+    patchBulkSubmissionStatus(bulkSubmissionId, BulkSubmissionStatus.VALIDATION_FAILED);
+  }
+
+  /**
+   * Forces the given bulk-submission to the requested terminal status via {@code PATCH
+   * /api/v1/bulk-submissions/{id}}. Used by BDD scenarios running in local mode (no real
+   * event-service) to simulate a duplicate-check outcome.
+   */
+  public void patchBulkSubmissionStatus(UUID bulkSubmissionId, BulkSubmissionStatus status) {
+    BulkSubmissionPatch patch = new BulkSubmissionPatch();
+    patch.setBulkSubmissionId(bulkSubmissionId);
+    patch.setStatus(status);
+    patch.setUpdatedByUserId("bdd-mock-event-service");
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    restTemplate.exchange(
+        serverInfo.baseUrl() + PATCH_BULK_SUBMISSION_PATH,
+        HttpMethod.PATCH,
+        new HttpEntity<>(patch, headers),
+        Void.class,
+        bulkSubmissionId);
   }
 
   private void hydrateIdsFromResponse(String responseBody) throws IOException {
