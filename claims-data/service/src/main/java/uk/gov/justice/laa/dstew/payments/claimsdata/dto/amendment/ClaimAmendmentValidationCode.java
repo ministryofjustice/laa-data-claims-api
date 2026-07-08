@@ -40,6 +40,16 @@ public enum ClaimAmendmentValidationCode {
       "Claim status %s is not amendable; only claims with status %s can be amended.",
       null),
 
+  /**
+   * The claim already has an assessment; provider-requested changes to pricing-related fields are
+   * not permitted.
+   */
+  INVALID_ASSESSED_CLAIM_PRICING_FIELDS_NOT_ALLOWED(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "This claim has an assessment; pricing-related fields cannot be amended: %s",
+      "Attempted pricing-related amendment on an assessed claim: %s"),
+
   // ----- Amendment metadata: Requested By (DSTEW-1765) -----
 
   /** Requested By code was not supplied. */

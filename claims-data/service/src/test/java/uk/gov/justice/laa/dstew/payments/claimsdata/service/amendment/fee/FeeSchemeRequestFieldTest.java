@@ -151,4 +151,19 @@ class FeeSchemeRequestFieldTest {
         .isThrownBy(() -> impactsPricing("feeCode", null))
         .withMessageContaining("areaOfLaw");
   }
+
+  @Test
+  @DisplayName("namespaced identifiers are accepted (namespace is ignored for lookup)")
+  void namespacedIdentifiersAreAccepted() {
+    // Existing mapping uses bare claim field names; ensure a namespaced identifier still maps.
+    for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
+      assertThat(impactsPricing("claim.feeCode", areaOfLaw))
+          .as("claim.feeCode for %s", areaOfLaw)
+          .isTrue();
+    }
+
+    // area-specific mapping also works when namespaced
+    assertThat(impactsPricing("claimSummaryFee.netProfitCostsAmount", AreaOfLaw.CRIME_LOWER))
+        .isTrue();
+  }
 }

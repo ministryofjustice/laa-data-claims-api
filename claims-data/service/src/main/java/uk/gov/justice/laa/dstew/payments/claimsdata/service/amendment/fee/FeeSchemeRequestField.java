@@ -33,55 +33,87 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 @Getter
 public enum FeeSchemeRequestField {
   // ----- Main mapping table -----
-  FEE_CODE("feeCode", "feeCode", allAreas()),
-  CLAIM_ID("claimId", "id", allAreas()),
-  START_DATE("startDate", "caseStartDate", allAreas()),
-  POLICE_STATION_ID("policeStationId", "policeStationCourtPrisonId", allAreas()),
-  POLICE_STATION_SCHEME_ID("policeStationSchemeId", "schemeId", allAreas()),
-  UNIQUE_FILE_NUMBER("uniqueFileNumber", "uniqueFileNumber", allAreas()),
-  NET_PROFIT_COSTS("netProfitCosts", "netProfitCostsAmount", allAreas()),
-  NET_COST_OF_COUNSEL("netCostOfCounsel", "netCounselCostsAmount", allAreas()),
-  NET_DISBURSEMENT_AMOUNT("netDisbursementAmount", "netDisbursementAmount", allAreas()),
-  DISBURSEMENT_VAT_AMOUNT("disbursementVatAmount", "disbursementsVatAmount", allAreas()),
-  VAT_INDICATOR("vatIndicator", "isVatApplicable", allAreas()),
+  // Format: requestField, claimField, sourceNamespace, areasOfLaw
+  FEE_CODE("feeCode", "feeCode", "claim", allAreas()),
+  CLAIM_ID("claimId", "id", "claim", allAreas()),
+  START_DATE("startDate", "caseStartDate", "claim", allAreas()),
+  POLICE_STATION_ID("policeStationId", "policeStationCourtPrisonId", "claim", allAreas()),
+  POLICE_STATION_SCHEME_ID("policeStationSchemeId", "schemeId", "claim", allAreas()),
+  UNIQUE_FILE_NUMBER("uniqueFileNumber", "uniqueFileNumber", "claim", allAreas()),
+  NET_PROFIT_COSTS("netProfitCosts", "netProfitCostsAmount", "claimSummaryFee", allAreas()),
+  NET_COST_OF_COUNSEL("netCostOfCounsel", "netCounselCostsAmount", "claimSummaryFee", allAreas()),
+  NET_DISBURSEMENT_AMOUNT(
+      "netDisbursementAmount", "netDisbursementAmount", "claimSummaryFee", allAreas()),
+  DISBURSEMENT_VAT_AMOUNT(
+      "disbursementVatAmount", "disbursementsVatAmount", "claimSummaryFee", allAreas()),
+  VAT_INDICATOR("vatIndicator", "isVatApplicable", "claimSummaryFee", allAreas()),
 
   // Conditional (area-of-law specific) - rows 13/14/15.
-  NET_TRAVEL_COSTS("netTravelCosts", "travelWaitingCostsAmount", EnumSet.of(AreaOfLaw.CRIME_LOWER)),
-  NET_WAITING_COSTS("netWaitingCosts", "netWaitingCostsAmount", EnumSet.of(AreaOfLaw.CRIME_LOWER)),
+  NET_TRAVEL_COSTS(
+      "netTravelCosts",
+      "travelWaitingCostsAmount",
+      "claimSummaryFee",
+      EnumSet.of(AreaOfLaw.CRIME_LOWER)),
+  NET_WAITING_COSTS(
+      "netWaitingCosts",
+      "netWaitingCostsAmount",
+      "claimSummaryFee",
+      EnumSet.of(AreaOfLaw.CRIME_LOWER)),
   TRAVEL_AND_WAITING_COSTS(
-      "travelAndWaitingCosts", "travelWaitingCostsAmount", EnumSet.of(AreaOfLaw.LEGAL_HELP)),
+      "travelAndWaitingCosts",
+      "travelWaitingCostsAmount",
+      "claimSummaryFee",
+      EnumSet.of(AreaOfLaw.LEGAL_HELP)),
 
   DETENTION_TRAVEL_AND_WAITING_COSTS(
-      "detentionTravelAndWaitingCosts", "detentionTravelWaitingCostsAmount", allAreas()),
-  CASE_CONCLUDED_DATE("caseConcludedDate", "caseConcludedDate", allAreas()),
-  NUMBER_OF_MEDIATION_SESSIONS("numberOfMediationSessions", "mediationSessionsCount", allAreas()),
-  JR_FORM_FILLING("jrFormFilling", "jrFormFillingAmount", allAreas()),
+      "detentionTravelAndWaitingCosts",
+      "detentionTravelWaitingCostsAmount",
+      "claimSummaryFee",
+      allAreas()),
+  CASE_CONCLUDED_DATE("caseConcludedDate", "caseConcludedDate", "claim", allAreas()),
+  NUMBER_OF_MEDIATION_SESSIONS(
+      "numberOfMediationSessions", "mediationSessionsCount", "claim", allAreas()),
+  JR_FORM_FILLING("jrFormFilling", "jrFormFillingAmount", "claimSummaryFee", allAreas()),
   IMMIGRATION_PRIOR_AUTHORITY_NUMBER(
-      "immigrationPriorAuthorityNumber", "priorAuthorityReference", allAreas()),
+      "immigrationPriorAuthorityNumber", "priorAuthorityReference", "claimSummaryFee", allAreas()),
 
-  REPRESENTATION_ORDER_DATE("representationOrderDate", "representationOrderDate", allAreas()),
+  REPRESENTATION_ORDER_DATE(
+      "representationOrderDate", "representationOrderDate", "claim", allAreas()),
 
-  LONDON_RATE("londonRate", "isLondonRate", allAreas()),
+  LONDON_RATE("londonRate", "isLondonRate", "claimSummaryFee", allAreas()),
 
   // ----- Bolt-ons (nested boltOns object, row 12) -----
-  BOLT_ON_ADJOURNED_HEARING("boltOnAdjournedHearing", "adjournedHearingFeeAmount", allAreas()),
-  BOLT_ON_CMRH_ORAL("boltOnCmrhOral", "cmrhOralCount", allAreas()),
-  BOLT_ON_CMRH_TELEPHONE("boltOnCmrhTelephone", "cmrhTelephoneCount", allAreas()),
-  BOLT_ON_HOME_OFFICE_INTERVIEW("boltOnHomeOfficeInterview", "hoInterview", allAreas()),
-  BOLT_ON_SUBSTANTIVE_HEARING("boltOnSubstantiveHearing", "isSubstantiveHearing", allAreas());
+  BOLT_ON_ADJOURNED_HEARING(
+      "boltOnAdjournedHearing", "adjournedHearingFeeAmount", "claimSummaryFee", allAreas()),
+  BOLT_ON_CMRH_ORAL("boltOnCmrhOral", "cmrhOralCount", "claimSummaryFee", allAreas()),
+  BOLT_ON_CMRH_TELEPHONE(
+      "boltOnCmrhTelephone", "cmrhTelephoneCount", "claimSummaryFee", allAreas()),
+  BOLT_ON_HOME_OFFICE_INTERVIEW(
+      "boltOnHomeOfficeInterview", "hoInterview", "claimSummaryFee", allAreas()),
+  BOLT_ON_SUBSTANTIVE_HEARING(
+      "boltOnSubstantiveHearing", "isSubstantiveHearing", "claimSummaryFee", allAreas());
 
   private final String requestField;
   private final String claimField;
+  private final String sourceNamespace;
   private final Set<AreaOfLaw> areasOfLaw;
 
-  FeeSchemeRequestField(String requestField, String claimField, Set<AreaOfLaw> areasOfLaw) {
+  FeeSchemeRequestField(
+      String requestField, String claimField, String sourceNamespace, Set<AreaOfLaw> areasOfLaw) {
     this.requestField = requestField;
     this.claimField = claimField;
+    this.sourceNamespace = sourceNamespace;
     this.areasOfLaw = Set.copyOf(areasOfLaw);
   }
 
   /**
    * Whether the given claim field maps to the FSP fee-scheme request for the given area of law.
+   *
+   * <p>This method is namespace-aware: if the supplied {@code field} is namespaced (eg {@code
+   * "claimSummaryFee.netProfitCostsAmount"}) the namespace (the segment before the first dot) will
+   * be used to limit matches to registry entries that explicitly declare that namespace. If the
+   * supplied {@code field} is bare (eg {@code "netProfitCostsAmount"}) behaviour is
+   * backwards-compatible and any registry entry with a matching claim field will be considered.
    *
    * @param field the claim field name (the "mapped from claim" value); may be {@code null}
    * @param areaOfLaw the area of law to evaluate the mapping for; must not be {@code null}
@@ -93,8 +125,29 @@ public enum FeeSchemeRequestField {
     if (field == null) {
       return false;
     }
+
+    String namespace = null;
+    String claimField;
+    int dot = field.indexOf('.');
+    if (dot >= 0) {
+      namespace = field.substring(0, dot);
+      claimField = field.substring(dot + 1);
+    } else {
+      claimField = field;
+    }
+
+    final String finalNamespace = namespace; // for lambda capture
     return Arrays.stream(values())
-        .filter(entry -> entry.claimField.equals(field))
+        .filter(entry -> entry.claimField.equals(claimField))
+        .filter(
+            entry -> {
+              if (finalNamespace == null) {
+                // bare field name: accept any namespace (backwards compatible)
+                return true;
+              }
+              // namespaced field: accept only entries that declare the same namespace
+              return finalNamespace.equals(entry.sourceNamespace);
+            })
         .anyMatch(entry -> entry.areasOfLaw.contains(areaOfLaw));
   }
 

@@ -12,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentPdaValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -61,6 +62,7 @@ public class ClaimAmendmentValidationService {
           // any other work is done.
           AmendmentFeatureFlagValidationStep.class,
           ClaimStatusValidationStep.class,
+          AssessedClaimPricingValidationStep.class,
           AmendmentUserIdValidationStep.class,
           AmendmentReferenceValidationStep.class,
           // External steps sit inline with the rest (they make PDA/FSP calls but are ordinary
