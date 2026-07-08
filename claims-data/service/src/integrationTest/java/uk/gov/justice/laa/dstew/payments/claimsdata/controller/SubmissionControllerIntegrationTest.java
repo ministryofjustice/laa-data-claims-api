@@ -681,7 +681,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .numberOfClaims(0)
             .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
             .isNilSubmission(true)
-            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .officeAccountNumber("BAD_OFFICE_ACCOUNT_NUMBER")
             .providerUserId(USER_ID)
             .status(SubmissionStatus.READY_FOR_VALIDATION)
             .submissionPeriod(PERIOD_APR_2025)

@@ -99,8 +99,9 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
   void findWithClaimDetailsByFilters_returnsClaimDetails() {
     Pageable pageable = PageRequest.of(0, 10);
 
-    // CLAIM_1_ID has uniqueFileNumber=UFN_123 and a Client with forename=Alice, surname=Smith,
-    // UCN=UCN_111 (seeded via seedValidationMessagesData → seedClaimsData → createClaimsTestData)
+    // CLAIM_1_ID has uniqueFileNumber=UNIQUE_FILE_NUMBER ("010125/001") and a Client with
+    // forename=Alice, surname=Smith, UCN=SEEDED_UNIQUE_CLIENT_NUMBER ("01011990/A/BCDE")
+    // (seeded via seedValidationMessagesData → seedClaimsData → createClaimsTestData)
     Page<ValidationMessageWithClaimDetailsProjection> result =
         validationMessageLogRepository.findWithClaimDetailsByFilters(
             SUBMISSION_1_ID, CLAIM_1_ID, null, null, pageable);
@@ -108,10 +109,10 @@ public class ValidationMessageLogRepositoryIntegrationTest extends AbstractInteg
     assertThat(result.getTotalElements()).isEqualTo(1);
     ValidationMessageWithClaimDetailsProjection proj = result.getContent().getFirst();
     assertThat(proj.getClaimId()).isEqualTo(CLAIM_1_ID);
-    assertThat(proj.getUniqueFileNumber()).isEqualTo("UFN_123");
+    assertThat(proj.getUniqueFileNumber()).isEqualTo("010125/001");
     assertThat(proj.getClientForename()).isEqualTo("Alice");
     assertThat(proj.getClientSurname()).isEqualTo("Smith");
-    assertThat(proj.getUniqueClientNumber()).isEqualTo("UCN_111");
+    assertThat(proj.getUniqueClientNumber()).isEqualTo(SEEDED_UNIQUE_CLIENT_NUMBER);
   }
 
   @Test

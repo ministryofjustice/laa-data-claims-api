@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -121,7 +122,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING.toString());
       assertThat(error.getMessage()).isEqualTo("Requested By is required");
     }
 
@@ -134,7 +135,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN.toString());
       assertThat(error.getMessage()).isEqualTo("Requested By 'MADE_UP' is not a recognised value");
     }
 
@@ -150,7 +151,9 @@ class AmendmentReferenceValidationStepTest {
       assertThat(errors)
           .filteredOn(
               error ->
-                  error.getCode() == ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE)
+                  Objects.equals(
+                      error.getCode(),
+                      ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE.toString()))
           .singleElement()
           .extracting(ClaimAmendmentValidationError::getMessage)
           .isEqualTo("Requested By 'LEGACY_PARTY' is no longer in use");
@@ -165,7 +168,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_NOT_A_CODE);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_NOT_A_CODE.toString());
       assertThat(error.getMessage())
           .isEqualTo("Requested By must be supplied as a code, not a display label");
     }
@@ -184,7 +187,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING.toString());
       assertThat(error.getMessage()).isEqualTo("Amendment Reason is required");
     }
 
@@ -197,7 +200,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_UNKNOWN);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_UNKNOWN.toString());
       assertThat(error.getMessage())
           .isEqualTo("Amendment Reason 'MADE_UP' is not a recognised value");
     }
@@ -211,7 +214,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_NOT_A_CODE);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_NOT_A_CODE.toString());
       assertThat(error.getMessage())
           .isEqualTo("Amendment Reason must be supplied as a code, not a display label");
     }
@@ -225,7 +228,7 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_INACTIVE);
+          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_INACTIVE.toString());
       assertThat(error.getMessage()).isEqualTo("Amendment Reason 'OLD_REASON' is no longer in use");
     }
 
@@ -238,7 +241,8 @@ class AmendmentReferenceValidationStepTest {
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
       assertThat(error.getCode())
-          .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY);
+          .isEqualTo(
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY.toString());
       assertThat(error.getMessage())
           .isEqualTo(
               "Amendment Reason 'INCORRECT_MEANS_ASSESSMENT' is not valid for Requested By 'PROVIDER'");
@@ -252,7 +256,7 @@ class AmendmentReferenceValidationStepTest {
 
       assertThat(step.validate(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN.toString());
     }
   }
 
@@ -269,8 +273,8 @@ class AmendmentReferenceValidationStepTest {
       assertThat(step.validate(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactlyInAnyOrder(
-              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
-              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING);
+              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING.toString(),
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING.toString());
     }
   }
 
@@ -294,7 +298,8 @@ class AmendmentReferenceValidationStepTest {
                 assertThat(error.getCode())
                     .isEqualTo(
                         ClaimAmendmentValidationCode
-                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
+                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA
+                            .toString());
                 assertThat(error.isFatal()).isTrue();
               });
     }
@@ -313,7 +318,8 @@ class AmendmentReferenceValidationStepTest {
       assertThat(step.validate(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(
-              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
+              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA
+                  .toString());
     }
 
     @Test
@@ -329,7 +335,8 @@ class AmendmentReferenceValidationStepTest {
       assertThat(step.validate(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactly(
-              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
+              ClaimAmendmentValidationCode.TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA
+                  .toString());
     }
   }
 }

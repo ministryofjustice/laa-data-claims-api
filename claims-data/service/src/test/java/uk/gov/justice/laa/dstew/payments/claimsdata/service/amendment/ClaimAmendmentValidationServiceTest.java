@@ -14,15 +14,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentPdaValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
@@ -44,6 +47,9 @@ class ClaimAmendmentValidationServiceTest {
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
   @Mock private ClaimAmendmentValidationStep laterStep;
   @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
+  @Mock private ValidationService validationService;
+  @Mock private AmendmentDiffAssembler diffAssembler;
+  @Mock private ValidationClaimMapper validationClaimMapper;
 
   private static ClaimAmendmentValidationService orchestratorWith(
       ClaimAmendmentValidationStep... steps) {
@@ -115,7 +121,8 @@ class ClaimAmendmentValidationServiceTest {
                 new ClaimStatusValidationStep(),
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
-                new AmendmentPdaValidationStep(),
+                new AmendmentExternalValidationStep(
+                    validationService, diffAssembler, validationClaimMapper),
                 new AmendmentFspValidationStep()));
 
     assertThatCode(() -> service.validateAmendmentRequest(anyState())).doesNotThrowAnyException();

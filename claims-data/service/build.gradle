@@ -140,6 +140,12 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 
+    // MockServer (Testcontainers) for stubbing the validation-core external HTTP calls
+    // (Fee Scheme Platform / Provider Details) in integration tests. Version of the client is
+    // pinned to match the container image tag used in MockServerIntegrationTest.
+    integrationTestImplementation "org.testcontainers:testcontainers-mockserver"
+    integrationTestImplementation "org.mock-server:mockserver-client-java:5.15.0"
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"

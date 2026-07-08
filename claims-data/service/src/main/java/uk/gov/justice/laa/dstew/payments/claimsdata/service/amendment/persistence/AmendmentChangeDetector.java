@@ -35,12 +35,32 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 @Component
 public class AmendmentChangeDetector {
 
-  /** A single comparable field within a {@link DiffSection}. */
+  /**
+   * A lightweight accessor that pairs a stable field identifier with a function that extracts the
+   * field's value from a containing object.
+   *
+   * <p>The identifier is used in emitted {@link DiffEntry} instances and should be the canonical
+   * domain name for the field (for example, {@code "claim.feeCode"}). The accessor is invoked
+   * against the before/after objects when detecting changes.
+   *
+   * @param fieldIdentifier stable, machine-readable field identifier used in diffs
+   * @param accessor function that returns the field's value from the container object
+   */
   private record FieldAccessor<T>(String fieldIdentifier, Function<T, Object> accessor) {}
 
   /**
    * A group of fields compared between a before and after object of the same type, whose changes
    * are all attributed to the section's {@link ChangeSource}.
+   *
+   * <p>The {@link #detect(ClaimAmendmentState)} method compares each named field on the resolved
+   * before/after objects and emits a {@link DiffEntry} for each value that is considered different
+   * (using {@link #valuesEqual(Object, Object)}).
+   *
+   * @param source section change source (e.g. {@link ChangeSource#REQUESTED} or {@link
+   *     ChangeSource#FSP})
+   * @param beforeExtractor function that extracts the 'before' object from the amendment state
+   * @param afterExtractor function that extracts the 'after' object from the amendment state
+   * @param fields the list of fields to compare in this section
    */
   private record DiffSection<T>(
       ChangeSource source,
@@ -100,6 +120,7 @@ public class AmendmentChangeDetector {
           ClaimAmendmentState::getAfterFee,
           feeFields());
 
+  /** The ordered sections that are compared when detecting amendment changes. */
   private static final List<DiffSection<?>> SECTIONS =
       List.of(REQUESTED_CLAIM_STATE_SECTION, FSP_FEE_SECTION);
 
@@ -118,10 +139,32 @@ public class AmendmentChangeDetector {
     return changes;
   }
 
+  /**
+   * Convenience factory that builds a {@link FieldAccessor} for the named field.
+   *
+   * <p>Used when declaring the set of fields inspected by the detector; keeps the field-list
+   * declarations compact and readable.
+   *
+   * @param identifier stable field identifier used in emitted {@link DiffEntry} instances
+   * @param accessor function extracting the field value from the section object
+   * @param <T> the section object type (e.g. {@link ClaimStateSnapshot} or {@link
+   *     CalculatedFeeDetailSnapshot})
+   * @return a new {@link FieldAccessor} pairing identifier and accessor
+   */
   private static <T> FieldAccessor<T> field(String identifier, Function<T, Object> accessor) {
     return new FieldAccessor<>(identifier, accessor);
   }
 
+  /**
+   * Builds the list of claim-state field accessors that are compared in the REQUESTED section.
+   *
+   * <p>Each entry pairs a stable identifier (the string used in the persisted {@code diff} JSONB)
+   * with a method reference that extracts the value from {@link ClaimStateSnapshot}. The list
+   * includes claim, client, claim-case and claim-summary-fee scalar fields that are considered
+   * provider-amendable.
+   *
+   * @return an immutable list of {@link FieldAccessor} instances for the claim-state section
+   */
   private static List<FieldAccessor<ClaimStateSnapshot>> claimStateFields() {
     List<FieldAccessor<ClaimStateSnapshot>> fields = new ArrayList<>();
 
@@ -305,6 +348,14 @@ public class AmendmentChangeDetector {
     return List.copyOf(fields);
   }
 
+  /**
+   * Builds the list of calculated-fee field accessors that are compared in the FSP section.
+   *
+   * <p>Fields here are sourced from the fee snapshot returned by the Fee Scheme Platform; changes
+   * to these values are attributed to {@link ChangeSource#FSP}.
+   *
+   * @return an immutable list of {@link FieldAccessor} instances for the FSP fee section
+   */
   private static List<FieldAccessor<CalculatedFeeDetailSnapshot>> feeFields() {
     List<FieldAccessor<CalculatedFeeDetailSnapshot>> fields = new ArrayList<>();
 
