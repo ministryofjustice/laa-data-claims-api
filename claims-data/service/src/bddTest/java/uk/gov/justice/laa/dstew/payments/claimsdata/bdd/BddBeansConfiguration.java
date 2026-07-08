@@ -51,7 +51,6 @@ public class BddBeansConfiguration {
     return new LegalHelpFileGenerator();
   }
 
-
   /** Resolves the running embedded server's base URL on each call. */
   public static final class BddServerInfo {
     private final Environment environment;

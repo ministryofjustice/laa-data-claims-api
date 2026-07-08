@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_STATUS_POLL_TIMEOUT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_SUBMISSION_SUMMARY_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_TERMINAL_STATES;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -294,8 +294,8 @@ public class BddApiStepSupport {
    * Voids a single claim via {@code POST /api/v1/claims/{claimId}/void}. Used by the disbursement
    * duplicate-check scenarios that re-submit a claim after voiding.
    *
-   * @param userId a UUID identifying the caller; the endpoint's {@code created_by_user_id} field
-   *     is typed as {@link UUID} in the OpenAPI schema, so a UUID string must be supplied.
+   * @param userId a UUID identifying the caller; the endpoint's {@code created_by_user_id} field is
+   *     typed as {@link UUID} in the OpenAPI schema, so a UUID string must be supplied.
    */
   public int voidClaim(UUID claimId, UUID userId, String reason) {
     HttpHeaders headers = new HttpHeaders();
@@ -322,8 +322,8 @@ public class BddApiStepSupport {
   }
 
   /**
-   * Creates a Submission entity via {@code POST /api/v1/submissions} so that follow-up steps
-   * (e.g. claim creation, claim voiding) have a real DB row to act on. Normally the event-service
+   * Creates a Submission entity via {@code POST /api/v1/submissions} so that follow-up steps (e.g.
+   * claim creation, claim voiding) have a real DB row to act on. Normally the event-service
    * materialises submissions during file parsing; in local BDD mode we do it explicitly.
    */
   public void createSubmission(
@@ -335,10 +335,18 @@ public class BddApiStepSupport {
 
     String body =
         "{"
-            + "\"submission_id\":\"" + submissionId + "\","
-            + "\"bulk_submission_id\":\"" + bulkSubmissionId + "\","
-            + "\"office_account_number\":\"" + office + "\","
-            + "\"submission_period\":\"" + submissionPeriod + "\","
+            + "\"submission_id\":\""
+            + submissionId
+            + "\","
+            + "\"bulk_submission_id\":\""
+            + bulkSubmissionId
+            + "\","
+            + "\"office_account_number\":\""
+            + office
+            + "\","
+            + "\"submission_period\":\""
+            + submissionPeriod
+            + "\","
             + "\"area_of_law\":\"LEGAL HELP\","
             + "\"provider_user_id\":\"test-user\","
             + "\"status\":\"READY_FOR_VALIDATION\","
@@ -399,7 +407,10 @@ public class BddApiStepSupport {
     JsonNode idNode = json.path("id");
     if (idNode.isMissingNode() || idNode.isNull()) {
       throw new IllegalStateException(
-          "POST /submissions/" + submissionId + "/claims did not return an id: " + response.getBody());
+          "POST /submissions/"
+              + submissionId
+              + "/claims did not return an id: "
+              + response.getBody());
     }
     return UUID.fromString(idNode.asText());
   }

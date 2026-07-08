@@ -106,8 +106,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     String firstPeriod = MONTHS.get(0) + "-2018";
     String secondPeriod = offsetPeriod(firstPeriod, 1);
 
-    GeneratedPair pair =
-        generator.generatePair(format, office, 1, firstPeriod, secondPeriod, rows);
+    GeneratedPair pair = generator.generatePair(format, office, 1, firstPeriod, secondPeriod, rows);
 
     capturePair(pair, office, firstPeriod, secondPeriod);
   }
@@ -126,8 +125,9 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     waitForEventService(id);
   }
 
-  @When("I submit the first submission and wait for the event service to complete the duplicate"
-      + " checks")
+  @When(
+      "I submit the first submission and wait for the event service to complete the duplicate"
+          + " checks")
   public void iSubmitTheFirstSubmissionAndWait() throws IOException {
     String office = requireOffice(context.getFirstOffice());
     api.postBulkSubmissionFromPath(
@@ -138,8 +138,9 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     waitForEventService(id);
   }
 
-  @When("I submit the second submission and wait for the event service to complete the duplicate"
-      + " checks")
+  @When(
+      "I submit the second submission and wait for the event service to complete the duplicate"
+          + " checks")
   public void iSubmitTheSecondSubmissionAndWait() throws IOException {
     String office = requireOffice(context.getSecondOffice());
     api.postBulkSubmissionFromPath(
@@ -162,8 +163,10 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
 
   @Then("^the (first|second) submission is accepted$")
   public void theNamedSubmissionIsAccepted(String which) throws IOException {
-    UUID id = "first".equals(which) ? context.getFirstBulkSubmissionId()
-                                    : context.getSecondBulkSubmissionId();
+    UUID id =
+        "first".equals(which)
+            ? context.getFirstBulkSubmissionId()
+            : context.getSecondBulkSubmissionId();
     driveOutcomeIfLocal(id, BulkSubmissionStatus.VALIDATION_SUCCEEDED);
     assertPersistedAreaOfLaw(id);
   }
@@ -171,8 +174,10 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
   @Then("^the (first|second) submission is accepted with (\\d+) claims?$")
   public void theNamedSubmissionIsAcceptedWithClaims(String which, int claimCount)
       throws IOException {
-    UUID id = "first".equals(which) ? context.getFirstBulkSubmissionId()
-                                    : context.getSecondBulkSubmissionId();
+    UUID id =
+        "first".equals(which)
+            ? context.getFirstBulkSubmissionId()
+            : context.getSecondBulkSubmissionId();
     driveOutcomeIfLocal(id, BulkSubmissionStatus.VALIDATION_SUCCEEDED);
     assertPersistedAreaOfLaw(id);
     assertOutcomeCount(id, claimCount);
@@ -224,9 +229,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "BDD duplicate-check void");
     assertThat(status)
-        .as(
-            "POST /claims/{id}/void should return 201 (body: %s)",
-            context.getLastResponseBody())
+        .as("POST /claims/{id}/void should return 201 (body: %s)", context.getLastResponseBody())
         .isEqualTo(201);
   }
 
@@ -239,8 +242,8 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
       return; // outcomes are PATCH-driven in local mode; nothing to wait for
     }
     String terminal = api.waitForBulkSubmissionTerminalStatus(bulkSubmissionId);
-    log.info("[uat mode] Bulk submission {} reached terminal status {}", bulkSubmissionId,
-        terminal);
+    log.info(
+        "[uat mode] Bulk submission {} reached terminal status {}", bulkSubmissionId, terminal);
   }
 
   private void driveOutcomeIfLocal(UUID bulkSubmissionId, BulkSubmissionStatus expected) {
@@ -263,7 +266,8 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     JsonNode bulk = api.getBulkSubmission(bulkSubmissionId);
     String areaOfLaw = bulk.path("details").path("schedule").path("area_of_law").asText("");
     assertThat(areaOfLaw)
-        .as("Bulk submission %s should expose details.schedule.area_of_law=LEGAL HELP",
+        .as(
+            "Bulk submission %s should expose details.schedule.area_of_law=LEGAL HELP",
             bulkSubmissionId)
         .isEqualToIgnoringCase("LEGAL HELP");
   }

@@ -34,20 +34,20 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 /**
  * Step definitions for {@code duplicateChecksLegalHelp.feature}.
  *
- * <p>Consolidates what used to live across {@code LegalHelpDuplicateChecksSteps} (no-op
- * scaffold), {@code LegacyDuplicateChecksCompatibilitySteps} and {@code BulkSubmissionApiSteps}
- * into a single class. Steps shared with the disbursement feature (e.g.
- * {@code Given a Legal Help "csv" submission with the following claims}) live in
- * {@link LegalHelpDisbursementsDuplicateChecksSteps} — Cucumber picks them up regardless of
- * which class declares them, so this class only owns the ones DCLH needs uniquely.
+ * <p>Consolidates what used to live across {@code LegalHelpDuplicateChecksSteps} (no-op scaffold),
+ * {@code LegacyDuplicateChecksCompatibilitySteps} and {@code BulkSubmissionApiSteps} into a single
+ * class. Steps shared with the disbursement feature (e.g. {@code Given a Legal Help "csv"
+ * submission with the following claims}) live in {@link LegalHelpDisbursementsDuplicateChecksSteps}
+ * — Cucumber picks them up regardless of which class declares them, so this class only owns the
+ * ones DCLH needs uniquely.
  *
  * <p>The harness has two run modes controlled by the {@code -Dbdd.mode} system property:
  *
  * <ul>
  *   <li><b>local</b> (default) — event-service is not running. The step class drives outcomes
  *       directly via {@code PATCH /api/v1/bulk-submissions/{id}} so status assertions can pass.
- *   <li><b>uat</b> — event-service is present. No PATCH shortcut is applied; the harness waits
- *       for real terminal status.
+ *   <li><b>uat</b> — event-service is present. No PATCH shortcut is applied; the harness waits for
+ *       real terminal status.
  * </ul>
  */
 public class LegalHelpDuplicateChecksSteps {
@@ -199,4 +199,3 @@ public class LegalHelpDuplicateChecksSteps {
     return ("LEGALHELP".equals(expected)) ? "LEGAL HELP" : expected;
   }
 }
-

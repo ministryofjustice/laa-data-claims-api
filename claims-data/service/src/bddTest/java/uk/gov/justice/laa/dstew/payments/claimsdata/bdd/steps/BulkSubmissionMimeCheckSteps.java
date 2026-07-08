@@ -81,15 +81,14 @@ public class BulkSubmissionMimeCheckSteps {
 
   /**
    * Asserts that the previous MIME-checked upload was accepted end-to-end: HTTP 201, a bulk
-   * submission id was returned, and the persisted bulk_submission record exposes the expected
-   * area of law. Kept here (rather than in the duplicate-checks step class) so that
-   * {@code mimeChecks.feature} owns the definitions of the steps it uses.
+   * submission id was returned, and the persisted bulk_submission record exposes the expected area
+   * of law. Kept here (rather than in the duplicate-checks step class) so that {@code
+   * mimeChecks.feature} owns the definitions of the steps it uses.
    */
   @Then("I should see the submission summary for {string}")
   public void iShouldSeeTheSubmissionSummaryFor(String areaOfLaw) throws IOException {
     assertThat(context.getLastStatusCode())
-        .as("Expected POST /bulk-submissions to return 201 but got %s",
-            context.getLastStatusCode())
+        .as("Expected POST /bulk-submissions to return 201 but got %s", context.getLastStatusCode())
         .isEqualTo(201);
     UUID id = context.getBulkSubmissionId();
     assertThat(id).as("Bulk submission id must be populated").isNotNull();

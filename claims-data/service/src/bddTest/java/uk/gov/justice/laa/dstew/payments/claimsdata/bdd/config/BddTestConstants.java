@@ -93,8 +93,8 @@ public final class BddTestConstants {
   public static final String BDD_MODE_UAT = "uat";
 
   /**
-   * Returns {@code true} when the harness is running against a real event-service (i.e. UAT CI)
-   * and should assert outcomes end-to-end rather than driving them via PATCH shortcuts.
+   * Returns {@code true} when the harness is running against a real event-service (i.e. UAT CI) and
+   * should assert outcomes end-to-end rather than driving them via PATCH shortcuts.
    */
   public static boolean isUatMode() {
     return BDD_MODE_UAT.equalsIgnoreCase(System.getProperty(BDD_MODE_PROPERTY, "local").trim());
