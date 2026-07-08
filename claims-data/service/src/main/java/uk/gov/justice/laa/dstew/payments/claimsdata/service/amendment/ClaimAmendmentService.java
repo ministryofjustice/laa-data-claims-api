@@ -67,13 +67,15 @@ public class ClaimAmendmentService {
         validationService.validateAmendmentRequest(prepared.state());
     if (!errors.isEmpty()) {
       log.debug(
-          "Amendment for claim {} rejected with {} validation error(s)", claim, errors.size());
+          "Amendment for claim {} rejected with {} validation error(s)",
+          claim.getId(),
+          errors.size());
       return ClaimAmendmentResult.rejected(errors);
     }
 
     // Phase 3 - commit: single atomic write transaction; reattaches the prepared claim.
     ClaimAmendment amendment = commitService.commit(prepared.claim(), prepared.state());
-    log.debug("Persisted amendment {} for claim {}", amendment.getId(), claim);
+    log.debug("Persisted amendment {} for claim {}", amendment.getId(), claim.getId());
     return ClaimAmendmentResult.success(amendment);
   }
 }

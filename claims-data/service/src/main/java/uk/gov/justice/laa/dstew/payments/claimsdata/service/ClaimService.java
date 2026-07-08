@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -30,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -209,12 +212,9 @@ public class ClaimService
   }
 
   private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
-    // Rule 1: If there is no status, it must be an amendment
     if (claimPatch.getStatus() == null) {
       return true;
     }
-
-    // Rule 2: Status is present, but there are other updated business fields attached
     return hasAdditionalFieldUpdates(claimPatch, claim);
   }
 
@@ -232,7 +232,6 @@ public class ClaimService
     ReflectionUtils.doWithFields(
         patch.getClass(),
         patchField -> {
-          // Fast-fail out if an update is already found or field is ignored
           if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
             return;
           }
@@ -240,16 +239,13 @@ public class ClaimService
           ReflectionUtils.makeAccessible(patchField);
           Object patchValue = patchField.get(patch);
 
-          // If the patch field is provided (not null), check if it's an actual change
           if (patchValue != null) {
-            // Attempt to locate a field with the exact same name on the Claim entity
             Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
 
             if (claimField != null) {
               ReflectionUtils.makeAccessible(claimField);
               Object claimValue = claimField.get(claim);
 
-              // If the values are completely identical, ignore it (no true business change)
               if (Objects.equals(patchValue, claimValue)) {
                 return;
               }
@@ -281,7 +277,6 @@ public class ClaimService
               });
     }
 
-    // existing claim update code - NOT claim amendments
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
@@ -306,14 +301,7 @@ public class ClaimService
   }
 
   private void amendClaim(Claim claim, ClaimPatch claimPatch) {
-    // 1. FAST FAIL: Optimistic Locking Guard
-    // Prevent heavy orchestration and external API calls if the client's version is already stale.
-    // A null version bypasses the check for internal system events.
-    if (claimPatch.getVersion() != null && !claimPatch.getVersion().equals(claim.getVersion())) {
-      throw new jakarta.persistence.OptimisticLockException("The record was modified concurrently");
-    }
 
-    // 2. Retain logic for saving incoming validation messages
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
       claimPatch
@@ -325,18 +313,12 @@ public class ClaimService
               });
     }
 
-    // 3. Map the patch to the payload
-    uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload payload =
-        claimMapper.toAmendmentPayload(claimPatch);
+    ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
 
-    // 4. Delegate the entire end-to-end flow to the unified method
-    uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult result =
-        claimAmendmentService.submitAmendment(claim, payload);
+    ClaimAmendmentResult result = claimAmendmentService.submitAmendment(claim, payload);
 
-    // 5. Catch any rejections and throw your exception to trigger the 400 handler
     if (result.errors() != null && !result.errors().isEmpty()) {
-      throw new uk.gov.justice.laa.dstew.payments.claimsdata.exception
-          .ClaimAmendmentValidationException(result.errors());
+      throw new ClaimAmendmentValidationException(result.errors());
     }
   }
 

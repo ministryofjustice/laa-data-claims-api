@@ -25,6 +25,7 @@ import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -112,7 +113,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     originalAmendmentState = claimsApiProperties.getAmendments().isEnabled();
   }
 
-  @org.junit.jupiter.api.AfterEach
+  @AfterEach
   void tearDown() {
     // Safely restore the original state using String.valueOf() just like your integration tests
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
