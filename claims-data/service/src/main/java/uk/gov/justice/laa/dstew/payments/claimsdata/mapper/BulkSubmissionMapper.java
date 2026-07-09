@@ -29,6 +29,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 /** Mapping interface for the mapping of bulk submission objects. */
 @Mapper(componentModel = "spring")
 public interface BulkSubmissionMapper {
+  String SURGERY_CLIENTS_COUNT_RANGE_MESSAGE = "Surgery Clients Count must be between 1 and 20";
+  int SURGERY_CLIENTS_COUNT_MIN = 1;
+  int SURGERY_CLIENTS_COUNT_MAX = 20;
+
+  String SURGERY_MATTERS_COUNT_RANGE_MESSAGE = "Surgery Matters Count must be between 0 and 99";
+  int SURGERY_MATTERS_COUNT_MIN = 0;
+  int SURGERY_MATTERS_COUNT_MAX = 99;
+
   /**
    * Maps the given {@code FileSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
    *
@@ -236,11 +244,15 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "noOfClients",
       expression =
-          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
+          "java(parseIntegerFieldInInclusiveRange(outcome.noOfClients(),"
+              + " SURGERY_CLIENTS_COUNT_RANGE_MESSAGE,"
+              + " SURGERY_CLIENTS_COUNT_MIN, SURGERY_CLIENTS_COUNT_MAX))")
   @Mapping(
       target = "noOfSurgeryClients",
       expression =
-          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
+          "java(parseIntegerFieldInInclusiveRange(outcome.noOfSurgeryClients(),"
+              + " SURGERY_MATTERS_COUNT_RANGE_MESSAGE,"
+              + " SURGERY_MATTERS_COUNT_MIN, SURGERY_MATTERS_COUNT_MAX))")
   @Mapping(
       target = "noOfSuspects",
       expression =
@@ -400,11 +412,15 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "noOfClients",
       expression =
-          "java(parseIntegerField(outcome.noOfClients(), \"Surgery Clients Count must be between 1 and 20\"))")
+          "java(parseIntegerFieldInInclusiveRange(outcome.noOfClients(),"
+              + " SURGERY_CLIENTS_COUNT_RANGE_MESSAGE,"
+              + " SURGERY_CLIENTS_COUNT_MIN, SURGERY_CLIENTS_COUNT_MAX))")
   @Mapping(
       target = "noOfSurgeryClients",
       expression =
-          "java(parseIntegerField(outcome.noOfSurgeryClients(), \"Surgery Matters Count must be between 1 and 20\"))")
+          "java(parseIntegerFieldInInclusiveRange(outcome.noOfSurgeryClients(),"
+              + " SURGERY_MATTERS_COUNT_RANGE_MESSAGE,"
+              + " SURGERY_MATTERS_COUNT_MIN, SURGERY_MATTERS_COUNT_MAX))")
   @Mapping(
       target = "noOfSuspects",
       expression =
@@ -471,6 +487,29 @@ public interface BulkSubmissionMapper {
     } catch (NumberFormatException ex) {
       throw new BulkSubmissionFieldConversionException(fieldName, value, ex);
     }
+  }
+
+  /**
+   * Map to an {@link Integer} within an inclusive range.
+   *
+   * @param value the value to map.
+   * @param fieldName the name of the field being mapped.
+   * @param minInclusive the minimum accepted value.
+   * @param maxInclusive the maximum accepted value.
+   * @return a validated Integer representation of the field.
+   */
+  default Integer parseIntegerFieldInInclusiveRange(
+      String value, String fieldName, int minInclusive, int maxInclusive) {
+    Integer parsedValue = parseIntegerField(value, fieldName);
+    if (parsedValue == null) {
+      return null;
+    }
+
+    if (parsedValue < minInclusive || parsedValue > maxInclusive) {
+      throw new BulkSubmissionFieldConversionException(fieldName, value);
+    }
+
+    return parsedValue;
   }
 
   /**

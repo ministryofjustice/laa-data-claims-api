@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -119,7 +120,7 @@ class BulkSubmissionMapperTests {
     "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
     "desiAccRep, notANumber,Designated Accredited Representative Code must be a number from 1 to 5",
     "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
-    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
+    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 0 and 99",
     "noOfSuspects, notANumber,Suspects Defendants Count must be less than 100",
     "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
     "numberOfMediationSessions, notANumber,Mediation Sessions Count must be less than 100",
@@ -189,7 +190,7 @@ class BulkSubmissionMapperTests {
     "hoInterview, notANumber,HO Interview must be between 0 and 9",
     "medicalReportsClaimed, notANumber,Medical Reports Count must be between 0 and 10",
     "noOfClients, notANumber,Surgery Clients Count must be between 1 and 20",
-    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 1 and 20",
+    "noOfSurgeryClients, notANumber,Surgery Matters Count must be between 0 and 99",
     "noOfSuspects, notANumber,Suspects Defendants Count must be less than 100",
     "noOfPoliceStation, notANumber,Police Station Court Attendances Count must be between 0 and 99",
     "numberOfMediationSessions, notANumber,Mediation Sessions Count must be less than 100",
@@ -207,6 +208,130 @@ class BulkSubmissionMapperTests {
 
     assertEquals(expectedExceptionMessage, actualException.getMessage());
     assertEquals(invalidValue, actualException.getRejectedValue());
+  }
+
+  @ParameterizedTest(name = "Should map CSV Surgery Matters Count value {0}")
+  @CsvSource({"0", "1", "20", "21", "99"})
+  void shouldMapCsvOutcomeSurgeryMattersCountWithinRange(int surgeryMattersCount) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", String.valueOf(surgeryMattersCount));
+
+    FileSubmission submission = createCsvSubmission(createCsvOutcome(overrides, "Y"));
+
+    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
+    expected.outcomes(
+        List.of(
+            ClaimsDataTestUtil.getBulkSubmissionOutcome(true)
+                .noOfSurgeryClients(surgeryMattersCount)));
+
+    assertEquals(expected, bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+  }
+
+  @ParameterizedTest(name = "Should map XML Surgery Matters Count value {0}")
+  @CsvSource({"0", "1", "20", "21", "99"})
+  void shouldMapXmlOutcomeSurgeryMattersCountWithinRange(int surgeryMattersCount) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", String.valueOf(surgeryMattersCount));
+
+    XmlOutcome outcome = createXmlOutcome(overrides, "Y");
+
+    assertEquals(
+        ClaimsDataTestUtil.getBulkSubmissionOutcome(true).noOfSurgeryClients(surgeryMattersCount),
+        bulkSubmissionMapper.toBulkSubmissionOutcome(outcome));
+  }
+
+  @ParameterizedTest(name = "Should reject CSV Surgery Matters Count value {0}")
+  @CsvSource({"100", "-1", "1.5", "notANumber"})
+  void shouldRejectCsvOutcomeSurgeryMattersCountOutsideRange(String invalidValue) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", invalidValue);
+
+    FileSubmission submission = createCsvSubmission(createCsvOutcome(overrides, "Y"));
+
+    BulkSubmissionFieldConversionException exception =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+
+    assertEquals("Surgery Matters Count must be between 0 and 99", exception.getExceptionMessage());
+    assertEquals(invalidValue, exception.getRejectedValue());
+  }
+
+  @ParameterizedTest(name = "Should reject XML Surgery Matters Count value {0}")
+  @CsvSource({"100", "-1", "1.5", "notANumber"})
+  void shouldRejectXmlOutcomeSurgeryMattersCountOutsideRange(String invalidValue) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", invalidValue);
+
+    XmlOutcome outcome = createXmlOutcome(overrides, "Y");
+
+    BulkSubmissionFieldConversionException exception =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionOutcome(outcome));
+
+    assertEquals("Surgery Matters Count must be between 0 and 99", exception.getMessage());
+    assertEquals(invalidValue, exception.getRejectedValue());
+  }
+
+  @Test
+  void shouldTreatBlankCsvSurgeryMattersCountAsOptional() {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", "");
+
+    FileSubmission submission = createCsvSubmission(createCsvOutcome(overrides, "Y"));
+
+    GetBulkSubmission200ResponseDetails expected = getExpectedBulkSubmissionDetails(true);
+    expected.outcomes(
+        List.of(ClaimsDataTestUtil.getBulkSubmissionOutcome(true).noOfSurgeryClients(null)));
+
+    assertEquals(expected, bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+  }
+
+  @Test
+  void shouldTreatOmittedXmlSurgeryMattersCountAsOptional() {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfSurgeryClients", null);
+
+    XmlOutcome outcome = createXmlOutcome(overrides, "Y");
+
+    assertEquals(
+        ClaimsDataTestUtil.getBulkSubmissionOutcome(true).noOfSurgeryClients(null),
+        bulkSubmissionMapper.toBulkSubmissionOutcome(outcome));
+  }
+
+  @ParameterizedTest(name = "Should reject CSV Surgery Clients Count value {0}")
+  @CsvSource({"0", "21"})
+  void shouldRejectCsvOutcomeSurgeryClientsCountOutsideRange(int invalidValue) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfClients", String.valueOf(invalidValue));
+
+    FileSubmission submission = createCsvSubmission(createCsvOutcome(overrides, "Y"));
+
+    BulkSubmissionFieldConversionException exception =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+
+    assertEquals("Surgery Clients Count must be between 1 and 20", exception.getExceptionMessage());
+    assertEquals(String.valueOf(invalidValue), exception.getRejectedValue());
+  }
+
+  @ParameterizedTest(name = "Should reject XML Surgery Clients Count value {0}")
+  @CsvSource({"0", "21"})
+  void shouldRejectXmlOutcomeSurgeryClientsCountOutsideRange(int invalidValue) {
+    Map<String, String> overrides = new HashMap<>();
+    overrides.put("noOfClients", String.valueOf(invalidValue));
+
+    XmlOutcome outcome = createXmlOutcome(overrides, "Y");
+
+    BulkSubmissionFieldConversionException exception =
+        assertThrows(
+            BulkSubmissionFieldConversionException.class,
+            () -> bulkSubmissionMapper.toBulkSubmissionOutcome(outcome));
+
+    assertEquals("Surgery Clients Count must be between 1 and 20", exception.getMessage());
+    assertEquals(String.valueOf(invalidValue), exception.getRejectedValue());
   }
 
   private static List<XmlMatterStarts> getXmlMatterStarts() {
@@ -368,8 +493,8 @@ class BulkSubmissionMapperTests {
     String costsDamagesRecovered = overrides.getOrDefault("costsDamagesRecovered", "56.78");
     String medicalReportsClaimed = overrides.getOrDefault("medicalReportsClaimed", "4");
     String desiAccRep = overrides.getOrDefault("desiAccRep", "5");
-    String noOfClients = overrides.getOrDefault("noOfClients", "6");
-    String noOfSurgeryClients = overrides.getOrDefault("noOfSurgeryClients", "7");
+    String noOfClients = getOverrideValue(overrides, "noOfClients", "6");
+    String noOfSurgeryClients = getOverrideValue(overrides, "noOfSurgeryClients", "7");
     String noOfSuspects = overrides.getOrDefault("noOfSuspects", "8");
     String noOfPoliceStation = overrides.getOrDefault("noOfPoliceStation", "9");
     String numberOfMediationSessions = overrides.getOrDefault("numberOfMediationSessions", "10");
@@ -515,8 +640,8 @@ class BulkSubmissionMapperTests {
     String costsDamagesRecovered = overrides.getOrDefault("costsDamagesRecovered", "56.78");
     String medicalReportsClaimed = overrides.getOrDefault("medicalReportsClaimed", "4");
     String desiAccRep = overrides.getOrDefault("desiAccRep", "5");
-    String noOfClients = overrides.getOrDefault("noOfClients", "6");
-    String noOfSurgeryClients = overrides.getOrDefault("noOfSurgeryClients", "7");
+    String noOfClients = getOverrideValue(overrides, "noOfClients", "6");
+    String noOfSurgeryClients = getOverrideValue(overrides, "noOfSurgeryClients", "7");
     String noOfSuspects = overrides.getOrDefault("noOfSuspects", "8");
     String noOfPoliceStation = overrides.getOrDefault("noOfPoliceStation", "9");
     String numberOfMediationSessions = overrides.getOrDefault("numberOfMediationSessions", "10");
@@ -662,5 +787,10 @@ class BulkSubmissionMapperTests {
         .outcomes(List.of(expectedBulkSubmissionOutcome))
         .matterStarts(expectedMatterStarts)
         .immigrationClr(expectedImmigrationClrRows);
+  }
+
+  private static String getOverrideValue(
+      Map<String, String> overrides, String key, String defaultValue) {
+    return overrides.containsKey(key) ? overrides.get(key) : defaultValue;
   }
 }

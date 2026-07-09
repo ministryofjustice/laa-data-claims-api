@@ -64,6 +64,21 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void exportsLegalHelpCsvPreservesExplicitZeroForSurgeryMattersCount() throws Exception {
+    claimSummaryFee1.setSurgeryMattersCount(0);
+    claimSummaryFeeRepository.saveAndFlush(claimSummaryFee1);
+
+    MvcResult response =
+        exportCsv(LEGAL_HELP_ENDPOINT, submission1.getId(), submission1.getOfficeAccountNumber());
+
+    Map<String, String> firstRow =
+        firstDataRowByHeader(response.getResponse().getContentAsString());
+
+    assertThat(firstRow.get("No of clients resulting in a Legal Help matter opened"))
+        .isEqualTo("0");
+  }
+
+  @Test
   void exportsCrimeLowerCsvWithDefinitionHeadersAndSeededRowValues() throws Exception {
     UUID crimeSubmissionId = createCrimeLowerExportData(CRIME_OFFICE);
     MvcResult response = exportCsv(CRIME_LOWER_ENDPOINT, crimeSubmissionId, CRIME_OFFICE);
