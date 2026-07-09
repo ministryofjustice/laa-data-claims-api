@@ -156,4 +156,28 @@ class SubmissionMapperTest {
     Assertions.assertEquals("A display message", log.getDisplayMessage());
     Assertions.assertEquals("A technical message", log.getTechnicalMessage());
   }
+
+  @Test
+  void toValidationMessageLog_mapsMessageCodeForFspMessages() {
+    Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
+
+    final ValidationMessagePatch patch =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.WARNING)
+            .source("FSP")
+            .displayMessage("A display message")
+            .technicalMessage("A technical message")
+            .messageCode("WARFAM1");
+
+    ValidationMessageLog log = submissionMapper.toValidationMessageLog(patch, submission);
+
+    assertThat(log.getId()).isNotNull();
+    Assertions.assertEquals(submission.getId(), log.getSubmissionId());
+    assertThat(log.getClaimId()).isNull();
+    Assertions.assertEquals(ValidationMessageType.WARNING, log.getType());
+    Assertions.assertEquals("FSP", log.getSource());
+    Assertions.assertEquals("A display message", log.getDisplayMessage());
+    Assertions.assertEquals("A technical message", log.getTechnicalMessage());
+    Assertions.assertEquals("WARFAM1", log.getMessageCode());
+  }
 }

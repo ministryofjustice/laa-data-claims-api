@@ -273,6 +273,11 @@ public class ClaimsDataTestUtil {
       }
 
       @Override
+      public String getMessageCode() {
+        return null;
+      }
+
+      @Override
       public String getUniqueFileNumber() {
         return null;
       }

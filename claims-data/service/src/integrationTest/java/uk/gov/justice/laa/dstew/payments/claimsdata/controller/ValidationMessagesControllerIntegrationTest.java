@@ -101,4 +101,81 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     assertThat(msg.getUniqueClientNumber()).isEqualTo(SEEDED_UNIQUE_CLIENT_NUMBER);
     validationMessageLogRepository.deleteAll();
   }
+
+  @Test
+  @DisplayName(
+      "getValidationMessages returns message_code for FSP-sourced messages when present in response")
+  void getValidationMessages_shouldReturnMessageCodeForFspMessages() throws Exception {
+    // given: an FSP-sourced ERROR validation message with a messageCode
+    ValidationMessageLog fspLog = new ValidationMessageLog();
+    fspLog.setId(Uuid7.timeBasedUuid());
+    fspLog.setSubmissionId(submission1.getId());
+    fspLog.setClaimId(CLAIM_1_ID);
+    fspLog.setType(ValidationMessageType.ERROR);
+    fspLog.setSource("FSP");
+    fspLog.setDisplayMessage("Enter a valid Fee Code.");
+    fspLog.setTechnicalMessage("Fee Code is invalid");
+    fspLog.setMessageCode("ERRALL1");
+    fspLog.setCreatedOn(Instant.now());
+    validationMessageLogRepository.save(fspLog);
+
+    // when: calling GET /api/v1/validation-messages filtered by submissionId and claimId
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .param("claim-id", CLAIM_1_ID.toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: message_code is present in the response item
+    ValidationMessagesResponse response =
+        OBJECT_MAPPER.readValue(
+            mvcResult.getResponse().getContentAsString(), ValidationMessagesResponse.class);
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    ValidationMessageBase msg = response.getContent().getFirst();
+    assertThat(msg.getId()).isEqualTo(fspLog.getId());
+    assertThat(msg.getSource()).isEqualTo("FSP");
+    assertThat(msg.getType()).isEqualTo(ValidationMessageType.ERROR);
+    assertThat(msg.getMessageCode()).isEqualTo("ERRALL1");
+    validationMessageLogRepository.deleteAll();
+  }
+
+  @Test
+  @DisplayName("getValidationMessages returns null message_code for non-FSP messages in response")
+  void getValidationMessages_shouldReturnNullMessageCodeForNonFspMessages() throws Exception {
+    // given: a SYSTEM-sourced validation message (no messageCode)
+    ValidationMessageLog systemLog = new ValidationMessageLog();
+    systemLog.setId(Uuid7.timeBasedUuid());
+    systemLog.setSubmissionId(submission1.getId());
+    systemLog.setClaimId(CLAIM_1_ID);
+    systemLog.setType(ValidationMessageType.ERROR);
+    systemLog.setSource("SYSTEM");
+    systemLog.setDisplayMessage("Missing case reference");
+    systemLog.setCreatedOn(Instant.now());
+    validationMessageLogRepository.save(systemLog);
+
+    // when: calling GET /api/v1/validation-messages
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .param("claim-id", CLAIM_1_ID.toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: message_code is null for non-FSP messages
+    ValidationMessagesResponse response =
+        OBJECT_MAPPER.readValue(
+            mvcResult.getResponse().getContentAsString(), ValidationMessagesResponse.class);
+    assertThat(response.getTotalElements()).isEqualTo(1);
+    ValidationMessageBase msg = response.getContent().getFirst();
+    assertThat(msg.getSource()).isEqualTo("SYSTEM");
+    assertThat(msg.getMessageCode()).isNull();
+    validationMessageLogRepository.deleteAll();
+  }
 }

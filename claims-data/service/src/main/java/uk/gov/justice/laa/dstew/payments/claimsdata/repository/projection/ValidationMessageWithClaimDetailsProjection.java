@@ -18,6 +18,8 @@ public interface ValidationMessageWithClaimDetailsProjection {
 
   String getDisplayMessage();
 
+  String getMessageCode();
+
   // Claim fields
   String getUniqueFileNumber();
 
