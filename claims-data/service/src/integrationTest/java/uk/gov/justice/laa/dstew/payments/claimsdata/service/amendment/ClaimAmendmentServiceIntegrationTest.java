@@ -64,13 +64,6 @@ class ClaimAmendmentServiceIntegrationTest extends MockServerIntegrationTest {
 
     ClaimAmendmentResult result = amendmentService.submitAmendment(CLAIM_1_ID, payload);
 
-    result
-        .errors()
-        .forEach(
-            e -> {
-              System.out.println("Validation error: " + e.getCode() + " - " + e.getMessage());
-            });
-
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.errors()).isEmpty();
 

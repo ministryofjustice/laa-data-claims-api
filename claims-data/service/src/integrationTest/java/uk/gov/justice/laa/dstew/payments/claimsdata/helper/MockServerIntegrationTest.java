@@ -7,9 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -193,8 +192,21 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
    * @throws IOException if the file cannot be read
    */
   protected static String readJsonFromFile(String fileName) throws IOException {
-    Path path = Paths.get("src/integrationTest/resources/responses", fileName);
-    return Files.readString(path);
+    String resourcePath = "responses/" + fileName;
+
+    // Load fixtures from the classpath - fail fast with a clear message if the resource
+    // is not available. This avoids brittle working-directory-dependent behaviour when
+    // running tests from an IDE or alternative project root.
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    try (InputStream is = cl.getResourceAsStream(resourcePath)) {
+      if (is == null) {
+        throw new IOException(
+            "Response resource not found on classpath: '"
+                + resourcePath
+                + "'. Ensure 'src/integrationTest/resources' is configured as resources for the integrationTest sourceSet and is on the test classpath.");
+      }
+      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+    }
   }
 
   /**
