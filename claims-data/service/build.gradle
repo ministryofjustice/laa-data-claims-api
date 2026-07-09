@@ -144,7 +144,6 @@ dependencies {
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
 
-    // Add this targeted constraint block right here:
     constraints {
         implementation('com.fasterxml.jackson.core:jackson-databind:2.21.5') {
             because 'fixes Snyk vulnerability in 2.21.4 without touching Jackson 3 dependencies'
