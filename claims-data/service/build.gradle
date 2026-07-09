@@ -60,8 +60,10 @@ dependencyManagement {
         // === INSERT YOUR OVERRIDES HERE ===
         // Force jackson-core 2.x to fix Snyk vulnerability
         dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
+        dependency "com.fasterxml.jackson.core:jackson-databind:2.21.5"
         // Force jackson-core 3.x to fix Snyk vulnerability (AWS SDK pulls tools.jackson)
         dependency 'tools.jackson.core:jackson-core:3.1.4'
+        dependency 'tools.jackson.core:jackson-databind:3.1.4'
     }
 }
 
