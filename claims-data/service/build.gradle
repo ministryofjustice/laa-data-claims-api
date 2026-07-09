@@ -68,9 +68,6 @@ dependencyManagement {
 }
 
 dependencies {
-    // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
-    implementation 'tools.jackson.core:jackson-core:3.1.1'
-
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.24'
 
@@ -120,7 +117,7 @@ dependencies {
     implementation 'software.amazon.awssdk:sts'
     implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-    implementation(platform("tools.jackson:jackson-bom:3.1.1"))
+    implementation(platform("tools.jackson:jackson-bom:3.1.4"))
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")
