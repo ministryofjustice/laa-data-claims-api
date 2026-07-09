@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.ClaimCaseFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.ClaimFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.ClaimSummaryFeeFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.ClientFields;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.FeeFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ChangeSource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -169,181 +174,221 @@ public class AmendmentChangeDetector {
     List<FieldAccessor<ClaimStateSnapshot>> fields = new ArrayList<>();
 
     // Claim fields.
-    fields.add(field("claim.scheduleReference", ClaimStateSnapshot::getScheduleReference));
-    fields.add(field("claim.lineNumber", ClaimStateSnapshot::getLineNumber));
-    fields.add(field("claim.caseReferenceNumber", ClaimStateSnapshot::getCaseReferenceNumber));
-    fields.add(field("claim.uniqueFileNumber", ClaimStateSnapshot::getUniqueFileNumber));
-    fields.add(field("claim.caseStartDate", ClaimStateSnapshot::getCaseStartDate));
-    fields.add(field("claim.caseConcludedDate", ClaimStateSnapshot::getCaseConcludedDate));
-    fields.add(field("claim.matterTypeCode", ClaimStateSnapshot::getMatterTypeCode));
-    fields.add(field("claim.crimeMatterTypeCode", ClaimStateSnapshot::getCrimeMatterTypeCode));
-    fields.add(field("claim.feeSchemeCode", ClaimStateSnapshot::getFeeSchemeCode));
-    fields.add(field("claim.feeCode", ClaimStateSnapshot::getFeeCode));
-    fields.add(field("claim.procurementAreaCode", ClaimStateSnapshot::getProcurementAreaCode));
-    fields.add(field("claim.accessPointCode", ClaimStateSnapshot::getAccessPointCode));
-    fields.add(field("claim.deliveryLocation", ClaimStateSnapshot::getDeliveryLocation));
+    fields.add(field(ClaimFields.SCHEDULE_REFERENCE, ClaimStateSnapshot::getScheduleReference));
+    fields.add(field(ClaimFields.LINE_NUMBER, ClaimStateSnapshot::getLineNumber));
     fields.add(
-        field("claim.representationOrderDate", ClaimStateSnapshot::getRepresentationOrderDate));
+        field(ClaimFields.CASE_REFERENCE_NUMBER, ClaimStateSnapshot::getCaseReferenceNumber));
+    fields.add(field(ClaimFields.UNIQUE_FILE_NUMBER, ClaimStateSnapshot::getUniqueFileNumber));
+    fields.add(field(ClaimFields.CASE_START_DATE, ClaimStateSnapshot::getCaseStartDate));
+    fields.add(field(ClaimFields.CASE_CONCLUDED_DATE, ClaimStateSnapshot::getCaseConcludedDate));
+    fields.add(field(ClaimFields.MATTER_TYPE_CODE, ClaimStateSnapshot::getMatterTypeCode));
     fields.add(
-        field("claim.suspectsDefendantsCount", ClaimStateSnapshot::getSuspectsDefendantsCount));
+        field(ClaimFields.CRIME_MATTER_TYPE_CODE, ClaimStateSnapshot::getCrimeMatterTypeCode));
+    fields.add(field(ClaimFields.FEE_SCHEME_CODE, ClaimStateSnapshot::getFeeSchemeCode));
+    fields.add(field(ClaimFields.FEE_CODE, ClaimStateSnapshot::getFeeCode));
+    fields.add(
+        field(ClaimFields.PROCUREMENT_AREA_CODE, ClaimStateSnapshot::getProcurementAreaCode));
+    fields.add(field(ClaimFields.ACCESS_POINT_CODE, ClaimStateSnapshot::getAccessPointCode));
+    fields.add(field(ClaimFields.DELIVERY_LOCATION, ClaimStateSnapshot::getDeliveryLocation));
     fields.add(
         field(
-            "claim.policeStationCourtAttendancesCount",
+            ClaimFields.REPRESENTATION_ORDER_DATE, ClaimStateSnapshot::getRepresentationOrderDate));
+    fields.add(
+        field(
+            ClaimFields.SUSPECTS_DEFENDANTS_COUNT, ClaimStateSnapshot::getSuspectsDefendantsCount));
+    fields.add(
+        field(
+            ClaimFields.POLICE_STATION_COURT_ATTENDANCES_COUNT,
             ClaimStateSnapshot::getPoliceStationCourtAttendancesCount));
     fields.add(
         field(
-            "claim.policeStationCourtPrisonId", ClaimStateSnapshot::getPoliceStationCourtPrisonId));
-    fields.add(field("claim.dsccNumber", ClaimStateSnapshot::getDsccNumber));
-    fields.add(field("claim.maatId", ClaimStateSnapshot::getMaatId));
+            ClaimFields.POLICE_STATION_COURT_PRISON_ID,
+            ClaimStateSnapshot::getPoliceStationCourtPrisonId));
+    fields.add(field(ClaimFields.DSCC_NUMBER, ClaimStateSnapshot::getDsccNumber));
+    fields.add(field(ClaimFields.MAAT_ID, ClaimStateSnapshot::getMaatId));
     fields.add(
         field(
-            "claim.prisonLawPriorApprovalNumber",
+            ClaimFields.PRISON_LAW_PRIOR_APPROVAL_NUMBER,
             ClaimStateSnapshot::getPrisonLawPriorApprovalNumber));
-    fields.add(field("claim.dutySolicitor", ClaimStateSnapshot::getDutySolicitor));
-    fields.add(field("claim.youthCourt", ClaimStateSnapshot::getYouthCourt));
-    fields.add(field("claim.schemeId", ClaimStateSnapshot::getSchemeId));
+    fields.add(field(ClaimFields.DUTY_SOLICITOR, ClaimStateSnapshot::getDutySolicitor));
+    fields.add(field(ClaimFields.YOUTH_COURT, ClaimStateSnapshot::getYouthCourt));
+    fields.add(field(ClaimFields.SCHEME_ID, ClaimStateSnapshot::getSchemeId));
     fields.add(
-        field("claim.mediationSessionsCount", ClaimStateSnapshot::getMediationSessionsCount));
-    fields.add(field("claim.mediationTimeMinutes", ClaimStateSnapshot::getMediationTimeMinutes));
-    fields.add(field("claim.outreachLocation", ClaimStateSnapshot::getOutreachLocation));
-    fields.add(field("claim.referralSource", ClaimStateSnapshot::getReferralSource));
+        field(ClaimFields.MEDIATION_SESSIONS_COUNT, ClaimStateSnapshot::getMediationSessionsCount));
+    fields.add(
+        field(ClaimFields.MEDIATION_TIME_MINUTES, ClaimStateSnapshot::getMediationTimeMinutes));
+    fields.add(field(ClaimFields.OUTREACH_LOCATION, ClaimStateSnapshot::getOutreachLocation));
+    fields.add(field(ClaimFields.REFERRAL_SOURCE, ClaimStateSnapshot::getReferralSource));
 
     // Client fields.
-    fields.add(field("client.clientForename", ClaimStateSnapshot::getClientForename));
-    fields.add(field("client.clientSurname", ClaimStateSnapshot::getClientSurname));
-    fields.add(field("client.clientDateOfBirth", ClaimStateSnapshot::getClientDateOfBirth));
-    fields.add(field("client.uniqueClientNumber", ClaimStateSnapshot::getUniqueClientNumber));
-    fields.add(field("client.clientPostcode", ClaimStateSnapshot::getClientPostcode));
-    fields.add(field("client.genderCode", ClaimStateSnapshot::getGenderCode));
-    fields.add(field("client.ethnicityCode", ClaimStateSnapshot::getEthnicityCode));
-    fields.add(field("client.disabilityCode", ClaimStateSnapshot::getDisabilityCode));
-    fields.add(field("client.isLegallyAided", ClaimStateSnapshot::getIsLegallyAided));
-    fields.add(field("client.clientTypeCode", ClaimStateSnapshot::getClientTypeCode));
-    fields.add(
-        field("client.homeOfficeClientNumber", ClaimStateSnapshot::getHomeOfficeClientNumber));
-    fields.add(field("client.claReferenceNumber", ClaimStateSnapshot::getClaReferenceNumber));
-    fields.add(field("client.claExemptionCode", ClaimStateSnapshot::getClaExemptionCode));
-    fields.add(field("client.client2Forename", ClaimStateSnapshot::getClient2Forename));
-    fields.add(field("client.client2Surname", ClaimStateSnapshot::getClient2Surname));
-    fields.add(field("client.client2DateOfBirth", ClaimStateSnapshot::getClient2DateOfBirth));
-    fields.add(field("client.client2Ucn", ClaimStateSnapshot::getClient2Ucn));
-    fields.add(field("client.client2Postcode", ClaimStateSnapshot::getClient2Postcode));
-    fields.add(field("client.client2GenderCode", ClaimStateSnapshot::getClient2GenderCode));
-    fields.add(field("client.client2EthnicityCode", ClaimStateSnapshot::getClient2EthnicityCode));
-    fields.add(field("client.client2DisabilityCode", ClaimStateSnapshot::getClient2DisabilityCode));
-    fields.add(field("client.client2IsLegallyAided", ClaimStateSnapshot::getClient2IsLegallyAided));
-
-    // Claim-case fields.
-    fields.add(field("claimCase.caseId", ClaimStateSnapshot::getCaseId));
-    fields.add(field("claimCase.uniqueCaseId", ClaimStateSnapshot::getUniqueCaseId));
-    fields.add(field("claimCase.caseStageCode", ClaimStateSnapshot::getCaseStageCode));
-    fields.add(field("claimCase.stageReachedCode", ClaimStateSnapshot::getStageReachedCode));
-    fields.add(
-        field("claimCase.standardFeeCategoryCode", ClaimStateSnapshot::getStandardFeeCategoryCode));
-    fields.add(field("claimCase.outcomeCode", ClaimStateSnapshot::getOutcomeCode));
+    fields.add(field(ClientFields.CLIENT_FORENAME, ClaimStateSnapshot::getClientForename));
+    fields.add(field(ClientFields.CLIENT_SURNAME, ClaimStateSnapshot::getClientSurname));
+    fields.add(field(ClientFields.CLIENT_DATE_OF_BIRTH, ClaimStateSnapshot::getClientDateOfBirth));
+    fields.add(field(ClientFields.UNIQUE_CLIENT_NUMBER, ClaimStateSnapshot::getUniqueClientNumber));
+    fields.add(field(ClientFields.CLIENT_POSTCODE, ClaimStateSnapshot::getClientPostcode));
+    fields.add(field(ClientFields.GENDER_CODE, ClaimStateSnapshot::getGenderCode));
+    fields.add(field(ClientFields.ETHNICITY_CODE, ClaimStateSnapshot::getEthnicityCode));
+    fields.add(field(ClientFields.DISABILITY_CODE, ClaimStateSnapshot::getDisabilityCode));
+    fields.add(field(ClientFields.IS_LEGALLY_AIDED, ClaimStateSnapshot::getIsLegallyAided));
+    fields.add(field(ClientFields.CLIENT_TYPE_CODE, ClaimStateSnapshot::getClientTypeCode));
     fields.add(
         field(
-            "claimCase.designatedAccreditedRepresentativeCode",
+            ClientFields.HOME_OFFICE_CLIENT_NUMBER, ClaimStateSnapshot::getHomeOfficeClientNumber));
+    fields.add(field(ClientFields.CLA_REFERENCE_NUMBER, ClaimStateSnapshot::getClaReferenceNumber));
+    fields.add(field(ClientFields.CLA_EXEMPTION_CODE, ClaimStateSnapshot::getClaExemptionCode));
+    fields.add(field(ClientFields.CLIENT2_FORENAME, ClaimStateSnapshot::getClient2Forename));
+    fields.add(field(ClientFields.CLIENT2_SURNAME, ClaimStateSnapshot::getClient2Surname));
+    fields.add(
+        field(ClientFields.CLIENT2_DATE_OF_BIRTH, ClaimStateSnapshot::getClient2DateOfBirth));
+    fields.add(field(ClientFields.CLIENT2_UCN, ClaimStateSnapshot::getClient2Ucn));
+    fields.add(field(ClientFields.CLIENT2_POSTCODE, ClaimStateSnapshot::getClient2Postcode));
+    fields.add(field(ClientFields.CLIENT2_GENDER_CODE, ClaimStateSnapshot::getClient2GenderCode));
+    fields.add(
+        field(ClientFields.CLIENT2_ETHNICITY_CODE, ClaimStateSnapshot::getClient2EthnicityCode));
+    fields.add(
+        field(ClientFields.CLIENT2_DISABILITY_CODE, ClaimStateSnapshot::getClient2DisabilityCode));
+    fields.add(
+        field(ClientFields.CLIENT2_IS_LEGALLY_AIDED, ClaimStateSnapshot::getClient2IsLegallyAided));
+
+    // Claim-case fields.
+    fields.add(field(ClaimCaseFields.CASE_ID, ClaimStateSnapshot::getCaseId));
+    fields.add(field(ClaimCaseFields.UNIQUE_CASE_ID, ClaimStateSnapshot::getUniqueCaseId));
+    fields.add(field(ClaimCaseFields.CASE_STAGE_CODE, ClaimStateSnapshot::getCaseStageCode));
+    fields.add(field(ClaimCaseFields.STAGE_REACHED_CODE, ClaimStateSnapshot::getStageReachedCode));
+    fields.add(
+        field(
+            ClaimCaseFields.STANDARD_FEE_CATEGORY_CODE,
+            ClaimStateSnapshot::getStandardFeeCategoryCode));
+    fields.add(field(ClaimCaseFields.OUTCOME_CODE, ClaimStateSnapshot::getOutcomeCode));
+    fields.add(
+        field(
+            ClaimCaseFields.DESIGNATED_ACCREDITED_REPRESENTATIVE_CODE,
             ClaimStateSnapshot::getDesignatedAccreditedRepresentativeCode));
     fields.add(
         field(
-            "claimCase.isPostalApplicationAccepted",
+            ClaimCaseFields.IS_POSTAL_APPLICATION_ACCEPTED,
             ClaimStateSnapshot::getIsPostalApplicationAccepted));
     fields.add(
         field(
-            "claimCase.isClient2PostalApplicationAccepted",
+            ClaimCaseFields.IS_CLIENT2_POSTAL_APPLICATION_ACCEPTED,
             ClaimStateSnapshot::getIsClient2PostalApplicationAccepted));
     fields.add(
         field(
-            "claimCase.mentalHealthTribunalReference",
+            ClaimCaseFields.MENTAL_HEALTH_TRIBUNAL_REFERENCE,
             ClaimStateSnapshot::getMentalHealthTribunalReference));
-    fields.add(field("claimCase.isNrmAdvice", ClaimStateSnapshot::getIsNrmAdvice));
-    fields.add(field("claimCase.followOnWork", ClaimStateSnapshot::getFollowOnWork));
-    fields.add(field("claimCase.transferDate", ClaimStateSnapshot::getTransferDate));
+    fields.add(field(ClaimCaseFields.IS_NRM_ADVICE, ClaimStateSnapshot::getIsNrmAdvice));
+    fields.add(field(ClaimCaseFields.FOLLOW_ON_WORK, ClaimStateSnapshot::getFollowOnWork));
+    fields.add(field(ClaimCaseFields.TRANSFER_DATE, ClaimStateSnapshot::getTransferDate));
     fields.add(
         field(
-            "claimCase.exemptionCriteriaSatisfied",
+            ClaimCaseFields.EXEMPTION_CRITERIA_SATISFIED,
             ClaimStateSnapshot::getExemptionCriteriaSatisfied));
     fields.add(
         field(
-            "claimCase.exceptionalCaseFundingReference",
+            ClaimCaseFields.EXCEPTIONAL_CASE_FUNDING_REFERENCE,
             ClaimStateSnapshot::getExceptionalCaseFundingReference));
-    fields.add(field("claimCase.isLegacyCase", ClaimStateSnapshot::getIsLegacyCase));
+    fields.add(field(ClaimCaseFields.IS_LEGACY_CASE, ClaimStateSnapshot::getIsLegacyCase));
 
     // Claim-summary-fee fields.
-    fields.add(field("claimSummaryFee.adviceTime", ClaimStateSnapshot::getAdviceTime));
-    fields.add(field("claimSummaryFee.travelTime", ClaimStateSnapshot::getTravelTime));
-    fields.add(field("claimSummaryFee.waitingTime", ClaimStateSnapshot::getWaitingTime));
-    fields.add(
-        field("claimSummaryFee.netProfitCostsAmount", ClaimStateSnapshot::getNetProfitCostsAmount));
+    fields.add(field(ClaimSummaryFeeFields.ADVICE_TIME, ClaimStateSnapshot::getAdviceTime));
+    fields.add(field(ClaimSummaryFeeFields.TRAVEL_TIME, ClaimStateSnapshot::getTravelTime));
+    fields.add(field(ClaimSummaryFeeFields.WAITING_TIME, ClaimStateSnapshot::getWaitingTime));
     fields.add(
         field(
-            "claimSummaryFee.netDisbursementAmount", ClaimStateSnapshot::getNetDisbursementAmount));
+            ClaimSummaryFeeFields.NET_PROFIT_COSTS_AMOUNT,
+            ClaimStateSnapshot::getNetProfitCostsAmount));
     fields.add(
         field(
-            "claimSummaryFee.netCounselCostsAmount", ClaimStateSnapshot::getNetCounselCostsAmount));
+            ClaimSummaryFeeFields.NET_DISBURSEMENT_AMOUNT,
+            ClaimStateSnapshot::getNetDisbursementAmount));
     fields.add(
         field(
-            "claimSummaryFee.disbursementsVatAmount",
+            ClaimSummaryFeeFields.NET_COUNSEL_COSTS_AMOUNT,
+            ClaimStateSnapshot::getNetCounselCostsAmount));
+    fields.add(
+        field(
+            ClaimSummaryFeeFields.DISBURSEMENTS_VAT_AMOUNT,
             ClaimStateSnapshot::getDisbursementsVatAmount));
     fields.add(
         field(
-            "claimSummaryFee.travelWaitingCostsAmount",
+            ClaimSummaryFeeFields.TRAVEL_WAITING_COSTS_AMOUNT,
             ClaimStateSnapshot::getTravelWaitingCostsAmount));
     fields.add(
         field(
-            "claimSummaryFee.netWaitingCostsAmount", ClaimStateSnapshot::getNetWaitingCostsAmount));
-    fields.add(field("claimSummaryFee.isVatApplicable", ClaimStateSnapshot::getIsVatApplicable));
+            ClaimSummaryFeeFields.NET_WAITING_COSTS_AMOUNT,
+            ClaimStateSnapshot::getNetWaitingCostsAmount));
+    fields.add(
+        field(ClaimSummaryFeeFields.IS_VAT_APPLICABLE, ClaimStateSnapshot::getIsVatApplicable));
     fields.add(
         field(
-            "claimSummaryFee.isToleranceApplicable", ClaimStateSnapshot::getIsToleranceApplicable));
+            ClaimSummaryFeeFields.IS_TOLERANCE_APPLICABLE,
+            ClaimStateSnapshot::getIsToleranceApplicable));
     fields.add(
         field(
-            "claimSummaryFee.priorAuthorityReference",
+            ClaimSummaryFeeFields.PRIOR_AUTHORITY_REFERENCE,
             ClaimStateSnapshot::getPriorAuthorityReference));
-    fields.add(field("claimSummaryFee.isLondonRate", ClaimStateSnapshot::getIsLondonRate));
+    fields.add(field(ClaimSummaryFeeFields.IS_LONDON_RATE, ClaimStateSnapshot::getIsLondonRate));
     fields.add(
         field(
-            "claimSummaryFee.adjournedHearingFeeAmount",
+            ClaimSummaryFeeFields.ADJOURNED_HEARING_FEE_AMOUNT,
             ClaimStateSnapshot::getAdjournedHearingFeeAmount));
     fields.add(
         field(
-            "claimSummaryFee.isAdditionalTravelPayment",
+            ClaimSummaryFeeFields.IS_ADDITIONAL_TRAVEL_PAYMENT,
             ClaimStateSnapshot::getIsAdditionalTravelPayment));
     fields.add(
         field(
-            "claimSummaryFee.costsDamagesRecoveredAmount",
+            ClaimSummaryFeeFields.COSTS_DAMAGES_RECOVERED_AMOUNT,
             ClaimStateSnapshot::getCostsDamagesRecoveredAmount));
     fields.add(
-        field("claimSummaryFee.meetingsAttendedCode", ClaimStateSnapshot::getMeetingsAttendedCode));
+        field(
+            ClaimSummaryFeeFields.MEETINGS_ATTENDED_CODE,
+            ClaimStateSnapshot::getMeetingsAttendedCode));
     fields.add(
         field(
-            "claimSummaryFee.detentionTravelWaitingCostsAmount",
+            ClaimSummaryFeeFields.DETENTION_TRAVEL_WAITING_COSTS_AMOUNT,
             ClaimStateSnapshot::getDetentionTravelWaitingCostsAmount));
     fields.add(
-        field("claimSummaryFee.jrFormFillingAmount", ClaimStateSnapshot::getJrFormFillingAmount));
-    fields.add(field("claimSummaryFee.isEligibleClient", ClaimStateSnapshot::getIsEligibleClient));
+        field(
+            ClaimSummaryFeeFields.JR_FORM_FILLING_AMOUNT,
+            ClaimStateSnapshot::getJrFormFillingAmount));
     fields.add(
-        field("claimSummaryFee.courtLocationCode", ClaimStateSnapshot::getCourtLocationCode));
-    fields.add(field("claimSummaryFee.adviceTypeCode", ClaimStateSnapshot::getAdviceTypeCode));
+        field(ClaimSummaryFeeFields.IS_ELIGIBLE_CLIENT, ClaimStateSnapshot::getIsEligibleClient));
     fields.add(
-        field("claimSummaryFee.medicalReportsCount", ClaimStateSnapshot::getMedicalReportsCount));
-    fields.add(field("claimSummaryFee.isIrcSurgery", ClaimStateSnapshot::getIsIrcSurgery));
-    fields.add(field("claimSummaryFee.surgeryDate", ClaimStateSnapshot::getSurgeryDate));
+        field(ClaimSummaryFeeFields.COURT_LOCATION_CODE, ClaimStateSnapshot::getCourtLocationCode));
     fields.add(
-        field("claimSummaryFee.surgeryClientsCount", ClaimStateSnapshot::getSurgeryClientsCount));
+        field(ClaimSummaryFeeFields.ADVICE_TYPE_CODE, ClaimStateSnapshot::getAdviceTypeCode));
     fields.add(
-        field("claimSummaryFee.surgeryMattersCount", ClaimStateSnapshot::getSurgeryMattersCount));
-    fields.add(field("claimSummaryFee.cmrhOralCount", ClaimStateSnapshot::getCmrhOralCount));
+        field(
+            ClaimSummaryFeeFields.MEDICAL_REPORTS_COUNT,
+            ClaimStateSnapshot::getMedicalReportsCount));
+    fields.add(field(ClaimSummaryFeeFields.IS_IRC_SURGERY, ClaimStateSnapshot::getIsIrcSurgery));
+    fields.add(field(ClaimSummaryFeeFields.SURGERY_DATE, ClaimStateSnapshot::getSurgeryDate));
     fields.add(
-        field("claimSummaryFee.cmrhTelephoneCount", ClaimStateSnapshot::getCmrhTelephoneCount));
+        field(
+            ClaimSummaryFeeFields.SURGERY_CLIENTS_COUNT,
+            ClaimStateSnapshot::getSurgeryClientsCount));
     fields.add(
-        field("claimSummaryFee.aitHearingCentreCode", ClaimStateSnapshot::getAitHearingCentreCode));
+        field(
+            ClaimSummaryFeeFields.SURGERY_MATTERS_COUNT,
+            ClaimStateSnapshot::getSurgeryMattersCount));
+    fields.add(field(ClaimSummaryFeeFields.CMRH_ORAL_COUNT, ClaimStateSnapshot::getCmrhOralCount));
     fields.add(
-        field("claimSummaryFee.isSubstantiveHearing", ClaimStateSnapshot::getIsSubstantiveHearing));
-    fields.add(field("claimSummaryFee.hoInterview", ClaimStateSnapshot::getHoInterview));
+        field(
+            ClaimSummaryFeeFields.CMRH_TELEPHONE_COUNT, ClaimStateSnapshot::getCmrhTelephoneCount));
     fields.add(
-        field("claimSummaryFee.localAuthorityNumber", ClaimStateSnapshot::getLocalAuthorityNumber));
+        field(
+            ClaimSummaryFeeFields.AIT_HEARING_CENTRE_CODE,
+            ClaimStateSnapshot::getAitHearingCentreCode));
+    fields.add(
+        field(
+            ClaimSummaryFeeFields.IS_SUBSTANTIVE_HEARING,
+            ClaimStateSnapshot::getIsSubstantiveHearing));
+    fields.add(field(ClaimSummaryFeeFields.HO_INTERVIEW, ClaimStateSnapshot::getHoInterview));
+    fields.add(
+        field(
+            ClaimSummaryFeeFields.LOCAL_AUTHORITY_NUMBER,
+            ClaimStateSnapshot::getLocalAuthorityNumber));
 
     return List.copyOf(fields);
   }
@@ -359,81 +404,101 @@ public class AmendmentChangeDetector {
   private static List<FieldAccessor<CalculatedFeeDetailSnapshot>> feeFields() {
     List<FieldAccessor<CalculatedFeeDetailSnapshot>> fields = new ArrayList<>();
 
-    fields.add(field("fee.feeCode", CalculatedFeeDetailSnapshot::getFeeCode));
-    fields.add(field("fee.feeType", CalculatedFeeDetailSnapshot::getFeeType));
-    fields.add(field("fee.feeCodeDescription", CalculatedFeeDetailSnapshot::getFeeCodeDescription));
-    fields.add(field("fee.categoryOfLaw", CalculatedFeeDetailSnapshot::getCategoryOfLaw));
-    fields.add(field("fee.totalAmount", CalculatedFeeDetailSnapshot::getTotalAmount));
-    fields.add(field("fee.vatIndicator", CalculatedFeeDetailSnapshot::getVatIndicator));
-    fields.add(field("fee.vatRateApplied", CalculatedFeeDetailSnapshot::getVatRateApplied));
+    fields.add(field(FeeFields.FEE_CODE, CalculatedFeeDetailSnapshot::getFeeCode));
+    fields.add(field(FeeFields.FEE_TYPE, CalculatedFeeDetailSnapshot::getFeeType));
     fields.add(
-        field("fee.calculatedVatAmount", CalculatedFeeDetailSnapshot::getCalculatedVatAmount));
-    fields.add(field("fee.disbursementAmount", CalculatedFeeDetailSnapshot::getDisbursementAmount));
+        field(FeeFields.FEE_CODE_DESCRIPTION, CalculatedFeeDetailSnapshot::getFeeCodeDescription));
+    fields.add(field(FeeFields.CATEGORY_OF_LAW, CalculatedFeeDetailSnapshot::getCategoryOfLaw));
+    fields.add(field(FeeFields.TOTAL_AMOUNT, CalculatedFeeDetailSnapshot::getTotalAmount));
+    fields.add(field(FeeFields.VAT_INDICATOR, CalculatedFeeDetailSnapshot::getVatIndicator));
+    fields.add(field(FeeFields.VAT_RATE_APPLIED, CalculatedFeeDetailSnapshot::getVatRateApplied));
     fields.add(
         field(
-            "fee.requestedNetDisbursementAmount",
+            FeeFields.CALCULATED_VAT_AMOUNT, CalculatedFeeDetailSnapshot::getCalculatedVatAmount));
+    fields.add(
+        field(FeeFields.DISBURSEMENT_AMOUNT, CalculatedFeeDetailSnapshot::getDisbursementAmount));
+    fields.add(
+        field(
+            FeeFields.REQUESTED_NET_DISBURSEMENT_AMOUNT,
             CalculatedFeeDetailSnapshot::getRequestedNetDisbursementAmount));
     fields.add(
-        field("fee.disbursementVatAmount", CalculatedFeeDetailSnapshot::getDisbursementVatAmount));
-    fields.add(field("fee.hourlyTotalAmount", CalculatedFeeDetailSnapshot::getHourlyTotalAmount));
-    fields.add(field("fee.fixedFeeAmount", CalculatedFeeDetailSnapshot::getFixedFeeAmount));
+        field(
+            FeeFields.DISBURSEMENT_VAT_AMOUNT,
+            CalculatedFeeDetailSnapshot::getDisbursementVatAmount));
     fields.add(
-        field("fee.netProfitCostsAmount", CalculatedFeeDetailSnapshot::getNetProfitCostsAmount));
+        field(FeeFields.HOURLY_TOTAL_AMOUNT, CalculatedFeeDetailSnapshot::getHourlyTotalAmount));
+    fields.add(field(FeeFields.FIXED_FEE_AMOUNT, CalculatedFeeDetailSnapshot::getFixedFeeAmount));
     fields.add(
         field(
-            "fee.requestedNetProfitCostsAmount",
+            FeeFields.NET_PROFIT_COSTS_AMOUNT,
+            CalculatedFeeDetailSnapshot::getNetProfitCostsAmount));
+    fields.add(
+        field(
+            FeeFields.REQUESTED_NET_PROFIT_COSTS_AMOUNT,
             CalculatedFeeDetailSnapshot::getRequestedNetProfitCostsAmount));
     fields.add(
         field(
-            "fee.netCostOfCounselAmount", CalculatedFeeDetailSnapshot::getNetCostOfCounselAmount));
-    fields.add(
-        field("fee.netTravelCostsAmount", CalculatedFeeDetailSnapshot::getNetTravelCostsAmount));
-    fields.add(
-        field("fee.netWaitingCostsAmount", CalculatedFeeDetailSnapshot::getNetWaitingCostsAmount));
+            FeeFields.NET_COST_OF_COUNSEL_AMOUNT,
+            CalculatedFeeDetailSnapshot::getNetCostOfCounselAmount));
     fields.add(
         field(
-            "fee.detentionTravelAndWaitingCostsAmount",
+            FeeFields.NET_TRAVEL_COSTS_AMOUNT,
+            CalculatedFeeDetailSnapshot::getNetTravelCostsAmount));
+    fields.add(
+        field(
+            FeeFields.NET_WAITING_COSTS_AMOUNT,
+            CalculatedFeeDetailSnapshot::getNetWaitingCostsAmount));
+    fields.add(
+        field(
+            FeeFields.DETENTION_TRAVEL_AND_WAITING_COSTS_AMOUNT,
             CalculatedFeeDetailSnapshot::getDetentionTravelAndWaitingCostsAmount));
     fields.add(
-        field("fee.jrFormFillingAmount", CalculatedFeeDetailSnapshot::getJrFormFillingAmount));
+        field(
+            FeeFields.JR_FORM_FILLING_AMOUNT, CalculatedFeeDetailSnapshot::getJrFormFillingAmount));
     fields.add(
         field(
-            "fee.travelAndWaitingCostsAmount",
+            FeeFields.TRAVEL_AND_WAITING_COSTS_AMOUNT,
             CalculatedFeeDetailSnapshot::getTravelAndWaitingCostsAmount));
     fields.add(
-        field("fee.boltOnTotalFeeAmount", CalculatedFeeDetailSnapshot::getBoltOnTotalFeeAmount));
+        field(
+            FeeFields.BOLT_ON_TOTAL_FEE_AMOUNT,
+            CalculatedFeeDetailSnapshot::getBoltOnTotalFeeAmount));
     fields.add(
         field(
-            "fee.boltOnAdjournedHearingCount",
+            FeeFields.BOLT_ON_ADJOURNED_HEARING_COUNT,
             CalculatedFeeDetailSnapshot::getBoltOnAdjournedHearingCount));
     fields.add(
         field(
-            "fee.boltOnAdjournedHearingFee",
+            FeeFields.BOLT_ON_ADJOURNED_HEARING_FEE,
             CalculatedFeeDetailSnapshot::getBoltOnAdjournedHearingFee));
     fields.add(
         field(
-            "fee.boltOnCmrhTelephoneCount",
+            FeeFields.BOLT_ON_CMRH_TELEPHONE_COUNT,
             CalculatedFeeDetailSnapshot::getBoltOnCmrhTelephoneCount));
     fields.add(
         field(
-            "fee.boltOnCmrhTelephoneFee", CalculatedFeeDetailSnapshot::getBoltOnCmrhTelephoneFee));
-    fields.add(
-        field("fee.boltOnCmrhOralCount", CalculatedFeeDetailSnapshot::getBoltOnCmrhOralCount));
-    fields.add(field("fee.boltOnCmrhOralFee", CalculatedFeeDetailSnapshot::getBoltOnCmrhOralFee));
+            FeeFields.BOLT_ON_CMRH_TELEPHONE_FEE,
+            CalculatedFeeDetailSnapshot::getBoltOnCmrhTelephoneFee));
     fields.add(
         field(
-            "fee.boltOnHomeOfficeInterviewCount",
+            FeeFields.BOLT_ON_CMRH_ORAL_COUNT,
+            CalculatedFeeDetailSnapshot::getBoltOnCmrhOralCount));
+    fields.add(
+        field(FeeFields.BOLT_ON_CMRH_ORAL_FEE, CalculatedFeeDetailSnapshot::getBoltOnCmrhOralFee));
+    fields.add(
+        field(
+            FeeFields.BOLT_ON_HOME_OFFICE_INTERVIEW_COUNT,
             CalculatedFeeDetailSnapshot::getBoltOnHomeOfficeInterviewCount));
     fields.add(
         field(
-            "fee.boltOnHomeOfficeInterviewFee",
+            FeeFields.BOLT_ON_HOME_OFFICE_INTERVIEW_FEE,
             CalculatedFeeDetailSnapshot::getBoltOnHomeOfficeInterviewFee));
     fields.add(
         field(
-            "fee.boltOnSubstantiveHearingFee",
+            FeeFields.BOLT_ON_SUBSTANTIVE_HEARING_FEE,
             CalculatedFeeDetailSnapshot::getBoltOnSubstantiveHearingFee));
-    fields.add(field("fee.escapeCaseFlag", CalculatedFeeDetailSnapshot::getEscapeCaseFlag));
-    fields.add(field("fee.schemeId", CalculatedFeeDetailSnapshot::getSchemeId));
+    fields.add(field(FeeFields.ESCAPE_CASE_FLAG, CalculatedFeeDetailSnapshot::getEscapeCaseFlag));
+    fields.add(field(FeeFields.SCHEME_ID, CalculatedFeeDetailSnapshot::getSchemeId));
 
     return List.copyOf(fields);
   }
