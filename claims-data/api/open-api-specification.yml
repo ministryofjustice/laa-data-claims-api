@@ -1342,6 +1342,7 @@ components:
         - VALIDATION_FAILED
         - REPLACED
         - UNAUTHORISED
+        - READY_FOR_FINAL_SUBMISSION
         - VALIDATION_SUCCEEDED
     bulk_submission_error_code:
       type: string
