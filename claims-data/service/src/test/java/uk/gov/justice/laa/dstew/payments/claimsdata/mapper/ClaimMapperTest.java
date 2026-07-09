@@ -338,6 +338,31 @@ class ClaimMapperTest {
   }
 
   @Test
+  void toValidationMessageLog_mapsMessageCodeForFspMessages() {
+    final Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).submission(submission).build();
+
+    final ValidationMessagePatch patch =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.ERROR)
+            .source("FSP")
+            .displayMessage("FSP error message")
+            .technicalMessage("FSP technical details")
+            .messageCode("ERRALL1");
+
+    final ValidationMessageLog log = mapper.toValidationMessageLog(patch, claim);
+
+    assertNotNull(log.getId());
+    assertEquals(submission.getId(), log.getSubmissionId());
+    assertEquals(claim.getId(), log.getClaimId());
+    assertEquals(ValidationMessageType.ERROR, log.getType());
+    assertEquals("FSP", log.getSource());
+    assertEquals("FSP error message", log.getDisplayMessage());
+    assertEquals("FSP technical details", log.getTechnicalMessage());
+    assertEquals("ERRALL1", log.getMessageCode());
+  }
+
+  @Test
   void toClaimSummaryFee_mapsAllFields() {
     final ClaimPost post = ClaimsDataTestUtil.getClaimPost(CASE_REFERENCE);
 

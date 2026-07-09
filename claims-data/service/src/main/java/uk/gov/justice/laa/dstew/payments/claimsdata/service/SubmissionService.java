@@ -177,9 +177,9 @@ public class SubmissionService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log =
+                ValidationMessageLog validationLog =
                     submissionMapper.toValidationMessageLog(message, submission);
-                validationMessageLogRepository.save(log);
+                validationMessageLogRepository.save(validationLog);
               });
     }
   }
