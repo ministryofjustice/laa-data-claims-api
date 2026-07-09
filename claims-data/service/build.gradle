@@ -64,7 +64,7 @@ dependencyManagement {
 
         // Force jackson-core 3.x to fix Snyk vulnerability (AWS SDK pulls tools.jackson)
         dependency 'tools.jackson.core:jackson-core:3.1.1'
-        dependency 'tools.jackson.core:jackson-databind:3.1.1'
+        dependency 'tools.jackson.core:jackson-databind:3.1.4'
     }
 }
 
