@@ -231,7 +231,6 @@ configurations.all {
     }
 }
 
-
 dependencies {
     // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
     pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.1'
