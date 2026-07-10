@@ -85,7 +85,7 @@ class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
 
     ClaimAmendmentService service = serviceWithFailingStep(failingStep);
 
-    ClaimAmendmentResult result = service.submitAmendment(CLAIM_1_ID, validPayload());
+    ClaimAmendmentResult result = service.submitAmendment(claim1, validPayload());
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).contains(FORCED_ERROR);

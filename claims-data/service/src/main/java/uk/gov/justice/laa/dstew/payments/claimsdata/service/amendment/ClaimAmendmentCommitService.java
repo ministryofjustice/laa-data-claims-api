@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -39,7 +40,7 @@ public class ClaimAmendmentCommitService {
    * @param state the in-memory amendment state to persist
    * @return the inserted {@code claim_amendment} row
    */
-  @Transactional
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public ClaimAmendment commit(Claim validatedClaim, ClaimAmendmentState state) {
     // Reattach the validated instance so the versioned UPDATE guards against changes since
     // the prepare step. Merge returns the managed instance to write through.
