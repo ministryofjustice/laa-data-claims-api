@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.AMENDED_FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.CLAIM_ID;
@@ -47,29 +46,9 @@ class ClaimAmendmentStateServiceTest {
   @InjectMocks private ClaimAmendmentStateService service;
 
   @Test
-  @DisplayName("returns empty when the claim does not exist and does no further work")
-  void returnsEmptyWhenClaimNotFound() {
-    when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.empty());
-
-    Optional<PreparedAmendment> result =
-        service.retrieveAmendmentState(CLAIM_ID, ClaimAmendmentPayload.builder().build());
-
-    assertThat(result).isEmpty();
-    verifyNoInteractions(
-        clientRepository,
-        claimCaseRepository,
-        claimSummaryFeeRepository,
-        calculatedFeeDetailRepository,
-        assessmentRepository,
-        snapshotMapper);
-    verify(amendmentStateBuilder, never()).buildAmendmentState(any(), any());
-  }
-
-  @Test
   @DisplayName("builds amendment state from the loaded aggregate when the claim exists")
   void buildsAmendmentStateWhenClaimExists() {
     Claim claim = Claim.builder().id(CLAIM_ID).build();
-    when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.of(claim));
     when(clientRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
@@ -94,11 +73,10 @@ class ClaimAmendmentStateServiceTest {
         ClaimAmendmentState.builder().beforeState(beforeState).requestPayload(payload).build();
     when(amendmentStateBuilder.buildAmendmentState(beforeState, payload)).thenReturn(expected);
 
-    Optional<PreparedAmendment> result = service.retrieveAmendmentState(CLAIM_ID, payload);
+    PreparedAmendment result = service.retrieveAmendmentState(claim, payload);
 
-    assertThat(result).isPresent();
-    assertThat(result.get().state()).isSameAs(expected);
-    assertThat(result.get().claim()).isSameAs(claim);
+    assertThat(result.state()).isSameAs(expected);
+    assertThat(result.claim()).isSameAs(claim);
     verify(snapshotMapper)
         .toSnapshot(
             any(Claim.class),
@@ -114,7 +92,6 @@ class ClaimAmendmentStateServiceTest {
   @DisplayName("produces no database write, external call or event on the found path")
   void producesNoSideEffectsOnFoundPath() {
     Claim claim = Claim.builder().id(CLAIM_ID).build();
-    when(claimRepository.findById(CLAIM_ID)).thenReturn(Optional.of(claim));
     when(clientRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
@@ -137,7 +114,7 @@ class ClaimAmendmentStateServiceTest {
     when(amendmentStateBuilder.buildAmendmentState(beforeState, payload))
         .thenReturn(ClaimAmendmentState.builder().beforeState(beforeState).build());
 
-    service.retrieveAmendmentState(CLAIM_ID, payload);
+    service.retrieveAmendmentState(claim, payload);
 
     // no persistence: none of the repositories' save/delete methods are invoked
     verify(claimRepository, never()).save(any());

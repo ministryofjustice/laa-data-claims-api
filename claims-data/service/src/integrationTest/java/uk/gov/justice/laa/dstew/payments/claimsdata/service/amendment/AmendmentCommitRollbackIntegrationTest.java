@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -53,6 +54,7 @@ class AmendmentCommitRollbackIntegrationTest extends AbstractIntegrationTest {
     claimRepository.saveAndFlush(claim);
   }
 
+  @Transactional
   @Test
   @DisplayName("concurrent modification during validation fails the commit and persists nothing")
   void concurrentModificationRollsBackTheAtomicWrite() {
@@ -78,7 +80,7 @@ class AmendmentCommitRollbackIntegrationTest extends AbstractIntegrationTest {
     // Hibernate detects the stale @Version at merge/flush and raises the JPA
     // OptimisticLockException
     // (mapped to HTTP 409 by DataClaimsExceptionHandler). The commit transaction is rolled back.
-    assertThatThrownBy(() -> service.submitAmendment(CLAIM_1_ID, validPayload()))
+    assertThatThrownBy(() -> service.submitAmendment(claim1, validPayload()))
         .isInstanceOf(OptimisticLockException.class);
 
     // The commit transaction rolled back: no amendment row, and the amendment's claim writes

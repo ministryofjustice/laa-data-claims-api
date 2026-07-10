@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -9,6 +8,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.PreparedAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 
@@ -51,15 +51,15 @@ public class ClaimAmendmentService {
    * Submits an amendment for the given claim end to end: prepare (retrieve), validate (including
    * the external PDA/FSP steps), then an atomic commit.
    *
-   * @param claimId the claim being amended
+   * @param claim the claim being amended
    * @param payload the sparse, presence-aware amendment payload as submitted
    * @return a success result carrying the persisted amendment, or a rejection carrying the
    *     collected validation errors
    * @throws ClaimNotFoundException if no claim exists for {@code claimId}
    */
-  public ClaimAmendmentResult submitAmendment(UUID claimId, ClaimAmendmentPayload payload) {
+  public ClaimAmendmentResult submitAmendment(Claim claim, ClaimAmendmentPayload payload) {
     // Phase 1 - prepare: retrieve + build state in a read-only transaction (no writes).
-    PreparedAmendment prepared = preparationService.prepare(claimId, payload);
+    PreparedAmendment prepared = preparationService.prepare(claim, payload);
 
     // Phase 2 - validate: run the ordered steps with no held transaction, so the inline external
     // PDA/FSP steps never hold a DB connection open.
@@ -67,13 +67,15 @@ public class ClaimAmendmentService {
         validationService.validateAmendmentRequest(prepared.state());
     if (!errors.isEmpty()) {
       log.debug(
-          "Amendment for claim {} rejected with {} validation error(s)", claimId, errors.size());
+          "Amendment for claim {} rejected with {} validation error(s)",
+          claim.getId(),
+          errors.size());
       return ClaimAmendmentResult.rejected(errors);
     }
 
     // Phase 3 - commit: single atomic write transaction; reattaches the prepared claim.
     ClaimAmendment amendment = commitService.commit(prepared.claim(), prepared.state());
-    log.debug("Persisted amendment {} for claim {}", amendment.getId(), claimId);
+    log.debug("Persisted amendment {} for claim {}", amendment.getId(), claim.getId());
     return ClaimAmendmentResult.success(amendment);
   }
 }
