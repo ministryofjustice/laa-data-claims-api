@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("BulkSubmissionConverterFactory tests")
 class BulkSubmissionConverterFactoryTest {
 
   @Mock private BulkSubmissionCsvConverter csvConverter;
@@ -34,6 +36,7 @@ class BulkSubmissionConverterFactoryTest {
   }
 
   @Test
+  @DisplayName("returns CSV converter for CSV extension")
   void converterFor_whenCsvFileExtension_thenItUsesBulkSubmissionCsvConverter() {
     when(csvConverter.handles(FileExtension.CSV)).thenReturn(true);
     var concreteFactory = bulkSubmissionConverterFactory.converterFor(FileExtension.CSV);
@@ -42,6 +45,7 @@ class BulkSubmissionConverterFactoryTest {
   }
 
   @Test
+  @DisplayName("returns CSV converter for TXT extension")
   void converterFor_whenTxtFileExtension_thenItUsesBulkSubmissionCsvConverter() {
     when(csvConverter.handles(FileExtension.TXT)).thenReturn(true);
     var concreteFactory = bulkSubmissionConverterFactory.converterFor(FileExtension.TXT);
@@ -50,6 +54,7 @@ class BulkSubmissionConverterFactoryTest {
   }
 
   @Test
+  @DisplayName("returns XML converter for XML extension")
   void converterFor_whenXmlFileExtension_thenItUsesBulkSubmissionXmlConverter() {
     when(xmlConverter.handles(FileExtension.XML)).thenReturn(true);
     var concreteFactory = bulkSubmissionConverterFactory.converterFor(FileExtension.XML);
@@ -59,6 +64,7 @@ class BulkSubmissionConverterFactoryTest {
 
   @ParameterizedTest
   @EnumSource(FileExtension.class)
+  @DisplayName("throws when no converter handles the given file extension")
   void converterFor_throwsException_whenFileExtensionIsInvalid(FileExtension extension) {
     when(csvConverter.handles(extension)).thenReturn(false);
     when(xmlConverter.handles(extension)).thenReturn(false);

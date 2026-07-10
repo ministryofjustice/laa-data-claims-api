@@ -7,6 +7,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.Ame
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import jakarta.persistence.EntityManager;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,11 +19,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 
@@ -45,7 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  * STEP_ORDER} itself, adding a new step automatically extends the coverage.
  */
 @DisplayName("Amendment persists nothing when any single validation step fails")
-class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
+class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
 
   // A distinct, non-fatal error forced onto whichever step is under test. Non-fatal so the loop
   // still runs every other (genuine) step, maximising the exercised surface.
@@ -59,9 +60,10 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
   @Autowired private EntityManager entityManager;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws IOException {
     seedClaimsData();
     claimAmendmentRepository.deleteAll();
+    stubExternalValidationEndpoints();
   }
 
   private static Stream<Arguments> everyValidationStep() {
