@@ -1,8 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT;
+
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.Comparator;
+import java.util.List;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,6 +16,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 /**
@@ -121,30 +126,94 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Handles optimistic-locking failures raised when a concurrent modification is detected while
-   * saving (e.g. the final claim-version guard during an amendment save).
+   * Handles validation failures originating from the claim amendment orchestrator.
    *
-   * <p>Both the Spring {@link ObjectOptimisticLockingFailureException} and the JPA {@link
-   * OptimisticLockException} are handled: which one surfaces depends on when the conflict is
-   * detected - Hibernate raises the JPA type when the stale version is caught during {@code
-   * merge}/flush, while Spring's {@code JpaTransactionManager} translates a conflict detected at
-   * transaction commit into its own type. Either way the caller sees the same response.
+   * <p>Inspects the collection of validation errors returned by the orchestrator. If the error list
+   * contains a fatal failure, the highest priority status code is surfaced. For standard errors, a
+   * 400 Bad Request status code is returned. The collection of underlying validation errors is
+   * attached as a structured property to the {@link ProblemDetail} payload.
    *
-   * <p>Returns HTTP {@code 409 Conflict} as an RFC 9457 Problem Detail so the caller can re-read
-   * the current claim and resubmit against the latest version.
+   * @param ex the exception containing the list of collected validation errors
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} detailing the amendment failures
+   */
+  @ExceptionHandler(ClaimAmendmentValidationException.class)
+  public ResponseEntity<ProblemDetail> handleClaimAmendmentValidationException(
+      ClaimAmendmentValidationException ex, HttpServletRequest request) {
+
+    log.warn("ClaimAmendmentValidationException occurred with {} errors", ex.getErrors().size());
+    ClaimAmendmentValidationError primaryError =
+        sortValidationErrorsByFatalAndStatus(ex).getFirst();
+
+    HttpStatus status = HttpStatus.BAD_REQUEST;
+    if (primaryError != null && primaryError.isFatal()) {
+      status = primaryError.getHttpStatus();
+    }
+
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
+
+    if (response.getBody() != null) {
+      response.getBody().setProperty("errors", ex.getErrors());
+    }
+
+    return response;
+  }
+
+  List<ClaimAmendmentValidationError> sortValidationErrorsByFatalAndStatus(
+      ClaimAmendmentValidationException ex) {
+    return ex.getErrors().stream()
+        .sorted(
+            Comparator.comparing(ClaimAmendmentValidationError::isFatal, Comparator.reverseOrder())
+                .thenComparing(error -> error.getHttpStatus().value(), Comparator.reverseOrder()))
+        .toList();
+  }
+
+  /**
+   * Handles raw JPA-level optimistic locking failures during entity persistence.
    *
-   * @param exception the optimistic-locking failure raised by the persistence layer
+   * <p>This exception is typically thrown directly by the underlying ORM (e.g., Hibernate) when a
+   * concurrent modification is detected, often during a manual flush operation before Spring's
+   * transaction manager has the opportunity to translate the exception. This handler intercepts the
+   * failure and returns an HTTP {@code 409 Conflict} status wrapped in an RFC 9457 Problem Detail.
+   *
+   * @param ex the raw JPA optimistic lock exception thrown by the persistence layer
    * @param request the HTTP request
    * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
    */
-  @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
-  public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(
-      Exception exception, HttpServletRequest request) {
-    log.warn("Optimistic locking failure (concurrent modification): {}", exception.getMessage());
+  @ExceptionHandler(OptimisticLockException.class)
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockException(
+      OptimisticLockException ex, HttpServletRequest request) {
+
+    log.warn("Database level optimistic locking failure occurred: {}", ex.getMessage());
     return buildProblemDetailResponse(
         HttpStatus.CONFLICT,
-        "The record was modified concurrently; please re-read the latest version and retry.",
-        exception.getClass(),
+        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+        ex.getClass(),
+        request);
+  }
+
+  /**
+   * Handles Spring-translated optimistic locking failures during entity persistence.
+   *
+   * <p>This exception is thrown by Spring's data access layer when it intercepts and translates a
+   * concurrent modification exception from the underlying persistence provider (e.g., typically at
+   * the transaction commit boundary). This handler intercepts the failure and returns an HTTP
+   * {@code 409 Conflict} status wrapped in an RFC 9457 Problem Detail.
+   *
+   * @param ex the Spring-translated optimistic locking exception
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
+   */
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ProblemDetail> handleDatabaseOptimisticLockException(
+      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+
+    log.warn("Database level object optimistic locking failure occurred: {}", ex.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.CONFLICT,
+        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+        ex.getClass(),
         request);
   }
 
