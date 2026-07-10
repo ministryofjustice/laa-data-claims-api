@@ -40,15 +40,17 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateBulkSubmission201Response> createBulkSubmission(
-      String userId, MultipartFile file, List<String> offices) {
+      String userId, MultipartFile file, List<String> offices, Boolean saveAsDraft) {
     // Validate file
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
-
     CreateBulkSubmission201Response bulkSubmissionResponse =
         bulkSubmissionService.submitBulkSubmissionFile(
-            userId, file, Optional.ofNullable(offices).orElse(Collections.emptyList()));
+            userId,
+            file,
+            Optional.ofNullable(offices).orElse(Collections.emptyList()),
+            Boolean.TRUE.equals(saveAsDraft));
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/api/v1/submissions/{id}")

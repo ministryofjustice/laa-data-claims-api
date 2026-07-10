@@ -42,6 +42,22 @@ paths:
             items:
               type: string
             description: List of office account numbers
+        - name: saveAsDraft
+          in: query
+          required: false
+          schema:
+            type: boolean
+          examples:
+            true:
+              summary: Save as draft
+              value: true
+            false:
+              summary: Submit for processing
+              value: false
+
+          description: >
+            If true, the bulk submission will be validated as normal, 
+            but not submitted if validation succeeds.
       requestBody:
         required: true
         content:
@@ -171,6 +187,9 @@ paths:
                           type: object
                           additionalProperties:
                             type: string
+                  save_as_draft:
+                    type: boolean
+                    description: Indicates whether the bulk submission was saved as a draft or submitted for processing.
 
         '400':
           description: 'Bad request'
@@ -783,7 +802,7 @@ paths:
       responses:
         '204':
           description: 'Submission status updated successfully'
-          content: {}
+          content: { }
         '400':
           description: 'Bad request'
         '401':
@@ -903,7 +922,7 @@ paths:
       responses:
         '204':
           description: Claim updated successfully
-          content: {}
+          content: { }
         '400':
           description: Invalid request
         '404':
@@ -2176,10 +2195,10 @@ components:
           type: string
     matter_start_post:
       allOf:
-      - $ref: '#/components/schemas/matter_start_fields'
+        - $ref: '#/components/schemas/matter_start_fields'
     matter_start_get:
       allOf:
-      - $ref: '#/components/schemas/matter_start_fields'
+        - $ref: '#/components/schemas/matter_start_fields'
     matter_start_fields:
       type: object
       description: Matter start for a submission
