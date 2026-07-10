@@ -56,13 +56,18 @@ dependencyManagement {
             entry 'sentry-spring-boot-starter'
             entry 'sentry-logback'
         }
+
+        // === INSERT YOUR OVERRIDES HERE ===
+        // Force jackson-core 2.x to fix Snyk vulnerability
+        dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
+        dependency "com.fasterxml.jackson.core:jackson-databind:2.21.5"
+        // Force jackson-core 3.x to fix Snyk vulnerability (AWS SDK pulls tools.jackson)
+        dependency 'tools.jackson.core:jackson-core:3.1.4'
+        dependency 'tools.jackson.core:jackson-databind:3.1.4'
     }
 }
 
 dependencies {
-    // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
-    implementation 'tools.jackson.core:jackson-core:3.1.1'
-
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.24'
 
@@ -112,7 +117,7 @@ dependencies {
     implementation 'software.amazon.awssdk:sts'
     implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-    implementation(platform("tools.jackson:jackson-bom:3.1.1"))
+    implementation(platform("tools.jackson:jackson-bom:3.1.4"))
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")
@@ -231,7 +236,6 @@ configurations.all {
         }
     }
 }
-
 
 dependencies {
     // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
