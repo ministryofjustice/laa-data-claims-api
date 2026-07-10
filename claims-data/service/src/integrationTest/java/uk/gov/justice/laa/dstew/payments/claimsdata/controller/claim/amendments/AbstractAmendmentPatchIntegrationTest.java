@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;

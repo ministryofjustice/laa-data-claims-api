@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
+package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
