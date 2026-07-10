@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -186,14 +187,27 @@ public class BddApiStepSupport {
 
   /**
    * Polls the {@code /bulk-submissions/{id}/summary} endpoint until the status enters a terminal
-   * state (or the timeout is reached). Returns the terminal status string.
+   * state (or the default {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants#BULK_STATUS_POLL_TIMEOUT
+   * short timeout} is reached). Returns the terminal status string.
    */
   public String waitForBulkSubmissionTerminalStatus(UUID bulkSubmissionId) {
+    return waitForBulkSubmissionTerminalStatus(bulkSubmissionId, BULK_STATUS_POLL_TIMEOUT);
+  }
+
+  /**
+   * Same as {@link #waitForBulkSubmissionTerminalStatus(UUID)} but lets the caller override the
+   * polling timeout. In UAT mode the real event-service can take considerably longer than the
+   * default {@code BULK_STATUS_POLL_TIMEOUT} to produce a callback, so callers running against a
+   * live event-service should pass {@code EVENT_SERVICE_POLL_TIMEOUT} (or another explicit
+   * duration).
+   */
+  public String waitForBulkSubmissionTerminalStatus(UUID bulkSubmissionId, Duration timeout) {
     HttpHeaders headers = new HttpHeaders();
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
     HttpEntity<Void> request = new HttpEntity<>(headers);
 
-    long deadline = System.nanoTime() + BULK_STATUS_POLL_TIMEOUT.toNanos();
+    long deadline = System.nanoTime() + timeout.toNanos();
     String lastStatus = "UNKNOWN";
     while (System.nanoTime() < deadline) {
       try {
@@ -303,7 +317,10 @@ public class BddApiStepSupport {
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
 
     String body =
-        "{\"created_by_user_id\":\"" + userId + "\",\"assessment_reason\":\"" + reason + "\"}";
+        """
+        {"created_by_user_id":"%s","assessment_reason":"%s"}
+        """
+            .formatted(userId, reason);
 
     try {
       ResponseEntity<String> response =
@@ -334,27 +351,22 @@ public class BddApiStepSupport {
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
 
     String body =
-        "{"
-            + "\"submission_id\":\""
-            + submissionId
-            + "\","
-            + "\"bulk_submission_id\":\""
-            + bulkSubmissionId
-            + "\","
-            + "\"office_account_number\":\""
-            + office
-            + "\","
-            + "\"submission_period\":\""
-            + submissionPeriod
-            + "\","
-            + "\"area_of_law\":\"LEGAL HELP\","
-            + "\"provider_user_id\":\"test-user\","
-            + "\"status\":\"READY_FOR_VALIDATION\","
-            + "\"created_by_user_id\":\"test-user\","
-            + "\"is_nil_submission\":true,"
-            + "\"number_of_claims\":0,"
-            + "\"legal_help_submission_reference\":\"BDDLHREF001\""
-            + "}";
+        """
+        {
+          "submission_id": "%s",
+          "bulk_submission_id": "%s",
+          "office_account_number": "%s",
+          "submission_period": "%s",
+          "area_of_law": "LEGAL HELP",
+          "provider_user_id": "test-user",
+          "status": "READY_FOR_VALIDATION",
+          "created_by_user_id": "test-user",
+          "is_nil_submission": true,
+          "number_of_claims": 0,
+          "legal_help_submission_reference": "BDDLHREF001"
+        }
+        """
+            .formatted(submissionId, bulkSubmissionId, office, submissionPeriod);
 
     restTemplate.exchange(
         serverInfo.baseUrl() + CREATE_SUBMISSION_PATH,
@@ -382,18 +394,20 @@ public class BddApiStepSupport {
     // Payload mirrors the working shape used by ClaimControllerTest.createClaim (unit-test) —
     // guarantees every field the OpenAPI bean-validation / @ScanForSql checks accepts.
     String body =
-        "{"
-            + "\"status\":\"VALID\","
-            + "\"schedule_reference\":\"SCH-BDD\","
-            + "\"line_number\":1,"
-            + "\"case_reference_number\":\"CRN-BDD\","
-            + "\"unique_file_number\":\"UFN-BDD\","
-            + "\"case_start_date\":\"01/07/2025\","
-            + "\"case_concluded_date\":\"31/07/2025\","
-            + "\"matter_type_code\":\"MAT01\","
-            + "\"outcome_code\":\"OUT01\","
-            + "\"created_by_user_id\":\"test-user\""
-            + "}";
+        """
+        {
+          "status": "VALID",
+          "schedule_reference": "SCH-BDD",
+          "line_number": 1,
+          "case_reference_number": "CRN-BDD",
+          "unique_file_number": "UFN-BDD",
+          "case_start_date": "01/07/2025",
+          "case_concluded_date": "31/07/2025",
+          "matter_type_code": "MAT01",
+          "outcome_code": "OUT01",
+          "created_by_user_id": "test-user"
+        }
+        """;
 
     ResponseEntity<String> response =
         restTemplate.exchange(

@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
@@ -50,9 +49,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
  *       real terminal status.
  * </ul>
  */
+@Slf4j
 public class LegalHelpDuplicateChecksSteps {
-
-  private static final Logger log = LoggerFactory.getLogger(LegalHelpDuplicateChecksSteps.class);
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
@@ -69,6 +67,8 @@ public class LegalHelpDuplicateChecksSteps {
     ClassPathResource resource = new ClassPathResource(classpathFile);
     String filename = resource.getFilename() != null ? resource.getFilename() : "bdd-fixture";
     Path tempPath = Files.createTempFile("bdd-fixture-", "-" + filename);
+    // Best-effort cleanup so long BDD runs don't leave copies of the classpath fixture in /tmp.
+    tempPath.toFile().deleteOnExit();
     try (var in = resource.getInputStream()) {
       Files.write(tempPath, in.readAllBytes());
     }
@@ -185,12 +185,11 @@ public class LegalHelpDuplicateChecksSteps {
   }
 
   private static String pickOffice(List<ClaimOverride> overrides) {
-    for (ClaimOverride o : overrides) {
-      if (o != null && o.office() != null) {
-        return o.office();
-      }
-    }
-    return DEFAULT_OFFICE;
+    return overrides.stream()
+        .filter(o -> o != null && o.office() != null)
+        .map(ClaimOverride::office)
+        .findFirst()
+        .orElse(DEFAULT_OFFICE);
   }
 
   @SuppressWarnings("unused")

@@ -4,10 +4,14 @@
 Feature: Duplicate checks - Legal Help - Disbursements (API)
 
   # Endpoints exercised:
-  #   POST  /api/v1/bulk-submissions        — submit a bulk submission
-  #   GET   /api/v1/bulk-submissions/{id}   — poll submission status
-  #   GET   /api/v1/submissions/{id}/claims — read validation errors on each claim
-  #   PATCH /api/v1/claims/{id}             — void a claim (DCLHD_9 only)
+  #   POST  /api/v1/bulk-submissions             — submit a bulk submission
+  #   GET   /api/v1/bulk-submissions/{id}        — read persisted bulk submission (assertions)
+  #   GET   /api/v1/bulk-submissions/{id}/summary — poll for terminal status (UAT mode)
+  #   PATCH /api/v1/bulk-submissions/{id}        — drive terminal status in local mode
+  #   GET   /api/v1/submissions/{id}/claims      — read validation errors on each claim (UAT mode)
+  #   POST  /api/v1/submissions                  — local-mode seed for the void step
+  #   POST  /api/v1/submissions/{id}/claims      — local-mode seed for the void step
+  #   POST  /api/v1/claims/{id}/void             — void a claim (DCLHD_9 only)
 
   # ===========================================================================
   # 1. Two submissions more than N months apart are both accepted end-to-end.

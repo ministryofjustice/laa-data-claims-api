@@ -3,13 +3,16 @@
 Feature: Duplicate checks - Legal Help (API)
 
   # Endpoints exercised:
-  #   POST  /api/v1/bulk-submissions        — submit a bulk submission
-  #   GET   /api/v1/bulk-submissions/{id}   — read persisted bulk submission
-  #   PATCH /api/v1/bulk-submissions/{id}   — mark a prior submission invalid (DCLH_10) /
-  #                                           drive terminal status in local mode
-  #   GET   /api/v1/submissions/{id}/claims — read validation errors on rejected claims
-  #                                           (DCLH_12, DCLH_13)
-  #   PATCH /api/v1/claims/{id}             — void a claim (DCLH_14 only)
+  #   POST  /api/v1/bulk-submissions             — submit a bulk submission
+  #   GET   /api/v1/bulk-submissions/{id}        — read persisted bulk submission (assertions)
+  #   GET   /api/v1/bulk-submissions/{id}/summary — poll for terminal status (UAT mode)
+  #   PATCH /api/v1/bulk-submissions/{id}        — mark a prior submission invalid (DCLH_10) /
+  #                                                drive terminal status in local mode
+  #   GET   /api/v1/submissions/{id}/claims      — read validation errors on rejected claims
+  #                                                (DCLH_12, DCLH_13, UAT mode)
+  #   POST  /api/v1/submissions                  — local-mode seed for the void step (DCLH_14)
+  #   POST  /api/v1/submissions/{id}/claims      — local-mode seed for the void step (DCLH_14)
+  #   POST  /api/v1/claims/{id}/void             — void a claim (DCLH_14 only)
 
   # ===========================================================================
   # 1. Smoke: a static Legal Help fixture is accepted end-to-end.

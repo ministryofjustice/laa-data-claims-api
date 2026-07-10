@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.DEFAULT_OFFICE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.EVENT_SERVICE_POLL_TIMEOUT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.MONTHS;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.isUatMode;
 
@@ -14,8 +16,8 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
@@ -44,10 +46,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
  *       the harness waits for real terminal status and asserts real validation messages.
  * </ul>
  */
+@Slf4j
 public class LegalHelpDisbursementsDuplicateChecksSteps {
-
-  private static final Logger log =
-      LoggerFactory.getLogger(LegalHelpDisbursementsDuplicateChecksSteps.class);
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
@@ -241,7 +241,9 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     if (!isUatMode()) {
       return; // outcomes are PATCH-driven in local mode; nothing to wait for
     }
-    String terminal = api.waitForBulkSubmissionTerminalStatus(bulkSubmissionId);
+    // Give the real event-service enough time to run duplicate checks and publish a callback.
+    String terminal =
+        api.waitForBulkSubmissionTerminalStatus(bulkSubmissionId, EVENT_SERVICE_POLL_TIMEOUT);
     log.info(
         "[uat mode] Bulk submission {} reached terminal status {}", bulkSubmissionId, terminal);
   }
@@ -311,16 +313,15 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
   }
 
   private static String pickOffice(List<ClaimOverride> overrides) {
-    for (ClaimOverride o : overrides) {
-      if (o != null && o.office() != null) {
-        return o.office();
-      }
-    }
-    return uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.DEFAULT_OFFICE;
+    return overrides.stream()
+        .filter(o -> o != null && o.office() != null)
+        .map(ClaimOverride::office)
+        .findFirst()
+        .orElse(DEFAULT_OFFICE);
   }
 
   private static String requireOffice(String office) {
-    if (office == null || office.isBlank()) {
+    if (StringUtils.isBlank(office)) {
       throw new IllegalStateException(
           "No office captured for the current submission — check the generator step.");
     }
