@@ -297,9 +297,22 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     // UAT mode — verify each expected message actually shows up on the submission's claims.
     List<Map<String, String>> rows = table.asMaps(String.class, String.class);
     for (Map<String, String> row : rows) {
-      String expectedMessage = row.get("Error Message");
+      String expectedMessage = resolvePlaceholders(row.get("Error Message"));
       validationMessages.assertSubmissionErrorExists(bulkSubmissionId, expectedMessage);
     }
+  }
+
+  /**
+   * Substitutes context-provided placeholders in an expected error message. Currently supports
+   * {@code <CURRENT_MONTH>} — set by steps that mutate the fixture's {@code submissionPeriod=}
+   * header to the current or a future month (see {@code SubmissionValidationSteps}).
+   */
+  private String resolvePlaceholders(String message) {
+    if (message == null) {
+      return null;
+    }
+    String resolvedMonth = context.getResolvedSubmissionMonth();
+    return resolvedMonth == null ? message : message.replace("<CURRENT_MONTH>", resolvedMonth);
   }
 
   private void capturePair(
