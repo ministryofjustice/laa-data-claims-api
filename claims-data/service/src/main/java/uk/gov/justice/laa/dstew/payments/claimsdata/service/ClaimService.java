@@ -1,10 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +19,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -26,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
@@ -53,6 +60,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
@@ -80,6 +89,18 @@ public class ClaimService
   private final ClaimValidationService claimValidationService;
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
+  private final ClaimAmendmentService claimAmendmentService;
+  private final ClaimAmendmentStateService claimAmendmentStateService;
+
+  private static final Set<String> IGNORED_FIELDS =
+      Set.of(
+          "id",
+          "submissionId",
+          "status",
+          "validationMessages",
+          "feeCalculationResponse",
+          "version",
+          "createdByUserId");
 
   @Override
   public SubmissionRepository lookup() {
@@ -183,6 +204,79 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
+    if (isAnAmendment(claimPatch, claim)) {
+      amendClaim(claim, claimPatch);
+    } else {
+      updateClaimStatusAndFeeDetails(claim, claimPatch);
+    }
+  }
+
+  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
+    if (claimPatch.getStatus() == null) {
+      return true;
+    }
+    return hasAdditionalFieldUpdates(claimPatch, claim);
+  }
+
+  /**
+   * Checks if the patch contains any fields outside of the standard status/fee update flow.
+   * Leverages short-circuit evaluation for maximum performance.
+   */
+  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+    if (patch == null) {
+      return false;
+    }
+
+    AtomicBoolean hasUpdates = new AtomicBoolean(false);
+
+    ReflectionUtils.doWithFields(
+        patch.getClass(),
+        patchField -> {
+          if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
+            return;
+          }
+
+          ReflectionUtils.makeAccessible(patchField);
+          Object patchValue = patchField.get(patch);
+
+          if (patchValue != null) {
+            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
+
+            if (claimField != null) {
+              ReflectionUtils.makeAccessible(claimField);
+              Object claimValue = claimField.get(claim);
+
+              if (Objects.equals(patchValue, claimValue)) {
+                return;
+              }
+            }
+            hasUpdates.set(true);
+          }
+        },
+        ReflectionUtils.COPYABLE_FIELDS);
+
+    return hasUpdates.get();
+  }
+
+  /**
+   * This method is called to allow legacy updates to still work.
+   *
+   * @param claim claim
+   * @param claimPatch claim patch
+   */
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
+
+    if (claimPatch.getValidationMessages() != null
+        && !claimPatch.getValidationMessages().isEmpty()) {
+      claimPatch
+          .getValidationMessages()
+          .forEach(
+              message -> {
+                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(log);
+              });
+    }
+
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
     claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claimRepository.save(claim);
@@ -196,7 +290,7 @@ public class ClaimService
 
       // Get existing calculated fee detail, and set the ID if it exists
       calculatedFeeDetailRepository
-          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId)
+          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
           .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
@@ -204,6 +298,9 @@ public class ClaimService
       calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
+  }
+
+  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
@@ -215,6 +312,14 @@ public class ClaimService
                     claimMapper.toValidationMessageLog(message, claim);
                 validationMessageLogRepository.save(validationLog);
               });
+    }
+
+    ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
+
+    ClaimAmendmentResult result = claimAmendmentService.submitAmendment(claim, payload);
+
+    if (result.errors() != null && !result.errors().isEmpty()) {
+      throw new ClaimAmendmentValidationException(result.errors());
     }
   }
 

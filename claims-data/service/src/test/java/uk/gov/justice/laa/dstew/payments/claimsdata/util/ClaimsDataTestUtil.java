@@ -40,6 +40,7 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_2_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_3_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_4_ID = Uuid7.timeBasedUuid();
+  public static final UUID CLAIM_5_ID = Uuid7.timeBasedUuid();
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID ASSESSMENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID ASSESSMENT_2_ID = Uuid7.timeBasedUuid();
@@ -64,6 +65,7 @@ public class ClaimsDataTestUtil {
   public static final String MATTER_TYPE_CODE = "MTC_123";
   public static final Integer LINE_NUMBER = 123;
   public static final String CASE_REFERENCE = "CASE-123";
+  public static final String PATCH_CASE_REFERENCE = "CASE-002";
   public static final String SCHEDULE_REFERENCE = "SCH_123";
   public static final String PROCUREMENT_AREA_CODE = "PAC_123";
   public static final String ACCESS_POINT_CODE = "APC_123";

@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,30 +52,24 @@ public class ClaimAmendmentStateService {
   /**
    * Retrieves the claim and builds the amendment state.
    *
-   * @param claimId the claim identifier
+   * @param claim the claim
    * @param payload the sparse amendment payload as submitted
    * @return the prepared amendment (the managed claim and the built state), or {@link
    *     Optional#empty()} if the claim does not exist
    */
-  public Optional<PreparedAmendment> retrieveAmendmentState(
-      UUID claimId, ClaimAmendmentPayload payload) {
-
-    Optional<Claim> claim = claimRepository.findById(claimId);
-    if (claim.isEmpty()) {
-      log.debug("No claim found for id {} during amendment retrieval", claimId);
-      return Optional.empty();
-    }
+  public PreparedAmendment retrieveAmendmentState(Claim claim, ClaimAmendmentPayload payload) {
 
     ClaimStateSnapshot beforeState =
         snapshotMapper.toSnapshot(
-            claim.get(),
-            clientRepository.findByClaimId(claimId),
-            claimCaseRepository.findByClaimId(claimId),
-            claimSummaryFeeRepository.findByClaimId(claimId),
-            calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId),
-            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId));
+            claim,
+            clientRepository.findByClaimId(claim.getId()),
+            claimCaseRepository.findByClaimId(claim.getId()),
+            claimSummaryFeeRepository.findByClaimId(claim.getId()),
+            calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(
+                claim.getId()),
+            assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId()));
 
     ClaimAmendmentState state = amendmentStateBuilder.buildAmendmentState(beforeState, payload);
-    return Optional.of(new PreparedAmendment(claim.get(), state));
+    return new PreparedAmendment(claim, state);
   }
 }

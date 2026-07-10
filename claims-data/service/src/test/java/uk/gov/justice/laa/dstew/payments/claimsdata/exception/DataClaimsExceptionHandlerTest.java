@@ -10,6 +10,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +23,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 @DisplayName("DataClaimsExceptionHandler Tests")
@@ -129,24 +132,151 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
+  void handleClaimAmendmentValidationException_returnsBadRequestWithErrorsPropertyWhenNonFatal() {
+    // Arrange: Create a non-fatal validation error scenario
+    ClaimAmendmentValidationError nonFatalError =
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE); // isFatal = false
+    ClaimAmendmentValidationException ex =
+        new ClaimAmendmentValidationException(List.of(nonFatalError));
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    // Assert
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(BAD_REQUEST);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(BAD_REQUEST.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
+    assertThat(result.getBody().getType().toString()).contains("claim-amendment-validation");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+
+    // Verify our custom properties structure
+    assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
+    assertThat(result.getBody().getProperties()).containsEntry("message", ex.getMessage());
+  }
+
+  @Test
+  void handleClaimAmendmentVersionValidationException_returnsCustomStatusWhenFatal() {
+    // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural
+    // checks)
+    ClaimAmendmentValidationError fatalError =
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode
+                .INVALID_NULL_VERSION); // isFatal = true, status maps to 400 or custom status if
+    // applicable
+    ClaimAmendmentValidationException ex =
+        new ClaimAmendmentValidationException(List.of(fatalError));
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    // Assert
+    HttpStatus expectedStatus = HttpStatus.resolve(fatalError.getHttpStatus().value());
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(expectedStatus);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(expectedStatus.value());
+    assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
+  }
+
+  @Test
+  void handleDatabaseOptimisticLockingException_returnsConflictStatusWithPredefinedMessage() {
+    // Arrange
+    OptimisticLockException ex =
+        new OptimisticLockException("Row was updated or deleted by another transaction", null);
+
+    // Act
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
+
+    // Assert
+    String expectedMessage =
+        ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate();
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail()).isEqualTo(expectedMessage);
+    assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
+    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
+  }
+
+  @Test
+  @DisplayName(
+      "Constructor automatically sorts errors by fatality first, then by HTTP status code descending")
+  void shouldSortErrorsByFatalityThenHttpStatusDescending() {
+    // Arrange: Create a mixed pool of fatal and non-fatal errors with various HTTP statuses
+
+    // 1. Non-fatal errors
+    ClaimAmendmentValidationError nonFatal400 = mock(ClaimAmendmentValidationError.class);
+    when(nonFatal400.isFatal()).thenReturn(false);
+    when(nonFatal400.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST); // 400
+
+    ClaimAmendmentValidationError nonFatal500 = mock(ClaimAmendmentValidationError.class);
+    when(nonFatal500.isFatal()).thenReturn(false);
+    when(nonFatal500.getHttpStatus()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR); // 500
+
+    // 2. Fatal errors
+    ClaimAmendmentValidationError fatal400 = mock(ClaimAmendmentValidationError.class);
+    when(fatal400.isFatal()).thenReturn(true);
+    when(fatal400.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST); // 400
+
+    ClaimAmendmentValidationError fatal409 = mock(ClaimAmendmentValidationError.class);
+    when(fatal409.isFatal()).thenReturn(true);
+    when(fatal409.getHttpStatus()).thenReturn(HttpStatus.CONFLICT); // 409
+
+    ClaimAmendmentValidationError fatal500 = mock(ClaimAmendmentValidationError.class);
+    when(fatal500.isFatal()).thenReturn(true);
+    when(fatal500.getHttpStatus()).thenReturn(HttpStatus.INTERNAL_SERVER_ERROR); // 500
+
+    // Supply them completely out of order to the constructor
+    List<ClaimAmendmentValidationError> unsortedErrors =
+        List.of(nonFatal400, fatal400, nonFatal500, fatal500, fatal409);
+
+    // Act
+    ClaimAmendmentValidationException exception =
+        new ClaimAmendmentValidationException(unsortedErrors);
+
+    List<ClaimAmendmentValidationError> sortedResult =
+        dataClaimsExceptionHandler.sortValidationErrorsByFatalAndStatus(exception);
+
+    assertThat(sortedResult).hasSize(5);
+
+    // Priority 1: Fatal errors take precedence, sorted highest HTTP status code first (500 -> 409
+    // -> 400)
+    assertThat(sortedResult.get(0)).isSameAs(fatal500);
+    assertThat(sortedResult.get(1)).isSameAs(fatal409);
+    assertThat(sortedResult.get(2)).isSameAs(fatal400);
+
+    // Priority 2: Non-fatal errors follow, sorted highest HTTP status code first (500 -> 400)
+    assertThat(sortedResult.get(3)).isSameAs(nonFatal500);
+    assertThat(sortedResult.get(4)).isSameAs(nonFatal400);
+  }
+
+  @Test
   @DisplayName(
       "Spring's ObjectOptimisticLockingFailureException maps to a 409 Conflict Problem Detail")
   void handleOptimisticLockingFailure_returnsConflict() {
     ObjectOptimisticLockingFailureException ex =
-        new ObjectOptimisticLockingFailureException("Claim", "some-id");
+        new ObjectOptimisticLockingFailureException("Claim", new Exception());
 
     ResponseEntity<ProblemDetail> result =
-        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail())
-        .isEqualTo(
-            "The record was modified concurrently; please re-read the latest version and retry.");
-    assertThat(result.getBody().getType().toString()).contains("object-optimistic-locking-failure");
+    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
+    assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
   }
 
@@ -158,16 +288,14 @@ class DataClaimsExceptionHandlerTest {
     OptimisticLockException ex = new OptimisticLockException("Row was already updated");
 
     ResponseEntity<ProblemDetail> result =
-        dataClaimsExceptionHandler.handleOptimisticLockingFailure(ex, mockRequest);
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(ex, mockRequest);
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail())
-        .isEqualTo(
-            "The record was modified concurrently; please re-read the latest version and retry.");
+    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
   }
