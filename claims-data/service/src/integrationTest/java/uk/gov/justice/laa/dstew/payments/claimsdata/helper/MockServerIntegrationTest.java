@@ -11,13 +11,16 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.Parameter;
+import org.mockserver.verify.VerificationTimes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -49,6 +52,9 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
   private static final String FEE_CALCULATION = "/api/v1/fee-calculation";
   private static final String PROVIDER_OFFICES = "/api/v1/provider-offices/";
   private static final String SCHEDULES_ENDPOINT = "/schedules";
+
+  /** Matches the PDA {@code getProviderFirmSchedules} path for any office code. */
+  private static final String SCHEDULES_PATH_REGEX = PROVIDER_OFFICES + ".*" + SCHEDULES_ENDPOINT;
 
   private static final DockerImageName MOCKSERVER_IMAGE =
       DockerImageName.parse("mockserver/mockserver:5.15.0");
@@ -89,12 +95,12 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
     registry.add("PROVIDER_DETAILS_API_ACCESS_TOKEN", () -> "");
 
     // The bound configuration keys, for completeness.
-    registry.add("dstew.payments.validator.fee-scheme-platform-api.url", () -> baseUrl);
-    registry.add("dstew.payments.validator.fee-scheme-platform-api.accessToken", () -> "");
-    registry.add("dstew.payments.validator.provider-details-api.url", () -> baseUrl);
-    registry.add("dstew.payments.validator.provider-details-api.accessToken", () -> "");
+    registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.url", () -> baseUrl);
+    registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.accessToken", () -> "");
+    registry.add("laa.dstew.payments.validator.provider-details-api.url", () -> baseUrl);
+    registry.add("laa.dstew.payments.validator.provider-details-api.accessToken", () -> "");
     registry.add(
-        "dstew.payments.validator.provider-details-api.authHeader", () -> "X-Authorization");
+        "laa.dstew.payments.validator.provider-details-api.authHeader", () -> "X-Authorization");
   }
 
   @BeforeEach
@@ -216,6 +222,18 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
    * succeed; any external validation issues they might raise do not affect those assertions.
    */
   protected void stubExternalValidationEndpoints() throws IOException {
+    stubFeeSchemeEndpoints();
+    stubProviderSchedulesOk();
+  }
+
+  /**
+   * Stubs the Fee Scheme Platform calls (fee-details, fee-calculation) so the assembled validation
+   * chain can run. These are the non-PDA external calls; the PDA {@code /schedules} call is stubbed
+   * separately so tests can control (and verify) it independently.
+   *
+   * @throws IOException if a response fixture cannot be read
+   */
+  protected void stubFeeSchemeEndpoints() throws IOException {
     // Match any fee code / office as the amended payload's values vary.
     mockServerClient
         .when(request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*"))
@@ -223,11 +241,99 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
     mockServerClient
         .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION))
         .respond(okJsonFile("fee-scheme/post-fee-calculation-200.json"));
+  }
+
+  /**
+   * Stubs the Provider Details API {@code getProviderFirmSchedules} call to return {@code 200} with
+   * a valid schedules body for any office. Used to exercise the PDA cache/call layer on the
+   * amendment path (DSTEW-1646 / DSTEW-1773).
+   *
+   * @throws IOException if the response fixture cannot be read
+   */
+  protected void stubProviderSchedulesOk() throws IOException {
+    stubProviderSchedules("provider-details/get-firm-schedules-openapi-200.json");
+  }
+
+  /**
+   * Stubs the Provider Details API {@code getProviderFirmSchedules} call to return {@code 200} with
+   * the JSON body read from the named response file. The schedule start/end dates in that body
+   * determine the positive-cache coverage window, so a test that needs a cache hit for a given
+   * effective date must supply a fixture whose window covers it.
+   *
+   * @param responseFile the response file under {@code responses/}
+   * @throws IOException if the response fixture cannot be read
+   */
+  protected void stubProviderSchedules(String responseFile) throws IOException {
     mockServerClient
-        .when(
-            request()
-                .withMethod(HttpMethod.GET.name())
-                .withPath(PROVIDER_OFFICES + ".*" + SCHEDULES_ENDPOINT))
-        .respond(okJsonFile("provider-details/get-firm-schedules-openapi-200.json"));
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX))
+        .respond(okJsonFile(responseFile));
+  }
+
+  /**
+   * Stubs the PDA {@code getProviderFirmSchedules} call to return the supplied HTTP status with no
+   * body - used to exercise technical-failure mapping (e.g. {@code 503} server error).
+   *
+   * @param statusCode the status code to return
+   */
+  protected void stubProviderSchedulesStatus(int statusCode) {
+    mockServerClient
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX))
+        .respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /**
+   * Stubs the PDA {@code getProviderFirmSchedules} call to return {@code 200} with the supplied raw
+   * body - used to exercise malformed/parse-error technical-failure mapping by returning a body
+   * that cannot be decoded into the schedules model.
+   *
+   * @param rawBody the raw (e.g. non-JSON) response body
+   */
+  protected void stubProviderSchedulesRawBody(String rawBody) {
+    mockServerClient
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX))
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(200)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody(rawBody));
+  }
+
+  /**
+   * Stubs the PDA {@code getProviderFirmSchedules} call to drop the connection - used to exercise
+   * connection-failure technical-failure mapping.
+   */
+  protected void stubProviderSchedulesConnectionDrop() {
+    mockServerClient
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX))
+        .error(HttpError.error().withDropConnection(true));
+  }
+
+  /**
+   * Stubs the Provider Details API {@code getProviderFirmSchedules} call to return {@code 200} only
+   * after the supplied delay. Used to trip a configured amendment-path read timeout: set the delay
+   * above the configured {@code provider-details-api.readTimeoutMs} to force a timeout outcome.
+   *
+   * @param delay how long the stub waits before responding
+   * @throws IOException if the response fixture cannot be read
+   */
+  protected void stubProviderSchedulesWithDelay(Duration delay) throws IOException {
+    mockServerClient
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX))
+        .respond(
+            okJsonFile("provider-details/get-firm-schedules-openapi-200.json")
+                .withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /**
+   * Verifies how many times the Provider Details {@code /schedules} endpoint was called, regardless
+   * of office. Because MockServer expectations are reset after each test, the count reflects only
+   * the calls made by the current test - so this doubles as the cache hit/miss and no-retry
+   * assertion for the PDA call layer.
+   *
+   * @param times the expected number of outbound {@code /schedules} calls
+   */
+  protected void verifyProviderSchedulesCalled(VerificationTimes times) {
+    mockServerClient.verify(
+        request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX), times);
   }
 }
