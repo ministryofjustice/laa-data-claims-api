@@ -211,8 +211,9 @@ public class ClaimService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
-                validationMessageLogRepository.save(log);
+                ValidationMessageLog validationLog =
+                    claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(validationLog);
               });
     }
   }

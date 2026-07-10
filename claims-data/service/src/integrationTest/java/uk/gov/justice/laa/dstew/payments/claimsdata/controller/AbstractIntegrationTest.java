@@ -563,6 +563,7 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing case reference",
                 "Field `caseReferenceNumber` is required",
+                null, // messageCode - null for SYSTEM source
                 CREATED_ON,
                 null),
             new ValidationMessageLog(
@@ -573,6 +574,7 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
+                null, // messageCode - null for SYSTEM source
                 CREATED_ON,
                 null)));
   }
