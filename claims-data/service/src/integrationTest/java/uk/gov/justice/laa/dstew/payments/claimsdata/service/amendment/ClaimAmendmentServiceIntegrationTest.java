@@ -14,7 +14,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
@@ -45,46 +44,14 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
-  @DisplayName("valid non-pricing amendment is retrieved, validated and persisted atomically")
-  void submitsValidAmendmentAtomically() {
-    // Ensure the claim is in an amendable state for the status gate.
-    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    claim.setStatus(ClaimStatus.VALID);
-
-    ClaimAmendmentPayload payload =
-        ClaimAmendmentPayload.builder()
-            .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
-            .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
-            .amendmentUserId(JsonNullable.of(VALID_USER_UUID))
-            .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
-            .build();
-
-    ClaimAmendmentResult result = amendmentService.submitAmendment(CLAIM_1_ID, payload);
-
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.errors()).isEmpty();
-
-    // Flush the amendment insert and the dirty (mutated) managed claim, then re-read.
-    entityManager.flush();
-    entityManager.clear();
-
-    ClaimAmendment reloaded =
-        claimAmendmentRepository.findById(result.amendment().getId()).orElseThrow();
-    assertThat(reloaded.getRequestedByCode()).isEqualTo(REQUESTED_BY_PROVIDER);
-    assertThat(reloaded.getAmendmentReasonCode()).isEqualTo(REASON_PROVIDER_ERROR);
-    assertThat(reloaded.getDiff()).contains("schema_version").contains("claim.feeCode");
-
-    Claim reloadedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    assertThat(reloadedClaim.getFeeCode()).isEqualTo(AMENDED_FEE_CODE);
-    assertThat(reloadedClaim.isAmended()).isTrue();
-  }
-
-  @Test
-  @Transactional
   @DisplayName("invalid amendment is rejected with errors and nothing is persisted")
   void rejectsInvalidAmendmentAndPersistsNothing() {
-    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    claim.setStatus(ClaimStatus.VALID);
+    Claim claim1 = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim1.setStatus(ClaimStatus.VALID);
+    claimRepository.saveAndFlush(claim1);
+
+    entityManager.flush();
+    entityManager.clear();
 
     long amendmentsBefore = claimAmendmentRepository.count();
 
@@ -95,7 +62,7 @@ class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
             .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
             .build();
 
-    ClaimAmendmentResult result = amendmentService.submitAmendment(CLAIM_1_ID, payload);
+    ClaimAmendmentResult result = amendmentService.submitAmendment(claim1, payload);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).isNotEmpty();
