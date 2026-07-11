@@ -33,29 +33,29 @@ class FeeSchemeRequestFieldTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "feeCode",
-        "id",
-        "caseStartDate",
-        "policeStationCourtPrisonId",
-        "schemeId",
-        "uniqueFileNumber",
-        "netProfitCostsAmount",
-        "netCounselCostsAmount",
-        "netDisbursementAmount",
-        "disbursementsVatAmount",
-        "isVatApplicable",
-        "detentionTravelWaitingCostsAmount",
-        "caseConcludedDate",
-        "mediationSessionsCount",
-        "jrFormFillingAmount",
-        "priorAuthorityReference",
-        "representationOrderDate",
-        "isLondonRate",
-        "adjournedHearingFeeAmount",
-        "cmrhOralCount",
-        "cmrhTelephoneCount",
-        "hoInterview",
-        "isSubstantiveHearing"
+        "claim.feeCode",
+        "claim.id",
+        "claim.caseStartDate",
+        "claim.policeStationCourtPrisonId",
+        "claim.schemeId",
+        "claim.uniqueFileNumber",
+        "claimSummaryFee.netProfitCostsAmount",
+        "claimSummaryFee.netCounselCostsAmount",
+        "claimSummaryFee.netDisbursementAmount",
+        "claimSummaryFee.disbursementsVatAmount",
+        "claimSummaryFee.isVatApplicable",
+        "claimSummaryFee.detentionTravelWaitingCostsAmount",
+        "claim.caseConcludedDate",
+        "claim.mediationSessionsCount",
+        "claimSummaryFee.jrFormFillingAmount",
+        "claimSummaryFee.priorAuthorityReference",
+        "claim.representationOrderDate",
+        "claimSummaryFee.isLondonRate",
+        "claimSummaryFee.adjournedHearingFeeAmount",
+        "claimSummaryFee.cmrhOralCount",
+        "claimSummaryFee.cmrhTelephoneCount",
+        "claimSummaryFee.hoInterview",
+        "claimSummaryFee.isSubstantiveHearing"
       })
   @DisplayName("unconditional fields map for every area of law")
   void unconditionalFieldsMapForEveryArea(String claimField) {
@@ -72,7 +72,7 @@ class FeeSchemeRequestFieldTest {
   void travelWaitingCostsMapsForCrimeLowerAndLegalHelpOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER, AreaOfLaw.LEGAL_HELP);
 
-    assertThat(impactsPricing("travelWaitingCostsAmount", areaOfLaw))
+    assertThat(impactsPricing("claimSummaryFee.travelWaitingCostsAmount", areaOfLaw))
         .as("travelWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
@@ -83,7 +83,7 @@ class FeeSchemeRequestFieldTest {
   void netWaitingCostsMapsForCrimeLowerOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER);
 
-    assertThat(impactsPricing("netWaitingCostsAmount", areaOfLaw))
+    assertThat(impactsPricing("claimSummaryFee.netWaitingCostsAmount", areaOfLaw))
         .as("netWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
@@ -135,6 +135,18 @@ class FeeSchemeRequestFieldTest {
   void blankOrWrongCaseFieldNamesDoNotMap(String field) {
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
       assertThat(impactsPricing(field, areaOfLaw)).as("'%s' for %s", field, areaOfLaw).isFalse();
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"feeCode", "netProfitCostsAmount", "netWaitingCostsAmount"})
+  @DisplayName(
+      "bare (unqualified) claim field identifiers do not map when registry uses fully-qualified names")
+  void bareFieldIdentifiersDoNotMap(String field) {
+    for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
+      assertThat(impactsPricing(field, areaOfLaw))
+          .as("bare field '%s' for %s", field, areaOfLaw)
+          .isFalse();
     }
   }
 

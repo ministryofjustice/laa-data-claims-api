@@ -58,7 +58,6 @@ public class AssessedClaimPricingValidationStep implements ClaimAmendmentValidat
     String joined = String.join(", ", offendingFields);
     return List.of(
         ClaimAmendmentValidationError.of(
-            ClaimAmendmentValidationCode.INVALID_ASSESSED_CLAIM_PRICING_FIELDS_NOT_ALLOWED,
-            joined));
+            ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM, joined));
   }
 }

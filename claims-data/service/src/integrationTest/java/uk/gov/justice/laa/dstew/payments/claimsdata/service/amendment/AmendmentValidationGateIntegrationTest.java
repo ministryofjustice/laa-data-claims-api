@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.*;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.AMENDED_FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.validPayload;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
@@ -24,6 +25,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 
 /**
@@ -57,6 +60,8 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
   @Autowired private ClaimAmendmentPreparationService preparationService;
   @Autowired private ClaimAmendmentCommitService commitService;
   @Autowired private EntityManager entityManager;
+  // Spy instance used to assert the FSP validation step was not invoked when earlier steps fail
+  private ClaimAmendmentValidationStep fspSpy;
 
   @BeforeEach
   void setUp() {
@@ -96,6 +101,8 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
     Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(reloaded.isAmended()).isFalse();
     assertThat(reloaded.getFeeCode()).isNotEqualTo(AMENDED_FEE_CODE);
+
+    // Nothing else to assert here - other tests cover assessed-pricing fatal behaviour and FSP
   }
 
   /**
@@ -108,6 +115,16 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
         discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
 
+    // Replace the real AmendmentFspValidationStep with a Mockito spy so tests can assert on
+    // invocations
+    ClaimAmendmentValidationStep originalFsp = beanByClass.get(AmendmentFspValidationStep.class);
+    if (originalFsp != null) {
+      fspSpy = spy(originalFsp);
+      beanByClass.put(AmendmentFspValidationStep.class, fspSpy);
+    } else {
+      fspSpy = null;
+    }
+
     ClaimAmendmentValidationStep[] steps =
         ClaimAmendmentValidationService.STEP_ORDER.stream()
             .map(
@@ -119,5 +136,80 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
 
     return new ClaimAmendmentService(
         preparationService, new ClaimAmendmentValidationService(steps), commitService);
+  }
+
+  private ClaimAmendmentService serviceWithFatalFailingStep(
+      Class<? extends ClaimAmendmentValidationStep> failingStep,
+      ClaimAmendmentValidationError fatalError) {
+    Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
+        discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
+
+    // Spy the FSP validation step so we can assert it was never invoked
+    ClaimAmendmentValidationStep originalFsp = beanByClass.get(AmendmentFspValidationStep.class);
+    if (originalFsp != null) {
+      fspSpy = spy(originalFsp);
+      beanByClass.put(AmendmentFspValidationStep.class, fspSpy);
+    } else {
+      fspSpy = null;
+    }
+
+    ClaimAmendmentValidationStep[] steps =
+        ClaimAmendmentValidationService.STEP_ORDER.stream()
+            .map(
+                stepClass ->
+                    stepClass.equals(failingStep)
+                        ? (ClaimAmendmentValidationStep) (state -> List.of(fatalError))
+                        : beanByClass.get(stepClass))
+            .toArray(ClaimAmendmentValidationStep[]::new);
+
+    return new ClaimAmendmentService(
+        preparationService, new ClaimAmendmentValidationService(steps), commitService);
+  }
+
+  @org.junit.jupiter.api.Test
+  @Transactional
+  @DisplayName("assessed-pricing fatal failure prevents FSP invocation and writes")
+  void assessedPricingFatalFailurePreventsFspAndWrites() {
+    // Put the claim in an assessed, amendable state so the real assessed step would normally run
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(ClaimStatus.VALID);
+
+    ClaimAmendmentValidationError fatal =
+        ClaimAmendmentValidationError.of(
+            uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode
+                .INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM,
+            "netProfitCostsAmount");
+
+    ClaimAmendmentService service =
+        serviceWithFatalFailingStep(AssessedClaimPricingValidationStep.class, fatal);
+
+    // Capture the pre-existing latest calculated-fee (if any) for the claim so we can assert no new
+    // row is created when the gate rejects the amendment.
+    var beforeCalc =
+        calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID);
+
+    ClaimAmendmentResult result = service.submitAmendment(claim1, validPayload());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).contains(fatal);
+
+    if (fspSpy != null) {
+      verify(fspSpy, never()).validate(any());
+    }
+
+    // Force buffered DB work out, then confirm the latest calculated-fee row for this claim is the
+    // same as before (no new row was written).
+    entityManager.flush();
+    entityManager.clear();
+
+    var afterCalc =
+        calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID);
+
+    if (beforeCalc.isPresent()) {
+      assertThat(afterCalc).isPresent();
+      assertThat(afterCalc.get().getId()).isEqualTo(beforeCalc.get().getId());
+    } else {
+      assertThat(afterCalc).isNotPresent();
+    }
   }
 }

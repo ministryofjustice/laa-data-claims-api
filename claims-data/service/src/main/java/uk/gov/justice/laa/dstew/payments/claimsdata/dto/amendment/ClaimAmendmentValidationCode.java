@@ -52,7 +52,7 @@ public enum ClaimAmendmentValidationCode {
    * The claim already has an assessment; provider-requested changes to pricing-related fields are
    * not permitted.
    */
-  INVALID_ASSESSED_CLAIM_PRICING_FIELDS_NOT_ALLOWED(
+  INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM(
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
       "This claim has an assessment; pricing-related fields cannot be amended: %s",
