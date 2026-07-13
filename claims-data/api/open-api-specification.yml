@@ -1361,7 +1361,7 @@ components:
         - VALIDATION_FAILED
         - REPLACED
         - UNAUTHORISED
-        - READY_FOR_FINAL_SUBMISSION
+        - READY_FOR_SUBMISSION
         - VALIDATION_SUCCEEDED
     bulk_submission_error_code:
       type: string
@@ -1397,6 +1397,7 @@ components:
         - VALIDATION_IN_PROGRESS
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
+        - READY_FOR_SUBMISSION
         - REPLACED
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
