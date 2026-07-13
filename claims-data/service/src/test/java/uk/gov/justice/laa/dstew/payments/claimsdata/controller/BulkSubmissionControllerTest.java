@@ -89,7 +89,7 @@ class BulkSubmissionControllerTest {
       expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
-      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any()))
+      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any(), any()))
           .thenReturn(expected);
 
       // Perform POST with multipart file
