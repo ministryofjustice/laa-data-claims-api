@@ -493,20 +493,20 @@ public interface BulkSubmissionMapper {
    * Map to an {@link Integer} within an inclusive range.
    *
    * @param value the value to map.
-   * @param fieldName the name of the field being mapped.
+   * @param exceptionMessage the validation message to use if conversion or range validation fails.
    * @param minInclusive the minimum accepted value.
    * @param maxInclusive the maximum accepted value.
    * @return a validated Integer representation of the field.
    */
   default Integer parseIntegerFieldInInclusiveRange(
-      String value, String fieldName, int minInclusive, int maxInclusive) {
-    Integer parsedValue = parseIntegerField(value, fieldName);
+      String value, String exceptionMessage, int minInclusive, int maxInclusive) {
+    Integer parsedValue = parseIntegerField(value, exceptionMessage);
     if (parsedValue == null) {
       return null;
     }
 
     if (parsedValue < minInclusive || parsedValue > maxInclusive) {
-      throw new BulkSubmissionFieldConversionException(fieldName, value);
+      throw new BulkSubmissionFieldConversionException(exceptionMessage, value);
     }
 
     return parsedValue;
