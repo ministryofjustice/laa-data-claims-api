@@ -23,6 +23,9 @@ services:
       - AWS_SQS_ENDPOINT=http://host.docker.internal:4566
       - SPRING_PROFILES_ACTIVE=local
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      - CLAIMS_API_AMENDMENTS_ENABLED=${CLAIMS_API_AMENDMENTS_ENABLED}
+      - FEE_SCHEME_PLATFORM_API_URL=${FEE_SCHEME_PLATFORM_API_URL}
+      - FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN=${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
     depends_on:
       - postgres
       - localstack
