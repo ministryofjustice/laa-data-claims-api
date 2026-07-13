@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -69,7 +70,10 @@ class UnassessedPricingInvokesFspIntegrationTest extends AbstractIntegrationTest
 
     // Replace the FSP validation step with a mock so we can assert it was invoked
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
+        discoveredSteps.stream()
+            .collect(
+                Collectors.toMap(
+                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
 
     ClaimAmendmentValidationStep mockFsp = mock(AmendmentFspValidationStep.class);
     beanByClass.put(AmendmentFspValidationStep.class, mockFsp);

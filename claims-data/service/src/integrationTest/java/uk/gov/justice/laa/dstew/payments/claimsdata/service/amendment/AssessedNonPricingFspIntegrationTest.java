@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -84,7 +85,10 @@ class AssessedNonPricingFspIntegrationTest extends AbstractIntegrationTest {
     // non-pricing amendment is internal to the step (covered by its own ticket/tests). Here we
     // assert the observable outcome: no new calculated-fee (pricing) row is written.
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
+        discoveredSteps.stream()
+            .collect(
+                Collectors.toMap(
+                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
 
     ClaimAmendmentValidationStep fspStep = beanByClass.get(AmendmentFspValidationStep.class);
     ClaimAmendmentValidationStep spiedStep = spy(fspStep);

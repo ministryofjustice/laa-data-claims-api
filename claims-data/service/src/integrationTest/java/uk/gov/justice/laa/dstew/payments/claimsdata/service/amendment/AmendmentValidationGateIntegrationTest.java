@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -113,7 +114,10 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
   private ClaimAmendmentService serviceWithFailingStep(
       Class<? extends ClaimAmendmentValidationStep> failingStep) {
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
+        discoveredSteps.stream()
+            .collect(
+                Collectors.toMap(
+                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
 
     // Replace the real AmendmentFspValidationStep with a Mockito spy so tests can assert on
     // invocations
@@ -142,7 +146,10 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
       Class<? extends ClaimAmendmentValidationStep> failingStep,
       ClaimAmendmentValidationError fatalError) {
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream().collect(Collectors.toMap(Object::getClass, step -> step));
+        discoveredSteps.stream()
+            .collect(
+                Collectors.toMap(
+                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
 
     // Spy the FSP validation step so we can assert it was never invoked
     ClaimAmendmentValidationStep originalFsp = beanByClass.get(AmendmentFspValidationStep.class);

@@ -165,16 +165,17 @@ class FeeSchemeRequestFieldTest {
   }
 
   @Test
-  @DisplayName("namespaced identifiers are accepted (namespace is ignored for lookup)")
-  void namespacedIdentifiersAreAccepted() {
-    // Existing mapping uses bare claim field names; ensure a namespaced identifier still maps.
+  @DisplayName("fully-qualified claim field identifiers are accepted")
+  void fullyQualifiedIdentifiersAreAccepted() {
+    // Registry uses fully-qualified identifiers (namespace.field); verify representative examples
+    // map.
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
       assertThat(impactsPricing("claim.feeCode", areaOfLaw))
           .as("claim.feeCode for %s", areaOfLaw)
           .isTrue();
     }
 
-    // area-specific mapping also works when namespaced
+    // Another fully-qualified mapping example
     assertThat(impactsPricing("claimSummaryFee.netProfitCostsAmount", AreaOfLaw.CRIME_LOWER))
         .isTrue();
   }
