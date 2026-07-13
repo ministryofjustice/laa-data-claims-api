@@ -314,7 +314,8 @@ public class BulkSubmissionService
         .errorCode(bulkSubmission.getErrorCode())
         .errorDescription(bulkSubmission.getErrorDescription())
         .updatedByUserId(bulkSubmission.getUpdatedByUserId())
-        .details(bulkSubmission.getData());
+        .details(bulkSubmission.getData())
+        .saveAsDraft(bulkSubmission.isSubmittedAsDraft());
   }
 
   /**
