@@ -100,12 +100,6 @@ public enum FeeSchemeRequestField {
   /**
    * Whether the given claim field maps to the FSP fee-scheme request for the given area of law.
    *
-   * <p>This method is namespace-aware: if the supplied {@code field} is namespaced (eg {@code
-   * "claimSummaryFee.netProfitCostsAmount"}) the namespace (the segment before the first dot) will
-   * be used to limit matches to registry entries that explicitly declare that namespace. If the
-   * supplied {@code field} is bare (eg {@code "netProfitCostsAmount"}) behaviour is
-   * backwards-compatible and any registry entry with a matching claim field will be considered.
-   *
    * @param field the claim field name (the "mapped from claim" value); may be {@code null}
    * @param areaOfLaw the area of law to evaluate the mapping for; must not be {@code null}
    * @return {@code true} if the field maps to the fee-scheme request for that area of law
