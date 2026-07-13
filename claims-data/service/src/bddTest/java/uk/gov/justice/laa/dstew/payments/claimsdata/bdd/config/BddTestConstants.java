@@ -66,6 +66,13 @@ public final class BddTestConstants {
   /** Longer polling budget for async validation-message / DB-persistence assertions. */
   public static final Duration VALIDATION_POLL_TIMEOUT = Duration.ofSeconds(10);
 
+  /**
+   * Extended polling budget used when the BDD run is executed against a real event-service (e.g.
+   * UAT CI). The default local mode drives the outcome directly via PATCH — no waiting needed — so
+   * this larger budget only applies when {@link #isUatMode()} is {@code true}.
+   */
+  public static final Duration EVENT_SERVICE_POLL_TIMEOUT = Duration.ofSeconds(90);
+
   /** States at which the bulk-submission summary polling can stop in this harness. */
   public static final Set<String> BULK_TERMINAL_STATES =
       Set.of(
@@ -74,6 +81,24 @@ public final class BddTestConstants {
           "PARSING_FAILED",
           "VALIDATION_FAILED",
           "VALIDATION_SUCCEEDED");
+
+  // ---------------------------------------------------------------------------
+  // Run-mode toggle
+  // ---------------------------------------------------------------------------
+
+  /** System property controlling BDD run mode. Accepts {@code local} (default) or {@code uat}. */
+  public static final String BDD_MODE_PROPERTY = "bdd.mode";
+
+  /** Constant for the UAT run mode. */
+  public static final String BDD_MODE_UAT = "uat";
+
+  /**
+   * Returns {@code true} when the harness is running against a real event-service (i.e. UAT CI) and
+   * should assert outcomes end-to-end rather than driving them via PATCH shortcuts.
+   */
+  public static boolean isUatMode() {
+    return BDD_MODE_UAT.equalsIgnoreCase(System.getProperty(BDD_MODE_PROPERTY, "local").trim());
+  }
 
   // ---------------------------------------------------------------------------
   // API paths (relative to the running server's base URL)
@@ -101,4 +126,13 @@ public final class BddTestConstants {
 
   /** {@code GET /api/v1/validation-messages}. */
   public static final String GET_VALIDATION_MESSAGES_PATH = API_URI_PREFIX + "/validation-messages";
+
+  /** {@code POST /api/v1/claims/{claimId}/void}. */
+  public static final String VOID_CLAIM_PATH = API_URI_PREFIX + "/claims/{claimId}/void";
+
+  /** {@code POST /api/v1/submissions/{id}/claims}. */
+  public static final String CREATE_CLAIM_PATH = API_URI_PREFIX + "/submissions/{id}/claims";
+
+  /** {@code POST /api/v1/submissions}. */
+  public static final String CREATE_SUBMISSION_PATH = API_URI_PREFIX + "/submissions";
 }

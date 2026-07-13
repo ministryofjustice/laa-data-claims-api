@@ -92,6 +92,10 @@ public final class LegalHelpFileGenerator {
       String trimmed = value.trim();
       return trimmed.isEmpty() ? null : trimmed;
     }
+
+    static String trimOrNull(String value) {
+      return trimToNull(value);
+    }
   }
 
   /** Result of a generation call. */
@@ -313,5 +317,57 @@ public final class LegalHelpFileGenerator {
       result.add(ClaimOverride.fromRow(row));
     }
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Paired-file generation (used by disbursement duplicate-check scenarios)
+  // ---------------------------------------------------------------------------
+
+  /** Paired-file result: two generated files with the same claim data but different periods. */
+  public record GeneratedPair(GeneratedFile first, GeneratedFile second) {}
+
+  /**
+   * Generates two Legal Help files for the given office whose submission periods are {@code
+   * monthsApart} months apart. Both files carry the same claim data (from {@code rows}); the caller
+   * decides via {@code feeCode1}/{@code feeCode2} table columns whether the fee codes differ.
+   *
+   * <p>Each row is expected to expose (at least) {@code ucn}, {@code ufn}, {@code feeCode1}, {@code
+   * feeCode2}. Extra columns like {@code office} are ignored — the office comes from the method
+   * argument.
+   */
+  public GeneratedPair generatePair(
+      Format format,
+      String office,
+      int monthsApart,
+      String firstPeriod,
+      String secondPeriod,
+      List<Map<String, String>> rows)
+      throws IOException {
+
+    List<ClaimOverride> firstOverrides = new ArrayList<>();
+    List<ClaimOverride> secondOverrides = new ArrayList<>();
+    for (Map<String, String> row : rows) {
+      firstOverrides.add(
+          overrideFor(row, row.getOrDefault("feeCode1", row.get("feeCode")), office));
+      secondOverrides.add(
+          overrideFor(row, row.getOrDefault("feeCode2", row.get("feeCode")), office));
+    }
+
+    GeneratedFile first =
+        generate(format, Math.max(rows.size(), 1), office, firstPeriod, firstOverrides);
+    GeneratedFile second =
+        generate(format, Math.max(rows.size(), 1), office, secondPeriod, secondOverrides);
+    return new GeneratedPair(first, second);
+  }
+
+  private static ClaimOverride overrideFor(Map<String, String> row, String feeCode, String office) {
+    return new ClaimOverride(
+        ClaimOverride.trimOrNull(row.get("ucn")),
+        ClaimOverride.trimOrNull(row.get("ufn")),
+        ClaimOverride.trimOrNull(feeCode),
+        office,
+        ClaimOverride.trimOrNull(row.get("caseStartDate")),
+        ClaimOverride.trimOrNull(row.get("workConcludedDate")),
+        ClaimOverride.trimOrNull(row.get("clientDateOfBirth")));
   }
 }
