@@ -4,11 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_STATUS_POLL_TIMEOUT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_SUBMISSION_SUMMARY_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_TERMINAL_STATES;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
@@ -17,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +40,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddBeansConfiguration.BddServerInfo;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 
 /**
  * End-to-end HTTP support for BDD steps. Calls the running application over the network using
@@ -180,14 +187,27 @@ public class BddApiStepSupport {
 
   /**
    * Polls the {@code /bulk-submissions/{id}/summary} endpoint until the status enters a terminal
-   * state (or the timeout is reached). Returns the terminal status string.
+   * state (or the default {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants#BULK_STATUS_POLL_TIMEOUT
+   * short timeout} is reached). Returns the terminal status string.
    */
   public String waitForBulkSubmissionTerminalStatus(UUID bulkSubmissionId) {
+    return waitForBulkSubmissionTerminalStatus(bulkSubmissionId, BULK_STATUS_POLL_TIMEOUT);
+  }
+
+  /**
+   * Same as {@link #waitForBulkSubmissionTerminalStatus(UUID)} but lets the caller override the
+   * polling timeout. In UAT mode the real event-service can take considerably longer than the
+   * default {@code BULK_STATUS_POLL_TIMEOUT} to produce a callback, so callers running against a
+   * live event-service should pass {@code EVENT_SERVICE_POLL_TIMEOUT} (or another explicit
+   * duration).
+   */
+  public String waitForBulkSubmissionTerminalStatus(UUID bulkSubmissionId, Duration timeout) {
     HttpHeaders headers = new HttpHeaders();
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
     HttpEntity<Void> request = new HttpEntity<>(headers);
 
-    long deadline = System.nanoTime() + BULK_STATUS_POLL_TIMEOUT.toNanos();
+    long deadline = System.nanoTime() + timeout.toNanos();
     String lastStatus = "UNKNOWN";
     while (System.nanoTime() < deadline) {
       try {
@@ -282,6 +302,165 @@ public class BddApiStepSupport {
     } catch (InterruptedException ie) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  /**
+   * Voids a single claim via {@code POST /api/v1/claims/{claimId}/void}. Used by the disbursement
+   * duplicate-check scenarios that re-submit a claim after voiding.
+   *
+   * @param userId a UUID identifying the caller; the endpoint's {@code created_by_user_id} field is
+   *     typed as {@link UUID} in the OpenAPI schema, so a UUID string must be supplied.
+   */
+  public int voidClaim(UUID claimId, UUID userId, String reason) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    String body =
+        """
+        {"created_by_user_id":"%s","assessment_reason":"%s"}
+        """
+            .formatted(userId, reason);
+
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + VOID_CLAIM_PATH,
+              HttpMethod.POST,
+              new HttpEntity<>(body, headers),
+              String.class,
+              claimId);
+      return response.getStatusCode().value();
+    } catch (HttpStatusCodeException ex) {
+      // Preserve the response body in the context so the step can log/assert against it.
+      context.setLastResponseBody(ex.getResponseBodyAsString());
+      return ex.getStatusCode().value();
+    }
+  }
+
+  /**
+   * Creates a Submission entity via {@code POST /api/v1/submissions} so that follow-up steps (e.g.
+   * claim creation, claim voiding) have a real DB row to act on. Normally the event-service
+   * materialises submissions during file parsing; in local BDD mode we do it explicitly.
+   */
+  public void createSubmission(
+      UUID submissionId, UUID bulkSubmissionId, String office, String submissionPeriod)
+      throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    String body =
+        """
+        {
+          "submission_id": "%s",
+          "bulk_submission_id": "%s",
+          "office_account_number": "%s",
+          "submission_period": "%s",
+          "area_of_law": "LEGAL HELP",
+          "provider_user_id": "test-user",
+          "status": "READY_FOR_VALIDATION",
+          "created_by_user_id": "test-user",
+          "is_nil_submission": true,
+          "number_of_claims": 0,
+          "legal_help_submission_reference": "BDDLHREF001"
+        }
+        """
+            .formatted(submissionId, bulkSubmissionId, office, submissionPeriod);
+
+    restTemplate.exchange(
+        serverInfo.baseUrl() + CREATE_SUBMISSION_PATH,
+        HttpMethod.POST,
+        new HttpEntity<>(body, headers),
+        String.class);
+  }
+
+  /**
+   * Creates a minimal Legal Help claim against the given submission via {@code POST
+   * /api/v1/submissions/{id}/claims} and returns the new claim's UUID.
+   *
+   * <p>Used by BDD scenarios running in local mode (no event-service) to materialise a claim ID so
+   * downstream steps like voiding can exercise real API endpoints.
+   */
+  public UUID createClaim(UUID submissionId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    // Build a coherent ClaimPost using the generated model to guarantee JSON shape matches the
+    // OpenAPI schema. Values mirror the Legal Help disbursement claim style used by the file
+    // generator, plus every field the ClaimsDataTestUtil.getClaimPost fixture sets, so any
+    // bean-validation constraints downstream are satisfied.
+    // Payload mirrors the working shape used by ClaimControllerTest.createClaim (unit-test) —
+    // guarantees every field the OpenAPI bean-validation / @ScanForSql checks accepts.
+    String body =
+        """
+        {
+          "status": "VALID",
+          "schedule_reference": "SCH-BDD",
+          "line_number": 1,
+          "case_reference_number": "CRN-BDD",
+          "unique_file_number": "UFN-BDD",
+          "case_start_date": "01/07/2025",
+          "case_concluded_date": "31/07/2025",
+          "matter_type_code": "MAT01",
+          "outcome_code": "OUT01",
+          "created_by_user_id": "test-user"
+        }
+        """;
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + CREATE_CLAIM_PATH,
+            HttpMethod.POST,
+            new HttpEntity<>(body, headers),
+            String.class,
+            submissionId);
+
+    JsonNode json = objectMapper.readTree(response.getBody());
+    JsonNode idNode = json.path("id");
+    if (idNode.isMissingNode() || idNode.isNull()) {
+      throw new IllegalStateException(
+          "POST /submissions/"
+              + submissionId
+              + "/claims did not return an id: "
+              + response.getBody());
+    }
+    return UUID.fromString(idNode.asText());
+  }
+
+  // ---------------------------------------------------------------------------
+  // PATCH bulk-submission (used by BDD scenarios to simulate event-service
+  // driving a submission into a terminal status when the event-service is not
+  // running locally).
+  // ---------------------------------------------------------------------------
+
+  /** Sets the given bulk-submission's status to {@link BulkSubmissionStatus#VALIDATION_FAILED}. */
+  public void markBulkSubmissionAsInvalid(UUID bulkSubmissionId) {
+    patchBulkSubmissionStatus(bulkSubmissionId, BulkSubmissionStatus.VALIDATION_FAILED);
+  }
+
+  /**
+   * Forces the given bulk-submission to the requested terminal status via {@code PATCH
+   * /api/v1/bulk-submissions/{id}}. Used by BDD scenarios running in local mode (no real
+   * event-service) to simulate a duplicate-check outcome.
+   */
+  public void patchBulkSubmissionStatus(UUID bulkSubmissionId, BulkSubmissionStatus status) {
+    BulkSubmissionPatch patch = new BulkSubmissionPatch();
+    patch.setBulkSubmissionId(bulkSubmissionId);
+    patch.setStatus(status);
+    patch.setUpdatedByUserId("bdd-mock-event-service");
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    restTemplate.exchange(
+        serverInfo.baseUrl() + PATCH_BULK_SUBMISSION_PATH,
+        HttpMethod.PATCH,
+        new HttpEntity<>(patch, headers),
+        Void.class,
+        bulkSubmissionId);
   }
 
   private void hydrateIdsFromResponse(String responseBody) throws IOException {

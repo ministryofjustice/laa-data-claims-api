@@ -5,11 +5,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.stereotype.Component;
 
 /** Scenario-scoped state for BDD steps. Holds the last HTTP response and captured IDs. */
 @Component
 @ScenarioScope
+@Getter
+@Setter
 public class BddScenarioContext {
 
   private int lastStatusCode;
@@ -26,66 +30,28 @@ public class BddScenarioContext {
   private String lastOffice;
   private String lastSubmissionPeriod;
 
-  public int getLastStatusCode() {
-    return lastStatusCode;
-  }
+  // ---------------------------------------------------------------------------
+  // Paired-submission state (used by scenarios that upload two related files:
+  // "first"/"second" naming mirrors the disbursement duplicate-check feature).
+  // ---------------------------------------------------------------------------
+  private Path firstGeneratedFilePath;
+  private Path secondGeneratedFilePath;
+  private String firstOffice;
+  private String secondOffice;
+  private String firstSubmissionPeriod;
+  private String secondSubmissionPeriod;
+  private UUID firstBulkSubmissionId;
+  private UUID secondBulkSubmissionId;
+  private final List<UUID> firstSubmissionClaimIds = new ArrayList<>();
 
-  public void setLastStatusCode(int lastStatusCode) {
-    this.lastStatusCode = lastStatusCode;
-  }
-
-  public String getLastResponseBody() {
-    return lastResponseBody;
-  }
-
-  public void setLastResponseBody(String lastResponseBody) {
-    this.lastResponseBody = lastResponseBody;
-  }
-
-  public UUID getBulkSubmissionId() {
-    return bulkSubmissionId;
-  }
-
-  public void setBulkSubmissionId(UUID bulkSubmissionId) {
-    this.bulkSubmissionId = bulkSubmissionId;
-  }
-
-  public List<UUID> getBulkSubmissionIds() {
-    return bulkSubmissionIds;
-  }
-
-  public List<UUID> getSubmissionIds() {
-    return submissionIds;
-  }
-
-  public Path getGeneratedFilePath() {
-    return generatedFilePath;
-  }
-
+  /**
+   * Overrides the Lombok-generated setter to keep {@link #generatedFileName} in sync with the
+   * derived filename. This is the only accessor with non-trivial behaviour.
+   */
   public void setGeneratedFilePath(Path generatedFilePath) {
     this.generatedFilePath = generatedFilePath;
     this.generatedFileName =
         generatedFilePath == null ? null : generatedFilePath.getFileName().toString();
-  }
-
-  public String getGeneratedFileName() {
-    return generatedFileName;
-  }
-
-  public String getLastOffice() {
-    return lastOffice;
-  }
-
-  public void setLastOffice(String lastOffice) {
-    this.lastOffice = lastOffice;
-  }
-
-  public String getLastSubmissionPeriod() {
-    return lastSubmissionPeriod;
-  }
-
-  public void setLastSubmissionPeriod(String lastSubmissionPeriod) {
-    this.lastSubmissionPeriod = lastSubmissionPeriod;
   }
 
   public void clear() {
@@ -98,5 +64,14 @@ public class BddScenarioContext {
     generatedFileName = null;
     lastOffice = null;
     lastSubmissionPeriod = null;
+    firstGeneratedFilePath = null;
+    secondGeneratedFilePath = null;
+    firstOffice = null;
+    secondOffice = null;
+    firstSubmissionPeriod = null;
+    secondSubmissionPeriod = null;
+    firstBulkSubmissionId = null;
+    secondBulkSubmissionId = null;
+    firstSubmissionClaimIds.clear();
   }
 }
