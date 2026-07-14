@@ -155,11 +155,7 @@ class ClaimAmendmentValidationServiceTest {
             .netProfitCostsAmount(java.math.BigDecimal.valueOf(200))
             .build();
 
-    var state =
-        uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState.builder()
-            .beforeState(before)
-            .postAmendmentState(after)
-            .build();
+    var state = ClaimAmendmentState.builder().beforeState(before).postAmendmentState(after).build();
 
     // Arrange ordered steps: feature-flag (enabled), status, assessed-pricing (real), then a mocked
     // FSP.
@@ -179,12 +175,8 @@ class ClaimAmendmentValidationServiceTest {
 
     // The assessed-pricing step must return the pricing-specific fatal error.
     assertThat(errors)
-        .extracting(
-            uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError
-                ::getCode)
-        .contains(
-            uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode
-                .INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM);
+        .extracting(ClaimAmendmentValidationError::getCode)
+        .contains(ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM);
 
     // Ensure the FSP step (later in the sequence) was never invoked.
     verify(fspMock, never()).validate(any());

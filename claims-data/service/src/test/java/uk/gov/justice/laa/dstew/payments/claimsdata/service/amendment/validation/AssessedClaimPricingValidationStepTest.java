@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
@@ -109,15 +110,9 @@ class AssessedClaimPricingValidationStepTest {
 
     // Fee snapshots differ to produce an FSP-tagged diff entry from the change detector.
     var beforeFee =
-        uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot
-            .builder()
-            .totalAmount(java.math.BigDecimal.valueOf(100))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(100)).build();
     var afterFee =
-        uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot
-            .builder()
-            .totalAmount(java.math.BigDecimal.valueOf(150))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(150)).build();
 
     ClaimAmendmentState state =
         ClaimAmendmentState.builder()

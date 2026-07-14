@@ -183,8 +183,7 @@ class AmendmentValidationGateIntegrationTest extends AbstractIntegrationTest {
 
     ClaimAmendmentValidationError fatal =
         ClaimAmendmentValidationError.of(
-            uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode
-                .INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM,
+            ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM,
             "netProfitCostsAmount");
 
     ClaimAmendmentService service =
