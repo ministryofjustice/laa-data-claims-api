@@ -51,7 +51,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  * an open database transaction, so the external validation call does not hold a DB connection or
  * claim-row lock. That design allows external checks (PDA/FSP) to be performed inline without
  * risking long-lived DB locks.
-
  */
 @Component
 @RequiredArgsConstructor
