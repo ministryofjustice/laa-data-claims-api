@@ -43,9 +43,9 @@ public class AssessedClaimPricingValidationStep implements ClaimAmendmentValidat
         continue;
       }
       String identifier = entry.fieldIdentifier();
-      // fieldIdentifier is namespaced like "claimSummaryFee.netProfitCostsAmount" or
+      // fieldIdentifier is qualified like "claimSummaryFee.netProfitCostsAmount" or
       // "client.clientSurname" - pass the full identifier to impactsPricing so the
-      // registry can disambiguate by namespace when necessary.
+      // registry can disambiguate by entity when necessary.
       if (FeeSchemeRequestField.impactsPricing(identifier, areaOfLaw)) {
         offendingFields.add(identifier);
       }
