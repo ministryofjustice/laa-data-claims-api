@@ -19,16 +19,38 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.pda.PdaReq
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 
 /**
- * Provider Data API (PDA) trigger/skip, call and outcome handling (DSTEW-1646, split across
- * DSTEW-1772-1774), modelled as a validation step in the amendment sequence.
+ * External/third-party validation step used during claim amendment processing.
  *
- * <p>Like every step it collects errors (the PDA outcome) and may enrich the {@link
- * ClaimAmendmentState}. It runs at its position in {@code STEP_ORDER} - after the fee-code gates
- * and before duplicate validation.
+ * <p>Primary responsibilities:
  *
- * <p><b>Transaction.</b> The step sequence is run with no held transaction (the orchestrator does
- * not wrap validation in one), so this external call never holds a DB connection or claim-row lock
- * open. That is exactly why PDA/FSP can sit inline with the other steps.
+ * <ul>
+ *   <li>Map the in-memory post-amendment claim snapshot to the validation model via {@link
+ *       ValidationClaimMapper}.
+ *   <li>Invoke the external {@link ValidationService#validateClaim(Claim, Set)} to run a scoped set
+ *       of validators and collect the resulting issues.
+ *   <li>Translate returned validation issues into {@link ClaimAmendmentValidationError} objects and
+ *       return only error-severity issues to the amendment orchestrator.
+ * </ul>
+ *
+ * <p>Scope of validation: this step builds a deterministic ordered set of validator codes (see
+ * {@link #CLAIM_VALIDATOR_CODES}) which is passed to {@code validateClaim} as the {@code
+ * validationCodes} parameter. The ValidationService implementation lives in a separate library and
+ * uses this set to decide which specific validation rules (validators) should be executed for the
+ * supplied claim. In short, {@code validationCodes} acts as the "scope" or "whitelist" of
+ * validators to run for this invocation.
+ *
+ * <p>PDA (Provider Data API) behaviour: one of the validators in the default set is the {@code
+ * CLAIM_CATEGORY_OF_LAW} validator (named via {@link #PDA_VALIDATION_STEP}). Running that validator
+ * will cause the system to build and possibly send a PDA request. To avoid unnecessary PDA work for
+ * amendments that do not change any fields that influence the PDA request, this step will remove
+ * {@code CLAIM_CATEGORY_OF_LAW} from the requested validator set when {@link
+ * #requiresPda(AmendmentDiff, ClaimStateSnapshot)} returns {@code false}.
+ *
+ * <p>Execution ordering and transactionality: this step is part of the amendment validation
+ * sequence and therefore executes at its configured position. The overall sequence is run without
+ * an open database transaction, so the external validation call does not hold a DB connection or
+ * claim-row lock. That design allows external checks (PDA/FSP) to be performed inline without
+ * risking long-lived DB locks.
  */
 @Component
 @RequiredArgsConstructor
@@ -81,10 +103,21 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
   }
 
   /**
-   * Whether the supplied diff contains any changed field that could influence the PDA request built
-   * from the given merged (post-amendment) claim snapshot.
+   * Determine whether Provider Data API (PDA) validation should be executed for this amendment.
    *
-   * <p>Separated into a method for testability.
+   * <p>Implementation notes:
+   *
+   * <ul>
+   *   <li>Returns {@code false} if {@code diff}, {@code diff.changes()} or {@code mergedState} are
+   *       {@code null}.
+   *   <li>Otherwise it iterates the changed diff entries and asks {@link PdaRequestField} whether
+   *       the field identifier "impacts PDA" for the supplied merged claim snapshot. If any field
+   *       can influence the built PDA request, we must include the PDA validator in the validation
+   *       scope.
+   * </ul>
+   *
+   * <p>Extracted as a separate method for readability and to allow focused unit testing of the PDA
+   * gating logic without invoking the external validation service.
    */
   private boolean requiresPda(AmendmentDiff diff, ClaimStateSnapshot mergedState) {
     if (diff == null || diff.changes() == null || mergedState == null) {
