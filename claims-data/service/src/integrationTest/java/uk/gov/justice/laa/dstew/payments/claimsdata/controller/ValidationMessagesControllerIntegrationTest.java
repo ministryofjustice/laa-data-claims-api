@@ -64,8 +64,9 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
       "getValidationMessages returns client forename, surname, UCN and UFN from the linked claim")
   void getValidationMessages_shouldReturnClaimDetails() throws Exception {
     // given: a validation message linked to CLAIM_1_ID which has a Client record seeded
-    // with clientForename="Alice", clientSurname="Smith", uniqueClientNumber="UCN_111"
-    // and the claim itself has uniqueFileNumber=UNIQUE_FILE_NUMBER ("UFN_123")
+    // with clientForename="Alice", clientSurname="Smith",
+    // uniqueClientNumber=SEEDED_UNIQUE_CLIENT_NUMBER ("01011990/A/BCDE")
+    // and the claim itself has uniqueFileNumber=UNIQUE_FILE_NUMBER ("010125/001")
     ValidationMessageLog log = new ValidationMessageLog();
     log.setId(Uuid7.timeBasedUuid());
     log.setSubmissionId(submission1.getId());
@@ -97,7 +98,7 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     assertThat(msg.getUniqueFileNumber()).isEqualTo(UNIQUE_FILE_NUMBER);
     assertThat(msg.getClientForename()).isEqualTo("Alice");
     assertThat(msg.getClientSurname()).isEqualTo("Smith");
-    assertThat(msg.getUniqueClientNumber()).isEqualTo("UCN_111");
+    assertThat(msg.getUniqueClientNumber()).isEqualTo(SEEDED_UNIQUE_CLIENT_NUMBER);
     validationMessageLogRepository.deleteAll();
   }
 

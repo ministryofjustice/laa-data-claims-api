@@ -4,16 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import jakarta.persistence.EntityManager;
+import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
@@ -25,21 +26,20 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * <p>The class is transactional so all writes roll back after each test, leaving the seed
  * untouched.
  */
-class ClaimAmendmentServiceIntegrationTest extends AbstractIntegrationTest {
+@DisplayName("ClaimAmendmentService integration test")
+class ClaimAmendmentServiceIntegrationTest extends MockServerIntegrationTest {
 
   // Governed reference codes seeded by Flyway migration V41.
-  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
-  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
-  private static final String VALID_USER_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
-  private static final String AMENDED_FEE_CODE = "AMENDED_FEE_CODE";
+  private static final String AMENDED_FEE_CODE = "AMEDFEECOD";
 
   @Autowired private ClaimAmendmentService amendmentService;
   @Autowired private EntityManager entityManager;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws IOException {
     seedClaimsData();
     claimAmendmentRepository.deleteAll();
+    stubExternalValidationEndpoints();
   }
 
   @Test

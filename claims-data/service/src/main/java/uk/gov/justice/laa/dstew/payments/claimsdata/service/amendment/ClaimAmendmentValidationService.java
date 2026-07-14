@@ -7,9 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentPdaValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
@@ -66,7 +66,7 @@ public class ClaimAmendmentValidationService {
           // External steps sit inline with the rest (they make PDA/FSP calls but are ordinary
           // error-collecting steps); the sequence runs with no held transaction so the external
           // calls never hold a DB connection open.
-          AmendmentPdaValidationStep.class,
+          AmendmentExternalValidationStep.class,
           AmendmentFspValidationStep.class);
 
   private final List<ClaimAmendmentValidationStep> validationSteps;
@@ -105,7 +105,6 @@ public class ClaimAmendmentValidationService {
         return state.getErrors();
       }
     }
-
     return state.getErrors();
   }
 

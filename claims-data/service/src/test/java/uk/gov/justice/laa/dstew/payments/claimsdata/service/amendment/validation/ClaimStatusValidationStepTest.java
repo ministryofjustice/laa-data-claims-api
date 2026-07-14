@@ -47,7 +47,7 @@ class ClaimStatusValidationStepTest {
     assertThat(result).hasSize(1);
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE.toString());
     assertThat(error.getMessage())
         .isEqualTo(
             ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE.getMessageTemplate());
@@ -67,7 +67,7 @@ class ClaimStatusValidationStepTest {
     assertThat(result).hasSize(1);
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_STATE_NOT_AMENDABLE);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_STATE_NOT_AMENDABLE.toString());
     assertThat(error.getMessage()).contains(String.valueOf(status));
     assertThat(error.isFatal()).isTrue();
   }

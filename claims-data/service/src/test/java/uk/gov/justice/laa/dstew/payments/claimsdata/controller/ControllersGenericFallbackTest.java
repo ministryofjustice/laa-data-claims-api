@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.lang.reflect.Method;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,15 +19,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionFile
  * reflection to validate the response without wiring Resilience4j in tests.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Controllers generic fallback behavior")
 class ControllersGenericFallbackTest {
 
   @Test
+  @DisplayName("ClaimController genericFallback returns 429")
   void claimController_genericFallback_returns429() throws Exception {
     ClaimController controller = new ClaimController(mock(ClaimService.class));
     invokeGenericFallbackAndAssert429(controller);
   }
 
   @Test
+  @DisplayName("BulkSubmissionController genericFallback returns 429")
   void bulkSubmissionController_genericFallback_returns429() throws Exception {
     BulkSubmissionController controller =
         new BulkSubmissionController(
@@ -35,24 +39,28 @@ class ControllersGenericFallbackTest {
   }
 
   @Test
+  @DisplayName("MatterStartsController genericFallback returns 429")
   void matterStartsController_genericFallback_returns429() throws Exception {
     MatterStartsController controller = new MatterStartsController(mock(MatterStartService.class));
     invokeGenericFallbackAndAssert429(controller);
   }
 
   @Test
+  @DisplayName("SubmissionController genericFallback returns 429")
   void submissionController_genericFallback_returns429() throws Exception {
     SubmissionController controller = new SubmissionController(mock(SubmissionService.class));
     invokeGenericFallbackAndAssert429(controller);
   }
 
   @Test
+  @DisplayName("AssessmentController genericFallback returns 429")
   void assessmentController_genericFallback_returns429() throws Exception {
     AssessmentController controller = new AssessmentController(mock(AssessmentService.class));
     invokeGenericFallbackAndAssert429(controller);
   }
 
   @Test
+  @DisplayName("ValidationController genericFallback returns 429")
   void validationController_genericFallback_returns429() throws Exception {
     ValidationController controller =
         new ValidationController(mock(ValidationMessageService.class));

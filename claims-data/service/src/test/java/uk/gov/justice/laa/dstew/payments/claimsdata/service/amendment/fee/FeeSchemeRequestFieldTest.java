@@ -20,7 +20,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
  *
  * <p>Pins the full mapping table: every unconditional claim field maps for all areas of law, the
  * travel/waiting fields are area-specific, and the edge cases (unknown/null field, null area of
- * law) behave as agreed.
+ * law) behave as agreed. The field vocabulary is the amendment diff identifier (e.g. {@code
+ * "claim.feeCode"}), aligned with {@code AmendmentChangeDetector}.
  *
  * <p>The area-specific tests iterate over every {@link AreaOfLaw} value and assert the result
  * against the expected set, so a newly added area of law is automatically asserted (and would catch
@@ -29,39 +30,38 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 @DisplayName("FeeSchemeRequestField Tests")
 class FeeSchemeRequestFieldTest {
 
-  /** Claim fields that map to the fee-scheme request for every area of law. */
+  /** Diff identifiers that map to the fee-scheme request for every area of law. */
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "feeCode",
-        "id",
-        "caseStartDate",
-        "policeStationCourtPrisonId",
-        "schemeId",
-        "uniqueFileNumber",
-        "netProfitCostsAmount",
-        "netCounselCostsAmount",
-        "netDisbursementAmount",
-        "disbursementsVatAmount",
-        "isVatApplicable",
-        "detentionTravelWaitingCostsAmount",
-        "caseConcludedDate",
-        "mediationSessionsCount",
-        "jrFormFillingAmount",
-        "priorAuthorityReference",
-        "representationOrderDate",
-        "isLondonRate",
-        "adjournedHearingFeeAmount",
-        "cmrhOralCount",
-        "cmrhTelephoneCount",
-        "hoInterview",
-        "isSubstantiveHearing"
+        "claim.feeCode",
+        "claim.caseStartDate",
+        "claim.policeStationCourtPrisonId",
+        "claim.schemeId",
+        "claim.uniqueFileNumber",
+        "claimSummaryFee.netProfitCostsAmount",
+        "claimSummaryFee.netCounselCostsAmount",
+        "claimSummaryFee.netDisbursementAmount",
+        "claimSummaryFee.disbursementsVatAmount",
+        "claimSummaryFee.isVatApplicable",
+        "claimSummaryFee.detentionTravelWaitingCostsAmount",
+        "claim.caseConcludedDate",
+        "claim.mediationSessionsCount",
+        "claimSummaryFee.jrFormFillingAmount",
+        "claimSummaryFee.priorAuthorityReference",
+        "claim.representationOrderDate",
+        "claimSummaryFee.isLondonRate",
+        "claimSummaryFee.adjournedHearingFeeAmount",
+        "claimSummaryFee.cmrhOralCount",
+        "claimSummaryFee.cmrhTelephoneCount",
+        "claimSummaryFee.hoInterview",
+        "claimSummaryFee.isSubstantiveHearing"
       })
   @DisplayName("unconditional fields map for every area of law")
-  void unconditionalFieldsMapForEveryArea(String claimField) {
+  void unconditionalFieldsMapForEveryArea(String diffFieldIdentifier) {
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
-      assertThat(impactsPricing(claimField, areaOfLaw))
-          .as("%s for %s", claimField, areaOfLaw)
+      assertThat(impactsPricing(diffFieldIdentifier, areaOfLaw))
+          .as("%s for %s", diffFieldIdentifier, areaOfLaw)
           .isTrue();
     }
   }
@@ -72,8 +72,8 @@ class FeeSchemeRequestFieldTest {
   void travelWaitingCostsMapsForCrimeLowerAndLegalHelpOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER, AreaOfLaw.LEGAL_HELP);
 
-    assertThat(impactsPricing("travelWaitingCostsAmount", areaOfLaw))
-        .as("travelWaitingCostsAmount for %s", areaOfLaw)
+    assertThat(impactsPricing("claimSummaryFee.travelWaitingCostsAmount", areaOfLaw))
+        .as("claimSummaryFee.travelWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
 
@@ -83,8 +83,8 @@ class FeeSchemeRequestFieldTest {
   void netWaitingCostsMapsForCrimeLowerOnly(AreaOfLaw areaOfLaw) {
     Set<AreaOfLaw> expected = EnumSet.of(AreaOfLaw.CRIME_LOWER);
 
-    assertThat(impactsPricing("netWaitingCostsAmount", areaOfLaw))
-        .as("netWaitingCostsAmount for %s", areaOfLaw)
+    assertThat(impactsPricing("claimSummaryFee.netWaitingCostsAmount", areaOfLaw))
+        .as("claimSummaryFee.netWaitingCostsAmount for %s", areaOfLaw)
         .isEqualTo(expected.contains(areaOfLaw));
   }
 
@@ -92,7 +92,16 @@ class FeeSchemeRequestFieldTest {
   @EnumSource(AreaOfLaw.class)
   @DisplayName("an unknown field never maps")
   void unknownFieldNeverMaps(AreaOfLaw areaOfLaw) {
-    assertThat(impactsPricing("notAField", areaOfLaw)).isFalse();
+    assertThat(impactsPricing("claim.notAField", areaOfLaw)).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(AreaOfLaw.class)
+  @DisplayName("a non-amendable source (never emitted as a diff identifier) never maps")
+  void nonAmendableSourceNeverMaps(AreaOfLaw areaOfLaw) {
+    // The claim id is read-only and never amended, so it has no diff identifier and never maps.
+    assertThat(impactsPricing("id", areaOfLaw)).isFalse();
+    assertThat(impactsPricing("claim.id", areaOfLaw)).isFalse();
   }
 
   @Test
@@ -100,37 +109,35 @@ class FeeSchemeRequestFieldTest {
   void everyRegistryEntryMapsForItsDeclaredAreas() {
     for (FeeSchemeRequestField entry : FeeSchemeRequestField.values()) {
       for (AreaOfLaw areaOfLaw : entry.getAreasOfLaw()) {
-        assertThat(impactsPricing(entry.getClaimField(), areaOfLaw))
-            .as("%s (claim field '%s') for %s", entry.name(), entry.getClaimField(), areaOfLaw)
+        assertThat(impactsPricing(entry.getDiffFieldIdentifier(), areaOfLaw))
+            .as("%s (diff '%s') for %s", entry.name(), entry.getDiffFieldIdentifier(), areaOfLaw)
             .isTrue();
       }
     }
   }
 
   @Test
-  @DisplayName("a request field name that is not also a claim field never maps")
-  void requestOnlyFieldNamesDoNotMap() {
-    Set<String> claimFields =
+  @DisplayName("a bare (unqualified) claim field name never maps")
+  void bareFieldNamesDoNotMap() {
+    // The lookup speaks the qualified diff vocabulary; the leaf name alone must not match.
+    Set<String> bareLeafNames =
         Arrays.stream(FeeSchemeRequestField.values())
-            .map(FeeSchemeRequestField::getClaimField)
+            .map(FeeSchemeRequestField::getDiffFieldIdentifier)
+            .map(identifier -> identifier.substring(identifier.indexOf('.') + 1))
             .collect(Collectors.toSet());
 
-    for (FeeSchemeRequestField entry : FeeSchemeRequestField.values()) {
-      String requestField = entry.getRequestField();
-      // Skip request names that happen to equal a claim field (e.g. feeCode) - they map by design.
-      if (claimFields.contains(requestField)) {
-        continue;
-      }
+    for (String bareName : bareLeafNames) {
       for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
-        assertThat(impactsPricing(requestField, areaOfLaw))
-            .as("request-only field '%s' (%s) for %s", requestField, entry.name(), areaOfLaw)
+        assertThat(impactsPricing(bareName, areaOfLaw))
+            .as("bare name '%s' for %s", bareName, areaOfLaw)
             .isFalse();
       }
     }
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", " ", "FeeCode", "FEECODE", "feecode", " feeCode"})
+  @ValueSource(
+      strings = {"", " ", "Claim.feeCode", "CLAIM.FEECODE", "claim.feecode", " claim.feeCode"})
   @DisplayName("blank or wrong-case field names never map (lookup is exact and case-sensitive)")
   void blankOrWrongCaseFieldNamesDoNotMap(String field) {
     for (AreaOfLaw areaOfLaw : AreaOfLaw.values()) {
@@ -148,7 +155,7 @@ class FeeSchemeRequestFieldTest {
   @DisplayName("a null area of law throws")
   void nullAreaOfLawThrows() {
     assertThatNullPointerException()
-        .isThrownBy(() -> impactsPricing("feeCode", null))
+        .isThrownBy(() -> impactsPricing("claim.feeCode", null))
         .withMessageContaining("areaOfLaw");
   }
 }

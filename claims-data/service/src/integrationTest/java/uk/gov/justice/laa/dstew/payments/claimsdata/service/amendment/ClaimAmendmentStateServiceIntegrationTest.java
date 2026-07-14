@@ -11,6 +11,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,7 @@ class ClaimAmendmentStateServiceIntegrationTest extends AbstractIntegrationTest 
   private static final String UPDATED_SCHEDULE_REFERENCE = "CHANGED";
   private static final String AMENDED_FORENAME = "Changed";
   private static final String AMENDED_SURNAME = "Name";
-  private static final LocalDate AMENDED_DATE_OF_BIRTH = LocalDate.of(1990, 1, 1);
+  private static final LocalDate AMENDED_DATE_OF_BIRTH = LocalDate.of(1990, Month.JANUARY, 1);
   private static final String AMENDED_CASE_ID = "NEW_CASE_ID";
 
   @Autowired private ClaimAmendmentStateService amendmentStateService;
