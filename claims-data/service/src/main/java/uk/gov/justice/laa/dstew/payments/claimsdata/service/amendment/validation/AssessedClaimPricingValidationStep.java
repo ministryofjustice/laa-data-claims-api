@@ -29,7 +29,7 @@ public class AssessedClaimPricingValidationStep implements ClaimAmendmentValidat
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
     // If claim is not assessed, this rule does not apply.
-    if (state.getBeforeState() == null || !state.getBeforeState().hasAssessment()) {
+    if (!state.getBeforeState().hasAssessment()) {
       return List.of();
     }
 

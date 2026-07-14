@@ -148,7 +148,17 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Required amendment metadata reference data was unavailable at submit time");
+      "Required amendment metadata reference data was unavailable at submit time"),
+
+  /**
+   * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
+   * invariant breach rather than a user-correctable condition.
+   */
+  TECHNICAL_ERROR_MISSING_CLAIM_STATE(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred, please try again after some time",
+      "Claim before-state snapshot was unexpectedly absent for an existing claim");
 
   /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
