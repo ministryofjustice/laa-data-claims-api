@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,17 +23,18 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 
 @DisplayName("Assessed non-pricing amendment produces no FSP pricing outcome (integration)")
-class AssessedNonPricingFspIntegrationTest extends AbstractIntegrationTest {
+class AssessedNonPricingFspIntegrationTest extends MockServerIntegrationTest {
 
   @Autowired private java.util.List<ClaimAmendmentValidationStep> discoveredSteps;
   @Autowired private ClaimAmendmentPreparationService preparationService;
@@ -93,6 +95,10 @@ class AssessedNonPricingFspIntegrationTest extends AbstractIntegrationTest {
     ClaimAmendmentValidationStep fspStep = beanByClass.get(AmendmentFspValidationStep.class);
     ClaimAmendmentValidationStep spiedStep = spy(fspStep);
     beanByClass.put(AmendmentFspValidationStep.class, spiedStep);
+    // Replace the external validation step with a mock so the pipeline makes no real
+    // fee-scheme/PDA HTTP calls; this test only asserts the FSP step's (non-)pricing outcome.
+    beanByClass.put(
+        AmendmentExternalValidationStep.class, mock(AmendmentExternalValidationStep.class));
 
     ClaimAmendmentValidationStep[] steps =
         ClaimAmendmentValidationService.STEP_ORDER.stream()

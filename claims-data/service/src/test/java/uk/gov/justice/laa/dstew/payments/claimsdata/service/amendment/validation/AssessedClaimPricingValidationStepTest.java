@@ -43,7 +43,8 @@ class AssessedClaimPricingValidationStepTest {
 
     assertThat(errors).hasSize(1);
     assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM);
+        .isEqualTo(
+            ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM.toString());
     assertThat(errors.get(0).isFatal()).isTrue();
   }
 

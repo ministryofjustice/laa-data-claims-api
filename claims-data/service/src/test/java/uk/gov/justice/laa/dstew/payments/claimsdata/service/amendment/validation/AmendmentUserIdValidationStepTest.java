@@ -35,7 +35,7 @@ class AmendmentUserIdValidationStepTest {
     ClaimAmendmentValidationError error = step.validate(stateWithUserId("not-a-uuid")).getFirst();
 
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT.toString());
     assertThat(error.getMessage()).isEqualTo("The user identifier must be a valid UUID");
   }
 
@@ -45,7 +45,7 @@ class AmendmentUserIdValidationStepTest {
     ClaimAmendmentValidationError error = step.validate(stateWithUserId(null)).getFirst();
 
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING.toString());
     assertThat(error.getMessage()).isEqualTo("The user identifier is required");
   }
 
@@ -58,6 +58,6 @@ class AmendmentUserIdValidationStepTest {
     assertThat(step.validate(state))
         .singleElement()
         .extracting(ClaimAmendmentValidationError::getCode)
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING.toString());
   }
 }

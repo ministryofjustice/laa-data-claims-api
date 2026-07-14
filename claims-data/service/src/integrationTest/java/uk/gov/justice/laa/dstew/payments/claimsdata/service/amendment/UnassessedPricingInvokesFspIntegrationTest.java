@@ -16,16 +16,17 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 
 @DisplayName("Unassessed pricing amendment invokes FSP step (integration)")
-class UnassessedPricingInvokesFspIntegrationTest extends AbstractIntegrationTest {
+class UnassessedPricingInvokesFspIntegrationTest extends MockServerIntegrationTest {
 
   @Autowired private java.util.List<ClaimAmendmentValidationStep> discoveredSteps;
   @Autowired private ClaimAmendmentPreparationService preparationService;
@@ -68,7 +69,9 @@ class UnassessedPricingInvokesFspIntegrationTest extends AbstractIntegrationTest
             .netProfitCostsAmount(JsonNullable.of(java.math.BigDecimal.valueOf(200)))
             .build();
 
-    // Replace the FSP validation step with a mock so we can assert it was invoked
+    // Replace the FSP validation step with a mock so we can assert it was invoked. Also replace the
+    // external validation step with a mock so the pipeline never makes real fee-scheme/PDA HTTP
+    // calls - this test asserts only that the FSP step is reached for a pricing change.
     Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
         discoveredSteps.stream()
             .collect(
@@ -77,6 +80,8 @@ class UnassessedPricingInvokesFspIntegrationTest extends AbstractIntegrationTest
 
     ClaimAmendmentValidationStep mockFsp = mock(AmendmentFspValidationStep.class);
     beanByClass.put(AmendmentFspValidationStep.class, mockFsp);
+    beanByClass.put(
+        AmendmentExternalValidationStep.class, mock(AmendmentExternalValidationStep.class));
 
     ClaimAmendmentValidationStep[] steps =
         ClaimAmendmentValidationService.STEP_ORDER.stream()

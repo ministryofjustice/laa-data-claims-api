@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("SubmissionMapper tests")
 class SubmissionMapperTest {
 
   @InjectMocks private SubmissionMapper submissionMapper = new SubmissionMapperImpl();
@@ -36,6 +38,7 @@ class SubmissionMapperTest {
 
   @ParameterizedTest
   @EnumSource(AreaOfLaw.class)
+  @DisplayName("maps SubmissionPost to Submission entity for each AreaOfLaw")
   void shouldMapToSubmissionEntity(AreaOfLaw areaOfLaw) {
     UUID id = Uuid7.timeBasedUuid();
     UUID bulkId = Uuid7.timeBasedUuid();
@@ -63,6 +66,7 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("maps error messages from SubmissionPost to Submission entity")
   void shouldMapErrorMessagesToSubmissionEntity() {
     UUID id = Uuid7.timeBasedUuid();
     UUID bulkId = Uuid7.timeBasedUuid();
@@ -82,6 +86,7 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("maps Submission entity to SubmissionBase model")
   void shouldMapToSubmissionBase() {
     UUID id = Uuid7.timeBasedUuid();
     Submission submission =
@@ -105,6 +110,7 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("updates Submission fields from SubmissionPatch")
   void shouldUpdateSubmissionFromPatch() {
     Submission submission =
         Submission.builder().crimeLowerScheduleNumber("123").isNilSubmission(false).build();
@@ -118,6 +124,7 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("updates Submission error messages from SubmissionPatch")
   void shouldUpdateErrorMessagesFromPatch() {
     Submission submission = Submission.builder().errorMessages("Original error message").build();
     SubmissionPatch patch = new SubmissionPatch().errorMessages("Updated error message");
@@ -128,6 +135,7 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("maps ValidationMessagePatch to ValidationMessageLog with correct fields")
   void toValidationErrorLog_mapsFields() {
     Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
 

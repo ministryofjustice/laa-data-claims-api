@@ -24,7 +24,7 @@ class BeforeStatePresenceValidationStepTest {
 
     assertThat(errors).hasSize(1);
     assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_MISSING_CLAIM_STATE);
+        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_MISSING_CLAIM_STATE.toString());
     assertThat(errors.get(0).isFatal()).isTrue();
   }
 

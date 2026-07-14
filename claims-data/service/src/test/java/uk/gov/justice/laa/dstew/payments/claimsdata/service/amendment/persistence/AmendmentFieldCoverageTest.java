@@ -27,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 
 /**
  * Drift-detection tests for the amendment field mappings.
@@ -183,6 +184,30 @@ class AmendmentFieldCoverageTest {
     void claimSummaryFeeUpdaterCopiesAllFields() {
       assertUpdaterCopiesAllAmendableFields(
           CLAIM_SUMMARY_FEE_ENTITY, new AmendmentClaimSummaryFeeUpdater()::applyAmendedFields);
+    }
+  }
+
+  @Nested
+  @DisplayName("External impact-check alignment")
+  class ExternalImpactCheckAlignment {
+
+    // The exact identifiers the change detector emits - the canonical diff vocabulary.
+    private final Set<String> detectorIdentifiers = deriveDetectorIdentifiers();
+
+    @Test
+    @DisplayName("every FeeSchemeRequestField diff identifier is emitted by the change detector")
+    void feeSchemeIdentifiersAreKnownToTheDetector() {
+      Set<String> feeSchemeDiffIdentifiers =
+          Arrays.stream(FeeSchemeRequestField.values())
+              .map(FeeSchemeRequestField::getDiffFieldIdentifier)
+              .filter(java.util.Objects::nonNull)
+              .collect(Collectors.toSet());
+
+      assertThat(detectorIdentifiers)
+          .as(
+              "FeeSchemeRequestField diff identifiers drifted from AmendmentChangeDetector - "
+                  + "a mapped claim field's diff identifier no longer matches an emitted identifier")
+          .containsAll(feeSchemeDiffIdentifiers);
     }
   }
 

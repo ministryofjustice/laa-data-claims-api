@@ -51,7 +51,7 @@ class AmendmentFeatureFlagValidationStepTest {
     assertThat(stepWith(enabled).validate(anyState()))
         .singleElement()
         .extracting(ClaimAmendmentValidationError::getCode)
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED.toString());
   }
 
   @Test
@@ -63,7 +63,7 @@ class AmendmentFeatureFlagValidationStepTest {
     assertThat(step.validate(anyState()))
         .singleElement()
         .extracting(ClaimAmendmentValidationError::getCode)
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED.toString());
   }
 
   @Test
@@ -74,7 +74,7 @@ class AmendmentFeatureFlagValidationStepTest {
     assertThat(result).hasSize(1);
     ClaimAmendmentValidationError error = result.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_AMENDMENTS_FEATURE_DISABLED.toString());
     assertThat(error.getMessage()).isEqualTo("Amendments are not currently enabled.");
     assertThat(error.getHttpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(error.getSeverity()).isEqualTo(ValidationSeverity.FATAL);
