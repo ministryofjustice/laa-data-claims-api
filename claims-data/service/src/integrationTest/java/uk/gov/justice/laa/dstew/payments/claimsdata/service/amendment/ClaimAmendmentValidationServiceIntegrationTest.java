@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -269,7 +270,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
             .lineNumber(1)
             .netDisbursementAmount(new BigDecimal("0.00"))
             .disbursementsVatAmount(new BigDecimal("0.00"))
-            .caseStartDate(LocalDate.ofInstant(Instant.now(), java.time.ZoneId.systemDefault()))
+            .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
             .build();
 
     return ClaimAmendmentState.builder()

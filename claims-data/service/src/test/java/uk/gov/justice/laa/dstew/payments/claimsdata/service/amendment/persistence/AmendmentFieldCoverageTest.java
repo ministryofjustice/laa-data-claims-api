@@ -13,10 +13,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -200,7 +202,7 @@ class AmendmentFieldCoverageTest {
       Set<String> feeSchemeDiffIdentifiers =
           Arrays.stream(FeeSchemeRequestField.values())
               .map(FeeSchemeRequestField::getDiffFieldIdentifier)
-              .filter(java.util.Objects::nonNull)
+              .filter(Objects::nonNull)
               .collect(Collectors.toSet());
 
       assertThat(detectorIdentifiers)
@@ -370,8 +372,7 @@ class AmendmentFieldCoverageTest {
           UUID.class);
 
   private static Set<String> union(Set<String> a, Set<String> b) {
-    return java.util.stream.Stream.concat(a.stream(), b.stream())
-        .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    return Stream.concat(a.stream(), b.stream()).collect(Collectors.toUnmodifiableSet());
   }
 
   private static Object sampleValue(Class<?> type, int seed) {
