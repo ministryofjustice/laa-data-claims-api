@@ -23,7 +23,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmission
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.GeneratedFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 
@@ -55,7 +54,6 @@ public class MediationDuplicateChecksSteps {
   @Autowired private BddScenarioContext context;
   @Autowired private BulkSubmissionFileGenerator generator;
   @Autowired private SubmissionPeriodHelper periodHelper;
-  @Autowired private BddValidationMessageStepSupport validationMessages;
 
   // ---------------------------------------------------------------------------
   // Given — generated file (Mediation single-file phrasings)

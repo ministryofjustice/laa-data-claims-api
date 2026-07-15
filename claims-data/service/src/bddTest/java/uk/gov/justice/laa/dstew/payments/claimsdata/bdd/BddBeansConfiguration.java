@@ -47,7 +47,7 @@ public class BddBeansConfiguration {
   }
 
   @Bean
-  public BulkSubmissionFileGenerator legalHelpFileGenerator() {
+  public BulkSubmissionFileGenerator bulkSubmissionFileGenerator() {
     return new BulkSubmissionFileGenerator();
   }
 
