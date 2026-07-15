@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -175,7 +176,7 @@ class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
         preparationService, new ClaimAmendmentValidationService(steps), commitService);
   }
 
-  @org.junit.jupiter.api.Test
+  @Test
   @Transactional
   @DisplayName("assessed-pricing fatal failure prevents FSP invocation and writes")
   void assessedPricingFatalFailurePreventsFspAndWrites() {

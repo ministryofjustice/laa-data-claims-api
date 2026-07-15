@@ -59,7 +59,7 @@ class SubmissionSpecificationTest {
 
     Predicate withSubmissionId = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("id")).thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(root.get("id")).thenReturn(Mockito.mock(Path.class));
     Mockito.when(cb.equal(Mockito.any(), Mockito.eq(submissionId))).thenReturn(withSubmissionId);
 
     var actualResults = spec.toPredicate(root, query, cb);
@@ -88,8 +88,7 @@ class SubmissionSpecificationTest {
 
     Predicate mockedDatePredicate = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("createdOn"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(root.get("createdOn")).thenReturn(Mockito.mock(Path.class));
     Mockito.when(cb.greaterThanOrEqualTo(Mockito.any(), Mockito.eq(date)))
         .thenReturn(mockedDatePredicate);
 
@@ -119,8 +118,7 @@ class SubmissionSpecificationTest {
 
     Predicate mockedDatePredicate = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("createdOn"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(root.get("createdOn")).thenReturn(Mockito.mock(Path.class));
     Mockito.when(
             cb.lessThanOrEqualTo(
                 Mockito.any(), Mockito.eq(date.plusDays(1).atStartOfDay().minusSeconds(1))))
@@ -151,8 +149,7 @@ class SubmissionSpecificationTest {
 
     Predicate withAreaOfCode = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("areaOfLaw"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(root.get("areaOfLaw")).thenReturn(Mockito.mock(Path.class));
     Mockito.when(cb.equal(Mockito.any(), Mockito.eq(areaOfLaw))).thenReturn(withAreaOfCode);
 
     var actualResults = spec.toPredicate(root, query, cb);
@@ -179,8 +176,7 @@ class SubmissionSpecificationTest {
 
     Predicate withDate = Mockito.mock(Predicate.class);
 
-    Mockito.when(root.get("submissionPeriod"))
-        .thenReturn(Mockito.mock(jakarta.persistence.criteria.Path.class));
+    Mockito.when(root.get("submissionPeriod")).thenReturn(Mockito.mock(Path.class));
     Mockito.when(cb.equal(Mockito.any(), Mockito.eq("2025-09-01"))).thenReturn(withDate);
     var actualResults = spec.toPredicate(root, query, cb);
 

@@ -11,6 +11,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.Ame
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.VALID_USER_UUID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,7 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 @DisplayName("Assessed non-pricing amendment produces no FSP pricing outcome (integration)")
 class AssessedNonPricingFspIntegrationTest extends MockServerIntegrationTest {
 
-  @Autowired private java.util.List<ClaimAmendmentValidationStep> discoveredSteps;
+  @Autowired private List<ClaimAmendmentValidationStep> discoveredSteps;
   @Autowired private ClaimAmendmentPreparationService preparationService;
   @Autowired private ClaimAmendmentCommitService commitService;
   @Autowired private PlatformTransactionManager transactionManager;

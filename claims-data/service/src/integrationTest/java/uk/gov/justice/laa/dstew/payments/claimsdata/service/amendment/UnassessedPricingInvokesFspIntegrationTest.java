@@ -1,11 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.*;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +31,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 @DisplayName("Unassessed pricing amendment invokes FSP step (integration)")
 class UnassessedPricingInvokesFspIntegrationTest extends MockServerIntegrationTest {
 
-  @Autowired private java.util.List<ClaimAmendmentValidationStep> discoveredSteps;
+  @Autowired private List<ClaimAmendmentValidationStep> discoveredSteps;
   @Autowired private ClaimAmendmentPreparationService preparationService;
   @Autowired private ClaimAmendmentCommitService commitService;
   @Autowired private PlatformTransactionManager transactionManager;
@@ -66,7 +69,7 @@ class UnassessedPricingInvokesFspIntegrationTest extends MockServerIntegrationTe
             .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
             .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
             .amendmentUserId(JsonNullable.of(VALID_USER_UUID))
-            .netProfitCostsAmount(JsonNullable.of(java.math.BigDecimal.valueOf(200)))
+            .netProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(200)))
             .build();
 
     // Replace the FSP validation step with a mock so we can assert it was invoked. Also replace the
@@ -105,6 +108,6 @@ class UnassessedPricingInvokesFspIntegrationTest extends MockServerIntegrationTe
     assertThat(result.isSuccess()).isTrue();
 
     // FSP validation step must have been invoked (orchestrator reaches it for pricing change)
-    verify(mockFsp).validate(org.mockito.ArgumentMatchers.any());
+    verify(mockFsp).validate(any());
   }
 }

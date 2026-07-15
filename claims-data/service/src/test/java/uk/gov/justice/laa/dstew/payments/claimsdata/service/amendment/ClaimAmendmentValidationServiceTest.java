@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -153,7 +154,7 @@ class ClaimAmendmentValidationServiceTest {
             .hasAssessment(true)
             .status(ClaimStatus.VALID)
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-            .netProfitCostsAmount(java.math.BigDecimal.valueOf(100))
+            .netProfitCostsAmount(BigDecimal.valueOf(100))
             .build();
 
     ClaimStateSnapshot after =
@@ -161,7 +162,7 @@ class ClaimAmendmentValidationServiceTest {
             .hasAssessment(true)
             .status(ClaimStatus.VALID)
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-            .netProfitCostsAmount(java.math.BigDecimal.valueOf(200))
+            .netProfitCostsAmount(BigDecimal.valueOf(200))
             .build();
 
     var state = ClaimAmendmentState.builder().beforeState(before).postAmendmentState(after).build();
