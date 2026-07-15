@@ -72,6 +72,7 @@ dependencyManagement {
 
 dependencies {
     implementation project(':claims-data:api')
+    implementation project(':reference-fee-scheme-platform-api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.0.24'
 
     //Enable access token authentication
@@ -169,6 +170,7 @@ sourceSets {
         runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
     }
 }
+sourceSets.main.java.srcDirs += ['generated/src/main/java']
 
 configurations {
     compileOnly {

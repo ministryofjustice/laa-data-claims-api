@@ -1,0 +1,190 @@
+package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
+
+@ExtendWith(MockitoExtension.class)
+class AmendmentFspValidationStepTest {
+
+  @Mock private FeeSchemeRequestBuilder requestBuilder;
+
+  @Mock private FeeSchemePlatformRestClient fspClient;
+
+  @Mock private FeeSchemeSnapshotFactory snapshotFactory;
+
+  @InjectMocks private AmendmentFspValidationStep validationStep;
+
+  private ClaimAmendmentState.ClaimAmendmentStateBuilder stateBuilder;
+  private ClaimStateSnapshot.ClaimStateSnapshotBuilder postStateBuilder;
+  private ClaimStateSnapshot.ClaimStateSnapshotBuilder beforeStateBuilder;
+
+  @BeforeEach
+  void setUp() {
+    // Setup nested state builders to reduce boilerplate inside test methods
+    beforeStateBuilder =
+        ClaimStateSnapshot.builder()
+            .amended(false)
+            .calculatedFeeDetail(
+                CalculatedFeeDetailSnapshot.builder()
+                    .totalAmount(BigDecimal.valueOf(100.00))
+                    .build());
+
+    postStateBuilder = ClaimStateSnapshot.builder().amended(true);
+
+    stateBuilder = ClaimAmendmentState.builder();
+
+    // Lenient stubbing for standard request mapper invocation
+    lenient()
+        .when(requestBuilder.buildRequest(any()))
+        .thenReturn(new FeeCalculationRequest("FEE01"));
+  }
+
+  @Test
+  @DisplayName("1595-B: Should skip execution when proposed post-amendment state is not amended")
+  void validate_whenNotAmended_skipsFspCall() {
+    // Arrange: Mark proposed state as unamended
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.build())
+            .postAmendmentState(postStateBuilder.amended(false).build())
+            .build();
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName(
+      "1595-B: Should skip execution when baseline state has no calculated fee details snapshot")
+  void validate_whenNoBeforeFeeCalculated_skipsFspCall() {
+    // Arrange: Missing prior snapshot means FSP recalculation cannot be triggered
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.calculatedFeeDetail(null).build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName(
+      "1595-D & F: Should cache FSP response and populate snap-diff blocks on successful request")
+  void validate_onSuccess_populatesFspContextAndFeeSnapshots() {
+    // Arrange
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    FeeCalculationResponse mockFspResponse = new FeeCalculationResponse().feeCode("FEE01");
+    CalculatedFeeDetailSnapshot mockAfterSnapshot =
+        CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(150.00)).build();
+
+    when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
+    when(snapshotFactory.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    assertThat(state.getFspResponseContext()).isEqualTo(mockFspResponse);
+    assertThat(state.getBeforeFee()).isEqualTo(beforeStateBuilder.build().getCalculatedFeeDetail());
+    assertThat(state.getAfterFee()).isEqualTo(mockAfterSnapshot);
+  }
+
+  @Test
+  @DisplayName(
+      "1595-E: Should capture BadRequest (400) rejections and map them to semantic validation errors")
+  void validate_onWebClientBadRequestException_returnsFspValidationError() {
+    // Arrange
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    WebClientResponseException badRequestException =
+        WebClientResponseException.create(
+            HttpStatus.BAD_REQUEST.value(),
+            "Bad Request",
+            null,
+            "FSP Rejected: Invalid combinations".getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+
+    when(fspClient.calculateFee(any())).thenThrow(badRequestException);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    ClaimAmendmentValidationError error = errors.get(0);
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE);
+    assertThat(error.getMessage())
+        .isEqualTo("The fee calculation failed validation: FSP Rejected: Invalid combinations");
+  }
+
+  @Test
+  @DisplayName(
+      "1595-E: Should capture remote connection or 500 errors and map to controlled tech repricing failure codes")
+  void validate_onTechnicalException_returnsRepricingTechnicalError() {
+    // Arrange
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    // Simulating general exception (timeouts, network drops, or 500 errors)
+    when(fspClient.calculateFee(any())).thenThrow(new RuntimeException("SocketTimeoutException"));
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    ClaimAmendmentValidationError error = errors.get(0);
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE);
+  }
+}

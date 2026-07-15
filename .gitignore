@@ -10,6 +10,7 @@ bin/
 
 claims-data/api/generated
 claims-data/api/bin
+reference-fee-scheme-platform-api2/generated
 
 ### IntelliJ IDEA ###
 .idea

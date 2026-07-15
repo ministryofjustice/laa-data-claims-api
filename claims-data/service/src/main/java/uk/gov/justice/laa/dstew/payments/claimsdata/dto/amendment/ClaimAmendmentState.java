@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
  * In-memory aggregate describing a claim amendment in progress, passed from the retrieval/build
@@ -36,6 +37,8 @@ public class ClaimAmendmentState {
   private ClaimAmendmentPayload requestPayload;
 
   private ClaimStateSnapshot postAmendmentState;
+
+  private FeeCalculationResponse fspResponseContext;
 
   /**
    * The calculated fee detail as it stood before the amendment (the "before" side of the FSP diff

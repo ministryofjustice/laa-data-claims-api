@@ -138,7 +138,23 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Required amendment metadata reference data was unavailable at submit time");
+      "Required amendment metadata reference data was unavailable at submit time"),
+
+  // ----- Fee Scheme Platform (FSP) Integration (DSTEW-1595) -----
+
+  /** The Fee Scheme Platform rejected the calculation request due to business rule validation. */
+  INVALID_FSP_VALIDATION_FAILURE(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "The fee calculation failed validation: %s",
+      "The Fee Scheme Platform rejected the calculation request with a semantic validation error"),
+
+  /** A technical issue (timeout, connection drop, or 5xx) occurred during remote repricing. */
+  TECHNICAL_ERROR_FSP_REPRICING_FAILURE(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred while recalculating the fee. Please try again later.",
+      "Failed to communicate with the Fee Scheme Platform API due to a network timeout, connection drop, or server-side failure");
 
   /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
