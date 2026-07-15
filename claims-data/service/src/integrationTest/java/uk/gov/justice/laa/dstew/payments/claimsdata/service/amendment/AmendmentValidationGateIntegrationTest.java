@@ -10,8 +10,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,14 +17,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
@@ -51,7 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  * STEP_ORDER} itself, adding a new step automatically extends the coverage.
  */
 @DisplayName("Amendment persists nothing when any single validation step fails")
-class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
+class AmendmentValidationGateIntegrationTest extends AbstractAmendmentPipelineIntegrationTest {
 
   // A distinct, non-fatal error forced onto whichever step is under test. Non-fatal so the loop
   // still runs every other (genuine) step, maximising the exercised surface.
@@ -59,9 +55,6 @@ class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
       ClaimAmendmentValidationError.of(
           ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING);
 
-  @Autowired private List<ClaimAmendmentValidationStep> discoveredSteps;
-  @Autowired private ClaimAmendmentPreparationService preparationService;
-  @Autowired private ClaimAmendmentCommitService commitService;
   @Autowired private EntityManager entityManager;
   // Spy instance used to assert the FSP validation step was not invoked when earlier steps fail
   private ClaimAmendmentValidationStep fspSpy;
@@ -111,69 +104,38 @@ class AmendmentValidationGateIntegrationTest extends MockServerIntegrationTest {
 
   /**
    * Builds a {@link ClaimAmendmentService} whose validation sequence is the real, ordered set of
-   * step beans with exactly one slot - {@code failingStep} - replaced by a stub that forces an
-   * error. All other slots run their genuine bean.
+   * step beans with exactly one slot - {@code failingStep} - replaced by a stub that forces {@code
+   * error}. All other slots run their genuine bean, and the FSP step is wrapped in a spy so tests
+   * can assert whether it was reached.
    */
-  private ClaimAmendmentService serviceWithFailingStep(
-      Class<? extends ClaimAmendmentValidationStep> failingStep) {
-    Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream()
-            .collect(
-                Collectors.toMap(
-                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
+  private ClaimAmendmentService serviceWithForcedError(
+      Class<? extends ClaimAmendmentValidationStep> failingStep,
+      ClaimAmendmentValidationError error) {
+    Pipeline pipeline = amendmentPipeline();
 
-    // Replace the real AmendmentFspValidationStep with a Mockito spy so tests can assert on
-    // invocations
-    ClaimAmendmentValidationStep originalFsp = beanByClass.get(AmendmentFspValidationStep.class);
-    if (originalFsp != null) {
-      fspSpy = spy(originalFsp);
-      beanByClass.put(AmendmentFspValidationStep.class, fspSpy);
-    } else {
-      fspSpy = null;
+    // Spy the FSP validation step so tests can assert on (or against) its invocation.
+    ClaimAmendmentValidationStep originalFsp = pipeline.realStep(AmendmentFspValidationStep.class);
+    fspSpy = originalFsp != null ? spy(originalFsp) : null;
+    if (fspSpy != null) {
+      pipeline.replaceStep(AmendmentFspValidationStep.class, fspSpy);
     }
 
-    ClaimAmendmentValidationStep[] steps =
-        ClaimAmendmentValidationService.STEP_ORDER.stream()
-            .map(
-                stepClass ->
-                    stepClass.equals(failingStep)
-                        ? (ClaimAmendmentValidationStep) (state -> List.of(FORCED_ERROR))
-                        : beanByClass.get(stepClass))
-            .toArray(ClaimAmendmentValidationStep[]::new);
+    // Force the single step under test to fail. When that step is the FSP step, this forced-error
+    // stub replaces the spy in its slot, so the FSP step reports the error instead of running.
+    pipeline.replaceStep(failingStep, state -> List.of(error));
 
-    return new ClaimAmendmentService(
-        preparationService, new ClaimAmendmentValidationService(steps), commitService);
+    return pipeline.build();
+  }
+
+  private ClaimAmendmentService serviceWithFailingStep(
+      Class<? extends ClaimAmendmentValidationStep> failingStep) {
+    return serviceWithForcedError(failingStep, FORCED_ERROR);
   }
 
   private ClaimAmendmentService serviceWithFatalFailingStep(
       Class<? extends ClaimAmendmentValidationStep> failingStep,
       ClaimAmendmentValidationError fatalError) {
-    Map<Class<?>, ClaimAmendmentValidationStep> beanByClass =
-        discoveredSteps.stream()
-            .collect(
-                Collectors.toMap(
-                    AopUtils::getTargetClass, step -> step, (existing, ignored) -> existing));
-
-    // Spy the FSP validation step so we can assert it was never invoked
-    ClaimAmendmentValidationStep originalFsp = beanByClass.get(AmendmentFspValidationStep.class);
-    if (originalFsp != null) {
-      fspSpy = spy(originalFsp);
-      beanByClass.put(AmendmentFspValidationStep.class, fspSpy);
-    } else {
-      fspSpy = null;
-    }
-
-    ClaimAmendmentValidationStep[] steps =
-        ClaimAmendmentValidationService.STEP_ORDER.stream()
-            .map(
-                stepClass ->
-                    stepClass.equals(failingStep)
-                        ? (ClaimAmendmentValidationStep) (state -> List.of(fatalError))
-                        : beanByClass.get(stepClass))
-            .toArray(ClaimAmendmentValidationStep[]::new);
-
-    return new ClaimAmendmentService(
-        preparationService, new ClaimAmendmentValidationService(steps), commitService);
+    return serviceWithForcedError(failingStep, fatalError);
   }
 
   @Test
