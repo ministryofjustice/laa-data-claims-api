@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -33,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
 
 public class ClaimsDataTestUtil {
@@ -610,5 +613,15 @@ public class ClaimsDataTestUtil {
         .updatedByUserId("ABC")
         .updatedOn(SUBMITTED_DATE.toInstant())
         .build();
+  }
+
+  /** A single SUBMISSION history event mirroring the unified claim-history read model. */
+  public static ClaimHistoryEventRow getSubmissionHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("submission_period", SUBMISSION_PERIOD);
+    metadata.put("office_account_number", OFFICE_ACCOUNT_NUMBER);
+    metadata.put("area_of_law", AREA_OF_LAW.getValue());
+    return new ClaimHistoryEventRow(
+        "SUBMISSION", SUBMITTED_DATE.toInstant(), PROVIDER_USER_ID, CLAIM_1_ID, metadata);
   }
 }

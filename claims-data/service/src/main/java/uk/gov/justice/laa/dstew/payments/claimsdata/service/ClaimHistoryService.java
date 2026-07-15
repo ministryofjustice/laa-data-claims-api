@@ -1,12 +1,16 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
+
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 
 /**
@@ -25,12 +29,14 @@ public class ClaimHistoryService {
   private static final int DEFAULT_PAGE_SIZE = 50;
 
   private final ClaimHistoryRepository claimHistoryRepository;
+  private final ClaimRepository claimRepository;
 
   /**
    * Returns the most recent page of a claim's history timeline, newest event first.
    *
    * @param claimId the claim to retrieve history for
    * @return an ordered list of timeline events (may be empty, never {@code null})
+   * @throws ClaimNotFoundException if no claim exists for the given claim id
    */
   @Transactional(readOnly = true)
   public List<ClaimHistoryEventRow> getTimeline(UUID claimId) {
@@ -43,6 +49,7 @@ public class ClaimHistoryService {
    * @param claimId the claim to retrieve history for
    * @param pageSize the maximum number of events to return
    * @return an ordered list of timeline events (may be empty, never {@code null})
+   * @throws ClaimNotFoundException if no claim exists for the given claim id
    */
   @Transactional(readOnly = true)
   public List<ClaimHistoryEventRow> getTimeline(UUID claimId, int pageSize) {
@@ -50,6 +57,10 @@ public class ClaimHistoryService {
   }
 
   private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize) {
+    if (!claimRepository.existsById(claimId)) {
+      throw new ClaimNotFoundException(String.format(NO_CLAIM_FOUND_WITH_ID_ERROR, claimId));
+    }
+
     List<ClaimHistoryEventRow> timeline = claimHistoryRepository.findHistory(claimId, pageSize);
     log.debug("Loaded {} history event(s) for claim {}", timeline.size(), claimId);
     return timeline;

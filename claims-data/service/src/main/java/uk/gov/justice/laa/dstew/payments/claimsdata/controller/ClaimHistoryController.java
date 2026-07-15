@@ -37,11 +37,15 @@ public class ClaimHistoryController implements ClaimHistoryApi {
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Integer limit) {
-    List<ClaimHistoryEvent> events =
-        claimHistoryService.getTimeline(claimId, limit).stream().map(this::toModel).toList();
+    List<ClaimHistoryEventRow> rows =
+        limit == null
+            ? claimHistoryService.getTimeline(claimId)
+            : claimHistoryService.getTimeline(claimId, limit);
+
+    List<ClaimHistoryEvent> events = rows.stream().map(this::toModel).toList();
 
     ClaimHistoryResultSet result =
-        ClaimHistoryResultSet.builder().claimId(claimId).content(events).build();
+        ClaimHistoryResultSet.builder().claimId(claimId).events(events).build();
 
     return ResponseEntity.ok(result);
   }

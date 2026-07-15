@@ -1020,6 +1020,25 @@ paths:
         timeline (newest event first). The timeline is composed from multiple business tables
         (submission, amendments, assessments) in a single query and ordered purely by event time,
         with the UUIDv7 source id as a deterministic tie-breaker.
+
+        **Call pattern (one-response):** history is retrieved with a single request by claim id.
+        There are no split summary/detail endpoints, expansion flags or event-type/date-range
+        filters; a consumer populates its history page from this one response, optionally bounding
+        the page size with `limit`. Pagination is not offered yet (a future keyset/cursor overload
+        may be added without reshaping this contract).
+
+        **Default ordering:** `event_timestamp` descending (newest first), with the UUIDv7
+        `source_id` descending as the deterministic same-timestamp tie-break. `event_type` never
+        participates in ordering.
+
+        **Actor fallback:** `actor_id` is always populated; where the source record holds no user
+        id the agreed `SYSTEM` value is returned rather than the field being omitted.
+
+        **Metadata extension point:** every event shares the common envelope and carries its
+        event-specific attributes in the open `metadata` container, so later event types extend the
+        contract without reshaping it.
+
+        **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
       parameters:
         - name: claimId
           in: path
@@ -1035,6 +1054,7 @@ paths:
           schema:
             type: integer
             minimum: 1
+            maximum: 200
             default: 50
       responses:
         '200':
@@ -2496,7 +2516,7 @@ components:
           type: string
           format: uuid
           description: The claim the timeline belongs to.
-        content:
+        events:
           type: array
           description: Timeline events, newest first.
           items:

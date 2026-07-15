@@ -1,11 +1,38 @@
-# Claim History Timeline — Read-Model POC
+# Claim History Timeline — Read Model
 
-A proof-of-concept read model that returns the **complete history of a single claim** as one
-unified, chronologically ordered timeline, loaded with a **single** PostgreSQL query.
+A read model that returns the **complete history of a single claim** as one unified,
+chronologically ordered timeline, loaded with a **single** PostgreSQL query.
 
 This is a **query/read use case**. It deliberately avoids JPA entities, entity graphs and lazy
 loading. It uses `JdbcClient`, native SQL, `UNION ALL`, server-side `jsonb_build_object`, and a flat
 projection.
+
+---
+
+## 0. API contract (agreed)
+
+- **Endpoint:** `GET /api/v1/claims/{claimId}/history` — a single claim-scoped sub-resource,
+  alongside the existing `GET /api/v1/claims/{claimId}/assessments` and
+  `POST /api/v1/claims/{claim-id}/void`.
+- **Call pattern — one response (not split).** History is retrieved in a single request by claim
+  id. There are no split summary/detail endpoints, expansion flags or event-type/date-range
+  filters. A consumer (e.g. AaBC) populates its history page from this one response, optionally
+  bounding the page size with the `limit` query parameter (`1..200`, default `50`). Pagination is
+  not offered yet; the `(event_timestamp, source_id)` ordering key is the seed for a future
+  keyset/cursor overload that can be added without reshaping the contract.
+- **Envelope (every event):** `event_type`, `event_timestamp`, `actor_id`, `source_id`, and an open
+  `metadata` container. `metadata` is the extension point later event types populate without
+  reshaping the contract (DSTEW-1812 assessment/void, DSTEW-1813 amendment, DSTEW-1814 field-level
+  changes, DSTEW-1815 FSP outcome).
+- **Result shape:** `{ "claim_id": "...", "events": [ <event>, ... ] }`.
+- **Event types:** `SUBMISSION`, `AMENDMENT`, `ASSESSMENT`, `VOID`. This story populates
+  `SUBMISSION` only; the remaining branches are wired but populated by the follow-up stories.
+- **Default ordering:** `event_timestamp` descending, with the UUIDv7 `source_id` descending as the
+  deterministic same-timestamp tie-break. `event_type` never participates in ordering.
+- **Actor fallback:** `actor_id` is always populated; where the source row holds no user id the
+  agreed `SYSTEM` value is returned rather than the field being omitted.
+- **Not found:** an unknown claim id returns `404`, consistent with existing claim reads
+  (`ClaimNotFoundException`).
 
 ---
 

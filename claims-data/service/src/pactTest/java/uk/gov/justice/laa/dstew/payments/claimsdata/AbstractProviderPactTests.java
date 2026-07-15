@@ -20,6 +20,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
@@ -63,6 +64,8 @@ public class AbstractProviderPactTests {
   @MockitoBean protected ClaimCaseRepository claimCaseRepository;
 
   @MockitoBean protected ClaimRepository claimRepository;
+
+  @MockitoBean protected ClaimHistoryRepository claimHistoryRepository;
 
   // Amendment persistence (DSTEW-1907) repository; needed by ClaimAmendmentPersistenceService.
   @MockitoBean protected ClaimAmendmentRepository claimAmendmentRepository;
