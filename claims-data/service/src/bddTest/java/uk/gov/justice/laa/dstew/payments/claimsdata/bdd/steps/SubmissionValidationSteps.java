@@ -138,7 +138,7 @@ public class SubmissionValidationSteps {
     String normalised = periodKind.toLowerCase(Locale.ROOT).trim();
     return switch (normalised) {
       case "current month" -> SubmissionPeriodHelper.monthLabel(0);
-      case "future month", "future date" -> SubmissionPeriodHelper.monthLabel(1);
+      case "future month" -> SubmissionPeriodHelper.monthLabel(1);
       default ->
           throw new IllegalArgumentException(
               "Unknown period kind '"
