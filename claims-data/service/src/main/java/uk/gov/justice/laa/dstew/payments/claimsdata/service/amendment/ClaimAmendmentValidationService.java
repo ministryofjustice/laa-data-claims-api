@@ -12,6 +12,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 
@@ -60,7 +62,9 @@ public class ClaimAmendmentValidationService {
           // Feature-flag gate runs first so a disabled feature short-circuits the pipeline before
           // any other work is done.
           AmendmentFeatureFlagValidationStep.class,
+          BeforeStatePresenceValidationStep.class,
           ClaimStatusValidationStep.class,
+          AssessedClaimPricingValidationStep.class,
           AmendmentUserIdValidationStep.class,
           AmendmentReferenceValidationStep.class,
           // External steps sit inline with the rest (they make PDA/FSP calls but are ordinary
@@ -105,6 +109,7 @@ public class ClaimAmendmentValidationService {
         return state.getErrors();
       }
     }
+
     return state.getErrors();
   }
 

@@ -48,6 +48,16 @@ public enum ClaimAmendmentValidationCode {
       "Claim status %s is not amendable; only claims with status %s can be amended.",
       null),
 
+  /**
+   * The claim already has an assessment; provider-requested changes to pricing-related fields are
+   * not permitted.
+   */
+  INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "This claim has an assessment; pricing-related fields cannot be amended: %s",
+      "Attempted pricing-related amendment on an assessed claim: %s"),
+
   // ----- Amendment metadata: Requested By (DSTEW-1765) -----
 
   /** Requested By code was not supplied. */
@@ -138,7 +148,17 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Required amendment metadata reference data was unavailable at submit time");
+      "Required amendment metadata reference data was unavailable at submit time"),
+
+  /**
+   * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
+   * invariant breach rather than a user-correctable condition.
+   */
+  TECHNICAL_ERROR_MISSING_CLAIM_STATE(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred, please try again after some time",
+      "Claim before-state snapshot was unexpectedly absent for an existing claim");
 
   /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
