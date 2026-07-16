@@ -265,6 +265,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
     ClaimStateSnapshot snapshot =
         ClaimStateSnapshot.builder()
             .claimId(Uuid7.timeBasedUuid())
+            .version(0L)
             .feeCode(CLAIM_FEE_CODE)
             .status(status)
             .lineNumber(1)
@@ -278,6 +279,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
         .postAmendmentState(snapshot)
         .requestPayload(
             ClaimAmendmentPayload.builder()
+                .version(JsonNullable.of(0L))
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))

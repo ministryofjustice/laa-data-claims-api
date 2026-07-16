@@ -1,11 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
@@ -26,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  * calls must run <b>before</b> this, outside the write transaction.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ClaimAmendmentCommitService {
 
@@ -44,7 +48,21 @@ public class ClaimAmendmentCommitService {
   public ClaimAmendment commit(Claim validatedClaim, ClaimAmendmentState state) {
     // Reattach the validated instance so the versioned UPDATE guards against changes since
     // the prepare step. Merge returns the managed instance to write through.
-    Claim managedClaim = entityManager.merge(validatedClaim);
-    return persistenceService.persistSuccessfulAmendment(managedClaim, state);
+    try {
+      Claim managedClaim = entityManager.merge(validatedClaim);
+      return persistenceService.persistSuccessfulAmendment(managedClaim, state);
+    } catch (OptimisticLockException ex) {
+      // Structured warning for support/investigation at the final transactional guard. Safe fields
+      // only - never the amendment payload values or financial details. The current version is not
+      // available here (the stale row was updated by a concurrent writer), so only the submitted
+      // (prepare-time) version is logged.
+      log.warn(
+          "event={} claimId={} submittedClaimVersion={} conflictPoint={}",
+          ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name(),
+          validatedClaim.getId(),
+          validatedClaim.getVersion(),
+          "final_save");
+      throw ex;
+    }
   }
 }

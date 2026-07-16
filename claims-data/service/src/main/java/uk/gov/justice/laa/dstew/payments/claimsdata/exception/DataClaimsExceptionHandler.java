@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.exception;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT;
 
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -186,11 +186,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       OptimisticLockException ex, HttpServletRequest request) {
 
     log.warn("Database level optimistic locking failure occurred: {}", ex.getMessage());
-    return buildProblemDetailResponse(
-        HttpStatus.CONFLICT,
-        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
-        ex.getClass(),
-        request);
+    return buildVersionConflictResponse(ex.getClass(), request);
   }
 
   /**
@@ -210,11 +206,38 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
 
     log.warn("Database level object optimistic locking failure occurred: {}", ex.getMessage());
-    return buildProblemDetailResponse(
-        HttpStatus.CONFLICT,
-        INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate(),
-        ex.getClass(),
-        request);
+    return buildVersionConflictResponse(ex.getClass(), request);
+  }
+
+  /**
+   * Builds the shared stale-version 409 Conflict response used by both the early version gate and
+   * the final transactional (optimistic-lock) guard.
+   *
+   * <p>The envelope matches the amendment validation error format: an RFC 9457 Problem Detail with
+   * the user-safe conflict message and an {@code errors} property carrying the stable, machine
+   * readable {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode#CLAIM_VERSION_CONFLICT
+   * CLAIM_VERSION_CONFLICT} code, so consumers receive the same code and structure regardless of
+   * which guard detected the conflict.
+   *
+   * @param exceptionClass the source exception class for the type URI
+   * @param request the HTTP request for populating the instance field
+   * @return a 409 Conflict Problem Detail carrying the stable conflict code
+   */
+  private ResponseEntity<ProblemDetail> buildVersionConflictResponse(
+      Class<?> exceptionClass, HttpServletRequest request) {
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(
+            HttpStatus.CONFLICT,
+            CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+            exceptionClass,
+            request);
+    if (response.getBody() != null) {
+      response
+          .getBody()
+          .setProperty("errors", List.of(ClaimAmendmentValidationError.of(CLAIM_VERSION_CONFLICT)));
+    }
+    return response;
   }
 
   /**

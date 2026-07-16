@@ -30,9 +30,16 @@ public enum ClaimAmendmentValidationCode {
   INVALID_NULL_VERSION(
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),
 
-  /** The claim has a stale version number so cannot be amended. */
-  INVALID_CLAIM_VERSION_CONFLICT(
-      ValidationSeverity.FATAL, HttpStatus.CONFLICT, "Claim Version conflict exists", null),
+  /**
+   * The claim has a stale version number so cannot be amended. This stable, machine-readable code
+   * ({@code CLAIM_VERSION_CONFLICT}) is the shared conflict identifier surfaced by both the early
+   * version gate and the final transactional (optimistic-lock) guard.
+   */
+  CLAIM_VERSION_CONFLICT(
+      ValidationSeverity.FATAL,
+      HttpStatus.CONFLICT,
+      "The claim has changed since it was loaded. Review the latest claim details and try again.",
+      null),
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(

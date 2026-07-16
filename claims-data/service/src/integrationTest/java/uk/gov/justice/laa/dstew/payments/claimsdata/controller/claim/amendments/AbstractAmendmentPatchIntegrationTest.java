@@ -140,13 +140,16 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   }
 
   /**
-   * A patch carrying valid amendment metadata (requested-by, reason and user id). Tests add the
-   * field change under test on top.
+   * A patch carrying valid amendment metadata (requested-by, reason and user id) plus the current
+   * claim version so it passes the early version gate. Claims created by {@link
+   * #createAmendableClaim} are freshly inserted at version {@code 0}. Tests add the field change
+   * under test on top.
    *
    * @return a metadata-only claim patch
    */
   protected ClaimPatch metadataPatch() {
     ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(0L);
     patch.setAmendmentRequestedBy(REQUESTED_BY_PROVIDER);
     patch.setAmendmentReasonCode(REASON_PROVIDER_ERROR);
     patch.setAmendmentUserId(VALID_USER_UUID);

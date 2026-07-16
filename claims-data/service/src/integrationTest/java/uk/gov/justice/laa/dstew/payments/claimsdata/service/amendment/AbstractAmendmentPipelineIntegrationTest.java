@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 
@@ -59,8 +61,13 @@ abstract class AbstractAmendmentPipelineIntegrationTest extends MockServerIntegr
       ClaimAmendmentService service, UUID claimId, ClaimAmendmentPayload payload) {
     return new TransactionTemplate(transactionManager)
         .execute(
-            status ->
-                service.submitAmendment(claimRepository.findById(claimId).orElseThrow(), payload));
+            status -> {
+              Claim claim = claimRepository.findById(claimId).orElseThrow();
+              // Stamp the submitted version with the current claim version so the wired early
+              // version gate passes; these pipeline tests exercise other behaviour, not staleness.
+              payload.setVersion(JsonNullable.of(claim.getVersion()));
+              return service.submitAmendment(claim, payload);
+            });
   }
 
   /** Builder that assembles a {@link ClaimAmendmentService} from substitutable step slots. */

@@ -37,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 
 /**
  * Tests for {@link ClaimAmendmentValidationService}.
@@ -126,6 +127,7 @@ class ClaimAmendmentValidationServiceTest {
                 extraStep,
                 new AmendmentFeatureFlagValidationStep(claimsApiProperties),
                 new BeforeStatePresenceValidationStep(),
+                new ClaimVersionValidationStep(),
                 new ClaimStatusValidationStep(),
                 new AssessedClaimPricingValidationStep(new AmendmentChangeDetector()),
                 new AmendmentUserIdValidationStep(),
