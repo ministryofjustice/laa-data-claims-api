@@ -75,6 +75,17 @@ public class SubmissionPeriodHelper {
     issued.clear();
   }
 
+  /**
+   * Returns the {@code MMM-YYYY} label for the current calendar month plus the given offset. Used
+   * by {@code SubmissionValidationSteps} to substitute {@code submissionPeriod=} with either the
+   * current month ({@code offset=0}) or a future month ({@code offset>0}) — both of which are
+   * rejected by the event-service's submission-period validator.
+   */
+  public static String monthLabel(int monthsOffset) {
+    LocalDate date = LocalDate.now().plusMonths(monthsOffset);
+    return formatPeriod(date);
+  }
+
   private static String formatPeriod(LocalDate date) {
     return BddTestConstants.MONTHS.get(date.getMonthValue() - 1) + "-" + date.getYear();
   }
