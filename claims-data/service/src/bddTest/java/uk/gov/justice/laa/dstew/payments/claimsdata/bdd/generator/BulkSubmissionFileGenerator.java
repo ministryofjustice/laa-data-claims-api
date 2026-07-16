@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 
 /**
  * Java port of {@code tests/utils/scripts/dataGenerator/generateCivilFiles.ts} + {@code
@@ -27,7 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants;
  * The complex provider-contract / FSP-fee lookups from the TS originals are not relevant to the
  * in-process API tests.
  */
-public final class LegalHelpFileGenerator {
+public final class BulkSubmissionFileGenerator {
 
   /** Output format selector. */
   public enum Format {
@@ -105,11 +106,11 @@ public final class LegalHelpFileGenerator {
 
   private final Path outputDir;
 
-  public LegalHelpFileGenerator(Path outputDir) {
+  public BulkSubmissionFileGenerator(Path outputDir) {
     this.outputDir = outputDir;
   }
 
-  public LegalHelpFileGenerator() {
+  public BulkSubmissionFileGenerator() {
     this(defaultOutputDir());
   }
 
@@ -118,14 +119,9 @@ public final class LegalHelpFileGenerator {
   }
 
   /**
-   * Generates a single Legal Help bulk-submission file.
-   *
-   * @param format the output format
-   * @param outcomes number of OUTCOME lines to emit
-   * @param defaultOffice fallback office account if no overrides provide one
-   * @param submissionPeriod the {@code MMM-uuuu} schedule period
-   * @param overrides per-outcome overrides (null/empty list means random fill for every outcome)
-   * @return the generated file path + the resolved office + period
+   * Generates a single Legal Help bulk-submission file (convenience overload that defaults the area
+   * of law to {@link AreaOfLaw#LEGAL_HELP}). See {@link #generate(Format, int, String, String,
+   * List, AreaOfLaw)} for the full-fidelity overload used by Mediation etc.
    */
   public GeneratedFile generate(
       Format format,
@@ -133,6 +129,29 @@ public final class LegalHelpFileGenerator {
       String defaultOffice,
       String submissionPeriod,
       List<ClaimOverride> overrides)
+      throws IOException {
+    return generate(
+        format, outcomes, defaultOffice, submissionPeriod, overrides, AreaOfLaw.LEGAL_HELP);
+  }
+
+  /**
+   * Generates a single bulk-submission file for the given area of law.
+   *
+   * @param format the output format
+   * @param outcomes number of OUTCOME lines to emit
+   * @param defaultOffice fallback office account if no overrides provide one
+   * @param submissionPeriod the {@code MMM-uuuu} schedule period
+   * @param overrides per-outcome overrides (null/empty list means random fill for every outcome)
+   * @param areaOfLaw area-of-law written into the SCHEDULE header line
+   * @return the generated file path + the resolved office + period
+   */
+  public GeneratedFile generate(
+      Format format,
+      int outcomes,
+      String defaultOffice,
+      String submissionPeriod,
+      List<ClaimOverride> overrides,
+      AreaOfLaw areaOfLaw)
       throws IOException {
 
     if (outcomes <= 0) {
@@ -148,7 +167,9 @@ public final class LegalHelpFileGenerator {
     body.append("OFFICE,account=").append(office).append('\n');
     body.append("SCHEDULE,submissionPeriod=")
         .append(submissionPeriod)
-        .append(",areaOfLaw=LEGAL HELP,scheduleNum=")
+        .append(",areaOfLaw=")
+        .append(areaOfLaw.getValue())
+        .append(",scheduleNum=")
         .append(office)
         .append("/CIVIL\n");
 
@@ -327,7 +348,23 @@ public final class LegalHelpFileGenerator {
   public record GeneratedPair(GeneratedFile first, GeneratedFile second) {}
 
   /**
-   * Generates two Legal Help files for the given office whose submission periods are {@code
+   * Convenience overload of {@link #generatePair(Format, String, int, String, String, List,
+   * AreaOfLaw)} that defaults the area of law to {@link AreaOfLaw#LEGAL_HELP}.
+   */
+  public GeneratedPair generatePair(
+      Format format,
+      String office,
+      int monthsApart,
+      String firstPeriod,
+      String secondPeriod,
+      List<Map<String, String>> rows)
+      throws IOException {
+    return generatePair(
+        format, office, monthsApart, firstPeriod, secondPeriod, rows, AreaOfLaw.LEGAL_HELP);
+  }
+
+  /**
+   * Generates two bulk-submission files for the given office whose submission periods are {@code
    * monthsApart} months apart. Both files carry the same claim data (from {@code rows}); the caller
    * decides via {@code feeCode1}/{@code feeCode2} table columns whether the fee codes differ.
    *
@@ -341,7 +378,8 @@ public final class LegalHelpFileGenerator {
       int monthsApart,
       String firstPeriod,
       String secondPeriod,
-      List<Map<String, String>> rows)
+      List<Map<String, String>> rows,
+      AreaOfLaw areaOfLaw)
       throws IOException {
 
     List<ClaimOverride> firstOverrides = new ArrayList<>();
@@ -354,9 +392,10 @@ public final class LegalHelpFileGenerator {
     }
 
     GeneratedFile first =
-        generate(format, Math.max(rows.size(), 1), office, firstPeriod, firstOverrides);
+        generate(format, Math.max(rows.size(), 1), office, firstPeriod, firstOverrides, areaOfLaw);
     GeneratedFile second =
-        generate(format, Math.max(rows.size(), 1), office, secondPeriod, secondOverrides);
+        generate(
+            format, Math.max(rows.size(), 1), office, secondPeriod, secondOverrides, areaOfLaw);
     return new GeneratedPair(first, second);
   }
 

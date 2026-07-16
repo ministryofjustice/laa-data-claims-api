@@ -12,9 +12,9 @@ import java.nio.file.Path;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.Format;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.GeneratedFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.Format;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.GeneratedFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -22,8 +22,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 
 /**
  * Step definitions for the API port of the UI {@code mimeChecks.feature}. Each scenario generates a
- * fresh Legal Help bulk-submission file via {@link LegalHelpFileGenerator}, uploads it through the
- * real {@code POST /api/v1/bulk-submissions} multipart endpoint with an explicit MIME type, and
+ * fresh Legal Help bulk-submission file via {@link BulkSubmissionFileGenerator}, uploads it through
+ * the real {@code POST /api/v1/bulk-submissions} multipart endpoint with an explicit MIME type, and
  * asserts the synchronous outcome enforced by {@code BulkSubmissionFileValidator}:
  *
  * <ul>
@@ -36,7 +36,7 @@ public class BulkSubmissionMimeCheckSteps {
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
-  @Autowired private LegalHelpFileGenerator generator;
+  @Autowired private BulkSubmissionFileGenerator generator;
   @Autowired private SubmissionPeriodHelper periodHelper;
 
   @Given("the bulk submission MIME checks scaffold is ready")
