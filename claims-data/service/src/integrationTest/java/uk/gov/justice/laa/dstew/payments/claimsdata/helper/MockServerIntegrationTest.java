@@ -246,8 +246,8 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
 
   /**
    * Overrides the fee-details response so the {@code areaOfLaw} the claims-validation-core library
-   * resolves for the (post-amendment) fee code is a specific value. Registered at a higher priority
-   * than the default {@link #stubFeeSchemeEndpoints()} catch-all so it wins for any fee code.
+   * resolves for the (post-amendment) fee code is a specific value. This helper clears any existing
+   * fee-details expectations first, so the override becomes the only match for any fee code.
    *
    * <p>Used by the fee-code Area-of-Law amendment gate tests to drive a same-AoL (accepted) or
    * different-AoL (rejected) outcome. {@code feeType} is kept non-blank so the library's fee-scheme
