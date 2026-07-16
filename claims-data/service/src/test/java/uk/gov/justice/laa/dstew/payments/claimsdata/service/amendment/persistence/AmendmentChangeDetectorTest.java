@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persisten
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,13 +69,9 @@ class AmendmentChangeDetectorTest {
   @DisplayName("emits a change for a claim_summary_fee field")
   void emitsChangeForSummaryFeeField() {
     ClaimStateSnapshot before =
-        ClaimStateSnapshot.builder()
-            .netProfitCostsAmount(new java.math.BigDecimal("10.00"))
-            .build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("10.00")).build();
     ClaimStateSnapshot after =
-        ClaimStateSnapshot.builder()
-            .netProfitCostsAmount(new java.math.BigDecimal("25.00"))
-            .build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("25.00")).build();
 
     List<DiffEntry> changes = detector.detectChanges(state(before, after));
 
@@ -87,13 +84,9 @@ class AmendmentChangeDetectorTest {
   @DisplayName("emits fee deltas tagged FSP when the before/after fee snapshots differ")
   void emitsFeeDeltasTaggedFsp() {
     CalculatedFeeDetailSnapshot beforeFee =
-        CalculatedFeeDetailSnapshot.builder()
-            .totalAmount(new java.math.BigDecimal("100.00"))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(new BigDecimal("100.00")).build();
     CalculatedFeeDetailSnapshot afterFee =
-        CalculatedFeeDetailSnapshot.builder()
-            .totalAmount(new java.math.BigDecimal("150.00"))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(new BigDecimal("150.00")).build();
 
     ClaimAmendmentState state =
         ClaimAmendmentState.builder().beforeFee(beforeFee).afterFee(afterFee).build();
@@ -104,17 +97,15 @@ class AmendmentChangeDetectorTest {
     DiffEntry change = changes.getFirst();
     assertThat(change.fieldIdentifier()).isEqualTo("fee.totalAmount");
     assertThat(change.changeSource()).isEqualTo(ChangeSource.FSP);
-    assertThat(change.before()).isEqualTo(new java.math.BigDecimal("100.00"));
-    assertThat(change.after()).isEqualTo(new java.math.BigDecimal("150.00"));
+    assertThat(change.before()).isEqualTo(new BigDecimal("100.00"));
+    assertThat(change.after()).isEqualTo(new BigDecimal("150.00"));
   }
 
   @Test
   @DisplayName("fee section is a no-op when a fee snapshot side is absent")
   void feeSectionNoOpWhenFeeSnapshotMissing() {
     CalculatedFeeDetailSnapshot afterFee =
-        CalculatedFeeDetailSnapshot.builder()
-            .totalAmount(new java.math.BigDecimal("150.00"))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(new BigDecimal("150.00")).build();
 
     ClaimAmendmentState state = ClaimAmendmentState.builder().afterFee(afterFee).build();
 
@@ -127,11 +118,9 @@ class AmendmentChangeDetectorTest {
   @DisplayName("ignores a BigDecimal amount that differs only in scale (no spurious diff)")
   void ignoresBigDecimalScaleOnlyDifference() {
     ClaimStateSnapshot before =
-        ClaimStateSnapshot.builder().netProfitCostsAmount(new java.math.BigDecimal("10.0")).build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("10.0")).build();
     ClaimStateSnapshot after =
-        ClaimStateSnapshot.builder()
-            .netProfitCostsAmount(new java.math.BigDecimal("10.00"))
-            .build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("10.00")).build();
 
     List<DiffEntry> changes = detector.detectChanges(state(before, after));
 
@@ -142,13 +131,9 @@ class AmendmentChangeDetectorTest {
   @DisplayName("ignores an FSP fee amount that differs only in scale (no spurious diff)")
   void ignoresFspFeeScaleOnlyDifference() {
     CalculatedFeeDetailSnapshot beforeFee =
-        CalculatedFeeDetailSnapshot.builder()
-            .totalAmount(new java.math.BigDecimal("100.0"))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(new BigDecimal("100.0")).build();
     CalculatedFeeDetailSnapshot afterFee =
-        CalculatedFeeDetailSnapshot.builder()
-            .totalAmount(new java.math.BigDecimal("100.000"))
-            .build();
+        CalculatedFeeDetailSnapshot.builder().totalAmount(new BigDecimal("100.000")).build();
 
     ClaimAmendmentState state =
         ClaimAmendmentState.builder().beforeFee(beforeFee).afterFee(afterFee).build();
@@ -162,13 +147,9 @@ class AmendmentChangeDetectorTest {
   @DisplayName("still emits a change for a genuine BigDecimal value difference")
   void emitsChangeForGenuineBigDecimalDifference() {
     ClaimStateSnapshot before =
-        ClaimStateSnapshot.builder()
-            .netProfitCostsAmount(new java.math.BigDecimal("10.00"))
-            .build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("10.00")).build();
     ClaimStateSnapshot after =
-        ClaimStateSnapshot.builder()
-            .netProfitCostsAmount(new java.math.BigDecimal("10.01"))
-            .build();
+        ClaimStateSnapshot.builder().netProfitCostsAmount(new BigDecimal("10.01")).build();
 
     List<DiffEntry> changes = detector.detectChanges(state(before, after));
 
