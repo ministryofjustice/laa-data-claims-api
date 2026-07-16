@@ -611,18 +611,19 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .submissionPeriod(PERIOD_JAN_2025)
             .build();
 
-    mockMvc
-        .perform(
-            post(SUBMISSIONS_ENDPOINT)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.title").value("Bad Request"))
-        .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.detail").value("Submission failed validation"))
-        .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD"))
-        .andReturn();
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                post(SUBMISSIONS_ENDPOINT)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.title").value("Bad Request"))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.detail").value("Submission failed validation"))
+            .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_VALIDATION_MINIMUM_PERIOD"))
+            .andReturn();
   }
 
   @Test
@@ -1228,9 +1229,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
             .getContent()
             .stream()
-            .map(
-                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
-                    ::getSubmissionPeriod)
+            .map(SubmissionBase::getSubmissionPeriod)
             .toList();
 
     assertThat(periods).containsExactly(PERIOD_DEC_2024, PERIOD_JAN_2025, PERIOD_APR_2025);
@@ -1262,9 +1261,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
             .getContent()
             .stream()
-            .map(
-                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
-                    ::getSubmissionPeriod)
+            .map(SubmissionBase::getSubmissionPeriod)
             .toList();
 
     assertThat(periods).containsExactly(PERIOD_APR_2025, PERIOD_JAN_2025, PERIOD_DEC_2024);
@@ -1316,11 +1313,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         OBJECT_MAPPER.readValue(
             result.getResponse().getContentAsString(), SubmissionsResultSet.class);
     var officeNumbers =
-        resultSet.getContent().stream()
-            .map(
-                uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase
-                    ::getOfficeAccountNumber)
-            .toList();
+        resultSet.getContent().stream().map(SubmissionBase::getOfficeAccountNumber).toList();
 
     // case-insensitive: "AAAA01" (lowercase: aaaa01) before "aaaa02"
     assertThat(officeNumbers).containsExactly(OFFICE_AAAA01, OFFICE_AAAA02);

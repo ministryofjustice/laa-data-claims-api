@@ -2,11 +2,14 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +33,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   private static final String REQUESTED_BY_CONTRACT_MANAGEMENT = "CONTRACT_MANAGEMENT";
   private static final String REASON_OTHER = "OTHER";
 
-  @Autowired private jakarta.persistence.EntityManager entityManager;
+  @Autowired private EntityManager entityManager;
 
   @BeforeEach
   void setUp() {
@@ -167,10 +170,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
         claimAmendmentRepository.findById(auditAmendment.getId()).orElseThrow();
 
     assertThat(retrieved.getCreatedByUserId()).isEqualTo(testingUser);
-    assertThat(retrieved.getCreatedOn())
-        .isCloseTo(
-            testingTime,
-            org.assertj.core.api.Assertions.within(1, java.time.temporal.ChronoUnit.SECONDS));
+    assertThat(retrieved.getCreatedOn()).isCloseTo(testingTime, within(1, ChronoUnit.SECONDS));
   }
 
   @Test
