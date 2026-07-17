@@ -37,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
  * Tests for {@link ClaimAmendmentValidationService}.
@@ -128,6 +129,7 @@ class ClaimAmendmentValidationServiceTest {
                 new BeforeStatePresenceValidationStep(),
                 new ClaimStatusValidationStep(),
                 new AssessedClaimPricingValidationStep(new AmendmentChangeDetector()),
+                new FieldAmendabilityValidationStep(diffAssembler),
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
                 new AmendmentExternalValidationStep(

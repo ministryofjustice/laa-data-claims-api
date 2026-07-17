@@ -1,12 +1,12 @@
 meta {
-  name: get claim
+  name: Make Claim Valid
   type: http
-  seq: 2
+  seq: 3
 }
 
-get {
+patch {
   url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
-  body: none
+  body: json
   auth: inherit
 }
 
@@ -19,10 +19,9 @@ headers {
   Authorization: {{AUTH_TOKEN}}
 }
 
-tests {
-  if(res.status === 200){
-    const body = res.getBody();
-    bru.setEnvVar("SUMMARY_FEE_ID", body.fee_calculation_response.claim_summary_fee_id);
+body:json {
+  {
+    "status": "VALID"
   }
 }
 
