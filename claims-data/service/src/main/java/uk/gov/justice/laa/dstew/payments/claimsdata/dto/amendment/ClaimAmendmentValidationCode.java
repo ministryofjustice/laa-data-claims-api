@@ -162,6 +162,19 @@ public enum ClaimAmendmentValidationCode {
       "A technical error occurred, please try again after some time",
       "Required amendment metadata reference data was unavailable at submit time"),
 
+  // ----- Fee code Area of Law gate (DSTEW-1768) -----
+
+  /**
+   * A fee code change targets a code in a different Area of Law to the claim. This is a terminal
+   * rejection: a fee code may only be changed to another fee code within the same Area of Law.
+   */
+  INVALID_FEE_CODE_AREA_OF_LAW_CHANGE(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "Fee code cannot be changed to '%s' because it belongs to a different Area of Law (%s); "
+          + "the claim's Area of Law is %s.",
+      "Fee code change targets a fee code in a different Area of Law"),
+
   /**
    * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
    * invariant breach rather than a user-correctable condition.
