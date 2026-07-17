@@ -31,8 +31,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *
  * <p>Drives the real {@code PATCH /api/v1/submissions/{submissionId}/claims/{claimId}} endpoint and
  * proves that when a VALID claim is amended so its <em>post-amendment merged state</em> collides
- * with a claim in another submission, the shared claims-validation-core {@code CLAIM_DUPLICATE_CLAIM}
- * validator rejects the amendment (HTTP 400), returns {@code
+ * with a claim in another submission, the shared claims-validation-core {@code
+ * CLAIM_DUPLICATE_CLAIM} validator rejects the amendment (HTTP 400), returns {@code
  * INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION} and nothing is persisted (full rollback). The
  * negative cases (self-exclusion, VOID/ineligible-status comparison, differing key) prove the
  * amendment instead commits (HTTP 204).
@@ -50,7 +50,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @DisplayName("Amendment duplicate-validation integration test")
-class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendmentPatchIntegrationTest {
+class ClaimAmendmentDuplicateValidationIntegrationTest
+    extends AbstractAmendmentPatchIntegrationTest {
 
   private static final String CREATED_BY = "amendment-duplicate-integration-test";
 
@@ -77,7 +78,8 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
     // Prior (validation-succeeded) submission for the same office with a claim matching CLAIM_1 on
     // feeCode + UFN and carrying the UCN we are about to amend to. Before the amendment the UCNs
     // differ, so there is no pre-existing duplicate; the amendment creates the collision.
-    seedPriorDuplicateClaim(b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
+    seedPriorDuplicateClaim(
+        b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
     patch.setUniqueClientNumber(OTHER_UCN);
@@ -91,7 +93,8 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
   }
 
   @Test
-  @DisplayName("feeCode amend into a prior-submission twin is rejected as a cross-submission duplicate")
+  @DisplayName(
+      "feeCode amend into a prior-submission twin is rejected as a cross-submission duplicate")
   void feeCodeAmendCreatingCrossSubmissionDuplicateIsRejected() throws Exception {
     // A fee-code change is PDA-impacting, so stub a clean schedules response.
     stubProviderSchedulesOk();
@@ -199,11 +202,10 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
   void voidPriorTwinIsIgnored() throws Exception {
     amendableClaim1();
 
-    // Prior twin matches on every key but is VOID, so it must not participate in duplicate matching.
+    // Prior twin matches on every key but is VOID, so it must not participate in duplicate
+    // matching.
     seedPriorDuplicateClaimWithStatus(
-        ClaimStatus.VOID,
-        b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER),
-        OTHER_UCN);
+        ClaimStatus.VOID, b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
     patch.setUniqueClientNumber(OTHER_UCN);
@@ -214,11 +216,13 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
   }
 
   @Test
-  @DisplayName("an INVALID-status prior-submission twin does not make the amended claim a duplicate")
+  @DisplayName(
+      "an INVALID-status prior-submission twin does not make the amended claim a duplicate")
   void ineligibleStatusPriorTwinIsIgnored() throws Exception {
     amendableClaim1();
 
-    // Prior twin matches on every key but is INVALID (not VALID/READY_TO_PROCESS), so it is ignored.
+    // Prior twin matches on every key but is INVALID (not VALID/READY_TO_PROCESS), so it is
+    // ignored.
     seedPriorDuplicateClaimWithStatus(
         ClaimStatus.INVALID,
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER),
@@ -237,9 +241,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
   void differentUfnPriorClaimIsNotDuplicate() throws Exception {
     amendableClaim1();
 
-    // Prior claim shares feeCode + UCN but a different UFN, so amending UCN does not create a match.
-    seedPriorDuplicateClaim(
-        b -> b.feeCode(FEE_CODE).uniqueFileNumber("999999/999"), OTHER_UCN);
+    // Prior claim shares feeCode + UCN but a different UFN, so amending UCN does not create a
+    // match.
+    seedPriorDuplicateClaim(b -> b.feeCode(FEE_CODE).uniqueFileNumber("999999/999"), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
     patch.setUniqueClientNumber(OTHER_UCN);
@@ -354,4 +358,3 @@ class ClaimAmendmentDuplicateValidationIntegrationTest extends AbstractAmendment
     assertThat(after.getVersion()).isGreaterThan(originalVersion);
   }
 }
-
