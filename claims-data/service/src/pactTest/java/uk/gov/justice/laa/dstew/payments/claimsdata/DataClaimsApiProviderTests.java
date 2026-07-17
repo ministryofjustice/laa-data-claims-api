@@ -266,6 +266,17 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(claimRepository.existsById(any())).thenReturn(false);
   }
 
+  @State("a claim history with assessment and void events exists")
+  public void aClaimHistoryWithAssessmentAndVoidEventsExists() {
+    log.info("Setting up state: a claim history with assessment and void events exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    // Reverse-chronological order: VOID (newest) -> ASSESSMENT -> SUBMISSION (oldest).
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(
+            List.of(
+                getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
+  }
+
   @State("a matter start exists")
   public void aMatterStartExists() {
     log.info("Setting up state: a matter start exists");
