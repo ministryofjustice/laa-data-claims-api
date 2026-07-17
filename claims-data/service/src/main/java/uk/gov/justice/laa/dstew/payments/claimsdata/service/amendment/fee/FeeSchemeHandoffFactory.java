@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
@@ -9,6 +11,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
@@ -39,20 +43,49 @@ public class FeeSchemeHandoffFactory {
     // 1595-F: Check if the overall amount shifted numerically (Double vs BigDecimal)
     BigDecimal responseTotal =
         calc.getTotalAmount() != null ? BigDecimal.valueOf(calc.getTotalAmount()) : BigDecimal.ZERO;
+
+    // Note: Added null safety for previousFeeState.getTotalAmount() just in case!
     boolean priceChanged =
-        previousFeeState == null || previousFeeState.getTotalAmount().compareTo(responseTotal) != 0;
+        previousFeeState == null
+            || previousFeeState.getTotalAmount() == null
+            || previousFeeState.getTotalAmount().compareTo(responseTotal) != 0;
 
     // Build the database entity row structure
     CalculatedFeeDetail newFeeDetail = new CalculatedFeeDetail();
+    newFeeDetail.setId(Uuid7.timeBasedUuid());
     newFeeDetail.setClaim(claim);
     newFeeDetail.setClaimAmendment(claimAmendment); // 1595-F: Establish tracking link
     newFeeDetail.setIsPriceChanged(priceChanged);
     newFeeDetail.setTotalAmount(responseTotal);
     newFeeDetail.setCreatedOn(OffsetDateTime.now());
 
-    // You can map additional breakdown fields here (e.g. fixedFeeAmount, hourlyTotalAmount)
-    // from 'calc' to 'newFeeDetail' as required by your entity schema.
+    // --- ADDED: Map missing required FSP fields ---
+    newFeeDetail.setFeeCode(feeCalculationResponse.getFeeCode());
+    newFeeDetail.setSchemeId(feeCalculationResponse.getSchemeId());
 
+    if (feeCalculationResponse.getEscapeCaseFlag() != null) {
+      newFeeDetail.setEscapeCaseFlag(feeCalculationResponse.getEscapeCaseFlag());
+    }
+
+    if (calc.getNetProfitCostsAmount() != null) {
+      newFeeDetail.setNetProfitCostsAmount(BigDecimal.valueOf(calc.getNetProfitCostsAmount()));
+    }
+
+    if (calc.getVatIndicator() != null) {
+      newFeeDetail.setVatIndicator(calc.getVatIndicator());
+    }
+
+    // --- ADDED: Map required audit & relational fields ---
+    // Inherit the user ID from the amendment request
+    newFeeDetail.setCreatedByUserId(claimAmendment.getCreatedByUserId());
+
+    // Link to the active ClaimSummaryFee (assuming the claim has one attached)
+    List<ClaimSummaryFee> claimSummaryFees = claim.getClaimSummaryFee();
+    if (claimSummaryFees != null) {
+      claimSummaryFees.stream()
+          .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
+          .ifPresent(newFeeDetail::setClaimSummaryFee);
+    }
     return newFeeDetail;
   }
 }

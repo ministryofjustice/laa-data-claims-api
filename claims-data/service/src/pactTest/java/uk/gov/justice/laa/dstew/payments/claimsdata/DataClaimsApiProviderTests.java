@@ -115,7 +115,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @AfterEach
   void tearDown() {
-    // Safely restore the original state using String.valueOf() just like your integration tests
+    // Safely restore the original state using String.valueOf()
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
   }
 

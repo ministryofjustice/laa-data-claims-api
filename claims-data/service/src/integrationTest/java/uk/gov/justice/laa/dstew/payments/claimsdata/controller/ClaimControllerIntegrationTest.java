@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,6 +23,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,9 +39,16 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -59,11 +69,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
+  @MockitoBean private FeeSchemePlatformRestClient fspRestClient;
   @Autowired private ClaimsApiProperties claimsApiProperties;
 
   private static final String GET_A_CLAIM_ENDPOINT =
@@ -1019,6 +1032,155 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setCreatedByUserId("Test");
     cfd.setClaimSummaryFee(summaryFee);
 
+    // Add this line to prevent the NPE during the price comparison!
+    cfd.setTotalAmount(java.math.BigDecimal.valueOf(100.00));
+
     calculatedFeeDetailRepository.saveAndFlush(cfd);
+  }
+
+  @Nested
+  @DisplayName("Claim Amendment Repricing Flow (DSTEW-1595)")
+  class AmendmentPathTests {
+
+    private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+    @BeforeEach
+    void setupAmendments() {
+      // Ensure the feature flag switch properties are enabled for these path tests
+      claimsApiProperties.getAmendments().setEnabled("true");
+
+      // Seed a baseline CalculatedFeeDetail so the validation step knows this claim is eligible for
+      // repricing
+      Claim claim5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
+
+      // We use minusDays(1) so the new fee record created by the PATCH request is cleanly sorted to
+      // the top
+      createCalculatedFeeDetail(claim5, false, OffsetDateTime.now().minusDays(1));
+    }
+
+    @Test
+    @DisplayName(
+        "PATCH /submissions/{id}/claims/{id} - successfully invokes FSP repricing and saves CalculatedFeeDetail row")
+    void shouldSuccessfullyRepriceAndCommitValidAmendment() throws Exception {
+      ClaimPatch patchPayload = new ClaimPatch();
+      patchPayload.setVersion(1L);
+
+      // Set updates to fields checked by the new pricing-impacting guard block
+      patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+      patchPayload.setTravelTime(999);
+      patchPayload.setWaitingTime(888);
+
+      patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+      patchPayload.setAmendmentRequestedBy("PROVIDER");
+      patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+      FeeCalculation calc =
+          new FeeCalculation().totalAmount(650.00).netProfitCostsAmount(450.00).vatIndicator(true);
+
+      FeeCalculationResponse mockFspResponse =
+          new FeeCalculationResponse()
+              .feeCode("FEE-123")
+              .schemeId("SCHEME-TEST")
+              .escapeCaseFlag(false)
+              .feeCalculation(calc);
+
+      Mockito.when(fspRestClient.calculateFee(any()))
+          .thenReturn(ResponseEntity.ok(mockFspResponse));
+
+      mockMvc
+          .perform(
+              patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                  .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                  .contentType(MediaType.APPLICATION_JSON))
+          .andExpect(status().isNoContent());
+
+      // Force the underlying Hibernate context to flush committed records to the transactional row
+      // space
+      calculatedFeeDetailRepository.flush();
+
+      List<CalculatedFeeDetail> savedFees =
+          calculatedFeeDetailRepository.findAll().stream()
+              .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_5_ID))
+              .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
+              .toList();
+
+      assertThat(savedFees).isNotEmpty();
+      CalculatedFeeDetail latestFeeRecord = savedFees.get(0);
+      assertThat(latestFeeRecord.getTotalAmount()).isEqualByComparingTo("650.00");
+    }
+
+    @Test
+    @DisplayName(
+        "PATCH /submissions/{id}/claims/{id} - returns 400 Bad Request when FSP returns data validation failure")
+    void shouldReturnBadRequestWhenFspValidationFails() throws Exception {
+      ClaimPatch patchPayload = new ClaimPatch();
+      patchPayload.setVersion(1L);
+
+      // Set dramatic updates here too
+      patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+      patchPayload.setTravelTime(999);
+
+      patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+      patchPayload.setAmendmentRequestedBy("PROVIDER");
+      patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+      WebClientResponseException fspRejection =
+          WebClientResponseException.create(
+              HttpStatus.BAD_REQUEST.value(),
+              "Bad Request",
+              null,
+              "Invalid profit cost configuration combo".getBytes(StandardCharsets.UTF_8),
+              StandardCharsets.UTF_8);
+
+      Mockito.when(fspRestClient.calculateFee(any())).thenThrow(fspRejection);
+
+      MvcResult mvcResult =
+          mockMvc
+              .perform(
+                  patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                      .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                      .contentType(MediaType.APPLICATION_JSON))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      String body = mvcResult.getResponse().getContentAsString();
+      assertThat(body).contains("The fee calculation failed validation");
+      assertThat(body).contains("Invalid profit cost configuration combo");
+    }
+
+    @Test
+    @DisplayName(
+        "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP times out")
+    void shouldReturnServiceUnavailableOnFspNetworkTimeout() throws Exception {
+      // given: Proposed patch triggering repricing using CLAIM_5_ID
+      ClaimPatch patchPayload = new ClaimPatch();
+      patchPayload.setVersion(1L);
+      patchPayload.setFeeCode("FEE-TIMEOUT");
+      patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+      patchPayload.setAmendmentRequestedBy("PROVIDER");
+      patchPayload.setAmendmentReasonCode(
+          "PROVIDER_ERROR"); // Mapped to the new DB reference entity value
+
+      // Simulate technical socket drop / timeout
+      Mockito.when(fspRestClient.calculateFee(any()))
+          .thenThrow(new ResourceAccessException("Read timed out"));
+
+      // when: Dispatching patch request on CLAIM_5_ID
+      MvcResult mvcResult =
+          mockMvc
+              .perform(
+                  patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                      .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                      .contentType(MediaType.APPLICATION_JSON))
+              .andExpect(status().isServiceUnavailable())
+              .andReturn();
+
+      // then: Converts technical runtime failure to a safe user-facing warning message
+      String body = mvcResult.getResponse().getContentAsString();
+      assertThat(body).contains("A technical error occurred while recalculating the fee");
+    }
   }
 }

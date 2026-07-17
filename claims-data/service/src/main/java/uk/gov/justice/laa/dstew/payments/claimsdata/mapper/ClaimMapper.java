@@ -200,7 +200,7 @@ public interface ClaimMapper {
       return null;
     }
     FeeCalculationPatch target = new FeeCalculationPatch();
-    // reuse your existing update method to avoid duplicating mapping config:
+    // reuse the existing update method to avoid duplicating mapping config:
     updateFeeCalculationResponseFromCalculatedFeeDetail(entity, target);
     return target;
   }

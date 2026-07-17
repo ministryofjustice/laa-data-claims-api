@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeD
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -75,12 +78,11 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
    */
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
-    // 1595-B: Guard check using pre-derived trigger logic
-    boolean requiresRepricing =
-        state.getPostAmendmentState().isAmended()
-            && state.getBeforeState().getCalculatedFeeDetail() != null;
+    if (state.getBeforeState().getCalculatedFeeDetail() == null) {
+      return List.of();
+    }
 
-    if (!requiresRepricing) {
+    if (!hasPricingImpactingChanges(state.getBeforeState(), state.getPostAmendmentState())) {
       log.debug("No pricing-impacting changes discovered. Skipping FSP call.");
       return List.of();
     }
@@ -117,5 +119,26 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
     }
 
     return List.of();
+  }
+
+  private boolean hasPricingImpactingChanges(ClaimStateSnapshot before, ClaimStateSnapshot post) {
+    return !Objects.equals(before.getFeeCode(), post.getFeeCode())
+        || !Objects.equals(before.getCaseStartDate(), post.getCaseStartDate())
+        || !Objects.equals(before.getIsLondonRate(), post.getIsLondonRate())
+        || !Objects.equals(before.getAdviceTime(), post.getAdviceTime())
+        || !Objects.equals(before.getTravelTime(), post.getTravelTime())
+        || !Objects.equals(before.getWaitingTime(), post.getWaitingTime())
+        || compareBigDecimals(before.getNetProfitCostsAmount(), post.getNetProfitCostsAmount())
+        || compareBigDecimals(before.getNetDisbursementAmount(), post.getNetDisbursementAmount());
+  }
+
+  private boolean compareBigDecimals(BigDecimal a, BigDecimal b) {
+    if (Objects.equals(a, b)) {
+      return false;
+    }
+    if (a == null || b == null) {
+      return true;
+    }
+    return a.compareTo(b) != 0;
   }
 }

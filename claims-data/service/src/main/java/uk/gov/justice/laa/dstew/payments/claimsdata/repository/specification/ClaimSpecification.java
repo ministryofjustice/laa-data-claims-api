@@ -204,7 +204,7 @@ public final class ClaimSpecification {
                         cb.equal(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
                         cb.greaterThan(newerFeeRoot.get(ID), feeRoot.get(ID)))));
 
-        // Now assemble the main filter matching your original query block
+        // Now assemble the main filter matching the original query block
         latestFeeSubquery
             .select(feeRoot.get(ID))
             .where(
