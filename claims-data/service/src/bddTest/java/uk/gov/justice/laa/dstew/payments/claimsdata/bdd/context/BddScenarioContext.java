@@ -30,6 +30,14 @@ public class BddScenarioContext {
   private String lastOffice;
   private String lastSubmissionPeriod;
 
+  /**
+   * Set by steps that mutate a fixture's {@code submissionPeriod=} header at upload time (e.g.
+   * {@code SubmissionValidationSteps}). Used by rejection-message assertions to substitute the
+   * literal {@code <CURRENT_MONTH>} placeholder in expected error text with the actual month label
+   * written into the fixture.
+   */
+  private String resolvedSubmissionMonth;
+
   // ---------------------------------------------------------------------------
   // Paired-submission state (used by scenarios that upload two related files:
   // "first"/"second" naming mirrors the disbursement duplicate-check feature).
@@ -64,6 +72,7 @@ public class BddScenarioContext {
     generatedFileName = null;
     lastOffice = null;
     lastSubmissionPeriod = null;
+    resolvedSubmissionMonth = null;
     firstGeneratedFilePath = null;
     secondGeneratedFilePath = null;
     firstOffice = null;
