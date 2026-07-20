@@ -48,7 +48,7 @@ public class ClaimsDataTestUtil {
   public static final UUID CLAIM_2_SUMMARY_FEE_ID = Uuid7.timeBasedUuid();
   public static final OffsetDateTime SUBMITTED_DATE =
       OffsetDateTime.of(2025, 5, 20, 0, 0, 0, 0, ZoneOffset.UTC);
-  public static final String OFFICE_ACCOUNT_NUMBER = "OFF_123";
+  public static final String OFFICE_ACCOUNT_NUMBER = "OFF123";
   public static final String VALID_OFFICE_ACCOUNT_NUMBER = "0AB342";
   public static final AreaOfLaw AREA_OF_LAW = AreaOfLaw.LEGAL_HELP;
   public static final String CRIME_SCHEDULE_NUMBER = "OFF_123/CRIME";
@@ -58,15 +58,15 @@ public class ClaimsDataTestUtil {
   public static final String USER_ID = "12345";
   public static final String API_USER_ID = Uuid7.timeBasedUuid().toString();
   public static final String BULK_SUBMISSION_CREATED_BY_USER_ID = "a-provider-user-id";
-  public static final String FEE_CODE = "FEE_123";
-  public static final String UNIQUE_FILE_NUMBER = "UFN_123";
+  public static final String FEE_CODE = "FEE123";
+  public static final String UNIQUE_FILE_NUMBER = "010125/001";
   public static final String UNIQUE_CLIENT_NUMBER = "UCN_123";
   public static final String UNIQUE_CASE_ID = "UC_ID_123";
-  public static final String MATTER_TYPE_CODE = "MTC_123";
+  public static final String MATTER_TYPE_CODE = "MATT:111";
   public static final Integer LINE_NUMBER = 123;
   public static final String CASE_REFERENCE = "CASE-123";
+  public static final String SCHEDULE_REFERENCE = "SCH-123";
   public static final String PATCH_CASE_REFERENCE = "CASE-002";
-  public static final String SCHEDULE_REFERENCE = "SCH_123";
   public static final String PROCUREMENT_AREA_CODE = "PAC_123";
   public static final String ACCESS_POINT_CODE = "APC_123";
   public static final String DELIVERY_LOCATION = "London";

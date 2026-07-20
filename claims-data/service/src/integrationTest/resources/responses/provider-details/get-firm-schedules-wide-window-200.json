@@ -1,0 +1,93 @@
+{
+  "firm": {
+    "firmNumber": "string",
+    "firmId": 0,
+    "ccmsFirmId": 0,
+    "parentFirmId": 0,
+    "firmName": "string",
+    "firmType": "string",
+    "constitutionalStatus": "string",
+    "solicitorAdvocateYN": "string",
+    "advocateLevel": "string",
+    "barCouncilRoll": "string",
+    "companyHouseNumber": "string"
+  },
+  "office": {
+    "firmOfficeId": 0,
+    "ccmsFirmOfficeId": 0,
+    "firmOfficeCode": "string",
+    "officeName": "string",
+    "officeCodeAlt": "string",
+    "type": "string"
+  },
+  "pds": true,
+  "schedules": [
+    {
+      "contractType": "string",
+      "contractDescription": "string",
+      "contractNumber": "string",
+      "contractReference": "string",
+      "contractStatus": "string",
+      "contractAuthorizationStatus": "string",
+      "contractStartDate": "2000-01-01",
+      "contractEndDate": "2100-12-31",
+      "areaOfLaw": "LEGAL HELP",
+      "scheduleType": "string",
+      "scheduleNumber": "string",
+      "scheduleContractNumber": "string",
+      "scheduleContractReference": "string",
+      "scheduleAuthorizationStatus": "string",
+      "scheduleStatus": "string",
+      "scheduleStartDate": "2000-01-01",
+      "scheduleEndDate": "2100-12-31",
+      "scheduleLines": [
+        {
+          "areaOfLaw": "LEGAL HELP",
+          "categoryOfLaw": "string",
+          "description": "string",
+          "devolvedPowersStatus": "string",
+          "dpTypeOfChange": "string",
+          "dpReasonForChange": "string",
+          "dpDateOfChange": "string",
+          "remainderWorkFlag": "string",
+          "minimumCasesAllowedCount": "string",
+          "maximumCasesAllowedCount": "string",
+          "minimumToleranceCount": "string",
+          "maximumToleranceCount": "string",
+          "minimumLicenseCount": "string",
+          "maximumLicenseCount": "string",
+          "workInProgressCount": "string",
+          "outreach": "string",
+          "cancelFlag": "string",
+          "cancelReason": "string",
+          "cancelDate": "2100-12-31",
+          "closedDate": "2100-12-31",
+          "closedReason": "string"
+        }
+      ],
+      "nmsAuths": [
+        {
+          "description": "string",
+          "minMatterStarts": 0,
+          "maxMatterStarts": 0,
+          "authorisedLitigator": "string",
+          "supervision": "string",
+          "serviceCombinations": "string",
+          "typeOfPresence": "string",
+          "lawSocietyChildrenFlag": "string",
+          "advLawSocFamVioFlag": "string",
+          "advLawSocFamNoVioFlag": "string",
+          "resAccrSpecDomAbuseFlag": "string",
+          "resAccrSpecOtherFlag": "string",
+          "consortiaId": "string",
+          "authorisationStatus": "string",
+          "withdrawalType": "string",
+          "withdrawalReason": "string",
+          "attributeCategory": "string",
+          "uniqueAuthorisationRef": 0
+        }
+      ]
+    }
+  ]
+}
+

@@ -64,9 +64,9 @@ dependencyManagement {
         // Bump Log4j API to resolve Snyk issue (upgrade from 2.25.4 -> 2.25.5)
         dependency "org.apache.logging.log4j:log4j-api:2.25.5"
         dependency "org.apache.logging.log4j:log4j-to-slf4j:2.25.5"
-        // Force jackson-core 3.x to fix Snyk vulnerability (AWS SDK pulls tools.jackson)
-        dependency 'tools.jackson.core:jackson-core:3.1.4'
-        dependency 'tools.jackson.core:jackson-databind:3.1.4'
+        // Force tools.jackson jackson-core/jackson-databind 3.1.5 to fix Snyk vulnerability
+        dependency "tools.jackson.core:jackson-core:3.1.5"
+        dependency "tools.jackson.core:jackson-databind:3.1.5"
     }
 }
 
@@ -148,6 +148,12 @@ dependencies {
     testImplementation "org.testcontainers:testcontainers-localstack"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
+
+    // MockServer (Testcontainers) for stubbing the validation-core external HTTP calls
+    // (Fee Scheme Platform / Provider Details) in integration tests. Version of the client is
+    // pinned to match the container image tag used in MockServerIntegrationTest.
+    integrationTestImplementation "org.testcontainers:testcontainers-mockserver"
+    integrationTestImplementation "org.mock-server:mockserver-client-java:5.15.0"
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 

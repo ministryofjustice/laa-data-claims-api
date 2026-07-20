@@ -141,9 +141,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(claimResponse.getAdviceTime()).isEqualTo(120);
     assertThat(claimResponse.getTravelTime()).isEqualTo(45);
     assertThat(claimResponse.getIsLondonRate()).isTrue();
-    assertThat(claimResponse.getCaseId()).isEqualTo("CASE_ID_1");
+    assertThat(claimResponse.getCaseId()).isEqualTo("123");
     assertThat(claimResponse.getUniqueCaseId()).isEqualTo("UC_ID_1");
-    assertThat(claimResponse.getOutcomeCode()).isEqualTo("OUTCOME_CODE_1");
+    assertThat(claimResponse.getOutcomeCode()).isEqualTo("AB");
 
     var feeCalculationResponse = claimResponse.getFeeCalculationResponse();
     assertThat(feeCalculationResponse).isNotNull();
@@ -419,7 +419,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "office1")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -448,8 +448,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "office1")
-                    .param("unique_file_number", "UFN-002")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .param("unique_file_number", "020125/002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -517,7 +517,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -546,8 +546,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1")
-                    .param("unique_file_number", "UFN-002")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .param("unique_file_number", "020125/002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -994,7 +994,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
                     .param("escaped_case_flag", "true")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())

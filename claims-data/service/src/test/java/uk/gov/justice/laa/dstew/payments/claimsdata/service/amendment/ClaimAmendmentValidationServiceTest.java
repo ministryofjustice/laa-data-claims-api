@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,21 +18,30 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentChangeDetector;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentPdaValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
  * Tests for {@link ClaimAmendmentValidationService}.
@@ -48,6 +59,9 @@ class ClaimAmendmentValidationServiceTest {
   @Mock private ClaimStatusValidationStep claimStatusValidationStep;
   @Mock private ClaimAmendmentValidationStep laterStep;
   @Mock private AmendmentReferenceDataProvider amendmentReferenceDataProvider;
+  @Mock private ValidationService validationService;
+  @Mock private AmendmentDiffAssembler diffAssembler;
+  @Mock private ValidationClaimMapper validationClaimMapper;
 
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
@@ -121,10 +135,14 @@ class ClaimAmendmentValidationServiceTest {
             List.of(
                 extraStep,
                 new AmendmentFeatureFlagValidationStep(claimsApiProperties),
+                new BeforeStatePresenceValidationStep(),
                 new ClaimStatusValidationStep(),
+                new AssessedClaimPricingValidationStep(new AmendmentChangeDetector()),
+                new FieldAmendabilityValidationStep(diffAssembler),
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
-                new AmendmentPdaValidationStep(),
+                new AmendmentExternalValidationStep(
+                    validationService, diffAssembler, validationClaimMapper),
                 amendmentFspValidationStep));
 
     assertThatCode(() -> service.validateAmendmentRequest(anyState())).doesNotThrowAnyException();
@@ -136,5 +154,53 @@ class ClaimAmendmentValidationServiceTest {
     assertThatThrownBy(() -> new ClaimAmendmentValidationService(List.of()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("No bean found for declared amendment validation step");
+  }
+
+  @Test
+  @DisplayName("assessed-claim pricing rejection occurs before any FSP call")
+  void assessedPricingRejectionPreventsFspCall() {
+    // Build a state with an assessed claim and a pricing-impacting change (netProfitCostsAmount).
+    ClaimStateSnapshot before =
+        ClaimStateSnapshot.builder()
+            .hasAssessment(true)
+            .status(ClaimStatus.VALID)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .netProfitCostsAmount(BigDecimal.valueOf(100))
+            .build();
+
+    ClaimStateSnapshot after =
+        ClaimStateSnapshot.builder()
+            .hasAssessment(true)
+            .status(ClaimStatus.VALID)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .netProfitCostsAmount(BigDecimal.valueOf(200))
+            .build();
+
+    var state = ClaimAmendmentState.builder().beforeState(before).postAmendmentState(after).build();
+
+    // Arrange ordered steps: feature-flag (enabled), status, assessed-pricing (real), then a mocked
+    // FSP.
+    ClaimsApiProperties props = new ClaimsApiProperties();
+    props.getAmendments().setEnabled("true");
+
+    ClaimAmendmentValidationStep feature = new AmendmentFeatureFlagValidationStep(props);
+    ClaimAmendmentValidationStep status = new ClaimStatusValidationStep();
+    ClaimAmendmentValidationStep assessedPricing =
+        new AssessedClaimPricingValidationStep(new AmendmentChangeDetector());
+    ClaimAmendmentValidationStep fspMock = mock(ClaimAmendmentValidationStep.class);
+
+    ClaimAmendmentValidationService service =
+        new ClaimAmendmentValidationService(feature, status, assessedPricing, fspMock);
+
+    var errors = service.validateAmendmentRequest(state);
+
+    // The assessed-pricing step must return the pricing-specific fatal error.
+    assertThat(errors)
+        .extracting(ClaimAmendmentValidationError::getCode)
+        .contains(
+            ClaimAmendmentValidationCode.INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM.toString());
+
+    // Ensure the FSP step (later in the sequence) was never invoked.
+    verify(fspMock, never()).validate(any());
   }
 }

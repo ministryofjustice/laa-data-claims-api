@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -249,6 +250,20 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void noClaimExists() {
     log.info("Setting up state: no claim exists");
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("a claim history exists")
+  public void aClaimHistoryExists() {
+    log.info("Setting up state: a claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(List.of(getSubmissionHistoryEvent()));
+  }
+
+  @State("no claim history exists")
+  public void noClaimHistoryExists() {
+    log.info("Setting up state: no claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(false);
   }
 
   @State("a matter start exists")

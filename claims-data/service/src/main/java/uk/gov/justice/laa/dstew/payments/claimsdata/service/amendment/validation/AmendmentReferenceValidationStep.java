@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
@@ -191,10 +190,6 @@ public class AmendmentReferenceValidationStep implements ClaimAmendmentValidatio
               ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_INACTIVE, amendmentReasonCode));
     }
     return Optional.empty();
-  }
-
-  private String unwrap(JsonNullable<String> value) {
-    return value != null && value.isPresent() ? value.get() : null;
   }
 
   private static String toLower(String value) {

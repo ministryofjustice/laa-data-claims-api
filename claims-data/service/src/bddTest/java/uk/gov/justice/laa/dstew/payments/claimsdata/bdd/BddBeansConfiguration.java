@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
 
@@ -47,8 +47,8 @@ public class BddBeansConfiguration {
   }
 
   @Bean
-  public LegalHelpFileGenerator legalHelpFileGenerator() {
-    return new LegalHelpFileGenerator();
+  public BulkSubmissionFileGenerator bulkSubmissionFileGenerator() {
+    return new BulkSubmissionFileGenerator();
   }
 
   /** Resolves the running embedded server's base URL on each call. */

@@ -18,6 +18,8 @@ spring:
     placeholders:
       reporting_username: "reporting_user"
       reporting_password: "reporting_password"
+      data_factory_username: ${DATA_FACTORY_USERNAME:data_factory_user}
+      data_factory_password: ${DATA_FACTORY_PASSWORD:data_factory_password}
   servlet:
     multipart:
       max-file-size: 10MB

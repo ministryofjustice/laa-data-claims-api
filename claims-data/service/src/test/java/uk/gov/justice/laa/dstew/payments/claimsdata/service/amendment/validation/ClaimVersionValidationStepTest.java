@@ -30,8 +30,8 @@ class ClaimVersionValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    assertThat(errors.getFirst().getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION.toString());
   }
 
   @Test
@@ -46,8 +46,8 @@ class ClaimVersionValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    assertThat(errors.getFirst().getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION.toString());
   }
 
   @Test
@@ -62,8 +62,8 @@ class ClaimVersionValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    assertThat(errors.getFirst().getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION.toString());
   }
 
   @Test
@@ -98,9 +98,9 @@ class ClaimVersionValidationStepTest {
     assertThat(errors).hasSize(1);
 
     // Extract the error to verify it returns the correct validation code
-    ClaimAmendmentValidationError error = errors.get(0);
+    ClaimAmendmentValidationError error = errors.getFirst();
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.toString());
   }
 
   @Test
@@ -119,7 +119,8 @@ class ClaimVersionValidationStepTest {
     assertThat(errors).hasSize(1);
 
     // Verify it returns the correct validation code for null inputs
-    ClaimAmendmentValidationError error = errors.get(0);
-    assertThat(error.getCode()).isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION);
+    ClaimAmendmentValidationError error = errors.getFirst();
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_NULL_VERSION.toString());
   }
 }

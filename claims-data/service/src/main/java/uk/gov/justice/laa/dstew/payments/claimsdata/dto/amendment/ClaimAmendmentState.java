@@ -32,9 +32,9 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 @Builder
 public class ClaimAmendmentState {
 
-  private ClaimStateSnapshot beforeState;
-
   private ClaimAmendmentPayload requestPayload;
+
+  private ClaimStateSnapshot beforeState;
 
   private ClaimStateSnapshot postAmendmentState;
 

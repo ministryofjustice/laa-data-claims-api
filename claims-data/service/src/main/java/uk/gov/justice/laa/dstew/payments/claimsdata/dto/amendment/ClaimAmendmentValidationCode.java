@@ -48,6 +48,16 @@ public enum ClaimAmendmentValidationCode {
       "Claim status %s is not amendable; only claims with status %s can be amended.",
       null),
 
+  /**
+   * The claim already has an assessment; provider-requested changes to pricing-related fields are
+   * not permitted.
+   */
+  INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "This claim has an assessment; pricing-related fields cannot be amended: %s",
+      "Attempted pricing-related amendment on an assessed claim: %s"),
+
   // ----- Amendment metadata: Requested By (DSTEW-1765) -----
 
   /** Requested By code was not supplied. */
@@ -131,6 +141,18 @@ public enum ClaimAmendmentValidationCode {
       "The user identifier must be a valid UUID",
       "Submitting user's Entra UUID is not a structurally valid UUID"),
 
+  // ----- Field amendability gate (DSTEW-1593) -----
+
+  /**
+   * A changed field is not amendable for the claim's area of law. The message names the offending
+   * field and area of law so the failure can be attributed to the specific field.
+   */
+  INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW(
+      ValidationSeverity.ERROR,
+      HttpStatus.BAD_REQUEST,
+      "Field '%s' is not amendable for area of law '%s'",
+      "Changed field is not in the amendable set for the claim's area of law"),
+
   // ----- Amendment metadata: technical failures (DSTEW-1765) -----
 
   /** The governed amendment metadata reference data was unavailable at submit time. */
@@ -139,6 +161,29 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
       "Required amendment metadata reference data was unavailable at submit time"),
+
+  // ----- Fee code Area of Law gate (DSTEW-1768) -----
+
+  /**
+   * A fee code change targets a code in a different Area of Law to the claim. This is a terminal
+   * rejection: a fee code may only be changed to another fee code within the same Area of Law.
+   */
+  INVALID_FEE_CODE_AREA_OF_LAW_CHANGE(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "Fee code cannot be changed to '%s' because it belongs to a different Area of Law (%s); "
+          + "the claim's Area of Law is %s.",
+      "Fee code change targets a fee code in a different Area of Law"),
+
+  /**
+   * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
+   * invariant breach rather than a user-correctable condition.
+   */
+  TECHNICAL_ERROR_MISSING_CLAIM_STATE(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred, please try again after some time",
+      "Claim before-state snapshot was unexpectedly absent for an existing claim"),
 
   // ----- Fee Scheme Platform (FSP) Integration (DSTEW-1595) -----
 

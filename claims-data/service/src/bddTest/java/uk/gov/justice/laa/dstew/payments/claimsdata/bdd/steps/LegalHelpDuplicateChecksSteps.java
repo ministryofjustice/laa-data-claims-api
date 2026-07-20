@@ -20,10 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.ClaimOverride;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.Format;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.GeneratedFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.ClaimOverride;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.Format;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.GeneratedFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -54,7 +54,7 @@ public class LegalHelpDuplicateChecksSteps {
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
-  @Autowired private LegalHelpFileGenerator generator;
+  @Autowired private BulkSubmissionFileGenerator generator;
   @Autowired private SubmissionPeriodHelper periodHelper;
 
   // ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ public class LegalHelpDuplicateChecksSteps {
   private void generateFile(String formatLiteral, DataTable claimsTable) throws IOException {
     Format format = Format.fromString(formatLiteral);
     List<Map<String, String>> rows = claimsTable.asMaps(String.class, String.class);
-    List<ClaimOverride> overrides = LegalHelpFileGenerator.overridesFromRows(rows);
+    List<ClaimOverride> overrides = BulkSubmissionFileGenerator.overridesFromRows(rows);
 
     String office = pickOffice(overrides);
     String period = periodHelper.nextAvailablePeriod(office, AreaOfLaw.LEGAL_HELP);
