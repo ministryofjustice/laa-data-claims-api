@@ -403,6 +403,18 @@ public class ClaimsDataTestUtil {
         .deliveryLocation(DELIVERY_LOCATION)
         .createdByUserId(USER_ID)
         .createdOn(SUBMITTED_DATE.toInstant())
+        .client(Client.builder().clientForename("Forename").clientSurname("Surname").build())
+        .calculatedFeeDetails(
+            List.of(
+                CalculatedFeeDetail.builder()
+                    .escapeCaseFlag(true)
+                    .categoryOfLaw("Cat")
+                    .claimSummaryFee(ClaimSummaryFee.builder().id(UUID.randomUUID()).build())
+                    .feeCode("ABC")
+                    .feeCodeDescription("ABC Description")
+                    .vatIndicator(true)
+                    .totalAmount(BigDecimal.ONE)
+                    .build()))
         .build();
   }
 

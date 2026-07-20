@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -225,6 +226,7 @@ class ClaimMapperTest {
                     .submissionPeriod("APR-2025")
                     .createdOn(Instant.now())
                     .build())
+            .calculatedFeeDetails(List.of(CalculatedFeeDetail.builder().vatIndicator(true).build()))
             .build();
 
     final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
@@ -265,6 +267,7 @@ class ClaimMapperTest {
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
     assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
+    assertEquals(entity.getLatestCalculatedFee().getVatIndicator(), fields.getIsVatApplicable());
   }
 
   @Test
