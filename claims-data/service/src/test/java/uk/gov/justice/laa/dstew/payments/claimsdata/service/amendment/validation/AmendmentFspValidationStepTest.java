@@ -54,9 +54,10 @@ class AmendmentFspValidationStepTest {
                     .totalAmount(BigDecimal.valueOf(100.00))
                     .build());
 
-    postStateBuilder = ClaimStateSnapshot.builder()
-        .amended(true)
-        .feeCode("FEE01"); // Initially identical so skip tests skip naturally
+    postStateBuilder =
+        ClaimStateSnapshot.builder()
+            .amended(true)
+            .feeCode("FEE01"); // Initially identical so skip tests skip naturally
 
     stateBuilder = ClaimAmendmentState.builder();
 
@@ -84,13 +85,16 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
-  @DisplayName("1595-B: Should skip execution when baseline state has no calculated fee details snapshot")
+  @DisplayName(
+      "1595-B: Should skip execution when baseline state has no calculated fee details snapshot")
   void validate_whenNoBeforeFeeCalculated_skipsFspCall() {
-    // Arrange: Explicitly trigger an update code, but missing prior snapshot bypasses the pricing step
+    // Arrange: Explicitly trigger an update code, but missing prior snapshot bypasses the pricing
+    // step
     ClaimAmendmentState state =
         stateBuilder
             .beforeState(beforeStateBuilder.calculatedFeeDetail(null).build())
-            .postAmendmentState(postStateBuilder.feeCode("FEE02").build()) // Specific pricing change
+            .postAmendmentState(
+                postStateBuilder.feeCode("FEE02").build()) // Specific pricing change
             .build();
 
     // Act
@@ -102,7 +106,8 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
-  @DisplayName("1595-D & F: Should cache FSP response and populate snap-diff blocks on successful request")
+  @DisplayName(
+      "1595-D & F: Should cache FSP response and populate snap-diff blocks on successful request")
   void validate_onSuccess_populatesFspContextAndFeeSnapshots() {
     // Arrange: Introduce a distinct feeCode mutation to force execution past the guard
     ClaimAmendmentState state =
@@ -111,7 +116,8 @@ class AmendmentFspValidationStepTest {
             .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
             .build();
 
-    FeeCalculationResponse mockFspResponse = new FeeCalculationResponse().feeCode("FEE02"); // Match request
+    FeeCalculationResponse mockFspResponse =
+        new FeeCalculationResponse().feeCode("FEE02"); // Match request
     CalculatedFeeDetailSnapshot mockAfterSnapshot =
         CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(150.00)).build();
 
@@ -129,7 +135,8 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
-  @DisplayName("1595-E: Should capture BadRequest (400) rejections and map them to semantic validation errors")
+  @DisplayName(
+      "1595-E: Should capture BadRequest (400) rejections and map them to semantic validation errors")
   void validate_onWebClientBadRequestException_returnsFspValidationError() {
     // Arrange: Mutate feeCode explicitly
     ClaimAmendmentState state =
@@ -161,7 +168,8 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
-  @DisplayName("1595-E: Should capture remote connection or 500 errors and map to controlled tech repricing failure codes")
+  @DisplayName(
+      "1595-E: Should capture remote connection or 500 errors and map to controlled tech repricing failure codes")
   void validate_onTechnicalException_returnsRepricingTechnicalError() {
     // Arrange: Mutate feeCode explicitly
     ClaimAmendmentState state =
