@@ -162,7 +162,7 @@ class AmendmentFspValidationStepTest {
     assertThat(errors).hasSize(1);
     ClaimAmendmentValidationError error = errors.get(0);
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE);
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
     assertThat(error.getMessage())
         .isEqualTo("The fee calculation failed validation: FSP Rejected: Invalid combinations");
   }
@@ -187,6 +187,6 @@ class AmendmentFspValidationStepTest {
     assertThat(errors).hasSize(1);
     ClaimAmendmentValidationError error = errors.get(0);
     assertThat(error.getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE);
+        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
   }
 }
