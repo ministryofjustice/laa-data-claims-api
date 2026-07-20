@@ -66,6 +66,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -78,6 +79,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @MockitoBean private FeeSchemePlatformRestClient fspRestClient;
   @Autowired private ClaimsApiProperties claimsApiProperties;
+  @MockitoBean private AmendmentExternalValidationStep externalValidationStep;
 
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -1062,6 +1064,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     @DisplayName(
         "PATCH /submissions/{id}/claims/{id} - successfully invokes FSP repricing and saves CalculatedFeeDetail row")
     void shouldSuccessfullyRepriceAndCommitValidAmendment() throws Exception {
+      Mockito.when(externalValidationStep.validate(any())).thenReturn(List.of());
       ClaimPatch patchPayload = new ClaimPatch();
       patchPayload.setVersion(1L);
 

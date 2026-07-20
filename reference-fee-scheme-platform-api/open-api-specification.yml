@@ -3,6 +3,40 @@ info:
   version: 1.0.0
   title: Fee Scheme API
 paths:
+  /api/v1/fee-codes/{areaOfLaw}:
+    get:
+      tags:
+        - feeCodes
+      parameters:
+        - name: areaOfLaw
+          in: path
+          required: true
+          description: Area of law to retrieve Fee Codes within that Area of Law
+          schema:
+            type: string
+      summary: Get all Fee Code details for area of law (v1)
+      operationId: getFeeCodesV1
+      responses:
+        '200':
+          description: 'Success'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeeCodesResponseV1"
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Area of Law not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Internal server error'
   /api/v2/fee-details/{feeCode}:
     get:
       tags:
@@ -11,7 +45,7 @@ paths:
         - name: feeCode
           in: path
           required: true
-          description: Fee Code to retrieve Category of Law
+          description: Fee Code to retrieve Category of Law and Fee details
           schema:
             type: string
       summary: Get Category of Law and Fee details (v2)
@@ -39,13 +73,14 @@ paths:
           description: 'Internal server error'
   /api/v1/fee-details/{feeCode}:
     get:
+      deprecated: true
       tags:
         - feeDetails
       parameters:
         - name: feeCode
           in: path
           required: true
-          description: Fee Code to retrieve Category of Law
+          description: Fee Code to retrieve Category of Law and Fee details
           schema:
             type: string
       summary: Get Category of Law and Fee details (v1)
@@ -103,6 +138,58 @@ paths:
 
 components:
   schemas:
+    FeeCodeDetailsV1:
+      required:
+        - categoryOfLawCodes
+      properties:
+        feeCode:
+          type: string
+          description: "Fee code corresponding to a category of law."
+        areaOfLaw:
+          type: string
+          description: "Area of Law that was supplied in the request."
+        categoryOfLawCodes:
+          type: array
+          items:
+            type: string
+          description: "Category of law codes corresponding to fee code."
+        feeCodeDescription:
+          type: string
+          description: "Description of fee code."
+        feeType:
+          type: string
+          description: "Type of fee, Fixed, Hourly, disbursement only."
+
+    FeeCodesResponseV1:
+      type: object
+      description: "List of all fee codes within an area of law."
+      required:
+        - feeCodes
+      properties:
+        feeCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeeCodeDetailsV1'
+            description: "Fee code details."
+
+    FeeDetailsResponseV2:
+      required:
+        - categoryOfLawCodes
+      properties:
+        categoryOfLawCodes:
+          type: array
+          items:
+            type: string
+          description: "Category of law codes corresponding to fee code"
+        feeCodeDescription:
+          type: string
+          description: "Description of fee code"
+        feeType:
+          type: string
+          description: "Type of fee, Fixed, Hourly, disbursement only"
+        areaOfLaw:
+          type: string
+          description: "Area of Law stored in the system."
     FeeDetailsResponseV1:
       required:
         - categoryOfLawCode
@@ -110,22 +197,6 @@ components:
         categoryOfLawCode:
           type: string
           description: "Category of law corresponding to fee code"
-        feeCodeDescription:
-          type: string
-          description: "Description of fee code"
-        feeType:
-          type: string
-          description: "Type of fee, Fixed, Hourly, disbursement only"
-
-    FeeDetailsResponseV2:
-      required:
-        - categoryOfLawCode
-      properties:
-        categoryOfLawCodes:
-          type: array
-          items:
-            type: string
-          description: "Category of law code(s) corresponding to fee code"
         feeCodeDescription:
           type: string
           description: "Description of fee code"
@@ -265,6 +336,10 @@ components:
           type: number
           format: double
           description: "The disbursement Vat amount calculated to be added."
+        requestedDisbursementVatAmount:
+          type: number
+          format: double
+          description: "The requested disbursement Vat amount."
         hourlyTotalAmount:
           type: number
           format: double
@@ -315,7 +390,7 @@ components:
         properties:
           type:
             type: string
-            enum: [ ERROR, WARNING ]
+            enum: [ERROR, WARNING]
           code:
             type: string
           message:
