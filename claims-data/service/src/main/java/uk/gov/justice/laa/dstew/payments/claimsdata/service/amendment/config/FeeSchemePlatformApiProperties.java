@@ -8,7 +8,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.ApiProperties;
 @ConfigurationProperties(prefix = "laa.dstew.payments.validator.fee-scheme-platform-api")
 public class FeeSchemePlatformApiProperties extends ApiProperties {
 
-  public FeeSchemePlatformApiProperties(String url, String accessToken, long readTimeoutMs) {
+  public FeeSchemePlatformApiProperties(String url, String accessToken, int readTimeoutMs) {
     super(url, accessToken, HttpHeaders.AUTHORIZATION, readTimeoutMs);
   }
 }

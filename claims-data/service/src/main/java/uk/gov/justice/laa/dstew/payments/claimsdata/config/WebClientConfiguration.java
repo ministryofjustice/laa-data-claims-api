@@ -1,12 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
+import io.netty.channel.ChannelOption;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
@@ -52,28 +52,17 @@ public class WebClientConfiguration {
    * @return A WebClient instance.
    */
   public static WebClient createWebClient(final ApiProperties apiProperties) {
-    final ExchangeStrategies strategies =
-        ExchangeStrategies.builder()
-            .codecs(
-                configurer ->
-                    configurer
-                        .defaultCodecs()
-                        .maxInMemorySize(
-                            50 * 1024 * 1024) // 50 MB to cope with large bulk upload responses
-                )
-            .build();
-
-    // Configure Netty client with the read timeout property ---
     HttpClient httpClient =
-        HttpClient.create().responseTimeout(Duration.ofMillis(apiProperties.getReadTimeoutMs()));
-
-    ReactorClientHttpConnector clientConnector = new ReactorClientHttpConnector(httpClient);
+        HttpClient.create()
+            .option(
+                ChannelOption.CONNECT_TIMEOUT_MILLIS,
+                apiProperties.getReadTimeoutMs()) // or a dedicated connectTimeoutMs property
+            .responseTimeout(Duration.ofMillis(apiProperties.getReadTimeoutMs()));
 
     return WebClient.builder()
         .baseUrl(apiProperties.getUrl())
         .defaultHeader(apiProperties.getAuthHeader(), apiProperties.getAccessToken())
-        .clientConnector(clientConnector)
-        .exchangeStrategies(strategies)
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
   }
 }
