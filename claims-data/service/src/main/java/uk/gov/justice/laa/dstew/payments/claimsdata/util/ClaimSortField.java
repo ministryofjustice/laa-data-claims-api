@@ -36,6 +36,10 @@ public enum ClaimSortField {
   ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
   CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
 
+  // Effective total value is a materialised column on the claim, so it maps to a real entity
+  // property and sorts natively across the whole result set (before pagination).
+  EFFECTIVE_TOTAL_VALUE("effective_total_value", "effectiveTotalValue"),
+
   TOTAL_WARNINGS("total_warnings", "totalWarnings");
 
   private final String apiName;

@@ -467,6 +467,13 @@ paths:
           required: false
           schema:
             type: string
+          description: >-
+            Sort results by a single field and direction, e.g. `effective_total_value,desc`.
+            Supported fields include the claim columns plus the derived `total_warnings` and
+            `effective_total_value`. `effective_total_value` sorting is applied across the whole
+            result set before pagination. Null values sort last for ascending and first for
+            descending (PostgreSQL default behaviour); a deterministic secondary sort by `id` is
+            applied for rows sharing the same primary sort value.
         - $ref: '#/components/parameters/pageParam'
         - $ref: '#/components/parameters/sizeParam'
       responses:
@@ -1898,6 +1905,13 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+            effective_total_value:
+              type: number
+              description: >-
+                The claim's effective (most recent priced) value. This is the allowed total
+                (incl. VAT) of the latest assessment when the claim has any assessment (0 for a
+                void assessment); otherwise the latest calculated fee total amount (initial pricing
+                or an amendment reprice); otherwise null when the claim has neither.
     claim_response_v2:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1913,6 +1927,14 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+            effective_total_value:
+              type: number
+              description: >-
+                The claim's effective (most recent priced) value. This is the allowed total
+                (incl. VAT) of the latest assessment when the claim has any assessment (0 for a
+                void assessment); otherwise the latest calculated fee total amount (initial pricing
+                or an amendment reprice); otherwise null when the claim has neither. Sortable via
+                the `sort` query parameter as `effective_total_value`.
             date_submitted:
               type: string
               format: date-time
