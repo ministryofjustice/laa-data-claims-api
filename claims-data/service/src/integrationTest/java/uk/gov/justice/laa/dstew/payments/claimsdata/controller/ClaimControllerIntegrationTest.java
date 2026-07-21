@@ -1035,7 +1035,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setClaimSummaryFee(summaryFee);
 
     // Add this line to prevent the NPE during the price comparison!
-    cfd.setTotalAmount(java.math.BigDecimal.valueOf(100.00));
+    cfd.setTotalAmount(BigDecimal.valueOf(100.00));
 
     calculatedFeeDetailRepository.saveAndFlush(cfd);
   }

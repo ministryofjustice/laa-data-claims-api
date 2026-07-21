@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
+import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
@@ -90,7 +91,7 @@ public class FeeSchemeSnapshotFactory {
         .build();
   }
 
-  private java.math.BigDecimal toBigDecimal(Double val) {
-    return val == null ? null : java.math.BigDecimal.valueOf(val);
+  private BigDecimal toBigDecimal(Double val) {
+    return val == null ? null : BigDecimal.valueOf(val);
   }
 }

@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
@@ -225,11 +227,11 @@ public interface ClaimMapper {
     return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 
-  default JsonNullable<java.math.BigDecimal> map(java.math.BigDecimal value) {
+  default JsonNullable<BigDecimal> map(BigDecimal value) {
     return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 
-  default JsonNullable<java.time.LocalDate> map(java.time.LocalDate value) {
+  default JsonNullable<LocalDate> map(LocalDate value) {
     return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 }
