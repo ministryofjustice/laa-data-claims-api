@@ -15,7 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRest
  *
  * <p>Uses {@link HttpServiceProxyFactory} to build strongly-typed HTTP clients.
  *
- * @author Jamie Briggs
+ * @author Andrew Johnys
  */
 @Slf4j
 @Configuration

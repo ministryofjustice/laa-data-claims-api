@@ -7,7 +7,7 @@ import lombok.Setter;
 /**
  * The base class for API properties.
  *
- * @author Jamie Briggs
+ * @author Andrew Johnys
  */
 @Getter
 @Setter
