@@ -17,4 +17,5 @@ public class ApiProperties {
   private final String url;
   private final String accessToken;
   private final String authHeader;
+  private final long readTimeoutMs;
 }

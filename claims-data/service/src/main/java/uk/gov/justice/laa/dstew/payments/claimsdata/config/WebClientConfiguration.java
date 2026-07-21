@@ -1,14 +1,18 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.config;
 
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+import reactor.netty.http.client.HttpClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.config.FeeSchemePlatformApiProperties;
 
 /**
  * Configuration class for creating and configuring WebClient instances.
@@ -59,9 +63,16 @@ public class WebClientConfiguration {
                 )
             .build();
 
+    // Configure Netty client with the read timeout property ---
+    HttpClient httpClient =
+        HttpClient.create().responseTimeout(Duration.ofMillis(apiProperties.getReadTimeoutMs()));
+
+    ReactorClientHttpConnector clientConnector = new ReactorClientHttpConnector(httpClient);
+
     return WebClient.builder()
         .baseUrl(apiProperties.getUrl())
         .defaultHeader(apiProperties.getAuthHeader(), apiProperties.getAccessToken())
+        .clientConnector(clientConnector)
         .exchangeStrategies(strategies)
         .build();
   }
