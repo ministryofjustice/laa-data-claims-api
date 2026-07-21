@@ -14,7 +14,7 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
  * outside an active database transaction. The resulting immutable snapshot is attached to the
  * parent {@link uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState}
  * object to represent the "after" picture of the fee calculations. This enables downstream history
- * diff generation and validation checks before records hit physical database persistence. *
+ * diff generation and validation checks before records hit physical database persistence.
  *
  * <p>The factory structurally unwraps the deeply nested object hierarchy produced by the FSP
  * OpenAPI specification rules (such as sub-calculation sheets and nested bolt-ons) and transforms
