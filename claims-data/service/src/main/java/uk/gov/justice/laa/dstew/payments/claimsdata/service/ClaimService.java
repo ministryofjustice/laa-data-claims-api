@@ -100,7 +100,10 @@ public class ClaimService
           "validationMessages",
           "feeCalculationResponse",
           "version",
-          "createdByUserId");
+          "createdByUserId",
+          // Read-only field computed from the claim_effective_value view; must not count as a
+          // provider-requested change that triggers the amendment path.
+          "effectiveTotalValue");
 
   @Override
   public SubmissionRepository lookup() {

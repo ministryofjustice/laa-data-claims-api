@@ -81,6 +81,9 @@ class AmendmentFieldCoverageTest {
               "status",
               "isAmended",
               "hasAssessment",
+              // Read-only value computed from the claim_effective_value view, not
+              // provider-amendable.
+              "effectiveTotalValue",
               // Optimistic-lock guard.
               "version",
               // System dedup/matching field - explicitly not provider-amendable.

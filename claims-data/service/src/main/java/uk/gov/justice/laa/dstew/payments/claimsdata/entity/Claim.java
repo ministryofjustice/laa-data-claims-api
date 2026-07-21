@@ -16,6 +16,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
@@ -146,6 +148,17 @@ public class Claim {
   private boolean isAmended;
 
   private boolean hasAssessment;
+
+  /**
+   * The claim's effective (most recent priced) value. Computed on read from the {@code
+   * claim_effective_value} database view rather than stored: the allowed total (incl. VAT) of the
+   * latest assessment when the claim has any assessment (0 for a void assessment); otherwise the
+   * latest calculated fee total; otherwise {@code null}. Read-only - never written by the
+   * application.
+   */
+  @Formula(
+      "(select cev.effective_total_value from claim_effective_value cev where cev.claim_id = id)")
+  private BigDecimal effectiveTotalValue;
 
   @Version
   @Column(nullable = false)

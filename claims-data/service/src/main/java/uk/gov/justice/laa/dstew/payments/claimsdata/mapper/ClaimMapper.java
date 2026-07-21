@@ -83,6 +83,10 @@ public interface ClaimMapper {
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
+  // Effective total value is a read-only field computed from the claim_effective_value view; never
+  // let an incoming patch set it (it is present on ClaimPatch only because claim_patch extends
+  // claim_response).
+  @Mapping(target = "effectiveTotalValue", ignore = true)
   void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
 
   /** Map a validation error string to a ValidationErrorLog. */
