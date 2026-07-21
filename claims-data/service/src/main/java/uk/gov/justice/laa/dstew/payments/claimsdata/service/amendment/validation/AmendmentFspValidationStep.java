@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +12,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
@@ -124,23 +125,46 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
   }
 
   private boolean hasPricingImpactingChanges(ClaimStateSnapshot before, ClaimStateSnapshot post) {
-    return !Objects.equals(before.getFeeCode(), post.getFeeCode())
-        || !Objects.equals(before.getCaseStartDate(), post.getCaseStartDate())
-        || !Objects.equals(before.getIsLondonRate(), post.getIsLondonRate())
-        || !Objects.equals(before.getAdviceTime(), post.getAdviceTime())
-        || !Objects.equals(before.getTravelTime(), post.getTravelTime())
-        || !Objects.equals(before.getWaitingTime(), post.getWaitingTime())
-        || compareBigDecimals(before.getNetProfitCostsAmount(), post.getNetProfitCostsAmount())
-        || compareBigDecimals(before.getNetDisbursementAmount(), post.getNetDisbursementAmount());
-  }
-
-  private boolean compareBigDecimals(BigDecimal a, BigDecimal b) {
-    if (Objects.equals(a, b)) {
+    AreaOfLaw areaOfLaw = before.getAreaOfLaw();
+    if (areaOfLaw == null || post == null) {
       return false;
     }
-    if (a == null || b == null) {
-      return true;
+
+    return isChangedAndImpactsPricing(
+            before.getFeeCode(), post.getFeeCode(), "claim.feeCode", areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getCaseStartDate(), post.getCaseStartDate(), "claim.caseStartDate", areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getIsLondonRate(),
+            post.getIsLondonRate(),
+            "claimSummaryFee.isLondonRate",
+            areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getAdviceTime(), post.getAdviceTime(), "claimSummaryFee.adviceTime", areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getTravelTime(), post.getTravelTime(), "claimSummaryFee.travelTime", areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getWaitingTime(),
+            post.getWaitingTime(),
+            "claimSummaryFee.waitingTime",
+            areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getNetProfitCostsAmount(),
+            post.getNetProfitCostsAmount(),
+            "claimSummaryFee.netProfitCostsAmount",
+            areaOfLaw)
+        || isChangedAndImpactsPricing(
+            before.getNetDisbursementAmount(),
+            post.getNetDisbursementAmount(),
+            "claimSummaryFee.netDisbursementAmount",
+            areaOfLaw);
+  }
+
+  private boolean isChangedAndImpactsPricing(
+      Object beforeVal, Object postVal, String fieldIdentifier, AreaOfLaw areaOfLaw) {
+    if (Objects.equals(beforeVal, postVal)) {
+      return false;
     }
-    return a.compareTo(b) != 0;
+    return FeeSchemeRequestField.impactsPricing(fieldIdentifier, areaOfLaw);
   }
 }

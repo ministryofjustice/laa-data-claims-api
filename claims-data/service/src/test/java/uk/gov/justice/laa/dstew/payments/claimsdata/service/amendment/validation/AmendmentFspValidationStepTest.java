@@ -25,6 +25,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
@@ -112,8 +113,9 @@ class AmendmentFspValidationStepTest {
     // Arrange: Introduce a distinct feeCode mutation to force execution past the guard
     ClaimAmendmentState state =
         stateBuilder
-            .beforeState(beforeStateBuilder.build())
-            .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
             .build();
 
     FeeCalculationResponse mockFspResponse =
@@ -141,8 +143,9 @@ class AmendmentFspValidationStepTest {
     // Arrange: Mutate feeCode explicitly
     ClaimAmendmentState state =
         stateBuilder
-            .beforeState(beforeStateBuilder.build())
-            .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
             .build();
 
     WebClientResponseException badRequestException =
@@ -174,8 +177,9 @@ class AmendmentFspValidationStepTest {
     // Arrange: Mutate feeCode explicitly
     ClaimAmendmentState state =
         stateBuilder
-            .beforeState(beforeStateBuilder.build())
-            .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
             .build();
 
     when(fspClient.calculateFee(any())).thenThrow(new RuntimeException("SocketTimeoutException"));
