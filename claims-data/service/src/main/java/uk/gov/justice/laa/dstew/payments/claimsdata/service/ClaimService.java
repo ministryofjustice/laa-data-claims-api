@@ -475,16 +475,27 @@ public class ClaimService
 
     Pageable mappedPageable = mapPageableSort(pageable);
 
-    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
-    Specification<Claim> warningSortSpec =
-        ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
-    Specification<Claim> submissionPeriodSortSpec =
-        ClaimSpecification.orderBySubmissionPeriod(mappedPageable);
-    Specification<Claim> combinedSpec = baseSpec.and(warningSortSpec).and(submissionPeriodSortSpec);
-
     Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
     sanitizedPageable =
         removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
+    sanitizedPageable =
+        removeCustomSortFromPageable(
+            sanitizedPageable, ClaimSpecification.DERIVED_CLAIM_STATUS_SORT_KEY);
+
+    // Deterministic ordering:
+    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
+    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
+    //    unsorted so Spring Data does not override that ordering.
+    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
+    if (!hasComputedSort(mappedPageable)) {
+      sanitizedPageable = appendIdTieBreak(sanitizedPageable);
+    }
+
+    Specification<Claim> combinedSpec =
+        ClaimSpecification.filterBy(request)
+            .and(ClaimSpecification.orderByTotalWarningMessages(mappedPageable))
+            .and(ClaimSpecification.orderBySubmissionPeriod(mappedPageable))
+            .and(ClaimSpecification.orderByDerivedClaimStatus(mappedPageable));
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
@@ -531,6 +542,12 @@ public class ClaimService
     }
 
     Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+
+    // A sort-only request (no page/size) resolves to an Unpaged pageable, which does not support
+    // getPageNumber()/getPageSize(); carry the mapped sort on an unpaged instance in that case.
+    if (pageable.isUnpaged()) {
+      return Pageable.unpaged(mappedSort);
+    }
 
     return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
   }
@@ -589,7 +606,41 @@ public class ClaimService
 
     Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
 
+    if (pageable.isUnpaged()) {
+      return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
+    }
+
     return org.springframework.data.domain.PageRequest.of(
         pageable.getPageNumber(), pageable.getPageSize(), newSort);
+  }
+
+  /**
+   * Entity sort paths that are backed by computed ordering {@link Specification}s rather than a
+   * persisted column. Each applies its own {@code id} tie-break, so the sanitized {@link Pageable}
+   * must be left unsorted for these to avoid Spring Data overriding the ordering.
+   */
+  private static final Set<String> COMPUTED_SORT_PATHS =
+      Set.of("totalWarnings", "submission.submissionPeriod", "derivedClaimStatus");
+
+  private boolean hasComputedSort(Pageable pageable) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return false;
+    }
+    return pageable.getSort().stream()
+        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty()));
+  }
+
+  /**
+   * Appends a deterministic secondary sort by {@code id} (ascending, UUIDv7) so rows never drift
+   * between pages. No-op for unpaged requests.
+   */
+  private Pageable appendIdTieBreak(Pageable pageable) {
+    if (pageable == null) {
+      return null;
+    }
+    Sort sortWithTieBreak = pageable.getSort().and(Sort.by(Sort.Direction.ASC, "id"));
+    return pageable.isUnpaged()
+        ? Pageable.unpaged(sortWithTieBreak)
+        : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreak);
   }
 }

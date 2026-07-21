@@ -43,6 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
@@ -53,6 +54,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
@@ -1020,5 +1023,140 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setClaimSummaryFee(summaryFee);
 
     calculatedFeeDetailRepository.saveAndFlush(cfd);
+  }
+
+  @Nested
+  @DisplayName("Derived claim status sorting")
+  class DerivedClaimStatusSortTests {
+
+    private static final String SORT_OFFICE = "SORTOFC";
+
+    private Submission createSortSubmission() {
+      return submissionRepository.saveAndFlush(
+          Submission.builder()
+              .id(Uuid7.timeBasedUuid())
+              .bulkSubmissionId(bulkSubmission.getId())
+              .officeAccountNumber(SORT_OFFICE)
+              .submissionPeriod("FEB-2025")
+              .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+              .status(SubmissionStatus.CREATED)
+              .providerUserId(bulkSubmission.getCreatedByUserId())
+              .createdByUserId(API_USER_ID)
+              .numberOfClaims(6)
+              .createdOn(CREATED_ON)
+              .build());
+    }
+
+    private Claim persistClaim(
+        Submission submission,
+        ClaimStatus status,
+        boolean hasAssessment,
+        boolean isAmended,
+        int lineNumber) {
+      return claimRepository.saveAndFlush(
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(submission)
+              .status(status)
+              .hasAssessment(hasAssessment)
+              .isAmended(isAmended)
+              .lineNumber(lineNumber)
+              .matterTypeCode("TEST-MTC")
+              .createdByUserId(API_USER_ID)
+              .build());
+    }
+
+    private ClaimResultSetV2 search(String sort) throws Exception {
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", SORT_OFFICE)
+                      .param("sort", sort)
+                      .param("size", "50")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+      return OBJECT_MAPPER.readValue(
+          result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+    }
+
+    /** Seeds exactly one claim for each derived status under an isolated office code. */
+    private void seedOnePerDerivedStatus(Submission submission) {
+      persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
+      persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
+      persistClaim(submission, ClaimStatus.VALID, true, false, 3); // ASSESSED
+      persistClaim(submission, ClaimStatus.VOID, false, false, 4); // VOIDED
+      persistClaim(submission, ClaimStatus.INVALID, false, false, 5); // INVALID
+      persistClaim(submission, ClaimStatus.READY_TO_PROCESS, false, false, 6); // READY_TO_PROCESS
+    }
+
+    @Test
+    @DisplayName("ascending follows the canonical business ordering")
+    void ascendingOrdering() throws Exception {
+      seedOnePerDerivedStatus(createSortSubmission());
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+          .containsExactly(
+              DerivedClaimStatus.ACCEPTED,
+              DerivedClaimStatus.AMENDED,
+              DerivedClaimStatus.ASSESSED,
+              DerivedClaimStatus.VOIDED,
+              DerivedClaimStatus.INVALID,
+              DerivedClaimStatus.READY_TO_PROCESS);
+    }
+
+    @Test
+    @DisplayName("descending is the reverse of the canonical business ordering")
+    void descendingOrdering() throws Exception {
+      seedOnePerDerivedStatus(createSortSubmission());
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,desc");
+
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+          .containsExactly(
+              DerivedClaimStatus.READY_TO_PROCESS,
+              DerivedClaimStatus.INVALID,
+              DerivedClaimStatus.VOIDED,
+              DerivedClaimStatus.ASSESSED,
+              DerivedClaimStatus.AMENDED,
+              DerivedClaimStatus.ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("claims sharing a derived status are tie-broken by id ASC for stable pagination")
+    void tieBreakByIdAscending() throws Exception {
+      Submission submission = createSortSubmission();
+      // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
+      // status.
+      Claim a = persistClaim(submission, ClaimStatus.VALID, false, false, 1);
+      Claim b = persistClaim(submission, ClaimStatus.VALID, false, false, 2);
+      Claim c = persistClaim(submission, ClaimStatus.VALID, false, false, 3);
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+      // UUIDv7 ids are time-ordered; a < b < c in insertion order, so the tie-break yields a,b,c.
+      List<String> expectedIdOrder =
+          java.util.stream.Stream.of(a.getId(), b.getId(), c.getId())
+              .map(UUID::toString)
+              .sorted()
+              .toList();
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getId))
+          .containsExactlyElementsOf(expectedIdOrder);
+    }
+
+    @Test
+    @DisplayName("unsupported sort key returns 400")
+    void unsupportedSortKeyReturnsBadRequest() throws Exception {
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT_V2)
+                  .param("office_code", SORT_OFFICE)
+                  .param("sort", "not_a_real_field,asc")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
   }
 }

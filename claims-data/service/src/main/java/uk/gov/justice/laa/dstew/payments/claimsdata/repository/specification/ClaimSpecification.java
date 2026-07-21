@@ -25,6 +25,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
@@ -54,6 +55,9 @@ public final class ClaimSpecification {
   public static final String UNIQUE_CLIENT_NUMBER = "uniqueClientNumber";
   public static final String CLAIM_ENTITY = "claim";
   public static final String CREATED_ON = "createdOn";
+  public static final String HAS_ASSESSMENT = "hasAssessment";
+  public static final String IS_AMENDED = "isAmended";
+  public static final String DERIVED_CLAIM_STATUS_SORT_KEY = "derivedClaimStatus";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
@@ -308,7 +312,9 @@ public final class ClaimSpecification {
                 cb.literal("MON-YYYY"));
 
         query.orderBy(
-            order.isAscending() ? cb.asc(submissionPeriodAsDate) : cb.desc(submissionPeriodAsDate));
+            order.isAscending() ? cb.asc(submissionPeriodAsDate) : cb.desc(submissionPeriodAsDate),
+            // Deterministic secondary sort so rows never drift between pages.
+            cb.asc(root.get(ID)));
 
         break;
       }
@@ -345,7 +351,9 @@ public final class ClaimSpecification {
                 cb.equal(vml.get("type"), ValidationMessageType.WARNING));
 
         query.orderBy(
-            order.isAscending() ? cb.asc(warningCountSubquery) : cb.desc(warningCountSubquery));
+            order.isAscending() ? cb.asc(warningCountSubquery) : cb.desc(warningCountSubquery),
+            // Deterministic secondary sort so rows never drift between pages.
+            cb.asc(root.get(ID)));
 
         // Only handle the first matching custom sort
         break;
@@ -354,5 +362,74 @@ public final class ClaimSpecification {
       // No extra predicate, only ordering
       return cb.conjunction();
     };
+  }
+
+  /**
+   * Constructs a JPA {@link Specification} for ordering {@link Claim} records by their derived
+   * business status ({@link DerivedClaimStatus}).
+   *
+   * <p>This is a computed sort: {@code derivedClaimStatus} is not a persisted column. Ordering is
+   * applied via a SQL {@code CASE} expression whose ordinal outputs are taken from {@link
+   * DerivedClaimStatus#ordinal()} (the enum declaration order is the canonical business ordering).
+   * The {@code CASE} precedence mirrors {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver} — the single Java
+   * source of truth for the derivation — and the two are kept in lock-step by a parity test.
+   *
+   * <p>A deterministic secondary sort by {@code id} (ascending, UUIDv7) is always appended so that
+   * claims sharing the same derived status keep a stable order across pages.
+   *
+   * <p><strong>Multi-field sort caveat:</strong> because JPA {@code query.orderBy(...)} replaces
+   * the whole order list, this computed sort behaves as a single-field sort and must not be
+   * combined with other sort fields in the same request; if combined, the ordering applied by
+   * Spring Data from the remaining {@link Pageable} sort would override this specification's
+   * ordering. See {@code docs/derived-claim-status.md} for how full computed multi-field sorting
+   * could be added.
+   *
+   * @param pageable includes the requested sort orders
+   * @return a JPA {@code Specification} that applies the derived-status ordering when requested
+   */
+  public static Specification<Claim> orderByDerivedClaimStatus(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      for (Sort.Order order : pageable.getSort()) {
+        if (!DERIVED_CLAIM_STATUS_SORT_KEY.equalsIgnoreCase(order.getProperty())) {
+          continue;
+        }
+
+        Expression<Integer> derivedOrdinal = derivedClaimStatusOrdinal(root, cb);
+
+        query.orderBy(
+            order.isAscending() ? cb.asc(derivedOrdinal) : cb.desc(derivedOrdinal),
+            // Deterministic secondary sort so rows never drift between pages.
+            cb.asc(root.get(ID)));
+
+        // Only handle the first matching custom sort
+        break;
+      }
+
+      return cb.conjunction();
+    };
+  }
+
+  /**
+   * Builds the {@code CASE} expression that maps each claim to its {@link DerivedClaimStatus}
+   * ordinal. The precedence must mirror {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver}; the ordinals are
+   * taken from the enum so the canonical ordering is defined in exactly one place.
+   */
+  private static Expression<Integer> derivedClaimStatusOrdinal(
+      Root<Claim> root, CriteriaBuilder cb) {
+    return cb.<Integer>selectCase()
+        .when(cb.equal(root.get(STATUS), ClaimStatus.VOID), DerivedClaimStatus.VOIDED.ordinal())
+        .when(cb.equal(root.get(STATUS), ClaimStatus.INVALID), DerivedClaimStatus.INVALID.ordinal())
+        .when(
+            cb.equal(root.get(STATUS), ClaimStatus.READY_TO_PROCESS),
+            DerivedClaimStatus.READY_TO_PROCESS.ordinal())
+        .when(cb.isTrue(root.<Boolean>get(HAS_ASSESSMENT)), DerivedClaimStatus.ASSESSED.ordinal())
+        .when(cb.isTrue(root.<Boolean>get(IS_AMENDED)), DerivedClaimStatus.AMENDED.ordinal())
+        .otherwise(DerivedClaimStatus.ACCEPTED.ordinal());
   }
 }

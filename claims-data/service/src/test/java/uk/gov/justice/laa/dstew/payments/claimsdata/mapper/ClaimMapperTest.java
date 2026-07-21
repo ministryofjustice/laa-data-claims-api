@@ -16,6 +16,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +33,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
@@ -282,6 +285,42 @@ class ClaimMapperTest {
     assertNotNull(response);
     assertEquals(id, response.getClaimId());
     assertEquals(ClaimStatus.READY_TO_PROCESS, response.getStatus());
+  }
+
+  @ParameterizedTest(name = "[{index}] status={0}, hasAssessment={1}, isAmended={2} -> {3}")
+  @CsvSource({
+    "VOID,             false, false, VOIDED",
+    "INVALID,          false, false, INVALID",
+    "READY_TO_PROCESS, false, false, READY_TO_PROCESS",
+    "VALID,            false, false, ACCEPTED",
+    "VALID,            false, true,  AMENDED",
+    "VALID,            true,  false, ASSESSED",
+    "VALID,            true,  true,  ASSESSED",
+  })
+  @DisplayName("toClaimResponseV2 derives derived_claim_status and leaves raw status unchanged")
+  void toClaimResponseV2_populatesDerivedClaimStatus(
+      ClaimStatus status,
+      boolean hasAssessment,
+      boolean isAmended,
+      DerivedClaimStatus expectedDerived) {
+    final Claim entity =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .status(status)
+            .hasAssessment(hasAssessment)
+            .isAmended(isAmended)
+            .claimSummaryFee(new ArrayList<>())
+            .calculatedFeeDetails(new ArrayList<>())
+            .submission(Submission.builder().id(Uuid7.timeBasedUuid()).build())
+            .build();
+
+    final ClaimResponseV2 response = mapper.toClaimResponseV2(entity);
+
+    assertNotNull(response);
+    // Derived business status is populated from the resolver...
+    assertEquals(expectedDerived, response.getDerivedClaimStatus());
+    // ...and the raw processing status is left untouched.
+    assertEquals(status, response.getStatus());
   }
 
   @Test

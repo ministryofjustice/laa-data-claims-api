@@ -36,7 +36,13 @@ public enum ClaimSortField {
   ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
   CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
 
-  TOTAL_WARNINGS("total_warnings", "totalWarnings");
+  TOTAL_WARNINGS("total_warnings", "totalWarnings"),
+
+  // Computed sort field: not a real entity property. Ordering is applied by
+  // ClaimSpecification.orderByDerivedClaimStatus using a SQL CASE expression whose ordinals come
+  // from the DerivedClaimStatus enum. Treated like the other computed markers (totalWarnings,
+  // submission.submissionPeriod) and stripped from the Pageable before the query executes.
+  DERIVED_CLAIM_STATUS("derived_claim_status", "derivedClaimStatus");
 
   private final String apiName;
   private final String entityPath;

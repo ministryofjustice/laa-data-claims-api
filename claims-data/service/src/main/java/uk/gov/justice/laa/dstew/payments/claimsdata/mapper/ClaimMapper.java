@@ -29,7 +29,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
-    imports = {com.fasterxml.uuid.Generators.class},
+    imports = {
+      com.fasterxml.uuid.Generators.class,
+      uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver.class
+    },
     config = AuditFieldsMapper.class)
 public interface ClaimMapper {
 
@@ -59,6 +62,13 @@ public interface ClaimMapper {
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
+  // Derived business status - single source of truth is DerivedClaimStatusResolver. This does not
+  // replace the raw "status" field, which is mapped automatically and left unchanged.
+  @Mapping(
+      target = "derivedClaimStatus",
+      expression =
+          "java(DerivedClaimStatusResolver.resolve(entity.getStatus(), "
+              + "entity.isHasAssessment(), entity.isAmended()))")
   // Use the helper method expression to flatten fields from the latest fee's summary
   @Mapping(target = ".", source = "latestCalculatedFee.claimSummaryFee")
   @Mapping(target = ".", source = "client")
