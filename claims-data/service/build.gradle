@@ -176,7 +176,6 @@ sourceSets {
         runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
     }
 }
-sourceSets.main.java.srcDirs += ['generated/src/main/java']
 
 configurations {
     compileOnly {
