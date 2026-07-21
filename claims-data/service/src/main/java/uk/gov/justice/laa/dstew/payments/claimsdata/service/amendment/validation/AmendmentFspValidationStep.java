@@ -91,7 +91,9 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       // 1595-C: Generate payload
       // 1595-D: Dispatch synchronous timeout-protected request
       FeeCalculationResponse fspResponse =
-          fspClient.calculateFee(requestBuilder.buildRequest(state)).getBody();
+          Objects.requireNonNull(
+              fspClient.calculateFee(requestBuilder.buildRequest(state)).getBody(),
+              "FSP calculateFee returned a null response body");
       state.setFspResponseContext(fspResponse);
 
       // 1595-F: Populate snap containers into state slots for historical audit tracking
