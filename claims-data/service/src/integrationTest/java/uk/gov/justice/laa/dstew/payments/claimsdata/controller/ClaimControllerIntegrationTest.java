@@ -1050,6 +1050,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     void setupAmendments() {
       // Ensure the feature flag switch properties are enabled for these path tests
       claimsApiProperties.getAmendments().setEnabled("true");
+      Mockito.when(externalValidationStep.validate(any())).thenReturn(List.of());
 
       // Seed a baseline CalculatedFeeDetail so the validation step knows this claim is eligible for
       // repricing
