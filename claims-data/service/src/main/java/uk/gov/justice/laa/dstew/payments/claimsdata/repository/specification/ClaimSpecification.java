@@ -28,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver;
 
 /**
  * This class provide basic filtering logic to query {@link Claim} entities using JPA {@link
@@ -371,8 +372,7 @@ public final class ClaimSpecification {
    * <p>This is a computed sort: {@code derivedClaimStatus} is not a persisted column. Ordering is
    * applied via a SQL {@code CASE} expression whose ordinal outputs are taken from {@link
    * DerivedClaimStatus#ordinal()} (the enum declaration order is the canonical business ordering).
-   * The {@code CASE} precedence mirrors {@link
-   * uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver} — the single Java
+   * The {@code CASE} precedence mirrors {@link DerivedClaimStatusResolver} — the single Java
    * source of truth for the derivation — and the two are kept in lock-step by a parity test.
    *
    * <p>A deterministic secondary sort by {@code id} (ascending, UUIDv7) is always appended so that
@@ -416,8 +416,7 @@ public final class ClaimSpecification {
 
   /**
    * Builds the {@code CASE} expression that maps each claim to its {@link DerivedClaimStatus}
-   * ordinal. The precedence must mirror {@link
-   * uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver}; the ordinals are
+   * ordinal. The precedence must mirror {@link DerivedClaimStatusResolver}; the ordinals are
    * taken from the enum so the canonical ordering is defined in exactly one place.
    */
   private static Expression<Integer> derivedClaimStatusOrdinal(
