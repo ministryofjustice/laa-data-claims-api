@@ -102,6 +102,43 @@ jobs:
           command: code test
           args: --severity-threshold=high
 
+  bdd-test:
+    runs-on: ubuntu-latest
+    needs: [ build-and-test ]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up JDK
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          java-version: *JAVA_VERSION
+          distribution: *JDK_DISTRIBUTION
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.0.0
+
+      - name: Run BDD test suite (local mode)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :claims-data:service:bddTest --no-daemon
+
+      - name: Upload BDD reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bdd-reports
+          path: |
+            claims-data/service/build/reports/tests/bddTest/**
+            claims-data/service/build/test-results/bddTest/**
+          if-no-files-found: warn
+          retention-days: 14
+
   helm-template-check:
     runs-on: ubuntu-latest
     needs: [ build-and-test ]
@@ -133,7 +170,7 @@ jobs:
             --set namespace="test"
 
   ecr-publish-image:
-    needs: [ build-and-test, compute-snapshot-version ]
+    needs: [ build-and-test, compute-snapshot-version, bdd-test ]
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
     permissions:
       contents: read
@@ -157,6 +194,7 @@ jobs:
       - ecr-publish-image
       - pact-test
       - vulnerability-scan-app
+      - bdd-test
     runs-on: ubuntu-latest
     environment: uat
     permissions:
