@@ -372,8 +372,8 @@ public final class ClaimSpecification {
    * <p>This is a computed sort: {@code derivedClaimStatus} is not a persisted column. Ordering is
    * applied via a SQL {@code CASE} expression whose ordinal outputs are taken from {@link
    * DerivedClaimStatus#ordinal()} (the enum declaration order is the canonical business ordering).
-   * The {@code CASE} precedence mirrors {@link DerivedClaimStatusResolver} — the single Java
-   * source of truth for the derivation — and the two are kept in lock-step by a parity test.
+   * The {@code CASE} precedence mirrors {@link DerivedClaimStatusResolver} — the single Java source
+   * of truth for the derivation — and the two are kept in lock-step by a parity test.
    *
    * <p>A deterministic secondary sort by {@code id} (ascending, UUIDv7) is always appended so that
    * claims sharing the same derived status keep a stable order across pages.
@@ -416,8 +416,8 @@ public final class ClaimSpecification {
 
   /**
    * Builds the {@code CASE} expression that maps each claim to its {@link DerivedClaimStatus}
-   * ordinal. The precedence must mirror {@link DerivedClaimStatusResolver}; the ordinals are
-   * taken from the enum so the canonical ordering is defined in exactly one place.
+   * ordinal. The precedence must mirror {@link DerivedClaimStatusResolver}; the ordinals are taken
+   * from the enum so the canonical ordering is defined in exactly one place.
    */
   private static Expression<Integer> derivedClaimStatusOrdinal(
       Root<Claim> root, CriteriaBuilder cb) {
