@@ -414,6 +414,11 @@ public class ClaimsDataTestUtil {
                     .feeCodeDescription("ABC Description")
                     .vatIndicator(true)
                     .totalAmount(BigDecimal.ONE)
+                    .claimSummaryFee(
+                        ClaimSummaryFee.builder()
+                            .id(UUID.randomUUID())
+                            .isVatApplicable(true)
+                            .build())
                     .build()))
         .build();
   }

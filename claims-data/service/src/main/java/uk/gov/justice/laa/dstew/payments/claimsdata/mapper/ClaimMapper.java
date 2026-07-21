@@ -68,7 +68,6 @@ public interface ClaimMapper {
       target = "feeCalculationResponse",
       source = "latestCalculatedFee",
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
-  @Mapping(target = "isVatApplicable", source = "latestCalculatedFee.vatIndicator")
   ClaimResponseV2 toClaimResponseV2(Claim entity);
 
   /**

@@ -226,7 +226,11 @@ class ClaimMapperTest {
                     .submissionPeriod("APR-2025")
                     .createdOn(Instant.now())
                     .build())
-            .calculatedFeeDetails(List.of(CalculatedFeeDetail.builder().vatIndicator(true).build()))
+            .calculatedFeeDetails(
+                List.of(
+                    CalculatedFeeDetail.builder()
+                        .claimSummaryFee(ClaimSummaryFee.builder().isVatApplicable(true).build())
+                        .build()))
             .build();
 
     final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
@@ -267,7 +271,9 @@ class ClaimMapperTest {
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
     assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
-    assertEquals(entity.getLatestCalculatedFee().getVatIndicator(), fields.getIsVatApplicable());
+    assertEquals(
+        entity.getLatestCalculatedFee().getClaimSummaryFee().getIsVatApplicable(),
+        fields.getIsVatApplicable());
   }
 
   @Test
