@@ -73,7 +73,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     // Isolate from PDA validation failures
     Mockito.when(externalValidationStep.validate(any())).thenReturn(List.of());
 
-    // Seed a baseline CalculatedFeeDetail so the validation step knows this claim is eligible for repricing
+    // Seed a baseline CalculatedFeeDetail so the validation step knows this claim is eligible for
+    // repricing
     Claim claim5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
     createCalculatedFeeDetail(claim5, false, OffsetDateTime.now().minusDays(1));
   }
@@ -84,7 +85,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH /submissions/{id}/claims/{id} - successfully invokes FSP repricing and saves CalculatedFeeDetail row")
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - successfully invokes FSP repricing and saves CalculatedFeeDetail row")
   void shouldSuccessfullyRepriceAndCommitValidAmendment() throws Exception {
     ClaimPatch patchPayload = new ClaimPatch();
     patchPayload.setVersion(1L);
@@ -107,8 +109,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .escapeCaseFlag(false)
             .feeCalculation(calc);
 
-    Mockito.when(fspRestClient.calculateFee(any()))
-        .thenReturn(ResponseEntity.ok(mockFspResponse));
+    Mockito.when(fspRestClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
 
     mockMvc
         .perform(
@@ -132,7 +133,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH /submissions/{id}/claims/{id} - returns 400 Bad Request when FSP returns data validation failure")
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - returns 400 Bad Request when FSP returns data validation failure")
   void shouldReturnBadRequestWhenFspValidationFails() throws Exception {
     ClaimPatch patchPayload = new ClaimPatch();
     patchPayload.setVersion(1L);
@@ -170,7 +172,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP times out")
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP times out")
   void shouldReturnServiceUnavailableOnFspNetworkTimeout() throws Exception {
     ClaimPatch patchPayload = new ClaimPatch();
     patchPayload.setVersion(1L);
@@ -192,6 +195,132 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .andExpect(status().isServiceUnavailable())
             .andReturn();
 
+    String body = mvcResult.getResponse().getContentAsString();
+    assertThat(body).contains("A technical error occurred while recalculating the fee");
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - skips FSP repricing when changes do not impact pricing")
+  void shouldSkipRepricingWhenChangesDoNotImpactPricing() throws Exception {
+    // given: A patch that only updates non-pricing fields (e.g., client name)
+    ClaimPatch patchPayload = new ClaimPatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setClientForename("NewForename");
+    patchPayload.setClientSurname("NewSurname");
+
+    patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+    patchPayload.setAmendmentRequestedBy("PROVIDER");
+    patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+    // when: the patch is submitted
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    // then: FSP was never called because pricing fields didn't change
+    Mockito.verifyNoInteractions(fspRestClient);
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - skips FSP repricing when baseline claim lacks calculated fee details")
+  void shouldSkipRepricingWhenNoBaselineFeeDetails() throws Exception {
+    // given: Remove the baseline fee record created in @BeforeEach
+    calculatedFeeDetailRepository.deleteAll();
+    calculatedFeeDetailRepository.flush();
+
+    // A patch with pricing-impacting changes
+    ClaimPatch patchPayload = new ClaimPatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+    patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+    patchPayload.setAmendmentRequestedBy("PROVIDER");
+    patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+    // when: the patch is submitted
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    // then: FSP was skipped because there is no prior baseline to compare against
+    Mockito.verifyNoInteractions(fspRestClient);
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP returns 500 Internal Server Error")
+  void shouldReturnServiceUnavailableOnFsp500Error() throws Exception {
+    // given: A patch triggering repricing
+    ClaimPatch patchPayload = new ClaimPatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setFeeCode("FEE-500");
+    patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+    patchPayload.setAmendmentRequestedBy("PROVIDER");
+    patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+    // Mock FSP returning a 500 Server Error
+    WebClientResponseException serverError =
+        WebClientResponseException.create(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            "Internal Server Error",
+            null,
+            "FSP is down".getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+
+    Mockito.when(fspRestClient.calculateFee(any())).thenThrow(serverError);
+
+    // when: the patch is submitted
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isServiceUnavailable())
+            .andReturn();
+
+    // then: we get the safe fallback tech-error message
+    String body = mvcResult.getResponse().getContentAsString();
+    assertThat(body).contains("A technical error occurred while recalculating the fee");
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP response body is null")
+  void shouldReturnServiceUnavailableWhenFspBodyIsNull() throws Exception {
+    // given: A patch triggering repricing
+    ClaimPatch patchPayload = new ClaimPatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setFeeCode("FEE-NULL");
+    patchPayload.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
+    patchPayload.setAmendmentRequestedBy("PROVIDER");
+    patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
+
+    // Mock an HTTP 200 OK, but with an entirely missing/null body
+    Mockito.when(fspRestClient.calculateFee(any())).thenReturn(ResponseEntity.ok(null));
+
+    // when: the patch is submitted
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isServiceUnavailable())
+            .andReturn();
+
+    // then: Objects.requireNonNull triggered the general catch block, yielding a technical error
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("A technical error occurred while recalculating the fee");
   }

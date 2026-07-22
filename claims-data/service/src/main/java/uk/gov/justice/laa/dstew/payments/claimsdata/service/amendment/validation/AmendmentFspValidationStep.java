@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validatio
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -88,7 +87,8 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
     }
 
     AmendmentDiff differences = diffAssembler.assemble(state);
-    if (Optional.ofNullable(differences.changes()).equals(Optional.empty())
+    if (differences == null
+        || differences.changes() == null
         || !hasPricingImpactingChanges(
             differences, state.getBeforeState(), state.getPostAmendmentState())) {
       log.debug("No pricing-impacting changes discovered. Skipping FSP call.");

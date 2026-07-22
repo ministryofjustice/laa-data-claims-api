@@ -207,4 +207,88 @@ class AmendmentFspValidationStepTest {
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
   }
+
+  @Test
+  @DisplayName("1595-B: Should skip execution when AmendmentDiff changes list is null")
+  void validate_whenDiffChangesIsNull_skipsFspCall() {
+    // Arrange: Create a diff with a null changes list using the direct record constructor
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(null);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName("1595-B: Should skip execution when changes exist but none impact pricing")
+  void validate_whenChangesDoNotImpactPricing_skipsFspCall() {
+    // Arrange: Diff contains changes, but to a non-pricing field (like a client name)
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(postStateBuilder.build())
+            .build();
+
+    AmendmentDiff nonPricingDiff =
+        AmendmentDiff.of(List.of(new DiffEntry("claim.clientName", null, "John", "Jane")));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(nonPricingDiff);
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName("1595-E: Should capture null response body from FSP and map to technical error")
+  void validate_whenFspReturnsNullBody_returnsTechnicalError() {
+    // Arrange: Force execution past the guard
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
+            .build();
+
+    // Mock the HTTP client returning a 200 OK, but with a null body
+    when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(null));
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).hasSize(1);
+    ClaimAmendmentValidationError error = errors.get(0);
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
+  }
+
+  @Test
+  @DisplayName("1595-B: Should skip execution safely if before state lacks Area of Law")
+  void validate_whenBeforeStateLacksAreaOfLaw_skipsFspCall() {
+    // Arrange: State has a calculated fee (so it passes the first guard), but areaOfLaw is null
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(null).build())
+            .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
+            .build();
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
 }
