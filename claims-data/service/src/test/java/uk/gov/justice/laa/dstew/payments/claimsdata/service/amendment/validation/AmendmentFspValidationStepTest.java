@@ -20,14 +20,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
@@ -37,6 +40,7 @@ class AmendmentFspValidationStepTest {
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
   @Mock private FeeSchemeSnapshotFactory snapshotFactory;
+  @Mock private AmendmentDiffAssembler diffAssembler;
   @InjectMocks private AmendmentFspValidationStep validationStep;
 
   private ClaimAmendmentState.ClaimAmendmentStateBuilder stateBuilder;
@@ -65,6 +69,11 @@ class AmendmentFspValidationStepTest {
     lenient()
         .when(requestBuilder.buildRequest(any()))
         .thenReturn(new FeeCalculationRequest("FEE01"));
+
+    // Default mock to allow tests to pass the pricing guard by default
+    AmendmentDiff defaultDiff =
+        AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
+    lenient().when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(defaultDiff);
   }
 
   @Test
@@ -76,6 +85,9 @@ class AmendmentFspValidationStepTest {
             .beforeState(beforeStateBuilder.build())
             .postAmendmentState(postStateBuilder.amended(false).build())
             .build();
+
+    AmendmentDiff noChangesDiff = AmendmentDiff.of(List.of());
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(noChangesDiff);
 
     // Act
     List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
@@ -125,7 +137,9 @@ class AmendmentFspValidationStepTest {
 
     when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
     when(snapshotFactory.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
-
+    AmendmentDiff pricingImpactingDiff =
+        AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);
     // Act
     List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
 

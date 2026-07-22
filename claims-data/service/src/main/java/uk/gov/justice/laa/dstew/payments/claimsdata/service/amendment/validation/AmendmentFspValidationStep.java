@@ -2,11 +2,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validatio
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
@@ -16,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
@@ -64,6 +67,7 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
   private final FeeSchemeRequestBuilder requestBuilder;
   private final FeeSchemePlatformRestClient fspClient;
   private final FeeSchemeSnapshotFactory snapshotFactory;
+  private final AmendmentDiffAssembler diffAssembler;
 
   /**
    * Executes the trigger verification and processes the remote FSP recalculation sequence.
@@ -83,7 +87,10 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       return List.of();
     }
 
-    if (!hasPricingImpactingChanges(state.getBeforeState(), state.getPostAmendmentState())) {
+    AmendmentDiff differences = diffAssembler.assemble(state);
+    if (Optional.ofNullable(differences.changes()).equals(Optional.empty())
+        || !hasPricingImpactingChanges(
+            differences, state.getBeforeState(), state.getPostAmendmentState())) {
       log.debug("No pricing-impacting changes discovered. Skipping FSP call.");
       return List.of();
     }
@@ -124,40 +131,18 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
     return List.of();
   }
 
-  private boolean hasPricingImpactingChanges(ClaimStateSnapshot before, ClaimStateSnapshot post) {
-    AreaOfLaw areaOfLaw = before.getAreaOfLaw();
-    if (areaOfLaw == null || post == null) {
+  private boolean hasPricingImpactingChanges(
+      AmendmentDiff diff, ClaimStateSnapshot before, ClaimStateSnapshot post) {
+
+    if (before == null || post == null || before.getAreaOfLaw() == null) {
       return false;
     }
 
-    return isChangedAndImpactsPricing(
-            before.getFeeCode(), post.getFeeCode(), "claim.feeCode", areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getCaseStartDate(), post.getCaseStartDate(), "claim.caseStartDate", areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getIsLondonRate(),
-            post.getIsLondonRate(),
-            "claimSummaryFee.isLondonRate",
-            areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getAdviceTime(), post.getAdviceTime(), "claimSummaryFee.adviceTime", areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getTravelTime(), post.getTravelTime(), "claimSummaryFee.travelTime", areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getWaitingTime(),
-            post.getWaitingTime(),
-            "claimSummaryFee.waitingTime",
-            areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getNetProfitCostsAmount(),
-            post.getNetProfitCostsAmount(),
-            "claimSummaryFee.netProfitCostsAmount",
-            areaOfLaw)
-        || isChangedAndImpactsPricing(
-            before.getNetDisbursementAmount(),
-            post.getNetDisbursementAmount(),
-            "claimSummaryFee.netDisbursementAmount",
-            areaOfLaw);
+    return diff.changes().stream()
+        .anyMatch(
+            entry ->
+                isChangedAndImpactsPricing(
+                    entry.before(), entry.after(), entry.fieldIdentifier(), before.getAreaOfLaw()));
   }
 
   private boolean isChangedAndImpactsPricing(
