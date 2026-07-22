@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -9,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
 import java.math.BigDecimal;
@@ -23,13 +22,11 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockito.Mockito;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
@@ -37,7 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -57,24 +54,31 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
   @Autowired private ClaimsApiProperties claimsApiProperties;
 
-  // We still mock PDA validation so it doesn't block FSP repricing
-  @MockitoBean private AmendmentExternalValidationStep externalValidationStep;
-
   private boolean originalAmendmentFlag;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
     claimsApiProperties.getAmendments().setEnabled("true");
 
     seedClaimsData();
 
-    Mockito.when(externalValidationStep.validate(any())).thenReturn(List.of());
+    // Satisfy the AmendmentExternalValidationStep using the real network layer
+    stubExternalValidationEndpoints();
 
-    Claim claim5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
-    createCalculatedFeeDetail(claim5, false, OffsetDateTime.now().minusDays(1));
+    // Ensure any fee code changes in our tests pass the external Area of Law validation gate
+    // (CLAIM_1 belongs to a LEGAL_HELP submission)
+    stubFeeDetailsAreaOfLaw("LEGAL_HELP");
 
-    // Clear any leftover mockserver expectations
+    // Put CLAIM_1 into an amendable state and add the baseline fee
+    Claim claim1 = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim1.setStatus(ClaimStatus.VALID);
+    claimRepository.saveAndFlush(claim1);
+
+    createCalculatedFeeDetail(claim1, false, OffsetDateTime.now().minusDays(1));
+
+    // Clear the fee-calculation stub set by stubExternalValidationEndpoints
+    // because we want each test to strictly control and verify this specific call.
     mockServerClient.clear(request().withPath(FEE_CALCULATION_PATH), ClearType.EXPECTATIONS);
   }
 
@@ -105,7 +109,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -114,7 +118,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =
         calculatedFeeDetailRepository.findAll().stream()
-            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_5_ID))
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
             .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
             .toList();
 
@@ -137,7 +141,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     MvcResult mvcResult =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -164,7 +168,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     MvcResult mvcResult =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -183,7 +187,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -205,7 +209,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -228,7 +232,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     MvcResult mvcResult =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -252,7 +256,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     MvcResult mvcResult =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -285,7 +289,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     mockMvc
         .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_5_ID)
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
@@ -294,7 +298,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =
         calculatedFeeDetailRepository.findAll().stream()
-            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_5_ID))
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
             .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
             .toList();
 
@@ -306,14 +310,20 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
   private void createCalculatedFeeDetail(
       Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
-    ClaimSummaryFee summaryFee =
-        ClaimSummaryFee.builder()
-            .claim(claim)
-            .id(Uuid7.timeBasedUuid())
-            .createdByUserId("Test")
-            .build();
 
-    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+    ClaimSummaryFee summaryFee =
+        claimSummaryFeeRepository
+            .findByClaimId(claim.getId())
+            .orElseGet(
+                () -> {
+                  ClaimSummaryFee newFee =
+                      ClaimSummaryFee.builder()
+                          .claim(claim)
+                          .id(Uuid7.timeBasedUuid())
+                          .createdByUserId("Test")
+                          .build();
+                  return claimSummaryFeeRepository.saveAndFlush(newFee);
+                });
 
     CalculatedFeeDetail cfd = new CalculatedFeeDetail();
     cfd.setId(Uuid7.timeBasedUuid());

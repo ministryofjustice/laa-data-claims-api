@@ -3,10 +3,9 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.openapitools.jackson.nullable.JsonNullable;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
@@ -16,68 +15,120 @@ class FeeSchemeRequestBuilderTest {
   private final FeeSchemeRequestBuilder builder = new FeeSchemeRequestBuilder();
 
   @Test
-  @DisplayName("Should use fallback snapshot values when the amendment payload is sparse/undefined")
-  void buildRequest_withUndefinedPayload_usesBeforeStateSnapshot() {
-    // Arrange: Build state with empty patch payload
-    ClaimStateSnapshot before = FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().build();
-    ClaimAmendmentPayload patch =
-        ClaimAmendmentPayload.builder().build(); // Omitted fields default to undefined
-
-    ClaimAmendmentState state =
-        ClaimAmendmentState.builder().beforeState(before).requestPayload(patch).build();
-
-    // Act
-    FeeCalculationRequest request = builder.buildRequest(state);
-
-    // Assert: Verifies fallbacks mapped correctly
-    assertThat(request.getFeeCode()).isEqualTo("FEE001");
-    assertThat(request.getStartDate()).isEqualTo(before.getCaseStartDate());
-    assertThat(request.getNetProfitCosts()).isEqualTo(150.00);
-    assertThat(request.getNetTravelCosts()).isEqualTo(120.00);
-  }
-
-  @Test
-  @DisplayName("Should override fallback values when amendment payload contains updates")
-  void buildRequest_withPayloadValueUpdates_overridesSnapshot() {
-    // Arrange: Build state with defined patch values
-    ClaimStateSnapshot before = FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().build();
-    ClaimAmendmentPayload patch =
-        ClaimAmendmentPayload.builder()
-            .feeCode(JsonNullable.of("FEE-AMENDED"))
-            .netProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(999.00)))
+  @DisplayName("Should map post-amendment state directly to FeeCalculationRequest")
+  void buildRequest_mapsPostAmendmentState() {
+    // Arrange: Build state with fully merged post-amendment snapshot
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .feeCode("FEE-AMENDED")
+            .netProfitCostsAmount(BigDecimal.valueOf(999.00))
+            .travelTime(120)
             .build();
 
-    ClaimAmendmentState state =
-        ClaimAmendmentState.builder().beforeState(before).requestPayload(patch).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
     FeeCalculationRequest request = builder.buildRequest(state);
 
-    // Assert: Overridden values verified
+    // Assert: Verifies direct mapping and type conversions (e.g., BigDecimal -> Double)
     assertThat(request.getFeeCode()).isEqualTo("FEE-AMENDED");
     assertThat(request.getNetProfitCosts()).isEqualTo(999.00);
-
-    // Omitted fields should still fall back
     assertThat(request.getNetTravelCosts()).isEqualTo(120.00);
   }
 
   @Test
-  @DisplayName("Should respect and map explicit null requests from the provider")
-  void buildRequest_withExplicitNullPayload_clearsValueInRequest() {
-    // Arrange: Value explicitly cleared
-    ClaimStateSnapshot before = FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().build();
-    ClaimAmendmentPayload patch =
-        ClaimAmendmentPayload.builder()
-            .netProfitCostsAmount(JsonNullable.of(null)) // Requested clear
+  @DisplayName("Should safely handle null values during mapping without throwing exceptions")
+  void buildRequest_withNulls_mapsSafely() {
+    // Arrange: Values missing or explicitly cleared in the post-state
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .netProfitCostsAmount(null)
+            .travelTime(null)
             .build();
 
-    ClaimAmendmentState state =
-        ClaimAmendmentState.builder().beforeState(before).requestPayload(patch).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
     FeeCalculationRequest request = builder.buildRequest(state);
 
-    // Assert: Maps explicitly to null, ignoring the fallback value
+    // Assert: Maps explicitly to null
     assertThat(request.getNetProfitCosts()).isNull();
+    assertThat(request.getNetTravelCosts()).isNull();
+  }
+
+  @Test
+  @DisplayName("Should correctly map and convert UUID claim ID to String")
+  void buildRequest_withClaimId_mapsToString() {
+    // Arrange
+    UUID claimId = UUID.randomUUID();
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(claimId).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    // Act
+    FeeCalculationRequest request = builder.buildRequest(state);
+
+    // Assert
+    assertThat(request.getClaimId()).isEqualTo(claimId.toString());
+  }
+
+  @Test
+  @DisplayName("Should handle missing Claim ID gracefully without NullPointerException")
+  void buildRequest_withNullClaimId_mapsToNull() {
+    // Arrange
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(null).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    // Act
+    FeeCalculationRequest request = builder.buildRequest(state);
+
+    // Assert
+    assertThat(request.getClaimId()).isNull();
+  }
+
+  @Test
+  @DisplayName("Should accurately map zero values across all number types")
+  void buildRequest_withZeroValues_mapsCorrectly() {
+    // Arrange
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .netProfitCostsAmount(BigDecimal.ZERO)
+            .travelTime(0)
+            .build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    // Act
+    FeeCalculationRequest request = builder.buildRequest(state);
+
+    // Assert
+    assertThat(request.getNetProfitCosts()).isEqualTo(0.0);
+    assertThat(request.getNetTravelCosts()).isEqualTo(0.0);
+  }
+
+  @Test
+  @DisplayName("Should safely build BoltOnType even when all nested bolt-on fields are null")
+  void buildRequest_withNullBoltOnFields_buildsEmptyBoltOnType() {
+    // Arrange
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .adjournedHearingFeeAmount(null)
+            .cmrhOralCount(null)
+            .cmrhTelephoneCount(null)
+            .hoInterview(null)
+            .isSubstantiveHearing(null)
+            .build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    // Act
+    FeeCalculationRequest request = builder.buildRequest(state);
+
+    // Assert
+    assertThat(request.getBoltOns()).isNotNull();
+    assertThat(request.getBoltOns().getBoltOnAdjournedHearing()).isNull();
+    assertThat(request.getBoltOns().getBoltOnCmrhOral()).isNull();
+    assertThat(request.getBoltOns().getBoltOnCmrhTelephone()).isNull();
+    assertThat(request.getBoltOns().getBoltOnHomeOfficeInterview()).isNull();
+    assertThat(request.getBoltOns().getBoltOnSubstantiveHearing()).isNull();
   }
 }

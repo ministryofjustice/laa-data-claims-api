@@ -18,4 +18,5 @@ public class ApiProperties {
   private final String accessToken;
   private final String authHeader;
   private final int readTimeoutMs;
+  private final int connectTimeoutMs;
 }

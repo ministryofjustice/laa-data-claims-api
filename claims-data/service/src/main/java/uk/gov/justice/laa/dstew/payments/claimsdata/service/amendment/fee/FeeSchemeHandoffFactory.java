@@ -87,14 +87,13 @@ public class FeeSchemeHandoffFactory {
         claimSummaryFees == null
             ? null
             : claimSummaryFees.stream()
-            .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
-            .orElse(null);
+                .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
+                .orElse(null);
 
     if (latestSummaryFee == null) {
       final String errorMessage =
           String.format(
-              "Cannot persist CalculatedFeeDetail: No summary fee for claim %s",
-              claim.getId());
+              "Cannot persist CalculatedFeeDetail: No summary fee for claim %s", claim.getId());
       log.error(errorMessage);
       throw new ClaimSummaryFeeNotFoundException(String.format(errorMessage));
     }

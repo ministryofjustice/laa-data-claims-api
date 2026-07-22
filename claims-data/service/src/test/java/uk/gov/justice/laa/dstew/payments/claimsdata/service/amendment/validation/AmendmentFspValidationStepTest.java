@@ -99,22 +99,22 @@ class AmendmentFspValidationStepTest {
 
   @Test
   @DisplayName(
-      "1595-B: Should skip execution when baseline state has no calculated fee details snapshot")
-  void validate_whenNoBeforeFeeCalculated_skipsFspCall() {
-    // Arrange: Explicitly trigger an update code, but missing prior snapshot bypasses the pricing
-    // step
+      "Should return validation error when baseline state has no calculated fee details snapshot")
+  void validate_whenNoBeforeFeeCalculated_returnsValidationError() {
+    // Arrange: Missing prior snapshot should now trigger a structured validation rejection
     ClaimAmendmentState state =
         stateBuilder
             .beforeState(beforeStateBuilder.calculatedFeeDetail(null).build())
-            .postAmendmentState(
-                postStateBuilder.feeCode("FEE02").build()) // Specific pricing change
+            .postAmendmentState(postStateBuilder.feeCode("FEE02").build())
             .build();
 
     // Act
     List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
 
     // Assert
-    assertThat(errors).isEmpty();
+    assertThat(errors).hasSize(1);
+    assertThat(errors.get(0).getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_BEFORE_STATE_CFD_MISSING.toString());
     verifyNoInteractions(fspClient);
   }
 

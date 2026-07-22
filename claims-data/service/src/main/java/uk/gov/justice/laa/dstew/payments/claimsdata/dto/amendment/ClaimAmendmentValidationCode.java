@@ -187,6 +187,13 @@ public enum ClaimAmendmentValidationCode {
 
   // ----- Fee Scheme Platform (FSP) Integration (DSTEW-1595) -----
 
+  /** The claim is in a non-amendable state - Calculated Fee Details are missing. */
+  INVALID_CLAIM_BEFORE_STATE_CFD_MISSING(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "Claim status %s is not amendable; Calculated Fee Details missing.",
+      null),
+
   /** The Fee Scheme Platform rejected the calculation request due to business rule validation. */
   INVALID_FSP_VALIDATION_FAILURE(
       ValidationSeverity.FATAL,

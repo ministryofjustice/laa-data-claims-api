@@ -1,7 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -10,7 +8,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -18,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -28,7 +24,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
@@ -77,7 +72,6 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   }
 
   @Autowired protected ClaimsApiProperties claimsApiProperties;
-  @MockitoBean AmendmentFspValidationStep fspValidationStep;
 
   private boolean originalAmendmentFlag;
 
@@ -89,7 +83,6 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
     // The non-PDA external calls succeed with the default fixtures; each test stubs the PDA
     // /schedules call itself to drive the behaviour under test.
     stubFeeSchemeEndpoints();
-    when(fspValidationStep.validate(any())).thenReturn(List.of());
   }
 
   @AfterEach

@@ -8,7 +8,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.ApiProperties;
 @ConfigurationProperties(prefix = "laa.claims.api.amendments.fee-scheme-platform-api")
 public class FeeSchemePlatformApiProperties extends ApiProperties {
 
-  public FeeSchemePlatformApiProperties(String url, String accessToken, int readTimeoutMs) {
-    super(url, accessToken, HttpHeaders.AUTHORIZATION, readTimeoutMs);
+  public FeeSchemePlatformApiProperties(
+      String url, String accessToken, int readTimeoutMs, int connectTimeoutMs) {
+    super(url, accessToken, HttpHeaders.AUTHORIZATION, readTimeoutMs, connectTimeoutMs);
   }
 }

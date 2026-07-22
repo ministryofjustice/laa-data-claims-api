@@ -83,7 +83,16 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
     if (state.getBeforeState().getCalculatedFeeDetail() == null) {
-      return List.of();
+      String claimId =
+          state.getBeforeState().getClaimId() != null
+              ? state.getBeforeState().getClaimId().toString()
+              : "unknown";
+
+      log.warn("Claim status {} is not amendable; Calculated Fee Details missing.", claimId);
+
+      return List.of(
+          ClaimAmendmentValidationError.of(
+              ClaimAmendmentValidationCode.INVALID_CLAIM_BEFORE_STATE_CFD_MISSING, claimId));
     }
 
     AmendmentDiff differences = diffAssembler.assemble(state);

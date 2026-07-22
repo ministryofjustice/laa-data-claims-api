@@ -54,9 +54,7 @@ public class WebClientConfiguration {
   public static WebClient createWebClient(final ApiProperties apiProperties) {
     HttpClient httpClient =
         HttpClient.create()
-            .option(
-                ChannelOption.CONNECT_TIMEOUT_MILLIS,
-                apiProperties.getReadTimeoutMs()) // or a dedicated connectTimeoutMs property
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, apiProperties.getConnectTimeoutMs())
             .responseTimeout(Duration.ofMillis(apiProperties.getReadTimeoutMs()));
 
     return WebClient.builder()
