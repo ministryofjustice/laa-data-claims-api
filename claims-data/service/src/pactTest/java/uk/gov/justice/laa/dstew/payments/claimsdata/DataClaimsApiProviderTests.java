@@ -523,6 +523,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no assessments exist for the claim")
   public void noAssessmentExistsForClaimId() {
     log.info("Setting up state: no assessments exist for the claim");
+    when(claimRepository.existsById(any(UUID.class))).thenReturn(true);
     when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
         .thenReturn(new PageImpl<>(Collections.emptyList()));
   }
@@ -539,7 +540,6 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .createdByUserId("User")
                 .createdOn(Instant.now())
                 .id(UUID.randomUUID())
-                .createdOn(Instant.now())
                 .build());
     when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
         .thenReturn(new PageImpl<>(assessments));

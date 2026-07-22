@@ -219,7 +219,6 @@ class ClaimMapperTest {
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
             .claimSummaryFee(new ArrayList<>())
-            .calculatedFeeDetails(new ArrayList<>())
             .submission(
                 Submission.builder()
                     .id(submissionId)

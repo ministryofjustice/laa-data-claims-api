@@ -409,7 +409,6 @@ public class ClaimsDataTestUtil {
                 CalculatedFeeDetail.builder()
                     .escapeCaseFlag(true)
                     .categoryOfLaw("Cat")
-                    .claimSummaryFee(ClaimSummaryFee.builder().id(UUID.randomUUID()).build())
                     .feeCode("ABC")
                     .feeCodeDescription("ABC Description")
                     .vatIndicator(true)
