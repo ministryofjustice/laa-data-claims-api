@@ -42,14 +42,13 @@ public class FeeSchemeHandoffFactory {
 
     // 1595-F: Check if the overall amount shifted numerically (Double vs BigDecimal)
     BigDecimal responseTotal =
-        calc.getTotalAmount() != null ? BigDecimal.valueOf(calc.getTotalAmount()) : BigDecimal.ZERO;
+        calc.getTotalAmount() != null ? BigDecimal.valueOf(calc.getTotalAmount()) : null;
 
-    // Note: Added null safety for previousFeeState.getTotalAmount() just in case!
     boolean priceChanged =
         previousFeeState == null
             || previousFeeState.getTotalAmount() == null
+            || responseTotal == null
             || previousFeeState.getTotalAmount().compareTo(responseTotal) != 0;
-
     // Build the database entity row structure
     CalculatedFeeDetail newFeeDetail = new CalculatedFeeDetail();
     newFeeDetail.setId(Uuid7.timeBasedUuid());
