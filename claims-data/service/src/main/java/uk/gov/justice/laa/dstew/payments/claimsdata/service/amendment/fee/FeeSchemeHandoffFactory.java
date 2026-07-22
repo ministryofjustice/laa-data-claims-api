@@ -13,6 +13,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -86,16 +87,16 @@ public class FeeSchemeHandoffFactory {
         claimSummaryFees == null
             ? null
             : claimSummaryFees.stream()
-                .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
-                .orElse(null);
+            .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
+            .orElse(null);
 
     if (latestSummaryFee == null) {
       final String errorMessage =
           String.format(
-              "Cannot persist CalculatedFeeDetail: claim has no ClaimSummaryFee- ID: %s",
-              claim.getId().toString());
+              "Cannot persist CalculatedFeeDetail: No summary fee for claim %s",
+              claim.getId());
       log.error(errorMessage);
-      throw new IllegalStateException(errorMessage);
+      throw new ClaimSummaryFeeNotFoundException(String.format(errorMessage));
     }
     newFeeDetail.setClaimSummaryFee(latestSummaryFee);
     return newFeeDetail;
