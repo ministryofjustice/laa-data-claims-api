@@ -78,13 +78,20 @@ public class FeeSchemeHandoffFactory {
     // Inherit the user ID from the amendment request
     newFeeDetail.setCreatedByUserId(claimAmendment.getCreatedByUserId());
 
-    // Link to the active ClaimSummaryFee (assuming the claim has one attached)
+    // Link to the active ClaimSummaryFee (required by CalculatedFeeDetail.claimSummaryFee)
     List<ClaimSummaryFee> claimSummaryFees = claim.getClaimSummaryFee();
-    if (claimSummaryFees != null) {
-      claimSummaryFees.stream()
-          .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
-          .ifPresent(newFeeDetail::setClaimSummaryFee);
+    ClaimSummaryFee latestSummaryFee =
+        claimSummaryFees == null
+            ? null
+            : claimSummaryFees.stream()
+                .max(Comparator.comparing(ClaimSummaryFee::getCreatedOn))
+                .orElse(null);
+
+    if (latestSummaryFee == null) {
+      throw new IllegalStateException(
+          "Cannot persist CalculatedFeeDetail: claim has no ClaimSummaryFee");
     }
+    newFeeDetail.setClaimSummaryFee(latestSummaryFee);
     return newFeeDetail;
   }
 }
