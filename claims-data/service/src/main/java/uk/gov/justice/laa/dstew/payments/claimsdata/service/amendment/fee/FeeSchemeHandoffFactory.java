@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class FeeSchemeHandoffFactory {
 
   /**
@@ -88,8 +90,12 @@ public class FeeSchemeHandoffFactory {
                 .orElse(null);
 
     if (latestSummaryFee == null) {
-      throw new IllegalStateException(
-          "Cannot persist CalculatedFeeDetail: claim has no ClaimSummaryFee");
+      final String errorMessage =
+          String.format(
+              "Cannot persist CalculatedFeeDetail: claim has no ClaimSummaryFee- ID: %s",
+              claim.getId().toString());
+      log.error(errorMessage);
+      throw new IllegalStateException(errorMessage);
     }
     newFeeDetail.setClaimSummaryFee(latestSummaryFee);
     return newFeeDetail;
