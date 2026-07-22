@@ -72,6 +72,8 @@ dependencyManagement {
         // Force tools.jackson jackson-core/jackson-databind 3.1.5 to fix Snyk vulnerability
         dependency "tools.jackson.core:jackson-core:3.1.5"
         dependency "tools.jackson.core:jackson-databind:3.1.5"
+        // Force netty-codec-http to fix Snyk vulnerability
+        dependency 'io.netty:netty-codec-http:4.2.16.Final'
     }
 }
 
