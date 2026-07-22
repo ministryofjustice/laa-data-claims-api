@@ -72,7 +72,7 @@ dependencyManagement {
 
 dependencies {
     implementation project(':claims-data:api')
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.1.0'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.3.0'
 
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'

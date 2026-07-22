@@ -8,7 +8,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.util.UUID;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -57,8 +56,8 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
   private static final String DUPLICATE_IN_ANOTHER_SUBMISSION =
       "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION";
-  private static final String DUPLICATE_IN_EXISTING_SUBMISSION =
-      "INVALID_CLAIM_HAS_DUPLICATE_IN_EXISTING_SUBMISSION";
+  private static final String DUPLICATE_IN_SAME_SUBMISSION =
+      "INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION";
 
   // A UCN distinct from CLAIM_1's seeded UCN (SEEDED_UNIQUE_CLIENT_NUMBER = 01011990/A/BCDE).
   private static final String OTHER_UCN = "02021990/B/CDEF";
@@ -137,18 +136,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
   }
 
   @Test
-  @Disabled(
-      "GAP (raise with DSTEW-1769 owner / BA): the amendment path does not surface a within/existing"
-          + "-submission duplicate. Seeding a sibling in the same submission that matches the "
-          + "post-amendment feeCode + UFN + UCN (even with the submission marked "
-          + "VALIDATION_SUCCEEDED) still commits (observed HTTP 204), whereas rule LH-1/CL-1 in the "
-          + "spec expects INVALID_CLAIM_HAS_DUPLICATE_IN_EXISTING_SUBMISSION. The amendment-path "
-          + "CLAIM_DUPLICATE_CLAIM validator appears to consider only other (prior) submissions; "
-          + "cross-submission detection is proven by the sibling tests above. Re-enable once the "
-          + "within-submission behaviour on the amendment path is confirmed.")
   @DisplayName(
       "within-submission duplicate: UCN amend into a sibling in the same submission is rejected "
-          + "as an existing-submission duplicate (GAP - see @Disabled reason)")
+          + "as a same-submission duplicate")
   void ucnAmendCreatingWithinSubmissionDuplicateIsRejected() throws Exception {
     final Long originalVersion = amendableClaim1().getVersion();
 
@@ -171,7 +161,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
-    assertRejectedAsDuplicate(result, DUPLICATE_IN_EXISTING_SUBMISSION);
+    assertRejectedAsDuplicate(result, DUPLICATE_IN_SAME_SUBMISSION);
     assertNothingPersisted(originalVersion);
   }
 
