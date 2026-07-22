@@ -27,9 +27,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -39,7 +39,7 @@ class AmendmentFspValidationStepTest {
 
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
-  @Mock private FeeSchemeSnapshotFactory snapshotFactory;
+  @Mock private ClaimStateSnapshotMapper claimStateSnapshotMapper;
   @Mock private AmendmentDiffAssembler diffAssembler;
   @InjectMocks private AmendmentFspValidationStep validationStep;
 
@@ -136,7 +136,7 @@ class AmendmentFspValidationStepTest {
         CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(150.00)).build();
 
     when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
-    when(snapshotFactory.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
+    when(claimStateSnapshotMapper.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
     AmendmentDiff pricingImpactingDiff =
         AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
     when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);

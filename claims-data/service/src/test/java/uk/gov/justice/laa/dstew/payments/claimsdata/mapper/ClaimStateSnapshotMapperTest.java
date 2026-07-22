@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.ASSESSED_TOTAL_INCL_VAT;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.CASE_CONCLUDED_DATE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.CASE_ID;
@@ -36,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
@@ -46,6 +48,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeTestDataHelper;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 @DisplayName("ClaimStateSnapshotMapper Tests")
 class ClaimStateSnapshotMapperTest {
@@ -347,5 +351,57 @@ class ClaimStateSnapshotMapperTest {
           .as("snapshot field '%s' should be mapped from a source", field.getName())
           .isNotNull();
     }
+  }
+
+  @Test
+  @DisplayName("Should return null when the FSP response is null")
+  void toSnapshot_withNullResponse_returnsNull() {
+    assertThat(mapper.toSnapshot(null)).isNull();
+  }
+
+  @Test
+  @DisplayName("Should map fully populated nested response successfully")
+  void toSnapshot_withFullResponse_mapsAllFields() {
+    // Arrange
+    FeeCalculationResponse response =
+        FeeSchemeTestDataHelper.createMockResponse(500.00, 300.00, 100.00);
+
+    // Act
+    CalculatedFeeDetailSnapshot snapshot = mapper.toSnapshot(response);
+
+    // Assert
+    assertThat(snapshot).isNotNull();
+    assertThat(snapshot.getFeeCode()).isEqualTo("FEE001");
+    assertThat(snapshot.getSchemeId()).isEqualTo("SCHEME-A");
+    assertThat(snapshot.getEscapeCaseFlag()).isFalse();
+
+    // Check BigDecimals converted from Doubles
+    assertThat(snapshot.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(500.00));
+    assertThat(snapshot.getNetProfitCostsAmount()).isEqualByComparingTo(BigDecimal.valueOf(300.00));
+    assertThat(snapshot.getBoltOnTotalFeeAmount()).isEqualByComparingTo(BigDecimal.valueOf(100.00));
+    assertThat(snapshot.getVatIndicator()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Should handle missing nested feeCalculation or boltOn structures gracefully")
+  void toSnapshot_withMissingNestedStructures_doesNotThrowNpe() {
+    // Arrange
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE002")
+            .feeCalculation(null); // Missing calculation block
+
+    // Act & Assert
+    CalculatedFeeDetailSnapshot snapshot = null;
+    try {
+      snapshot = mapper.toSnapshot(response);
+    } catch (NullPointerException e) {
+      fail("Should not throw NullPointerException on sparse structures");
+    }
+
+    assertThat(snapshot).isNotNull();
+    assertThat(snapshot.getFeeCode()).isEqualTo("FEE002");
+    assertThat(snapshot.getTotalAmount()).isNull();
+    assertThat(snapshot.getBoltOnTotalFeeAmount()).isNull();
   }
 }

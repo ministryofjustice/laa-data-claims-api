@@ -24,12 +24,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentChangeDetector;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
@@ -65,7 +65,7 @@ class ClaimAmendmentValidationServiceTest {
 
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
-  @Mock private FeeSchemeSnapshotFactory snapshotFactory;
+  @Mock private ClaimStateSnapshotMapper claimStateSnapshotMapper;
   @InjectMocks private AmendmentFspValidationStep amendmentFspValidationStep;
 
   private static ClaimAmendmentValidationService orchestratorWith(

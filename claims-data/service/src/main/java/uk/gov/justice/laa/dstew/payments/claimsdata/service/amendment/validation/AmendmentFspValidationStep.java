@@ -14,10 +14,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeSnapshotFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
@@ -66,8 +66,8 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
 
   private final FeeSchemeRequestBuilder requestBuilder;
   private final FeeSchemePlatformRestClient fspClient;
-  private final FeeSchemeSnapshotFactory snapshotFactory;
   private final AmendmentDiffAssembler diffAssembler;
+  private final ClaimStateSnapshotMapper claimStateSnapshotMapper;
 
   /**
    * Executes the trigger verification and processes the remote FSP recalculation sequence.
@@ -107,7 +107,8 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       // 1595-F: Populate snap containers into state slots for historical audit tracking
       CalculatedFeeDetailSnapshot beforeFeeSnapshot =
           state.getBeforeState().getCalculatedFeeDetail();
-      CalculatedFeeDetailSnapshot afterFeeSnapshot = snapshotFactory.toSnapshot(fspResponse);
+      CalculatedFeeDetailSnapshot afterFeeSnapshot =
+          claimStateSnapshotMapper.toSnapshot(fspResponse);
 
       state.setBeforeFee(beforeFeeSnapshot);
       state.setAfterFee(afterFeeSnapshot);
