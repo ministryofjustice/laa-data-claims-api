@@ -267,6 +267,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no claim exists")
   public void noClaimExists() {
     log.info("Setting up state: no claim exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
   }
 
