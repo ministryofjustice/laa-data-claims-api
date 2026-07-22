@@ -624,4 +624,34 @@ public class ClaimsDataTestUtil {
     return new ClaimHistoryEventRow(
         "SUBMISSION", SUBMITTED_DATE.toInstant(), PROVIDER_USER_ID, CLAIM_1_ID, metadata);
   }
+
+  /** A single ASSESSMENT history event mirroring the unified claim-history read model. */
+  public static ClaimHistoryEventRow getAssessmentHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("assessment_type", "ESCAPE_CASE_ASSESSMENT");
+    metadata.put("assessment_outcome", "REDUCED_TO_FIXED_FEE");
+    metadata.put("assessment_reason", "Escape fee case assessment");
+    return new ClaimHistoryEventRow(
+        "ASSESSMENT",
+        SUBMITTED_DATE.plusHours(1).toInstant(),
+        PROVIDER_USER_ID,
+        Uuid7.timeBasedUuid(),
+        metadata);
+  }
+
+  /**
+   * A single VOID history event mirroring the unified claim-history read model. A void carries only
+   * the type and reason - never an outcome.
+   */
+  public static ClaimHistoryEventRow getVoidHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("assessment_type", "VOID");
+    metadata.put("assessment_reason", "Voided in error");
+    return new ClaimHistoryEventRow(
+        "VOID",
+        SUBMITTED_DATE.plusHours(2).toInstant(),
+        PROVIDER_USER_ID,
+        Uuid7.timeBasedUuid(),
+        metadata);
+  }
 }
