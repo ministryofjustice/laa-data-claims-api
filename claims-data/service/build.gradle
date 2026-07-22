@@ -72,8 +72,8 @@ dependencyManagement {
 
 dependencies {
     implementation project(':claims-data:api')
-    implementation project(':reference-fee-scheme-platform-api')
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.1.0'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.2.2'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.2.2'
 
     //Enable access token authentication
     implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
