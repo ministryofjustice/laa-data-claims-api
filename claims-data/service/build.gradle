@@ -57,6 +57,11 @@ dependencyManagement {
             entry 'sentry-logback'
         }
 
+        imports {
+            // Upgrade to fix vulnerabilities in netty
+            mavenBom('io.netty:netty-bom:4.2.16.Final')
+        }
+
         // === INSERT YOUR OVERRIDES HERE ===
         // Force jackson-core 2.x to fix Snyk vulnerability
         dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
