@@ -6,15 +6,20 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Claim;
-import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers.ClaimFields;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.pda.PdaRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 
@@ -56,24 +61,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
 @RequiredArgsConstructor
 public class AmendmentExternalValidationStep implements ClaimAmendmentValidationStep {
 
-  private static final String PDA_VALIDATION_STEP = "CLAIM_CATEGORY_OF_LAW";
+  private static final ClaimValidatorCode PDA_VALIDATION_STEP =
+      ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR;
 
-  protected static final String[] CLAIM_VALIDATOR_CODES =
-      new String[] {
-        "CLAIM_SCHEMA",
-        "CLAIM_CASE_DATES",
-        "CLAIM_MATTER_TYPE",
-        "CLAIM_STAGE_REACHED",
-        "CLAIM_CLIENT_DATE_OF_BIRTH",
-        "CLAIM_DISBURSEMENT_START_DATE",
-        "CLAIM_DISBURSEMENTS",
-        "CLAIM_DUPLICATE_CLAIM",
-        "CLAIM_SCHEDULE_REFERENCE",
-        "CLAIM_MANDATORY_FIELD",
-        "CLAIM_OUTCOME_CODE",
-        PDA_VALIDATION_STEP,
-        "CLAIM_UNIQUE_FILE_NUMBER"
-      };
+  protected static final ClaimValidatorCode[] CLAIM_VALIDATOR_CODES = ClaimValidatorCode.values();
 
   private final ValidationService validationService;
   private final AmendmentDiffAssembler diffAssembler;
@@ -84,13 +75,23 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
 
     AmendmentDiff differences = diffAssembler.assemble(state);
 
-    Set<String> validationCodes = new LinkedHashSet<>(List.of(CLAIM_VALIDATOR_CODES));
+    Set<ClaimValidatorCode> validationCodes = new LinkedHashSet<>(List.of(CLAIM_VALIDATOR_CODES));
     if (!requiresPda(differences, state.getPostAmendmentState())) {
       validationCodes.remove(PDA_VALIDATION_STEP);
     }
 
     Claim claim = validationClaimMapper.toValidationClaim(state.getPostAmendmentState());
-    ValidationResult validationResult = validationService.validateClaim(claim, validationCodes);
+    ClaimValidationResult validationResult =
+        validationService.validateClaim(claim, validationCodes);
+
+    // Terminal gate: a fee code may only change to another fee code within the same Area of Law.
+    // The Area of Law of the (new) fee code is resolved by the reusable validation package during
+    // the call above and surfaced on the result's resolvedData, so no additional lookup is made.
+    ClaimAmendmentValidationError areaOfLawRejection =
+        feeCodeAreaOfLawRejection(differences, validationResult, state);
+    if (areaOfLawRejection != null) {
+      return List.of(areaOfLawRejection);
+    }
 
     if (validationResult == null || validationResult.getIssues() == null) {
       return List.of();
@@ -100,6 +101,67 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
         .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR)
         .map(ClaimAmendmentValidationError::from)
         .toList();
+  }
+
+  /**
+   * Determines whether the amendment changes the fee code to a code in a different Area of Law, and
+   * if so builds the terminal {@link
+   * ClaimAmendmentValidationCode#INVALID_FEE_CODE_AREA_OF_LAW_CHANGE
+   * INVALID_FEE_CODE_AREA_OF_LAW_CHANGE} rejection.
+   *
+   * <p>The rule only applies when {@code claim.feeCode} is one of the changed diff fields. The Area
+   * of Law of the new fee code is read from the reusable validation package's {@link
+   * ResolvedClaimData#feeSchemeAreaOfLaw()} (populated during {@link
+   * ValidationService#validateClaim(Claim, Set)}); the claim's current Area of Law is taken from
+   * the before-state snapshot. The comparison is an <em>exact</em> match against the {@link
+   * Enum#name() name} form the Fee Scheme reports (e.g. {@code "LEGAL_HELP"}): any other value is
+   * treated as a different Area of Law. When the resolved Area of Law is absent, no rejection is
+   * raised here - that condition is surfaced as a fee-scheme technical issue by the reusable
+   * validators, so this gate does not duplicate it.
+   *
+   * @param diff the amendment diff; may be {@code null}
+   * @param result the reusable validation result carrying the resolved fee-scheme data
+   * @param state the in-memory amendment state
+   * @return the terminal rejection error, or {@code null} if the gate does not fire
+   */
+  private ClaimAmendmentValidationError feeCodeAreaOfLawRejection(
+      AmendmentDiff diff, ClaimValidationResult result, ClaimAmendmentState state) {
+    if (diff == null || diff.changes() == null || result == null) {
+      return null;
+    }
+    boolean feeCodeChanged =
+        diff.changes().stream()
+            .map(DiffEntry::fieldIdentifier)
+            .anyMatch(ClaimFields.FEE_CODE::equals);
+    if (!feeCodeChanged) {
+      return null;
+    }
+
+    ResolvedClaimData resolved = result.getResolvedData();
+    String resolvedAreaOfLaw = resolved == null ? null : resolved.feeSchemeAreaOfLaw();
+    AreaOfLaw claimAreaOfLaw =
+        state.getBeforeState() == null ? null : state.getBeforeState().getAreaOfLaw();
+
+    // Nothing to compare against: a null/blank resolved area of law is surfaced by the reusable
+    // validators as a fee-scheme technical error, so we do not add a rejection here.
+    if (resolvedAreaOfLaw == null || resolvedAreaOfLaw.isBlank() || claimAreaOfLaw == null) {
+      return null;
+    }
+
+    // Exact match required. The Fee Scheme reports the area of law in the enum name form (e.g.
+    // "LEGAL_HELP"); any other value - including a differently-formatted one such as "LEGAL HELP" -
+    // is treated as a different area of law and rejected. No normalisation is applied.
+    if (resolvedAreaOfLaw.equals(claimAreaOfLaw.name())) {
+      return null;
+    }
+
+    String newFeeCode =
+        state.getPostAmendmentState() == null ? null : state.getPostAmendmentState().getFeeCode();
+    return ClaimAmendmentValidationError.of(
+        ClaimAmendmentValidationCode.INVALID_FEE_CODE_AREA_OF_LAW_CHANGE,
+        newFeeCode,
+        resolvedAreaOfLaw,
+        claimAreaOfLaw.name());
   }
 
   /**

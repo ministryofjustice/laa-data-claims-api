@@ -41,6 +41,48 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
+  void mapsAssessmentEvent_withFullMetadata() throws SQLException {
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getObject("event_timestamp", OffsetDateTime.class))
+        .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
+    when(rs.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
+    when(rs.getString("event_type")).thenReturn("ASSESSMENT");
+    when(rs.getString("actor_id")).thenReturn("assessor-user-id");
+    when(rs.getString("metadata"))
+        .thenReturn(
+            "{\"assessment_type\":\"ESCAPE_CASE_ASSESSMENT\","
+                + "\"assessment_outcome\":\"REDUCED_TO_FIXED_FEE\","
+                + "\"assessment_reason\":\"Escape fee case assessment\"}");
+
+    ClaimHistoryEventRow row = mapper.mapRow(rs, 0);
+
+    assertThat(row.eventType()).isEqualTo("ASSESSMENT");
+    assertThat(row.metadata().get("assessment_type").asText()).isEqualTo("ESCAPE_CASE_ASSESSMENT");
+    assertThat(row.metadata().get("assessment_outcome").asText()).isEqualTo("REDUCED_TO_FIXED_FEE");
+    assertThat(row.metadata().get("assessment_reason").asText())
+        .isEqualTo("Escape fee case assessment");
+  }
+
+  @Test
+  void mapsVoidEvent_withoutOutcome() throws SQLException {
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getObject("event_timestamp", OffsetDateTime.class))
+        .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
+    when(rs.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
+    when(rs.getString("event_type")).thenReturn("VOID");
+    when(rs.getString("actor_id")).thenReturn("assessor-user-id");
+    when(rs.getString("metadata"))
+        .thenReturn("{\"assessment_type\":\"VOID\",\"assessment_reason\":\"Voided in error\"}");
+
+    ClaimHistoryEventRow row = mapper.mapRow(rs, 0);
+
+    assertThat(row.eventType()).isEqualTo("VOID");
+    assertThat(row.metadata().get("assessment_type").asText()).isEqualTo("VOID");
+    assertThat(row.metadata().get("assessment_reason").asText()).isEqualTo("Voided in error");
+    assertThat(row.metadata().has("assessment_outcome")).isFalse();
+  }
+
+  @Test
   void mapsNullTimestamp_toNullInstant() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class)).thenReturn(null);
