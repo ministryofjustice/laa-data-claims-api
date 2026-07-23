@@ -121,9 +121,9 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    *
    * @param submissionId the owning submission
    * @param state customises the claim builder (e.g. fee code and dates)
-   * @return the new claim id
+   * @return the new claim
    */
-  protected UUID createAmendableClaim(UUID submissionId, Consumer<Claim.ClaimBuilder> state) {
+  protected Claim createAmendableClaim(UUID submissionId, Consumer<Claim.ClaimBuilder> state) {
     Claim.ClaimBuilder builder =
         Claim.builder()
             .id(Uuid7.timeBasedUuid())
@@ -135,8 +135,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
             .createdByUserId(CREATED_BY)
             .createdOn(CREATED_ON);
     state.accept(builder);
-    Claim claim = claimRepository.saveAndFlush(builder.build());
-    return claim.getId();
+    return claimRepository.saveAndFlush(builder.build());
   }
 
   /**

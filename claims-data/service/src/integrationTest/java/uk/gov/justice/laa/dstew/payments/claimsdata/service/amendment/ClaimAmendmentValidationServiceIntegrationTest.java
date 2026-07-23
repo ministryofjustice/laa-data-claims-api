@@ -23,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
@@ -66,6 +67,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
   private static final String SEEDED_REASON = "PROVIDER_ERROR";
   // INCORRECT_MEANS_ASSESSMENT is seeded only for CONTRACT_MANAGEMENT / ASSURANCE, never PROVIDER.
   private static final String SEEDED_REASON_OTHER_PARTY = "INCORRECT_MEANS_ASSESSMENT";
+  public static final String NOT_A_UUID = "not-a-uuid";
 
   @Autowired private ClaimAmendmentValidationService validationService;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
@@ -104,8 +106,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
     void voidClaimReturnsOnlyFatalAndSkipsLaterSteps() {
       // Requested-by, reason and user id are all invalid too, but the fatal status error must
       // short-circuit the flow before the reference and user-id steps run.
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", "not-a-uuid");
+      ClaimAmendmentState state = stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", NOT_A_UUID);
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
@@ -194,7 +195,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
     @DisplayName("a structurally invalid user id is rejected while the metadata is valid")
     void invalidUserId() {
       ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, "not-a-uuid");
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, NOT_A_UUID);
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
@@ -248,6 +249,59 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
                             .toString());
                 assertThat(error.isFatal()).isTrue();
               });
+    }
+  }
+
+  @Nested
+  @DisplayName("field amendability gate (Step 12 aggregation)")
+  class FieldAmendabilityGate {
+
+    @Test
+    @DisplayName("a non-amendable changed field is collected and aggregates with other errors")
+    void nonAmendableFieldAggregatesWithOtherErrors() {
+      ClaimAmendmentState state = stateWithNonAmendableChange();
+
+      assertThat(validationService.validateAmendmentRequest(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .contains(
+              ClaimAmendmentValidationCode.INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW.toString(),
+              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT.toString());
+    }
+
+    /**
+     * Builds a state whose requested change is not amendable for the claim's area of law, alongside
+     * a structurally invalid user id. Scheme ID is amendable for Crime Lower only, so changing it
+     * on a Legal Help claim must be rejected by the amendability gate; the invalid user id proves
+     * the gate's field-level failure aggregates with other collected errors.
+     */
+    private ClaimAmendmentState stateWithNonAmendableChange() {
+      ClaimStateSnapshot before =
+          ClaimStateSnapshot.builder()
+              .claimId(Uuid7.timeBasedUuid())
+              .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+              .feeCode(CLAIM_FEE_CODE)
+              .status(ClaimStatus.VALID)
+              .lineNumber(1)
+              .netDisbursementAmount(new BigDecimal("0.00"))
+              .disbursementsVatAmount(new BigDecimal("0.00"))
+              .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
+              .schemeId("SCHEME-1")
+              .version(1L)
+              .build();
+
+      ClaimStateSnapshot after = before.toBuilder().schemeId("SCHEME-2").build();
+
+      return ClaimAmendmentState.builder()
+          .beforeState(before)
+          .postAmendmentState(after)
+          .requestPayload(
+              ClaimAmendmentPayload.builder()
+                  .amendmentRequestedBy(JsonNullable.of(SEEDED_PARTY))
+                  .amendmentReasonCode(JsonNullable.of(SEEDED_REASON))
+                  .amendmentUserId(JsonNullable.of(NOT_A_UUID))
+                  .version(JsonNullable.of(1L))
+                  .build())
+          .build();
     }
   }
 

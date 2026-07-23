@@ -94,9 +94,9 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
 
     // Two claims under the same office, with the same effective-date-determining state, so both
     // amendments resolve to the same PDA cache key (officeCode + effectiveDate).
-    UUID firstClaim =
+    Claim firstClaim =
         createAmendableClaim(submissionId, b -> b.feeCode("FEE1").caseStartDate(sharedStartDate));
-    UUID secondClaim =
+    Claim secondClaim =
         createAmendableClaim(submissionId, b -> b.feeCode("FEE1").caseStartDate(sharedStartDate));
 
     ClaimPatch firstPatch = metadataPatch();
@@ -104,8 +104,8 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     ClaimPatch secondPatch = metadataPatch();
     secondPatch.setFeeCode("FEE2");
 
-    performPatch(submissionId, firstClaim, firstPatch); // cache miss -> one outbound call
-    performPatch(submissionId, secondClaim, secondPatch); // cache hit -> no outbound call
+    performPatch(submissionId, firstClaim.getId(), firstPatch); // cache miss -> one outbound call
+    performPatch(submissionId, secondClaim.getId(), secondPatch); // cache hit -> no outbound call
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(1));
   }
@@ -118,12 +118,12 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     stubProviderSchedulesOk();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId = createAmendableClaim(submissionId, field.claimState);
+    Claim claim = createAmendableClaim(submissionId, field.claimState);
 
     ClaimPatch patch = metadataPatch();
     field.patchMutator.accept(patch);
 
-    performPatch(submissionId, claimId, patch);
+    performPatch(submissionId, claim.getId(), patch);
 
     // Cache miss -> exactly one synchronous attempt; resilience4j pdaRetry.maxAttempts=1 -> no
     // retry.
@@ -136,7 +136,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     stubProviderSchedulesOk();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId =
+    Claim claim =
         createAmendableClaim(
             submissionId,
             b ->
@@ -148,7 +148,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     ClaimPatch patch = metadataPatch();
     patch.setMatterTypeCode("MTC2");
 
-    performPatch(submissionId, claimId, patch);
+    performPatch(submissionId, claim.getId(), patch);
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
   }
@@ -165,7 +165,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     stubProviderSchedulesWithDelay(Duration.ofMillis(responseDelayMs));
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId =
+    Claim claim =
         createAmendableClaim(
             submissionId,
             b -> b.feeCode("FEE1").caseStartDate(LocalDate.of(2097, Month.JANUARY, 1)));
@@ -174,7 +174,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     patch.setFeeCode("FEE2");
 
     long startNanos = System.nanoTime();
-    MvcResult result = performPatch(submissionId, claimId, patch);
+    MvcResult result = performPatch(submissionId, claim.getId(), patch);
     long elapsedMs = Duration.ofNanos(System.nanoTime() - startNanos).toMillis();
 
     // The configured external-service timeout is reached: a single attempt is made and no retry is

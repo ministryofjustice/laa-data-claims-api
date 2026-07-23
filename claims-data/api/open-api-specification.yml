@@ -12,6 +12,8 @@ tags:
     description: Operations related to submissions
   - name: Claims
     description: Operations related to claims
+  - name: Claim History
+    description: Unified chronological history timeline for a single claim
   - name: Matter Starts
     description: Operations related to matter starts
   - name: System References
@@ -1002,6 +1004,73 @@ paths:
           description: 'Forbidden'
         '404':
           description: Submission or claim not found
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+
+  /api/v1/claims/{claimId}/history:
+    get:
+      operationId: getClaimHistory
+      tags:
+        - Claim History
+      summary: Get a claim's unified history timeline
+      description: |
+        Returns the complete history of a single claim as one unified, chronologically ordered
+        timeline (newest event first). The timeline is composed from multiple business tables
+        (submission, amendments, assessments) in a single query and ordered purely by event time,
+        with the UUIDv7 source id as a deterministic tie-breaker.
+
+        **Call pattern (one-response):** history is retrieved with a single request by claim id.
+        There are no split summary/detail endpoints, expansion flags or event-type/date-range
+        filters; a consumer populates its history page from this one response, optionally bounding
+        the page size with `limit`. Pagination is not offered yet (a future keyset/cursor overload
+        may be added without reshaping this contract).
+
+        **Default ordering:** `event_timestamp` descending (newest first), with the UUIDv7
+        `source_id` descending as the deterministic same-timestamp tie-break. `event_type` never
+        participates in ordering.
+
+        **Actor fallback:** `actor_id` is always populated; where the source record holds no user
+        id the agreed `SYSTEM` value is returned rather than the field being omitted.
+
+        **Metadata extension point:** every event shares the common envelope and carries its
+        event-specific attributes in the open `metadata` container, so later event types extend the
+        contract without reshaping it.
+
+        **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of timeline events to return (page size).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Claim history timeline retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/claim_history_result_set'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: Claim not found
         '429':
           description: 'Too many requests'
         '500':
@@ -2405,6 +2474,53 @@ components:
           type: string
           format: date-time
           description: Date and time the assessment was created
+    claim_history_event_type:
+      type: string
+      enum:
+        - SUBMISSION
+        - AMENDMENT
+        - ASSESSMENT
+        - VOID
+      description: |
+        Discriminator identifying which business source produced the timeline event.
+    claim_history_event:
+      type: object
+      description: A single entry on a claim's history timeline.
+      properties:
+        event_type:
+          $ref: '#/components/schemas/claim_history_event_type'
+        event_timestamp:
+          type: string
+          format: date-time
+          description: Business time the event occurred; the sole driver of timeline ordering.
+        actor_id:
+          type: string
+          description: >
+            The user who caused the event. Always populated; "SYSTEM" when the source record has no
+            user id.
+        source_id:
+          type: string
+          format: uuid
+          description: >
+            Primary key (UUIDv7) of the originating row, used as the deterministic ordering
+            tie-breaker and future keyset cursor.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Event-specific attributes, shaped per event type.
+    claim_history_result_set:
+      type: object
+      description: A claim's history events in reverse-chronological order.
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+          description: The claim the timeline belongs to.
+        events:
+          type: array
+          description: Timeline events, newest first.
+          items:
+            $ref: '#/components/schemas/claim_history_event'
     page:
       type: 'object'
       properties:

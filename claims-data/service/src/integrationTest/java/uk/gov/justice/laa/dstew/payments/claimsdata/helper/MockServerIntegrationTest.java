@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
@@ -241,6 +242,94 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
     mockServerClient
         .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION))
         .respond(okJsonFile("fee-scheme/post-fee-calculation-200.json"));
+  }
+
+  /**
+   * Overrides the fee-details response so the {@code areaOfLaw} the claims-validation-core library
+   * resolves for the (post-amendment) fee code is a specific value. This helper clears any existing
+   * fee-details expectations first, so the override becomes the only match for any fee code.
+   *
+   * <p>Used by the fee-code Area-of-Law amendment gate tests to drive a same-AoL (accepted) or
+   * different-AoL (rejected) outcome. {@code feeType} is kept non-blank so the library's fee-scheme
+   * resolution succeeds and reaches the area-of-law comparison.
+   *
+   * @param areaOfLaw the area of law the fee-details endpoint should report (e.g. {@code "LEGAL
+   *     HELP"} or {@code "CRIME LOWER"})
+   */
+  protected void stubFeeDetailsAreaOfLaw(String areaOfLaw) {
+    String body =
+        "{\"categoryOfLawCodes\":[\"string\"],\"feeCodeDescription\":\"test description\","
+            + "\"feeType\":\"HOURLY\",\"areaOfLaw\":\""
+            + areaOfLaw
+            + "\"}";
+    // Remove any previously-registered fee-details expectation (e.g. the default catch-all set up
+    // in test setup) so this override is the only match, regardless of registration order.
+    HttpRequest feeDetailsRequest =
+        request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*");
+    mockServerClient.clear(feeDetailsRequest, ClearType.EXPECTATIONS);
+    mockServerClient.when(feeDetailsRequest).respond(okJson(body));
+  }
+
+  /**
+   * Overrides the fee-details endpoint to return the supplied HTTP status with no body, for any fee
+   * code. Used to exercise the controlled technical no-save path when the Fee Scheme API is
+   * unavailable (e.g. {@code 500}) or the fee code is not found ({@code 404}). Clears the default
+   * fee-details expectation first so this override is the only match.
+   *
+   * @param statusCode the status code the fee-details endpoint should return
+   */
+  protected void stubFeeDetailsStatus(int statusCode) {
+    HttpRequest feeDetailsRequest =
+        request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*");
+    mockServerClient.clear(feeDetailsRequest, ClearType.EXPECTATIONS);
+    mockServerClient
+        .when(feeDetailsRequest)
+        .respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /**
+   * Overrides the fee-details endpoint to return {@code 200} only after the supplied delay, for any
+   * fee code. Used to trip the configured fee-scheme read timeout: set the delay above {@code
+   * fee-scheme-platform-api.readTimeoutMs} to force a timeout (the controlled technical no-save
+   * path). Clears the default fee-details expectation first so this override is the only match.
+   *
+   * @param delay how long the stub waits before responding
+   * @throws IOException if the response fixture cannot be read
+   */
+  protected void stubFeeDetailsWithDelay(Duration delay) throws IOException {
+    HttpRequest feeDetailsRequest =
+        request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*");
+    mockServerClient.clear(feeDetailsRequest, ClearType.EXPECTATIONS);
+    mockServerClient
+        .when(feeDetailsRequest)
+        .respond(
+            okJsonFile("fee-scheme/get-fee-details-200.json")
+                .withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /**
+   * Verifies how many times the fee-details endpoint was called, regardless of fee code. Because
+   * MockServer expectations are reset after each test, the count reflects only the calls made by
+   * the current test - so this doubles as the fee-details cache hit/miss assertion.
+   *
+   * @param times the expected number of outbound fee-details calls
+   */
+  protected void verifyFeeDetailsCalled(VerificationTimes times) {
+    mockServerClient.verify(
+        request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*"), times);
+  }
+
+  /**
+   * Verifies how many times the fee-details endpoint was called for a specific fee code. Lets a
+   * test assert per-fee-code cache behaviour (e.g. a positive result is cached while a not-found
+   * result is re-fetched).
+   *
+   * @param feeCode the fee code path segment to match
+   * @param times the expected number of outbound fee-details calls for that fee code
+   */
+  protected void verifyFeeDetailsCalledForFeeCode(String feeCode, VerificationTimes times) {
+    mockServerClient.verify(
+        request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + feeCode), times);
   }
 
   /**

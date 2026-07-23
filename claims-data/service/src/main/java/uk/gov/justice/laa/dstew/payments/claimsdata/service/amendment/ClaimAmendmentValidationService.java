@@ -17,6 +17,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
  * Runs the synchronous claim amendment flow as an ordered list of validation steps executed in
@@ -70,6 +71,7 @@ public class ClaimAmendmentValidationService {
           ClaimVersionValidationStep.class,
           ClaimStatusValidationStep.class,
           AssessedClaimPricingValidationStep.class,
+          FieldAmendabilityValidationStep.class,
           AmendmentUserIdValidationStep.class,
           AmendmentReferenceValidationStep.class,
           // External steps sit inline with the rest (they make PDA/FSP calls but are ordinary
