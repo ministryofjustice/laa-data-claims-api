@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -116,6 +117,181 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     UUID higher = idA.compareTo(idB) > 0 ? idA : idB;
     UUID lower = idA.compareTo(idB) > 0 ? idB : idA;
     assertThat(assessmentOrder).containsExactly(higher, lower);
+  }
+
+  @Test
+  @DisplayName("Maps an ESCAPE_CASE_ASSESSMENT row into an ASSESSMENT event with full metadata")
+  void mapsEscapeCaseAssessment_toAssessmentEvent() {
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        assessmentId,
+        AssessmentType.ESCAPE_CASE_ASSESSMENT,
+        AssessmentOutcome.REDUCED_TO_FIXED_FEE,
+        "Escape fee case assessment");
+
+    ClaimHistoryEventRow event = findAssessmentEvent(assessmentId);
+
+    assertThat(event.eventType()).isEqualTo("ASSESSMENT");
+    assertThat(event.actorId()).isEqualTo(USER_ID);
+    assertThat(event.eventTimestamp()).isNotNull();
+    assertThat(event.metadata().get("assessment_type").asText())
+        .isEqualTo("ESCAPE_CASE_ASSESSMENT");
+    assertThat(event.metadata().get("assessment_outcome").asText())
+        .isEqualTo("REDUCED_TO_FIXED_FEE");
+    assertThat(event.metadata().get("assessment_reason").asText())
+        .isEqualTo("Escape fee case assessment");
+  }
+
+  @Test
+  @DisplayName("Maps a STAGE_DISBURSEMENT_ASSESSMENT row into an ASSESSMENT event")
+  void mapsStageDisbursementAssessment_toAssessmentEvent() {
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        assessmentId,
+        AssessmentType.STAGE_DISBURSEMENT_ASSESSMENT,
+        AssessmentOutcome.PAID_IN_FULL,
+        "Stage disbursement assessment");
+
+    ClaimHistoryEventRow event = findAssessmentEvent(assessmentId);
+
+    assertThat(event.eventType()).isEqualTo("ASSESSMENT");
+    assertThat(event.metadata().get("assessment_type").asText())
+        .isEqualTo("STAGE_DISBURSEMENT_ASSESSMENT");
+    assertThat(event.metadata().get("assessment_outcome").asText()).isEqualTo("PAID_IN_FULL");
+    assertThat(event.metadata().get("assessment_reason").asText())
+        .isEqualTo("Stage disbursement assessment");
+  }
+
+  @Test
+  @DisplayName("Maps an assessment_type = 'VOID' row into a VOID event without an outcome")
+  void mapsVoidAssessment_toVoidEvent() {
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    // A void carries no outcome; assessment_reason holds the void reason.
+    persistAssessment(assessmentId, AssessmentType.VOID, null, "Voided in error");
+
+    ClaimHistoryEventRow event = findAssessmentEvent(assessmentId);
+
+    assertThat(event.eventType()).isEqualTo("VOID");
+    assertThat(event.metadata().get("assessment_type").asText()).isEqualTo("VOID");
+    assertThat(event.metadata().get("assessment_reason").asText()).isEqualTo("Voided in error");
+    // VOID metadata intentionally omits the outcome key entirely.
+    assertThat(event.metadata().has("assessment_outcome")).isFalse();
+  }
+
+  @Test
+  @DisplayName("Maps a legacy row with a null assessment_type into an ASSESSMENT event")
+  void mapsLegacyNullAssessmentType_toAssessmentEvent() {
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        assessmentId,
+        AssessmentType.ESCAPE_CASE_ASSESSMENT,
+        AssessmentOutcome.NILLED,
+        "Legacy assessment");
+
+    // assessment_type is NOT NULL in the schema; relax it for this rolled-back transaction so we
+    // can
+    // reproduce a genuine legacy row whose type was never populated.
+    jdbcClient
+        .sql("ALTER TABLE claims.assessment ALTER COLUMN assessment_type DROP NOT NULL")
+        .update();
+    jdbcClient
+        .sql("UPDATE claims.assessment SET assessment_type = NULL WHERE id = :id")
+        .param("id", assessmentId)
+        .update();
+
+    ClaimHistoryEventRow event = findAssessmentEvent(assessmentId);
+
+    // A null type falls through the CASE to ASSESSMENT; no fabricated type value is invented.
+    assertThat(event.eventType()).isEqualTo("ASSESSMENT");
+    assertThat(event.metadata().get("assessment_type").isNull()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Retains a null assessment_outcome as an explicit JSON null (no fabricated value)")
+  void retainsNullAssessmentOutcome_asJsonNull() {
+    UUID assessmentId = Uuid7.timeBasedUuid();
+    persistAssessment(assessmentId, AssessmentType.ESCAPE_CASE_ASSESSMENT, null, "Outcome pending");
+
+    ClaimHistoryEventRow event = findAssessmentEvent(assessmentId);
+
+    assertThat(event.eventType()).isEqualTo("ASSESSMENT");
+    // The key is present but null - no default or placeholder is substituted.
+    assertThat(event.metadata().get("assessment_outcome").isNull()).isTrue();
+    assertThat(event.metadata().get("assessment_reason").asText()).isEqualTo("Outcome pending");
+  }
+
+  @Test
+  @DisplayName("Interleaves assessment and void events chronologically with the submission event")
+  void interleavesAssessmentAndVoidEventsChronologicallyWithSubmission() {
+    Instant submissionTimestamp =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 50).getFirst().eventTimestamp();
+
+    UUID earlierAssessmentId = Uuid7.timeBasedUuid();
+    UUID laterVoidId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        earlierAssessmentId,
+        AssessmentType.ESCAPE_CASE_ASSESSMENT,
+        AssessmentOutcome.PAID_IN_FULL,
+        "Before submission");
+    persistAssessment(laterVoidId, AssessmentType.VOID, null, "After submission");
+
+    // Position the assessment before, and the void after, the submission event (created_on is set
+    // by
+    // @CreationTimestamp on insert, so force deterministic timestamps with a raw update).
+    forceCreatedOn(earlierAssessmentId, submissionTimestamp.minusSeconds(60));
+    forceCreatedOn(laterVoidId, submissionTimestamp.plusSeconds(60));
+
+    List<ClaimHistoryEventRow> events = claimHistoryRepository.findHistory(CLAIM_1_ID, 50);
+
+    // Newest first: VOID (after) -> SUBMISSION -> ASSESSMENT (before).
+    assertThat(events).hasSize(3);
+    assertThat(events)
+        .extracting(ClaimHistoryEventRow::eventType)
+        .containsExactly("VOID", "SUBMISSION", "ASSESSMENT");
+    assertThat(events)
+        .extracting(ClaimHistoryEventRow::sourceId)
+        .containsExactly(laterVoidId, CLAIM_1_ID, earlierAssessmentId);
+  }
+
+  @Test
+  @DisplayName("Returns no assessment or void events when the claim has no assessment rows")
+  void returnsNoAssessmentOrVoidEvents_whenClaimHasNoAssessments() {
+    List<ClaimHistoryEventRow> events = claimHistoryRepository.findHistory(CLAIM_1_ID, 50);
+
+    assertThat(events)
+        .extracting(ClaimHistoryEventRow::eventType)
+        .doesNotContain("ASSESSMENT", "VOID");
+  }
+
+  private ClaimHistoryEventRow findAssessmentEvent(UUID assessmentId) {
+    return claimHistoryRepository.findHistory(CLAIM_1_ID, 50).stream()
+        .filter(event -> assessmentId.equals(event.sourceId()))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private void persistAssessment(
+      UUID id, AssessmentType type, AssessmentOutcome outcome, String reason) {
+    assessmentRepository.save(
+        getAssessmentBuilder()
+            .id(id)
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
+            .assessmentType(type)
+            .assessmentOutcome(outcome)
+            .assessmentReason(reason)
+            .allowedTotalVat(new BigDecimal("100.00"))
+            .allowedTotalInclVat(new BigDecimal("120.00"))
+            .build());
+    assessmentRepository.flush();
+  }
+
+  private void forceCreatedOn(UUID assessmentId, Instant createdOn) {
+    jdbcClient
+        .sql("UPDATE claims.assessment SET created_on = :ts WHERE id = :id")
+        .param("ts", OffsetDateTime.ofInstant(createdOn, ZoneOffset.UTC))
+        .param("id", assessmentId)
+        .update();
   }
 
   private Assessment sameTimestampAssessment(UUID id) {

@@ -1,13 +1,6 @@
 # Build stage
 FROM gradle:8-jdk21 AS builder
 
-# 1. Declare that we expect these arguments
-ARG GIT_PACKAGE_USER
-ARG GIT_PACKAGE_KEY
-
-# 2. Map them to the ENV variables Gradle is looking for
-ENV GITHUB_ACTOR=${GIT_PACKAGE_USER}
-ENV GITHUB_TOKEN=${GIT_PACKAGE_KEY}
 
 # Set up working directory for build
 WORKDIR /build
