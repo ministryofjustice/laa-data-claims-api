@@ -9,10 +9,6 @@ COPY . .
 
 # Run gradle build
 RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
-    --mount=type=secret,id=github_actor \
-    --mount=type=secret,id=github_token \
-    export GITHUB_ACTOR="$(cat /run/secrets/github_actor)" && \
-    export GITHUB_TOKEN="$(cat /run/secrets/github_token)" && \
     gradle assemble
 
 # Debug step: List all JAR files to find the correct path
