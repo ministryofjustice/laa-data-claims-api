@@ -287,7 +287,8 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
               .disbursementsVatAmount(new BigDecimal("0.00"))
               .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
               .schemeId("SCHEME-1")
-              .calculatedFeeDetail(CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
+              .calculatedFeeDetail(
+                  CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
               .build();
 
       ClaimStateSnapshot after = before.toBuilder().schemeId("SCHEME-2").build();
@@ -325,7 +326,8 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
             .netDisbursementAmount(new BigDecimal("0.00"))
             .disbursementsVatAmount(new BigDecimal("0.00"))
             .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
-            .calculatedFeeDetail(CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
+            .calculatedFeeDetail(
+                CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
             .build();
 
     return ClaimAmendmentState.builder()
