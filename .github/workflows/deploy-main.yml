@@ -67,8 +67,6 @@ jobs:
         with:
           java-version: *JAVA_VERSION
           java-distribution: *JDK_DISTRIBUTION
-          github-actor: ${{ github.actor }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   ecr-publish-image:
     needs: [ release, bdd-test ]

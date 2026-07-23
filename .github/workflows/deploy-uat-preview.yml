@@ -118,8 +118,6 @@ jobs:
         with:
           java-version: *JAVA_VERSION
           java-distribution: *JDK_DISTRIBUTION
-          github-actor: ${{ github.actor }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   helm-template-check:
     runs-on: ubuntu-latest

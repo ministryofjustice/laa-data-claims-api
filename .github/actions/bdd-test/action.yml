@@ -10,12 +10,6 @@ inputs:
     description: "JDK distribution"
     required: false
     default: "corretto"
-  github-actor:
-    description: "Actor used to authenticate against GitHub Packages"
-    required: true
-  github-token:
-    description: "Token used to authenticate against GitHub Packages (needs packages:read)"
-    required: true
   artifact-name:
     description: "Name of the uploaded reports artifact"
     required: false
@@ -36,8 +30,8 @@ runs:
     - name: Run BDD test suite (local mode)
       shell: bash
       env:
-        GITHUB_ACTOR: ${{ inputs.github-actor }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: ./gradlew :claims-data:service:bddTest --no-daemon
 
     - name: Upload BDD reports
@@ -50,4 +44,6 @@ runs:
           claims-data/service/build/test-results/bddTest/**
         if-no-files-found: warn
         retention-days: 14
+
+
 
