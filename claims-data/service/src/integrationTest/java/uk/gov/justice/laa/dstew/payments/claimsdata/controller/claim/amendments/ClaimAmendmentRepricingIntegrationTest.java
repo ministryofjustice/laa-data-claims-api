@@ -199,22 +199,26 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
   @Test
   @DisplayName(
-      "PATCH /submissions/{id}/claims/{id} - skips FSP repricing when baseline lacks calculated fee details")
-  void shouldSkipRepricingWhenNoBaselineFeeDetails() throws Exception {
+      "PATCH /submissions/{id}/claims/{id} - returns 400 Bad Request when baseline lacks calculated fee details")
+  void shouldReturnBadRequestWhenNoBaselineFeeDetails() throws Exception {
     calculatedFeeDetailRepository.deleteAll();
     calculatedFeeDetailRepository.flush();
 
     ClaimPatch patchPayload = createBasePatch();
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
 
+    String body = mvcResult.getResponse().getContentAsString();
+    assertThat(body).contains("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING");
     mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
   }
 
