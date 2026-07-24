@@ -123,7 +123,8 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
-    if (submission.getStatus() != SubmissionStatus.READY_FOR_SUBMISSION) {
+    if (submission.getStatus() != SubmissionStatus.CREATED
+        && submission.getStatus() != SubmissionStatus.READY_FOR_SUBMISSION) {
       throw new ClaimBadRequestException("Claims can only be added to an open submission");
     }
 
