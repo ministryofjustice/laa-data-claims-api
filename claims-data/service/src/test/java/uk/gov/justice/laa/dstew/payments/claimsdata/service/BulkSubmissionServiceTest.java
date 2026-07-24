@@ -379,6 +379,8 @@ class BulkSubmissionServiceTest {
             .errorDescription("This is the error message")
             .updatedByUserId(API_USER_ID);
 
+    when(bulkSubmissionRepository.findStatusById(BULK_SUBMISSION_ID))
+        .thenReturn(Optional.of(BulkSubmissionStatus.PARSING_COMPLETED));
     when(bulkSubmissionRepository.updateBulkSubmission(
             BULK_SUBMISSION_ID,
             patch.getStatus().getValue(),
@@ -399,13 +401,7 @@ class BulkSubmissionServiceTest {
             .errorCode(BulkSubmissionErrorCode.E100)
             .errorDescription("This is the error message")
             .updatedByUserId(API_USER_ID);
-    when(bulkSubmissionRepository.updateBulkSubmission(
-            BULK_SUBMISSION_ID,
-            patch.getStatus().getValue(),
-            patch.getErrorCode().getValue(),
-            patch.getErrorDescription(),
-            patch.getUpdatedByUserId()))
-        .thenReturn(0);
+    when(bulkSubmissionRepository.findStatusById(BULK_SUBMISSION_ID)).thenReturn(Optional.empty());
 
     assertThrows(
         BulkSubmissionNotFoundException.class,

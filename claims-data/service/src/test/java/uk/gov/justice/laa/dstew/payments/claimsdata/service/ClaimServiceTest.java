@@ -206,6 +206,20 @@ class ClaimServiceTest {
   }
 
   @Test
+  void shouldNotCreateClaimForDiscardedSubmission() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.DISCARDED).build();
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, new ClaimPost()))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("discarded");
+
+    verify(claimRepository, never()).save(any());
+  }
+
+  @Test
   void shouldGetClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();

@@ -122,6 +122,9 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+    if (submission.getStatus() == SubmissionStatus.DISCARDED) {
+      throw new ClaimBadRequestException("Claims cannot be added to a discarded submission");
+    }
 
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
