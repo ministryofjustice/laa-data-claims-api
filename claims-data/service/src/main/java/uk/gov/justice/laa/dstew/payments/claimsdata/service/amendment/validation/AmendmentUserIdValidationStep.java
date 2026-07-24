@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
 import java.util.List;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
@@ -49,9 +48,5 @@ public class AmendmentUserIdValidationStep implements ClaimAmendmentValidationSt
               ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT));
     }
     return List.of();
-  }
-
-  private String unwrap(JsonNullable<String> value) {
-    return value != null && value.isPresent() ? value.get() : null;
   }
 }

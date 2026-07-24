@@ -2,15 +2,19 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
@@ -18,6 +22,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
@@ -32,6 +38,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * {@code AmendmentReferenceDataProvider} reading the governed reference data from a real PostgreSQL
  * (Testcontainers). The reference-data reads run against the Flyway seed (V41).
  *
+ * <p>The assembled chain includes {@code AmendmentExternalValidationStep}, which delegates to the
+ * shared claims-validation-core {@code ValidationService}. That library makes outbound HTTP calls
+ * to the Fee Scheme Platform and Provider Details APIs, which are stubbed here via {@link
+ * MockServerIntegrationTest} so the chain runs end to end against controlled responses.
+ *
  * <p>Scope is deliberately <b>representative</b>, not exhaustive: it proves the chain is assembled
  * correctly (ordering, fatal short-circuit, multi-error collection) and that the steps interact
  * with real reference data and the DB-backed active flags - it does not re-test every validation
@@ -44,19 +55,33 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  */
 @DisplayName("ClaimAmendmentValidationService assembled-chain integration test")
 @Transactional
-class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegrationTest {
+class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrationTest {
 
   private static final String VALID_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
+
+  // The claim fee code used by the fixtures below (alphanumeric, <= 10 chars per the claim schema).
+  private static final String CLAIM_FEE_CODE = "FEE01";
 
   // Seeded (V41) codes used by the happy-path and lookup scenarios.
   private static final String SEEDED_PARTY = "PROVIDER";
   private static final String SEEDED_REASON = "PROVIDER_ERROR";
   // INCORRECT_MEANS_ASSESSMENT is seeded only for CONTRACT_MANAGEMENT / ASSURANCE, never PROVIDER.
   private static final String SEEDED_REASON_OTHER_PARTY = "INCORRECT_MEANS_ASSESSMENT";
+  public static final String NOT_A_UUID = "not-a-uuid";
 
   @Autowired private ClaimAmendmentValidationService validationService;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+
+  /**
+   * Stubs the validation-core external calls so the assembled chain can run end to end. The
+   * responses are deliberately "clean" so the external validation contributes no issues, leaving
+   * the amendment-metadata errors (the focus of these tests) as the only failures.
+   */
+  @BeforeEach
+  void setUp() throws IOException {
+    stubExternalValidationEndpoints();
+  }
 
   @Nested
   @DisplayName("happy path")
@@ -81,12 +106,12 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
     void voidClaimReturnsOnlyFatalAndSkipsLaterSteps() {
       // Requested-by, reason and user id are all invalid too, but the fatal status error must
       // short-circuit the flow before the reference and user-id steps run.
-      ClaimAmendmentState state =
-          stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", "not-a-uuid");
+      ClaimAmendmentState state = stateOf(ClaimStatus.VOID, "MADE_UP", "ALSO_MADE_UP", NOT_A_UUID);
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE);
+          .containsExactly(
+              ClaimAmendmentValidationCode.INVALID_VOIDED_CLAIM_NOT_AMENDABLE.toString());
     }
   }
 
@@ -127,7 +152,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .contains(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN);
+          .contains(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_UNKNOWN.toString());
     }
 
     @Test
@@ -139,7 +164,8 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY);
+          .containsExactly(
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY.toString());
     }
 
     @Test
@@ -157,7 +183,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE);
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_INACTIVE.toString());
     }
   }
 
@@ -169,11 +195,11 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
     @DisplayName("a structurally invalid user id is rejected while the metadata is valid")
     void invalidUserId() {
       ClaimAmendmentState state =
-          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, "not-a-uuid");
+          stateOf(ClaimStatus.VALID, SEEDED_PARTY, SEEDED_REASON, NOT_A_UUID);
 
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
-          .containsExactly(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+          .containsExactly(ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT.toString());
     }
   }
 
@@ -189,9 +215,9 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
       assertThat(validationService.validateAmendmentRequest(state))
           .extracting(ClaimAmendmentValidationError::getCode)
           .containsExactlyInAnyOrder(
-              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING,
-              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING,
-              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT);
+              ClaimAmendmentValidationCode.INVALID_REQUESTED_BY_MISSING.toString(),
+              ClaimAmendmentValidationCode.INVALID_AMENDMENT_REASON_MISSING.toString(),
+              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT.toString());
     }
   }
 
@@ -219,9 +245,61 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
                 assertThat(error.getCode())
                     .isEqualTo(
                         ClaimAmendmentValidationCode
-                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA);
+                            .TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA
+                            .toString());
                 assertThat(error.isFatal()).isTrue();
               });
+    }
+  }
+
+  @Nested
+  @DisplayName("field amendability gate (Step 12 aggregation)")
+  class FieldAmendabilityGate {
+
+    @Test
+    @DisplayName("a non-amendable changed field is collected and aggregates with other errors")
+    void nonAmendableFieldAggregatesWithOtherErrors() {
+      ClaimAmendmentState state = stateWithNonAmendableChange();
+
+      assertThat(validationService.validateAmendmentRequest(state))
+          .extracting(ClaimAmendmentValidationError::getCode)
+          .contains(
+              ClaimAmendmentValidationCode.INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW.toString(),
+              ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_FORMAT.toString());
+    }
+
+    /**
+     * Builds a state whose requested change is not amendable for the claim's area of law, alongside
+     * a structurally invalid user id. Scheme ID is amendable for Crime Lower only, so changing it
+     * on a Legal Help claim must be rejected by the amendability gate; the invalid user id proves
+     * the gate's field-level failure aggregates with other collected errors.
+     */
+    private ClaimAmendmentState stateWithNonAmendableChange() {
+      ClaimStateSnapshot before =
+          ClaimStateSnapshot.builder()
+              .claimId(Uuid7.timeBasedUuid())
+              .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+              .feeCode(CLAIM_FEE_CODE)
+              .status(ClaimStatus.VALID)
+              .lineNumber(1)
+              .netDisbursementAmount(new BigDecimal("0.00"))
+              .disbursementsVatAmount(new BigDecimal("0.00"))
+              .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
+              .schemeId("SCHEME-1")
+              .build();
+
+      ClaimStateSnapshot after = before.toBuilder().schemeId("SCHEME-2").build();
+
+      return ClaimAmendmentState.builder()
+          .beforeState(before)
+          .postAmendmentState(after)
+          .requestPayload(
+              ClaimAmendmentPayload.builder()
+                  .amendmentRequestedBy(JsonNullable.of(SEEDED_PARTY))
+                  .amendmentReasonCode(JsonNullable.of(SEEDED_REASON))
+                  .amendmentUserId(JsonNullable.of(NOT_A_UUID))
+                  .build())
+          .build();
     }
   }
 
@@ -231,9 +309,25 @@ class ClaimAmendmentValidationServiceIntegrationTest extends AbstractIntegration
 
   private ClaimAmendmentState stateOf(
       ClaimStatus status, String requestedBy, String reason, String userId) {
+
+    // A schema-valid claim so the external validation step (which runs the full CLAIM_* validator
+    // set against MockServer) contributes no issues, leaving the amendment-metadata errors as the
+    // only failures. Required fields per the validation-core claim schema: status, line_number,
+    // net_disbursement_amount, disbursements_vat_amount, fee_code (alphanumeric, <= 10 chars).
+    ClaimStateSnapshot snapshot =
+        ClaimStateSnapshot.builder()
+            .claimId(Uuid7.timeBasedUuid())
+            .feeCode(CLAIM_FEE_CODE)
+            .status(status)
+            .lineNumber(1)
+            .netDisbursementAmount(new BigDecimal("0.00"))
+            .disbursementsVatAmount(new BigDecimal("0.00"))
+            .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
+            .build();
+
     return ClaimAmendmentState.builder()
-        .beforeState(
-            ClaimStateSnapshot.builder().claimId(Uuid7.timeBasedUuid()).status(status).build())
+        .beforeState(snapshot)
+        .postAmendmentState(snapshot)
         .requestPayload(
             ClaimAmendmentPayload.builder()
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))

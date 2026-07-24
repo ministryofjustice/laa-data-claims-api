@@ -1,10 +1,28 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOutcome;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionSchedule;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimSummaryFee;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimV2;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmissionHistoryEvent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessageProjection;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getVoidHistoryEvent;
 
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
@@ -16,6 +34,7 @@ import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +68,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotF
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -248,7 +269,33 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no claim exists")
   public void noClaimExists() {
     log.info("Setting up state: no claim exists");
+    when(claimRepository.existsById(any())).thenReturn(false);
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("a claim history exists")
+  public void aClaimHistoryExists() {
+    log.info("Setting up state: a claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(List.of(getSubmissionHistoryEvent()));
+  }
+
+  @State("no claim history exists")
+  public void noClaimHistoryExists() {
+    log.info("Setting up state: no claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(false);
+  }
+
+  @State("a claim history with assessment and void events exists")
+  public void aClaimHistoryWithAssessmentAndVoidEventsExists() {
+    log.info("Setting up state: a claim history with assessment and void events exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    // Reverse-chronological order: VOID (newest) -> ASSESSMENT -> SUBMISSION (oldest).
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(
+            List.of(
+                getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
   }
 
   @State("a matter start exists")
@@ -474,6 +521,32 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
         .thenReturn(Collections.emptyList());
     when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
+  }
+
+  @State("no assessments exist for the claim")
+  public void noAssessmentExistsForClaimId() {
+    log.info("Setting up state: no assessments exist for the claim");
+    when(claimRepository.existsById(any(UUID.class))).thenReturn(true);
+    when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+  }
+
+  @State("assessments exist for the claim")
+  public void assessmentExistsForClaimId() {
+    log.info("Setting up state: assessments exist for the claim");
+    List<Assessment> assessments =
+        List.of(
+            Assessment.builder()
+                .assessmentOutcome(AssessmentOutcome.PAID_IN_FULL)
+                .assessmentReason("Reason")
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .createdByUserId("User")
+                .createdOn(Instant.now())
+                .id(UUID.randomUUID())
+                .build());
+    when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(assessments));
+    when(claimRepository.existsById(any(UUID.class))).thenReturn(true);
   }
 
   @TargetRequestFilter

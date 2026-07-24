@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
 import java.util.List;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 
@@ -33,4 +34,18 @@ public interface ClaimAmendmentValidationStep {
    * @return the errors found by this step; an empty list means the step passed
    */
   List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state);
+
+  /**
+   * Reads the value from a {@link JsonNullable} payload field, treating both an absent (undefined)
+   * and an explicitly-null field as {@code null}.
+   *
+   * <p>Shared by steps that inspect optional string fields on the amendment payload so the same
+   * null/absent handling is applied consistently.
+   *
+   * @param value the payload field, which may itself be {@code null}
+   * @return the contained value, or {@code null} if the field is absent or explicitly null
+   */
+  default String unwrap(JsonNullable<String> value) {
+    return value != null && value.isPresent() ? value.get() : null;
+  }
 }

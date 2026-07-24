@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -33,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ValidationMessageWithClaimDetailsProjection;
 
 public class ClaimsDataTestUtil {
@@ -400,6 +403,22 @@ public class ClaimsDataTestUtil {
         .deliveryLocation(DELIVERY_LOCATION)
         .createdByUserId(USER_ID)
         .createdOn(SUBMITTED_DATE.toInstant())
+        .client(Client.builder().clientForename("Forename").clientSurname("Surname").build())
+        .calculatedFeeDetails(
+            List.of(
+                CalculatedFeeDetail.builder()
+                    .escapeCaseFlag(true)
+                    .categoryOfLaw("Cat")
+                    .feeCode("ABC")
+                    .feeCodeDescription("ABC Description")
+                    .vatIndicator(true)
+                    .totalAmount(BigDecimal.ONE)
+                    .claimSummaryFee(
+                        ClaimSummaryFee.builder()
+                            .id(UUID.randomUUID())
+                            .isVatApplicable(true)
+                            .build())
+                    .build()))
         .build();
   }
 
@@ -610,5 +629,45 @@ public class ClaimsDataTestUtil {
         .updatedByUserId("ABC")
         .updatedOn(SUBMITTED_DATE.toInstant())
         .build();
+  }
+
+  /** A single SUBMISSION history event mirroring the unified claim-history read model. */
+  public static ClaimHistoryEventRow getSubmissionHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("submission_period", SUBMISSION_PERIOD);
+    metadata.put("office_account_number", OFFICE_ACCOUNT_NUMBER);
+    metadata.put("area_of_law", AREA_OF_LAW.getValue());
+    return new ClaimHistoryEventRow(
+        "SUBMISSION", SUBMITTED_DATE.toInstant(), PROVIDER_USER_ID, CLAIM_1_ID, metadata);
+  }
+
+  /** A single ASSESSMENT history event mirroring the unified claim-history read model. */
+  public static ClaimHistoryEventRow getAssessmentHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("assessment_type", "ESCAPE_CASE_ASSESSMENT");
+    metadata.put("assessment_outcome", "REDUCED_TO_FIXED_FEE");
+    metadata.put("assessment_reason", "Escape fee case assessment");
+    return new ClaimHistoryEventRow(
+        "ASSESSMENT",
+        SUBMITTED_DATE.plusHours(1).toInstant(),
+        PROVIDER_USER_ID,
+        Uuid7.timeBasedUuid(),
+        metadata);
+  }
+
+  /**
+   * A single VOID history event mirroring the unified claim-history read model. A void carries only
+   * the type and reason - never an outcome.
+   */
+  public static ClaimHistoryEventRow getVoidHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("assessment_type", "VOID");
+    metadata.put("assessment_reason", "Voided in error");
+    return new ClaimHistoryEventRow(
+        "VOID",
+        SUBMITTED_DATE.plusHours(2).toInstant(),
+        PROVIDER_USER_ID,
+        Uuid7.timeBasedUuid(),
+        metadata);
   }
 }

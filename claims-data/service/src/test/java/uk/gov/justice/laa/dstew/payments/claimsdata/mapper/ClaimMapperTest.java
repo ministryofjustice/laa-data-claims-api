@@ -12,7 +12,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,6 +41,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ClaimMapper tests")
 class ClaimMapperTest {
 
   @InjectMocks private final ClaimMapperImpl mapper = new ClaimMapperImpl();
@@ -216,13 +219,17 @@ class ClaimMapperTest {
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
             .claimSummaryFee(new ArrayList<>())
-            .calculatedFeeDetails(new ArrayList<>())
             .submission(
                 Submission.builder()
                     .id(submissionId)
                     .submissionPeriod("APR-2025")
                     .createdOn(Instant.now())
                     .build())
+            .calculatedFeeDetails(
+                List.of(
+                    CalculatedFeeDetail.builder()
+                        .claimSummaryFee(ClaimSummaryFee.builder().isVatApplicable(true).build())
+                        .build()))
             .build();
 
     final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
@@ -263,6 +270,9 @@ class ClaimMapperTest {
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
     assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
+    assertEquals(
+        entity.getLatestCalculatedFee().getClaimSummaryFee().getIsVatApplicable(),
+        fields.getIsVatApplicable());
   }
 
   @Test

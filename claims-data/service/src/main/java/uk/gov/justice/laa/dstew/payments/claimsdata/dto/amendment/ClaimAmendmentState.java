@@ -31,9 +31,9 @@ import lombok.Data;
 @Builder
 public class ClaimAmendmentState {
 
-  private ClaimStateSnapshot beforeState;
-
   private ClaimAmendmentPayload requestPayload;
+
+  private ClaimStateSnapshot beforeState;
 
   private ClaimStateSnapshot postAmendmentState;
 

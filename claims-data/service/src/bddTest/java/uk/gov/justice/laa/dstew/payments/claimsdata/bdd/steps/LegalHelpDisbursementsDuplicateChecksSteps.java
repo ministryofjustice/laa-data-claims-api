@@ -20,11 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.ClaimOverride;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.Format;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.GeneratedFile;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.LegalHelpFileGenerator.GeneratedPair;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.ClaimOverride;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.Format;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.GeneratedFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator.GeneratedPair;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
@@ -51,7 +51,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
-  @Autowired private LegalHelpFileGenerator generator;
+  @Autowired private BulkSubmissionFileGenerator generator;
   @Autowired private SubmissionPeriodHelper periodHelper;
   @Autowired private BddValidationMessageStepSupport validationMessages;
 
@@ -64,7 +64,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
       throws IOException {
     Format format = Format.fromString(formatLiteral);
     List<Map<String, String>> rows = table.asMaps(String.class, String.class);
-    List<ClaimOverride> overrides = LegalHelpFileGenerator.overridesFromRows(rows);
+    List<ClaimOverride> overrides = BulkSubmissionFileGenerator.overridesFromRows(rows);
 
     String office = pickOffice(overrides);
     String period = periodHelper.nextAvailablePeriod(office, AreaOfLaw.LEGAL_HELP);
@@ -297,9 +297,22 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     // UAT mode — verify each expected message actually shows up on the submission's claims.
     List<Map<String, String>> rows = table.asMaps(String.class, String.class);
     for (Map<String, String> row : rows) {
-      String expectedMessage = row.get("Error Message");
+      String expectedMessage = resolvePlaceholders(row.get("Error Message"));
       validationMessages.assertSubmissionErrorExists(bulkSubmissionId, expectedMessage);
     }
+  }
+
+  /**
+   * Substitutes context-provided placeholders in an expected error message. Currently supports
+   * {@code <CURRENT_MONTH>} — set by steps that mutate the fixture's {@code submissionPeriod=}
+   * header to the current or a future month (see {@code SubmissionValidationSteps}).
+   */
+  private String resolvePlaceholders(String message) {
+    if (message == null) {
+      return null;
+    }
+    String resolvedMonth = context.getResolvedSubmissionMonth();
+    return resolvedMonth == null ? message : message.replace("<CURRENT_MONTH>", resolvedMonth);
   }
 
   private void capturePair(

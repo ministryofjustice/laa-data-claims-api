@@ -330,6 +330,7 @@ class BulkSubmissionServiceTest {
     expectedResponse.setBulkSubmissionId(id);
     expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
     expectedResponse.details(expectedDetails);
+    expectedResponse.setSaveAsDraft(false);
 
     when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
 

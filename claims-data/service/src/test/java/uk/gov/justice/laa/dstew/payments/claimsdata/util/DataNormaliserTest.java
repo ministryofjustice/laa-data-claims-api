@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -80,7 +81,7 @@ class DataNormaliserTest {
     ctor.setAccessible(true);
     try {
       ctor.newInstance();
-      org.junit.jupiter.api.Assertions.fail("Expected constructor to throw an exception");
+      fail("Expected constructor to throw an exception");
     } catch (InvocationTargetException e) {
       assertThat(e.getCause()).isInstanceOf(UnsupportedOperationException.class);
     }

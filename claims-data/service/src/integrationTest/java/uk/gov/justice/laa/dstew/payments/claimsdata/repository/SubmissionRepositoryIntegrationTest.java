@@ -26,6 +26,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -521,7 +522,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     submissionRepository.save(invalidSubmission);
 
     assertThatThrownBy(() -> submissionRepository.findById(SUBMISSION_3_ID))
-        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class)
+        .isInstanceOf(DataIntegrityViolationException.class)
         .hasMessageContaining("invalid value")
         .hasMessageContaining("MON");
   }
