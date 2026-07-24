@@ -433,6 +433,13 @@ public interface BulkSubmissionMapper {
       target = "costsDamagesRecovered",
       expression =
           "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"Costs Damages Recovered Amount must be a valid monetary value\"))")
+  @Mapping(target = "deceasedForename", ignore = true)
+  @Mapping(target = "deceasedSurname", ignore = true)
+  @Mapping(target = "deceasedDateOfBirth", ignore = true)
+  @Mapping(target = "deceasedDateOfDeath", ignore = true)
+  @Mapping(target = "coronersInquestReference", ignore = true)
+  @Mapping(target = "interestedGovernmentDepartments", ignore = true)
+  @Mapping(target = "interestedPublicAuthorities", ignore = true)
   BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
 
   /**

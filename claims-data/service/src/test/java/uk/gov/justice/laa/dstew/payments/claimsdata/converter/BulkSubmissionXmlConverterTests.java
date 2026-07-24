@@ -23,6 +23,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -412,6 +413,48 @@ public class BulkSubmissionXmlConverterTests {
       XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
 
       assertThat(outcome.clientSurname()).isEqualTo("Test");
+    }
+
+    @Test
+    @DisplayName("Maps scalar and repeated inquest outcome items")
+    void mapsInquestOutcomeItems() {
+      String xml =
+          outcomeXml(
+              "<outcomeItem name=\"DECEASED_FORENAME\">Ada</outcomeItem>"
+                  + "<outcomeItem name=\"DECEASED_SURNAME\">Lovelace</outcomeItem>"
+                  + "<outcomeItem name=\"DECEASED_DATE_OF_BIRTH\">10/12/1815</outcomeItem>"
+                  + "<outcomeItem name=\"DECEASED_DATE_OF_DEATH\">27/11/1852</outcomeItem>"
+                  + "<outcomeItem name=\"CORONERS_INQUEST_REFERENCE\">COR-42</outcomeItem>"
+                  + "<outcomeItem name=\"INTERESTED_GOVERNMENT_DEPARTMENT\">MOJ</outcomeItem>"
+                  + "<outcomeItem name=\"INTERESTED_GOVERNMENT_DEPARTMENT\">HO</outcomeItem>"
+                  + "<outcomeItem name=\"INTERESTED_PUBLIC_AUTHORITY\">Westminster Council</outcomeItem>"
+                  + "<outcomeItem name=\"INTERESTED_PUBLIC_AUTHORITY\">Metropolitan Police</outcomeItem>");
+
+      XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
+
+      assertThat(outcome.deceasedForename()).isEqualTo("Ada");
+      assertThat(outcome.deceasedSurname()).isEqualTo("Lovelace");
+      assertThat(outcome.deceasedDateOfBirth()).isEqualTo("10/12/1815");
+      assertThat(outcome.deceasedDateOfDeath()).isEqualTo("27/11/1852");
+      assertThat(outcome.coronersInquestReference()).isEqualTo("COR-42");
+      assertThat(outcome.interestedGovernmentDepartments()).containsExactly("MOJ", "HO");
+      assertThat(outcome.interestedPublicAuthorities())
+          .containsExactly("Westminster Council", "Metropolitan Police");
+    }
+
+    @Test
+    @DisplayName("Leaves inquest data absent for legacy XML")
+    void leavesInquestDataAbsentForLegacyXml() {
+      XmlOutcome outcome =
+          convert(outcomeXml("<outcomeItem name=\"FEE_CODE\">INQU</outcomeItem>"))
+              .office()
+              .schedule()
+              .outcomes()
+              .getFirst();
+
+      assertThat(outcome.deceasedForename()).isNull();
+      assertThat(outcome.interestedGovernmentDepartments()).isEqualTo(List.of());
+      assertThat(outcome.interestedPublicAuthorities()).isEqualTo(List.of());
     }
   }
 
