@@ -181,8 +181,7 @@ class DataClaimsExceptionHandlerTest {
 
   @Test
   void handleClaimAmendmentVersionValidationException_returnsCustomStatusWhenFatal() {
-    // Arrange: Create a fatal validation error scenario (e.g., using one of your new structural
-    // checks)
+    // Arrange: Create a fatal validation error scenario
     ClaimAmendmentValidationError fatalError =
         ClaimAmendmentValidationError.of(
             ClaimAmendmentValidationCode

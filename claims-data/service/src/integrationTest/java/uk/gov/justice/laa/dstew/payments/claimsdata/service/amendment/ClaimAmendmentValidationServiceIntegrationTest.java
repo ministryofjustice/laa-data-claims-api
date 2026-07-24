@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
@@ -287,6 +288,8 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
               .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
               .schemeId("SCHEME-1")
               .version(1L)
+              .calculatedFeeDetail(
+                  CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
               .build();
 
       ClaimStateSnapshot after = before.toBuilder().schemeId("SCHEME-2").build();
@@ -326,6 +329,8 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
             .netDisbursementAmount(new BigDecimal("0.00"))
             .disbursementsVatAmount(new BigDecimal("0.00"))
             .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
+            .calculatedFeeDetail(
+                CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
             .build();
 
     return ClaimAmendmentState.builder()
