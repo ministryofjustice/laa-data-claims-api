@@ -28,6 +28,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidati
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -63,6 +65,7 @@ public class SubmissionService
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final AssessmentService assessmentService;
   private final ConfirmationValidationService confirmationValidationService;
+  private final BulkSubmissionService bulkSubmissionService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -158,6 +161,21 @@ public class SubmissionService
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
+
+    if (submission.getStatus() == SubmissionStatus.DISCARDED) {
+      throw new SubmissionBadRequestException("A discarded submission cannot be changed");
+    }
+    if (submissionPatch.getStatus() == SubmissionStatus.DISCARDED
+        && submission.getStatus() != SubmissionStatus.READY_FOR_SUBMISSION) {
+      throw new SubmissionBadRequestException("Only a draft submission can be discarded");
+    }
+    if (submissionPatch.getStatus() == SubmissionStatus.DISCARDED) {
+      bulkSubmissionService.updateBulkSubmission(
+          submission.getBulkSubmissionId(),
+          new BulkSubmissionPatch()
+              .bulkSubmissionId(submission.getBulkSubmissionId())
+              .status(BulkSubmissionStatus.DISCARDED));
+    }
 
     if (submission.getStatus() == SubmissionStatus.READY_FOR_SUBMISSION
         && submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {

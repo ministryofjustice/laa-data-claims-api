@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +52,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
@@ -81,6 +83,7 @@ class SubmissionServiceTest {
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
   @Mock private ConfirmationValidationService confirmationValidationService;
+  @Mock private BulkSubmissionService bulkSubmissionService;
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -413,6 +416,41 @@ class SubmissionServiceTest {
     assertThat(response.getClaims()).containsExactly(claim);
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  void shouldDiscardOnlyReadyForSubmission() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
+    SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.DISCARDED);
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionRepository).save(entity);
+    verify(bulkSubmissionService)
+        .updateBulkSubmission(
+            eq(entity.getBulkSubmissionId()),
+            argThat(bulkPatch -> bulkPatch.getStatus() == BulkSubmissionStatus.DISCARDED));
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  void shouldNotChangeDiscardedSubmission() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.DISCARDED).build();
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    assertThatThrownBy(
+            () ->
+                submissionService.updateSubmission(
+                    id, new SubmissionPatch().status(SubmissionStatus.VALIDATION_SUCCEEDED)))
+        .isInstanceOf(SubmissionBadRequestException.class)
+        .hasMessageContaining("discarded");
+
+    verify(submissionRepository, never()).save(any());
   }
 
   @Test

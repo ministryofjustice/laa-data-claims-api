@@ -123,6 +123,9 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+    if (submission.getStatus() == SubmissionStatus.DISCARDED) {
+      throw new ClaimBadRequestException("Claims cannot be added to a discarded submission");
+    }
 
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
