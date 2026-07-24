@@ -86,7 +86,7 @@ class BulkSubmissionServiceTest {
 
     // Test
     CreateBulkSubmission201Response response =
-        bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST"));
+        bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST"), false);
 
     // Assert
     assertNotNull(response);
@@ -135,7 +135,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionValidationException exception =
         assertThrows(
             BulkSubmissionValidationException.class,
-            () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+            () ->
+                bulkSubmissionService.submitBulkSubmissionFile(
+                    userId, file, List.of("TEST"), false));
 
     assertEquals(expectedMessage, exception.getMessage());
 
@@ -211,12 +213,15 @@ class BulkSubmissionServiceTest {
       BulkSubmissionValidationException exception =
           assertThrows(
               BulkSubmissionValidationException.class,
-              () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+              () ->
+                  bulkSubmissionService.submitBulkSubmissionFile(
+                      userId, file, List.of("TEST"), false));
       assertEquals(
           dateField + " must be a valid date in the format DD/MM/YYYY", exception.getMessage());
     } else {
       assertDoesNotThrow(
-          () -> bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST")));
+          () ->
+              bulkSubmissionService.submitBulkSubmissionFile(userId, file, List.of("TEST"), false));
     }
   }
 
@@ -235,7 +240,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionAreaOfLawException exception =
         assertThrows(
             BulkSubmissionAreaOfLawException.class,
-            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+            () ->
+                bulkSubmissionService.submitBulkSubmissionFile(
+                    "user", file, List.of("TEST"), false));
 
     assertEquals(
         "Area of law must be Mediation, Crime Lower or Legal Help", exception.getMessage());
@@ -281,7 +288,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionValidationException exception =
         assertThrows(
             BulkSubmissionValidationException.class,
-            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+            () ->
+                bulkSubmissionService.submitBulkSubmissionFile(
+                    "user", file, List.of("TEST"), false));
 
     assertEquals(expectedMessage, exception.getMessage());
 
@@ -321,6 +330,7 @@ class BulkSubmissionServiceTest {
     expectedResponse.setBulkSubmissionId(id);
     expectedResponse.setStatus(BulkSubmissionStatus.READY_FOR_PARSING);
     expectedResponse.details(expectedDetails);
+    expectedResponse.setSaveAsDraft(false);
 
     when(bulkSubmissionRepository.findById(id)).thenReturn(Optional.of(expectedBulkSubmission));
 
@@ -430,7 +440,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionOfficeAuthorisationException exception =
         assertThrows(
             BulkSubmissionOfficeAuthorisationException.class,
-            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+            () ->
+                bulkSubmissionService.submitBulkSubmissionFile(
+                    "user", file, List.of("TEST"), false));
 
     assertEquals(
         "The selected file contains office account null. You do not have access to this office",
@@ -457,7 +469,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionOfficeAuthorisationException exception =
         assertThrows(
             BulkSubmissionOfficeAuthorisationException.class,
-            () -> bulkSubmissionService.submitBulkSubmissionFile("user", file, List.of("TEST")));
+            () ->
+                bulkSubmissionService.submitBulkSubmissionFile(
+                    "user", file, List.of("TEST"), false));
 
     assertEquals(
         "The selected file contains office account DIFFERENT. You do not have access to this "
