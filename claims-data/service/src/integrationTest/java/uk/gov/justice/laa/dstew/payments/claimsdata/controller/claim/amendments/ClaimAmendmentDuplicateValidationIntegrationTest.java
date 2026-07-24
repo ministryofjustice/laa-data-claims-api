@@ -190,7 +190,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
   @Test
   @DisplayName("a VOID prior-submission twin does not make the amended claim a duplicate")
   void voidPriorTwinIsIgnored() throws Exception {
-    amendableClaim1();
+    final Long originalVersion = amendableClaim1().getVersion();
 
     // Prior twin matches on every key but is VOID, so it must not participate in duplicate
     // matching.
@@ -202,14 +202,14 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    assertCommitted(result, originalVersion);
   }
 
   @Test
   @DisplayName(
       "an INVALID-status prior-submission twin does not make the amended claim a duplicate")
   void ineligibleStatusPriorTwinIsIgnored() throws Exception {
-    amendableClaim1();
+    final Long originalVersion = amendableClaim1().getVersion();
 
     // Prior twin matches on every key but is INVALID (not VALID/READY_TO_PROCESS), so it is
     // ignored.
@@ -223,13 +223,13 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    assertCommitted(result, originalVersion);
   }
 
   @Test
   @DisplayName("a prior-submission claim with a different UFN is not a duplicate")
   void differentUfnPriorClaimIsNotDuplicate() throws Exception {
-    amendableClaim1();
+    final Long originalVersion = amendableClaim1().getVersion();
 
     // Prior claim shares feeCode + UCN but a different UFN, so amending UCN does not create a
     // match.
@@ -240,7 +240,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    assertCommitted(result, originalVersion);
   }
 
   // ---------------------------------------------------------------------------
@@ -345,6 +345,8 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).hasSize(1);
     Claim after = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(after.isAmended()).isTrue();
-    assertThat(after.getVersion()).isGreaterThan(originalVersion);
+    // A single committed amendment performs exactly one @Version-guarded claim update, so the
+    // optimistic-lock version advances by precisely one.
+    assertThat(after.getVersion()).isEqualTo(originalVersion + 1);
   }
 }
