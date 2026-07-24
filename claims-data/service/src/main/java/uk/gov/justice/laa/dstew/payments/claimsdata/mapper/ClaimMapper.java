@@ -85,6 +85,11 @@ public interface ClaimMapper {
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
+  // Effective total value is a read-only @Formula field on the entity (derived from the
+  // vw_claim_effective_value view); an amendment patch must never write it. Kept as an explicit
+  // guard
+  // even though claim_patch no longer exposes the field.
+  @Mapping(target = "effectiveTotalValue", ignore = true)
   void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
 
   /** Map a validation error string to a ValidationErrorLog. */

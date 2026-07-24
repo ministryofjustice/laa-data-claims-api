@@ -55,7 +55,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 1. Create the older calculation record (Set timestamp to 10 minutes ago)
     CalculatedFeeDetail firstFeeUpdate =
         amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(500));
-    firstFeeUpdate.setCreatedOn(OffsetDateTime.now().minusMinutes(10));
+    firstFeeUpdate.setCreatedOn(OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(10));
 
     if (targetClaim.getCalculatedFeeDetails() == null) {
       targetClaim.setCalculatedFeeDetails(new ArrayList<>());
@@ -67,7 +67,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 2. Create the latest calculation record (Set timestamp to right now)
     CalculatedFeeDetail secondFeeUpdate =
         amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(789));
-    secondFeeUpdate.setCreatedOn(OffsetDateTime.now());
+    secondFeeUpdate.setCreatedOn(OffsetDateTime.now(ZoneOffset.UTC));
 
     targetClaim.getCalculatedFeeDetails().add(secondFeeUpdate);
 
@@ -208,7 +208,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
                 .requestPayload(massiveComplexJson)
                 .diff(massiveComplexJson)
                 .createdByUserId(ClaimsDataTestUtil.USER_ID)
-                .createdOn(OffsetDateTime.now())
+                .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
                 .build());
 
     claimAmendmentRepository.flush();
@@ -239,7 +239,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
                 .requestPayload("{}")
                 .diff("{}")
                 .createdByUserId(ClaimsDataTestUtil.USER_ID)
-                .createdOn(OffsetDateTime.now())
+                .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
                 .build());
 
     return calculatedFeeDetailRepository.saveAndFlush(
@@ -255,7 +255,11 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
             .totalAmount(updatedAmount)
             .isPriceChanged(true)
             .createdByUserId(ClaimsDataTestUtil.USER_ID)
-            .createdOn(OffsetDateTime.now().plusMinutes(5).toInstant().atOffset(ZoneOffset.UTC))
+            .createdOn(
+                OffsetDateTime.now(ZoneOffset.UTC)
+                    .plusMinutes(5)
+                    .toInstant()
+                    .atOffset(ZoneOffset.UTC))
             .build());
   }
 }
