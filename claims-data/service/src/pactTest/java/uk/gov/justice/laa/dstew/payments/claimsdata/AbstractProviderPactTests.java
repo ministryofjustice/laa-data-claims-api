@@ -30,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ClaimConfirmationValidator;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
 
 @EnableAutoConfiguration(
@@ -89,6 +90,8 @@ public class AbstractProviderPactTests {
   @MockitoBean protected SqsClient sqsClient;
 
   @MockitoBean protected SubmissionEventPublisherService submissionEventPublisherService;
+
+  @MockitoBean protected ClaimConfirmationValidator claimConfirmationValidator;
 
   @MockitoBean protected BulkSubmissionService bulkSubmissionService;
 
