@@ -17,4 +17,7 @@ public final class SystemReferencePaths {
 
   /** Amendment Requested By (with nested Amendment Reasons) reference lookup. */
   public static final String AMENDMENT_REQUESTED_BY = BASE + "/amendment-requested-by";
+
+  /** Governed departments available for inquest claims. */
+  public static final String INQUEST_DEPARTMENTS = BASE + "/inquest-departments";
 }

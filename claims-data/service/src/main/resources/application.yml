@@ -184,3 +184,8 @@ resilience4j.retry:
   instances:
     pdaRetry:
       maxAttempts: 1
+
+# One policy-controlled definition is shared by every consumer of inquest completeness.
+# Override as a comma-separated subset of InquestCompletenessDefinition.Field values.
+inquest:
+  mandatory-fields: ${INQUEST_MANDATORY_FIELDS:DECEASED_FORENAME,DECEASED_SURNAME,DECEASED_DATE_OF_BIRTH,DECEASED_DATE_OF_DEATH,CORONERS_INQUEST_REFERENCE,INTERESTED_GOVERNMENT_DEPARTMENT,INTERESTED_PUBLIC_AUTHORITY}

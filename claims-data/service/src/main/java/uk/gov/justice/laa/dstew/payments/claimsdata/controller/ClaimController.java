@@ -17,6 +17,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimsApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestData;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDataWrite;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -30,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.InquestDataService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
 /** Controller for handling claims requests. */
@@ -41,6 +44,27 @@ public class ClaimController implements ClaimsApi {
   public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
 
   private final ClaimService claimService;
+  private final InquestDataService inquestDataService;
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimInquestData> getClaimInquestData(UUID claimId) {
+    return ResponseEntity.ok(inquestDataService.get(claimId));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimInquestData> createClaimInquestData(
+      UUID claimId, @ScanForSql ClaimInquestDataWrite request) {
+    return ResponseEntity.status(201).body(inquestDataService.create(claimId, request));
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimInquestData> replaceClaimInquestData(
+      UUID claimId, @ScanForSql ClaimInquestDataWrite request) {
+    return ResponseEntity.ok(inquestDataService.replace(claimId, request));
+  }
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
