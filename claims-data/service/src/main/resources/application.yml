@@ -141,8 +141,8 @@ laa:
         fee-scheme-platform-api:
           url: ${FEE_SCHEME_PLATFORM_API_URL}
           accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
-          readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:500}
-          connectTimeoutMs: 500
+          readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:3000}
+          connectTimeoutMs: ${FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS:1000}
 
   springboot.starter:
     auth:
