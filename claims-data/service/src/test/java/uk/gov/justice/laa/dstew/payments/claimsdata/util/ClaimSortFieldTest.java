@@ -22,7 +22,7 @@ class ClaimSortFieldTest {
   }
 
   @Test
-  @DisplayName("effective_total_value maps to the materialised claim column property")
+  @DisplayName("effective_total_value maps to the effectiveTotalValue entity property")
   void effectiveTotalValueMapsToClaimColumn() {
     assertThat(ClaimSortField.fromApiName("effective_total_value"))
         .map(ClaimSortField::getEntityPath)

@@ -101,9 +101,18 @@ public class ClaimService
           "feeCalculationResponse",
           "version",
           "createdByUserId",
-          // Read-only field computed from the claim_effective_value view; must not count as a
+          // Read-only field computed from the vw_claim_effective_value view; must not count as a
           // provider-requested change that triggers the amendment path.
           "effectiveTotalValue");
+
+  /**
+   * Entity paths whose ordering is applied by a {@link ClaimSpecification} {@code ORDER BY} rather
+   * than by the {@link Pageable} sort. They are excluded from the {@code id} tie-breaker because
+   * they are stripped from the {@code Pageable} before querying, so any order left on it would
+   * override the specification's ordering.
+   */
+  private static final Set<String> CUSTOM_ORDERED_ENTITY_PATHS =
+      Set.of("totalWarnings", "submission.submissionPeriod");
 
   @Override
   public SubmissionRepository lookup() {
@@ -533,9 +542,40 @@ public class ClaimService
       return pageable;
     }
 
-    Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+    List<Sort.Order> mappedOrders = originalSort.stream().map(this::mapOrder).toList();
+    Sort mappedSort = appendIdTieBreaker(mappedOrders);
+
+    // An unpaged request still carries a sort, but exposes no page number/size; building a
+    // PageRequest from it would throw. Return an unpaged pageable that keeps the mapped sort so all
+    // rows come back ordered, mirroring the unsorted-unpaged path handled above.
+    if (pageable.isUnpaged()) {
+      return Pageable.unpaged(mappedSort);
+    }
 
     return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
+  }
+
+  /**
+   * Appends a deterministic secondary sort by {@code id} so rows sharing the same primary value
+   * keep a stable order across pages. The tie-breaker is omitted when the primary field is one
+   * whose ordering is applied by a {@link ClaimSpecification} {@code ORDER BY} (see {@link
+   * #CUSTOM_ORDERED_ENTITY_PATHS}); those paths are stripped from the {@link Pageable} before the
+   * query runs, so a residual {@code id} order would be the only order left and would silently
+   * replace the specification's ordering.
+   */
+  private Sort appendIdTieBreaker(List<Sort.Order> mappedOrders) {
+    Sort mappedSort = Sort.by(mappedOrders);
+
+    boolean handledByCustomSpecification =
+        mappedOrders.stream()
+            .map(Sort.Order::getProperty)
+            .anyMatch(CUSTOM_ORDERED_ENTITY_PATHS::contains);
+    if (handledByCustomSpecification) {
+      return mappedSort;
+    }
+
+    Sort.Direction primaryDirection = mappedOrders.getFirst().getDirection();
+    return mappedSort.and(Sort.by(primaryDirection, "id"));
   }
 
   private Sort.Order mapOrder(Sort.Order order) {
@@ -592,7 +632,12 @@ public class ClaimService
 
     Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
 
-    return org.springframework.data.domain.PageRequest.of(
-        pageable.getPageNumber(), pageable.getPageSize(), newSort);
+    // An unpaged pageable has no page number/size to rebuild, so preserve its unpaged nature and
+    // only re-apply the (possibly emptied) sort.
+    if (pageable.isUnpaged()) {
+      return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
+    }
+
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 }

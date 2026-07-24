@@ -151,13 +151,14 @@ public class Claim {
 
   /**
    * The claim's effective (most recent priced) value. Computed on read from the {@code
-   * claim_effective_value} database view rather than stored: the allowed total (incl. VAT) of the
-   * latest assessment when the claim has any assessment (0 for a void assessment); otherwise the
-   * latest calculated fee total; otherwise {@code null}. Read-only - never written by the
+   * vw_claim_effective_value} database view rather than stored: the allowed total (incl. VAT) of
+   * the latest assessment when the claim has any assessment (0 for a void assessment); otherwise
+   * the latest calculated fee total; otherwise {@code null}. Read-only - never written by the
    * application.
    */
   @Formula(
-      "(select cev.effective_total_value from claim_effective_value cev where cev.claim_id = id)")
+      "(select cev.effective_total_value from claims.vw_claim_effective_value cev"
+          + " where cev.claim_id = id)")
   private BigDecimal effectiveTotalValue;
 
   @Version

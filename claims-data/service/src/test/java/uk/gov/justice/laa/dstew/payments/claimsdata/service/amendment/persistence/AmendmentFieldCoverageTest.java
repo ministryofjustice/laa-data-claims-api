@@ -81,7 +81,7 @@ class AmendmentFieldCoverageTest {
               "status",
               "isAmended",
               "hasAssessment",
-              // Read-only value computed from the claim_effective_value view, not
+              // Read-only value computed from the vw_claim_effective_value view, not
               // provider-amendable.
               "effectiveTotalValue",
               // Optimistic-lock guard.
