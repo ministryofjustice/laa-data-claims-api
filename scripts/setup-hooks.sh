@@ -12,6 +12,10 @@ curl --proto '=https' --tlsv1.2 \
 echo "\nInstalling prek within the repository"
 prek install
 
+# Install gitleaks
+echo "\nInstalling gitleaks"
+brew install gitleaks
+
 echo "Git hooks setup complete!"
 echo "The pre-commit hook will now:"
 echo "  1. Run Spotless formatting on staged Java files"
