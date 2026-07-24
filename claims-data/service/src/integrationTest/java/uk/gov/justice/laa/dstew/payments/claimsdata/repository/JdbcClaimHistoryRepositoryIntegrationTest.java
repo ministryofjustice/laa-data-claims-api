@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REASON_PROVIDER_ERROR;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REQUESTED_BY_PROVIDER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
@@ -22,6 +24,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
@@ -261,6 +264,211 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(events)
         .extracting(ClaimHistoryEventRow::eventType)
         .doesNotContain("ASSESSMENT", "VOID");
+  }
+
+  // ---------- AMENDMENT events (DSTEW-1813 / DSTEW-1814) ----------
+
+  @Test
+  @DisplayName("Maps a single claim_amendment row into an AMENDMENT event with metadata and changes")
+  void mapsSingleAmendmentToAmendmentEvent() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(
+        amendmentId,
+        diff(change("client_surname", "\"Smyth\"", "\"Smith\"", "REQUESTED")),
+        Instant.parse("2026-05-02T09:14:00Z"));
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.eventType()).isEqualTo("AMENDMENT");
+    assertThat(event.sourceId()).isEqualTo(amendmentId);
+    assertThat(event.actorId()).isEqualTo(USER_ID);
+    assertThat(event.eventTimestamp()).isEqualTo(Instant.parse("2026-05-02T09:14:00Z"));
+    assertThat(event.metadata().get("requested_by_code").asText()).isEqualTo(REQUESTED_BY_PROVIDER);
+    assertThat(event.metadata().get("amendment_reason_code").asText())
+        .isEqualTo(REASON_PROVIDER_ERROR);
+
+    var changes = event.metadata().get("changes");
+    assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).get("field_identifier").asText()).isEqualTo("client_surname");
+    assertThat(changes.get(0).get("before").asText()).isEqualTo("Smyth");
+    assertThat(changes.get(0).get("after").asText()).isEqualTo("Smith");
+    assertThat(changes.get(0).get("change_source").asText()).isEqualTo("REQUESTED");
+  }
+
+  @Test
+  @DisplayName("Distinguishes REQUESTED changes from FSP consequences in the changes list")
+  void distinguishesRequestedAndFspChanges() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(
+        amendmentId,
+        diff(
+            change("client_surname", "\"Smyth\"", "\"Smith\"", "REQUESTED"),
+            change("calculated_fee_detail.total_amount", "\"100.00\"", "\"125.00\"", "FSP")),
+        Instant.parse("2026-05-02T09:14:00Z"));
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    var changes = event.metadata().get("changes");
+    assertThat(changes).hasSize(2);
+    assertThat(changes.get(0).get("change_source").asText()).isEqualTo("REQUESTED");
+    assertThat(changes.get(1).get("change_source").asText()).isEqualTo("FSP");
+  }
+
+  @Test
+  @DisplayName("Retains an explicitly cleared field as an explicit JSON null after value")
+  void retainsExplicitNullAfterAsJsonNull() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(
+        amendmentId,
+        diff(change("client_surname", "\"Smith\"", "null", "REQUESTED")),
+        Instant.parse("2026-05-02T09:14:00Z"));
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    var change = event.metadata().get("changes").get(0);
+    // The key is present but null - a cleared value, distinguishable from an absent key.
+    assertThat(change.has("after")).isTrue();
+    assertThat(change.get("after").isNull()).isTrue();
+  }
+
+  @Test
+  @DisplayName("The AMENDMENT metadata never exposes the raw request payload or before-state")
+  void amendmentMetadataOmitsRawPayloadAndBeforeState() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(
+        amendmentId,
+        diff(change("client_surname", "\"Smyth\"", "\"Smith\"", "REQUESTED")),
+        Instant.parse("2026-05-02T09:14:00Z"));
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().has("request_payload")).isFalse();
+    assertThat(event.metadata().has("before_state")).isFalse();
+    assertThat(event.metadata().has("beforeState")).isFalse();
+  }
+
+  @Test
+  @DisplayName("Returns each amendment as its own event in reverse-chronological order")
+  void returnsEachAmendmentAsOwnEventInChronologicalOrder() {
+    UUID earlierAmendmentId = Uuid7.timeBasedUuid();
+    UUID laterAmendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(
+        earlierAmendmentId,
+        diff(change("client_surname", "\"Smyth\"", "\"Smith\"", "REQUESTED")),
+        Instant.parse("2026-05-02T09:14:00Z"));
+    persistAmendment(
+        laterAmendmentId,
+        diff(change("fee_code", "\"OLD\"", "\"NEW\"", "REQUESTED")),
+        Instant.parse("2026-05-03T10:00:00Z"));
+
+    List<ClaimHistoryEventRow> amendments =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 50).stream()
+            .filter(event -> "AMENDMENT".equals(event.eventType()))
+            .toList();
+
+    // Newest amendment first, so the latest amendment is unambiguously derivable for the banner.
+    assertThat(amendments)
+        .extracting(ClaimHistoryEventRow::sourceId)
+        .containsExactly(laterAmendmentId, earlierAmendmentId);
+  }
+
+  @Test
+  @DisplayName("Orders same-timestamp amendments deterministically by source id descending")
+  void ordersSameTimestampAmendmentsBySourceIdDescending() {
+    UUID idA = Uuid7.timeBasedUuid();
+    UUID idB = Uuid7.timeBasedUuid();
+    Instant shared = Instant.parse("2026-05-02T09:14:00Z");
+    persistAmendment(idA, diff(change("client_surname", "\"A\"", "\"B\"", "REQUESTED")), shared);
+    persistAmendment(idB, diff(change("fee_code", "\"A\"", "\"B\"", "REQUESTED")), shared);
+
+    List<UUID> amendmentOrder =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 50).stream()
+            .filter(event -> "AMENDMENT".equals(event.eventType()))
+            .map(ClaimHistoryEventRow::sourceId)
+            .toList();
+
+    UUID higher = idA.compareTo(idB) > 0 ? idA : idB;
+    UUID lower = idA.compareTo(idB) > 0 ? idB : idA;
+    assertThat(amendmentOrder).containsExactly(higher, lower);
+  }
+
+  @Test
+  @DisplayName("Interleaves an amendment chronologically with submission and assessment events")
+  void interleavesAmendmentWithSubmissionAndAssessment() {
+    Instant submissionTimestamp =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 50).getFirst().eventTimestamp();
+
+    UUID earlierAssessmentId = Uuid7.timeBasedUuid();
+    UUID laterAmendmentId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        earlierAssessmentId,
+        AssessmentType.ESCAPE_CASE_ASSESSMENT,
+        AssessmentOutcome.PAID_IN_FULL,
+        "Before submission");
+    forceCreatedOn(earlierAssessmentId, submissionTimestamp.minusSeconds(60));
+    persistAmendment(
+        laterAmendmentId,
+        diff(change("client_surname", "\"Smyth\"", "\"Smith\"", "REQUESTED")),
+        submissionTimestamp.plusSeconds(60));
+
+    List<ClaimHistoryEventRow> events = claimHistoryRepository.findHistory(CLAIM_1_ID, 50);
+
+    // Newest first: AMENDMENT (after) -> SUBMISSION -> ASSESSMENT (before).
+    assertThat(events).hasSize(3);
+    assertThat(events)
+        .extracting(ClaimHistoryEventRow::eventType)
+        .containsExactly("AMENDMENT", "SUBMISSION", "ASSESSMENT");
+    assertThat(events)
+        .extracting(ClaimHistoryEventRow::sourceId)
+        .containsExactly(laterAmendmentId, CLAIM_1_ID, earlierAssessmentId);
+  }
+
+  @Test
+  @DisplayName("Returns no AMENDMENT event when the claim has no claim_amendment row")
+  void returnsNoAmendmentEventWhenClaimHasNoAmendment() {
+    // A failed/rejected attempt persists no claim_amendment row, so it never appears (AC4).
+    List<ClaimHistoryEventRow> events = claimHistoryRepository.findHistory(CLAIM_1_ID, 50);
+
+    assertThat(events).extracting(ClaimHistoryEventRow::eventType).doesNotContain("AMENDMENT");
+  }
+
+  private ClaimHistoryEventRow findAmendmentEvent(UUID amendmentId) {
+    return claimHistoryRepository.findHistory(CLAIM_1_ID, 50).stream()
+        .filter(event -> amendmentId.equals(event.sourceId()))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private void persistAmendment(UUID id, String diffJson, Instant createdOn) {
+    claimAmendmentRepository.save(
+        ClaimAmendment.builder()
+            .id(id)
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .requestedByCode(REQUESTED_BY_PROVIDER)
+            .amendmentReasonCode(REASON_PROVIDER_ERROR)
+            .beforeState("{}")
+            .requestPayload("{}")
+            .diff(diffJson)
+            .createdByUserId(USER_ID)
+            .createdOn(OffsetDateTime.ofInstant(createdOn, ZoneOffset.UTC))
+            .build());
+    claimAmendmentRepository.flush();
+  }
+
+  private static String diff(String... changeObjects) {
+    return "{\"schema_version\":1,\"changes\":[" + String.join(",", changeObjects) + "]}";
+  }
+
+  private static String change(String field, String beforeJson, String afterJson, String source) {
+    return "{\"field_identifier\":\""
+        + field
+        + "\",\"before\":"
+        + beforeJson
+        + ",\"after\":"
+        + afterJson
+        + ",\"change_source\":\""
+        + source
+        + "\"}";
   }
 
   private ClaimHistoryEventRow findAssessmentEvent(UUID assessmentId) {
