@@ -1,6 +1,6 @@
 plugins {
     id 'io.freefair.lombok' version '9.2.0'
-    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
+    id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
     id "io.sentry.jvm.gradle" version "5.12.2"
@@ -61,6 +61,11 @@ dependencyManagement {
             entry 'sentry-logback'
         }
 
+        imports {
+            // Upgrade to fix vulnerabilities in netty
+            mavenBom('io.netty:netty-bom:4.2.16.Final')
+        }
+
         // === INSERT YOUR OVERRIDES HERE ===
         // Force jackson-core 2.x to fix Snyk vulnerability
         dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
@@ -77,15 +82,13 @@ dependencyManagement {
 dependencies {
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.3.0'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.3.0'
 
-    //Enable access token authentication
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
-    //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-sql-scanner'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-export'
+
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
-    // Export starter for csv export endpoints
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-export'
-
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 

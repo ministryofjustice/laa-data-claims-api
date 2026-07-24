@@ -1,19 +1,12 @@
 pluginManagement {
     repositories {
-        maven {
-            name = "gitHubPackages"
-            url = 'https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common'
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser')
-                password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find('project.ext.gitPackageKey')
-            }
-        }
+        mavenCentral()
         maven { url = "https://plugins.gradle.org/m2/" }
         gradlePluginPortal()
     }
 
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.12'
+        id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin' version '3.0.0'
     }
 }
 
@@ -22,4 +15,3 @@ rootProject.name = 'laa-data-claims-api'
 include 'claims-data'
 include 'claims-data:api'
 include 'claims-data:service'
-
