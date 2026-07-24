@@ -18,10 +18,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestData;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDataWrite;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 @Transactional
 class InquestDataServiceIntegrationTest extends AbstractIntegrationTest {
   @Autowired private InquestDataService inquestDataService;
+  @Autowired private ClaimService claimService;
   @PersistenceContext private EntityManager entityManager;
 
   @BeforeEach
@@ -76,6 +80,49 @@ class InquestDataServiceIntegrationTest extends AbstractIntegrationTest {
               entityManager.flush();
             })
         .isInstanceOf(PersistenceException.class);
+  }
+
+  @Test
+  void claimCreationPersistsCompleteInquestDataAndEvaluatesItAsComplete() {
+    ClaimInquestData persisted =
+        createClaimWithInquestData(
+            request(Set.of("MOJ", "HO"), List.of("NHS Trust", "County Council")));
+
+    assertThat(persisted.getDeceasedForename()).isEqualTo("Alex");
+    assertThat(persisted.getInterestedDepartmentCodes()).containsExactlyInAnyOrder("MOJ", "HO");
+    assertThat(persisted.getInterestedPublicAuthorities())
+        .containsExactly("NHS Trust", "County Council");
+    assertThat(persisted.getIsComplete()).isTrue();
+  }
+
+  @Test
+  void claimCreationPersistsPartialInquestDataAndEvaluatesItAsIncomplete() {
+    ClaimInquestDataWrite partial =
+        new ClaimInquestDataWrite(Set.of(), List.of("County Council"), "integration-test")
+            .deceasedSurname("Jones");
+
+    ClaimInquestData persisted = createClaimWithInquestData(partial);
+
+    assertThat(persisted.getDeceasedSurname()).isEqualTo("Jones");
+    assertThat(persisted.getInterestedPublicAuthorities()).containsExactly("County Council");
+    assertThat(persisted.getIsComplete()).isFalse();
+  }
+
+  private ClaimInquestData createClaimWithInquestData(ClaimInquestDataWrite inquestData) {
+    var submission = claimRepository.findById(CLAIM_1_ID).orElseThrow().getSubmission();
+    submission.setStatus(SubmissionStatus.READY_FOR_SUBMISSION);
+    submissionRepository.save(submission);
+    ClaimPost claim =
+        new ClaimPost()
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .lineNumber(99)
+            .matterTypeCode("INQUEST")
+            .createdByUserId("integration-test")
+            .inquestData(inquestData);
+
+    var claimId = claimService.createClaim(submission.getId(), claim);
+
+    return inquestDataService.get(claimId);
   }
 
   private ClaimInquestDataWrite request(Set<String> departments, List<String> authorities) {
