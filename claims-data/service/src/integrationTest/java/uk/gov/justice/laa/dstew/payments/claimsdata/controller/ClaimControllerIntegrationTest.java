@@ -53,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
@@ -187,6 +188,58 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @Test
+  @DisplayName("POST submissions/{id}/claims - adds a claim to a draft submission")
+  void shouldAddClaimToDraftSubmission() throws Exception {
+    submission1.setStatus(SubmissionStatus.READY_FOR_SUBMISSION);
+    submissionRepository.save(submission1);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_1_ID)
+                    .content(
+                        OBJECT_MAPPER.writeValueAsString(
+                            ClaimPost.builder()
+                                .status(ClaimStatus.INVALID)
+                                .lineNumber(5)
+                                .matterTypeCode("TBC")
+                                .createdByUserId("Submit-a-bulk-claim")
+                                .build()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    UUID claimId =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), CreateClaim201Response.class)
+            .getId();
+    assertThat(claimRepository.findById(claimId).orElseThrow().getSubmission().getId())
+        .isEqualTo(SUBMISSION_1_ID);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SubmissionStatus.class,
+      names = {"VALIDATION_SUCCEEDED", "VALIDATION_FAILED", "DISCARDED"})
+  @DisplayName("POST submissions/{id}/claims - rejects a closed submission")
+  void shouldRejectClaimForClosedSubmission(SubmissionStatus submissionStatus) throws Exception {
+    submission1.setStatus(submissionStatus);
+    submissionRepository.save(submission1);
+    long existingClaimCount = claimRepository.count();
+
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_1_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(CASE_REFERENCE)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+
+    assertThat(claimRepository.count()).isEqualTo(existingClaimCount);
   }
 
   @Test

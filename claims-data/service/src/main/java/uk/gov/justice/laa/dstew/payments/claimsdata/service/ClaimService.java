@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -75,6 +76,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequest
 public class ClaimService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
 
+  private static final Set<SubmissionStatus> CLOSED_SUBMISSION_STATUSES =
+      EnumSet.of(
+          SubmissionStatus.VALIDATION_SUCCEEDED,
+          SubmissionStatus.VALIDATION_FAILED,
+          SubmissionStatus.DISCARDED);
+
   private final SubmissionRepository submissionRepository;
   private final ClaimRepository claimRepository;
   private final ClientRepository clientRepository;
@@ -122,8 +129,8 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
-    if (submission.getStatus() == SubmissionStatus.DISCARDED) {
-      throw new ClaimBadRequestException("Claims cannot be added to a discarded submission");
+    if (CLOSED_SUBMISSION_STATUSES.contains(submission.getStatus())) {
+      throw new ClaimBadRequestException("Claims can only be added to an open submission");
     }
 
     Claim claim = claimMapper.toClaim(claimPost);
