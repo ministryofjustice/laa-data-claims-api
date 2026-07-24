@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -75,6 +76,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDataWrite;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -117,6 +119,7 @@ class ClaimServiceTest {
   @Mock private AssessmentService assessmentService;
   @Mock private ClaimAmendmentService claimAmendmentService;
   @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+  @Mock private InquestDataService inquestDataService;
 
   @Spy
   private final ClaimSearchRequestValidator claimSearchRequestValidator =
@@ -194,6 +197,31 @@ class ClaimServiceTest {
     assertThat(id).isNotNull();
     verify(claimRepository).save(claim);
     verify(clientRepository, never()).save(emptyClient);
+    verifyNoInteractions(inquestDataService);
+  }
+
+  @Test
+  void shouldPersistSuppliedInquestDataWithCreatedClaim() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
+    ClaimInquestDataWrite inquestData =
+        new ClaimInquestDataWrite()
+            .actorUserId(API_USER_ID)
+            .interestedDepartmentCodes(Set.of())
+            .interestedPublicAuthorities(List.of());
+    ClaimPost post = new ClaimPost().createdByUserId(API_USER_ID).inquestData(inquestData);
+    Claim claim = Claim.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(ClaimSummaryFee.builder().build());
+    when(claimMapper.toClaimCase(post)).thenReturn(ClaimCase.builder().build());
+
+    UUID claimId = claimService.createClaim(submissionId, post);
+
+    verify(inquestDataService).create(claimId, inquestData);
   }
 
   @Test

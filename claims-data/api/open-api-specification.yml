@@ -1739,6 +1739,10 @@ components:
     claim_post:
       allOf:
         - $ref: '#/components/schemas/claim_base'
+        - type: object
+          properties:
+            inquest_data:
+              $ref: '#/components/schemas/claim_inquest_data_write'
       required:
         - status
         - line_number
@@ -2410,6 +2414,24 @@ components:
           format: bigDecimal
         med_concluded_date:
           type: string
+        deceased_forename:
+          type: string
+        deceased_surname:
+          type: string
+        deceased_date_of_birth:
+          type: string
+        deceased_date_of_death:
+          type: string
+        coroners_inquest_reference:
+          type: string
+        interested_government_departments:
+          type: array
+          items:
+            type: string
+        interested_public_authorities:
+          type: array
+          items:
+            type: string
     matter_start_post:
       allOf:
         - $ref: '#/components/schemas/matter_start_fields'

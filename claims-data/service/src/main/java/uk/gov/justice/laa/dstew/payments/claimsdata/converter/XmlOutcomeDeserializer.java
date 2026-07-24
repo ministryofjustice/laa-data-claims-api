@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
@@ -145,6 +146,13 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String paNumber = null;
     String excessTravelCosts = null;
     String medConcludedDate = null;
+    String deceasedForename = null;
+    String deceasedSurname = null;
+    String deceasedDateOfBirth = null;
+    String deceasedDateOfDeath = null;
+    String coronersInquestReference = null;
+    List<String> interestedGovernmentDepartments = new ArrayList<>();
+    List<String> interestedPublicAuthorities = new ArrayList<>();
 
     for (JsonNode outcomeItem : outcomeItems) {
       JsonNode nameNode = outcomeItem.get("name");
@@ -261,6 +269,13 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
+        case "DECEASED_FORENAME" -> deceasedForename = value;
+        case "DECEASED_SURNAME" -> deceasedSurname = value;
+        case "DECEASED_DATE_OF_BIRTH" -> deceasedDateOfBirth = value;
+        case "DECEASED_DATE_OF_DEATH" -> deceasedDateOfDeath = value;
+        case "CORONERS_INQUEST_REFERENCE" -> coronersInquestReference = value;
+        case "INTERESTED_GOVERNMENT_DEPARTMENT" -> interestedGovernmentDepartments.add(value);
+        case "INTERESTED_PUBLIC_AUTHORITY" -> interestedPublicAuthorities.add(value);
         default ->
             throw new IllegalStateException(
                 "The file contains an unrecognised field %s. Correct or remove the field and try again."
@@ -370,7 +385,14 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         localAuthorityNumber,
         paNumber,
         excessTravelCosts,
-        medConcludedDate);
+        medConcludedDate,
+        deceasedForename,
+        deceasedSurname,
+        deceasedDateOfBirth,
+        deceasedDateOfDeath,
+        coronersInquestReference,
+        List.copyOf(interestedGovernmentDepartments),
+        List.copyOf(interestedPublicAuthorities));
   }
 
   private JsonNode getAllowedMatterType(JsonNode node) {

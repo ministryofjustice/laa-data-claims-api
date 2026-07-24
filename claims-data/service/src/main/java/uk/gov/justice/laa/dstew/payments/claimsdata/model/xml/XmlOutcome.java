@@ -1,7 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.model.xml;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+import java.util.List;
 import uk.gov.justice.laa.dstew.payments.claimsdata.converter.XmlOutcomeDeserializer;
 
 /**
@@ -134,16 +136,11 @@ public record XmlOutcome(
     String localAuthorityNumber,
     String paNumber,
     String excessTravelCosts,
-    String medConcludedDate) {
-  /** Default constructor for XmlOutcome. */
-  public XmlOutcome() {
-    this(
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null);
-  }
-}
+    String medConcludedDate,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) String deceasedForename,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) String deceasedSurname,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) String deceasedDateOfBirth,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) String deceasedDateOfDeath,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) String coronersInquestReference,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> interestedGovernmentDepartments,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> interestedPublicAuthorities) {}

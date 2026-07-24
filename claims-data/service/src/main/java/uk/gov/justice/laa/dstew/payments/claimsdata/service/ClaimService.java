@@ -91,6 +91,7 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
+  private final InquestDataService inquestDataService;
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
@@ -150,6 +151,10 @@ public class ClaimService
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
+    }
+
+    if (claimPost.getInquestData() != null) {
+      inquestDataService.create(claim.getId(), claimPost.getInquestData());
     }
 
     return claim.getId();

@@ -162,6 +162,13 @@
             <xs:enumeration value="PA_NUMBER"/>
             <xs:enumeration value="EXCESS_TRAVEL_COSTS"/>
             <xs:enumeration value="MED_CONCLUDED_DATE"/>
+            <xs:enumeration value="DECEASED_FORENAME"/>
+            <xs:enumeration value="DECEASED_SURNAME"/>
+            <xs:enumeration value="DECEASED_DATE_OF_BIRTH"/>
+            <xs:enumeration value="DECEASED_DATE_OF_DEATH"/>
+            <xs:enumeration value="CORONERS_INQUEST_REFERENCE"/>
+            <xs:enumeration value="INTERESTED_GOVERNMENT_DEPARTMENT"/>
+            <xs:enumeration value="INTERESTED_PUBLIC_AUTHORITY"/>
         </xs:restriction>
     </xs:simpleType>
 
