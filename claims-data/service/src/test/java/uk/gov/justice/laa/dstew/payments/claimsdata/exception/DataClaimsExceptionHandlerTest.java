@@ -30,6 +30,8 @@ import uk.gov.laa.springboot.export.ExportValidationException;
 @DisplayName("DataClaimsExceptionHandler Tests")
 class DataClaimsExceptionHandlerTest {
   private static final String TEST_REQUEST_URI = "/api/v1/test";
+  private static final String EXPECTED_CONFLICT_MESSAGE =
+      ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.getMessageTemplate();
 
   DataClaimsExceptionHandler dataClaimsExceptionHandler = new DataClaimsExceptionHandler();
   HttpServletRequest mockRequest;
@@ -159,6 +161,25 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName(
+      "Early-gate CLAIM_VERSION_CONFLICT maps to 409 with the stable code and user-safe message")
+  void earlyGateVersionConflict_mapsToConflictWithStableCode() {
+    // The early version gate surfaces the conflict as a fatal amendment validation error carried on
+    // a ClaimAmendmentValidationException (not an optimistic-lock exception).
+    ClaimAmendmentValidationError conflict =
+        ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT);
+    ClaimAmendmentValidationException ex = new ClaimAmendmentValidationException(List.of(conflict));
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertStableConflictCodeIsPresent(result);
+  }
+
+  @Test
   void handleClaimAmendmentVersionValidationException_returnsCustomStatusWhenFatal() {
     // Arrange: Create a fatal validation error scenario
     ClaimAmendmentValidationError fatalError =
@@ -194,7 +215,7 @@ class DataClaimsExceptionHandlerTest {
 
     // Assert
     String expectedMessage =
-        ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT.getMessageTemplate();
+        ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.getMessageTemplate();
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
@@ -205,6 +226,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
+    assertStableConflictCodeIsPresent(result);
   }
 
   @Test
@@ -274,9 +296,10 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
+    assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertStableConflictCodeIsPresent(result);
   }
 
   @Test
@@ -294,8 +317,51 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
-    assertThat(result.getBody().getDetail()).isEqualTo("Claim Version conflict exists");
+    assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
     assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertStableConflictCodeIsPresent(result);
+  }
+
+  @Test
+  @DisplayName(
+      "Both final-guard conflict paths surface the same stable code and identical envelope shape")
+  void bothFinalGuardPaths_shareSameStableConflictCodeAndEnvelope() {
+    ResponseEntity<ProblemDetail> jpaResult =
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(
+            new OptimisticLockException("stale"), mockRequest);
+    ResponseEntity<ProblemDetail> springResult =
+        dataClaimsExceptionHandler.handleDatabaseOptimisticLockException(
+            new ObjectOptimisticLockingFailureException("Claim", new Exception()), mockRequest);
+
+    // Same status and user-safe message
+    assertThat(jpaResult.getStatusCode())
+        .isEqualTo(springResult.getStatusCode())
+        .isEqualTo(CONFLICT);
+    assertThat(jpaResult.getBody().getDetail())
+        .isEqualTo(springResult.getBody().getDetail())
+        .isEqualTo(EXPECTED_CONFLICT_MESSAGE);
+
+    // Same stable machine-readable conflict code in the shared 'errors' envelope
+    assertStableConflictCodeIsPresent(jpaResult);
+    assertStableConflictCodeIsPresent(springResult);
+  }
+
+  /**
+   * Asserts the response carries the shared stale-version envelope: an {@code errors} array whose
+   * single entry exposes the stable machine-readable code {@code CLAIM_VERSION_CONFLICT}.
+   */
+  @SuppressWarnings("unchecked")
+  private static void assertStableConflictCodeIsPresent(ResponseEntity<ProblemDetail> result) {
+    assertThat(result.getBody()).isNotNull();
+    Object errorsProperty = result.getBody().getProperties().get("errors");
+    assertThat(errorsProperty).isInstanceOf(List.class);
+    List<ClaimAmendmentValidationError> errors =
+        (List<ClaimAmendmentValidationError>) errorsProperty;
+    assertThat(errors).hasSize(1);
+    assertThat(errors.getFirst().getCode()).isEqualTo("CLAIM_VERSION_CONFLICT");
+    assertThat(errors.getFirst().getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name());
+    assertThat(errors.getFirst().getMessage()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
   }
 }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockserver.verify.VerificationTimes;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -64,10 +65,12 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
-    // Amend a claim-level field (fee code) and the client name in one request.
+    // Amend a claim-level field (fee code) and the client name in one request. The patch carries
+    // the claim's current version so it passes the early version gate.
     ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(AMENDED_FEE_CODE);
     patch.setClientForename(AMENDED_CLIENT_FORENAME);
     patch.setClientSurname(AMENDED_CLIENT_SURNAME);
@@ -94,9 +97,79 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     assertThat(amendedClaim.getFeeCode()).isEqualTo(AMENDED_FEE_CODE).isNotEqualTo(originalFeeCode);
     assertThat(amendedClaim.isAmended()).isTrue();
 
+    // claim.version: a successful amendment advances the optimistic-lock version atomically as part
+    // of the same commit (DSTEW-1753 / parent AC1), so a later stale submit is rejected.
+    assertThat(amendedClaim.getVersion()).isGreaterThan(savedClaim.getVersion());
+
     // client: the amended client name is applied, proving the client table is affected.
     Client amendedClient = clientRepository.findByClaimId(CLAIM_1_ID).orElseThrow();
     assertThat(amendedClient.getClientForename()).isEqualTo(AMENDED_CLIENT_FORENAME);
     assertThat(amendedClient.getClientSurname()).isEqualTo(AMENDED_CLIENT_SURNAME);
+  }
+
+  @Test
+  @DisplayName(
+      "a stale claim version is rejected end-to-end with 409 Conflict and CLAIM_VERSION_CONFLICT")
+  void staleClaimVersionIsRejectedWithConflict() throws Exception {
+    // Clean PDA response so, if the flow reached external validation, it would not add noise. The
+    // early version gate should short-circuit well before that.
+    stubProviderSchedulesOk();
+
+    Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    seeded.setStatus(ClaimStatus.VALID);
+    claimRepository.saveAndFlush(seeded);
+
+    // Submit a version that does not match the current claim version, simulating a claim that
+    // changed since it was loaded.
+    ClaimPatch patch = metadataPatch();
+    patch.setVersion(999L);
+    patch.setFeeCode(AMENDED_FEE_CODE);
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // 409 Conflict carrying the stable machine-readable code and the user-safe message.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+    String body = result.getResponse().getContentAsString();
+    assertThat(body).contains("CLAIM_VERSION_CONFLICT");
+    assertThat(body).contains("The claim has changed since it was loaded");
+
+    // The conflict is fatal and nothing is written.
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+    assertThat(claimRepository.findById(CLAIM_1_ID).orElseThrow().isAmended()).isFalse();
+
+    // The early gate short-circuits before external calls (parent AC3): neither the PDA
+    // /schedules call nor the FSP fee-calculation call is made for a stale amendment.
+    verifyProviderSchedulesCalled(VerificationTimes.never());
+    verifyFeeCalculationCalled(VerificationTimes.never());
+  }
+
+  @Test
+  @DisplayName("a missing claim version is rejected end-to-end with 400 Bad Request")
+  void missingClaimVersionIsRejectedWithBadRequest() throws Exception {
+    // Clean PDA response so, if the flow reached external validation, it would not add noise. The
+    // early version gate should short-circuit well before that.
+    stubProviderSchedulesOk();
+
+    Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    seeded.setStatus(ClaimStatus.VALID);
+    claimRepository.saveAndFlush(seeded);
+
+    // Omit the claim version entirely: the NON_NULL patch mapper drops the null field, so the
+    // request body carries no version at all - the mandatory-version contract (DSTEW-1751).
+    ClaimPatch patch = metadataPatch();
+    patch.setVersion(null);
+    patch.setFeeCode(AMENDED_FEE_CODE);
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // 400 Bad Request with the null-version message; no amendment processing.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(result.getResponse().getContentAsString()).contains("Claim Version is null");
+
+    // Nothing is written and no external call is made for a missing-version request.
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+    assertThat(claimRepository.findById(CLAIM_1_ID).orElseThrow().isAmended()).isFalse();
+    verifyProviderSchedulesCalled(VerificationTimes.never());
+    verifyFeeCalculationCalled(VerificationTimes.never());
   }
 }

@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
@@ -64,6 +65,10 @@ public class ClaimAmendmentValidationService {
           // any other work is done.
           AmendmentFeatureFlagValidationStep.class,
           BeforeStatePresenceValidationStep.class,
+          // Early version gate (DSTEW-1751/1752): reject a stale amendment before any further work,
+          // and before the status check, so a lost-update is caught as soon as the before-state is
+          // known to be present.
+          ClaimVersionValidationStep.class,
           ClaimStatusValidationStep.class,
           AssessedClaimPricingValidationStep.class,
           FieldAmendabilityValidationStep.class,

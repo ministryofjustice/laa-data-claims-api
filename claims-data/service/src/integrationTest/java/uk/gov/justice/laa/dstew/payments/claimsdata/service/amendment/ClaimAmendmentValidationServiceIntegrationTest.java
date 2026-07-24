@@ -287,6 +287,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
               .disbursementsVatAmount(new BigDecimal("0.00"))
               .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
               .schemeId("SCHEME-1")
+              .version(1L)
               .calculatedFeeDetail(
                   CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
               .build();
@@ -301,6 +302,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
                   .amendmentRequestedBy(JsonNullable.of(SEEDED_PARTY))
                   .amendmentReasonCode(JsonNullable.of(SEEDED_REASON))
                   .amendmentUserId(JsonNullable.of(NOT_A_UUID))
+                  .version(JsonNullable.of(1L))
                   .build())
           .build();
     }
@@ -320,6 +322,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
     ClaimStateSnapshot snapshot =
         ClaimStateSnapshot.builder()
             .claimId(Uuid7.timeBasedUuid())
+            .version(0L)
             .feeCode(CLAIM_FEE_CODE)
             .status(status)
             .lineNumber(1)
@@ -335,6 +338,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
         .postAmendmentState(snapshot)
         .requestPayload(
             ClaimAmendmentPayload.builder()
+                .version(JsonNullable.of(0L))
                 .amendmentRequestedBy(JsonNullable.of(requestedBy))
                 .amendmentReasonCode(JsonNullable.of(reason))
                 .amendmentUserId(JsonNullable.of(userId))

@@ -1,11 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
@@ -47,6 +50,7 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
  *     uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ClaimAmendmentCommitService {
 
@@ -63,7 +67,9 @@ public class ClaimAmendmentCommitService {
    *
    * <ol>
    *   <li>Merges the detached {@link Claim} aggregate back into the active {@link EntityManager}
-   *       context, which triggers an optimistic lock check.
+   *       context and forces a flush, which executes the versioned {@code UPDATE} and triggers the
+   *       optimistic lock check <em>inside</em> this method (rather than later at transaction
+   *       commit, where it would escape the guard).
    *   <li>Saves the audit history record for the requested changes via the persistence helper.
    *   <li>Pulls the FSP response context cached in Phase 2, maps it to a database entity, and
    *       records the updated fee details alongside the amendment.
@@ -79,13 +85,35 @@ public class ClaimAmendmentCommitService {
    */
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public ClaimAmendment commit(Claim validatedClaim, ClaimAmendmentState state) {
-    // 1. Reattach the primary claim for optimistic locking check
-    Claim managedClaim = entityManager.merge(validatedClaim);
 
-    // 2. Persist the core claim_amendment history record
+    // 1. Reattach the validated claim and force the versioned UPDATE to run now. The claim is the
+    // only entity in this unit of work carrying an @Version - the amendment and fee-detail rows
+    // below are always inserts - so this flush is the single point where an optimistic-lock
+    // conflict can surface. Flushing here raises it inside the try/catch instead of at the later
+    // transaction commit, where the structured guard warning would be missed.
+    final Claim managedClaim;
+    try {
+      managedClaim = entityManager.merge(validatedClaim);
+      entityManager.flush();
+    } catch (OptimisticLockException ex) {
+      // Structured warning for support/investigation at the final transactional guard. Safe fields
+      // only - never the amendment payload values or financial details. The current version is not
+      // available here (the stale row was updated by a concurrent writer), so only the submitted
+      // (prepare-time) version is logged.
+      log.warn(
+          "event={} claimId={} submittedClaimVersion={} conflictPoint={}",
+          ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name(),
+          validatedClaim.getId(),
+          validatedClaim.getVersion(),
+          "final_save");
+      throw ex;
+    }
+
+    // 2. Persist the core claim_amendment history record (insert - no version check).
     ClaimAmendment amendment = persistenceService.persistSuccessfulAmendment(managedClaim, state);
 
     // 3. 1595-F: If an FSP repricing happened, prepare and save the row linked to this amendment
+    // (insert - no version check).
     FeeCalculationResponse feeCalcResponse = state.getFspResponseContext();
     if (feeCalcResponse != null) {
       CalculatedFeeDetail newFeeDetail =

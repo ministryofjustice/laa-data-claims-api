@@ -425,4 +425,17 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
     mockServerClient.verify(
         request().withMethod(HttpMethod.GET.name()).withPath(SCHEDULES_PATH_REGEX), times);
   }
+
+  /**
+   * Verifies how many times the Fee Scheme Platform {@code fee-calculation} endpoint was called.
+   * Because MockServer expectations are reset after each test, the count reflects only the calls
+   * made by the current test - so this doubles as the "FSP not invoked" assertion when a stale
+   * amendment is rejected at the early version gate before any external repricing call.
+   *
+   * @param times the expected number of outbound {@code fee-calculation} calls
+   */
+  protected void verifyFeeCalculationCalled(VerificationTimes times) {
+    mockServerClient.verify(
+        request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);
+  }
 }
