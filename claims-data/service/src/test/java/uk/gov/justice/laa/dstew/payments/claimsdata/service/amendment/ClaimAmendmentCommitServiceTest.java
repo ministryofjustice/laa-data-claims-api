@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -98,8 +99,10 @@ class ClaimAmendmentCommitServiceTest {
     when(validatedClaim.getVersion()).thenReturn(7L);
     ClaimAmendmentState mockState = mock(ClaimAmendmentState.class);
 
+    // The versioned UPDATE surfaces at flush, not at merge, so the guard must sit around the flush.
     OptimisticLockException lockException = new OptimisticLockException("stale row");
-    when(entityManager.merge(validatedClaim)).thenThrow(lockException);
+    when(entityManager.merge(validatedClaim)).thenReturn(validatedClaim);
+    doThrow(lockException).when(entityManager).flush();
 
     // Act & Assert
     assertThatThrownBy(() -> commitService.commit(validatedClaim, mockState))
@@ -135,8 +138,10 @@ class ClaimAmendmentCommitServiceTest {
     lenient().when(validatedClaim.getFeeCode()).thenReturn(sentinelFeeCode);
     ClaimAmendmentState mockState = mock(ClaimAmendmentState.class);
 
+    // The conflict surfaces at flush (the versioned UPDATE), not at merge.
     OptimisticLockException lockException = new OptimisticLockException("stale row");
-    when(entityManager.merge(validatedClaim)).thenThrow(lockException);
+    when(entityManager.merge(validatedClaim)).thenReturn(validatedClaim);
+    doThrow(lockException).when(entityManager).flush();
 
     // Act & Assert
     assertThatThrownBy(() -> commitService.commit(validatedClaim, mockState))

@@ -67,7 +67,9 @@ public class ClaimAmendmentCommitService {
    *
    * <ol>
    *   <li>Merges the detached {@link Claim} aggregate back into the active {@link EntityManager}
-   *       context, which triggers an optimistic lock check.
+   *       context and forces a flush, which executes the versioned {@code UPDATE} and triggers the
+   *       optimistic lock check <em>inside</em> this method (rather than later at transaction
+   *       commit, where it would escape the guard).
    *   <li>Saves the audit history record for the requested changes via the persistence helper.
    *   <li>Pulls the FSP response context cached in Phase 2, maps it to a database entity, and
    *       records the updated fee details alongside the amendment.
@@ -84,28 +86,15 @@ public class ClaimAmendmentCommitService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public ClaimAmendment commit(Claim validatedClaim, ClaimAmendmentState state) {
 
-    // Reattach the validated instance so the versioned UPDATE guards against changes since
-    // the prepare step. Merge returns the managed instance to write through.
+    // 1. Reattach the validated claim and force the versioned UPDATE to run now. The claim is the
+    // only entity in this unit of work carrying an @Version - the amendment and fee-detail rows
+    // below are always inserts - so this flush is the single point where an optimistic-lock
+    // conflict can surface. Flushing here raises it inside the try/catch instead of at the later
+    // transaction commit, where the structured guard warning would be missed.
+    final Claim managedClaim;
     try {
-      // 1. Reattach the primary claim for optimistic locking check
-      Claim managedClaim = entityManager.merge(validatedClaim);
-
-      // 2. Persist the core claim_amendment history record
-      ClaimAmendment amendment = persistenceService.persistSuccessfulAmendment(managedClaim, state);
-
-      // 3. 1595-F: If an FSP repricing happened, prepare and save the row linked to this amendment
-      FeeCalculationResponse feeCalcResponse = state.getFspResponseContext();
-      if (feeCalcResponse != null) {
-        CalculatedFeeDetail newFeeDetail =
-            handoffFactory.prepareCalculatedFeeDetail(
-                managedClaim, state, feeCalcResponse, amendment);
-
-        if (newFeeDetail != null) {
-          calculatedFeeDetailRepository.save(newFeeDetail);
-        }
-      }
-
-      return amendment;
+      managedClaim = entityManager.merge(validatedClaim);
+      entityManager.flush();
     } catch (OptimisticLockException ex) {
       // Structured warning for support/investigation at the final transactional guard. Safe fields
       // only - never the amendment payload values or financial details. The current version is not
@@ -119,5 +108,23 @@ public class ClaimAmendmentCommitService {
           "final_save");
       throw ex;
     }
+
+    // 2. Persist the core claim_amendment history record (insert - no version check).
+    ClaimAmendment amendment = persistenceService.persistSuccessfulAmendment(managedClaim, state);
+
+    // 3. 1595-F: If an FSP repricing happened, prepare and save the row linked to this amendment
+    // (insert - no version check).
+    FeeCalculationResponse feeCalcResponse = state.getFspResponseContext();
+    if (feeCalcResponse != null) {
+      CalculatedFeeDetail newFeeDetail =
+          handoffFactory.prepareCalculatedFeeDetail(
+              managedClaim, state, feeCalcResponse, amendment);
+
+      if (newFeeDetail != null) {
+        calculatedFeeDetailRepository.save(newFeeDetail);
+      }
+    }
+
+    return amendment;
   }
 }
