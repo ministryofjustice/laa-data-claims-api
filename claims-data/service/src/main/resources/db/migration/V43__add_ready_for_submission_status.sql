@@ -1,4 +1,4 @@
--- Recreate with READY_FOR_FINAL_SUBMISSION added
+-- Recreate status constraints with READY_FOR_SUBMISSION added.
 ALTER TABLE claims.bulk_submission
     DROP CONSTRAINT chk_bulk_submission_status;
 
