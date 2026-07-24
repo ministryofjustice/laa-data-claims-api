@@ -44,6 +44,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -130,7 +131,8 @@ class ClaimServiceTest {
   @MethodSource("getClientTestingArguments")
   void shouldCreateClaimAndClient(Client client) {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
     final ClaimPost post = new ClaimPost();
     post.setCreatedByUserId(API_USER_ID);
     final Claim claim = Claim.builder().build();
@@ -226,7 +228,10 @@ class ClaimServiceTest {
   }
 
   @ParameterizedTest
-  @MethodSource("closedSubmissionStatuses")
+  @EnumSource(
+      value = SubmissionStatus.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = "READY_FOR_SUBMISSION")
   void shouldNotCreateClaimForClosedSubmission(SubmissionStatus status) {
     UUID submissionId = Uuid7.timeBasedUuid();
     Submission submission = Submission.builder().id(submissionId).status(status).build();
@@ -237,13 +242,6 @@ class ClaimServiceTest {
         .hasMessageContaining("open submission");
 
     verify(claimRepository, never()).save(any());
-  }
-
-  static Stream<SubmissionStatus> closedSubmissionStatuses() {
-    return Stream.of(
-        SubmissionStatus.VALIDATION_SUCCEEDED,
-        SubmissionStatus.VALIDATION_FAILED,
-        SubmissionStatus.DISCARDED);
   }
 
   @Test
