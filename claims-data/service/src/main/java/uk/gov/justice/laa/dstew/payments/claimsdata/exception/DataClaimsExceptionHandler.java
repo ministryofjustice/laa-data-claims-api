@@ -150,6 +150,12 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       status = primaryError.getHttpStatus();
     }
 
+    // A 204 outcome (e.g. a no-op amendment that changed nothing) is a success status and must not
+    // carry a response body per RFC 9110; return an empty 204 without the ProblemDetail/errors.
+    if (status == HttpStatus.NO_CONTENT) {
+      return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
 

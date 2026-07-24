@@ -26,6 +26,23 @@ public enum ClaimAmendmentValidationCode {
       "Amendments are not currently enabled.",
       "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled"),
 
+  /**
+   * The submitted amendment changes nothing (no provider-requested field differs from the stored
+   * value), so there is nothing to amend.
+   *
+   * <p>This is a "no work to do" outcome rather than a client mistake, so it resolves to a <b>204
+   * No Content</b> - the same success status a genuine amendment returns - and no {@code
+   * claim_amendment} row is written. It is nonetheless modelled as a {@code FATAL} step outcome so
+   * it halts the pipeline through the same mechanism as every other stop condition (see {@code
+   * AmendmentNoChangeValidationStep}); the request-boundary handler recognises the 204 status and
+   * returns an empty body, as a 204 response must not carry one.
+   */
+  NO_AMENDMENT_CHANGES_SUBMITTED(
+      ValidationSeverity.FATAL,
+      HttpStatus.NO_CONTENT,
+      "No changes were submitted; there is nothing to amend.",
+      "Amendment payload produced no provider-requested field changes (no-op); nothing to persist"),
+
   /** The claim has a null version number so cannot be amended. */
   INVALID_NULL_VERSION(
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),

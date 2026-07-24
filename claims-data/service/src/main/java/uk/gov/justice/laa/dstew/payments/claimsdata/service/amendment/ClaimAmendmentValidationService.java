@@ -10,6 +10,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentNoChangeValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
@@ -64,6 +65,9 @@ public class ClaimAmendmentValidationService {
           // any other work is done.
           AmendmentFeatureFlagValidationStep.class,
           BeforeStatePresenceValidationStep.class,
+          // No-op guard: if the payload changes nothing, halt here (204) before the status,
+          // metadata, PDA and FSP steps run, so no phantom claim_amendment row is written.
+          AmendmentNoChangeValidationStep.class,
           ClaimStatusValidationStep.class,
           AssessedClaimPricingValidationStep.class,
           FieldAmendabilityValidationStep.class,

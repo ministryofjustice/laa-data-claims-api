@@ -269,7 +269,8 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
   // ---------- AMENDMENT events (DSTEW-1813 / DSTEW-1814) ----------
 
   @Test
-  @DisplayName("Maps a single claim_amendment row into an AMENDMENT event with metadata and changes")
+  @DisplayName(
+      "Maps a single claim_amendment row into an AMENDMENT event with metadata and changes")
   void mapsSingleAmendmentToAmendmentEvent() {
     UUID amendmentId = Uuid7.timeBasedUuid();
     persistAmendment(
@@ -315,18 +316,25 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
   }
 
   @Test
-  @DisplayName("Retains an explicitly cleared field as an explicit JSON null after value")
-  void retainsExplicitNullAfterAsJsonNull() {
+  @DisplayName("Retains a cleared client-2 surname as an explicit JSON null after value")
+  void retainsClearedClient2SurnameAsExplicitNull() {
+    // Mirrors "patch client 2 name to null": a provider-requested clear of client.client2Surname
+    // must surface in history as before=<previous value>, after=explicit JSON null (a cleared
+    // value, distinguishable from an absent key). change_source is REQUESTED (provider-driven).
     UUID amendmentId = Uuid7.timeBasedUuid();
     persistAmendment(
         amendmentId,
-        diff(change("client_surname", "\"Smith\"", "null", "REQUESTED")),
+        diff(change("client.client2Surname", "\"Bloggs\"", "null", "REQUESTED")),
         Instant.parse("2026-05-02T09:14:00Z"));
 
     ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
 
     var change = event.metadata().get("changes").get(0);
-    // The key is present but null - a cleared value, distinguishable from an absent key.
+    assertThat(change.get("field_identifier").asText()).isEqualTo("client.client2Surname");
+    assertThat(change.get("change_source").asText()).isEqualTo("REQUESTED");
+    // before carries the previous value...
+    assertThat(change.get("before").asText()).isEqualTo("Bloggs");
+    // ...and after is an explicit JSON null: the key is present and null, not omitted.
     assertThat(change.has("after")).isTrue();
     assertThat(change.get("after").isNull()).isTrue();
   }
