@@ -51,8 +51,25 @@ jobs:
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  ecr-publish-image:
+  bdd-test:
+    runs-on: ubuntu-latest
     needs: [ release ]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Run BDD test suite
+        uses: ./.github/actions/bdd-test
+        with:
+          java-version: *JAVA_VERSION
+          java-distribution: *JDK_DISTRIBUTION
+
+  ecr-publish-image:
+    needs: [ release, bdd-test ]
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
     permissions:
       contents: read
