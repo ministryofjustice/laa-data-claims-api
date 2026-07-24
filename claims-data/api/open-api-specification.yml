@@ -1905,13 +1905,6 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
-            effective_total_value:
-              type: number
-              description: >-
-                The claim's effective (most recent priced) value. This is the allowed total
-                (incl. VAT) of the latest assessment when the claim has any assessment (0 for a
-                void assessment); otherwise the latest calculated fee total amount (initial pricing
-                or an amendment reprice); otherwise null when the claim has neither.
     claim_response_v2:
       allOf:
         - $ref: '#/components/schemas/claim_base'
