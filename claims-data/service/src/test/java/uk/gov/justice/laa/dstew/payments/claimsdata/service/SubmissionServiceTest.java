@@ -45,6 +45,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ConfirmationValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -52,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
@@ -61,6 +63,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ClaimConfirmationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ConfirmationValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -76,6 +80,7 @@ class SubmissionServiceTest {
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
+  @Mock private ConfirmationValidationService confirmationValidationService;
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -355,6 +360,59 @@ class SubmissionServiceTest {
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
     verify(submissionEventPublisherService).publishSubmissionValidationSucceededEvent(id);
+  }
+
+  @Test
+  @DisplayName("Should leave a draft unchanged when confirmation transition validation has errors")
+  void shouldRejectInvalidDraftConfirmationWithoutChangingState() {
+    UUID id = Uuid7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
+    SubmissionResponse response = new SubmissionResponse().submissionId(id);
+    SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_SUCCEEDED);
+    ValidationMessagePatch message =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.ERROR)
+            .displayMessage("Complete the inquest details");
+    ClaimConfirmationError error = new ClaimConfirmationError(claimId, List.of(message));
+
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(response);
+    when(confirmationValidationService.validate(response)).thenReturn(List.of(error));
+
+    ConfirmationValidationException exception =
+        assertThrows(
+            ConfirmationValidationException.class,
+            () -> submissionService.updateSubmission(id, patch));
+
+    assertThat(exception.getClaimReports()).containsExactly(error);
+    verify(submissionMapper, never()).updateSubmissionFromPatch(any(), any());
+    verify(submissionRepository, never()).save(any());
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  @DisplayName("Should validate the draft and its claims before confirming it")
+  void shouldValidateDraftClaimsBeforeChangingState() {
+    UUID id = Uuid7.timeBasedUuid();
+    UUID claimId = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
+    SubmissionResponse response = new SubmissionResponse().submissionId(id);
+    SubmissionClaim claim = new SubmissionClaim().claimId(claimId);
+    SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_SUCCEEDED);
+
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionMapper.toSubmissionResponse(entity)).thenReturn(response);
+    when(claimService.getClaimsForSubmission(id)).thenReturn(List.of(claim));
+    when(confirmationValidationService.validate(response)).thenReturn(List.of());
+
+    submissionService.updateSubmission(id, patch);
+
+    assertThat(response.getClaims()).containsExactly(claim);
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionRepository).save(entity);
   }
 
   @Test

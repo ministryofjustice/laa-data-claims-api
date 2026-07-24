@@ -45,6 +45,19 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Pattern EXCEPTION_SUFFIX = Pattern.compile("Exception$");
   private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
 
+  /** Return claim-level reports when confirmation validation rejects a draft transition. */
+  @ExceptionHandler(ConfirmationValidationException.class)
+  public ResponseEntity<ProblemDetail> handleConfirmationValidationException(
+      ConfirmationValidationException exception, HttpServletRequest request) {
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(
+            HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
+    if (response.getBody() != null) {
+      response.getBody().setProperty("claimReports", exception.getClaimReports());
+    }
+    return response;
+  }
+
   /**
    * Handle {@link SubmissionValidationException} and include the list of validation issues as a
    * structured property inside the RFC 9457 Problem Detail body.

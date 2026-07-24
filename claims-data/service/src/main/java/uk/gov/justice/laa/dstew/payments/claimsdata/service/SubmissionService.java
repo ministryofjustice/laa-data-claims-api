@@ -21,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ConfirmationValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -37,6 +38,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ConfirmationValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
@@ -60,6 +62,7 @@ public class SubmissionService
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final AssessmentService assessmentService;
+  private final ConfirmationValidationService confirmationValidationService;
 
   @Override
   public SubmissionRepository lookup() {
@@ -155,6 +158,16 @@ public class SubmissionService
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
+
+    if (submission.getStatus() == SubmissionStatus.READY_FOR_SUBMISSION
+        && submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
+      SubmissionResponse submissionResponse = submissionMapper.toSubmissionResponse(submission);
+      submissionResponse.setClaims(claimService.getClaimsForSubmission(id));
+      var claimReports = confirmationValidationService.validate(submissionResponse);
+      if (!claimReports.isEmpty()) {
+        throw new ConfirmationValidationException(claimReports);
+      }
+    }
 
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
