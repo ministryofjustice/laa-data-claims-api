@@ -174,7 +174,8 @@ class ClaimServiceTest {
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
     final Client emptyClient = Client.builder().build();
@@ -224,18 +225,25 @@ class ClaimServiceTest {
     verify(claimRepository, never()).save(any());
   }
 
-  @Test
-  void shouldNotCreateClaimForDiscardedSubmission() {
+  @ParameterizedTest
+  @MethodSource("closedSubmissionStatuses")
+  void shouldNotCreateClaimForClosedSubmission(SubmissionStatus status) {
     UUID submissionId = Uuid7.timeBasedUuid();
-    Submission submission =
-        Submission.builder().id(submissionId).status(SubmissionStatus.DISCARDED).build();
+    Submission submission = Submission.builder().id(submissionId).status(status).build();
     when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
 
     assertThatThrownBy(() -> claimService.createClaim(submissionId, new ClaimPost()))
         .isInstanceOf(ClaimBadRequestException.class)
-        .hasMessageContaining("discarded");
+        .hasMessageContaining("open submission");
 
     verify(claimRepository, never()).save(any());
+  }
+
+  static Stream<SubmissionStatus> closedSubmissionStatuses() {
+    return Stream.of(
+        SubmissionStatus.VALIDATION_SUCCEEDED,
+        SubmissionStatus.VALIDATION_FAILED,
+        SubmissionStatus.DISCARDED);
   }
 
   @Test
