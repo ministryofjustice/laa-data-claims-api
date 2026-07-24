@@ -22,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonReferen
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AmendmentReferenceService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.InquestDepartmentReferenceService;
 
 @WebMvcTest(AmendmentReferenceController.class)
 @ImportAutoConfiguration(
@@ -34,6 +35,7 @@ class AmendmentReferenceControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private AmendmentReferenceService amendmentReferenceService;
+  @MockitoBean private InquestDepartmentReferenceService inquestDepartmentReferenceService;
 
   @Nested
   @DisplayName("GET /api/v1/system/references/amendment-requested-by")

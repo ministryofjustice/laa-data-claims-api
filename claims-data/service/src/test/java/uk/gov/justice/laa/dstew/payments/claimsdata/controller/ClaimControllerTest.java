@@ -44,6 +44,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.InquestDataService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @WebMvcTest(ClaimController.class)
@@ -60,6 +61,7 @@ class ClaimControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ClaimService claimService;
+  @MockitoBean private InquestDataService inquestDataService;
 
   @Test
   void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {

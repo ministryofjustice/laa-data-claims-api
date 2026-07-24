@@ -74,9 +74,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedPublicAuthorityRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
@@ -119,6 +122,12 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired protected SubmissionRepository submissionRepository;
   @Autowired protected ClaimRepository claimRepository;
+  @Autowired protected InquestDetailRepository inquestDetailRepository;
+  @Autowired protected ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+
+  @Autowired
+  protected ClaimInterestedPublicAuthorityRepository claimInterestedPublicAuthorityRepository;
+
   @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -180,6 +189,9 @@ public abstract class AbstractIntegrationTest {
   }
 
   private void clearIntegrationData() {
+    claimInterestedDepartmentRepository.deleteAll();
+    claimInterestedPublicAuthorityRepository.deleteAll();
+    inquestDetailRepository.deleteAll();
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
