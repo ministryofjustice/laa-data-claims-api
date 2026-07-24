@@ -224,7 +224,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @ParameterizedTest
   @EnumSource(
       value = SubmissionStatus.class,
-      names = {"VALIDATION_SUCCEEDED", "VALIDATION_FAILED", "DISCARDED"})
+      mode = EnumSource.Mode.EXCLUDE,
+      names = "READY_FOR_SUBMISSION")
   @DisplayName("POST submissions/{id}/claims - rejects a closed submission")
   void shouldRejectClaimForClosedSubmission(SubmissionStatus submissionStatus) throws Exception {
     submission1.setStatus(submissionStatus);
