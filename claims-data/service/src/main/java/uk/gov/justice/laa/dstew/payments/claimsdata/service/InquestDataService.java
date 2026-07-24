@@ -42,13 +42,7 @@ public class InquestDataService {
     return detailRepository
         .findByClaimId(claimId)
         .map(this::toModel)
-        .orElseGet(
-            () ->
-                new ClaimInquestData()
-                    .interestedDepartmentCodes(Set.of())
-                    .interestedPublicAuthorities(List.of())
-                    .actorUserId("")
-                    .isComplete(false));
+        .orElseThrow(() -> new ClaimNotFoundException("Inquest data not found"));
   }
 
   /** Creates inquest data, failing when the claim already has an inquest detail row. */

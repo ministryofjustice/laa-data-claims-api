@@ -80,6 +80,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
+  private static final String GET_CLAIM_INQUEST_DATA_ENDPOINT =
+      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/inquest-data";
+
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
   private Boolean amendmentSwitch;
@@ -141,6 +144,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(feeCalculationResponse.getBoltOnDetails()).isNotNull();
     assertThat(feeCalculationResponse.getBoltOnDetails().getBoltOnTotalFeeAmount())
         .isEqualByComparingTo("12");
+  }
+
+  @Test
+  @DisplayName("GET claim inquest data - returns 404 when the claim has no inquest detail")
+  void shouldReturnNotFoundWhenClaimHasNoInquestDetail() throws Exception {
+    mockMvc
+        .perform(
+            get(GET_CLAIM_INQUEST_DATA_ENDPOINT, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound());
   }
 
   @Test
