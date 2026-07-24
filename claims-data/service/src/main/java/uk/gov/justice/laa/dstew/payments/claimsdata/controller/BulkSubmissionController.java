@@ -12,7 +12,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -41,20 +40,14 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
   @Override
   @RateLimiter(name = "bulkSubmissionRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<CreateBulkSubmission201Response> createBulkSubmission(
-      String userId,
-      MultipartFile file,
-      List<String> offices,
-      @RequestParam(defaultValue = "false") Boolean saveAsDraft) {
+      String userId, MultipartFile file, List<String> offices) {
     // Validate file
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
     CreateBulkSubmission201Response bulkSubmissionResponse =
         bulkSubmissionService.submitBulkSubmissionFile(
-            userId,
-            file,
-            Optional.ofNullable(offices).orElse(Collections.emptyList()),
-            Boolean.TRUE.equals(saveAsDraft));
+            userId, file, Optional.ofNullable(offices).orElse(Collections.emptyList()));
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/api/v1/submissions/{id}")

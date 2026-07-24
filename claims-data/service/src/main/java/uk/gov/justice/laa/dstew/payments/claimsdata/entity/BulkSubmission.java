@@ -60,8 +60,6 @@ public class BulkSubmission {
 
   private String authorisedOffices;
 
-  private boolean submittedAsDraft;
-
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
