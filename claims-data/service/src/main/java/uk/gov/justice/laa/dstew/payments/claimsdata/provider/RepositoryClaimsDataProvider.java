@@ -15,10 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.ClaimsDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
@@ -113,7 +115,30 @@ public class RepositoryClaimsDataProvider implements ClaimsDataProvider {
     if (resultSet.getContent() == null) {
       resultSet.setContent(Collections.emptyList());
     }
+    enrichWithClientFields(resultPage, resultSet);
     return resultSet;
+  }
+
+  /**
+   * Populates the client-owned {@code uniqueClientNumber} on each mapped {@link ClaimResponse}.
+   *
+   * <p>The V1 {@code Claim -> ClaimResponse} mapping does not flatten the associated {@code Client}
+   * entity, so {@code uniqueClientNumber} is otherwise {@code null}. The claims-validation-core
+   * duplicate validators (notably the same-submission Legal Help strategy) compare this value
+   * <em>in memory</em>, so it must be present on the claims returned to the validation library or
+   * within-submission duplicates are silently missed. The entity graph is available here because
+   * this call runs inside a read-only transaction.
+   */
+  private void enrichWithClientFields(Page<Claim> resultPage, ClaimResultSet resultSet) {
+    List<Claim> entities = resultPage.getContent();
+    List<ClaimResponse> responses = resultSet.getContent();
+    for (int i = 0; i < responses.size() && i < entities.size(); i++) {
+      Client client = entities.get(i).getClient();
+      ClaimResponse response = responses.get(i);
+      if (client != null && response.getUniqueClientNumber() == null) {
+        response.setUniqueClientNumber(client.getUniqueClientNumber());
+      }
+    }
   }
 
   /**
