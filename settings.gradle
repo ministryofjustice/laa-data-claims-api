@@ -15,4 +15,3 @@ rootProject.name = 'laa-data-claims-api'
 include 'claims-data'
 include 'claims-data:api'
 include 'claims-data:service'
-
