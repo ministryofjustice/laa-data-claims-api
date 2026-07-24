@@ -259,7 +259,7 @@ class ClaimServiceTest {
   @EnumSource(
       value = SubmissionStatus.class,
       mode = EnumSource.Mode.EXCLUDE,
-      names = "READY_FOR_SUBMISSION")
+      names = {"CREATED", "READY_FOR_SUBMISSION"})
   void shouldNotCreateClaimForClosedSubmission(SubmissionStatus status) {
     UUID submissionId = Uuid7.timeBasedUuid();
     Submission submission = Submission.builder().id(submissionId).status(status).build();
