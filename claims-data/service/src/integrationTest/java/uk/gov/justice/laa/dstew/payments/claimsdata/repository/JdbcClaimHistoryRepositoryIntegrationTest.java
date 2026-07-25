@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
@@ -261,6 +263,296 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(events)
         .extracting(ClaimHistoryEventRow::eventType)
         .doesNotContain("ASSESSMENT", "VOID");
+  }
+
+  // ----------------------------------------------------------------------------------------------
+  // AMENDMENT events (DSTEW-1815 — FSP history indicators derived from amendment-linked data)
+  // ----------------------------------------------------------------------------------------------
+
+  @Test
+  @DisplayName(
+      "Maps a claim_amendment into an AMENDMENT event exposing requester, reason and changes")
+  void mapsAmendmentEvent_withRequesterReasonAndChanges() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    // A non-pricing amendment: a provider-requested change with no linked calculated_fee_detail.
+    persistAmendment(
+        amendmentId,
+        "{\"schema_version\":1,\"changes\":[{\"field_identifier\":\"claim.feeCode\","
+            + "\"change_source\":\"Requested\",\"before\":\"OLD\",\"after\":\"NEW\"}]}");
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.eventType()).isEqualTo("AMENDMENT");
+    assertThat(event.actorId()).isEqualTo(USER_ID);
+    assertThat(event.metadata().get("requested_by_code").asText()).isEqualTo("PROVIDER");
+    assertThat(event.metadata().get("amendment_reason_code").asText()).isEqualTo("PROVIDER_ERROR");
+    // No linked fee row: repricing did not run, so no fabricated pricing/escape metadata.
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isFalse();
+    assertThat(event.metadata().get("price_changed").asBoolean()).isFalse();
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+    assertThat(event.metadata().get("changes").isArray()).isTrue();
+    assertThat(event.metadata().get("changes")).hasSize(1);
+    assertThat(event.metadata().get("changes").get(0).get("field_identifier").asText())
+        .isEqualTo("claim.feeCode");
+  }
+
+  @Test
+  @DisplayName(
+      "Pricing amendment with a monetary change: pricing_recalculated & price_changed true")
+  void pricingAmendment_priceChanged() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(amendmentId, emptyDiff());
+    linkCalculatedFeeDetail(amendmentId, true, false);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(event.metadata().get("price_changed").asBoolean()).isTrue();
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName("Pricing amendment with no monetary change: pricing_recalculated true, price false")
+  void pricingAmendment_priceUnchanged() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(amendmentId, emptyDiff());
+    linkCalculatedFeeDetail(amendmentId, false, false);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(event.metadata().get("price_changed").asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "Amendment that caused the escape transition (false -> true): escape_case_logged true")
+  void amendmentCausedEscapeTransition_logsEscape() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    // FSP-sourced fee.escapeCaseFlag transition from false to true is the transition source.
+    persistAmendment(amendmentId, escapeDiff(false, true));
+    linkCalculatedFeeDetail(amendmentId, true, true);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Amendment on an already-escaped claim (no transition): escape_case_logged false")
+  void alreadyEscapedClaim_doesNotLogEscape() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    // No FSP escapeCaseFlag transition entry in the diff (an already-escaped claim never records
+    // one), even though the linked fee still carries escape_case_flag = true. The indicator must be
+    // derived from the transition, not the state.
+    persistAmendment(
+        amendmentId,
+        "{\"schema_version\":1,\"changes\":[{\"field_identifier\":\"fee.totalAmount\","
+            + "\"change_source\":\"FSP\",\"before\":\"100.00\",\"after\":\"120.00\"}]}");
+    linkCalculatedFeeDetail(amendmentId, true, true);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName("Escape de-escalation (true -> false) is not logged as an escape transition")
+  void escapeDeEscalation_doesNotLogEscape() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    persistAmendment(amendmentId, escapeDiff(true, false));
+    linkCalculatedFeeDetail(amendmentId, true, false);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "Multiple amendments flipping escape back and forth: each event reflects its own transition")
+  void multipleAmendments_escapeFlipFlop_resolvedPerAmendment() {
+    // Three amendments on the same claim, each with its own FSP escapeCaseFlag transition and its
+    // own linked fee row. The read model must resolve each event independently from that
+    // amendment's diff — never aggregating across amendments or reading current claim state.
+    UUID escalateId = Uuid7.timeBasedUuid();
+    UUID deEscalateId = Uuid7.timeBasedUuid();
+    UUID reEscalateId = Uuid7.timeBasedUuid();
+
+    // 1st amendment: escalates (false -> true) with a monetary change.
+    persistAmendment(escalateId, escapeDiff(false, true));
+    linkCalculatedFeeDetail(escalateId, true, true);
+    // 2nd amendment: de-escalates (true -> false) with a monetary change.
+    persistAmendment(deEscalateId, escapeDiff(true, false));
+    linkCalculatedFeeDetail(deEscalateId, true, false);
+    // 3rd amendment: re-escalates (false -> true) with NO monetary change.
+    persistAmendment(reEscalateId, escapeDiff(false, true));
+    linkCalculatedFeeDetail(reEscalateId, false, true);
+
+    ClaimHistoryEventRow escalate = findAmendmentEvent(escalateId);
+    ClaimHistoryEventRow deEscalate = findAmendmentEvent(deEscalateId);
+    ClaimHistoryEventRow reEscalate = findAmendmentEvent(reEscalateId);
+
+    // Escape is logged only on the amendments that caused a false -> true transition.
+    assertThat(escalate.metadata().get("escape_case_logged").asBoolean()).isTrue();
+    assertThat(deEscalate.metadata().get("escape_case_logged").asBoolean()).isFalse();
+    assertThat(reEscalate.metadata().get("escape_case_logged").asBoolean()).isTrue();
+
+    // price_changed is likewise independent per amendment (from each linked fee row).
+    assertThat(escalate.metadata().get("price_changed").asBoolean()).isTrue();
+    assertThat(deEscalate.metadata().get("price_changed").asBoolean()).isTrue();
+    assertThat(reEscalate.metadata().get("price_changed").asBoolean()).isFalse();
+
+    // All three ran repricing (each has a linked calculated_fee_detail).
+    assertThat(escalate.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(deEscalate.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(reEscalate.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "Multiple amendments: price_changed is resolved per amendment (changed, unchanged, changed)")
+  void multipleAmendments_priceChangedMix_resolvedPerAmendment() {
+    // Three repricing amendments, none causing an escape transition, with differing monetary
+    // outcomes. Each event's price_changed must reflect only its own linked fee row.
+    UUID firstChanged = Uuid7.timeBasedUuid();
+    UUID secondUnchanged = Uuid7.timeBasedUuid();
+    UUID thirdChanged = Uuid7.timeBasedUuid();
+
+    persistAmendment(firstChanged, emptyDiff());
+    linkCalculatedFeeDetail(firstChanged, true, false);
+    persistAmendment(secondUnchanged, emptyDiff());
+    linkCalculatedFeeDetail(secondUnchanged, false, false);
+    persistAmendment(thirdChanged, emptyDiff());
+    linkCalculatedFeeDetail(thirdChanged, true, false);
+
+    ClaimHistoryEventRow first = findAmendmentEvent(firstChanged);
+    ClaimHistoryEventRow second = findAmendmentEvent(secondUnchanged);
+    ClaimHistoryEventRow third = findAmendmentEvent(thirdChanged);
+
+    assertThat(first.metadata().get("price_changed").asBoolean()).isTrue();
+    assertThat(second.metadata().get("price_changed").asBoolean()).isFalse();
+    assertThat(third.metadata().get("price_changed").asBoolean()).isTrue();
+
+    // No escape transition on any of them, and all ran repricing.
+    for (ClaimHistoryEventRow event : List.of(first, second, third)) {
+      assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+      assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "Provider-requested change with repricing but no monetary change: P=true, C=false, E=false")
+  void requestedChangeWithRepricing_noPriceChange_noEscape() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    // A provider-requested (non-FSP) field change; repricing ran but produced the same total and no
+    // escape. Validates all three indicators plus the REQUESTED change_source passthrough.
+    persistAmendment(
+        amendmentId,
+        "{\"schema_version\":1,\"changes\":[{\"field_identifier\":\"claim.caseReferenceNumber\","
+            + "\"change_source\":\"Requested\",\"before\":\"REF-1\",\"after\":\"REF-2\"}]}");
+    linkCalculatedFeeDetail(amendmentId, false, false);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(event.metadata().get("price_changed").asBoolean()).isFalse();
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isFalse();
+    assertThat(event.metadata().get("changes")).hasSize(1);
+    assertThat(event.metadata().get("changes").get(0).get("change_source").asText())
+        .isEqualTo("Requested");
+  }
+
+  @Test
+  @DisplayName(
+      "Rich amendment with REQUESTED and FSP changes: all indicators true, changes preserved")
+  void richAmendment_requestedAndFspChanges_allIndicatorsTrue() {
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    // A provider-requested field change plus FSP consequences: a total change and an escape
+    // transition. Repricing ran, price changed, and the escape transition is logged.
+    persistAmendment(
+        amendmentId,
+        "{\"schema_version\":1,\"changes\":["
+            + "{\"field_identifier\":\"claim.netProfitCostsAmount\",\"change_source\":\"Requested\","
+            + "\"before\":\"100.00\",\"after\":\"150.00\"},"
+            + "{\"field_identifier\":\"fee.totalAmount\",\"change_source\":\"FSP\","
+            + "\"before\":\"100.00\",\"after\":\"180.00\"},"
+            + "{\"field_identifier\":\"fee.escapeCaseFlag\",\"change_source\":\"FSP\","
+            + "\"before\":false,\"after\":true}]}");
+    linkCalculatedFeeDetail(amendmentId, true, true);
+
+    ClaimHistoryEventRow event = findAmendmentEvent(amendmentId);
+
+    assertThat(event.metadata().get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(event.metadata().get("price_changed").asBoolean()).isTrue();
+    assertThat(event.metadata().get("escape_case_logged").asBoolean()).isTrue();
+    assertThat(event.metadata().get("changes")).hasSize(3);
+  }
+
+  private static String emptyDiff() {
+    return "{\"schema_version\":1,\"changes\":[]}";
+  }
+
+  @Test
+  @DisplayName("A claim with no amendment rows produces no AMENDMENT event (failed amendments)")
+  void noAmendmentRows_produceNoAmendmentEvent() {
+    // A failed amendment never persists a claim_amendment row, so no AMENDMENT event can appear.
+    List<ClaimHistoryEventRow> events = claimHistoryRepository.findHistory(CLAIM_1_ID, 50);
+
+    assertThat(events).extracting(ClaimHistoryEventRow::eventType).doesNotContain("AMENDMENT");
+  }
+
+  private static String escapeDiff(boolean before, boolean after) {
+    return "{\"schema_version\":1,\"changes\":[{\"field_identifier\":\"fee.escapeCaseFlag\","
+        + "\"change_source\":\"FSP\",\"before\":"
+        + before
+        + ",\"after\":"
+        + after
+        + "}]}";
+  }
+
+  private ClaimAmendment persistAmendment(UUID id, String diffJson) {
+    ClaimAmendment amendment =
+        ClaimAmendment.builder()
+            .id(id)
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .requestedByCode("PROVIDER")
+            .amendmentReasonCode("PROVIDER_ERROR")
+            .beforeState("{}")
+            .requestPayload("{}")
+            .diff(diffJson)
+            .createdByUserId(USER_ID)
+            .createdOn(OffsetDateTime.now())
+            .build();
+    claimAmendmentRepository.save(amendment);
+    claimAmendmentRepository.flush();
+    return amendment;
+  }
+
+  private void linkCalculatedFeeDetail(UUID amendmentId, boolean priceChanged, boolean escapeFlag) {
+    CalculatedFeeDetail fee =
+        CalculatedFeeDetail.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(CLAIM_1_SUMMARY_FEE_ID))
+            .claimAmendment(claimAmendmentRepository.getReferenceById(amendmentId))
+            .isPriceChanged(priceChanged)
+            .escapeCaseFlag(escapeFlag)
+            .totalAmount(new BigDecimal("120.00"))
+            .createdByUserId(USER_ID)
+            .createdOn(OffsetDateTime.now())
+            .build();
+    calculatedFeeDetailRepository.save(fee);
+    calculatedFeeDetailRepository.flush();
+  }
+
+  private ClaimHistoryEventRow findAmendmentEvent(UUID amendmentId) {
+    return claimHistoryRepository.findHistory(CLAIM_1_ID, 50).stream()
+        .filter(event -> amendmentId.equals(event.sourceId()))
+        .findFirst()
+        .orElseThrow();
   }
 
   private ClaimHistoryEventRow findAssessmentEvent(UUID assessmentId) {

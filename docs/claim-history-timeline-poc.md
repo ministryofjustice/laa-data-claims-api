@@ -98,7 +98,13 @@ FROM (
             'amendment_reason_code', am.amendment_reason_code,
             'pricing_recalculated',  (cfd.id IS NOT NULL),
             'price_changed',         COALESCE(cfd.is_price_changed, false),
-            'escape_case_logged',    COALESCE(cfd.escape_case_flag, false),
+            'escape_case_logged',    EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(COALESCE(am.diff -> 'changes', '[]'::jsonb)) AS ch
+                WHERE ch ->> 'field_identifier' = 'fee.escapeCaseFlag'
+                  AND ch ->> 'change_source'    = 'FSP'
+                  AND ch ->> 'after'            = 'true'
+            ),
             'changes',               COALESCE(am.diff -> 'changes', '[]'::jsonb)
         )                                        AS metadata
     FROM claims.claim_amendment am
@@ -140,8 +146,12 @@ Key properties:
 - A **void** assessment (`assessment_type = 'VOID'`) is surfaced as a distinct `VOID` event whose
   metadata contains only `assessment_type` and `assessment_reason`; all other assessments become
   `ASSESSMENT` events carrying `assessment_type`, `assessment_outcome` and `assessment_reason`.
-- Amendment events expose the requester and reason, pricing/escape flags derived from the linked
-  `calculated_fee_detail`, and the field-level `changes` array lifted from the amendment `diff`
+- Amendment events expose the requester and reason, `pricing_recalculated` / `price_changed`
+  derived from the linked `calculated_fee_detail`, and `escape_case_logged` derived from the
+  amendment `diff` — an FSP-sourced `fee.escapeCaseFlag` entry whose `after` is `true`, i.e. this
+  amendment **caused** the escape transition (`false -> true`) rather than the resulting fee simply
+  being an escape case. An already-escaped claim (`true -> true`) records no such diff entry and so
+  correctly yields `false`. The field-level `changes` array is lifted from the same `diff`
   document (`diff -> 'changes'`) as nested jsonb (not stringified).
 - Only `LIMIT` is used — **no `OFFSET`**.
 
@@ -190,9 +200,9 @@ AMENDMENT    2026-07-09T10:10:00Z  u-4410    018f...c2           { "requested_by
                                                                    "pricing_recalculated": true,
                                                                    "price_changed": false,
                                                                    "escape_case_logged": false,
-                                                                   "changes": [ { "field_identifier": "net_profit_costs_amount",
-                                                                                  "before": "100.00", "after": "120.00",
-                                                                                  "change_source": "REQUESTED" } ] }
+                                                                    "changes": [ { "field_identifier": "net_profit_costs_amount",
+                                                                                   "before": "100.00", "after": "120.00",
+                                                                                   "change_source": "REQUESTED" } ] }
 ASSESSMENT   2026-07-09T10:05:00Z  SYSTEM    018f...a7           { "assessment_type": "ESCAPE_CASE_ASSESSMENT",
                                                                    "assessment_outcome": "PAID_IN_FULL",
                                                                    "assessment_reason": "Escape Fee Case Assessment" }
