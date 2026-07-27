@@ -56,8 +56,11 @@ class ClaimAmendmentServiceIntegrationTest extends MockServerIntegrationTest {
     long amendmentsBefore = claimAmendmentRepository.count();
 
     // Missing Requested By and Amendment Reason, and a malformed user id: all non-fatal errors.
+    // A matching version is supplied so the early version gate passes and the flow reaches the
+    // metadata/user-id steps under test.
     ClaimAmendmentPayload payload =
         ClaimAmendmentPayload.builder()
+            .version(JsonNullable.of(claim1.getVersion()))
             .amendmentUserId(JsonNullable.of("not-a-uuid"))
             .feeCode(JsonNullable.of(AMENDED_FEE_CODE))
             .build();

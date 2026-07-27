@@ -75,8 +75,9 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     registry.add("resilience4j.retry.instances.feeSchemeRetry.maxAttempts", () -> "1");
   }
 
-  private ClaimPatch feeCodePatch(String feeCode) {
+  private ClaimPatch feeCodePatch(Long version, String feeCode) {
     ClaimPatch patch = metadataPatch();
+    patch.setVersion(version);
     patch.setFeeCode(feeCode);
     return patch;
   }
@@ -94,10 +95,11 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
     String amendedFeeCode = uniqueFeeCode();
     ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(amendedFeeCode);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -122,9 +124,10 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
     ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(uniqueFeeCode());
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -154,9 +157,10 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
     ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(uniqueFeeCode());
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -183,9 +187,11 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
-    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, feeCodePatch(uniqueFeeCode()));
+    MvcResult result =
+        performPatch(
+            SUBMISSION_1_ID, CLAIM_1_ID, feeCodePatch(savedClaim.getVersion(), uniqueFeeCode()));
 
     assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(result.getResponse().getContentAsString()).contains(FEE_SCHEME_TECHNICAL_ERROR_CODE);
@@ -211,10 +217,12 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     String originalFeeCode = seeded.getFeeCode();
-    claimRepository.saveAndFlush(seeded);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
     long startNanos = System.nanoTime();
-    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, feeCodePatch(uniqueFeeCode()));
+    MvcResult result =
+        performPatch(
+            SUBMISSION_1_ID, CLAIM_1_ID, feeCodePatch(savedClaim.getVersion(), uniqueFeeCode()));
     long elapsedMs = Duration.ofNanos(System.nanoTime() - startNanos).toMillis();
 
     assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
@@ -236,13 +244,15 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     stubFeeDetailsAreaOfLaw(LEGAL_HELP_AREA_OF_LAW);
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimA = createAmendableClaim(submissionId, b -> b.feeCode("ORIGA"));
-    UUID claimB = createAmendableClaim(submissionId, b -> b.feeCode("ORIGB"));
+    Claim claimA = createAmendableClaim(submissionId, b -> b.feeCode("ORIGA"));
+    Claim claimB = createAmendableClaim(submissionId, b -> b.feeCode("ORIGB"));
 
     // Both amendments target the same (unique, previously-uncached) fee code.
     String targetFeeCode = uniqueFeeCode();
-    performPatch(submissionId, claimA, feeCodePatch(targetFeeCode));
-    performPatch(submissionId, claimB, feeCodePatch(targetFeeCode));
+    ClaimPatch patchA = feeCodePatch(claimA.getVersion(), targetFeeCode);
+    ClaimPatch patchB = feeCodePatch(claimB.getVersion(), targetFeeCode);
+    performPatch(submissionId, claimA.getId(), patchA);
+    performPatch(submissionId, claimB.getId(), patchB);
 
     // The second amendment - and the category validator's repeat lookup within each amendment - are
     // served from the positive cache, so the fee code is fetched exactly once.
@@ -256,12 +266,12 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     stubFeeDetailsAreaOfLaw(LEGAL_HELP_AREA_OF_LAW);
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimA = createAmendableClaim(submissionId, b -> b.feeCode("ORIGC"));
-    UUID claimB = createAmendableClaim(submissionId, b -> b.feeCode("ORIGD"));
+    Claim claimA = createAmendableClaim(submissionId, b -> b.feeCode("ORIGC"));
+    Claim claimB = createAmendableClaim(submissionId, b -> b.feeCode("ORIGD"));
 
     // Two different, previously-uncached fee codes.
-    performPatch(submissionId, claimA, feeCodePatch(uniqueFeeCode()));
-    performPatch(submissionId, claimB, feeCodePatch(uniqueFeeCode()));
+    performPatch(submissionId, claimA.getId(), feeCodePatch(claimA.getVersion(), uniqueFeeCode()));
+    performPatch(submissionId, claimB.getId(), feeCodePatch(claimB.getVersion(), uniqueFeeCode()));
 
     // Each distinct fee code is cached independently -> one outbound lookup each.
     verifyFeeDetailsCalled(VerificationTimes.exactly(2));
@@ -273,22 +283,30 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     stubProviderSchedulesOk();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID notFoundClaim1 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGE"));
-    UUID notFoundClaim2 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGF"));
-    UUID validClaim1 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGG"));
-    UUID validClaim2 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGH"));
+    Claim notFoundClaim1 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGE"));
+    Claim notFoundClaim2 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGF"));
+    Claim validClaim1 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGG"));
+    Claim validClaim2 = createAmendableClaim(submissionId, b -> b.feeCode("ORIGH"));
 
     // A not-found fee code, amended twice.
     String notFoundFeeCode = uniqueFeeCode();
     stubFeeDetailsStatus(404);
-    performPatch(submissionId, notFoundClaim1, feeCodePatch(notFoundFeeCode));
-    performPatch(submissionId, notFoundClaim2, feeCodePatch(notFoundFeeCode));
+    performPatch(
+        submissionId,
+        notFoundClaim1.getId(),
+        feeCodePatch(notFoundClaim1.getVersion(), notFoundFeeCode));
+    performPatch(
+        submissionId,
+        notFoundClaim2.getId(),
+        feeCodePatch(notFoundClaim2.getVersion(), notFoundFeeCode));
 
     // A valid fee code, amended twice.
     String validFeeCode = uniqueFeeCode();
     stubFeeDetailsAreaOfLaw(LEGAL_HELP_AREA_OF_LAW);
-    performPatch(submissionId, validClaim1, feeCodePatch(validFeeCode));
-    performPatch(submissionId, validClaim2, feeCodePatch(validFeeCode));
+    performPatch(
+        submissionId, validClaim1.getId(), feeCodePatch(validClaim1.getVersion(), validFeeCode));
+    performPatch(
+        submissionId, validClaim2.getId(), feeCodePatch(validClaim2.getVersion(), validFeeCode));
 
     // Positive result is cached: the valid code is fetched exactly once across both amendments.
     verifyFeeDetailsCalledForFeeCode(validFeeCode, VerificationTimes.exactly(1));

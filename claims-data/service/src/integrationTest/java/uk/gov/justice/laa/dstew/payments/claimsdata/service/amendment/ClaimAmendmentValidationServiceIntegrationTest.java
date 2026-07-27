@@ -297,6 +297,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
               .disbursementsVatAmount(new BigDecimal("0.00"))
               .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
               .schemeId("SCHEME-1")
+              .version(1L)
               .calculatedFeeDetail(
                   CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
               .build();
@@ -311,6 +312,7 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
                   .amendmentRequestedBy(JsonNullable.of(SEEDED_PARTY))
                   .amendmentReasonCode(JsonNullable.of(SEEDED_REASON))
                   .amendmentUserId(JsonNullable.of(NOT_A_UUID))
+                  .version(JsonNullable.of(1L))
                   .build())
           .build();
     }
@@ -325,20 +327,24 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
 
     // Drive the state off the richly-seeded, schema-valid CLAIM_1 (LEGAL_HELP) so the assembled
     // chain's external validation contributes no issues. The payload carries a genuine amendable
-    // change (client forename) so the no-op guard and the amendability gate both pass, isolating
-    // the
-    // metadata/reference/status behaviour under test. The before/post states are built by the real
-    // retrieval so this exercises the production wiring end to end.
+    // change (client forename) so the no-op guard (AmendmentNoChangeValidationStep) and the
+    // amendability gate both pass, isolating the metadata/reference/status behaviour under test.
+    // The before/post states are built by the real retrieval so this exercises the production
+    // wiring end to end.
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     claim.setStatus(status);
     claimRepository.saveAndFlush(claim);
 
+    // Match the submitted version to the claim's current @Version (read after the flush) so the
+    // optimistic-lock check (ClaimVersionValidationStep) passes, leaving the behaviour under test
+    // as the only source of validation errors.
     ClaimAmendmentPayload payload =
         ClaimAmendmentPayload.builder()
             .amendmentRequestedBy(JsonNullable.of(requestedBy))
             .amendmentReasonCode(JsonNullable.of(reason))
             .amendmentUserId(JsonNullable.of(userId))
             .clientForename(JsonNullable.of(AMENDED_CLIENT_FORENAME))
+            .version(JsonNullable.of(claim.getVersion()))
             .build();
 
     return amendmentStateService.retrieveAmendmentState(claim, payload).state();

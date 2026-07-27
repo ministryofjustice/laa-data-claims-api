@@ -20,12 +20,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ChangeSource;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -44,6 +42,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
@@ -130,20 +129,17 @@ class ClaimAmendmentValidationServiceTest {
     ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
     claimsApiProperties.getAmendments().setEnabled("true");
 
-    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The no-change
-    // step's detector reports a change so it passes; the status step then returns a fatal error for
-    // the empty state below, so the orchestrator short-circuits before the later steps run.
-    AmendmentChangeDetector changeDetector = mock(AmendmentChangeDetector.class);
-    when(changeDetector.detectChanges(any()))
-        .thenReturn(List.of(new DiffEntry("claim.feeCode", ChangeSource.REQUESTED, "A", "B")));
-
+    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The empty state
+    // below carries no request payload, so the claim-version step (early in STEP_ORDER) returns a
+    // fatal null-version error and the orchestrator short-circuits before the later steps run.
     ClaimAmendmentValidationService service =
         new ClaimAmendmentValidationService(
             List.of(
                 extraStep,
                 new AmendmentFeatureFlagValidationStep(claimsApiProperties),
                 new BeforeStatePresenceValidationStep(),
-                new AmendmentNoChangeValidationStep(changeDetector),
+                new ClaimVersionValidationStep(),
+                new AmendmentNoChangeValidationStep(new AmendmentChangeDetector()),
                 new ClaimStatusValidationStep(),
                 new AssessedClaimPricingValidationStep(new AmendmentChangeDetector()),
                 new FieldAmendabilityValidationStep(diffAssembler),
