@@ -12,6 +12,7 @@ public class ConfirmationValidationService {
 
   private final List<ClaimConfirmationValidator> validators;
 
+  /** Validates the submission response using all registered validators. */
   public List<ClaimConfirmationError> validate(SubmissionResponse submission) {
     return validators.stream()
         .flatMap(validator -> validator.validate(submission).stream())
