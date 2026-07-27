@@ -2507,7 +2507,114 @@ components:
         metadata:
           type: object
           additionalProperties: true
-          description: Event-specific attributes, shaped per event type.
+          description: >
+            Event-specific attributes, shaped per event type. The concrete shape is determined by
+            event_type; see the documented per-type schemas:
+            claim_history_submission_metadata (SUBMISSION),
+            claim_history_amendment_metadata (AMENDMENT),
+            claim_history_assessment_metadata (ASSESSMENT) and
+            claim_history_void_metadata (VOID). The container stays open (additionalProperties)
+            so new event types and attributes can be added without reshaping the contract.
+    claim_history_change_entry:
+      type: object
+      description: >
+        A single field-level change recorded on an amendment, lifted verbatim from the persisted
+        amendment diff. change_source distinguishes provider-requested changes from FSP
+        (Fee Scheme Platform) repricing consequences.
+      properties:
+        field_identifier:
+          type: string
+          description: Stable, machine-readable identifier of the changed field (not a display label).
+        change_source:
+          type: string
+          enum:
+            - Requested
+            - FSP
+          description: >
+            Origin of the change. "Requested" is a provider-requested change; "FSP" is a downstream
+            consequence of Fee Scheme Platform repricing.
+        before:
+          nullable: true
+          description: Value before the amendment, in its natural JSON type. Null means cleared.
+        after:
+          nullable: true
+          description: Value after the amendment, in its natural JSON type. Null means cleared.
+    claim_history_submission_metadata:
+      type: object
+      description: Metadata carried by a SUBMISSION event.
+      properties:
+        submission_period:
+          type: string
+          description: The submission period the claim belongs to.
+        office_account_number:
+          type: string
+          description: The provider office account number for the submission.
+        area_of_law:
+          type: string
+          description: The area of law of the submission.
+    claim_history_amendment_metadata:
+      type: object
+      description: >
+        Metadata carried by an AMENDMENT event. The FSP indicators are derived exclusively from
+        amendment-linked persisted data (the linked calculated_fee_detail and the amendment diff),
+        never inferred from current claim state.
+      properties:
+        requested_by_code:
+          type: string
+          description: Governed reference code for the requesting party (e.g. PROVIDER).
+        amendment_reason_code:
+          type: string
+          description: Governed reference code for the amendment reason.
+        pricing_recalculated:
+          type: boolean
+          description: >
+            True when FSP repricing ran for this amendment, i.e. a calculated_fee_detail row is
+            linked to the amendment.
+        price_changed:
+          type: boolean
+          description: >
+            True when repricing changed the monetary value (currently driven by a change in
+            total_amount versus the previous calculated_fee_detail). False when repricing ran with
+            no monetary change, or when it did not run.
+        escape_case_logged:
+          type: boolean
+          description: >
+            True only when this amendment CAUSED the claim to become an escape case
+            (an FSP-sourced fee.escapeCaseFlag transition from false to true recorded in the
+            amendment diff). An already-escaped claim, or an amendment that did not trigger an
+            escape transition, yields false.
+        changes:
+          type: array
+          description: Field-level changes recorded on this amendment (may be empty).
+          items:
+            $ref: '#/components/schemas/claim_history_change_entry'
+    claim_history_assessment_metadata:
+      type: object
+      description: Metadata carried by an ASSESSMENT event.
+      properties:
+        assessment_type:
+          type: string
+          nullable: true
+          description: The type of assessment (null for legacy rows with no populated type).
+        assessment_outcome:
+          type: string
+          nullable: true
+          description: The assessment outcome (null when not yet determined).
+        assessment_reason:
+          type: string
+          description: The reason recorded against the assessment.
+    claim_history_void_metadata:
+      type: object
+      description: >
+        Metadata carried by a VOID event. A void carries no outcome; assessment_reason holds the
+        void reason.
+      properties:
+        assessment_type:
+          type: string
+          description: Always VOID for this event type.
+        assessment_reason:
+          type: string
+          description: The reason the claim was voided.
     claim_history_result_set:
       type: object
       description: A claim's history events in reverse-chronological order.

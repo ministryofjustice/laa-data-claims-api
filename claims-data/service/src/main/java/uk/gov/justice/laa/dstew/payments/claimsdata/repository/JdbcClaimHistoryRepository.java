@@ -43,9 +43,23 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
    * assessment_type = 'VOID'} are surfaced as a {@code VOID} event carrying only {@code
    * assessment_type} and {@code assessment_reason}; all other assessments become {@code ASSESSMENT}
    * events carrying {@code assessment_type}, {@code assessment_outcome} and {@code
-   * assessment_reason}. Amendment events expose the requester and reason, pricing/escape flags
-   * derived from the linked {@code calculated_fee_detail}, and the field-level {@code changes}
-   * array lifted from the amendment {@code diff} document.
+   * assessment_reason}. Amendment events expose the requester and reason, {@code
+   * pricing_recalculated} / {@code price_changed} derived from the linked {@code
+   * calculated_fee_detail}, and {@code escape_case_logged} derived from the amendment {@code diff}
+   * (an {@code FSP}-sourced {@code fee.escapeCaseFlag} entry whose {@code after} is {@code true} —
+   * i.e. this amendment <em>caused</em> the escape transition, not merely that the resulting fee is
+   * an escape case). The field-level {@code changes} array is lifted from the same {@code diff}
+   * document.
+   *
+   * <p><b>Escape transition (DSTEW-1815).</b> {@code escape_case_logged} is intentionally derived
+   * from the persisted amendment {@code diff} rather than {@code
+   * calculated_fee_detail.escape_case_flag}. The change detector only records a {@code
+   * fee.escapeCaseFlag} diff entry when the value actually changed, so a {@code false -> true} flip
+   * yields {@code after = true} (transition), whereas an already-escaped claim ({@code true ->
+   * true}) produces no entry and correctly yields {@code false}. Caveat: if an amendment has no
+   * prior fee snapshot (no {@code FSP} diff entries at all) the transition cannot be proven from
+   * the diff and this resolves to {@code false}; a valid claim always carries a summary fee record,
+   * so the persisted data remains the source of truth for later audit.
    */
   private static final String HISTORY_SQL =
       """
@@ -79,7 +93,13 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
                   'amendment_reason_code', am.amendment_reason_code,
                   'pricing_recalculated', (cfd.id IS NOT NULL),
                   'price_changed',        COALESCE(cfd.is_price_changed, false),
-                  'escape_case_logged',   COALESCE(cfd.escape_case_flag, false),
+                  'escape_case_logged',   EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements(COALESCE(am.diff -> 'changes', '[]'::jsonb)) AS ch
+                      WHERE ch ->> 'field_identifier' = 'fee.escapeCaseFlag'
+                        AND ch ->> 'change_source'    = 'FSP'
+                        AND ch ->> 'after'            = 'true'
+                  ),
                   'changes',              COALESCE(am.diff -> 'changes', '[]'::jsonb)
               )                                  AS metadata
           FROM claims.claim_amendment am
