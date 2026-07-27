@@ -183,6 +183,25 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("a no-op amendment (204 fatal outcome) returns an empty 204 with no body")
+  void handleClaimAmendmentValidationException_returnsBodiless204WhenNoChanges() {
+    // A no-op amendment halts with a fatal NO_AMENDMENT_CHANGES_SUBMITTED code carrying a 204
+    // status; a 204 response must not carry a body per RFC 9110.
+    ClaimAmendmentValidationError noChangeError =
+        ClaimAmendmentValidationError.of(
+            ClaimAmendmentValidationCode.NO_AMENDMENT_CHANGES_SUBMITTED);
+    ClaimAmendmentValidationException ex =
+        new ClaimAmendmentValidationException(List.of(noChangeError));
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimAmendmentValidationException(ex, mockRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    assertThat(result.getBody()).isNull();
+  }
+
+  @Test
   void handleDatabaseOptimisticLockingException_returnsConflictStatusWithPredefinedMessage() {
     // Arrange
     OptimisticLockException ex =

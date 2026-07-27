@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -60,8 +62,14 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
 
   private static final String VALID_UUID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
 
-  // The claim fee code used by the fixtures below (alphanumeric, <= 10 chars per the claim schema).
+  // The claim fee code used by the FieldAmendabilityGate fixture (alphanumeric, <= 10 chars).
   private static final String CLAIM_FEE_CODE = "FEE01";
+
+  // A genuine, amendable change applied by the shared fixture so every state carries a real
+  // provider change. Client forename is amendable for CLAIM_1's area of law (LEGAL_HELP) and is not
+  // a pricing field, so it passes the no-op guard and the amendability gate without disturbing the
+  // metadata/reference/status behaviour under test. It differs from the seeded value ("Alice").
+  private static final String AMENDED_CLIENT_FORENAME = "Amended-Forename";
 
   // Seeded (V41) codes used by the happy-path and lookup scenarios.
   private static final String SEEDED_PARTY = "PROVIDER";
@@ -71,16 +79,18 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
   public static final String NOT_A_UUID = "not-a-uuid";
 
   @Autowired private ClaimAmendmentValidationService validationService;
+  @Autowired private ClaimAmendmentStateService amendmentStateService;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
 
   /**
-   * Stubs the validation-core external calls so the assembled chain can run end to end. The
-   * responses are deliberately "clean" so the external validation contributes no issues, leaving
-   * the amendment-metadata errors (the focus of these tests) as the only failures.
+   * Seeds the richly-populated, schema-valid CLAIM_1 and stubs the validation-core external calls
+   * so the assembled chain can run end to end. The seeded claim keeps the external validation step
+   * clean, leaving the amendment-metadata errors (the focus of these tests) as the only failures.
    */
   @BeforeEach
   void setUp() throws IOException {
+    seedClaimsData();
     stubExternalValidationEndpoints();
   }
 
@@ -313,32 +323,24 @@ class ClaimAmendmentValidationServiceIntegrationTest extends MockServerIntegrati
   private ClaimAmendmentState stateOf(
       ClaimStatus status, String requestedBy, String reason, String userId) {
 
-    // A schema-valid claim so the external validation step (which runs the full CLAIM_* validator
-    // set against MockServer) contributes no issues, leaving the amendment-metadata errors as the
-    // only failures. Required fields per the validation-core claim schema: status, line_number,
-    // net_disbursement_amount, disbursements_vat_amount, fee_code (alphanumeric, <= 10 chars).
-    ClaimStateSnapshot snapshot =
-        ClaimStateSnapshot.builder()
-            .claimId(Uuid7.timeBasedUuid())
-            .feeCode(CLAIM_FEE_CODE)
-            .status(status)
-            .lineNumber(1)
-            .netDisbursementAmount(new BigDecimal("0.00"))
-            .disbursementsVatAmount(new BigDecimal("0.00"))
-            .caseStartDate(LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault()))
-            .calculatedFeeDetail(
-                CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.TEN).build())
+    // Drive the state off the richly-seeded, schema-valid CLAIM_1 (LEGAL_HELP) so the assembled
+    // chain's external validation contributes no issues. The payload carries a genuine amendable
+    // change (client forename) so the no-op guard and the amendability gate both pass, isolating
+    // the
+    // metadata/reference/status behaviour under test. The before/post states are built by the real
+    // retrieval so this exercises the production wiring end to end.
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(status);
+    claimRepository.saveAndFlush(claim);
+
+    ClaimAmendmentPayload payload =
+        ClaimAmendmentPayload.builder()
+            .amendmentRequestedBy(JsonNullable.of(requestedBy))
+            .amendmentReasonCode(JsonNullable.of(reason))
+            .amendmentUserId(JsonNullable.of(userId))
+            .clientForename(JsonNullable.of(AMENDED_CLIENT_FORENAME))
             .build();
 
-    return ClaimAmendmentState.builder()
-        .beforeState(snapshot)
-        .postAmendmentState(snapshot)
-        .requestPayload(
-            ClaimAmendmentPayload.builder()
-                .amendmentRequestedBy(JsonNullable.of(requestedBy))
-                .amendmentReasonCode(JsonNullable.of(reason))
-                .amendmentUserId(JsonNullable.of(userId))
-                .build())
-        .build();
+    return amendmentStateService.retrieveAmendmentState(claim, payload).state();
   }
 }

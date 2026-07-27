@@ -12,11 +12,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
  *       (DSTEW-1762).
  * </ul>
  *
- * <p>The serialised JSON value is the stable label ({@code "Requested"} / {@code "FSP"}) used in
- * the {@code diff} JSONB column.
+ * <p>The serialised JSON value is the stable, upper-case label ({@code "REQUESTED"} / {@code
+ * "FSP"}) used in the {@code diff} JSONB column.
  */
 public enum ChangeSource {
-  REQUESTED("Requested"),
+  REQUESTED("REQUESTED"),
   FSP("FSP");
 
   private final String jsonValue;
