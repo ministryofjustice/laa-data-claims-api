@@ -172,4 +172,37 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     verifyProviderSchedulesCalled(VerificationTimes.never());
     verifyFeeCalculationCalled(VerificationTimes.never());
   }
+
+  @Test
+  @DisplayName("a no-op amendment (no field changes) returns 204 and writes no claim_amendment row")
+  void noOpAmendmentReturns204AndWritesNoRow() throws Exception {
+    // Deliberately do NOT stub the PDA /schedules call: a no-op amendment must short-circuit at the
+    // no-change guard, before the PDA/FSP steps run, so no external call is made. A clean 204 here
+    // therefore also proves the guard runs early in the pipeline.
+
+    // Put the seeded claim into the amendable state.
+    Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    seeded.setStatus(ClaimStatus.VALID);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
+
+    // Metadata-only patch: carries the required requested-by/reason/user id but changes no field.
+    // It carries the claim's current version so it clears the early version gate, leaving the
+    // no-change guard (not the version gate) as what halts the flow with a 204.
+    ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // A no-op amendment is accepted with 204 No Content - the same success status a genuine
+    // amendment returns - and the response body is empty.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    assertThat(result.getResponse().getContentAsString()).isEmpty();
+
+    // No phantom history row: nothing was persisted.
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+
+    // The claim itself is untouched: the amended flag is not set by a no-op.
+    Claim afterClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(afterClaim.isAmended()).isFalse();
+  }
 }

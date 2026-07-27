@@ -35,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentNoChangeValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
@@ -128,9 +129,9 @@ class ClaimAmendmentValidationServiceTest {
     ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
     claimsApiProperties.getAmendments().setEnabled("true");
 
-    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The status step
-    // returns a fatal error for the empty state below, so the orchestrator short-circuits before
-    // the later steps run.
+    // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The empty state
+    // below carries no request payload, so the claim-version step (early in STEP_ORDER) returns a
+    // fatal null-version error and the orchestrator short-circuits before the later steps run.
     ClaimAmendmentValidationService service =
         new ClaimAmendmentValidationService(
             List.of(
@@ -138,6 +139,7 @@ class ClaimAmendmentValidationServiceTest {
                 new AmendmentFeatureFlagValidationStep(claimsApiProperties),
                 new BeforeStatePresenceValidationStep(),
                 new ClaimVersionValidationStep(),
+                new AmendmentNoChangeValidationStep(new AmendmentChangeDetector()),
                 new ClaimStatusValidationStep(),
                 new AssessedClaimPricingValidationStep(new AmendmentChangeDetector()),
                 new FieldAmendabilityValidationStep(diffAssembler),

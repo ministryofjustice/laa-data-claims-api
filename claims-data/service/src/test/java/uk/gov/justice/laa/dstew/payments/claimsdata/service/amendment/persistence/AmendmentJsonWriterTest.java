@@ -61,7 +61,7 @@ class AmendmentJsonWriterTest {
     assertThat(json)
         .contains("\"schema_version\":1")
         .contains("\"field_identifier\":\"claim.feeCode\"")
-        .contains("\"change_source\":\"Requested\"")
+        .contains("\"change_source\":\"REQUESTED\"")
         .contains("\"before\":\"OLD\"")
         .contains("\"after\":\"NEW\"");
   }
