@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
@@ -57,8 +58,8 @@ public interface GlobalStringMapper {
    *     blank
    * @throws NumberFormatException if the string is non-blank and not a valid decimal number
    */
-  default java.math.BigDecimal mapToBigDecimal(String value) {
-    return StringUtils.hasText(value) ? new java.math.BigDecimal(value) : null;
+  default BigDecimal mapToBigDecimal(String value) {
+    return StringUtils.hasText(value) ? new BigDecimal(value) : null;
   }
 
   /**

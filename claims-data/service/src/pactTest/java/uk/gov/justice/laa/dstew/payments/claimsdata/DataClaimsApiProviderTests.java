@@ -136,7 +136,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @AfterEach
   void tearDown() {
-    // Safely restore the original state using String.valueOf() just like your integration tests
+    // Safely restore the original state using String.valueOf()
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
   }
 
@@ -230,6 +230,21 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
+  }
+
+  @State("the claim has changed since it was loaded")
+  public void theClaimHasChangedSinceItWasLoaded() {
+    log.info(
+        "Setting up state: the claim has changed since it was loaded (stale amendment version)");
+    // Amendments must be enabled for the amendment flow - and its early version gate - to run.
+    claimsApiProperties.getAmendments().setEnabled("true");
+    // The current stored claim carries a known version. A consumer contract exercising this state
+    // submits a different (stale) version, which the early version gate rejects with a 409 Conflict
+    // whose body carries the stable machine-readable code CLAIM_VERSION_CONFLICT.
+    Claim current = getClaim();
+    current.setStatus(ClaimStatus.VALID);
+    current.setVersion(5L);
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
   }
 
   @State("the claim request contains invalid data")

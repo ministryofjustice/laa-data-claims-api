@@ -26,13 +26,37 @@ public enum ClaimAmendmentValidationCode {
       "Amendments are not currently enabled.",
       "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled"),
 
+  /**
+   * The submitted amendment changes nothing (no provider-requested field differs from the stored
+   * value), so there is nothing to amend.
+   *
+   * <p>This is a "no work to do" outcome rather than a client mistake, so it resolves to a <b>204
+   * No Content</b> - the same success status a genuine amendment returns - and no {@code
+   * claim_amendment} row is written. It is nonetheless modelled as a {@code FATAL} step outcome so
+   * it halts the pipeline through the same mechanism as every other stop condition (see {@code
+   * AmendmentNoChangeValidationStep}); the request-boundary handler recognises the 204 status and
+   * returns an empty body, as a 204 response must not carry one.
+   */
+  NO_AMENDMENT_CHANGES_SUBMITTED(
+      ValidationSeverity.FATAL,
+      HttpStatus.NO_CONTENT,
+      "No changes were submitted; there is nothing to amend.",
+      "Amendment payload produced no provider-requested field changes (no-op); nothing to persist"),
+
   /** The claim has a null version number so cannot be amended. */
   INVALID_NULL_VERSION(
       ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),
 
-  /** The claim has a stale version number so cannot be amended. */
-  INVALID_CLAIM_VERSION_CONFLICT(
-      ValidationSeverity.FATAL, HttpStatus.CONFLICT, "Claim Version conflict exists", null),
+  /**
+   * The claim has a stale version number so cannot be amended. This stable, machine-readable code
+   * ({@code CLAIM_VERSION_CONFLICT}) is the shared conflict identifier surfaced by both the early
+   * version gate and the final transactional (optimistic-lock) guard.
+   */
+  CLAIM_VERSION_CONFLICT(
+      ValidationSeverity.FATAL,
+      HttpStatus.CONFLICT,
+      "The claim has changed since it was loaded. Review the latest claim details and try again.",
+      null),
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
@@ -183,7 +207,30 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Claim before-state snapshot was unexpectedly absent for an existing claim");
+      "Claim before-state snapshot was unexpectedly absent for an existing claim"),
+
+  // ----- Fee Scheme Platform (FSP) Integration (DSTEW-1595) -----
+
+  /** The claim is in a non-amendable state - Calculated Fee Details are missing. */
+  INVALID_CLAIM_BEFORE_STATE_CFD_MISSING(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "Claim status %s is not amendable; Calculated Fee Details missing.",
+      null),
+
+  /** The Fee Scheme Platform rejected the calculation request due to business rule validation. */
+  INVALID_FSP_VALIDATION_FAILURE(
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "The fee calculation failed validation: %s",
+      "The Fee Scheme Platform rejected the calculation request with a semantic validation error"),
+
+  /** A technical issue (timeout, connection drop, or 5xx) occurred during remote repricing. */
+  TECHNICAL_ERROR_FSP_REPRICING_FAILURE(
+      ValidationSeverity.FATAL,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      "A technical error occurred while recalculating the fee. Please try again later.",
+      "Failed to communicate with the Fee Scheme Platform API due to a network timeout, connection drop, or server-side failure");
 
   /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
