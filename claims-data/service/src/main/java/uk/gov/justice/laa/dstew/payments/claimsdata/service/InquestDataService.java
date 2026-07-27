@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -90,7 +92,7 @@ public class InquestDataService {
     detail.setDeceasedDateOfBirth(request.getDeceasedDateOfBirth());
     detail.setDeceasedDateOfDeath(request.getDeceasedDateOfDeath());
     detail.setCoronersInquestReference(request.getCoronersInquestReference());
-    detailRepository.save(detail);
+    detail = detailRepository.save(detail);
 
     departmentRepository.saveAll(
         departmentCodes.stream()
@@ -137,7 +139,12 @@ public class InquestDataService {
         .interestedPublicAuthorities(authorities)
         .actorUserId(actor)
         .isComplete(
-            completenessDefinition.isComplete(detail, departments.size(), authorities.size()));
+            completenessDefinition.isComplete(detail, departments.size(), authorities.size()))
+        .createdOn(OffsetDateTime.ofInstant(detail.getCreatedOn(), ZoneOffset.UTC))
+        .updatedOn(
+            detail.getUpdatedOn() == null
+                ? null
+                : OffsetDateTime.ofInstant(detail.getUpdatedOn(), ZoneOffset.UTC));
   }
 
   private ClaimInterestedDepartment department(

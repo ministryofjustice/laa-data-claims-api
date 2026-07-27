@@ -16,7 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.CurrentTimestamp;
+import org.hibernate.annotations.SourceType;
+import org.hibernate.generator.EventType;
 
 /** Optional one-to-one scalar inquest details belonging to a claim. */
 @Entity
@@ -47,5 +49,9 @@ public class InquestDetail {
   private Instant createdOn;
 
   private String updatedByUserId;
-  @UpdateTimestamp private Instant updatedOn;
+
+  // Restricted to the UPDATE event only (unlike the usual @UpdateTimestamp, which also fires on
+  // INSERT) so that updatedOn stays null until the row is genuinely updated after creation.
+  @CurrentTimestamp(event = EventType.UPDATE, source = SourceType.VM)
+  private Instant updatedOn;
 }

@@ -44,6 +44,8 @@ class InquestDataServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(created.getInterestedPublicAuthorities())
         .containsExactly("NHS Trust", "County Council");
     assertThat(created.getIsComplete()).isTrue();
+    assertThat(created.getCreatedOn()).isNotNull();
+    assertThat(created.getUpdatedOn()).isNull();
 
     ClaimInquestData replaced =
         inquestDataService.replace(CLAIM_1_ID, request(Set.of("AGO"), List.of("Police authority")));
@@ -52,6 +54,9 @@ class InquestDataServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(replaced.getInterestedPublicAuthorities()).containsExactly("Police authority");
     assertThat(claimRepository.findById(CLAIM_1_ID).orElseThrow().getStatus())
         .isEqualTo(originalStatus);
+    assertThat(replaced.getCreatedOn()).isEqualTo(created.getCreatedOn());
+    assertThat(replaced.getUpdatedOn()).isNotNull();
+    assertThat(replaced.getUpdatedOn()).isAfterOrEqualTo(replaced.getCreatedOn());
   }
 
   @Test
@@ -93,6 +98,8 @@ class InquestDataServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(persisted.getInterestedPublicAuthorities())
         .containsExactly("NHS Trust", "County Council");
     assertThat(persisted.getIsComplete()).isTrue();
+    assertThat(persisted.getCreatedOn()).isNotNull();
+    assertThat(persisted.getUpdatedOn()).isNull();
   }
 
   @Test

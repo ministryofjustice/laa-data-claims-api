@@ -1491,11 +1491,21 @@ components:
       allOf:
         - $ref: '#/components/schemas/claim_inquest_data_write'
         - type: object
-          required: [is_complete]
+          required: [is_complete, created_on]
           properties:
             is_complete:
               type: boolean
               readOnly: true
+            created_on:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date and time the inquest data was created
+            updated_on:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date and time the inquest data was last updated
     amendment_requested_by_reference_list:
       type: object
       description: Top-level wrapper for the amendment Requested By reference lookup.
