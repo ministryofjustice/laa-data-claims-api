@@ -573,14 +573,10 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       createFeeDetail(claim2, BigDecimal.valueOf(200.00), OffsetDateTime.now(), null);
       createFeeDetail(claim3, BigDecimal.valueOf(50.00), OffsetDateTime.now(), null);
 
-      // Force Hibernate to drop its cache and execute the raw SQL @Formula
       entityManager.clear();
-      Submission retrieved = submissionRepository.findById(submission.getId()).orElseThrow();
 
-      // Note: Update 'getCalculatedTotalAmount()' if your Submission entity field is named
-      // differently!
       BigDecimal calculatedTotalAmount =
-          submissionRepository.getCalculatedTotalAmount(retrieved.getId());
+          submissionRepository.getCalculatedTotalAmount(submission.getId());
       assertThat(calculatedTotalAmount).isEqualByComparingTo("350.00");
     }
 
