@@ -39,12 +39,19 @@ public interface SubmissionRepository
   }
 
   @Query(
-      """
-        SELECT SUM(cfd.totalAmount)
-        FROM Claim c
-        JOIN CalculatedFeeDetail cfd ON cfd.claim = c
-        WHERE c.submission.id = :submissionId
-      """)
+      value =
+          """
+          SELECT COALESCE(SUM(latest_fees.total_amount), 0)
+          FROM (
+            SELECT cfd.total_amount,
+                   ROW_NUMBER() OVER (PARTITION BY cfd.claim_id ORDER BY cfd.created_on DESC, cfd.id DESC) as rn
+            FROM claims.calculated_fee_detail cfd
+            INNER JOIN claims.claim c ON c.id = cfd.claim_id
+            WHERE c.submission_id = :submissionId
+          ) latest_fees
+          WHERE latest_fees.rn = 1
+          """,
+      nativeQuery = true)
   BigDecimal getCalculatedTotalAmount(@Param("submissionId") UUID submissionId);
 
   /**
@@ -60,13 +67,22 @@ public interface SubmissionRepository
    * @return a list of projections containing submission IDs and their calculated total amounts
    */
   @Query(
-      """
-       SELECT c.submission.id AS submissionId, SUM(cfd.totalAmount) AS total
-       FROM Claim c
-       JOIN CalculatedFeeDetail cfd ON cfd.claim = c
-       WHERE c.submission.id IN :submissionIds
-       GROUP BY c.submission.id
-      """)
+      value =
+          """
+          SELECT latest_fees.submission_id AS submissionId,
+                 COALESCE(SUM(latest_fees.total_amount), 0) AS total
+          FROM (
+            SELECT c.submission_id,
+                   cfd.total_amount,
+                   ROW_NUMBER() OVER (PARTITION BY cfd.claim_id ORDER BY cfd.created_on DESC, cfd.id DESC) as rn
+            FROM claims.calculated_fee_detail cfd
+            INNER JOIN claims.claim c ON c.id = cfd.claim_id
+            WHERE c.submission_id IN :submissionIds
+          ) latest_fees
+          WHERE latest_fees.rn = 1
+          GROUP BY latest_fees.submission_id
+          """,
+      nativeQuery = true)
   List<CalculatedTotalAmountProjection> getCalculatedTotalAmounts(
       @Param("submissionIds") List<UUID> submissionIds);
 }
