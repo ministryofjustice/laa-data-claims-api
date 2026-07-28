@@ -19,7 +19,7 @@ public interface SubmissionRepository
    * Projection for Calculated total amounts grouped by submission.
    *
    * <p>Used by {@link #getCalculatedTotalAmounts(List)} to return the Calculated total amount for
-   * each submission without loading full entity data.
+   * each submission without loading full entity data. Only uses latest CFD per claim.
    */
   interface CalculatedTotalAmountProjection {
 
@@ -58,7 +58,7 @@ public interface SubmissionRepository
    * Returns calculated total amounts for the given submissions.
    *
    * <p>For each submission ID provided, this query returns the sum of {@code
-   * calculatedTotalInclVat} from the cfd record for each claim belonging to that submission.
+   * calculatedTotalInclVat} from the latest cfd record for each claim belonging to that submission.
    * Results are grouped by submission ID.
    *
    * <p>Submissions with no cfd records are not included in the returned list.
