@@ -481,7 +481,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     // escape. Validates all three indicators plus the Requested change_source passthrough.
     persistAmendment(
         amendmentId,
-        diff(change("claim.caseReferenceNumber", "\"REF-1\"", "\"REF-2\"", "Requested")));
+        diff(change("claim.caseReferenceNumber", "\"REF-1\"", "\"REF-2\"", SOURCE_REQUESTED)));
     linkCalculatedFeeDetail(amendmentId, false, false);
 
     ClaimHistoryEventRow event = findEvent(amendmentId);
@@ -491,7 +491,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(event.metadata().get(KEY_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
     assertThat(event.metadata().get(KEY_CHANGES)).hasSize(1);
     assertThat(event.metadata().get(KEY_CHANGES).get(0).get(KEY_CHANGE_SOURCE).asText())
-        .isEqualTo("Requested");
+        .isEqualTo(SOURCE_REQUESTED);
   }
 
   @Test
@@ -503,7 +503,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     persistAmendment(
         amendmentId,
         diff(
-            change("claim.netProfitCostsAmount", "\"100.00\"", "\"150.00\"", "Requested"),
+            change("claim.netProfitCostsAmount", "\"100.00\"", "\"150.00\"", SOURCE_REQUESTED),
             change("fee.totalAmount", "\"100.00\"", "\"180.00\"", SOURCE_FSP),
             change("fee.escapeCaseFlag", "false", "true", SOURCE_FSP)));
     linkCalculatedFeeDetail(amendmentId, true, true);
