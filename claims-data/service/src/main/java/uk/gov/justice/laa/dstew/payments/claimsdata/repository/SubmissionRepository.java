@@ -41,7 +41,7 @@ public interface SubmissionRepository
   @Query(
       value =
           """
-          SELECT COALESCE(SUM(latest_fees.total_amount), 0)
+          SELECT SUM(latest_fees.total_amount)
           FROM (
             SELECT cfd.total_amount,
                    ROW_NUMBER() OVER (PARTITION BY cfd.claim_id ORDER BY cfd.created_on DESC, cfd.id DESC) as rn
