@@ -81,6 +81,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -105,6 +108,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         b -> b.feeCode("NEWFEE").uniqueFileNumber(UNIQUE_FILE_NUMBER), SEEDED_UNIQUE_CLIENT_NUMBER);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setFeeCode("NEWFEE");
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -127,6 +133,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         b -> b.feeCode(FEE_CODE).uniqueFileNumber("020225/002"), SEEDED_UNIQUE_CLIENT_NUMBER);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueFileNumber("020225/002");
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -156,6 +165,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedClient(siblingId, OTHER_UCN, "Dup", "Licate");
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -179,6 +191,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     // No comparison claim seeded: the only row matching CLAIM_1's keys is its own persisted row, so
     // a correct self-exclusion must let this neutral (non-key) amendment commit.
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setClientSurname("Self-Exclusion");
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -198,6 +213,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         ClaimStatus.VOID, b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -219,6 +237,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
@@ -236,6 +257,9 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(b -> b.feeCode(FEE_CODE).uniqueFileNumber("999999/999"), OTHER_UCN);
 
     ClaimPatch patch = metadataPatch();
+    // Stamp the current claim version so the amendment clears the optimistic-lock gate,
+    // leaving the duplicate check (not the version gate) as the behaviour under test.
+    patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);

@@ -121,9 +121,9 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    *
    * @param submissionId the owning submission
    * @param state customises the claim builder (e.g. fee code and dates)
-   * @return the new claim id
+   * @return the new claim
    */
-  protected UUID createAmendableClaim(UUID submissionId, Consumer<Claim.ClaimBuilder> state) {
+  protected Claim createAmendableClaim(UUID submissionId, Consumer<Claim.ClaimBuilder> state) {
     Claim.ClaimBuilder builder =
         Claim.builder()
             .id(Uuid7.timeBasedUuid())
@@ -135,18 +135,20 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
             .createdByUserId(CREATED_BY)
             .createdOn(CREATED_ON);
     state.accept(builder);
-    Claim claim = claimRepository.saveAndFlush(builder.build());
-    return claim.getId();
+    return claimRepository.saveAndFlush(builder.build());
   }
 
   /**
-   * A patch carrying valid amendment metadata (requested-by, reason and user id). Tests add the
-   * field change under test on top.
+   * A patch carrying valid amendment metadata (requested-by, reason and user id) plus the current
+   * claim version so it passes the early version gate. Claims created by {@link
+   * #createAmendableClaim} are freshly inserted at version {@code 0}. Tests add the field change
+   * under test on top.
    *
    * @return a metadata-only claim patch
    */
   protected ClaimPatch metadataPatch() {
     ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(0L);
     patch.setAmendmentRequestedBy(REQUESTED_BY_PROVIDER);
     patch.setAmendmentReasonCode(REASON_PROVIDER_ERROR);
     patch.setAmendmentUserId(VALID_USER_UUID);

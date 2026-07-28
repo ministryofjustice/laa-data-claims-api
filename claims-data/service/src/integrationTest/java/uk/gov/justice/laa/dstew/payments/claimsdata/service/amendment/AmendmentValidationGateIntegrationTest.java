@@ -78,14 +78,19 @@ class AmendmentValidationGateIntegrationTest extends AbstractAmendmentPipelineIn
   void persistsNothingWhenStepFails(
       String stepName, Class<? extends ClaimAmendmentValidationStep> failingStep) {
     // Put the claim in an amendable state so every genuine neighbour step passes for a valid
-    // payload.
+    // payload. Flush the status change so the @Version is settled and the entity is clean, so a
+    // later autoflush during prepare cannot bump the version after the payload has captured it.
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     claim.setStatus(ClaimStatus.VALID);
+    claimRepository.saveAndFlush(claim);
     long amendmentsBefore = claimAmendmentRepository.count();
 
     ClaimAmendmentService service = serviceWithFailingStep(failingStep);
 
-    ClaimAmendmentResult result = service.submitAmendment(claim1, validPayload());
+    // Submit the freshly-loaded claim so its in-memory @Version matches what the prepare step
+    // reads;
+    // the payload carries that same version so the early gate passes for every non-version step.
+    ClaimAmendmentResult result = service.submitAmendment(claim, validPayload(claim.getVersion()));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).contains(FORCED_ERROR);
@@ -159,7 +164,7 @@ class AmendmentValidationGateIntegrationTest extends AbstractAmendmentPipelineIn
     var beforeCalc =
         calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID);
 
-    ClaimAmendmentResult result = service.submitAmendment(claim1, validPayload());
+    ClaimAmendmentResult result = service.submitAmendment(claim, validPayload(claim.getVersion()));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).contains(fatal);

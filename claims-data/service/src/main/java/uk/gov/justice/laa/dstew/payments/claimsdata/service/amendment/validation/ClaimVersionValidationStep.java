@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation;
 
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
@@ -14,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
  * locking mechanism. It prevents lost updates if the claim was modified by another process between
  * the user retrieving it and submitting the amendment.
  */
+@Slf4j
 @Component
 public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep {
 
@@ -22,8 +24,8 @@ public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep 
    *
    * @param state the in-memory amendment state containing both the before-state snapshot and the
    *     requested patch payload
-   * @return a list containing an {@code INVALID_CLAIM_VERSION_CONFLICT} error if the versions do
-   *     not match, or an empty list if validation passes
+   * @return a list containing a {@code CLAIM_VERSION_CONFLICT} error if the versions do not match,
+   *     or an empty list if validation passes
    */
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
@@ -33,15 +35,27 @@ public class ClaimVersionValidationStep implements ClaimAmendmentValidationStep 
     }
 
     Long expectedVersion = state.getBeforeState().getVersion();
-    Long submittedVersion = state.getRequestPayload().getVersion().get();
+    // Read the submitted version defensively: an undefined JsonNullable (client sent no version)
+    // and an explicit null both mean "no version supplied" and are treated as a null-version error.
+    Long submittedVersion = state.getRequestPayload().getVersion().orElse(null);
 
     if (submittedVersion == null) {
       return List.of(
           ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.INVALID_NULL_VERSION));
-    } else if (expectedVersion.intValue() != submittedVersion.intValue()) {
+    } else if (!submittedVersion.equals(expectedVersion)) {
+      // Full Long equality: guards against a null stored version (no NPE) and avoids the value
+      // truncation that Long#intValue would introduce for versions beyond Integer.MAX_VALUE.
+      // Structured warning for support/investigation. Safe fields only - never the amendment
+      // payload values or financial details carried on the snapshot.
+      log.warn(
+          "event={} claimId={} submittedClaimVersion={} currentClaimVersion={} conflictPoint={}",
+          ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name(),
+          state.getBeforeState().getClaimId(),
+          submittedVersion,
+          expectedVersion,
+          "initial_check");
       return List.of(
-          ClaimAmendmentValidationError.of(
-              ClaimAmendmentValidationCode.INVALID_CLAIM_VERSION_CONFLICT));
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT));
     }
     return List.of();
   }
