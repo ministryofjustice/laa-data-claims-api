@@ -45,6 +45,7 @@ class ClaimAmendmentPersistenceServiceIntegrationTest extends AbstractIntegratio
   @DisplayName("persists one claim_amendment row and applies the amended claim and fee values")
   void persistsSuccessfulAmendment() {
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    long versionBefore = claim.getVersion();
 
     ClaimStateSnapshot before =
         ClaimStateSnapshot.builder()
@@ -99,6 +100,12 @@ class ClaimAmendmentPersistenceServiceIntegrationTest extends AbstractIntegratio
     Claim reloadedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(reloadedClaim.getFeeCode()).isEqualTo(AMENDED_FEE_CODE);
     assertThat(reloadedClaim.isAmended()).isTrue();
+    // DSTEW-2051 Finding B: a successful amendment stamps the amending user and advances the
+    // version/updated_on audit fields on the claim itself. The amendment performs exactly one
+    // versioned UPDATE, so the version increments by exactly one.
+    assertThat(reloadedClaim.getUpdatedByUserId()).isEqualTo(ClaimsDataTestUtil.USER_ID);
+    assertThat(reloadedClaim.getVersion()).isEqualTo(versionBefore + 1);
+    assertThat(reloadedClaim.getUpdatedOn()).isNotNull();
 
     ClaimSummaryFee reloadedFee = claimSummaryFeeRepository.findByClaimId(CLAIM_1_ID).orElseThrow();
     assertThat(reloadedFee.getNetProfitCostsAmount())
