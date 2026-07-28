@@ -562,7 +562,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     @Test
     @Transactional
     @DisplayName(
-        "AC1: Given a submission whose claims each have a single calculated-fee row, it sums normally")
+        "Given a submission whose claims each have a single calculated-fee row, it sums normally")
     void singleRowPerClaimSumsNormally() {
       Submission submission = createIsolatedSubmission();
       Claim claim1 = createClaimForSubmission(submission);
@@ -587,7 +587,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     @Test
     @Transactional
     @DisplayName(
-        "AC2 & AC4: Given a submission with claims that have multiple calculated-fee rows, it sums only the latest row using created_on")
+        "Given a submission with claims that have multiple calculated-fee rows, it sums only the latest row using created_on")
     void multipleRowsPerClaimSumsOnlyLatestByCreatedOn() {
       Submission submission = createIsolatedSubmission();
       Claim claimX = createClaimForSubmission(submission);
@@ -612,7 +612,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     @Test
     @Transactional
     @DisplayName(
-        "AC3: Given two calculated-fee rows on the same claim have the same created_on, it uses greatest id as the tie-break")
+        "Given two calculated-fee rows on the same claim have the same created_on, it uses greatest id as the tie-break")
     void multipleRowsPerClaimSameCreatedOnTieBreaksById() {
       Submission submission = createIsolatedSubmission();
       Claim claim = createClaimForSubmission(submission);
@@ -638,7 +638,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     @Test
     @Transactional
     @DisplayName(
-        "Bulk AC: Given multiple submissions, it groups by submission and sums only the latest row per claim")
+        "Bulk Submissions: Given multiple submissions, it groups by submission and sums only the latest row per claim")
     void bulkGetCalculatedTotalAmountsSumsLatestPerSubmission() {
       // Setup Submission 1 with an amended claim
       Submission sub1 = createIsolatedSubmission();
