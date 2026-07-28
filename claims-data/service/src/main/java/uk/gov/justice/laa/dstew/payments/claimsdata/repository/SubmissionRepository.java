@@ -77,7 +77,7 @@ public interface SubmissionRepository
                    ROW_NUMBER() OVER (PARTITION BY cfd.claim_id ORDER BY cfd.created_on DESC, cfd.id DESC) as rn
             FROM claims.calculated_fee_detail cfd
             INNER JOIN claims.claim c ON c.id = cfd.claim_id
-            WHERE c.submission_id IN :submissionIds
+            WHERE c.submission_id IN (:submissionIds)
           ) latest_fees
           WHERE latest_fees.rn = 1
           GROUP BY latest_fees.submission_id
