@@ -728,7 +728,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
               .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
               .totalAmount(amount)
               .createdOn(createdOn)
-              .createdByUserId(USER_ID) // <-- Added to satisfy DB constraint
+              .createdByUserId(USER_ID)
               .build());
     }
   }
