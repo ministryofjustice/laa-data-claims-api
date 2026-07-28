@@ -692,7 +692,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
               .submissionPeriod("JAN-2025")
               .areaOfLaw(AreaOfLaw.LEGAL_HELP)
               .createdByUserId(USER_ID)
-              .providerUserId(USER_ID) // <-- Add this!
+              .providerUserId(USER_ID)
               .createdOn(Instant.now())
               .build();
       return submissionRepository.saveAndFlush(submission);
@@ -705,8 +705,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
               .submission(submission)
               .status(ClaimStatus.VALID)
               .feeCode("TEST")
-              .lineNumber(1) // <-- Add this!
-              .matterTypeCode("TEST_MATTER") // <-- Add this!
+              .lineNumber(1)
+              .matterTypeCode("TEST_MATTER")
               .createdByUserId(USER_ID)
               .build();
       claim = claimRepository.saveAndFlush(claim);
