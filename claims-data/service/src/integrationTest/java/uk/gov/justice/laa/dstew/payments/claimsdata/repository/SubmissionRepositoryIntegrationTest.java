@@ -554,7 +554,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   }
 
   @Nested
-  @DisplayName("PDS - Submission Totals Recalculation After Claim Amendments (DSTEW-1659)")
+  @DisplayName("PDS - Submission Totals Recalculation After Claim Amendments (DSTEW-1644)")
   class SubmissionTotalsRecalculation {
 
     @Autowired private EntityManager entityManager;
