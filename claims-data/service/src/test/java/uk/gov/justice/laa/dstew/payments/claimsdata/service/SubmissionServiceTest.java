@@ -33,6 +33,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionAlreadyExistsException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -97,12 +100,128 @@ class SubmissionServiceTest {
     when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
     when(validationService.validateSubmission(submissionResponse))
         .thenReturn(ValidationResult.builder().isValid(true).build());
-    when(submissionRepository.save(entity)).thenReturn(entity);
+    when(submissionRepository.existsById(id)).thenReturn(false);
 
     UUID result = submissionService.createSubmission(post);
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+    assertThat(entity.getCreatedOn()).isNotNull();
     assertThat(result).isEqualTo(id);
-    verify(submissionRepository).save(entity);
+    verify(submissionRepository).insertNew(entity);
+    verify(submissionRepository, never()).save(any());
+    // No active transaction in a unit test, so the after-commit publish runs immediately (once).
+    verify(submissionEventPublisherService).publishSubmissionValidationSucceededEvent(id);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: duplicate id detected early throws SubmissionAlreadyExistsException with 409, never persists, never publishes")
+  void createSubmission_whenDuplicateDetectedEarly_shouldThrowConflictAndNotPersistOrPublish() {
+    UUID id = Uuid7.timeBasedUuid();
+    // CREATED status skips validation, matching the event-service idempotency path.
+    SubmissionPost post = new SubmissionPost().submissionId(id).status(SubmissionStatus.CREATED);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository.existsById(id)).thenReturn(true);
+
+    SubmissionAlreadyExistsException ex =
+        assertThrows(
+            SubmissionAlreadyExistsException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
+    assertThat(ex.getMessage()).contains(id.toString());
+    verify(submissionRepository, never()).insertNew(any());
+    verify(submissionRepository, never()).save(any());
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: early duplicate guard does not validate or mutate persisted state")
+  void createSubmission_whenDuplicateDetectedEarly_shouldNotValidate() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id).status(SubmissionStatus.CREATED);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository.existsById(id)).thenReturn(true);
+
+    assertThrows(
+        SubmissionAlreadyExistsException.class, () -> submissionService.createSubmission(post));
+
+    // CREATED status never validates; confirm no validation and status is left untouched.
+    verifyNoInteractions(validationService);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: database duplicate-key violation is translated into SubmissionAlreadyExistsException (409) and no event is published")
+  void createSubmission_whenInsertViolatesConstraint_shouldTranslateToConflict() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id).status(SubmissionStatus.CREATED);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    // Race: the early guard passes, but the authoritative insert loses the PK race.
+    when(submissionRepository.existsById(id)).thenReturn(false);
+    doThrow(new DuplicateKeyException("duplicate key"))
+        .when(submissionRepository)
+        .insertNew(entity);
+
+    SubmissionAlreadyExistsException ex =
+        assertThrows(
+            SubmissionAlreadyExistsException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
+    assertThat(ex.getMessage()).contains(id.toString());
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: a non-duplicate integrity violation (e.g. NOT NULL) is NOT masked as a conflict and propagates unchanged")
+  void createSubmission_whenInsertFailsWithNonDuplicateViolation_shouldPropagate() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id).status(SubmissionStatus.CREATED);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository.existsById(id)).thenReturn(false);
+    DataIntegrityViolationException notNullViolation =
+        new DataIntegrityViolationException("not-null constraint");
+    doThrow(notNullViolation).when(submissionRepository).insertNew(entity);
+
+    DataIntegrityViolationException thrown =
+        assertThrows(
+            DataIntegrityViolationException.class, () -> submissionService.createSubmission(post));
+
+    // The original integrity violation surfaces unchanged - not translated into a 409 conflict.
+    assertThat(thrown).isSameAs(notNullViolation);
+    assertThat(thrown).isNotInstanceOf(SubmissionAlreadyExistsException.class);
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: a CREATED submission with no submitted date still gets a created-on timestamp defaulted")
+  void createSubmission_whenCreatedStatusAndNoCreatedOn_shouldDefaultCreatedOn() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id).status(SubmissionStatus.CREATED);
+    // Simulates the event-service path: CREATED status, no `submitted` so createdOn is null.
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository.existsById(id)).thenReturn(false);
+
+    submissionService.createSubmission(post);
+
+    // Created-on is defaulted even though validation is skipped for CREATED submissions.
+    assertThat(entity.getCreatedOn()).isNotNull();
+    // CREATED submissions skip validation and never publish a validation-succeeded event.
+    verifyNoInteractions(validationService);
+    verifyNoInteractions(submissionEventPublisherService);
+    verify(submissionRepository).insertNew(entity);
   }
 
   @Test
@@ -135,6 +254,8 @@ class SubmissionServiceTest {
     assertThat(ex.getIssues().getFirst().getCode()).isEqualTo("SUB-001");
     assertThat(ex.getHttpStatus().value()).isEqualTo(400);
     verify(submissionRepository, never()).save(any());
+    verify(submissionRepository, never()).insertNew(any());
+    verifyNoInteractions(submissionEventPublisherService);
   }
 
   @Test
@@ -154,6 +275,7 @@ class SubmissionServiceTest {
         SubmissionValidationException.class, () -> submissionService.createSubmission(post));
 
     verify(submissionRepository, never()).save(any());
+    verify(submissionRepository, never()).insertNew(any());
   }
 
   @Test

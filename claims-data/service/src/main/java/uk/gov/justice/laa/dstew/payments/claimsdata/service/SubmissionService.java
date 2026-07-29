@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionAlreadyExistsException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -74,9 +76,18 @@ public class SubmissionService
   /**
    * Create and persist a new submission.
    *
+   * <p>The submission id is client supplied, so a duplicate POST must not silently overwrite an
+   * existing submission. Correctness relies on the database primary-key constraint (via {@link
+   * SubmissionRepository#insertNew}), not solely on the {@code existsById} guard: if two concurrent
+   * requests both pass the guard, exactly one INSERT commits and the other is rejected by the
+   * constraint and translated into a {@link SubmissionAlreadyExistsException}. Because the insert
+   * happens before the after-commit event publication and a failed insert rolls the transaction
+   * back, a duplicate never republishes a downstream event.
+   *
    * @param submissionPost request body
    * @return id of the created submission
    */
+  @Transactional
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
@@ -92,18 +103,62 @@ public class SubmissionService
             "Submission failed validation", validationResult.getIssues());
       }
       submission.setStatus(SubmissionStatus.VALIDATION_SUCCEEDED);
-      if (submission.getCreatedOn() == null) {
-        submission.setCreatedOn(Instant.now());
-      }
     }
 
-    submissionRepository.save(submission);
+    // Guarantee an audit timestamp on every creation path. CREATED submissions (from the event
+    // service) may arrive without a `submitted` value, and created_on is NOT NULL, so default it
+    // here rather than relying on the caller supplying it.
+    if (submission.getCreatedOn() == null) {
+      submission.setCreatedOn(Instant.now());
+    }
+
+    // Enforce idempotency: a duplicate client-supplied submission id must be rejected with a 409
+    // rather than silently overwriting the existing submission.
+    insertNewSubmission(submission);
 
     if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
       publishValidationSucceededAfterCommit(submission.getId());
     }
 
     return submission.getId();
+  }
+
+  /**
+   * Persist a brand-new submission, guaranteeing the client-supplied primary key is unique.
+   *
+   * <p>An early {@code existsById} check gives a friendly 409 in the common case, but correctness
+   * under concurrency rests on the database primary-key constraint: if two concurrent requests both
+   * pass the early check, exactly one INSERT commits and the other fails with a {@link
+   * DuplicateKeyException}, which is logged and translated into a {@link
+   * SubmissionAlreadyExistsException}. Any other integrity violation (for example a {@code NOT
+   * NULL} or foreign-key failure) is deliberately not translated and propagates unchanged, so it is
+   * never masked as a false "already exists" conflict.
+   *
+   * @param submission the fully populated, not-yet-persisted submission entity
+   * @throws SubmissionAlreadyExistsException if a submission with the same id already exists
+   */
+  private void insertNewSubmission(Submission submission) {
+    UUID submissionId = submission.getId();
+
+    // Early, best-effort guard for a friendly 409 in the common case. This is NOT relied upon for
+    // correctness under concurrency - the authoritative check is the database constraint below.
+    if (submissionRepository.existsById(submissionId)) {
+      throw new SubmissionAlreadyExistsException("Submission already exists: " + submissionId);
+    }
+
+    // Authoritative insert: the database primary key is the source of truth. A duplicate key here
+    // (e.g. a concurrent request that also passed the guard above) is translated into a 409.
+    try {
+      submissionRepository.insertNew(submission);
+    } catch (DuplicateKeyException ex) {
+      // A genuine create race reached the database and hit the primary-key/unique constraint; log
+      // the underlying failure at warn for observability before surfacing the client-facing 409,
+      // so the root cause is not lost. Any OTHER integrity violation is not caught here and
+      // propagates unchanged so it is not misreported as a duplicate.
+      log.warn(
+          "Concurrent create rejected by unique constraint for submission {}", submissionId, ex);
+      throw new SubmissionAlreadyExistsException("Submission already exists: " + submissionId);
+    }
   }
 
   /**
