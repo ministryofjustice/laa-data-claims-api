@@ -309,7 +309,9 @@ public abstract class AbstractIntegrationTest {
             .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
             .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference(SCHEDULE_REFERENCE)
-            .lineNumber(1)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            // claim4 shares submission/fee/UFN/status with claim1 but needs a distinct line number.
+            .lineNumber(4)
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
@@ -325,7 +327,8 @@ public abstract class AbstractIntegrationTest {
             .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
             .status(ClaimStatus.VALID)
             .scheduleReference(SCHEDULE_REFERENCE)
-            .lineNumber(1)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            .lineNumber(5)
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)

@@ -948,7 +948,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // Add these mandatory fields to satisfy Bean Validation
     claimA.setMatterTypeCode("TEST-MTC");
-    claimA.setLineNumber(1);
+    // Unique within submission1 (seedClaimsData already uses lines 1,2,4,5) to satisfy
+    // uq_claim_submission_line_number.
+    claimA.setLineNumber(10);
     claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     claimA = claimRepository.saveAndFlush(claimA);
@@ -968,7 +970,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // Add these mandatory fields to satisfy Bean Validation
     claimB.setMatterTypeCode("TEST-MTC");
-    claimB.setLineNumber(2);
+    claimB.setLineNumber(11);
     claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     claimB = claimRepository.saveAndFlush(claimB);
