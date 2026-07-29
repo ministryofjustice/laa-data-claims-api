@@ -21,7 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
  * Verifies the database-level unique constraint {@code uq_claim_submission_line_number} added in
- * Flyway migration {@code V44}, which enforces the business rule that a claim's {@code line_number}
+ * Flyway migration {@code V45}, which enforces the business rule that a claim's {@code line_number}
  * must be unique within a submission.
  *
  * <p>These tests deliberately run without {@code @Transactional}: each repository {@code
@@ -31,7 +31,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @DisplayName("Claim unique (submission_id, line_number) constraint integration test")
 class ClaimUniqueLineNumberConstraintIntegrationTest extends AbstractIntegrationTest {
 
-  private static final String CONSTRAINT_NAME = "uq_claim_submission_line_number";
+  private static final String INDEX_NAME = "uq_claim_submission_line_number";
 
   @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -42,27 +42,19 @@ class ClaimUniqueLineNumberConstraintIntegrationTest extends AbstractIntegration
   }
 
   @Test
-  @DisplayName(
-      "migration verification: the unique constraint exists on (submission_id, line_number)")
+  @DisplayName("migration verification: the unique index exists on (submission_id, line_number)")
   void constraintExistsOnSubmissionIdAndLineNumber() {
-    Integer constraintCount =
+    Integer indexCount =
         jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM pg_constraint WHERE conname = ?", Integer.class, CONSTRAINT_NAME);
-    assertThat(constraintCount).isEqualTo(1);
+            "SELECT COUNT(*) FROM pg_indexes WHERE indexname = ?", Integer.class, INDEX_NAME);
+    assertThat(indexCount).isEqualTo(1);
 
-    // Confirm the constraint covers exactly submission_id and line_number, in order.
-    String columns =
+    // Confirm the index is UNIQUE and covers submission_id and line_number.
+    String indexDef =
         jdbcTemplate.queryForObject(
-            """
-            SELECT string_agg(a.attname, ',' ORDER BY k.ord)
-            FROM pg_constraint c
-            JOIN unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord) ON TRUE
-            JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
-            WHERE c.conname = ? AND c.contype = 'u'
-            """,
-            String.class,
-            CONSTRAINT_NAME);
-    assertThat(columns).isEqualTo("submission_id,line_number");
+            "SELECT indexdef FROM pg_indexes WHERE indexname = ?", String.class, INDEX_NAME);
+    assertThat(indexDef).contains("UNIQUE");
+    assertThat(indexDef).contains("(submission_id, line_number)");
   }
 
   @Test

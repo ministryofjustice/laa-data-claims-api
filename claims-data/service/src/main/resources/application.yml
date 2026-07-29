@@ -20,6 +20,12 @@ spring:
       reporting_password: "reporting_password"
       data_factory_username: ${DATA_FACTORY_USERNAME:data_factory_user}
       data_factory_password: ${DATA_FACTORY_PASSWORD:data_factory_password}
+      # Cutoff for the partial unique index on claim(submission_id, line_number) added in V45.
+      # Defaults to the epoch so fresh/clean databases enforce uniqueness for ALL rows. Environments
+      # that already contain duplicate rows MUST override this (via CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF)
+      # with a timestamp after which the data is known to be clean, to grandfather the historical
+      # duplicates. See docs/release-notes/unique-claim-submission-line-number.md.
+      claim_line_number_uniqueness_cutoff: ${CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF:1970-01-01 00:00:00+00}
   servlet:
     multipart:
       max-file-size: 10MB

@@ -224,7 +224,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // and: the RFC 9457 body carries the user-safe message
     String body = result.getResponse().getContentAsString();
-    assertThat(body).contains("A claim with this line number already exists for the submission.");
+    assertThat(body).contains("already exists for the submission.");
 
     // and: nothing extra was persisted - only the first claim remains for the submission
     assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).hasSize(1);

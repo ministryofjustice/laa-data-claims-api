@@ -48,7 +48,7 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
 
   /**
    * Name of the database unique constraint enforcing that a claim's line number is unique within a
-   * submission (see Flyway migration {@code V44}). A violation of this specific constraint is a
+   * submission (see Flyway migration {@code V45}). A violation of this specific constraint is a
    * client conflict (409), not an internal error.
    */
   private static final String UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT =
