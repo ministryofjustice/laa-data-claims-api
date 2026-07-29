@@ -38,17 +38,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionService;
 
 /**
  * This contains integration tests to verify the filtering logic implemented in the {@link
@@ -558,6 +556,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   class SubmissionTotalsRecalculation {
 
     @Autowired private EntityManager entityManager;
+    @Autowired private SubmissionService submissionService;
 
     @Test
     @Transactional
@@ -677,59 +676,52 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       assertThat(result2.getTotal()).isEqualByComparingTo("450.00");
     }
 
-    // --- Helper Methods specifically for Totals testing ---
+    @Test
+    @Transactional
+    @DisplayName(
+        "Response shape is unchanged and only calculated-total differs for multi-row claims")
+    void responseShapeIsUnchangedOnlyTotalDiffers() {
+      // 1. Setup Classic Submission (1 Claim, 1 Fee Row)
+      Submission classicSub = createIsolatedSubmission();
+      Claim classicClaim = createClaimForSubmission(classicSub);
+      createFeeDetail(classicClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
 
-    private Submission createIsolatedSubmission() {
-      Submission submission =
-          Submission.builder()
-              .id(Uuid7.timeBasedUuid())
-              .officeAccountNumber("totals-office")
-              .status(SubmissionStatus.CREATED)
-              .submissionPeriod("JAN-2025")
-              .areaOfLaw(AreaOfLaw.LEGAL_HELP)
-              .createdByUserId(USER_ID)
-              .providerUserId(USER_ID)
-              .createdOn(Instant.now())
-              .build();
-      return submissionRepository.saveAndFlush(submission);
-    }
+      // 2. Setup Amended Submission (1 Claim, 2 Fee Rows)
+      Submission amendedSub = createIsolatedSubmission();
+      Claim amendedClaim = createClaimForSubmission(amendedSub);
+      createFeeDetail(
+          amendedClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
+      createFeeDetail(
+          amendedClaim, BigDecimal.valueOf(250.00), OffsetDateTime.now(), null); // Latest
 
-    private Claim createClaimForSubmission(Submission submission) {
-      Claim claim =
-          Claim.builder()
-              .id(Uuid7.timeBasedUuid())
-              .submission(submission)
-              .status(ClaimStatus.VALID)
-              .feeCode("TEST")
-              .lineNumber(1)
-              .matterTypeCode("TEST_MATTER")
-              .createdByUserId(USER_ID)
-              .build();
-      claim = claimRepository.saveAndFlush(claim);
+      entityManager.flush();
+      entityManager.clear();
 
-      ClaimSummaryFee summaryFee =
-          ClaimSummaryFee.builder()
-              .id(Uuid7.timeBasedUuid())
-              .claim(claim)
-              .createdByUserId(USER_ID)
-              .build();
-      claimSummaryFeeRepository.saveAndFlush(summaryFee);
+      // 3. Fetch full responses via the Service
+      SubmissionResponse classicResponse = submissionService.getSubmission(classicSub.getId());
+      SubmissionResponse amendedResponse = submissionService.getSubmission(amendedSub.getId());
 
-      return claim;
-    }
+      // 4. Assert the TOTALS differ exactly as expected
+      assertThat(classicResponse.getCalculatedTotalAmount()).isEqualByComparingTo("100.00");
+      assertThat(amendedResponse.getCalculatedTotalAmount()).isEqualByComparingTo("250.00");
 
-    private void createFeeDetail(
-        Claim claim, BigDecimal amount, OffsetDateTime createdOn, UUID forceId) {
-      UUID idToUse = forceId != null ? forceId : Uuid7.timeBasedUuid();
-      calculatedFeeDetailRepository.saveAndFlush(
-          CalculatedFeeDetail.builder()
-              .id(idToUse)
-              .claim(claim)
-              .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
-              .totalAmount(amount)
-              .createdOn(createdOn)
-              .createdByUserId(USER_ID)
-              .build());
+      // 5. Assert the SHAPE and DATA remain absolutely identical
+      // (proving the extra fee row didn't duplicate the claims list or alter the structure)
+      assertThat(amendedResponse)
+          .usingRecursiveComparison()
+          .ignoringFields(
+              "submissionId", // Ignore root ID
+              "submitted", // Ignore millisecond creation differences
+              "claims.claimId", // Ignore nested Claim IDs
+              "calculatedTotalAmount" // The ONLY field allowed to differ
+              )
+          .isEqualTo(classicResponse);
+
+      // Explicitly prove the one-to-many join didn't duplicate the claim in the array
+      assertThat(amendedResponse.getClaims()).hasSize(1);
+
+      // Explicitly prove the one-to-many join didn't duplicate the claim in the array
+      assertThat(amendedResponse.getClaims()).hasSize(1);
     }
   }
 }
