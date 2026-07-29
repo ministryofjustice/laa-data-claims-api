@@ -5,14 +5,14 @@ meta {
 }
 
 post {
-  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0U099L
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0P322F
   body: multipartForm
   auth: inherit
 }
 
 params:query {
   userId: test
-  offices: 0U099L
+  offices: 0P322F
 }
 
 headers {
@@ -20,7 +20,17 @@ headers {
 }
 
 body:multipart-form {
-  file: @file(test-assets/outcomes_crime_lower_no_schedule.csv) @contentType(application/vnd.ms-excel)
+  file: @file(test-assets/generated_submissions_legal/legal_Generate_valid_bulk_submission_for_Legal_help_1784651809019_2531_1.csv) @contentType(application/vnd.ms-excel)
+}
+
+script:post-response {
+  if(res.status === 201){
+    const body = res.getBody();
+    console.log(body);
+    bru.setEnvVar("SUBMISSION_ID", body.submission_ids[0]);
+  }else{
+    throw new Error("POST failed - cannont set submission_id");
+  }
 }
 
 settings {
