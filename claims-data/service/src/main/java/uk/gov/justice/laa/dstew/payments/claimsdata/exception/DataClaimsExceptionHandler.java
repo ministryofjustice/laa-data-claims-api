@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,20 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       "https://claimsdata.payments.laa.justice.gov.uk/errors/";
   private static final Pattern EXCEPTION_SUFFIX = Pattern.compile("Exception$");
   private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
+
+  /**
+   * Name of the database unique constraint enforcing that a claim's line number is unique within a
+   * submission (see Flyway migration {@code V44}). A violation of this specific constraint is a
+   * client conflict (409), not an internal error.
+   */
+  private static final String UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT =
+      "uq_claim_submission_line_number";
+
+  /**
+   * User-facing message for a duplicate claim line number (no raw SQL/constraint detail leaked).
+   */
+  private static final String DUPLICATE_CLAIM_LINE_NUMBER_MESSAGE =
+      "A claim with this line number already exists for the submission.";
 
   /**
    * Handle {@link SubmissionValidationException} and include the list of validation issues as a
@@ -213,6 +228,50 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
 
     log.warn("Database level object optimistic locking failure occurred: {}", ex.getMessage());
     return buildVersionConflictResponse(ex.getClass(), request);
+  }
+
+  /**
+   * Handles database integrity violations. A violation of the {@code
+   * uq_claim_submission_line_number} unique constraint (a claim's line number must be unique within
+   * its submission) is a client conflict, so it is mapped to HTTP {@code 409 Conflict}. Any other
+   * integrity violation retains the previous behaviour (a generic {@code 500 Internal Server
+   * Error}), so unrelated constraint failures are not mislabelled as conflicts.
+   *
+   * @param ex the data integrity violation raised at flush/commit
+   * @param request the HTTP request
+   * @return a 409 Problem Detail for a duplicate claim line number, otherwise a 500 response
+   */
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ProblemDetail> handleDataIntegrityViolationException(
+      DataIntegrityViolationException ex, HttpServletRequest request) {
+
+    if (isDuplicateClaimLineNumberViolation(ex)) {
+      log.warn("Duplicate claim line number within a submission:", ex.getMostSpecificCause());
+      return buildProblemDetailResponse(
+          HttpStatus.CONFLICT, DUPLICATE_CLAIM_LINE_NUMBER_MESSAGE, ex.getClass(), request);
+    }
+
+    return handleGenericException(ex, request);
+  }
+
+  /**
+   * Determines whether the given integrity violation was caused by the {@code
+   * uq_claim_submission_line_number} unique constraint. Prefers Hibernate's parsed constraint name
+   * and falls back to matching the constraint name in the underlying message for robustness across
+   * driver/Hibernate versions.
+   *
+   * @param ex the data integrity violation
+   * @return {@code true} if this is a duplicate claim line-number violation
+   */
+  private boolean isDuplicateClaimLineNumberViolation(DataIntegrityViolationException ex) {
+    if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException hce
+        && UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT.equalsIgnoreCase(hce.getConstraintName())) {
+      return true;
+    }
+    // getMostSpecificCause() never returns null (it returns the exception itself when there is no
+    // cause), so we only need to guard against a null message.
+    String message = ex.getMostSpecificCause().getMessage();
+    return message != null && message.toLowerCase().contains(UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT);
   }
 
   /**

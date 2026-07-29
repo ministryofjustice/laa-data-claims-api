@@ -7,7 +7,20 @@ line_number)`.
 **Business rule enforced:** a claim's `line_number` must be unique within a submission. Duplicate
 `(submission_id, line_number)` combinations can no longer exist.
 
+## API behaviour change
+
+`POST /api/v1/submissions/{id}/claims` now returns **409 Conflict** (previously 500) when the new
+claim would duplicate an existing `(submission_id, line_number)`. The RFC 9457 problem detail body
+carries the message *"A claim with this line number already exists for the submission."* and a
+`type` of `.../errors/data-integrity-violation`. The failed request is fully rolled back (no partial
+rows). This is documented in `open-api-specification.yml` on the `createClaim` operation.
+
+The amend endpoint (`PATCH …/claims/{claim-id}`) is unaffected: `line_number` is not an amendable
+field, so an attempt to change it is rejected earlier with **400**
+(`INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW`) and can never reach the database constraint.
+
 ---
+
 
 ## ⚠️ Mandatory pre-deployment check
 
