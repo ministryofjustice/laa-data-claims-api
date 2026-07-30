@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.Ame
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REQUESTED_BY_PROVIDER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
@@ -26,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
@@ -647,6 +649,28 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     List<ClaimHistoryEventRow> events = findHistory();
 
     assertThat(events).extracting(ClaimHistoryEventRow::eventType).doesNotContain(AMENDMENT);
+  }
+
+  @Test
+  @DisplayName("Excludes New Matter Starts: a matter_start row never produces a timeline event")
+  void excludesNewMatterStartsFromTimeline() {
+    // New Matter Starts are submission-level and must stay out of the claim timeline. Seed a matter
+    // start against the same submission as the claim and prove it contributes nothing.
+    UUID matterStartId = Uuid7.timeBasedUuid();
+    matterStartRepository.save(
+        MatterStart.builder()
+            .id(matterStartId)
+            .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
+            .numberOfMatterStarts(1)
+            .createdByUserId(USER_ID)
+            .build());
+    matterStartRepository.flush();
+
+    List<ClaimHistoryEventRow> events = findHistory();
+
+    // Only the submission event exists; the matter start is neither an event nor a source id.
+    assertThat(events).extracting(ClaimHistoryEventRow::eventType).containsExactly(SUBMISSION);
+    assertThat(events).extracting(ClaimHistoryEventRow::sourceId).doesNotContain(matterStartId);
   }
 
   // ----------------------------------------------------------------------------------------------

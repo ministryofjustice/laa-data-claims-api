@@ -355,6 +355,46 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
         org.mockserver.verify.VerificationTimes.exactly(0));
   }
 
+  @Test
+  @DisplayName(
+      "A failed amendment (stale version, 409) writes nothing and produces no AMENDMENT history event")
+  void failedAmendmentProducesNoHistoryEvent() throws Exception {
+    // Drive a genuinely failing amendment through the public PATCH endpoint: a stale claim version
+    // is rejected with 409 before anything is committed. Parent AC: a failed amendment attempt is
+    // not business history, so the timeline must contain no AMENDMENT event for it. This is the
+    // write-to-read counterpart to the write-side rollback suites (which prove no claim_amendment
+    // row is written); here we additionally prove the failure never surfaces on the read side.
+    ClaimPatch patch = basePatch();
+    patch.setVersion(999L); // stale - does not match the claim's current version
+    patch.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
+        .andExpect(status().isConflict());
+
+    // Write side: the failed attempt persisted no claim_amendment row.
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+
+    // Read side: the timeline carries no AMENDMENT event for the failed attempt.
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    assertThat(firstEventOfType(events, "AMENDMENT"))
+        .as("a failed amendment must not appear as a timeline event")
+        .isNull();
+  }
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
