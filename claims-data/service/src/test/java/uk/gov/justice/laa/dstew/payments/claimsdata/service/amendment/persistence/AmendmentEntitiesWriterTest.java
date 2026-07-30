@@ -39,6 +39,7 @@ class AmendmentEntitiesWriterTest {
   @InjectMocks private AmendmentEntitiesWriter entitiesWriter;
 
   private static final UUID CLAIM_ID = Uuid7.timeBasedUuid();
+  private static final String AMENDED_BY_USER_ID = "0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e";
   private final ClaimStateSnapshot post = ClaimStateSnapshot.builder().claimId(CLAIM_ID).build();
 
   @Test
@@ -53,10 +54,11 @@ class AmendmentEntitiesWriterTest {
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.of(claimCase));
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.of(summaryFee));
 
-    entitiesWriter.applyAmendedValues(claim, post);
+    entitiesWriter.applyAmendedValues(claim, post, AMENDED_BY_USER_ID);
 
     verify(claimUpdater).applyAmendedFields(claim, post);
     assertThat(claim.isAmended()).isTrue();
+    assertThat(claim.getUpdatedByUserId()).isEqualTo(AMENDED_BY_USER_ID);
     verify(clientUpdater).applyAmendedFields(client, post);
     verify(claimCaseUpdater).applyAmendedFields(claimCase, post);
     verify(claimSummaryFeeUpdater).applyAmendedFields(summaryFee, post);
@@ -71,10 +73,11 @@ class AmendmentEntitiesWriterTest {
     when(claimCaseRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(CLAIM_ID)).thenReturn(Optional.empty());
 
-    entitiesWriter.applyAmendedValues(claim, post);
+    entitiesWriter.applyAmendedValues(claim, post, AMENDED_BY_USER_ID);
 
     verify(claimUpdater).applyAmendedFields(claim, post);
     assertThat(claim.isAmended()).isTrue();
+    assertThat(claim.getUpdatedByUserId()).isEqualTo(AMENDED_BY_USER_ID);
     verifyNoInteractions(clientUpdater, claimCaseUpdater, claimSummaryFeeUpdater);
   }
 }

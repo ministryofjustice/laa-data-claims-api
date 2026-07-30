@@ -87,9 +87,10 @@ class ClaimAmendmentPersistenceServiceTest {
     assertThat(inserted.getRequestPayload()).isEqualTo("PAYLOAD_JSON");
     assertThat(inserted.getDiff()).isEqualTo("DIFF_JSON");
 
-    // Delegation to the target writer (which applies claim + related-entity values and marks the
-    // claim amended) is verified in AmendmentEntitiesWriterTest.
-    verify(entitiesWriter).applyAmendedValues(claim, state.getPostAmendmentState());
+    // Delegation to the target writer (which applies claim + related-entity values, marks the
+    // claim amended and stamps the amending user onto updated_by_user_id) is verified in
+    // AmendmentEntitiesWriterTest.
+    verify(entitiesWriter).applyAmendedValues(claim, state.getPostAmendmentState(), "user-123");
     verify(calculatedFeeWriter).attach(eq(saved), eq(state));
   }
 }

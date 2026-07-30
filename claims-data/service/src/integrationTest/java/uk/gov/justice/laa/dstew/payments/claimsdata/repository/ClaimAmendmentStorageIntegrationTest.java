@@ -127,7 +127,10 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     Claim evaluatedClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
-    assertThat(evaluatedClaim.getVersion()).isEqualTo(initialVersion + 2);
+    // A single versioned UPDATE of the claim increments the version by exactly one. (Before
+    // created_on was made immutable via @Column(updatable = false), the @CreationTimestamp column
+    // was spuriously rewritten on update, producing a second UPDATE and a misleading +2.)
+    assertThat(evaluatedClaim.getVersion()).isEqualTo(initialVersion + 1);
     assertThat(evaluatedClaim.getCalculatedFeeDetails()).hasSize(baselineSize + 1);
     assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
     assertThat(evaluatedClaim.getLatestCalculatedFee().getTotalAmount())
