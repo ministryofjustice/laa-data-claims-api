@@ -723,5 +723,45 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       // Explicitly prove the one-to-many join didn't duplicate the claim in the array
       assertThat(amendedResponse.getClaims()).hasSize(1);
     }
+
+    @Test
+    @Transactional
+    @DisplayName(
+        "Single Query: Returns null when a submission has claims but no calculated fee detail rows")
+    void getCalculatedTotalAmountReturnsNullWhenNoFeeDetails() {
+      // 1. Setup Submission with a Claim, but DO NOT create any CalculatedFeeDetail rows
+      Submission submission = createIsolatedSubmission();
+      createClaimForSubmission(submission);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // 2. Execute the single SQL query
+      BigDecimal totalAmount = submissionRepository.getCalculatedTotalAmount(submission.getId());
+
+      // 3. Assert it naturally evaluates to null
+      assertThat(totalAmount).isNull();
+    }
+
+    @Test
+    @Transactional
+    @DisplayName(
+        "Bulk Query: Omits submission (yielding an empty list) when it has claims but no calculated fee detail rows")
+    void getCalculatedTotalAmountsOmitsSubmissionWhenNoFeeDetails() {
+      // 1. Setup Submission with a Claim, but DO NOT create any CalculatedFeeDetail rows
+      Submission submission = createIsolatedSubmission();
+      createClaimForSubmission(submission);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // 2. Execute the bulk SQL query
+      var totals = submissionRepository.getCalculatedTotalAmounts(List.of(submission.getId()));
+
+      // 3. Assert the list is empty (because the INNER JOIN drops claims without fee details)
+      // Note: The SubmissionService handles this empty list by omitting the ID from the map,
+      // which ultimately maps to a null total in the response DTO.
+      assertThat(totals).isEmpty();
+    }
   }
 }

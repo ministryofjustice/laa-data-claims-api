@@ -33,6 +33,15 @@ public interface SubmissionRepository
     /**
      * Returns the Calculated total amount for the submission.
      *
+     * <p>This aggregation guarantees the following behavior:
+     *
+     * <ul>
+     *   <li>DSTEW-1538 - Must use scaleNullable
+     *   <li>Returns {@code null} if there are no CFD rows associated with the submission.
+     *   <li>Returns {@code 0} (Zero) if CFD rows exist but their combined sum is exactly zero.
+     *   <li>Returns the exact summed total of the latest CFD rows for all other scenarios.
+     * </ul>
+     *
      * @return the summed Calculated total amount
      */
     BigDecimal getTotal();
@@ -70,7 +79,7 @@ public interface SubmissionRepository
       value =
           """
           SELECT latest_fees.submission_id AS submissionId,
-                 COALESCE(SUM(latest_fees.total_amount), 0) AS total
+                 SUM(latest_fees.total_amount) AS total
           FROM (
             SELECT c.submission_id,
                    cfd.total_amount,
