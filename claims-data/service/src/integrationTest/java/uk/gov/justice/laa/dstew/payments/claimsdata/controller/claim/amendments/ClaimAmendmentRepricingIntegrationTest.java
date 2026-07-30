@@ -343,6 +343,14 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
                         + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,"
                         + "\"vatIndicator\":true}}"));
 
+    // Capture the calculated-fee row count for this claim before the request so we can prove no
+    // new row is written (these integration tests share DB state, so absolute counts are unsafe).
+    calculatedFeeDetailRepository.flush();
+    long feesBefore =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+
     MvcResult mvcResult =
         mockMvc
             .perform(
@@ -361,6 +369,12 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     // Nothing was persisted: no new calculated-fee row and the claim is not marked amended.
     calculatedFeeDetailRepository.flush();
+    long feesAfter =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+    // No new repricing row was written by the rejected amendment.
+    assertThat(feesAfter).isEqualTo(feesBefore);
     Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(reloaded.isAmended()).isFalse();
   }
