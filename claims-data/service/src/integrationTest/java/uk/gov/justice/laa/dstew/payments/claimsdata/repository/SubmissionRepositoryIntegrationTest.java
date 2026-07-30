@@ -555,10 +555,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   @DisplayName("PDS - Submission Totals Recalculation After Claim Amendments (DSTEW-1644)")
   class SubmissionTotalsRecalculation {
 
-    @Autowired
-    private EntityManager entityManager;
-    @Autowired
-    private SubmissionService submissionService;
+    @Autowired private EntityManager entityManager;
+    @Autowired private SubmissionService submissionService;
 
     @Test
     @Transactional
@@ -716,7 +714,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
               "submitted", // Ignore millisecond creation differences
               "claims.claimId", // Ignore nested Claim IDs
               "calculatedTotalAmount" // The ONLY field allowed to differ
-          )
+              )
           .isEqualTo(classicResponse);
 
       // Explicitly prove the one-to-many join didn't duplicate the claim in the array
@@ -768,7 +766,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     @Test
     @Transactional
-    @DisplayName("Single Query: Returns null when a submission has a fee detail but its total is null")
+    @DisplayName(
+        "Single Query: Returns null when a submission has a fee detail but its total is null")
     void getCalculatedTotalAmountReturnsNullWhenFeeDetailTotalIsNull() {
       // 1. Setup Submission with a Claim
       Submission submission = createIsolatedSubmission();
@@ -789,7 +788,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     @Test
     @Transactional
-    @DisplayName("Single Query: Sums correctly when multiple claims exist and one has a null fee detail total")
+    @DisplayName(
+        "Single Query: Sums correctly when multiple claims exist and one has a null fee detail total")
     void getCalculatedTotalAmountSumsCorrectlyWhenOneFeeDetailIsNull() {
       // 1. Setup Submission
       Submission submission = createIsolatedSubmission();
@@ -814,7 +814,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
     @Test
     @Transactional
-    @DisplayName("Bulk Query: Sums correctly for a submission when one of its claims has a null fee detail total")
+    @DisplayName(
+        "Bulk Query: Sums correctly for a submission when one of its claims has a null fee detail total")
     void getCalculatedTotalAmountsSumsCorrectlyWhenOneFeeDetailIsNull() {
       // 1. Setup Submission
       Submission submission = createIsolatedSubmission();
