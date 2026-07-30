@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -94,7 +92,12 @@ class AssessmentServiceTest {
       verify(claimValidationService).validateAssessmentType(post.getAssessmentType());
       verify(claimValidationService).validateAssessmentReason(post.getAssessmentReason());
 
-      verify(claimRepository).updateAssessmentStatus(claimId, true);
+      // First assessment marks the managed claim as assessed and records the assessing user; the
+      // false->true change plus the refreshed updatedOn make the claim dirty, so JPA dirty checking
+      // advances @Version by one within the transaction.
+      assertThat(claim.isHasAssessment()).isTrue();
+      assertThat(claim.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+      assertThat(claim.getUpdatedOn()).isNotNull();
 
       verify(assessmentRepository).save(assessment);
     }
@@ -153,7 +156,7 @@ class AssessmentServiceTest {
     }
 
     @Test
-    void shouldCreateAssessmentWithoutUpdatingClaimStatusWhenAlreadyAssessed() {
+    void shouldAdvanceClaimVersionWithoutRemarkingAssessedWhenAlreadyAssessed() {
 
       UUID claimId = UUID.randomUUID();
       UUID claimSummaryFeeId = UUID.randomUUID();
@@ -178,7 +181,12 @@ class AssessmentServiceTest {
 
       assessmentService.createAssessment(claimId, post);
 
-      verify(claimRepository, never()).updateAssessmentStatus(any(), anyBoolean());
+      // Subsequent assessments must still advance claim.version even though hasAssessment is
+      // already true - the OCC contract requires every assessment to invalidate a stale amendment.
+      // The refreshed audit fields keep the claim dirty, so a versioned UPDATE is issued.
+      assertThat(claim.isHasAssessment()).isTrue();
+      assertThat(claim.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+      assertThat(claim.getUpdatedOn()).isNotNull();
       verify(assessmentRepository).save(assessment);
     }
 

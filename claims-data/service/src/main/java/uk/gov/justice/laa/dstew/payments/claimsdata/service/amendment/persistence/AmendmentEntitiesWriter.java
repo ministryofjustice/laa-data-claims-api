@@ -32,15 +32,23 @@ public class AmendmentEntitiesWriter {
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   /**
-   * Applies the post-amendment values onto the managed claim and its related entities and marks the
-   * claim amended.
+   * Applies the post-amendment values onto the managed claim and its related entities, marks the
+   * claim amended and stamps the amending user onto {@code updated_by_user_id}.
+   *
+   * <p>The {@code updated_on} timestamp ({@code @UpdateTimestamp}) and the optimistic-lock {@code
+   * version} ({@code @Version}) are refreshed automatically by Hibernate when the guarded claim
+   * update flushes, so only the acting user is set explicitly here (DSTEW-2051 Finding B).
    *
    * @param claim the managed claim being amended (mutated in place; not saved here)
    * @param postAmendmentState the proposed post-amendment values
+   * @param amendedByUserId the id of the user submitting the amendment, stamped onto {@code
+   *     updated_by_user_id}
    */
-  public void applyAmendedValues(Claim claim, ClaimStateSnapshot postAmendmentState) {
+  public void applyAmendedValues(
+      Claim claim, ClaimStateSnapshot postAmendmentState, String amendedByUserId) {
     claimUpdater.applyAmendedFields(claim, postAmendmentState);
     claim.setAmended(true);
+    claim.setUpdatedByUserId(amendedByUserId);
 
     clientRepository
         .findByClaimId(claim.getId())

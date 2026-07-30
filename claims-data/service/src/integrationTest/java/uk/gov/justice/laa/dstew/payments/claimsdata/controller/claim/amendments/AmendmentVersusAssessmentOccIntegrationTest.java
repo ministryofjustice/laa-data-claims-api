@@ -10,7 +10,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -57,14 +56,6 @@ class AmendmentVersusAssessmentOccIntegrationTest extends AbstractAmendmentPatch
       API_URI_PREFIX + "/claims/{claimId}/assessments";
 
   @Test
-  @Disabled(
-      "CONFIRMED GAP (DSTEW-1658 coordination): the assessment path updates the claim via the bulk"
-          + " JPQL ClaimRepository.updateAssessmentStatus, which does not increment @Version (and"
-          + " only runs for the first assessment). An assessment therefore does NOT advance"
-          + " claim.version, so a concurrent assessment does not invalidate a stale amendment. This"
-          + " test asserts the required behaviour and will pass once the assessment OCC/version work"
-          + " advances claim.version on every assessment. Empirically verified: version was 1 before"
-          + " and after the assessment.")
   @DisplayName(
       "an assessment submitted after the claim is loaded invalidates a stale amendment with 409 "
           + "Conflict")

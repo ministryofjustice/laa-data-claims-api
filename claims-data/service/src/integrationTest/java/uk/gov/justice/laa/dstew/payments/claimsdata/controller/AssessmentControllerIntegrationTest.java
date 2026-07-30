@@ -22,9 +22,19 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.OptimisticLockException;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,9 +43,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
@@ -59,6 +74,11 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   private static final UUID SUMMARY_FEE_ID_FOR_VALID_CLAIM = CLAIM_2_SUMMARY_FEE_ID;
   private static final UUID SUMMARY_FEE_ID_FOR_CLAIM_WITH_ASSESSMENTS = CLAIM_1_SUMMARY_FEE_ID;
 
+  private static final String CLAIM_NOT_FOUND = "Claim not found exception";
+
+  @Autowired private PlatformTransactionManager transactionManager;
+  @Autowired private EntityManager entityManager;
+
   @BeforeEach
   void setUp() {
     seedAssessmentsData();
@@ -70,6 +90,14 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+
+    // capture the claim version and audit state the caller would have loaded before assessing.
+    final Claim claimBeforeAssessment =
+        claimRepository
+            .findById(CLAIM_ID_WITH_VALID_STATUS)
+            .orElseThrow(() -> new RuntimeException(CLAIM_NOT_FOUND));
+    final Long versionBeforeAssessment = claimBeforeAssessment.getVersion();
+    final Instant updatedOnBeforeAssessment = claimBeforeAssessment.getUpdatedOn();
 
     // when: calling the POST endpoint with the AssessmentPost
     MvcResult result =
@@ -96,7 +124,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     final var updatedClaim =
         claimRepository
             .findById(CLAIM_ID_WITH_VALID_STATUS)
-            .orElseThrow(() -> new RuntimeException("Claim not found exception"));
+            .orElseThrow(() -> new RuntimeException(CLAIM_NOT_FOUND));
 
     assertThat(savedAssessment.getClaim().getId()).isEqualTo(CLAIM_ID_WITH_VALID_STATUS);
     assertThat(savedAssessment.getClaimSummaryFee().getId())
@@ -107,6 +135,148 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(savedAssessment.getAssessmentType())
         .isEqualTo(AssessmentType.ESCAPE_CASE_ASSESSMENT);
     assertTrue(updatedClaim.isHasAssessment());
+    // a successful assessment is a version-advancing action: it must move claim.version on by one
+    // so any amendment loaded beforehand is detected as stale (CLAIM_VERSION_CONFLICT).
+    assertThat(updatedClaim.getVersion()).isEqualTo(versionBeforeAssessment + 1);
+    // the assessment must also record who advanced the claim and refresh when it was advanced.
+    assertThat(updatedClaim.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(updatedClaim.getUpdatedOn()).isNotNull();
+    if (updatedOnBeforeAssessment != null) {
+      assertThat(updatedClaim.getUpdatedOn()).isAfterOrEqualTo(updatedOnBeforeAssessment);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "every successful assessment advances claim.version and refreshes the audit fields - both the "
+          + "first (which also flips hasAssessment) and a subsequent repeat by the same user")
+  void eachSuccessfulAssessmentAdvancesClaimVersion() throws Exception {
+    final Long versionBeforeAnyAssessment = claimVersion(CLAIM_ID_WITH_VALID_STATUS);
+
+    // first assessment: flips hasAssessment AND advances the version AND records the audit fields.
+    postAssessmentForValidClaim();
+    final Claim claimAfterFirstAssessment = reloadValidClaim();
+    assertThat(claimAfterFirstAssessment.getVersion()).isEqualTo(versionBeforeAnyAssessment + 1);
+    assertTrue(claimAfterFirstAssessment.isHasAssessment());
+    assertThat(claimAfterFirstAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(claimAfterFirstAssessment.getUpdatedOn()).isNotNull();
+
+    // subsequent assessment by the SAME user: hasAssessment is already true and updatedByUserId is
+    // unchanged, but the refreshed updatedOn keeps the claim dirty so the version STILL advances.
+    postAssessmentForValidClaim();
+    final Claim claimAfterSecondAssessment = reloadValidClaim();
+    assertThat(claimAfterSecondAssessment.getVersion())
+        .isEqualTo(claimAfterFirstAssessment.getVersion() + 1);
+    assertThat(claimAfterSecondAssessment.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(claimAfterSecondAssessment.getUpdatedOn())
+        .isAfterOrEqualTo(claimAfterFirstAssessment.getUpdatedOn());
+  }
+
+  private Claim reloadValidClaim() {
+    return claimRepository
+        .findById(CLAIM_ID_WITH_VALID_STATUS)
+        .orElseThrow(() -> new RuntimeException(CLAIM_NOT_FOUND));
+  }
+
+  private Long claimVersion(UUID claimId) {
+    return claimRepository
+        .findById(claimId)
+        .orElseThrow(() -> new RuntimeException(CLAIM_NOT_FOUND))
+        .getVersion();
+  }
+
+  private void postAssessmentForValidClaim() throws Exception {
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
+    assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    mockMvc
+        .perform(
+            post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
+                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  @DisplayName(
+      "two genuinely concurrent assessment version-advances on the same claim collide: exactly one "
+          + "caller hits the optimistic-lock conflict that the handler maps to 409 "
+          + "CLAIM_VERSION_CONFLICT, and only one increment is persisted (no silent lost update)")
+  void concurrentAssessmentsRaiseOptimisticLockConflictRatherThanLosingAnUpdate() throws Exception {
+    final UUID claimId = CLAIM_ID_WITH_VALID_STATUS;
+    final long startVersion = claimVersion(claimId);
+
+    final TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+    // Both transactions must read the same version before either flushes, so the two increments
+    // genuinely race on the same base version (mirroring two caseworkers assessing at once).
+    final CyclicBarrier bothLoaded = new CyclicBarrier(2);
+
+    // Each task reproduces exactly what AssessmentService does to the claim inside its transaction:
+    // load the managed claim, advance it (record the assessing user and refresh updatedOn - a dirty
+    // change that triggers a versioned UPDATE), then flush it.
+    final Callable<Optional<Exception>> advanceClaimVersion =
+        () -> {
+          try {
+            txTemplate.executeWithoutResult(
+                transactionStatus -> {
+                  Claim claim = entityManager.find(Claim.class, claimId);
+                  awaitQuietly(bothLoaded);
+                  claim.setHasAssessment(true);
+                  claim.setUpdatedByUserId(API_USER_ID);
+                  claim.setUpdatedOn(Instant.now());
+                  entityManager.flush();
+                });
+            return Optional.empty();
+          } catch (Exception thrown) {
+            return Optional.of(thrown);
+          }
+        };
+
+    final List<Exception> failures;
+    try (var pool = Executors.newFixedThreadPool(2)) {
+      Future<Optional<Exception>> first = pool.submit(advanceClaimVersion);
+      Future<Optional<Exception>> second = pool.submit(advanceClaimVersion);
+      failures =
+          Stream.of(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS))
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .toList();
+    }
+
+    // Exactly one writer wins; the loser fails - the OCC contract turns a would-be lost update into
+    // a detectable conflict.
+    assertThat(failures).hasSize(1);
+    assertTrue(
+        isOptimisticLockFailure(failures.getFirst()),
+        "the losing concurrent assessment must raise the optimistic-lock failure the handler maps "
+            + "to 409 CLAIM_VERSION_CONFLICT, but was: "
+            + failures.getFirst());
+
+    // Only the winning advance persisted: the version moved on by exactly one, not two.
+    assertThat(claimVersion(claimId)).isEqualTo(startVersion + 1);
+  }
+
+  private static void awaitQuietly(CyclicBarrier barrier) {
+    try {
+      barrier.await(10, TimeUnit.SECONDS);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted while awaiting the concurrency barrier", interrupted);
+    } catch (Exception exception) {
+      throw new IllegalStateException("Failed to await the concurrency barrier", exception);
+    }
+  }
+
+  private static boolean isOptimisticLockFailure(Throwable throwable) {
+    for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+      if (cause instanceof OptimisticLockException
+          || cause instanceof ObjectOptimisticLockingFailureException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test
