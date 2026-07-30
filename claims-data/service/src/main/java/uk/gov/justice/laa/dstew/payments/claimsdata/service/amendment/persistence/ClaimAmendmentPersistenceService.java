@@ -56,6 +56,7 @@ public class ClaimAmendmentPersistenceService {
   public ClaimAmendment persistSuccessfulAmendment(Claim claim, ClaimAmendmentState state) {
     ClaimAmendmentPayload payload = state.getRequestPayload();
     AmendmentDiff diff = diffAssembler.assemble(state);
+    String amendmentUserId = unwrap(payload.getAmendmentUserId());
 
     ClaimAmendment amendment =
         ClaimAmendment.builder()
@@ -63,7 +64,7 @@ public class ClaimAmendmentPersistenceService {
             .claim(claim)
             .requestedByCode(unwrap(payload.getAmendmentRequestedBy()))
             .amendmentReasonCode(unwrap(payload.getAmendmentReasonCode()))
-            .createdByUserId(unwrap(payload.getAmendmentUserId()))
+            .createdByUserId(amendmentUserId)
             .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
             .beforeState(jsonWriter.writeBeforeState(state.getBeforeState()))
             .requestPayload(jsonWriter.writeRequestPayload(payload))
@@ -74,10 +75,11 @@ public class ClaimAmendmentPersistenceService {
     log.debug("Inserted claim_amendment {} for claim {}", savedAmendment.getId(), claim.getId());
 
     // Contribute the amended column writes to the managed claim and its related entities (client,
-    // claim_case, claim_summary_fee). The version-guarded claim update and the version increment
-    // are
-    // owned by DSTEW-1753; we never issue our own save here.
-    entitiesWriter.applyAmendedValues(claim, state.getPostAmendmentState());
+    // claim_case, claim_summary_fee) and stamp the amending user onto the claim's
+    // updated_by_user_id (DSTEW-2051 Finding B). The version-guarded claim update, the version
+    // increment and the updated_on timestamp are owned by DSTEW-1753; we never issue our own save
+    // here.
+    entitiesWriter.applyAmendedValues(claim, state.getPostAmendmentState(), amendmentUserId);
 
     // Attach the amendment-driven calculated_fee_detail row (one per pricing amendment) from the
     // FSP handoff; a non-pricing amendment attaches nothing.
