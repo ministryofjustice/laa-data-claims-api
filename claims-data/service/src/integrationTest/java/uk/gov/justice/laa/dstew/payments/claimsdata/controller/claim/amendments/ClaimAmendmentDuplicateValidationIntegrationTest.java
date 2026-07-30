@@ -177,6 +177,35 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     assertNothingPersisted(originalVersion);
   }
 
+  @Test
+  @DisplayName(
+      "duplicate validation is aggregated with another (metadata) validation error in a single "
+          + "structured response, and nothing is persisted")
+  void duplicateAndMetadataErrorsAreAggregatedTogether() throws Exception {
+    final Long originalVersion = amendableClaim1().getVersion();
+
+    // Prior twin so amending the UCN creates a cross-submission duplicate (reusable/validation-core
+    // owned message).
+    seedPriorDuplicateClaim(
+        b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
+
+    ClaimPatch patch = metadataPatch();
+    patch.setVersion(originalVersion);
+    patch.setUniqueClientNumber(OTHER_UCN);
+    // Additionally supply an unknown amendment-reason code so the metadata reference step collects
+    // a second, non-fatal validation error alongside the duplicate message.
+    patch.setAmendmentReasonCode("NOT_A_REAL_REASON_CODE");
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // Both the duplicate (reusable) and the metadata errors are returned together in the envelope.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(result.getResponse().getContentAsString())
+        .contains(DUPLICATE_IN_ANOTHER_SUBMISSION)
+        .contains("INVALID_AMENDMENT_REASON_UNKNOWN");
+    assertNothingPersisted(originalVersion);
+  }
+
   // ===========================================================================
   // No duplicate created => amendment commits (204) and is persisted.
   // ===========================================================================

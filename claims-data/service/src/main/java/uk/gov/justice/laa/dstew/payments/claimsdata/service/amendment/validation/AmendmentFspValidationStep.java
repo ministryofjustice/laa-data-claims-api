@@ -82,6 +82,18 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
    */
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
+    // Outcome-check gate (DSTEW-1770): if any earlier step has already collected a validation
+    // error, the amendment is going to be rejected regardless, so the (external) Fee Scheme
+    // Platform call must not be made. The orchestrator only short-circuits on *fatal* errors, so
+    // this guard is what enforces "no FSP call when any collected validation message exists" for
+    // the non-fatal, aggregated case too. Returning an empty list adds nothing and keeps the
+    // already-collected errors intact for the aggregated response.
+    if (!state.getErrors().isEmpty()) {
+      log.debug(
+          "Skipping FSP call: {} validation error(s) already collected.", state.getErrors().size());
+      return List.of();
+    }
+
     if (state.getBeforeState().getCalculatedFeeDetail() == null) {
       String claimId =
           state.getBeforeState().getClaimId() != null
