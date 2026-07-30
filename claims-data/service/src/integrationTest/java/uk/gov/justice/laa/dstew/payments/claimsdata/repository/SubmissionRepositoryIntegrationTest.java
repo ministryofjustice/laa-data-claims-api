@@ -555,8 +555,10 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
   @DisplayName("PDS - Submission Totals Recalculation After Claim Amendments (DSTEW-1644)")
   class SubmissionTotalsRecalculation {
 
-    @Autowired private EntityManager entityManager;
-    @Autowired private SubmissionService submissionService;
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private SubmissionService submissionService;
 
     @Test
     @Transactional
@@ -714,7 +716,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
               "submitted", // Ignore millisecond creation differences
               "claims.claimId", // Ignore nested Claim IDs
               "calculatedTotalAmount" // The ONLY field allowed to differ
-              )
+          )
           .isEqualTo(classicResponse);
 
       // Explicitly prove the one-to-many join didn't duplicate the claim in the array
@@ -762,6 +764,79 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       // Note: The SubmissionService handles this empty list by omitting the ID from the map,
       // which ultimately maps to a null total in the response DTO.
       assertThat(totals).isEmpty();
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Single Query: Returns null when a submission has a fee detail but its total is null")
+    void getCalculatedTotalAmountReturnsNullWhenFeeDetailTotalIsNull() {
+      // 1. Setup Submission with a Claim
+      Submission submission = createIsolatedSubmission();
+      Claim claim = createClaimForSubmission(submission);
+
+      // 2. Create a fee detail row, but explicitly set the amount to null
+      createFeeDetail(claim, null, OffsetDateTime.now(), null);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // 3. Execute the SQL query
+      BigDecimal totalAmount = submissionRepository.getCalculatedTotalAmount(submission.getId());
+
+      // 4. Assert it evaluates to null (SUM of only NULLs evaluates to NULL)
+      assertThat(totalAmount).isNull();
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Single Query: Sums correctly when multiple claims exist and one has a null fee detail total")
+    void getCalculatedTotalAmountSumsCorrectlyWhenOneFeeDetailIsNull() {
+      // 1. Setup Submission
+      Submission submission = createIsolatedSubmission();
+
+      // 2. Claim 1 with a valid total (e.g., 100.00)
+      Claim claim1 = createClaimForSubmission(submission);
+      createFeeDetail(claim1, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
+
+      // 3. Claim 2 with a NULL total
+      Claim claim2 = createClaimForSubmission(submission);
+      createFeeDetail(claim2, null, OffsetDateTime.now(), null);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // 4. Execute the SQL query
+      BigDecimal totalAmount = submissionRepository.getCalculatedTotalAmount(submission.getId());
+
+      // 5. Assert it ignores the NULL and sums the rest correctly
+      assertThat(totalAmount).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Bulk Query: Sums correctly for a submission when one of its claims has a null fee detail total")
+    void getCalculatedTotalAmountsSumsCorrectlyWhenOneFeeDetailIsNull() {
+      // 1. Setup Submission
+      Submission submission = createIsolatedSubmission();
+
+      // 2. Claim 1 with a valid total
+      Claim claim1 = createClaimForSubmission(submission);
+      createFeeDetail(claim1, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
+
+      // 3. Claim 2 with a NULL total
+      Claim claim2 = createClaimForSubmission(submission);
+      createFeeDetail(claim2, null, OffsetDateTime.now(), null);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // 4. Execute the bulk SQL query
+      var totals = submissionRepository.getCalculatedTotalAmounts(List.of(submission.getId()));
+
+      // 5. Assert the list contains the submission and sums the valid rows, ignoring the null
+      assertThat(totals).hasSize(1);
+      assertThat(totals.get(0).getSubmissionId()).isEqualTo(submission.getId());
+      assertThat(totals.get(0).getTotal()).isEqualByComparingTo("100.00");
     }
   }
 }
