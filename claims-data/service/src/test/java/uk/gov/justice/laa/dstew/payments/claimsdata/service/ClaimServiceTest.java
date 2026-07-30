@@ -51,6 +51,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -74,7 +75,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -375,7 +376,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
@@ -391,8 +392,8 @@ class ClaimServiceTest {
   void shouldThrowWhenClaimNotFoundOnUpdate() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L);
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    patch.setVersion(JsonNullable.of(1L));
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -409,7 +410,7 @@ class ClaimServiceTest {
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -437,7 +438,7 @@ class ClaimServiceTest {
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -466,7 +467,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
@@ -511,7 +512,7 @@ class ClaimServiceTest {
             .version(1L) // Added version to mock Claim
             .submission(Submission.builder().id(submissionId).build())
             .build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));

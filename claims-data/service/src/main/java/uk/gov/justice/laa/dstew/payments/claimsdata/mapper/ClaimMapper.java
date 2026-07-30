@@ -1,8 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 import org.mapstruct.BeanMapping;
+import org.mapstruct.Condition;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -11,6 +13,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -18,7 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -79,13 +82,19 @@ public interface ClaimMapper {
   @Mapping(target = "claimId", source = "id")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
-  /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
+  /**
+   * Update an existing {@link Claim} from a {@link ClaimAmendmentPatch}.
+   *
+   * <p>The patch fields are {@link JsonNullable}: MapStruct (with {@code
+   * NullValuePropertyMappingStrategy.IGNORE}) skips omitted fields, applies present values and
+   * clears the target when an explicit null is supplied.
+   */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
-  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
+  void updateSubmissionClaimFromPatch(ClaimAmendmentPatch patch, @MappingTarget Claim entity);
 
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
@@ -208,30 +217,67 @@ public interface ClaimMapper {
   }
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  ClaimAmendmentPayload toAmendmentPayload(ClaimPatch claimPatch);
+  ClaimAmendmentPayload toAmendmentPayload(ClaimAmendmentPatch claimPatch);
 
-  // Explicit OpenAPI JsonNullable wrappers for MapStruct
-  default JsonNullable<String> map(String value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /** Date pattern used across the claim API for {@code String} date fields (e.g. "5/12/2025"). */
+  DateTimeFormatter CLAIM_DATE_FORMAT = DateTimeFormatter.ofPattern("d/M/yyyy");
+
+  /**
+   * Tri-state converter: {@code JsonNullable<String>} (d/M/yyyy) to {@code
+   * JsonNullable<LocalDate>}.
+   *
+   * <p>Preserves the amendment tri-state: omitted stays undefined, an explicit null stays a present
+   * null (a requested clear), and a value is parsed into a {@link LocalDate}.
+   */
+  default JsonNullable<LocalDate> mapDate(JsonNullable<String> value) {
+    if (value == null || !value.isPresent()) {
+      return JsonNullable.undefined();
+    }
+    String raw = value.get();
+    return JsonNullable.of(
+        StringUtils.hasText(raw) ? LocalDate.parse(raw, CLAIM_DATE_FORMAT) : null);
   }
 
-  default JsonNullable<Integer> map(Integer value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /**
+   * Tri-state converter: {@code JsonNullable<UUID>} to {@code JsonNullable<String>}, preserving the
+   * omitted / explicit-null / value distinction.
+   */
+  default JsonNullable<String> mapUuid(JsonNullable<UUID> value) {
+    if (value == null || !value.isPresent()) {
+      return JsonNullable.undefined();
+    }
+    UUID raw = value.get();
+    return JsonNullable.of(raw != null ? raw.toString() : null);
   }
 
-  default JsonNullable<Long> map(Long value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  // ---------------------------------------------------------------------------
+  // Unwrapping helpers for JsonNullable -> plain entity fields.
+  //
+  // The @Condition presence check ensures MapStruct only writes a target field when the source
+  // JsonNullable is PRESENT. Combined with the unwrap converters below this yields true PATCH
+  // semantics when updating an entity:
+  //   * omitted (undefined)     -> condition false -> entity field left unchanged;
+  //   * explicit null (of null) -> condition true, unwrap null -> entity field cleared;
+  //   * value (of value)        -> condition true, unwrap value -> entity field set.
+  // ---------------------------------------------------------------------------
+
+  /** Presence check used by MapStruct to skip omitted (undefined) JsonNullable source fields. */
+  @Condition
+  default <T> boolean isPresent(JsonNullable<T> value) {
+    return value != null && value.isPresent();
   }
 
-  default JsonNullable<Boolean> map(Boolean value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /** Unwrap a present {@code JsonNullable<T>} to its value (which may be null). */
+  default <T> T unwrap(JsonNullable<T> value) {
+    return value == null ? null : value.orElse(null);
   }
 
-  default JsonNullable<BigDecimal> map(BigDecimal value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
-  }
-
-  default JsonNullable<LocalDate> map(LocalDate value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /** Unwrap a present {@code JsonNullable<String>} (d/M/yyyy) to a {@link LocalDate}. */
+  default LocalDate unwrapDate(JsonNullable<String> value) {
+    if (value == null || !value.isPresent()) {
+      return null;
+    }
+    String raw = value.get();
+    return StringUtils.hasText(raw) ? LocalDate.parse(raw, CLAIM_DATE_FORMAT) : null;
   }
 }

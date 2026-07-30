@@ -12,7 +12,9 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -68,6 +70,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @DisplayName("Claim Amendment History E2E (DSTEW-1813 / DSTEW-1814) Integration Test")
 class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest {
+
+  // Serialises claim PATCH bodies omitting null fields, so only explicitly-set fields are sent (an
+  // explicit null would be read by the amendment endpoint as "clear this field").
+  private static final ObjectMapper SPARSE_PATCH_MAPPER =
+      new ObjectMapper().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
   private static final String PATCH_A_CLAIM_ENDPOINT =
       API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -142,7 +149,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patch))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 
@@ -250,7 +257,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patch))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 

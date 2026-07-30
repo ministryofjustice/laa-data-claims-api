@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +41,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -201,7 +202,7 @@ public class ClaimService
    * @param claimPatch patch payload
    */
   @Transactional
-  public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+  public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
     if (isAnAmendment(claimPatch, claim)) {
@@ -211,7 +212,7 @@ public class ClaimService
     }
   }
 
-  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
+  private boolean isAnAmendment(ClaimAmendmentPatch claimPatch, Claim claim) {
     if (claimPatch.getStatus() == null) {
       return true;
     }
@@ -221,8 +222,12 @@ public class ClaimService
   /**
    * Checks if the patch contains any fields outside of the standard status/fee update flow.
    * Leverages short-circuit evaluation for maximum performance.
+   *
+   * <p>Amendment fields are wrapped in {@link JsonNullable}: an omitted field ({@code
+   * JsonNullable.undefined()}) is skipped, while a present field (an explicit value or an explicit
+   * null clear) that differs from the persisted claim counts as an update.
    */
-  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+  private boolean hasAdditionalFieldUpdates(ClaimAmendmentPatch patch, Claim claim) {
     if (patch == null) {
       return false;
     }
@@ -237,19 +242,20 @@ public class ClaimService
           }
 
           ReflectionUtils.makeAccessible(patchField);
-          Object patchValue = patchField.get(patch);
+          Object rawValue = patchField.get(patch);
 
-          if (patchValue != null) {
-            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
-
-            if (claimField != null) {
-              ReflectionUtils.makeAccessible(claimField);
-              Object claimValue = claimField.get(claim);
-
-              if (Objects.equals(patchValue, claimValue)) {
-                return;
-              }
+          // Tri-state fields: omitted -> skip; present (value or explicit null) -> consider.
+          if (rawValue instanceof JsonNullable<?> jsonNullable) {
+            if (jsonNullable.isPresent()
+                && !Objects.equals(
+                    jsonNullable.get(), readClaimField(claim, patchField.getName()))) {
+              hasUpdates.set(true);
             }
+            return;
+          }
+
+          if (rawValue != null
+              && !Objects.equals(rawValue, readClaimField(claim, patchField.getName()))) {
             hasUpdates.set(true);
           }
         },
@@ -258,13 +264,22 @@ public class ClaimService
     return hasUpdates.get();
   }
 
+  private Object readClaimField(Claim claim, String fieldName) {
+    Field claimField = ReflectionUtils.findField(claim.getClass(), fieldName);
+    if (claimField == null) {
+      return null;
+    }
+    ReflectionUtils.makeAccessible(claimField);
+    return ReflectionUtils.getField(claimField, claim);
+  }
+
   /**
    * This method is called to allow legacy updates to still work.
    *
    * @param claim claim
    * @param claimPatch claim patch
    */
-  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
@@ -295,12 +310,12 @@ public class ClaimService
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
+      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId().orElse(null));
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
   }
 
-  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
+  private void amendClaim(Claim claim, ClaimAmendmentPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {

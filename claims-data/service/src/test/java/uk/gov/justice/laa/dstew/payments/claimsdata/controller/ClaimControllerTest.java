@@ -35,7 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -184,7 +184,7 @@ class ClaimControllerTest {
                 .content(body))
         .andExpect(status().isNoContent());
 
-    verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
+    verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimAmendmentPatch.class));
   }
 
   @Test

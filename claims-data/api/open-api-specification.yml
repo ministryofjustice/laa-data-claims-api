@@ -69,19 +69,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: Bulk Submission details
-                properties:
-                  bulk_submission_id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created bulk submission record.
-                  submission_ids:
-                    type: array
-                    items:
-                      type: string
-                      format: uuid
-                    description: list of UUIDs for the future submission records (only one submission per bulk expected), will have to be sent back in a later call.
+                $ref: '#/components/schemas/create_bulk_submission_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -278,12 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created submission.
+                $ref: '#/components/schemas/create_submission_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -619,12 +602,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created claim
+                $ref: '#/components/schemas/create_claim_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -670,12 +648,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created Matter Start
+                $ref: '#/components/schemas/create_matter_start_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -881,6 +854,8 @@ paths:
         - Claims
       summary: Update fields of a specific claim
       description: Partially update a claim within a submission. Only fields provided in the request will be updated.
+      # Give the (schema-mapped) request body a clean parameter name instead of the FQN-derived default.
+      x-codegen-request-body-name: claimPatch
       parameters:
         - name: submission-id
           in: path
@@ -901,7 +876,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/claim_patch'
+              $ref: '#/components/schemas/claim_amendment_patch'
       responses:
         '204':
           description: Claim updated successfully
@@ -988,14 +963,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - id
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created void assessment
+                $ref: '#/components/schemas/void_claim_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -1125,7 +1093,7 @@ paths:
           required: false
           description: type of the validation message
           schema:
-            $ref: '#/components/schemas/validation_message_type'
+            $ref: './schemas/claim-patch.yml#/validation_message_type'
         - name: source
           in: query
           required: false
@@ -1183,14 +1151,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - id
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                    description: UUID of the created Assessment
+                $ref: '#/components/schemas/create_assessment_201_response'
         '400':
           description: 'Bad request'
         '401':
@@ -1332,6 +1293,69 @@ components:
         default: 20
       description: Number of records per page. Defaults to 20.
   schemas:
+    # ---------------------------------------------------------------------------
+    # Named 201 response schemas.
+    #
+    # These were previously anonymous inline response bodies. OpenAPI Generator
+    # 7.23.0+ (Spring Boot 4) deduplicates structurally-identical inline response
+    # schemas and reuses a single generated model class (e.g. CreateSubmission201Response,
+    # VoidClaim201Response) across unrelated operations. Giving each 201 response its
+    # own uniquely named component schema forces the generator to emit one stable model
+    # class per operation, even when the structures are identical.
+    # ---------------------------------------------------------------------------
+    create_bulk_submission_201_response:
+      type: object
+      description: Bulk Submission details
+      properties:
+        bulk_submission_id:
+          type: string
+          format: uuid
+          description: UUID of the created bulk submission record.
+        submission_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: list of UUIDs for the future submission records (only one submission per bulk expected), will have to be sent back in a later call.
+    create_submission_201_response:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the created submission.
+    create_claim_201_response:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the created claim
+    create_matter_start_201_response:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the created Matter Start
+    void_claim_201_response:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the created void assessment
+    create_assessment_201_response:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of the created Assessment
     amendment_requested_by_reference_list:
       type: object
       description: Top-level wrapper for the amendment Requested By reference lookup.
@@ -1437,7 +1461,7 @@ components:
         validation_messages:
           type: array
           items:
-            $ref: '#/components/schemas/validation_message_patch'
+            $ref: './schemas/claim-patch.yml#/validation_message_patch'
     submission_status:
       type: string
       enum:
@@ -1577,37 +1601,21 @@ components:
         - matter_type_code
         - created_by_user_id
     claim_patch:
-      allOf:
-        - $ref: '#/components/schemas/claim_response'
-        - type: object
-          properties:
-            amendment_requested_by:
-              type: string
-              description: "Requesting party code for an amendment (governed reference). Use values from GET /api/v1/system/references/amendment-requested-by"
-              nullable: true
-            amendment_user_id:
-              type: string
-              format: uuid
-              description: "UUID of the user who requested the amendment (provider/Entra user id)."
-              nullable: true
-            amendment_reason_code:
-              type: string
-              description: "Amendment reason code valid for the requesting party (see amendment_requested_by reference reasons)."
-              nullable: true
-            validation_messages:
-              type: array
-              items:
-                $ref: '#/components/schemas/validation_message_patch'
+      # Single source of truth lives in ./schemas/claim-patch.yml (shared, no circular ref).
+      # Generated as ClaimPatch (plain fields) by the main openApiGenerate task, and as
+      # ClaimAmendmentPatch (JsonNullable) by the amendment task from the SAME shared schema.
+      $ref: './schemas/claim-patch.yml#/claim_patch'
     claim_status:
-      type: string
-      enum:
-        - READY_TO_PROCESS
-        - VALID
-        - INVALID
-        - VOID
-      description: |
-        System-maintained processing status indicator that tracks the validation lifecycle of a
-        claim record from initial submission through to final approval or rejection.
+      # Single source of truth lives in ./schemas/claim-base.yml
+      $ref: './schemas/claim-base.yml#/claim_status'
+    claim_amendment_patch:
+      # Tri-state (JsonNullable) request model used by PATCH /submissions/{id}/claims/{id}.
+      # The class is GENERATED by the openApiGenerateAmendment task (openApiNullable=true).
+      # The main openApiGenerate task does NOT generate it (see schemaMappings in build.gradle);
+      # it only imports the existing class, so there is exactly one ClaimAmendmentPatch on the
+      # classpath. Defined here only so the updateClaim operation can reference it; the shape is the
+      # single-source-of-truth claim_patch (see amendment-open-api-specification.yml).
+      $ref: './amendment-open-api-specification.yml#/components/schemas/claim_amendment_patch'
     claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -1658,236 +1666,8 @@ components:
           items:
             $ref: '#/components/schemas/assessment_get'
     claim_base:
-      type: object
-      description: Claim details
-      properties:
-        id:
-          type: string
-        submission_id:
-          type: string
-        status:
-          $ref: "#/components/schemas/claim_status"
-        schedule_reference:
-          type: string
-        line_number:
-          type: integer
-        case_reference_number:
-          type: string
-        unique_file_number:
-          type: string
-        case_start_date:
-          type: string
-          description: Date the case was started (format DD/MM/YYYY)
-        case_concluded_date:
-          type: string
-          description: Date the case was concluded (format DD/MM/YYYY)
-        matter_type_code:
-          type: string
-        crime_matter_type_code:
-          type: string
-        fee_scheme_code:
-          type: string
-        fee_code:
-          type: string
-        procurement_area_code:
-          type: string
-        access_point_code:
-          type: string
-        delivery_location:
-          type: string
-        representation_order_date:
-          type: string
-          description: Date the rep order was created (format DD/MM/YYYY)
-        suspects_defendants_count:
-          type: integer
-        police_station_court_attendances_count:
-          type: integer
-        police_station_court_prison_id:
-          type: string
-        dscc_number:
-          type: string
-        maat_id:
-          type: string
-        prison_law_prior_approval_number:
-          type: string
-        is_duty_solicitor:
-          type: boolean
-        is_youth_court:
-          type: boolean
-        scheme_id:
-          type: string
-        mediation_sessions_count:
-          type: integer
-        mediation_time_minutes:
-          type: integer
-        outreach_location:
-          type: string
-        referral_source:
-          type: string
-        client_forename:
-          type: string
-        client_surname:
-          type: string
-        client_date_of_birth:
-          type: string
-          description: Client's date of birth (format DD/MM/YYYY)
-        unique_client_number:
-          type: string
-        client_postcode:
-          type: string
-        gender_code:
-          type: string
-        ethnicity_code:
-          type: string
-        disability_code:
-          type: string
-        is_legally_aided:
-          type: boolean
-        client_type_code:
-          type: string
-        home_office_client_number:
-          type: string
-        cla_reference_number:
-          type: string
-        cla_exemption_code:
-          type: string
-        client_2_forename:
-          type: string
-        client_2_surname:
-          type: string
-        client_2_date_of_birth:
-          type: string
-          description: Client 2's date of birth (format DD/MM/YYYY)
-        client_2_ucn:
-          type: string
-        client_2_postcode:
-          type: string
-        client_2_gender_code:
-          type: string
-        client_2_ethnicity_code:
-          type: string
-        client_2_disability_code:
-          type: string
-        client_2_is_legally_aided:
-          type: boolean
-        case_id:
-          type: string
-        unique_case_id:
-          type: string
-        case_stage_code:
-          type: string
-        stage_reached_code:
-          type: string
-        standard_fee_category_code:
-          type: string
-        outcome_code:
-          type: string
-        designated_accredited_representative_code:
-          type: string
-        is_postal_application_accepted:
-          type: boolean
-        is_client_2_postal_application_accepted:
-          type: boolean
-        mental_health_tribunal_reference:
-          type: string
-        is_nrm_advice:
-          type: boolean
-        follow_on_work:
-          type: string
-        transfer_date:
-          type: string
-          description: Transfer Date (format DD/MM/YYYY)
-        exemption_criteria_satisfied:
-          type: string
-        exceptional_case_funding_reference:
-          type: string
-        is_legacy_case:
-          type: boolean
-        advice_time:
-          type: integer
-        travel_time:
-          type: integer
-        waiting_time:
-          type: integer
-        net_profit_costs_amount:
-          type: number
-        net_disbursement_amount:
-          type: number
-        net_counsel_costs_amount:
-          type: number
-        disbursements_vat_amount:
-          type: number
-        travel_waiting_costs_amount:
-          type: number
-        net_waiting_costs_amount:
-          type: number
-        is_vat_applicable:
-          type: boolean
-        is_tolerance_applicable:
-          type: boolean
-        prior_authority_reference:
-          type: string
-        is_london_rate:
-          type: boolean
-        adjourned_hearing_fee_amount:
-          type: integer
-          description: "Note: actually stores the number of times the hearing was adjourned"
-        is_additional_travel_payment:
-          type: boolean
-        costs_damages_recovered_amount:
-          type: number
-        meetings_attended_code:
-          type: string
-        detention_travel_waiting_costs_amount:
-          type: number
-        jr_form_filling_amount:
-          type: number
-        is_eligible_client:
-          type: boolean
-        court_location_code:
-          type: string
-        advice_type_code:
-          type: string
-        medical_reports_count:
-          type: integer
-        is_irc_surgery:
-          type: boolean
-        surgery_date:
-          type: string
-          description: Surgery Date (format DD/MM/YYYY)
-        surgery_clients_count:
-          type: integer
-        surgery_matters_count:
-          type: integer
-        cmrh_oral_count:
-          type: integer
-        cmrh_telephone_count:
-          type: integer
-        ait_hearing_centre_code:
-          type: string
-        is_substantive_hearing:
-          type: boolean
-        ho_interview:
-          type: integer
-          description: "Number of Home Office Interviews"
-        local_authority_number:
-          type: string
-        submission_period:
-          type: string
-          description: Submission period (e.g., "JUL-2025").
-        created_by_user_id:
-          type: string
-          description: The id of the user who created the claim.
-        is_amended:
-          type: boolean
-          description: Indicates if the claim has been amended.
-        has_assessment:
-          type: boolean
-          description: Indicates if the claim has an associated assessment.
-        version:
-          type: integer
-          format: int64
-          description: Used for optimistic locking
+      # Single source of truth lives in ./schemas/claim-base.yml
+      $ref: './schemas/claim-base.yml#/claim_base'
     claim_response:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1897,7 +1677,7 @@ components:
               type: integer
               description: Number of validation warnings for this claim.
             fee_calculation_response:
-              $ref: '#/components/schemas/fee_calculation_patch'
+              $ref: './schemas/claim-patch.yml#/fee_calculation_patch'
     claim_response_v2:
       allOf:
         - $ref: '#/components/schemas/claim_base'
@@ -1912,95 +1692,11 @@ components:
               type: integer
               description: Number of validation warnings for this claim.
             fee_calculation_response:
-              $ref: '#/components/schemas/fee_calculation_patch'
+              $ref: './schemas/claim-patch.yml#/fee_calculation_patch'
             date_submitted:
               type: string
               format: date-time
               description: Date and time the submission was submitted
-    fee_calculation_patch:
-      type: object
-      description: Fee calculation response from the Fee Scheme Platform
-      properties:
-        calculated_fee_detail_id:
-          type: string
-        claim_summary_fee_id:
-          type: string
-          format: uuid
-        claim_id:
-          type: string
-          format: uuid
-        fee_code:
-          type: string
-        fee_code_description:
-          type: string
-        fee_type:
-          $ref: "#/components/schemas/fee_calculation_type"
-        category_of_law:
-          type: string
-        total_amount:
-          type: number
-        vat_indicator:
-          type: boolean
-        vat_rate_applied:
-          type: number
-        calculated_vat_amount:
-          type: number
-        disbursement_amount:
-          type: number
-        requested_net_disbursement_amount:
-          type: number
-        disbursement_vat_amount:
-          type: number
-        hourly_total_amount:
-          type: number
-        fixed_fee_amount:
-          type: number
-        net_profit_costs_amount:
-          type: number
-        requested_net_profit_costs_amount:
-          type: number
-        net_cost_of_counsel_amount:
-          type: number
-        net_travel_costs_amount:
-          type: number
-        net_waiting_costs_amount:
-          type: number
-        detention_travel_and_waiting_costs_amount:
-          type: number
-        jr_form_filling_amount:
-          type: number
-        travel_and_waiting_costs_amount:
-          type: number
-        bolt_on_details:
-          $ref: "#/components/schemas/bolt_on_patch"
-    bolt_on_patch:
-      type: object
-      description: Bolt on details
-      properties:
-        bolt_on_total_fee_amount:
-          type: number
-        bolt_on_adjourned_hearing_count:
-          type: integer
-        bolt_on_adjourned_hearing_fee:
-          type: number
-        bolt_on_cmrh_telephone_count:
-          type: integer
-        bolt_on_cmrh_telephone_fee:
-          type: number
-        bolt_on_cmrh_oral_count:
-          type: integer
-        bolt_on_cmrh_oral_fee:
-          type: number
-        bolt_on_home_office_interview_count:
-          type: integer
-        bolt_on_home_office_interview_fee:
-          type: number
-        bolt_on_substantive_hearing_fee:
-          type: number
-        escape_case_flag:
-          type: boolean
-        scheme_id:
-          type: string
 
     bulk_submission_matter_start:
       type: object
@@ -2303,22 +1999,6 @@ components:
         - DISC
       description: |
         Category code assigned to a legal aid matter start.
-    validation_message_patch:
-      type: object
-      description: Validation message
-      properties:
-        type:
-          $ref: "#/components/schemas/validation_message_type"
-        source:
-          type: string
-        display_message:
-          type: string
-        technical_message:
-          type: string
-        message_code:
-          type: string
-          maxLength: 20
-          description: Message code from FSP payload (e.g. WARFAM1, ERRALL1).
     validation_message_base:
       type: object
       description: Validation message
@@ -2333,7 +2013,7 @@ components:
           type: string
           format: uuid
         type:
-          $ref: "#/components/schemas/validation_message_type"
+          $ref: './schemas/claim-patch.yml#/validation_message_type'
         source:
           type: string
         display_message:
@@ -2363,21 +2043,6 @@ components:
         unique_file_number:
           type: string
           description: Unique File Number (UFN) from the associated claim
-    validation_message_type:
-      type: string
-      enum:
-        - ERROR
-        - WARNING
-      description: |
-        The type of validation message, indicating its severity or nature.
-    fee_calculation_type:
-      type: string
-      enum:
-        - HOURLY
-        - FIXED
-        - DISB_ONLY
-      description: |
-        The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
     assessment_outcome:
       type: string
       enum:
