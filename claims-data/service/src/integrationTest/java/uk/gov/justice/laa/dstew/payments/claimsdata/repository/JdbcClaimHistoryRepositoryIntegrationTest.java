@@ -686,7 +686,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
             .requestPayload("{}")
             .diff(diffJson)
             .createdByUserId(USER_ID)
-            .createdOn(OffsetDateTime.ofInstant(createdOn, ZoneOffset.UTC))
+            .createdOn(createdOn)
             .build());
     claimAmendmentRepository.flush();
   }
@@ -702,7 +702,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
             .escapeCaseFlag(escapeFlag)
             .totalAmount(new BigDecimal("120.00"))
             .createdByUserId(USER_ID)
-            .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
+            .createdOn(Instant.now())
             .build();
     calculatedFeeDetailRepository.save(fee);
     calculatedFeeDetailRepository.flush();

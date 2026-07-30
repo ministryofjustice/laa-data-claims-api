@@ -9,8 +9,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -109,9 +109,9 @@ public class ClaimSummaryFee {
 
   @CreationTimestamp
   @Column(nullable = false)
-  private OffsetDateTime createdOn;
+  private Instant createdOn;
 
   private String updatedByUserId;
 
-  @UpdateTimestamp private OffsetDateTime updatedOn;
+  @UpdateTimestamp private Instant updatedOn;
 }
