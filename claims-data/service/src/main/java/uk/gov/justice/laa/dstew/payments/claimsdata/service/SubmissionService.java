@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -139,9 +140,16 @@ public class SubmissionService
   }
 
   private boolean isLiveSubmissionUniqueViolation(DataIntegrityViolationException ex) {
-    Throwable rootCause = ex.getMostSpecificCause();
-    return rootCause.getMessage() != null
-        && rootCause.getMessage().contains(LIVE_SUBMISSION_UNIQUE_INDEX);
+    for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+      if (cause instanceof ConstraintViolationException hibernateViolation
+          && LIVE_SUBMISSION_UNIQUE_INDEX.equals(hibernateViolation.getConstraintName())) {
+        return true;
+      }
+    }
+    // Fallback: the dialect's constraint-name extractor is not guaranteed to populate the name,
+    // so fall back to the driver-agnostic root-cause message.
+    String mostSpecific = ex.getMostSpecificCause().getMessage();
+    return mostSpecific != null && mostSpecific.contains(LIVE_SUBMISSION_UNIQUE_INDEX);
   }
 
   /**

@@ -11,6 +11,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -136,6 +138,31 @@ class SubmissionServiceTest {
 
     assertThat(ex.getHttpStatus().value()).isEqualTo(409);
     assertThat(ex.getCause()).isSameAs(violation);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: a Hibernate ConstraintViolationException naming the live index maps to DuplicateSubmissionException")
+  void shouldThrowDuplicateSubmissionExceptionWhenHibernateConstraintNameMatches() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    ConstraintViolationException hibernateViolation =
+        new ConstraintViolationException(
+            "could not execute statement",
+            new SQLException("duplicate key", "23505"),
+            "uq_submission_live_office_aol_period");
+    DataIntegrityViolationException violation =
+        new DataIntegrityViolationException("could not execute statement", hibernateViolation);
+    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
+
+    DuplicateSubmissionException ex =
+        assertThrows(
+            DuplicateSubmissionException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
   }
 
   @Test
