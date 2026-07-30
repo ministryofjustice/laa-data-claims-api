@@ -33,6 +33,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -97,12 +99,65 @@ class SubmissionServiceTest {
     when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
     when(validationService.validateSubmission(submissionResponse))
         .thenReturn(ValidationResult.builder().isValid(true).build());
-    when(submissionRepository.save(entity)).thenReturn(entity);
+    when(submissionRepository.saveAndFlush(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
     assertThat(result).isEqualTo(id);
-    verify(submissionRepository).save(entity);
+    verify(submissionRepository).saveAndFlush(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: a live-submission unique-index violation maps to DuplicateSubmissionException with 409 status")
+  void shouldThrowDuplicateSubmissionExceptionWhenLiveSubmissionUniqueIndexViolated() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .status(SubmissionStatus.CREATED)
+            .officeAccountNumber("OFFICE1")
+            .submissionPeriod("JUL-2026")
+            .build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    DataIntegrityViolationException violation =
+        new DataIntegrityViolationException(
+            "could not execute statement",
+            new RuntimeException(
+                "duplicate key value violates unique constraint"
+                    + " \"uq_submission_live_office_aol_period\""));
+    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
+
+    DuplicateSubmissionException ex =
+        assertThrows(
+            DuplicateSubmissionException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
+    assertThat(ex.getCause()).isSameAs(violation);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission: an unrelated data integrity violation is rethrown, not mapped to a conflict")
+  void shouldRethrowUnrelatedDataIntegrityViolation() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    DataIntegrityViolationException violation =
+        new DataIntegrityViolationException(
+            "could not execute statement",
+            new RuntimeException("violates foreign key constraint \"fk_submission_bulk\""));
+    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
+
+    DataIntegrityViolationException ex =
+        assertThrows(
+            DataIntegrityViolationException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex).isSameAs(violation);
   }
 
   @Test

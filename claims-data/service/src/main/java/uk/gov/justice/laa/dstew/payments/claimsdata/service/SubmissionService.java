@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -50,6 +52,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
+
+  private static final String LIVE_SUBMISSION_UNIQUE_INDEX = "uq_submission_live_office_aol_period";
 
   private final ValidationService validationService;
   private final SubmissionRepository submissionRepository;
@@ -97,13 +101,47 @@ public class SubmissionService
       }
     }
 
-    submissionRepository.save(submission);
+    persistSubmission(submission);
 
     if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
       publishValidationSucceededAfterCommit(submission.getId());
     }
 
     return submission.getId();
+  }
+
+  /**
+   * Persist the submission, translating a violation of the live-submission unique index into a
+   * {@link DuplicateSubmissionException} so the caller receives a 409 Conflict rather than a
+   * generic server error.
+   *
+   * <p>{@code saveAndFlush} is used deliberately so the constraint violation surfaces here, inside
+   * this method's boundary, instead of later at transaction commit where it could not be attributed
+   * to this specific constraint.
+   *
+   * @param submission the submission to persist
+   */
+  private void persistSubmission(Submission submission) {
+    try {
+      submissionRepository.saveAndFlush(submission);
+    } catch (DataIntegrityViolationException ex) {
+      if (isLiveSubmissionUniqueViolation(ex)) {
+        throw new DuplicateSubmissionException(
+            "A live submission already exists for office %s, area of law %s and period %s"
+                .formatted(
+                    submission.getOfficeAccountNumber(),
+                    submission.getAreaOfLaw(),
+                    submission.getSubmissionPeriod()),
+            ex);
+      }
+      throw ex;
+    }
+  }
+
+  private boolean isLiveSubmissionUniqueViolation(DataIntegrityViolationException ex) {
+    Throwable rootCause = ex.getMostSpecificCause();
+    return rootCause.getMessage() != null
+        && rootCause.getMessage().contains(LIVE_SUBMISSION_UNIQUE_INDEX);
   }
 
   /**

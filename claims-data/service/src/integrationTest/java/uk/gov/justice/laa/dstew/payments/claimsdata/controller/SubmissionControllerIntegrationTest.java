@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,6 +24,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +117,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   private static final String OFFICE_AAAA02 = "aaaa02";
   private static final String PARAM_OFFICES = "offices";
   private static final String PARAM_SORT = "sort";
+
+  // The uq_submission_live_office_aol_period unique index only applies to submissions created after
+  // this go-live cut-over date, so these tests must use a created_on beyond it to exercise it.
+  private static final LocalDate POST_CUTOVER_DATE = LocalDate.of(2026, 9, 2);
 
   @BeforeAll
   void initialSetup() {
@@ -585,6 +591,98 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                     "Submission already exists for Office (0AB342), Area of Law (CRIME LOWER), Period (APR-2025)"))
         .andExpect(jsonPath("$.issues[0].code").value("SUBMISSION_ALREADY_EXISTS"))
         .andReturn();
+  }
+
+  @Test
+  @DisplayName(
+      "Should return 409 Conflict when a second live CREATED submission duplicates the office, area of law and period")
+  void postSubmission_shouldReturnConflict_WhenDuplicateLiveSubmission() throws Exception {
+    submissionRepository.deleteAll();
+
+    SubmissionPost firstSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(firstSubmission)))
+        .andExpect(status().isCreated());
+
+    SubmissionPost duplicateSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(duplicateSubmission)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.title").value("Conflict"))
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(
+            jsonPath("$.type")
+                .value(
+                    "https://claimsdata.payments.laa.justice.gov.uk/errors/duplicate-submission"))
+        .andExpect(jsonPath("$.detail").value(containsString(PERIOD_APR_2025)));
+
+    assertThat(submissionRepository.findAll()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName(
+      "Should create a submission when an existing REPLACED submission shares the office, area of law and period")
+  void postSubmission_shouldCreate_WhenExistingDuplicateIsReplaced() throws Exception {
+    submissionRepository.deleteAll();
+
+    Submission replacedSubmission =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(null)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_APR_2025)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .status(SubmissionStatus.REPLACED)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(POST_CUTOVER_DATE.atStartOfDay().toInstant(ZoneOffset.UTC))
+            .build();
+    submissionRepository.save(replacedSubmission);
+
+    SubmissionPost newSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(newSubmission)))
+        .andExpect(status().isCreated());
+
+    assertThat(submissionRepository.findAll()).hasSize(2);
+  }
+
+  private SubmissionPost createdSubmissionPost(UUID submissionId) {
+    return SubmissionPost.builder()
+        .submissionId(submissionId)
+        .bulkSubmissionId(null)
+        .createdByUserId(USER_ID)
+        .providerUserId(USER_ID)
+        .status(SubmissionStatus.CREATED)
+        .submitted(POST_CUTOVER_DATE.atStartOfDay().atOffset(ZoneOffset.UTC))
+        .build();
   }
 
   @Test
