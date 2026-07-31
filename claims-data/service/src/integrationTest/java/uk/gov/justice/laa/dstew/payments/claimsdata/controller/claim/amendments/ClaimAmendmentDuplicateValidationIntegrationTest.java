@@ -91,7 +91,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     // UCN is non-PDA: duplicate checking must run without any Provider Details call.
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -117,7 +117,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     verifyProviderSchedulesCalled(VerificationTimes.atLeast(1));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -141,7 +141,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -174,7 +174,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_SAME_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   // ===========================================================================
@@ -199,7 +199,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -220,7 +220,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -244,7 +244,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -264,7 +264,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   // ---------------------------------------------------------------------------
@@ -353,24 +353,5 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     assertThat(result.getResponse().getContentAsString())
         .as("amendment response should contain %s", expectedCode)
         .contains(expectedCode);
-  }
-
-  /** Asserts the rejected amendment left no trace: no audit row, flag/version unchanged. */
-  private void assertNothingPersisted(Long originalVersion) {
-    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
-    Claim after = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    assertThat(after.isAmended()).isFalse();
-    assertThat(after.getVersion()).isEqualTo(originalVersion);
-  }
-
-  /** Asserts a committed (204) amendment: an audit row exists and the claim is marked amended. */
-  private void assertCommitted(MvcResult result, Long originalVersion) {
-    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
-    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).hasSize(1);
-    Claim after = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    assertThat(after.isAmended()).isTrue();
-    // A single committed amendment performs exactly one @Version-guarded claim update, so the
-    // optimistic-lock version advances by precisely one.
-    assertThat(after.getVersion()).isEqualTo(originalVersion + 1);
   }
 }

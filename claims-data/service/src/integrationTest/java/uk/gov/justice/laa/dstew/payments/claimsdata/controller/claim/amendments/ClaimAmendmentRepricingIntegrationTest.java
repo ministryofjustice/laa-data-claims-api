@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
@@ -24,10 +23,8 @@ import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -35,14 +32,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchIntegrationTest {
 
   // Use the canonical PATCH_MAPPER from AbstractAmendmentPatchIntegrationTest (omits nulls).
-
-  private static final String PATCH_A_CLAIM_ENDPOINT =
-      API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
-  private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
-
-  @SuppressWarnings("java:S1075")
-  // Use the canonical path exposed by MockServerIntegrationTest to avoid duplicate literal.
-  private static final String FEE_CALCULATION_PATH = FEE_CALCULATION;
 
   private static final String TECHNICAL_ERROR =
       "A technical error occurred while recalculating the fee";
@@ -72,7 +61,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
 
     // Clear the fee-calculation stub set by stubExternalValidationEndpoints
     // because we want each test to strictly control and verify this specific call.
-    mockServerClient.clear(request().withPath(FEE_CALCULATION_PATH), ClearType.EXPECTATIONS);
+    mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
   }
 
   @AfterEach
@@ -93,7 +82,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,\"vatIndicator\":true}}";
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
@@ -123,7 +112,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response().withStatusCode(400).withBody("Invalid profit cost configuration combo"));
 
@@ -144,7 +133,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
 
     // Simulate network drop directly via MockServer
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .error(HttpError.error().withDropConnection(true));
 
     org.springframework.test.web.servlet.MvcResult mvcResult =
@@ -165,7 +154,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // Verify MockServer never received a call to the calculation endpoint
-    mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
+    mockServerClient.verify(request().withPath(FEE_CALCULATION), VerificationTimes.exactly(0));
   }
 
   @Test
@@ -183,7 +172,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.BAD_REQUEST);
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING");
-    mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
+    mockServerClient.verify(request().withPath(FEE_CALCULATION), VerificationTimes.exactly(0));
   }
 
   @Test
@@ -194,7 +183,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setFeeCode("FEE-500");
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(response().withStatusCode(500));
 
     org.springframework.test.web.servlet.MvcResult mvcResult =
@@ -211,7 +200,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setFeeCode("FEE-NULL");
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(response().withStatusCode(200)); // 200 OK, but no body provided
 
     org.springframework.test.web.servlet.MvcResult mvcResult =
@@ -234,7 +223,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         "{\"feeCode\":\"FEE-ESCAPE\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":true,\"feeCalculation\":{\"totalAmount\":15000.00,\"netProfitCostsAmount\":15000.00,\"vatIndicator\":true}}";
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
@@ -258,35 +247,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertThat(latestFeeRecord.getEscapeCaseFlag()).isTrue();
   }
 
-  private void createCalculatedFeeDetail(
-      Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
-
-    ClaimSummaryFee summaryFee =
-        claimSummaryFeeRepository
-            .findByClaimId(claim.getId())
-            .orElseGet(
-                () -> {
-                  ClaimSummaryFee newFee =
-                      ClaimSummaryFee.builder()
-                          .claim(claim)
-                          .id(Uuid7.timeBasedUuid())
-                          .createdByUserId("Test")
-                          .build();
-                  return claimSummaryFeeRepository.saveAndFlush(newFee);
-                });
-
-    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
-    cfd.setId(Uuid7.timeBasedUuid());
-    cfd.setClaim(claim);
-    cfd.setEscapeCaseFlag(escapeCaseFlag);
-    cfd.setCreatedOn(createdOn);
-    cfd.setFeeCode("FEE-123");
-    cfd.setCreatedByUserId("Test");
-    cfd.setClaimSummaryFee(summaryFee);
-    cfd.setTotalAmount(BigDecimal.valueOf(100.00));
-
-    calculatedFeeDetailRepository.saveAndFlush(cfd);
-  }
+  // createCalculatedFeeDetail moved to AbstractAmendmentPatchIntegrationTest as a shared helper.
 
   // ---------------------------------------------------------------------------
   // Helper to ensure all tests send a schema-valid ClaimPatch

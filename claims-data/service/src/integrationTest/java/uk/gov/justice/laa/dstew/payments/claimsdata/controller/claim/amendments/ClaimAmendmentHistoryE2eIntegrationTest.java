@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -25,13 +24,10 @@ import org.junit.jupiter.api.TestInstance;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.MediaType;
 import org.openapitools.jackson.nullable.JsonNullable;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
  * End-to-end coverage for the claim-history AMENDMENT event (DSTEW-1813 / DSTEW-1814).
@@ -76,18 +72,12 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
           .setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS)
           .registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
 
-  private static final String PATCH_A_CLAIM_ENDPOINT =
-      API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
   private static final String HISTORY_ENDPOINT = API_URI_PREFIX + "/claims/{claimId}/history";
-
-  private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
-  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
-  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
 
   @SuppressWarnings("java:S1075")
   // Use the canonical FEE_CALCULATION path from MockServerIntegrationTest to avoid duplicating
   // the literal string.
-  private static final String FEE_CALCULATION_PATH = FEE_CALCULATION;
+  // Note: FEE_CALCULATION constant is inherited from MockServerIntegrationTest via Abstract.
 
   // claimsApiProperties is inherited from AbstractAmendmentPatchIntegrationTest
 
@@ -118,7 +108,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     createBaselineCalculatedFeeDetail(claim1);
 
     // Each test controls (and asserts on) the fee-calculation stub itself.
-    mockServerClient.clear(request().withPath(FEE_CALCULATION_PATH), ClearType.EXPECTATIONS);
+    mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
   }
 
   @AfterEach
@@ -143,7 +133,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
             + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,"
             + "\"vatIndicator\":true}}";
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
@@ -348,7 +338,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
         "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
             + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,\"vatIndicator\":true}}";
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
@@ -422,8 +412,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
 
     // FSP must never be called for a non-pricing amendment.
     mockServerClient.verify(
-        request().withPath(FEE_CALCULATION_PATH),
-        org.mockserver.verify.VerificationTimes.exactly(0));
+        request().withPath(FEE_CALCULATION), org.mockserver.verify.VerificationTimes.exactly(0));
   }
 
   // ---------------------------------------------------------------------------
@@ -439,30 +428,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
         .build();
   }
 
-  private void createBaselineCalculatedFeeDetail(Claim claim) {
-    ClaimSummaryFee summaryFee =
-        claimSummaryFeeRepository
-            .findByClaimId(claim.getId())
-            .orElseGet(
-                () ->
-                    claimSummaryFeeRepository.saveAndFlush(
-                        ClaimSummaryFee.builder()
-                            .id(Uuid7.timeBasedUuid())
-                            .claim(claim)
-                            .createdByUserId("Test")
-                            .build()));
-
-    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
-    cfd.setId(Uuid7.timeBasedUuid());
-    cfd.setClaim(claim);
-    cfd.setClaimSummaryFee(summaryFee);
-    cfd.setEscapeCaseFlag(false);
-    cfd.setFeeCode("FEE-123");
-    cfd.setTotalAmount(BigDecimal.valueOf(100.00));
-    cfd.setCreatedByUserId("Test");
-    cfd.setCreatedOn(OffsetDateTime.now().minusDays(1));
-    calculatedFeeDetailRepository.saveAndFlush(cfd);
-  }
+  // createBaselineCalculatedFeeDetail moved to AbstractAmendmentPatchIntegrationTest as a
+  // shared helper.
 
   private static JsonNode firstEventOfType(JsonNode events, String eventType) {
     for (JsonNode event : events) {

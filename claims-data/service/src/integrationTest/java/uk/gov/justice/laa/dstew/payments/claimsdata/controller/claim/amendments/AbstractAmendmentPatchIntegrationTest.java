@@ -18,7 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -50,6 +52,9 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   protected static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
   protected static final UUID VALID_USER_UUID =
       UUID.fromString("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e");
+
+  /** Provider-facing amendment user id used in amendment tests (string form). */
+  protected static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
 
   /** The generic technical-error code claims-validation-core emits on any PDA call failure. */
   protected static final String PDA_TECHNICAL_ERROR_CODE = "TECHNICAL_ERROR_PROVIDER_DETAILS_API";
@@ -173,6 +178,41 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   }
 
   /**
+   * Asserts no amendment audit row was written for the given claim and the claim's amended flag and
+   * version remain unchanged.
+   */
+  protected void assertNoAmendmentWritten(UUID claimId, Long originalVersion) {
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(claimId)).isEmpty();
+    Claim after = claimRepository.findById(claimId).orElseThrow();
+    assertThat(after.isAmended()).isFalse();
+    assertThat(after.getVersion()).isEqualTo(originalVersion);
+  }
+
+  /**
+   * Asserts an amendment committed: a 204 response, at least one audit row exists and the claim is
+   * marked amended. Does not assert an exact version increment.
+   */
+  protected void assertAmendmentCommittedGeneric(UUID claimId) {
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(claimId)).isNotEmpty();
+    Claim after = claimRepository.findById(claimId).orElseThrow();
+    assertThat(after.isAmended()).isTrue();
+  }
+
+  /**
+   * Asserts an amendment committed and that the claim's optimistic-lock version advanced exactly by
+   * one compared with the supplied originalVersion. Also asserts the response status is 204.
+   */
+  protected void assertAmendmentCommittedVersioned(
+      org.springframework.test.web.servlet.MvcResult result, UUID claimId, Long originalVersion)
+      throws Exception {
+    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(claimId)).hasSize(1);
+    Claim after = claimRepository.findById(claimId).orElseThrow();
+    assertThat(after.isAmended()).isTrue();
+    assertThat(after.getVersion()).isEqualTo(originalVersion + 1);
+  }
+
+  /**
    * Performs the amendment PATCH for the given submission/claim with the supplied patch body.
    *
    * @return the completed {@link MvcResult}
@@ -202,5 +242,63 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PATCH_MAPPER.writeValueAsString(amendmentPatch)))
         .andReturn();
+  }
+
+  /**
+   * Create a CalculatedFeeDetail row for the given claim with parameterised values. Tests that
+   * previously duplicated near-identical builders should use this helper to avoid repetition.
+   */
+  protected void createCalculatedFeeDetail(
+      Claim claim,
+      java.math.BigDecimal totalAmount,
+      boolean escapeCaseFlag,
+      java.time.OffsetDateTime createdOn,
+      String feeCode) {
+
+    ClaimSummaryFee summaryFee =
+        claimSummaryFeeRepository
+            .findByClaimId(claim.getId())
+            .orElseGet(
+                () -> {
+                  ClaimSummaryFee newFee =
+                      ClaimSummaryFee.builder()
+                          .claim(claim)
+                          .id(Uuid7.timeBasedUuid())
+                          .createdByUserId("Test")
+                          .build();
+                  return claimSummaryFeeRepository.saveAndFlush(newFee);
+                });
+
+    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
+    cfd.setId(Uuid7.timeBasedUuid());
+    cfd.setClaim(claim);
+    cfd.setEscapeCaseFlag(escapeCaseFlag);
+    cfd.setCreatedOn(createdOn);
+    cfd.setFeeCode(feeCode);
+    cfd.setCreatedByUserId("Test");
+    cfd.setClaimSummaryFee(summaryFee);
+    cfd.setTotalAmount(totalAmount);
+
+    calculatedFeeDetailRepository.saveAndFlush(cfd);
+  }
+
+  /**
+   * Convenience overload matching existing test usages that assume a 100.00 baseline fee code
+   * FEE-123
+   */
+  protected void createCalculatedFeeDetail(
+      Claim claim, boolean escapeCaseFlag, java.time.OffsetDateTime createdOn) {
+    createCalculatedFeeDetail(
+        claim, java.math.BigDecimal.valueOf(100.00), escapeCaseFlag, createdOn, "FEE-123");
+  }
+
+  /** Convenience helper for the canonical baseline used in history tests. */
+  protected void createBaselineCalculatedFeeDetail(Claim claim) {
+    createCalculatedFeeDetail(
+        claim,
+        java.math.BigDecimal.valueOf(100.00),
+        false,
+        java.time.OffsetDateTime.now().minusDays(1),
+        "FEE-123");
   }
 }
