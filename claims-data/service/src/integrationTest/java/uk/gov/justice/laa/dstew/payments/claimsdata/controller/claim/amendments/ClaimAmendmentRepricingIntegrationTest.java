@@ -5,14 +5,13 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments.AbstractAmendmentPatchIntegrationTest.PATCH_MAPPER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -44,10 +43,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @DisplayName("Amendment Repricing Flow (DSTEW-1595) Integration Test")
 class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
-  // Serialises claim PATCH bodies omitting null fields, so only explicitly-set fields are sent (an
-  // explicit null would be read by the amendment endpoint as "clear this field").
-  private static final ObjectMapper SPARSE_PATCH_MAPPER =
-      new ObjectMapper().setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+  // Use the canonical PATCH_MAPPER from AbstractAmendmentPatchIntegrationTest (omits nulls).
 
   private static final String PATCH_A_CLAIM_ENDPOINT =
       API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -119,7 +115,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 
@@ -151,7 +147,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .perform(
                 patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();
@@ -178,7 +174,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .perform(
                 patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
             .andExpect(status().isServiceUnavailable())
             .andReturn();
@@ -197,7 +193,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 
@@ -220,7 +216,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .perform(
                 patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();
@@ -246,7 +242,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .perform(
                 patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
             .andExpect(status().isServiceUnavailable())
             .andReturn();
@@ -270,7 +266,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
             .perform(
                 patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
             .andExpect(status().isServiceUnavailable())
             .andReturn();
@@ -303,7 +299,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patchPayload))
+                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
 
