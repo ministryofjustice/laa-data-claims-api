@@ -59,6 +59,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -527,6 +528,126 @@ class ClaimServiceTest {
     verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
     verify(claimRepository).save(claim);
     verify(claimMapper).toValidationMessageLog(message1, claim);
+  }
+
+  @Nested
+  @DisplayName("updateClaim - status/amendment routing and null-clear handling")
+  class UpdateClaimRoutingAndNullHandling {
+
+    /**
+     * Regression for the Pact 503: a status-only patch that carries explicit JSON nulls for other
+     * fields (as the consumer serialises them) must take the legacy path and must NOT be treated as
+     * an amendment. The explicit nulls must be neutralised so the mapper cannot clear persisted
+     * values.
+     */
+    @Test
+    void statusOnlyWithExplicitNullClears_usesLegacyPathAndDoesNotClearFields() {
+      final Claim claim =
+          Claim.builder()
+              .id(CLAIM_1_ID)
+              .version(1L)
+              .scheduleReference("OLD_SCH")
+              .feeCode("OLD_FEE")
+              .build();
+
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch().status(ClaimStatus.VALID);
+      patch.setScheduleReference(JsonNullable.of(null));
+      patch.setFeeCode(JsonNullable.of(null));
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      // Legacy path taken; the amendment flow (and its feature gate) is never invoked.
+      verifyNoInteractions(claimAmendmentService);
+
+      final ArgumentCaptor<ClaimAmendmentPatch> captor =
+          ArgumentCaptor.forClass(ClaimAmendmentPatch.class);
+      verify(claimMapper).updateSubmissionClaimFromPatch(captor.capture(), eq(claim));
+      verify(claimRepository).save(claim);
+
+      final ClaimAmendmentPatch mapped = captor.getValue();
+      assertThat(mapped.getStatus()).isEqualTo(ClaimStatus.VALID);
+      assertThat(mapped.getScheduleReference()).isEqualTo(JsonNullable.undefined());
+      assertThat(mapped.getFeeCode()).isEqualTo(JsonNullable.undefined());
+    }
+
+    /** An explicit null on a field that is already null is still a no-op on the legacy path. */
+    @Test
+    void explicitNullOnAlreadyNullField_staysLegacyAndIsNeutralised() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch().status(ClaimStatus.VALID);
+      patch.setScheduleReference(JsonNullable.of(null));
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verifyNoInteractions(claimAmendmentService);
+      final ArgumentCaptor<ClaimAmendmentPatch> captor =
+          ArgumentCaptor.forClass(ClaimAmendmentPatch.class);
+      verify(claimMapper).updateSubmissionClaimFromPatch(captor.capture(), eq(claim));
+      assertThat(captor.getValue().getScheduleReference()).isEqualTo(JsonNullable.undefined());
+    }
+
+    /** A set (present, non-null) value that actually differs is a real change - an amendment. */
+    @Test
+    void statusWithNonNullFieldChange_usesAmendmentPath() {
+      final Claim claim =
+          Claim.builder().id(CLAIM_1_ID).version(1L).scheduleReference("OLD_SCH").build();
+
+      final ClaimAmendmentPatch patch =
+          new ClaimAmendmentPatch().status(ClaimStatus.VALID).scheduleReference("NEW_SCH");
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimMapper, never()).updateSubmissionClaimFromPatch(any(), any());
+      verify(claimRepository, never()).save(claim);
+    }
+
+    /** A set value equal to the persisted value is not a change - it stays on the legacy path. */
+    @Test
+    void nonNullFieldEqualToPersistedValue_staysLegacy() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).feeCode("ABC").build();
+
+      final ClaimAmendmentPatch patch =
+          new ClaimAmendmentPatch().status(ClaimStatus.VALID).feeCode("ABC");
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verifyNoInteractions(claimAmendmentService);
+      verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+      verify(claimRepository).save(claim);
+    }
+
+    /** A missing status still signals an amendment regardless of the other fields. */
+    @Test
+    void nullStatus_usesAmendmentPath() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimMapper, never()).updateSubmissionClaimFromPatch(any(), any());
+    }
   }
 
   @Test
