@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -155,6 +157,21 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
     return patch;
   }
 
+  /** Thin assertion helper for HTTP response status checks used across tests. */
+  protected void assertResponseStatus(
+      org.springframework.test.web.servlet.MvcResult result,
+      org.springframework.http.HttpStatus expected) {
+    assertThat(result.getResponse().getStatus()).isEqualTo(expected.value());
+  }
+
+  /** Thin assertion helper to assert the response body contains the given fragment. */
+  protected void assertResponseContains(
+      org.springframework.test.web.servlet.MvcResult result, String expectedFragment)
+      throws java.io.UnsupportedEncodingException {
+    String body = result.getResponse().getContentAsString();
+    assertThat(body).contains(expectedFragment);
+  }
+
   /**
    * Performs the amendment PATCH for the given submission/claim with the supplied patch body.
    *
@@ -168,6 +185,22 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PATCH_MAPPER.writeValueAsString(patch)))
+        .andReturn();
+  }
+
+  /**
+   * Performs the amendment PATCH for the given submission/claim with a ClaimAmendmentPatch body.
+   *
+   * @return the completed {@link MvcResult}
+   */
+  protected MvcResult performAmendmentPatch(
+      UUID submissionId, UUID claimId, ClaimAmendmentPatch amendmentPatch) throws Exception {
+    return mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, submissionId, claimId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(PATCH_MAPPER.writeValueAsString(amendmentPatch)))
         .andReturn();
   }
 }

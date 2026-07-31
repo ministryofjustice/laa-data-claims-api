@@ -25,13 +25,10 @@ import org.junit.jupiter.api.TestInstance;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.MediaType;
 import org.openapitools.jackson.nullable.JsonNullable;
-import org.springframework.beans.factory.annotation.Autowired;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -66,14 +63,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @DisplayName("Claim Amendment History E2E (DSTEW-1813 / DSTEW-1814) Integration Test")
-class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest {
+class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchIntegrationTest {
 
-  // Serialises claim PATCH bodies omitting null fields, so only explicitly-set fields are sent (an
-  // explicit null would be read by the amendment endpoint as "clear this field").
-  private static final ObjectMapper SPARSE_PATCH_MAPPER =
-      new ObjectMapper()
-          .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
-          .registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
+  // Use the canonical PATCH_MAPPER from AbstractAmendmentPatchIntegrationTest (omits nulls).
 
   // For tests that would like to send an explicit JSON null (presence + null), use an
   // ObjectMapper that DOES include nulls in the serialized body. These tests are currently
@@ -97,7 +89,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   // the literal string.
   private static final String FEE_CALCULATION_PATH = FEE_CALCULATION;
 
-  @Autowired private ClaimsApiProperties claimsApiProperties;
+  // claimsApiProperties is inherited from AbstractAmendmentPatchIntegrationTest
 
   private boolean originalAmendmentFlag;
 
@@ -106,8 +98,12 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
     claimsApiProperties.getAmendments().setEnabled("true");
 
-    seedClaimsData();
+    // Ensure PATCH_MAPPER can serialize JsonNullable fields the same way the previous
+    // SPARSE_PATCH_MAPPER did.
+    PATCH_MAPPER.registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
 
+    // Seeding is done in
+    // AbstractAmendmentPatchIntegrationTest.enableAmendmentsSeedAndStubFeeScheme()
     // Let the genuine AmendmentExternalValidationStep run against controlled external responses.
     stubExternalValidationEndpoints();
     // CLAIM_1 belongs to a LEGAL_HELP submission; keep the fee-code Area-of-Law gate happy.
@@ -155,13 +151,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
                 .withBody(fspResponse));
 
     // --- Act 1: submit the amendment through the public PATCH endpoint ---
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult patchResult =
+        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // The amendment is committed; grab its id so we can assert the event's source_id.
     List<ClaimAmendment> amendments =
@@ -266,13 +258,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     ClaimAmendmentPatch setPatch = basePatch(currentVersion);
     setPatch.deliveryLocation(deliveryReference);
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(setPatch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult setPatchResult =
+        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, setPatch);
+    assertResponseStatus(setPatchResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // The set PATCH increments the claim version in DB; read it back so our explicit-null
     // amendment carries the current version and avoids a CLAIM_VERSION_CONFLICT.
@@ -367,13 +355,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(fspResponse));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     List<ClaimAmendment> amendments =
         claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
@@ -408,13 +392,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     ClaimAmendmentPatch patch = basePatch(1L);
     patch.clientForename(amendedForename);
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(SPARSE_PATCH_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult nonPricingResult =
+        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(nonPricingResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     String body =
         mockMvc

@@ -3,12 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.amendments.AbstractAmendmentPatchIntegrationTest.PATCH_MAPPER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
@@ -27,13 +22,9 @@ import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -41,7 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @DisplayName("Amendment Repricing Flow (DSTEW-1595) Integration Test")
-class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
+class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchIntegrationTest {
 
   // Use the canonical PATCH_MAPPER from AbstractAmendmentPatchIntegrationTest (omits nulls).
 
@@ -56,16 +47,14 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
   private static final String TECHNICAL_ERROR =
       "A technical error occurred while recalculating the fee";
 
-  @Autowired private ClaimsApiProperties claimsApiProperties;
-
   private boolean originalAmendmentFlag;
 
   @BeforeEach
   void setUp() throws Exception {
+    // enableAmendmentsSeedAndStubFeeScheme() in the base will run first; preserve test-specific
+    // stubs
     originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
     claimsApiProperties.getAmendments().setEnabled("true");
-
-    seedClaimsData();
 
     // Satisfy the AmendmentExternalValidationStep using the real network layer
     stubExternalValidationEndpoints();
@@ -111,13 +100,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(mockResponseBody));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult result =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =
@@ -142,16 +127,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .respond(
             response().withStatusCode(400).withBody("Invalid profit cost configuration combo"));
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.BAD_REQUEST);
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("The fee calculation failed validation");
     assertThat(body).contains("Invalid profit cost configuration combo");
@@ -169,16 +147,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
         .error(HttpError.error().withDropConnection(true));
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-            .andExpect(status().isServiceUnavailable())
-            .andReturn();
-
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
 
@@ -189,13 +160,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     ClaimPatch patchPayload = createBasePatch();
     patchPayload.setClientForename("NewForename");
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult result =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // Verify MockServer never received a call to the calculation endpoint
     mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
@@ -211,16 +178,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     ClaimPatch patchPayload = createBasePatch();
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.BAD_REQUEST);
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING");
     mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
@@ -237,16 +197,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
         .respond(response().withStatusCode(500));
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-            .andExpect(status().isServiceUnavailable())
-            .andReturn();
-
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
 
@@ -261,16 +214,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
         .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
         .respond(response().withStatusCode(200)); // 200 OK, but no body provided
 
-    MvcResult mvcResult =
-        mockMvc
-            .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                    .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-            .andExpect(status().isServiceUnavailable())
-            .andReturn();
-
+    org.springframework.test.web.servlet.MvcResult mvcResult =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
 
@@ -295,13 +241,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(mockResponseBody));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(PATCH_MAPPER.writeValueAsString(patchPayload))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    org.springframework.test.web.servlet.MvcResult result =
+        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =
