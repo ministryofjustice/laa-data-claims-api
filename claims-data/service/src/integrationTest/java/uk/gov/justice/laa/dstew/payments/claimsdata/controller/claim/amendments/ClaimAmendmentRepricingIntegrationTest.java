@@ -54,7 +54,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
   private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
 
   @SuppressWarnings("java:S1075")
-  private static final String FEE_CALCULATION_PATH = "/api/v1/fee-calculation";
+  // Use the canonical path exposed by MockServerIntegrationTest to avoid duplicate literal.
+  private static final String FEE_CALCULATION_PATH = FEE_CALCULATION;
 
   private static final String TECHNICAL_ERROR =
       "A technical error occurred while recalculating the fee";
