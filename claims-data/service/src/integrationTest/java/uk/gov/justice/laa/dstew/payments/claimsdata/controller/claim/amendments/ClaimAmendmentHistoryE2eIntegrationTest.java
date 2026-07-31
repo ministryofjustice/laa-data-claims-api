@@ -93,7 +93,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
 
   @SuppressWarnings("java:S1075")
-  private static final String FEE_CALCULATION_PATH = "/api/v1/fee-calculation";
+  // Use the canonical FEE_CALCULATION path from MockServerIntegrationTest to avoid duplicating
+  // the literal string.
+  private static final String FEE_CALCULATION_PATH = FEE_CALCULATION;
 
   @Autowired private ClaimsApiProperties claimsApiProperties;
 
