@@ -255,25 +255,14 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   @DisplayName(
       "A cleared-field amendment (explicit null) surfaces an AMENDMENT change with after=null in history (end-to-end)")
   void clearedFieldAmendmentEndToEnd() throws Exception {
-    // Intention: submit a PATCH body that explicitly sets client2 surname to null so the
-    // amendment pipeline records before=value, after=null in the persisted diff and the
-    // unified history exposes an explicit JSON null. Currently disabled (see annotation).
 
-    // Build a ClaimAmendmentPatch that contains only the presence-aware metadata plus an
-    // explicit null for client_2_surname. The application ObjectMapper is configured with
-    // JsonNullableModule so serialising this patch will include the single explicit null and
-    // omit undefined fields.
-    // Ensure the field currently has a non-null value so we can assert a transition
-    // from a concrete value -> explicit null. Some seeded fixtures have this field unset
-    // or the field may not be amendable for the seeded area-of-law; pick a provider-amendable
-    // field (clientForename) and set it first.
-
+    // --- Act 1: submit a non-null change to the claim so we can later clear it (explicit null) ---
     Claim current = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     Long currentVersion = current.getVersion();
 
-    String scheduleReference = "AB12345";
+    String deliveryReference = "AB12345";
     ClaimAmendmentPatch setPatch = basePatch(currentVersion);
-    setPatch.setDeliveryLocation(JsonNullable.of(scheduleReference));
+    setPatch.deliveryLocation(deliveryReference);
 
     mockMvc
         .perform(
@@ -288,10 +277,9 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     current = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     currentVersion = current.getVersion();
 
-    // Now submit an explicit-null amendment using the presence-aware ClaimAmendmentPatch so
-    // the request body contains "delivery_location": null (and omits undefined fields).
+    // --- Act 2: submit an explicit-null amendment to clear the field (deliveryLocation) ---
     ClaimAmendmentPatch explicitPatch = basePatch(currentVersion);
-    explicitPatch.setDeliveryLocation(JsonNullable.of(null));
+    explicitPatch.setDeliveryLocation(JsonNullable.of((String) null));
 
     String explicitNullPatchJson = EXPLICIT_NULL_PATCH_MAPPER.writeValueAsString(explicitPatch);
 
@@ -324,11 +312,37 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
 
     JsonNode cleared = changeByField(changes, "claim.deliveryLocation");
     assertThat(cleared.get("change_source").asText()).isEqualTo("REQUESTED");
-    assertThat(cleared.get("before").asText()).isEqualTo(scheduleReference);
+    assertThat(cleared.get("before").asText()).isEqualTo(deliveryReference);
     // Must be an explicit JSON null present in the change object (key exists and is null)
     assertThat(cleared.has("after")).isTrue();
     assertThat(cleared.get("after").isNull()).isTrue();
     assertThat(sourceId).isEqualTo(amendmentId.toString());
+
+    // --- DB-level assertions: verify the claimed field was persisted as NULL ---
+    Claim claimAfter = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(claimAfter.getDeliveryLocation()).isNull();
+
+    // --- Amendment request_payload assertion: ensure the explicit null was recorded in the saved
+    // payload ---
+    ClaimAmendment persistedAmendment =
+        claimAmendmentRepository.findById(amendmentId).orElseThrow();
+    JsonNode requestPayload = OBJECT_MAPPER.readTree(persistedAmendment.getRequestPayload());
+    assertThat(requestPayload.get("deliveryLocation").isNull()).isTrue();
+
+    // --- Consumer-visible assertion: GET the claim and ensure the public API exposes the explicit
+    // null ---
+    String claimGetBody =
+        mockMvc
+            .perform(
+                get(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode claimJson = OBJECT_MAPPER.readTree(claimGetBody);
+    assertThat(claimJson.get("delivery_location").isNull()).isTrue();
   }
 
   @Test
@@ -338,7 +352,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
       "FSP consequence flags (pricing_recalculated, price_changed, escape_case_logged) appear on AMENDMENT metadata when repricing ran")
   void fspConsequenceFlagsAreSetWhenRepricingRuns() throws Exception {
     ClaimAmendmentPatch patch = basePatch(1L);
-    patch.setNetProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(9999.00)));
+    patch.netProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     String fspResponse =
         "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
@@ -361,7 +375,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
 
     List<ClaimAmendment> amendments =
         claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
-    UUID amendmentId = amendments.getFirst().getId();
+    assertThat(amendments).hasSize(1);
 
     String body =
         mockMvc
@@ -390,7 +404,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     // REQUESTED-sourced.
     String amendedForename = "NewForename";
     ClaimAmendmentPatch patch = basePatch(1L);
-    patch.setClientForename(JsonNullable.of(amendedForename));
+    patch.clientForename(amendedForename);
 
     mockMvc
         .perform(
@@ -436,10 +450,10 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
 
   private ClaimAmendmentPatch basePatch(long currentVersion) {
     return ClaimAmendmentPatch.builder()
-        .version(JsonNullable.of(currentVersion))
-        .amendmentUserId(JsonNullable.of(UUID.fromString(AMENDMENT_USER_ID)))
-        .amendmentRequestedBy(JsonNullable.of(REQUESTED_BY_PROVIDER))
-        .amendmentReasonCode(JsonNullable.of(REASON_PROVIDER_ERROR))
+        .version(currentVersion)
+        .amendmentUserId(UUID.fromString(AMENDMENT_USER_ID))
+        .amendmentRequestedBy(REQUESTED_BY_PROVIDER)
+        .amendmentReasonCode(REASON_PROVIDER_ERROR)
         .build();
   }
 
