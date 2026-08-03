@@ -1,0 +1,51 @@
+meta {
+  name: 09 Missing baseline CFD rejection (expect 400)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID_NO_CFD}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "net_profit_costs_amount": 9999.00,
+    "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "amendment_requested_by": "PROVIDER",
+    "amendment_reason_code": "CASE_REOPENED_REBILLED"
+  }
+}
+
+tests {
+  if (!bru.getEnvVar("CLAIM_ID_NO_CFD")) {
+    throw new Error("Set CLAIM_ID_NO_CFD in Bruno environment before running this scenario");
+  }
+
+  if (res.status !== 400) {
+    throw new Error("Expected 400 when baseline calculated fee detail is missing");
+  }
+
+  const body = res.getBody();
+  const text = JSON.stringify(body);
+  if (!text.includes("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING")) {
+    throw new Error("Expected INVALID_CLAIM_BEFORE_STATE_CFD_MISSING in response body");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

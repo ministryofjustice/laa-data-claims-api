@@ -1,0 +1,52 @@
+meta {
+  name: 03 Verify non-pricing skips repricing
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+tests {
+  if (res.status !== 200) {
+    throw new Error("Expected 200 from post non-pricing claim read");
+  }
+
+  const baselineCfdId = bru.getEnvVar("AR_BASELINE_CFD_ID");
+  const baselineTotal = bru.getEnvVar("AR_BASELINE_TOTAL_AMOUNT");
+
+  if (!baselineCfdId) {
+    throw new Error("AR_BASELINE_CFD_ID missing. Run '01 Capture baseline claim' first.");
+  }
+
+  const body = res.getBody();
+  const fee = body.fee_calculation_response || {};
+  const postCfdId = String(fee.calculated_fee_detail_id ?? "");
+  const postTotal = String(fee.total_amount ?? "");
+
+  if (postCfdId !== baselineCfdId) {
+    throw new Error("Expected non-pricing amendment to keep calculated_fee_detail_id unchanged");
+  }
+
+  if (postTotal !== baselineTotal) {
+    throw new Error("Expected non-pricing amendment to keep total_amount unchanged");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

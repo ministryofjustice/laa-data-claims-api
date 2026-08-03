@@ -1,5 +1,5 @@
 meta {
-  name: 01 Amend claim smoke happy path (expect 204)
+  name: 02 Non-pricing amendment (expect 204)
   type: http
   seq: 2
 }
@@ -21,8 +21,8 @@ headers {
 
 body:json {
   {
-    "client_forename": "AmendSmoke",
-    "client_surname": "HappyPath",
+    "client_forename": "RepricingSkip",
+    "client_surname": "Scenario",
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
@@ -31,7 +31,7 @@ body:json {
 
 tests {
   if (res.status !== 204) {
-    throw new Error("Expected 204 for amendment smoke PATCH request");
+    throw new Error("Expected 204 for non-pricing amendment");
   }
 }
 
@@ -39,3 +39,4 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+

@@ -1,0 +1,52 @@
+meta {
+  name: 08 Verify no-save after failed amendment
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+tests {
+  if (res.status !== 200) {
+    throw new Error("Expected 200 from post-failure verification read");
+  }
+
+  const expectedCfdId = bru.getEnvVar("AR_POST_PRICING_CFD_ID");
+  const expectedTotal = bru.getEnvVar("AR_POST_PRICING_TOTAL_AMOUNT");
+
+  if (!expectedCfdId) {
+    throw new Error("AR_POST_PRICING_CFD_ID missing. Run through scenario 05 before this check.");
+  }
+
+  const body = res.getBody();
+  const fee = body.fee_calculation_response || {};
+  const currentCfdId = String(fee.calculated_fee_detail_id ?? "");
+  const currentTotal = String(fee.total_amount ?? "");
+
+  if (currentCfdId !== expectedCfdId) {
+    throw new Error("Expected failed amendment to preserve calculated_fee_detail_id");
+  }
+
+  if (currentTotal !== expectedTotal) {
+    throw new Error("Expected failed amendment to preserve total_amount");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

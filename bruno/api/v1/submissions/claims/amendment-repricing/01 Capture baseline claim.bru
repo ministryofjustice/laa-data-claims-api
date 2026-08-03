@@ -1,0 +1,41 @@
+meta {
+  name: 01 Capture baseline claim
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+tests {
+  // if (res.status !== 200) {
+  //   throw new Error("Expected 200 from baseline claim read");
+  // }
+  
+  // const body = res.getBody();
+  // const fee = body.fee_calculation_response || {};
+  // console.log(body);
+  // bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
+  // bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
+  
+  // if (!fee.calculated_fee_detail_id) {
+  //   throw new Error("Baseline claim has no calculated_fee_detail_id. Cannot run repricing assertions.");
+  // }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

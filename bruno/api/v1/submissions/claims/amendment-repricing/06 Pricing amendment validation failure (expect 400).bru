@@ -1,7 +1,7 @@
 meta {
-  name: 01 Amend claim smoke happy path (expect 204)
+  name: 06 Pricing amendment validation failure (expect 400)
   type: http
-  seq: 2
+  seq: 6
 }
 
 patch {
@@ -21,8 +21,7 @@ headers {
 
 body:json {
   {
-    "client_forename": "AmendSmoke",
-    "client_surname": "HappyPath",
+    "net_profit_costs_amount": 9999.00,
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
@@ -30,8 +29,14 @@ body:json {
 }
 
 tests {
-  if (res.status !== 204) {
-    throw new Error("Expected 204 for amendment smoke PATCH request");
+  if (res.status !== 400) {
+    throw new Error("Expected 400 for FSP validation failure scenario. Run this against a stubbed FSP validation-failure environment.");
+  }
+
+  const body = res.getBody();
+  const text = JSON.stringify(body);
+  if (!text.includes("INVALID_FSP_VALIDATION_FAILURE")) {
+    throw new Error("Expected INVALID_FSP_VALIDATION_FAILURE in response body");
   }
 }
 
@@ -39,3 +44,5 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+

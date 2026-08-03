@@ -1,7 +1,7 @@
 meta {
-  name: 01 Amend claim smoke happy path (expect 204)
+  name: 07 Pricing amendment technical failure (expect 503)
   type: http
-  seq: 2
+  seq: 7
 }
 
 patch {
@@ -21,8 +21,7 @@ headers {
 
 body:json {
   {
-    "client_forename": "AmendSmoke",
-    "client_surname": "HappyPath",
+    "fee_code": "FEE-TIMEOUT",
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
@@ -30,8 +29,14 @@ body:json {
 }
 
 tests {
-  if (res.status !== 204) {
-    throw new Error("Expected 204 for amendment smoke PATCH request");
+  if (res.status !== 503) {
+    throw new Error("Expected 503 for FSP technical/timeout failure scenario. Run this against a stubbed technical-failure environment.");
+  }
+
+  const body = res.getBody();
+  const text = JSON.stringify(body);
+  if (!text.includes("TECHNICAL_ERROR_FSP_REPRICING_FAILURE")) {
+    throw new Error("Expected TECHNICAL_ERROR_FSP_REPRICING_FAILURE in response body");
   }
 }
 
@@ -39,3 +44,4 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
