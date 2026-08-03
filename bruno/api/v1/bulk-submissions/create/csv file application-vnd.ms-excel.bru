@@ -28,8 +28,8 @@ script:post-response {
     const body = res.getBody();
     console.log(body);
     bru.setEnvVar("SUBMISSION_ID", body.submission_ids[0]);
-  }else{
-    throw new Error("POST failed - cannont set submission_id");
+  } else {
+    throw new Error("POST failed - cannot set SUBMISSION_ID");
   }
 }
 

@@ -5,7 +5,7 @@ meta {
 }
 
 patch {
-  url: http://{{HOST}}/api/v1/submissions/{{SUBMISSION_ID}}/claims/{{CLAIM_ID}}
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
   body: json
   auth: inherit
 }

@@ -31,8 +31,8 @@ script:pre-request {
     bru.setEnvVar('CLAIM_ID_NO_CFD_VERSION', '0');
     return;
   }
-  if (!host || !submissionId) {
-    throw new Error('HOST/SUBMISSION_ID must be set in the environment.');
+  if (!host || !submissionId || !auth) {
+    throw new Error('HOST/SUBMISSION_ID/AUTH_TOKEN must be set in the environment.');
   }
   const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
   const resp = await axios.get(url, { headers: { Authorization: auth } });

@@ -25,8 +25,8 @@ script:pre-request {
   const auth = bru.getEnvVar('AUTH_TOKEN');
   const submissionId = bru.getEnvVar('SUBMISSION_ID');
   const claimId = bru.getEnvVar('CLAIM_ID');
-  if (!host || !submissionId || !claimId) {
-    throw new Error('HOST/SUBMISSION_ID/CLAIM_ID must be set in the environment.');
+  if (!host || !submissionId || !claimId || !auth) {
+    throw new Error('HOST/SUBMISSION_ID/CLAIM_ID/AUTH_TOKEN must be set in the environment.');
   }
   const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
   const resp = await axios.get(url, { headers: { Authorization: auth } });
