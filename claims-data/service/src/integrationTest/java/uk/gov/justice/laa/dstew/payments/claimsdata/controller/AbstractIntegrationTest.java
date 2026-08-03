@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -994,5 +995,60 @@ public abstract class AbstractIntegrationTest {
     // Attach it to the logger
     logger.addAppender(listAppender);
     return listAppender;
+  }
+
+  // --- Helper Methods specifically for Submissions Totals testing ---
+
+  protected Submission createIsolatedSubmission() {
+    Submission submission =
+        Submission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .officeAccountNumber("totals-office")
+            .status(SubmissionStatus.CREATED)
+            .submissionPeriod("JAN-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    return submissionRepository.saveAndFlush(submission);
+  }
+
+  protected Claim createClaimForSubmission(Submission submission) {
+    Claim claim =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(submission)
+            .status(ClaimStatus.VALID)
+            .feeCode("TEST")
+            .lineNumber(1)
+            .matterTypeCode("TEST_MATTER")
+            .createdByUserId(USER_ID)
+            .build();
+    claim = claimRepository.saveAndFlush(claim);
+
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .createdByUserId(USER_ID)
+            .build();
+    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+    return claim;
+  }
+
+  protected void createFeeDetail(
+      Claim claim, BigDecimal amount, OffsetDateTime createdOn, UUID forceId) {
+    UUID idToUse = forceId != null ? forceId : Uuid7.timeBasedUuid();
+    calculatedFeeDetailRepository.saveAndFlush(
+        CalculatedFeeDetail.builder()
+            .id(idToUse)
+            .claim(claim)
+            .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
+            .totalAmount(amount)
+            .createdOn(createdOn)
+            .createdByUserId(USER_ID)
+            .build());
   }
 }
