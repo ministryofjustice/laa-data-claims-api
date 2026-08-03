@@ -8,7 +8,7 @@ This strategy adds a runnable Bruno scenario pack for synchronous amendment repr
 - Request path `PATCH /api/v1/submissions/:submission_id/claims/:claim_id`
 - FSP success, validation failure, technical failure/timeout outcomes
 - No-save verification after failed amendment paths
-- Missing baseline calculated-fee-detail rejection behavior
+- Missing baseline calculated-fee-detail rejection behavior(the claim can’t be repriced because there’s no existing calculated fee detail to compare against.)
 
 ## Prerequisites
 
