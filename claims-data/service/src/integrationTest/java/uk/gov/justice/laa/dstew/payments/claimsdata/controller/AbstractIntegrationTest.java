@@ -1047,7 +1047,7 @@ public abstract class AbstractIntegrationTest {
             .claim(claim)
             .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
             .totalAmount(amount)
-            .createdOn(createdOn)
+            .createdOn(createdOn.toInstant())
             .createdByUserId(USER_ID)
             .build());
   }
