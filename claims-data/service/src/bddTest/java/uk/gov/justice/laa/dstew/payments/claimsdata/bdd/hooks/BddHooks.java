@@ -4,6 +4,7 @@ import io.cucumber.java.Before;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
@@ -15,6 +16,8 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
@@ -24,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 
@@ -40,8 +44,12 @@ public class BddHooks {
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired private MatterStartRepository matterStartRepository;
   @Autowired private ClaimRepository claimRepository;
+  @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
+  @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
+  @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Autowired private CacheManager cacheManager;
   @Autowired private SqsClient sqsClient;
   @Autowired private SnsClient snsClient;
 
@@ -66,9 +74,21 @@ public class BddHooks {
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
     matterStartRepository.deleteAll();
+    claimAmendmentRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+
+    // Amendment reference data (governed tables) is not owned by any single scenario. Wipe it
+    // between scenarios so each scenario's @Given seeds a clean fixture and downstream steps
+    // (e.g. amendments metadata validation) never see stale codes from a previous scenario. The
+    // provider caches these lookups, so evict the cache too or the next scenario will observe
+    // the previous scenario's fixture.
+    amendmentReasonReferenceRepository.deleteAll();
+    requestedByReferenceRepository.deleteAll();
+    if (cacheManager.getCache(AmendmentReferenceDataProvider.CACHE_NAME) != null) {
+      cacheManager.getCache(AmendmentReferenceDataProvider.CACHE_NAME).clear();
+    }
   }
 
   @Before(order = 1)

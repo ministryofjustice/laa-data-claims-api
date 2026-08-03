@@ -132,6 +132,9 @@ public final class BddTestConstants {
   /** {@code GET /api/v1/validation-messages}. */
   public static final String GET_VALIDATION_MESSAGES_PATH = API_URI_PREFIX + "/validation-messages";
 
+  /** {@code GET /api/v1/system/references/amendment-requested-by}. */
+  public static final String GET_AMENDMENT_REQUESTED_BY_REFERENCE_PATH =
+      API_URI_PREFIX + "/system/references/amendment-requested-by";
   /** {@code GET /api/v1/claims/{claimId}}. */
   public static final String GET_CLAIM_PATH = API_URI_PREFIX + "/claims/{claimId}";
 

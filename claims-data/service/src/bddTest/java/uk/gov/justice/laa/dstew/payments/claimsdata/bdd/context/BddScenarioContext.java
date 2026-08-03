@@ -50,6 +50,24 @@ public class BddScenarioContext extends BddResponseContext {
   private UUID secondBulkSubmissionId;
   private final List<UUID> firstSubmissionClaimIds = new ArrayList<>();
 
+  // ---------------------------------------------------------------------------
+  // Amendment metadata reference-data scenario state.
+  // ---------------------------------------------------------------------------
+  private UUID lastGeneratedReferenceRowId;
+  private UUID lastPersistedClaimAmendmentId;
+
+  // ---------------------------------------------------------------------------
+  // DSTEW-1765 amendment metadata validation scenario state.
+  // ---------------------------------------------------------------------------
+  private String amendmentRequestedByCode;
+  private String amendmentReasonCode;
+  private String submittingUserId;
+  private UUID seededSubmissionId;
+  private UUID seededClaimId;
+  private final List<String> lastAmendmentErrorCodes = new ArrayList<>();
+  private final List<String> lastAmendmentErrorMessages = new ArrayList<>();
+  private Integer lastAmendmentHttpStatus;
+
   /**
    * Overrides the Lombok-generated setter to keep {@link #generatedFileName} in sync with the
    * derived filename. This is the only accessor with non-trivial behaviour.
@@ -80,5 +98,15 @@ public class BddScenarioContext extends BddResponseContext {
     firstBulkSubmissionId = null;
     secondBulkSubmissionId = null;
     firstSubmissionClaimIds.clear();
+    lastGeneratedReferenceRowId = null;
+    lastPersistedClaimAmendmentId = null;
+    amendmentRequestedByCode = null;
+    amendmentReasonCode = null;
+    submittingUserId = null;
+    seededSubmissionId = null;
+    seededClaimId = null;
+    lastAmendmentErrorCodes.clear();
+    lastAmendmentErrorMessages.clear();
+    lastAmendmentHttpStatus = null;
   }
 }

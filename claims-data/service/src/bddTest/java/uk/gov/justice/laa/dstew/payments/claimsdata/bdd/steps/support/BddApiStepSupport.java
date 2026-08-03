@@ -6,6 +6,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_TERMINAL_STATES;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_AMENDMENT_REQUESTED_BY_REFERENCE_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_CLAIM_HISTORY_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
@@ -320,6 +321,32 @@ public class BddApiStepSupport {
     } catch (HttpStatusCodeException | IOException ex) {
       return 0;
     }
+  }
+
+  /** Calls the amendment metadata reference lookup endpoint and captures status/body in context. */
+  public void getAmendmentRequestedByReferences() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    int statusCode;
+    String responseBody;
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + GET_AMENDMENT_REQUESTED_BY_REFERENCE_PATH,
+              HttpMethod.GET,
+              request,
+              String.class);
+      statusCode = response.getStatusCode().value();
+      responseBody = response.getBody();
+    } catch (HttpStatusCodeException ex) {
+      statusCode = ex.getStatusCode().value();
+      responseBody = ex.getResponseBodyAsString();
+    }
+
+    context.setLastStatusCode(statusCode);
+    context.setLastResponseBody(responseBody);
   }
 
   private static void sleepQuietly() {
