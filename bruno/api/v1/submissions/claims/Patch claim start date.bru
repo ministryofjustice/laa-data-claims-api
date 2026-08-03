@@ -1,0 +1,32 @@
+meta {
+  name: Patch claim start date
+  type: http
+  seq: 6
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/{{SUBMISSION_ID}}/claims/{{CLAIM_ID}}
+  body: json
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "case_start_date": "01/07/2025"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

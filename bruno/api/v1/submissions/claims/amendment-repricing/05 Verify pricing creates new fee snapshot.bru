@@ -24,12 +24,13 @@ tests {
     throw new Error("Expected 200 from post-pricing claim read");
   }
 
-  const baselineCfdId = bru.getEnvVar("AR_BASELINE_CFD_ID");
-  if (!baselineCfdId) {
-    throw new Error("AR_BASELINE_CFD_ID missing. Run '01 Capture baseline claim' first.");
+  const preCfdId = bru.getEnvVar("AR_PRE_S04_CFD_ID");
+  if (!preCfdId) {
+    throw new Error("AR_PRE_S04_CFD_ID missing. Run '04 Pricing amendment success' first.");
   }
 
   const body = res.getBody();
+  bru.setEnvVar("AR_CLAIM_VERSION", String(body.version ?? ""));
   const fee = body.fee_calculation_response || {};
   const postCfdId = String(fee.calculated_fee_detail_id ?? "");
   const postTotal = String(fee.total_amount ?? "");
@@ -41,7 +42,7 @@ tests {
     throw new Error("Post-pricing claim has no calculated_fee_detail_id");
   }
 
-  if (postCfdId === baselineCfdId) {
+  if (postCfdId === preCfdId) {
     throw new Error("Expected pricing amendment to create a new calculated fee snapshot");
   }
 }
@@ -50,4 +51,6 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+
 

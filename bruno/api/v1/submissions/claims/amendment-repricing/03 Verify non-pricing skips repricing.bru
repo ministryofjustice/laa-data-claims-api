@@ -32,6 +32,7 @@ tests {
   }
 
   const body = res.getBody();
+  bru.setEnvVar("AR_CLAIM_VERSION", String(body.version ?? ""));
   const fee = body.fee_calculation_response || {};
   const postCfdId = String(fee.calculated_fee_detail_id ?? "");
   const postTotal = String(fee.total_amount ?? "");
@@ -49,4 +50,5 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
 

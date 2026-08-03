@@ -20,6 +20,11 @@ headers {
 }
 
 tests {
+  if (bru.getEnvVar("AR_STUBBED_FSP") !== "true") {
+    // Depends on scenarios 06/07 which only run under stubbed FSP.
+    return;
+  }
+
   if (res.status !== 200) {
     throw new Error("Expected 200 from post-failure verification read");
   }
@@ -32,6 +37,7 @@ tests {
   }
 
   const body = res.getBody();
+  bru.setEnvVar("AR_CLAIM_VERSION", String(body.version ?? ""));
   const fee = body.fee_calculation_response || {};
   const currentCfdId = String(fee.calculated_fee_detail_id ?? "");
   const currentTotal = String(fee.total_amount ?? "");
@@ -49,4 +55,6 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+
 

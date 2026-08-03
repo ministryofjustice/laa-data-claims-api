@@ -20,19 +20,24 @@ headers {
 }
 
 tests {
-  // if (res.status !== 200) {
-  //   throw new Error("Expected 200 from baseline claim read");
-  // }
-  
-  // const body = res.getBody();
-  // const fee = body.fee_calculation_response || {};
-  // console.log(body);
-  // bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
-  // bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
-  
-  // if (!fee.calculated_fee_detail_id) {
-  //   throw new Error("Baseline claim has no calculated_fee_detail_id. Cannot run repricing assertions.");
-  // }
+  if (res.status !== 200) {
+    throw new Error("Expected 200 from baseline claim read");
+  }
+
+  const body = res.getBody();
+  const fee = body.fee_calculation_response || {};
+
+  bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
+  bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
+  bru.setEnvVar("AR_CLAIM_VERSION", String(body.version ?? ""));
+
+  if (!fee.calculated_fee_detail_id) {
+    throw new Error("Baseline claim has no calculated_fee_detail_id. Cannot run repricing assertions.");
+  }
+
+  if (!body.version && body.version !== 0) {
+    throw new Error("Baseline claim version missing. Cannot run amendment requests.");
+  }
 }
 
 settings {

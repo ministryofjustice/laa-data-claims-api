@@ -19,8 +19,26 @@ headers {
   Authorization: {{AUTH_TOKEN}}
 }
 
+script:pre-request {
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  const submissionId = bru.getEnvVar('SUBMISSION_ID');
+  const claimId = bru.getEnvVar('CLAIM_ID');
+  if (!host || !submissionId || !claimId) {
+    throw new Error('HOST/SUBMISSION_ID/CLAIM_ID must be set in the environment.');
+  }
+  const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  const resp = await axios.get(url, { headers: { Authorization: auth } });
+  if (resp.status !== 200 || resp.data == null || resp.data.version == null) {
+    throw new Error(`Pre-request failed: could not read claim version (status=${resp.status}).`);
+  }
+  bru.setEnvVar('AR_CLAIM_VERSION', String(resp.data.version));
+}
+
 body:json {
   {
+    "version": {{AR_CLAIM_VERSION}},
     "client_forename": "RepricingSkip",
     "client_surname": "Scenario",
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -39,4 +57,6 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+
 

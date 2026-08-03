@@ -19,10 +19,38 @@ headers {
   Authorization: {{AUTH_TOKEN}}
 }
 
+script:pre-request {
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  const submissionId = bru.getEnvVar('SUBMISSION_ID');
+  const claimId = bru.getEnvVar('CLAIM_ID');
+  if (!host || !submissionId || !claimId) {
+    throw new Error('HOST/SUBMISSION_ID/CLAIM_ID must be set in the environment.');
+  }
+  const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  const resp = await axios.get(url, { headers: { Authorization: auth } });
+  if (resp.status !== 200 || resp.data == null || resp.data.version == null) {
+    throw new Error(`Pre-request failed: could not read claim version (status=${resp.status}).`);
+  }
+  bru.setEnvVar('AR_CLAIM_VERSION', String(resp.data.version));
+
+  // Ensure the pricing amount is always different from the current claim value so the amendment
+  // diff engine triggers FSP repricing and produces a NEW calculated fee detail snapshot.
+  const current = Number(resp.data.net_profit_costs_amount);
+  const base = Number.isFinite(current) && current > 0 ? current : 100;
+  const nextAmount = Math.round((base + 1000 + Math.random() * 100) * 100) / 100;
+  bru.setEnvVar('AR_NEXT_NET_PROFIT', String(nextAmount));
+
+  // Capture current CFD id so scenario 05 can compare against pre-amendment state
+  const fee = resp.data.fee_calculation_response || {};
+  bru.setEnvVar('AR_PRE_S04_CFD_ID', String(fee.calculated_fee_detail_id ?? ''));
+}
+
 body:json {
   {
-    "net_profit_costs_amount": 9999.00,
-    "travel_time": 999,
+    "version": {{AR_CLAIM_VERSION}},
+    "net_profit_costs_amount": {{AR_NEXT_NET_PROFIT}},
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
@@ -39,4 +67,8 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+
+
+
 

@@ -19,9 +19,27 @@ headers {
   Authorization: {{AUTH_TOKEN}}
 }
 
+script:pre-request {
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  const submissionId = bru.getEnvVar('SUBMISSION_ID');
+  const claimId = bru.getEnvVar('CLAIM_ID');
+  if (!host || !submissionId || !claimId) {
+    throw new Error('HOST/SUBMISSION_ID/CLAIM_ID must be set in the environment.');
+  }
+  const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  const resp = await axios.get(url, { headers: { Authorization: auth } });
+  if (resp.status !== 200 || resp.data == null || resp.data.version == null) {
+    throw new Error(`Pre-request failed: could not read claim version (status=${resp.status}).`);
+  }
+  bru.setEnvVar('AR_CLAIM_VERSION', String(resp.data.version));
+}
+
 body:json {
   {
-    "fee_code": "FEE-TIMEOUT",
+    "version": {{AR_CLAIM_VERSION}},
+    "fee_code": "TIMEOUT01",
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
@@ -29,6 +47,12 @@ body:json {
 }
 
 tests {
+  if (bru.getEnvVar("AR_STUBBED_FSP") !== "true") {
+    // Non-stubbed environment: cannot deterministically produce an FSP technical/timeout failure.
+    // Set AR_STUBBED_FSP=true in the environment to opt-in to strict assertions.
+    return;
+  }
+
   if (res.status !== 503) {
     throw new Error("Expected 503 for FSP technical/timeout failure scenario. Run this against a stubbed technical-failure environment.");
   }
@@ -44,4 +68,8 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
+
+
+
 
