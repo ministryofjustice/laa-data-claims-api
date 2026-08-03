@@ -12,7 +12,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -27,10 +28,12 @@ import org.mockserver.model.HttpError;
 import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
@@ -54,6 +57,8 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
   @Autowired private ClaimsApiProperties claimsApiProperties;
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   private boolean originalAmendmentFlag;
 
   @BeforeEach
@@ -75,7 +80,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     claim1.setStatus(ClaimStatus.VALID);
     claimRepository.saveAndFlush(claim1);
 
-    createCalculatedFeeDetail(claim1, false, OffsetDateTime.now().minusDays(1));
+    createCalculatedFeeDetail(claim1, false, Instant.now().minus(1, ChronoUnit.DAYS));
 
     // Clear the fee-calculation stub set by stubExternalValidationEndpoints
     // because we want each test to strictly control and verify this specific call.
@@ -124,6 +129,22 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
 
     assertThat(savedFees).isNotEmpty();
     assertThat(savedFees.get(0).getTotalAmount()).isEqualByComparingTo("650.00");
+
+    // DSTEW-1762: the freshly-priced row is physically linked to the committed amendment via
+    // calculated_fee_detail.claim_amendment_id. Read the FK as a scalar straight from the DB (a
+    // test-only concern) so we neither initialise the lazy association outside a session nor add a
+    // production query just for this assertion. The history-endpoint FSP flags depend on this link.
+    List<ClaimAmendment> amendments =
+        claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
+    assertThat(amendments).hasSize(1);
+
+    CalculatedFeeDetail latestFee = savedFees.get(0);
+    assertThat(latestFee.getIsPriceChanged()).isTrue();
+    assertThat(readLinkedAmendmentId(latestFee.getId())).isEqualTo(amendments.getFirst().getId());
+
+    // The pre-existing baseline row remains unlinked (claim_amendment_id stays null).
+    CalculatedFeeDetail baselineFee = savedFees.get(savedFees.size() - 1);
+    assertThat(readLinkedAmendmentId(baselineFee.getId())).isNull();
   }
 
   @Test
@@ -318,7 +339,6 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     assertThat(latestFeeRecord.getEscapeCaseFlag()).isTrue();
   }
 
-  @Test
   @DisplayName(
       "PATCH /submissions/{id}/claims/{id} - outcome-check gate: a pricing-impacting change "
           + "combined with a non-fatal validation error rejects (400) WITHOUT calling FSP repricing")
@@ -379,8 +399,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     assertThat(reloaded.isAmended()).isFalse();
   }
 
-  private void createCalculatedFeeDetail(
-      Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
+  private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
 
     ClaimSummaryFee summaryFee =
         claimSummaryFeeRepository
@@ -419,5 +438,17 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     patchPayload.setAmendmentRequestedBy("PROVIDER");
     patchPayload.setAmendmentReasonCode("PROVIDER_ERROR");
     return patchPayload;
+  }
+
+  /**
+   * Reads {@code calculated_fee_detail.claim_amendment_id} for the given row directly from the
+   * database (test-only), returning {@code null} when the row is unlinked. Avoids initialising the
+   * lazy {@code claimAmendment} association outside a persistence session.
+   */
+  private UUID readLinkedAmendmentId(UUID calculatedFeeDetailId) {
+    return jdbcTemplate.queryForObject(
+        "SELECT claim_amendment_id FROM claims.calculated_fee_detail WHERE id = ?",
+        UUID.class,
+        calculatedFeeDetailId);
   }
 }

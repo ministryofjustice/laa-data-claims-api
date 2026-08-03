@@ -22,7 +22,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -932,7 +933,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET /api/v2/claims - filtering by escaped_case_flag isolates the latest fee record")
   void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
     // given: set up a submission context to satisfy the mandatory office code check
-    OffsetDateTime now = OffsetDateTime.now();
+    Instant now = Instant.now();
 
     // 1. Claim A: Historical records are false, but the LATEST is true -> Should be FOUND
     Claim claimA = new Claim();
@@ -950,9 +951,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     claimA = claimRepository.saveAndFlush(claimA);
 
     // ... (CFD creations)
-    createCalculatedFeeDetail(claimA, false, now.minusDays(3));
-    createCalculatedFeeDetail(claimA, false, now.minusDays(2));
-    createCalculatedFeeDetail(claimA, true, now.minusDays(1)); // latest
+    createCalculatedFeeDetail(claimA, false, now.minus(3, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimA, false, now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimA, true, now.minus(1, ChronoUnit.DAYS)); // latest
 
     // 2. Claim B: Historical records are true, but the LATEST is false -> Should be IGNORED
     Claim claimB = new Claim();
@@ -969,9 +970,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     claimB = claimRepository.saveAndFlush(claimB);
 
-    createCalculatedFeeDetail(claimB, true, now.minusDays(3));
-    createCalculatedFeeDetail(claimB, true, now.minusDays(2));
-    createCalculatedFeeDetail(claimB, false, now.minusDays(1)); // latest
+    createCalculatedFeeDetail(claimB, true, now.minus(3, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimB, true, now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimB, false, now.minus(1, ChronoUnit.DAYS)); // latest
 
     // Ensure Hibernate flushes state to the database before running the query
     claimRepository.flush();
@@ -997,8 +998,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   // Helper method to cleanly persist fee records for the scenario
-  private void createCalculatedFeeDetail(
-      Claim claim, boolean escapeCaseFlag, OffsetDateTime createdOn) {
+  private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
     // 1. Create and persist the ClaimSummaryFee
     ClaimSummaryFee summaryFee =
         ClaimSummaryFee.builder()

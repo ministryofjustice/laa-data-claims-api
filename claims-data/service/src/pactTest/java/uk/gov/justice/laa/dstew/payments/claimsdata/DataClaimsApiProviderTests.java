@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAmendmentHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
@@ -311,6 +312,16 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
         .thenReturn(
             List.of(
                 getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
+  }
+
+  @State("a claim history with an amendment event exists")
+  public void aClaimHistoryWithAnAmendmentEventExists() {
+    log.info("Setting up state: a claim history with an amendment event exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    // Reverse-chronological order: AMENDMENT (newest) -> SUBMISSION (oldest). The amendment event
+    // carries the DSTEW-1814 field-level changes array (REQUESTED + FSP + explicit-null before).
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(List.of(getAmendmentHistoryEvent(), getSubmissionHistoryEvent()));
   }
 
   @State("a matter start exists")

@@ -2528,11 +2528,12 @@ components:
         change_source:
           type: string
           enum:
-            - Requested
+            - REQUESTED
             - FSP
           description: >
-            Origin of the change. "Requested" is a provider-requested change; "FSP" is a downstream
-            consequence of Fee Scheme Platform repricing.
+            Origin of the change. "REQUESTED" is a provider-requested change; "FSP" is a downstream
+            consequence of Fee Scheme Platform repricing. The value is the stable, upper-case label
+            persisted in the amendment diff and surfaced verbatim.
         before:
           nullable: true
           description: Value before the amendment, in its natural JSON type. Null means cleared.
