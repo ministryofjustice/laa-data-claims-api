@@ -338,7 +338,9 @@ public abstract class AbstractIntegrationTest {
 
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4, claim5));
 
-    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+    // ClaimSummaryFee / CalculatedFeeDetail persist createdOn as Instant (UTC), consistent with the
+    // other amendment-era entities; seed them straight from the Instant constant.
+    var createdDateTime = CREATED_ON;
     claimSummaryFee1 =
         ClaimSummaryFee.builder()
             .id(CLAIM_1_SUMMARY_FEE_ID)
@@ -816,7 +818,7 @@ public abstract class AbstractIntegrationTest {
                 .isVatApplicable(true)
                 .disbursementsVatAmount(BigDecimal.valueOf(4))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -844,7 +846,7 @@ public abstract class AbstractIntegrationTest {
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(6))
                 .escapeCaseFlag(true)
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -940,7 +942,7 @@ public abstract class AbstractIntegrationTest {
                 .netDisbursementAmount(BigDecimal.valueOf(33))
                 .disbursementsVatAmount(BigDecimal.valueOf(7))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -966,7 +968,7 @@ public abstract class AbstractIntegrationTest {
                 .netWaitingCostsAmount(BigDecimal.valueOf(5))
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(15))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -1045,7 +1047,7 @@ public abstract class AbstractIntegrationTest {
             .claim(claim)
             .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
             .totalAmount(amount)
-            .createdOn(createdOn)
+            .createdOn(createdOn.toInstant())
             .createdByUserId(USER_ID)
             .build());
   }

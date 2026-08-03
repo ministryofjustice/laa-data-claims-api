@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -59,7 +59,7 @@ public class FeeSchemeHandoffFactory {
     newFeeDetail.setClaimAmendment(claimAmendment); // 1595-F: Establish tracking link
     newFeeDetail.setIsPriceChanged(priceChanged);
     newFeeDetail.setTotalAmount(responseTotal);
-    newFeeDetail.setCreatedOn(OffsetDateTime.now());
+    newFeeDetail.setCreatedOn(Instant.now());
 
     // --- ADDED: Map missing required FSP fields ---
     newFeeDetail.setFeeCode(feeCalculationResponse.getFeeCode());

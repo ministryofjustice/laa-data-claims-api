@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -10,7 +11,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +22,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -104,6 +109,62 @@ public class ClaimHistoryControllerIntegrationTest extends AbstractIntegrationTe
         // A VOID event never carries an assessment outcome.
         .andExpect(jsonPath("$.events[0].metadata.assessment_outcome").doesNotExist())
         .andExpect(jsonPath("$.events[1].event_type").value("SUBMISSION"));
+  }
+
+  @Test
+  @DisplayName(
+      "Preserves an explicit null 'after' in amendment changes as a present-and-null key at the"
+          + " HTTP boundary")
+  void preservesExplicitNullAfterAsPresentNullKey() throws Exception {
+    // A provider-requested clear: before=<value>, after=explicit JSON null. The null must survive
+    // end-to-end serialization as a PRESENT key whose value is null - never collapsed to a missing
+    // key - so a consumer can distinguish "field cleared" from "field not in this change".
+    UUID amendmentId = Uuid7.timeBasedUuid();
+    String diffJson =
+        "{\"schema_version\":1,\"changes\":["
+            + "{\"field_identifier\":\"client.client2Surname\",\"before\":\"Bloggs\","
+            + "\"after\":null,\"change_source\":\"REQUESTED\"}]}";
+
+    // Seed inside a committed transaction so the amendment is visible to the separate HTTP request.
+    new TransactionTemplate(transactionManager)
+        .executeWithoutResult(
+            txStatus ->
+                claimAmendmentRepository.save(
+                    ClaimAmendment.builder()
+                        .id(amendmentId)
+                        .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+                        .requestedByCode("PROVIDER")
+                        .amendmentReasonCode("PROVIDER_ERROR")
+                        .beforeState("{}")
+                        .requestPayload("{}")
+                        .diff(diffJson)
+                        .createdByUserId(USER_ID)
+                        .createdOn(Instant.now())
+                        .build()));
+
+    String body =
+        mockMvc
+            .perform(get(HISTORY_URI, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendment = null;
+    for (JsonNode event : events) {
+      if ("AMENDMENT".equals(event.path("event_type").asText())) {
+        amendment = event;
+        break;
+      }
+    }
+
+    assertThat(amendment).as("an AMENDMENT event is present in the timeline").isNotNull();
+    JsonNode change = amendment.get("metadata").get("changes").get(0);
+    assertThat(change.get("before").asText()).isEqualTo("Bloggs");
+    // The crux: the 'after' key is PRESENT and null, not omitted.
+    assertThat(change.has("after")).isTrue();
+    assertThat(change.get("after").isNull()).isTrue();
   }
 
   private void persistAssessment(AssessmentType type, AssessmentOutcome outcome, String reason) {
