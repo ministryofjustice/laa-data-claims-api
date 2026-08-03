@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,7 +23,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +45,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -60,7 +66,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
@@ -79,11 +84,11 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   @Autowired private ClaimRepository claimRepository;
 
-  @Autowired private MatterStartRepository matterStartRepository;
-
   @Autowired private SqsClient sqsClient;
 
   @Autowired private SnsClient snsClient;
+
+  @Autowired private EntityManager entityManager;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -1331,5 +1336,39 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .param(PARAM_SORT, "unknownField,asc")
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @Transactional
+  @DisplayName("Submission JSON contract shape remains unchanged for amended claims")
+  void submissionJsonContractIsUnchangedForAmendedClaims() throws Exception {
+    // Setup an Amended Submission (1 Claim, 2 Fee Rows)
+    Submission amendedSub = createIsolatedSubmission();
+    Claim amendedClaim = createClaimForSubmission(amendedSub);
+    createFeeDetail(
+        amendedClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
+    createFeeDetail(amendedClaim, BigDecimal.valueOf(250.00), OffsetDateTime.now(), null);
+
+    entityManager.flush();
+    entityManager.clear();
+
+    mockMvc
+        .perform(
+            get("/api/v1/submissions/{id}", amendedSub.getId())
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+
+        // 1. Prove the calculated total is the ONLY thing reflecting the amendment
+        .andExpect(jsonPath("$.calculated_total_amount").value(250.00))
+
+        // 2. Prove the shape/size of the nested collections is intact
+        .andExpect(jsonPath("$.claims", hasSize(1)))
+        .andExpect(jsonPath("$.claims[0].status").value("VALID"))
+
+        // 3. Prove NO amendment-specific fields were added to the payload shape
+        .andExpect(jsonPath("$.amendment_flags").doesNotExist())
+        .andExpect(jsonPath("$.is_amended").doesNotExist())
+        .andExpect(jsonPath("$.claims[0].claim_amendment_id").doesNotExist());
   }
 }
