@@ -179,7 +179,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
       "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP times out")
   void shouldReturnServiceUnavailableOnFspNetworkTimeout() throws Exception {
     ClaimPatch patchPayload = createBasePatch();
-    patchPayload.setFeeCode("FEE-TIMEOUT");
+    // A clean pricing-impacting change (no fee-code change) so no other validation message is
+    // collected before the FSP step - isolating the FSP technical (timeout) failure under test.
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     // Simulate network drop directly via MockServer
     mockServerClient
@@ -248,7 +250,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
       "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP returns 500")
   void shouldReturnServiceUnavailableOnFsp500Error() throws Exception {
     ClaimPatch patchPayload = createBasePatch();
-    patchPayload.setFeeCode("FEE-500");
+    // A clean pricing-impacting change (no fee-code change) so no other validation message is
+    // collected before the FSP step - isolating the FSP technical (500) failure under test.
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     mockServerClient
         .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
@@ -272,7 +276,9 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
       "PATCH /submissions/{id}/claims/{id} - returns 503 Service Unavailable when FSP body is null")
   void shouldReturnServiceUnavailableWhenFspBodyIsNull() throws Exception {
     ClaimPatch patchPayload = createBasePatch();
-    patchPayload.setFeeCode("FEE-NULL");
+    // A clean pricing-impacting change (no fee-code change) so no other validation message is
+    // collected before the FSP step - isolating the FSP technical (null body) failure under test.
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     mockServerClient
         .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
@@ -331,6 +337,67 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     CalculatedFeeDetail latestFeeRecord = savedFees.get(0);
     assertThat(latestFeeRecord.getTotalAmount()).isEqualByComparingTo("15000.00");
     assertThat(latestFeeRecord.getEscapeCaseFlag()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - outcome-check gate: a pricing-impacting change "
+          + "combined with a non-fatal validation error rejects (400) WITHOUT calling FSP repricing")
+  void shouldNotCallFspWhenNonFatalValidationErrorCoexistsWithPricingChange() throws Exception {
+    // A genuinely pricing-impacting change that would otherwise trigger the FSP repricing call...
+    ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+    // ...but the amendment also carries an unknown amendment-reason code, which the metadata
+    // reference step (running before the FSP step) collects as a NON-FATAL validation error.
+    patchPayload.setAmendmentReasonCode("NOT_A_REAL_REASON_CODE");
+
+    // Stub the FSP repricing endpoint so that, if it were (wrongly) called, the call would succeed
+    // and be recorded - making a missed skip visible as a non-zero verification count.
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(
+                    "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
+                        + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,"
+                        + "\"vatIndicator\":true}}"));
+
+    // Capture the calculated-fee row count for this claim before the request so we can prove no
+    // new row is written (these integration tests share DB state, so absolute counts are unsafe).
+    calculatedFeeDetailRepository.flush();
+    long feesBefore =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    // The collected non-fatal validation error is returned in the structured envelope...
+    assertThat(mvcResult.getResponse().getContentAsString())
+        .contains("INVALID_AMENDMENT_REASON_UNKNOWN");
+    // ...and, crucially, the FSP repricing endpoint was never called.
+    mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.exactly(0));
+
+    // Nothing was persisted: no new calculated-fee row and the claim is not marked amended.
+    calculatedFeeDetailRepository.flush();
+    long feesAfter =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+    // No new repricing row was written by the rejected amendment.
+    assertThat(feesAfter).isEqualTo(feesBefore);
+    Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(reloaded.isAmended()).isFalse();
   }
 
   private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
