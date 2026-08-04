@@ -88,8 +88,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
 
   @BeforeEach
   void enableAmendmentsSeedAndStubFeeScheme() throws IOException {
-    originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
-    claimsApiProperties.getAmendments().setEnabled("true");
+    enableAmendmentsFlag();
     seedClaimsData();
     // The non-PDA external calls succeed with the default fixtures; each test stubs the PDA
     // /schedules call itself to drive the behaviour under test.
@@ -99,6 +98,11 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   @AfterEach
   void restoreAmendmentsFlag() {
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentFlag));
+  }
+
+  protected void enableAmendmentsFlag() {
+    originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
+    claimsApiProperties.getAmendments().setEnabled("true");
   }
 
   /**

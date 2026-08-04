@@ -86,19 +86,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
   private static final String FLAG_PRICE_CHANGED = "price_changed";
   private static final String FLAG_ESCAPE_CASE_LOGGED = "escape_case_logged";
 
-  @SuppressWarnings("java:S1075")
-  // Use the canonical FEE_CALCULATION path from MockServerIntegrationTest to avoid duplicating
-  // the literal string.
-  // Note: FEE_CALCULATION constant is inherited from MockServerIntegrationTest via Abstract.
-
-  // claimsApiProperties is inherited from AbstractAmendmentPatchIntegrationTest
-
-  private boolean originalAmendmentFlag;
-
   @BeforeEach
   void setUp() throws Exception {
-    originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
-    claimsApiProperties.getAmendments().setEnabled("true");
 
     // Ensure PATCH_MAPPER can serialize JsonNullable fields the same way the previous
     // SPARSE_PATCH_MAPPER did.
@@ -121,11 +110,6 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
 
     // Each test controls (and asserts on) the fee-calculation stub itself.
     mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
-  }
-
-  @AfterEach
-  void tearDown() {
-    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentFlag));
   }
 
   @Test
