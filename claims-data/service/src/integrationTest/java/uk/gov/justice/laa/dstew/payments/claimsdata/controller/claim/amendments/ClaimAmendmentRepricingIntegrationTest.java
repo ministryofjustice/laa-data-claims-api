@@ -339,6 +339,7 @@ class ClaimAmendmentRepricingIntegrationTest extends MockServerIntegrationTest {
     assertThat(latestFeeRecord.getEscapeCaseFlag()).isTrue();
   }
 
+  @Test
   @DisplayName(
       "PATCH /submissions/{id}/claims/{id} - outcome-check gate: a pricing-impacting change "
           + "combined with a non-fatal validation error rejects (400) WITHOUT calling FSP repricing")
