@@ -12,7 +12,6 @@ import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -199,7 +198,7 @@ public class AmendmentMetadataLookupSteps {
             .requestPayload("{}")
             .diff("{}")
             .createdByUserId("bdd-amendment-user")
-            .createdOn(OffsetDateTime.now())
+            .createdOn(Instant.now())
             .build();
 
     claimAmendmentRepository.saveAndFlush(amendment);
