@@ -44,7 +44,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
 
   @BeforeEach
   void setUp() throws Exception {
-     // Satisfy the AmendmentExternalValidationStep using the real network layer
+    // Satisfy the AmendmentExternalValidationStep using the real network layer
     stubExternalValidationEndpoints();
 
     // Ensure any fee code changes in our tests pass the external Area of Law validation gate
@@ -84,8 +84,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(mockResponseBody));
 
-    MvcResult result =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     calculatedFeeDetailRepository.flush();
@@ -128,8 +127,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         .respond(
             response().withStatusCode(400).withBody("Invalid profit cost configuration combo"));
 
-    MvcResult mvcResult =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult mvcResult = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.BAD_REQUEST);
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("The fee calculation failed validation");
@@ -151,8 +149,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .error(HttpError.error().withDropConnection(true));
 
-    MvcResult mvcResult =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult mvcResult = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
@@ -165,8 +162,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setVersion(1L);
     patchPayload.setClientForename("NewForename");
 
-    MvcResult result =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // Verify MockServer never received a call to the calculation endpoint
@@ -184,8 +180,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setVersion(1L);
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
-    MvcResult mvcResult =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult mvcResult = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.BAD_REQUEST);
     String body = mvcResult.getResponse().getContentAsString();
     assertThat(body).contains("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING");
@@ -206,8 +201,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(response().withStatusCode(500));
 
-    MvcResult mvcResult =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult mvcResult = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
@@ -226,8 +220,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(response().withStatusCode(200)); // 200 OK, but no body provided
 
-    MvcResult mvcResult =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult mvcResult = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(mvcResult.getResponse().getContentAsString()).contains(TECHNICAL_ERROR);
   }
@@ -254,8 +247,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(mockResponseBody));
 
-    MvcResult result =
-        performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
     assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
 
     calculatedFeeDetailRepository.flush();
