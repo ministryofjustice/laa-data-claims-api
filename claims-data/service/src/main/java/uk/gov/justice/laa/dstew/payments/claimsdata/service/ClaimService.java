@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import java.lang.reflect.Field;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -286,7 +286,7 @@ public class ClaimService
       CalculatedFeeDetail calculatedFeeDetail =
           claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
       // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
-      calculatedFeeDetail.setCreatedOn(OffsetDateTime.now());
+      calculatedFeeDetail.setCreatedOn(Instant.now());
 
       // Get existing calculated fee detail, and set the ID if it exists
       calculatedFeeDetailRepository

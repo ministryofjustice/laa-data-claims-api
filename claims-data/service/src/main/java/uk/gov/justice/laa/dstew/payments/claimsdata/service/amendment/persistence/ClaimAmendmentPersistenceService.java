@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -24,10 +23,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *       before_state}, {@code request_payload} and the versioned {@code diff});
  *   <li>applies the amended {@code claim}-table values and {@code is_amended = true} onto the
  *       managed {@link Claim} entity - these column writes are folded into the guarded claim update
- *       owned by DSTEW-1753, so this service never issues its own claim save;
- *   <li>attaches the single amendment-driven {@code calculated_fee_detail} row, when present, via
- *       {@link AmendmentCalculatedFeeWriter} (DSTEW-1762).
+ *       owned by DSTEW-1753, so this service never issues its own claim save.
  * </ol>
+ *
+ * <p>The single amendment-driven {@code calculated_fee_detail} row (when an FSP repricing occurred)
+ * is prepared and linked to the returned {@link ClaimAmendment} by {@code
+ * ClaimAmendmentCommitService} via {@code FeeSchemeHandoffFactory} (DSTEW-1762 / 1595-F); this
+ * service does not write that row.
  *
  * <p><b>Transaction:</b> this service does not open, commit or roll back a transaction. It must be
  * invoked within the single atomic amendment transaction owned by DSTEW-1771, so that every write -
@@ -44,7 +46,6 @@ public class ClaimAmendmentPersistenceService {
   private final AmendmentDiffAssembler diffAssembler;
   private final AmendmentJsonWriter jsonWriter;
   private final AmendmentEntitiesWriter entitiesWriter;
-  private final AmendmentCalculatedFeeWriter calculatedFeeWriter;
 
   /**
    * Persists the business record for a successful amendment of the supplied managed claim.
@@ -56,6 +57,7 @@ public class ClaimAmendmentPersistenceService {
   public ClaimAmendment persistSuccessfulAmendment(Claim claim, ClaimAmendmentState state) {
     ClaimAmendmentPayload payload = state.getRequestPayload();
     AmendmentDiff diff = diffAssembler.assemble(state);
+    String amendmentUserId = unwrap(payload.getAmendmentUserId());
 
     ClaimAmendment amendment =
         ClaimAmendment.builder()
@@ -63,8 +65,8 @@ public class ClaimAmendmentPersistenceService {
             .claim(claim)
             .requestedByCode(unwrap(payload.getAmendmentRequestedBy()))
             .amendmentReasonCode(unwrap(payload.getAmendmentReasonCode()))
-            .createdByUserId(unwrap(payload.getAmendmentUserId()))
-            .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
+            .createdByUserId(amendmentUserId)
+            .createdOn(Instant.now())
             .beforeState(jsonWriter.writeBeforeState(state.getBeforeState()))
             .requestPayload(jsonWriter.writeRequestPayload(payload))
             .diff(jsonWriter.writeDiff(diff))
@@ -74,14 +76,11 @@ public class ClaimAmendmentPersistenceService {
     log.debug("Inserted claim_amendment {} for claim {}", savedAmendment.getId(), claim.getId());
 
     // Contribute the amended column writes to the managed claim and its related entities (client,
-    // claim_case, claim_summary_fee). The version-guarded claim update and the version increment
-    // are
-    // owned by DSTEW-1753; we never issue our own save here.
-    entitiesWriter.applyAmendedValues(claim, state.getPostAmendmentState());
-
-    // Attach the amendment-driven calculated_fee_detail row (one per pricing amendment) from the
-    // FSP handoff; a non-pricing amendment attaches nothing.
-    calculatedFeeWriter.attach(savedAmendment, state);
+    // claim_case, claim_summary_fee) and stamp the amending user onto the claim's
+    // updated_by_user_id (DSTEW-2051 Finding B). The version-guarded claim update, the version
+    // increment and the updated_on timestamp are owned by DSTEW-1753; we never issue our own save
+    // here.
+    entitiesWriter.applyAmendedValues(claim, state.getPostAmendmentState(), amendmentUserId);
 
     return savedAmendment;
   }

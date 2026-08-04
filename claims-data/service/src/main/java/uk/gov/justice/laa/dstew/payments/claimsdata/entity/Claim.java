@@ -134,7 +134,7 @@ public class Claim {
   private String createdByUserId;
 
   @CreationTimestamp
-  @Column(nullable = false)
+  @Column(nullable = false, updatable = false)
   private Instant createdOn;
 
   private String updatedByUserId;
