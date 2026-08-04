@@ -9,12 +9,16 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
@@ -153,7 +157,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    *
    * @return a metadata-only claim patch
    */
-  protected ClaimPatch metadataPatch() {
+  protected ClaimPatch createBasePatch() {
     ClaimPatch patch = new ClaimPatch();
     patch.setVersion(0L);
     patch.setAmendmentRequestedBy(REQUESTED_BY_PROVIDER);
@@ -164,14 +168,12 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
 
   /** Thin assertion helper for HTTP response status checks used across tests. */
   protected void assertResponseStatus(
-      org.springframework.test.web.servlet.MvcResult result,
-      org.springframework.http.HttpStatus expected) {
+      MvcResult result, org.springframework.http.HttpStatus expected) {
     assertThat(result.getResponse().getStatus()).isEqualTo(expected.value());
   }
 
   /** Thin assertion helper to assert the response body contains the given fragment. */
-  protected void assertResponseContains(
-      org.springframework.test.web.servlet.MvcResult result, String expectedFragment)
+  protected void assertResponseContains(MvcResult result, String expectedFragment)
       throws java.io.UnsupportedEncodingException {
     String body = result.getResponse().getContentAsString();
     assertThat(body).contains(expectedFragment);
@@ -205,7 +207,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   protected void assertAmendmentCommittedVersioned(
       org.springframework.test.web.servlet.MvcResult result, UUID claimId, Long originalVersion)
       throws Exception {
-    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
+    assertResponseStatus(result, HttpStatus.NO_CONTENT);
     assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(claimId)).hasSize(1);
     Claim after = claimRepository.findById(claimId).orElseThrow();
     assertThat(after.isAmended()).isTrue();
@@ -252,7 +254,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
       Claim claim,
       java.math.BigDecimal totalAmount,
       boolean escapeCaseFlag,
-      java.time.OffsetDateTime createdOn,
+      Instant createdOn,
       String feeCode) {
 
     ClaimSummaryFee summaryFee =
@@ -286,19 +288,18 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    * Convenience overload matching existing test usages that assume a 100.00 baseline fee code
    * FEE-123
    */
-  protected void createCalculatedFeeDetail(
-      Claim claim, boolean escapeCaseFlag, java.time.OffsetDateTime createdOn) {
+  protected void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
     createCalculatedFeeDetail(
-        claim, java.math.BigDecimal.valueOf(100.00), escapeCaseFlag, createdOn, "FEE-123");
+        claim, BigDecimal.valueOf(100.00), escapeCaseFlag, createdOn, "FEE-123");
   }
 
   /** Convenience helper for the canonical baseline used in history tests. */
   protected void createBaselineCalculatedFeeDetail(Claim claim) {
     createCalculatedFeeDetail(
         claim,
-        java.math.BigDecimal.valueOf(100.00),
+        BigDecimal.valueOf(100.00),
         false,
-        java.time.OffsetDateTime.now().minusDays(1),
+        Instant.now().minus(1, ChronoUnit.DAYS),
         "FEE-123");
   }
 }

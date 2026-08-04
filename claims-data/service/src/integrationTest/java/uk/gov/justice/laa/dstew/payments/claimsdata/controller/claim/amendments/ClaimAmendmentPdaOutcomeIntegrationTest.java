@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -109,17 +108,6 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
     assertBadRequestContaining(result, PDA_TECHNICAL_ERROR_CODE);
   }
 
-  @Test
-  @Disabled(
-      "INVALID_AREA_OF_LAW_FOR_PROVIDER does not exist in claims-validation-core: the "
-          + "EffectiveCategoryOfLawClaimValidator never reads any area-of-law field from the PDA "
-          + "response, so the library cannot emit this code. Re-enable once the area-of-law check "
-          + "exists (raise with the DSTEW-1774 owner / BA - the AC may be incorrect).")
-  @DisplayName("area of law not authorised - collects INVALID_AREA_OF_LAW_FOR_PROVIDER (gap)")
-  void areaOfLawNotAuthorisedCollectsValidationMessage() {
-    // Intentionally empty: documents a spec-vs-library gap (see @Disabled reason).
-  }
-
   // ---------------------------------------------------------------------------
   // Fixtures / helpers
   // ---------------------------------------------------------------------------
@@ -143,7 +131,7 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
 
   /** A patch carrying valid amendment metadata plus a PDA-relevant fee-code change. */
   private ClaimPatch feeCodeChangePatch() {
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setFeeCode("FEE2");
     return patch;
   }

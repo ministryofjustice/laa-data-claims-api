@@ -69,7 +69,7 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
 
     // Amend a claim-level field (fee code) and the client name in one request. The patch carries
     // the claim's current version so it passes the early version gate.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(AMENDED_FEE_CODE);
     patch.setClientForename(AMENDED_CLIENT_FORENAME);
@@ -121,7 +121,7 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
 
     // Submit a version that does not match the current claim version, simulating a claim that
     // changed since it was loaded.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(999L);
     patch.setFeeCode(AMENDED_FEE_CODE);
 
@@ -156,7 +156,7 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
 
     // Omit the claim version entirely: the NON_NULL patch mapper drops the null field, so the
     // request body carries no version at all - the mandatory-version contract (DSTEW-1751).
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(null);
     patch.setFeeCode(AMENDED_FEE_CODE);
 
@@ -188,7 +188,7 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     // Metadata-only patch: carries the required requested-by/reason/user id but changes no field.
     // It carries the claim's current version so it clears the early version gate, leaving the
     // no-change guard (not the version gate) as what halts the flow with a 204.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);

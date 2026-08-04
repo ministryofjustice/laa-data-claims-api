@@ -80,7 +80,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -107,7 +107,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode("NEWFEE").uniqueFileNumber(UNIQUE_FILE_NUMBER), SEEDED_UNIQUE_CLIENT_NUMBER);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -132,7 +132,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode(FEE_CODE).uniqueFileNumber("020225/002"), SEEDED_UNIQUE_CLIENT_NUMBER);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -164,7 +164,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
             b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER));
     seedClient(siblingId, OTHER_UCN, "Dup", "Licate");
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -174,6 +174,35 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_SAME_SUBMISSION);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
+  }
+
+  @Test
+  @DisplayName(
+      "duplicate validation is aggregated with another (metadata) validation error in a single "
+          + "structured response, and nothing is persisted")
+  void duplicateAndMetadataErrorsAreAggregatedTogether() throws Exception {
+    final Long originalVersion = amendableClaim1().getVersion();
+
+    // Prior twin so amending the UCN creates a cross-submission duplicate (reusable/validation-core
+    // owned message).
+    seedPriorDuplicateClaim(
+        b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
+
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(originalVersion);
+    patch.setUniqueClientNumber(OTHER_UCN);
+    // Additionally supply an unknown amendment-reason code so the metadata reference step collects
+    // a second, non-fatal validation error alongside the duplicate message.
+    patch.setAmendmentReasonCode("NOT_A_REAL_REASON_CODE");
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // Both the duplicate (reusable) and the metadata errors are returned together in the envelope.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(result.getResponse().getContentAsString())
+        .contains(DUPLICATE_IN_ANOTHER_SUBMISSION)
+        .contains("INVALID_AMENDMENT_REASON_UNKNOWN");
     assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
@@ -190,7 +219,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     // No comparison claim seeded: the only row matching CLAIM_1's keys is its own persisted row, so
     // a correct self-exclusion must let this neutral (non-key) amendment commit.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -212,7 +241,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaimWithStatus(
         ClaimStatus.VOID, b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -236,7 +265,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER),
         OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -256,7 +285,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     // match.
     seedPriorDuplicateClaim(b -> b.feeCode(FEE_CODE).uniqueFileNumber("999999/999"), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);

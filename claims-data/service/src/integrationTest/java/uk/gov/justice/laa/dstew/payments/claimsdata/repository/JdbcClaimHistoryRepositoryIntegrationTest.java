@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.Ame
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REQUESTED_BY_PROVIDER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_SUMMARY_FEE_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
@@ -26,6 +27,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrati
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.MatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
@@ -481,7 +483,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     // escape. Validates all three indicators plus the Requested change_source passthrough.
     persistAmendment(
         amendmentId,
-        diff(change("claim.caseReferenceNumber", "\"REF-1\"", "\"REF-2\"", "Requested")));
+        diff(change("claim.caseReferenceNumber", "\"REF-1\"", "\"REF-2\"", SOURCE_REQUESTED)));
     linkCalculatedFeeDetail(amendmentId, false, false);
 
     ClaimHistoryEventRow event = findEvent(amendmentId);
@@ -491,7 +493,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(event.metadata().get(KEY_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
     assertThat(event.metadata().get(KEY_CHANGES)).hasSize(1);
     assertThat(event.metadata().get(KEY_CHANGES).get(0).get(KEY_CHANGE_SOURCE).asText())
-        .isEqualTo("Requested");
+        .isEqualTo(SOURCE_REQUESTED);
   }
 
   @Test
@@ -503,7 +505,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     persistAmendment(
         amendmentId,
         diff(
-            change("claim.netProfitCostsAmount", "\"100.00\"", "\"150.00\"", "Requested"),
+            change("claim.netProfitCostsAmount", "\"100.00\"", "\"150.00\"", SOURCE_REQUESTED),
             change("fee.totalAmount", "\"100.00\"", "\"180.00\"", SOURCE_FSP),
             change("fee.escapeCaseFlag", "false", "true", SOURCE_FSP)));
     linkCalculatedFeeDetail(amendmentId, true, true);
@@ -649,6 +651,28 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(events).extracting(ClaimHistoryEventRow::eventType).doesNotContain(AMENDMENT);
   }
 
+  @Test
+  @DisplayName("Excludes New Matter Starts: a matter_start row never produces a timeline event")
+  void excludesNewMatterStartsFromTimeline() {
+    // New Matter Starts are submission-level and must stay out of the claim timeline. Seed a matter
+    // start against the same submission as the claim and prove it contributes nothing.
+    UUID matterStartId = Uuid7.timeBasedUuid();
+    matterStartRepository.save(
+        MatterStart.builder()
+            .id(matterStartId)
+            .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
+            .numberOfMatterStarts(1)
+            .createdByUserId(USER_ID)
+            .build());
+    matterStartRepository.flush();
+
+    List<ClaimHistoryEventRow> events = findHistory();
+
+    // Only the submission event exists; the matter start is neither an event nor a source id.
+    assertThat(events).extracting(ClaimHistoryEventRow::eventType).containsExactly(SUBMISSION);
+    assertThat(events).extracting(ClaimHistoryEventRow::sourceId).doesNotContain(matterStartId);
+  }
+
   // ----------------------------------------------------------------------------------------------
   // Helpers
   // ----------------------------------------------------------------------------------------------
@@ -686,7 +710,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
             .requestPayload("{}")
             .diff(diffJson)
             .createdByUserId(USER_ID)
-            .createdOn(OffsetDateTime.ofInstant(createdOn, ZoneOffset.UTC))
+            .createdOn(createdOn)
             .build());
     claimAmendmentRepository.flush();
   }
@@ -702,7 +726,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
             .escapeCaseFlag(escapeFlag)
             .totalAmount(new BigDecimal("120.00"))
             .createdByUserId(USER_ID)
-            .createdOn(OffsetDateTime.now(ZoneOffset.UTC))
+            .createdOn(Instant.now())
             .build();
     calculatedFeeDetailRepository.save(fee);
     calculatedFeeDetailRepository.flush();

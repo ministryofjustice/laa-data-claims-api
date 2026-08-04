@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -24,7 +24,7 @@ public final class TestClaimsDataFactory {
         claimSummaryFee,
         id,
         Boolean.TRUE,
-        OffsetDateTime.now(),
+        Instant.now(),
         "FEE-123",
         BigDecimal.valueOf(100.00));
   }
@@ -34,7 +34,7 @@ public final class TestClaimsDataFactory {
       ClaimSummaryFee claimSummaryFee,
       UUID id,
       boolean escapeCaseFlag,
-      OffsetDateTime createdOn,
+      Instant createdOn,
       String feeCode,
       BigDecimal totalAmount) {
 
@@ -85,7 +85,7 @@ public final class TestClaimsDataFactory {
         .escapeCaseFlag(escapeCaseFlag)
         .schemeId("SCHEME-01")
         .createdByUserId("test-user")
-        .createdOn(createdOn == null ? OffsetDateTime.now() : createdOn);
+        .createdOn(createdOn == null ? Instant.now() : createdOn);
 
     return builder.build();
   }

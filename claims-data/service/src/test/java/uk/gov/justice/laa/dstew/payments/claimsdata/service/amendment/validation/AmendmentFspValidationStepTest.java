@@ -277,7 +277,6 @@ class AmendmentFspValidationStepTest {
   @Test
   @DisplayName("1595-B: Should skip execution safely if before state lacks Area of Law")
   void validate_whenBeforeStateLacksAreaOfLaw_skipsFspCall() {
-    // Arrange: State has a calculated fee (so it passes the first guard), but areaOfLaw is null
     ClaimAmendmentState state =
         stateBuilder
             .beforeState(beforeStateBuilder.areaOfLaw(null).build())
@@ -289,6 +288,35 @@ class AmendmentFspValidationStepTest {
 
     // Assert
     assertThat(errors).isEmpty();
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName(
+      "Outcome-check gate: should skip the FSP call when a non-fatal validation error was already "
+          + "collected by an earlier step, even for a pricing-impacting change")
+  void validate_whenErrorsAlreadyCollected_skipsFspCall() {
+    // Arrange: a genuine pricing-impacting fee-code change that would normally trigger the FSP
+    // call...
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
+            .build();
+
+    // ...but an earlier step has already collected a non-fatal validation error.
+    state.addErrors(
+        List.of(
+            ClaimAmendmentValidationError.of(
+                ClaimAmendmentValidationCode.INVALID_USER_IDENTIFIER_MISSING)));
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert: the step adds nothing of its own and makes no outbound FSP call.
+    assertThat(errors).isEmpty();
+    assertThat(state.getFspResponseContext()).isNull();
     verifyNoInteractions(fspClient);
   }
 }

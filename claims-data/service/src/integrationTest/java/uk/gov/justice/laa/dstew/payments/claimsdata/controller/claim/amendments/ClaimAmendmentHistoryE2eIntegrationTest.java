@@ -24,9 +24,12 @@ import org.junit.jupiter.api.TestInstance;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.MediaType;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 
 /**
@@ -73,6 +76,15 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
           .registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
 
   private static final String HISTORY_ENDPOINT = API_URI_PREFIX + "/claims/{claimId}/history";
+
+  private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
+  private static final String REQUESTED_BY_PROVIDER = "PROVIDER";
+  private static final String REASON_PROVIDER_ERROR = "PROVIDER_ERROR";
+
+  // Derived FSP-consequence flag keys on the AMENDMENT event metadata (DSTEW-1762).
+  private static final String FLAG_PRICING_RECALCULATED = "pricing_recalculated";
+  private static final String FLAG_PRICE_CHANGED = "price_changed";
+  private static final String FLAG_ESCAPE_CASE_LOGGED = "escape_case_logged";
 
   @SuppressWarnings("java:S1075")
   // Use the canonical FEE_CALCULATION path from MockServerIntegrationTest to avoid duplicating
@@ -225,14 +237,69 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(fspSchemeId.get("before").isNull()).isTrue();
     assertThat(fspSchemeId.get("after").asText()).isEqualTo("SCHEME-TEST");
 
-    // TODO(DSTEW-1762 / DSTEW-1815): the FSP consequence FLAGS (pricing_recalculated,
-    // price_changed,
-    //  escape_case_logged) are intentionally NOT asserted here. They derive from
-    //  calculated_fee_detail.claim_amendment_id, and AmendmentCalculatedFeeWriter.attach() is
-    //  currently a no-op stub, so the LEFT JOIN in the history SQL will not match and the flags
-    // stay
-    //  false. Add flag assertions once DSTEW-1762 links the calculated_fee_detail row to the
-    //  amendment (and DSTEW-1815 formalises the flags in this story's scope).
+    // --- Assert: FSP consequence FLAGS (DSTEW-1762) ---
+    // These derive from the calculated_fee_detail row that the commit pipeline links to this
+    // amendment (calculated_fee_detail.claim_amendment_id = am.id). A pricing amendment therefore
+    // sets pricing_recalculated=true; the FSP total moved 100.00 -> 650.00 so price_changed=true;
+    // the FSP escapeCaseFlag stayed false (no fee.escapeCaseFlag change entry) so
+    // escape_case_logged=false.
+    assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "A repricing amendment that crosses the escape threshold surfaces escape_case_logged=true")
+  void repricingAmendmentCrossingEscapeThresholdSetsEscapeFlag() throws Exception {
+    // The baseline calculated fee has escapeCaseFlag=false; the FSP now returns
+    // escapeCaseFlag=true,
+    // so the diff carries an FSP-sourced fee.escapeCaseFlag change (false -> true) and the history
+    // SQL derives escape_case_logged=true.
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(1L);
+    patch.netProfitCostsAmount(BigDecimal.valueOf(15000.00));
+
+    String fspResponse =
+        "{\"feeCode\":\"FEE-ESCAPE\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":true,"
+            + "\"feeCalculation\":{\"totalAmount\":15000.00,\"netProfitCostsAmount\":15000.00,"
+            + "\"vatIndicator\":true}}";
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(fspResponse));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    // A successful amendment returns 204 No Content.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
+
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    assertThat(amendmentEvent).as("an AMENDMENT event is present in the timeline").isNotNull();
+
+    JsonNode metadata = amendmentEvent.get("metadata");
+
+    // The FSP escapeCaseFlag transition (false -> true) is recorded as an FSP-sourced change entry.
+    JsonNode escapeChange = changeByField(metadata.get("changes"), "fee.escapeCaseFlag");
+    assertThat(escapeChange.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(escapeChange.get("after").asBoolean()).isTrue();
+
+    // All three FSP consequence flags are true for an escape-threshold-crossing repricing.
+    assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isTrue();
   }
 
   @Test
@@ -410,9 +477,53 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(nameChange.get("before").asText()).isEqualTo(SEEDED_CLIENT_FORENAME);
     assertThat(nameChange.get("after").asText()).isEqualTo(amendedForename);
 
+    // No FSP repricing occurred, so no calculated_fee_detail row is linked to this amendment: every
+    // FSP consequence flag stays false.
+    JsonNode metadata = amendmentEvent.get("metadata");
+    assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isFalse();
+    assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isFalse();
+    assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
+
     // FSP must never be called for a non-pricing amendment.
     mockServerClient.verify(
         request().withPath(FEE_CALCULATION), org.mockserver.verify.VerificationTimes.exactly(0));
+  }
+
+  @Test
+  @DisplayName(
+      "A failed amendment (stale version, 409) writes nothing and produces no AMENDMENT history event")
+  void failedAmendmentProducesNoHistoryEvent() throws Exception {
+    // Drive a genuinely failing amendment through the public PATCH endpoint: a stale claim version
+    // is rejected with 409 before anything is committed. Parent AC: a failed amendment attempt is
+    // not business history, so the timeline must contain no AMENDMENT event for it. This is the
+    // write-to-read counterpart to the write-side rollback suites (which prove no claim_amendment
+    // row is written); here we additionally prove the failure never surfaces on the read side.
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(1L);
+    patch.version(999L); // stale - does not match the claim's current version
+    patch.netProfitCostsAmount(BigDecimal.valueOf(9999.00));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    // A failed amendment returns 409 Conflict.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+
+    // Write side: the failed attempt persisted no claim_amendment row.
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+
+    // Read side: the timeline carries no AMENDMENT event for the failed attempt.
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    assertThat(firstEventOfType(events, "AMENDMENT"))
+        .as("a failed amendment must not appear as a timeline event")
+        .isNull();
   }
 
   // ---------------------------------------------------------------------------
@@ -427,9 +538,6 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
         .amendmentReasonCode(REASON_PROVIDER_ERROR)
         .build();
   }
-
-  // createBaselineCalculatedFeeDetail moved to AbstractAmendmentPatchIntegrationTest as a
-  // shared helper.
 
   private static JsonNode firstEventOfType(JsonNode events, String eventType) {
     for (JsonNode event : events) {
