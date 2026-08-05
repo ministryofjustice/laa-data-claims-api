@@ -16,6 +16,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ValidatingPageableHandlerMethodArgumentResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
@@ -136,27 +137,24 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * NumberFormatException may sometimes bubble up from conversion when parsing numeric query
-   * parameters. Only treat it as a 400 if the stack trace indicates it arose from request parameter
-   * conversion (e.g. framework conversion classes); otherwise treat as 500.
+   * Handle invalid pageable request parameters.
+   *
+   * <p>Invoked when the {@link ValidatingPageableHandlerMethodArgumentResolver} detects malformed
+   * or out-of-range "page"/"size" query parameters. Converts the {@link
+   * InvalidPageableParameterException} into a standard RFC 9457 {@link ProblemDetail} response with
+   * HTTP 400 Bad Request. The exception message is used as the ProblemDetail detail to provide a
+   * user-friendly explanation of the validation failure.
+   *
+   * @param ex the invalid pageable parameter exception
+   * @param request the servlet request used to populate the ProblemDetail instance field
+   * @return a ProblemDetail response with HTTP 400
    */
-  @ExceptionHandler(NumberFormatException.class)
-  public ResponseEntity<ProblemDetail> handleNumberFormatException(
-      NumberFormatException exception, HttpServletRequest request) {
-    log.warn("NumberFormatException during request processing: {}", exception.getMessage());
-    for (StackTraceElement ste : exception.getStackTrace()) {
-      String className = ste.getClassName();
-      if (className.startsWith("org.springframework.core")
-          || className.startsWith("org.springframework.beans")
-          || className.startsWith("org.springframework.data.web")
-          || className.contains("PageableHandlerMethodArgumentResolver")) {
-        String detail =
-            exception.getMessage() == null ? "Invalid request parameters" : exception.getMessage();
-        return buildProblemDetailResponse(
-            HttpStatus.BAD_REQUEST, detail, exception.getClass(), request);
-      }
-    }
-    return handleGenericException(exception, request);
+  @ExceptionHandler(InvalidPageableParameterException.class)
+  public ResponseEntity<ProblemDetail> handleInvalidPageableParameterException(
+      InvalidPageableParameterException ex, HttpServletRequest request) {
+    log.warn("Invalid pageable parameters: {}", ex.getMessage());
+    return buildProblemDetailResponse(
+        HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getClass(), request);
   }
 
   /**
