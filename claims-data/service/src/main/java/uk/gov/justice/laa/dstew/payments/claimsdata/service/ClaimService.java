@@ -610,8 +610,7 @@ public class ClaimService
       return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
     }
 
-    return org.springframework.data.domain.PageRequest.of(
-        pageable.getPageNumber(), pageable.getPageSize(), newSort);
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 
   /**
