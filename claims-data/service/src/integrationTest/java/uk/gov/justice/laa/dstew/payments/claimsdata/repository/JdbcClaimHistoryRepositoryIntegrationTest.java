@@ -678,7 +678,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
   // ----------------------------------------------------------------------------------------------
 
   private List<ClaimHistoryEventRow> findHistory() {
-    return claimHistoryRepository.findHistory(CLAIM_1_ID, HISTORY_LIMIT);
+    return claimHistoryRepository.findHistory(CLAIM_1_ID, HISTORY_LIMIT, 0);
   }
 
   private ClaimHistoryEventRow findEvent(UUID sourceId) {
@@ -767,6 +767,50 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
         .param("ts", OffsetDateTime.ofInstant(createdOn, ZoneOffset.UTC))
         .param("id", assessmentId)
         .update();
+  }
+
+  @Test
+  @DisplayName("Supports limit/offset pagination: first and second page return expected events")
+  void supportsLimitOffsetPagination() {
+    // Create two assessments with deterministic timestamps so ordering is known.
+    UUID firstId = Uuid7.timeBasedUuid();
+    UUID secondId = Uuid7.timeBasedUuid();
+    persistAssessment(
+        firstId, AssessmentType.ESCAPE_CASE_ASSESSMENT, AssessmentOutcome.PAID_IN_FULL, "First");
+    persistAssessment(
+        secondId, AssessmentType.ESCAPE_CASE_ASSESSMENT, AssessmentOutcome.PAID_IN_FULL, "Second");
+    // Ensure firstId is newer than secondId
+    Instant newer = Instant.parse("2026-06-01T11:00:00Z");
+    Instant older = Instant.parse("2026-06-01T10:00:00Z");
+    forceCreatedOn(firstId, newer);
+    forceCreatedOn(secondId, older);
+
+    // Find the absolute positions of the two inserted assessments within the full timeline and
+    // assert that fetching a single-item page at those offsets returns the expected source id.
+    List<ClaimHistoryEventRow> full = claimHistoryRepository.findHistory(CLAIM_1_ID, 100, 0);
+    int idxFirst = -1;
+    int idxSecond = -1;
+    for (int i = 0; i < full.size(); i++) {
+      if (full.get(i).sourceId().equals(firstId)) {
+        idxFirst = i;
+      }
+      if (full.get(i).sourceId().equals(secondId)) {
+        idxSecond = i;
+      }
+    }
+
+    assertThat(idxFirst).isGreaterThanOrEqualTo(0);
+    assertThat(idxSecond).isGreaterThanOrEqualTo(0);
+
+    List<ClaimHistoryEventRow> pageAtFirst =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxFirst);
+    List<ClaimHistoryEventRow> pageAtSecond =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxSecond);
+
+    assertThat(pageAtFirst).hasSize(1);
+    assertThat(pageAtSecond).hasSize(1);
+    assertThat(pageAtFirst.get(0).sourceId()).isEqualTo(firstId);
+    assertThat(pageAtSecond.get(0).sourceId()).isEqualTo(secondId);
   }
 
   // ---- JSON diff builders -----------------------------------------------------------------------

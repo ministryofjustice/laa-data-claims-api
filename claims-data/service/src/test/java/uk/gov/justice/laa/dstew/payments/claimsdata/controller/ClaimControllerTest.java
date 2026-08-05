@@ -21,6 +21,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -62,7 +63,8 @@ class ClaimControllerTest {
   @MockitoBean private ClaimService claimService;
 
   @Test
-  void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
+  @DisplayName("Create claim returns Created status and Location header")
+  void createClaimReturnsCreatedStatusAndLocationHeader() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
@@ -99,7 +101,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void getClaim_returnsClaimDetails() throws Exception {
+  @DisplayName("Get claim returns claim details")
+  void getClaimReturnsClaimDetails() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimResponse claimFields =
@@ -134,7 +137,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void getClaimV2_returnsClaimDetails() throws Exception {
+  @DisplayName("Get claim v2 returns claim details")
+  void getClaimV2ReturnsClaimDetails() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimResponseV2 claimFields =
@@ -169,7 +173,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void updateClaim_returnsNoContent() throws Exception {
+  @DisplayName("Update claim returns No Content")
+  void updateClaimReturnsNoContent() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final String body = "{ \"status\": \"INVALID\" }";
@@ -188,7 +193,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void getClaims_returnsClaimDetails() throws Exception {
+  @DisplayName("Get claims returns claim details")
+  void getClaimsReturnsClaimDetails() throws Exception {
     var claimResponse = new ClaimResponse();
     var expected = new ClaimResultSet().content(List.of(claimResponse));
 
@@ -233,7 +239,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void getClaims_v2_returnsClaimDetails() throws Exception {
+  @DisplayName("Get claims v2 returns claim details")
+  void getClaimsV2ReturnsClaimDetails() throws Exception {
     var claimResponse = new ClaimResponseV2();
     var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
@@ -267,7 +274,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void voidClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
+  @DisplayName("Void claim returns Created status and Location header")
+  void voidClaimReturnsCreatedStatusAndLocationHeader() throws Exception {
 
     UUID claimId = Uuid7.timeBasedUuid();
     UUID assessmentId = Uuid7.timeBasedUuid();
@@ -304,7 +312,8 @@ class ClaimControllerTest {
   }
 
   @Test
-  void voidClaim_missingBody_returnsBadRequest() throws Exception {
+  @DisplayName("Void claim missing body returns Bad Request")
+  void voidClaimMissingBodyReturnsBadRequest() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     mockMvc
         .perform(

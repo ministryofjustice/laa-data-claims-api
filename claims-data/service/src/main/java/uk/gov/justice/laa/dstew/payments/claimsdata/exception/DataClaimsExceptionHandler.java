@@ -106,6 +106,60 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Spring Data's pageable resolver may throw an IllegalStateException for invalid pagination
+   * values (for example size=0). Only map those IllegalStateExceptions to 400 if the origin appears
+   * to be the pageable resolver; otherwise delegate to the generic 500 handler so we do not mask
+   * genuine internal errors.
+   */
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ProblemDetail> handleIllegalStateException(
+      IllegalStateException exception, HttpServletRequest request) {
+    log.warn("IllegalStateException caught during request processing: {}", exception.getMessage());
+
+    // Inspect the stack trace to determine whether this originated from Spring Data's
+    // pageable/argument resolution. If so, return 400; otherwise fall back to the generic 500
+    // handler to avoid hiding real server errors.
+    for (StackTraceElement ste : exception.getStackTrace()) {
+      String className = ste.getClassName();
+      if (className.startsWith("org.springframework.data.web")
+          || className.contains("PageableHandlerMethodArgumentResolver")
+          || className.contains("PageableArgumentResolver")) {
+        String detail =
+            exception.getMessage() == null ? "Invalid request parameters" : exception.getMessage();
+        return buildProblemDetailResponse(
+            HttpStatus.BAD_REQUEST, detail, exception.getClass(), request);
+      }
+    }
+
+    // Not identified as a pageable/argument-resolution failure - delegate to generic handler
+    return handleGenericException(exception, request);
+  }
+
+  /**
+   * NumberFormatException may sometimes bubble up from conversion when parsing numeric query
+   * parameters. Only treat it as a 400 if the stack trace indicates it arose from request parameter
+   * conversion (e.g. framework conversion classes); otherwise treat as 500.
+   */
+  @ExceptionHandler(NumberFormatException.class)
+  public ResponseEntity<ProblemDetail> handleNumberFormatException(
+      NumberFormatException exception, HttpServletRequest request) {
+    log.warn("NumberFormatException during request processing: {}", exception.getMessage());
+    for (StackTraceElement ste : exception.getStackTrace()) {
+      String className = ste.getClassName();
+      if (className.startsWith("org.springframework.core")
+          || className.startsWith("org.springframework.beans")
+          || className.startsWith("org.springframework.data.web")
+          || className.contains("PageableHandlerMethodArgumentResolver")) {
+        String detail =
+            exception.getMessage() == null ? "Invalid request parameters" : exception.getMessage();
+        return buildProblemDetailResponse(
+            HttpStatus.BAD_REQUEST, detail, exception.getClass(), request);
+      }
+    }
+    return handleGenericException(exception, request);
+  }
+
+  /**
    * Handle any uncaught exceptions that are not instances of {@code ClaimsDataException}.
    *
    * <p>This method serves as a last-resort handler to capture and log any unexpected exceptions and

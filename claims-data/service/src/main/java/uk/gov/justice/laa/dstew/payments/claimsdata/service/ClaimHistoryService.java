@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
@@ -26,42 +27,33 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimH
 public class ClaimHistoryService {
 
   /** Default page size used when a caller does not specify one. */
-  private static final int DEFAULT_PAGE_SIZE = 50;
+  private static final int DEFAULT_PAGE_SIZE = 20;
 
   private final ClaimHistoryRepository claimHistoryRepository;
   private final ClaimRepository claimRepository;
 
   /**
-   * Returns the most recent page of a claim's history timeline, newest event first.
-   *
-   * @param claimId the claim to retrieve history for
-   * @return an ordered list of timeline events (may be empty, never {@code null})
-   * @throws ClaimNotFoundException if no claim exists for the given claim id
+   * Pageable-aware overload. If {@code pageable} is {@link Pageable#isUnpaged() unpaged} the
+   * default page size is used and page 0 is returned. Otherwise the pageable's page number and size
+   * are converted to a limit/offset pair and applied to the underlying query.
    */
   @Transactional(readOnly = true)
-  public List<ClaimHistoryEventRow> getTimeline(UUID claimId) {
-    return load(claimId, DEFAULT_PAGE_SIZE);
+  public List<ClaimHistoryEventRow> getTimeline(UUID claimId, Pageable pageable) {
+    if (pageable == null || pageable.isUnpaged()) {
+      return load(claimId, DEFAULT_PAGE_SIZE, 0);
+    }
+
+    int limit = pageable.getPageSize();
+    int offset = Math.multiplyExact(pageable.getPageNumber(), limit);
+    return load(claimId, limit, offset);
   }
 
-  /**
-   * Returns the most recent page of a claim's history timeline, newest event first.
-   *
-   * @param claimId the claim to retrieve history for
-   * @param pageSize the maximum number of events to return
-   * @return an ordered list of timeline events (may be empty, never {@code null})
-   * @throws ClaimNotFoundException if no claim exists for the given claim id
-   */
-  @Transactional(readOnly = true)
-  public List<ClaimHistoryEventRow> getTimeline(UUID claimId, int pageSize) {
-    return load(claimId, pageSize);
-  }
-
-  private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize) {
+  private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize, int offset) {
     if (!claimRepository.existsById(claimId)) {
       throw new ClaimNotFoundException(String.format(NO_CLAIM_FOUND_WITH_ID_ERROR, claimId));
     }
-
-    List<ClaimHistoryEventRow> timeline = claimHistoryRepository.findHistory(claimId, pageSize);
+    List<ClaimHistoryEventRow> timeline =
+        claimHistoryRepository.findHistory(claimId, pageSize, offset);
     log.debug("Loaded {} history event(s) for claim {}", timeline.size(), claimId);
     return timeline;
   }
