@@ -72,10 +72,7 @@ public class BulkSubmissionService
    *     the bulk).
    */
   public CreateBulkSubmission201Response submitBulkSubmissionFile(
-      @NotNull String userId,
-      @NotNull MultipartFile file,
-      @NotNull final List<String> offices,
-      final boolean savedInitiallyAsDraft) {
+      @NotNull String userId, @NotNull MultipartFile file, @NotNull final List<String> offices) {
 
     GetBulkSubmission200ResponseDetails bulkSubmissionDetails = getBulkSubmissionDetails(file);
     String areaOfLaw =
@@ -104,10 +101,7 @@ public class BulkSubmissionService
     validateDateFormats(bulkSubmissionDetails, bulkSubmissionBuilder);
 
     BulkSubmission authorised =
-        bulkSubmissionBuilder
-            .status(BulkSubmissionStatus.READY_FOR_PARSING)
-            .submittedAsDraft(savedInitiallyAsDraft)
-            .build();
+        bulkSubmissionBuilder.status(BulkSubmissionStatus.READY_FOR_PARSING).build();
 
     bulkSubmissionRepository.save(authorised);
 
@@ -314,8 +308,7 @@ public class BulkSubmissionService
         .errorCode(bulkSubmission.getErrorCode())
         .errorDescription(bulkSubmission.getErrorDescription())
         .updatedByUserId(bulkSubmission.getUpdatedByUserId())
-        .details(bulkSubmission.getData())
-        .saveAsDraft(bulkSubmission.isSubmittedAsDraft());
+        .details(bulkSubmission.getData());
   }
 
   /**

@@ -3,7 +3,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -90,7 +89,7 @@ class BulkSubmissionControllerTest {
       expected.setBulkSubmissionId(Uuid7.timeBasedUuid());
       expected.setSubmissionIds(singletonList(SUBMISSION_ID));
 
-      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any(), anyBoolean()))
+      when(bulkSubmissionService.submitBulkSubmissionFile(any(), any(), any()))
           .thenReturn(expected);
 
       // Perform POST with multipart file
@@ -99,8 +98,7 @@ class BulkSubmissionControllerTest {
                   multipart(BULK_SUBMISSIONS_URI)
                       .file("file", mockMultipartFile.getBytes())
                       .param("userId", USER_ID)
-                      .param("offices", "OFFICE1,OFFICE2")
-                      .param("saveAsDraft", "true")))
+                      .param("offices", "OFFICE1,OFFICE2")))
           .hasStatus(201)
           .hasHeader(
               "Location",
@@ -158,8 +156,7 @@ class BulkSubmissionControllerTest {
                   multipart(BULK_SUBMISSIONS_URI)
                       .file("file", mockMultipartFile.getBytes())
                       .param("userId", USER_ID)
-                      .param("offices", "OFFICE1,OFFICE2")
-                      .param("saveAsDraft", "true")))
+                      .param("offices", "OFFICE1,OFFICE2")))
           .hasStatus(415)
           .bodyText()
           .contains("Unsupported media type");
