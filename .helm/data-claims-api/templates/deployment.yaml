@@ -146,6 +146,18 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: fee-scheme-platform-api-url
+            - name: FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-read-timeout-ms
+                  optional: true
+            - name: FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-connect-timeout-ms
+                  optional: true
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION

@@ -10,12 +10,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentNoChangeValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AssessedClaimPricingValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.BeforeStatePresenceValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimAmendmentValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimStatusValidationStep;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.FieldAmendabilityValidationStep;
 
 /**
@@ -64,6 +66,8 @@ public class ClaimAmendmentValidationService {
           // any other work is done.
           AmendmentFeatureFlagValidationStep.class,
           BeforeStatePresenceValidationStep.class,
+          ClaimVersionValidationStep.class,
+          AmendmentNoChangeValidationStep.class,
           ClaimStatusValidationStep.class,
           AssessedClaimPricingValidationStep.class,
           FieldAmendabilityValidationStep.class,

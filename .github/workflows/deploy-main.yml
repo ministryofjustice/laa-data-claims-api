@@ -18,7 +18,7 @@ env:
 
 jobs:
   release:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: write
       packages: write
@@ -37,7 +37,7 @@ jobs:
 
   pact-test:
     needs: [ release ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: write
       packages: write
@@ -51,9 +51,26 @@ jobs:
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  ecr-publish-image:
+  bdd-test:
+    runs-on: ubuntu-latest
     needs: [ release ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run BDD test suite
+        uses: ./.github/actions/bdd-test
+        with:
+          java-version: *JAVA_VERSION
+          java-distribution: *JDK_DISTRIBUTION
+
+  ecr-publish-image:
+    needs: [ release, bdd-test ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: read
       id-token: write
@@ -83,11 +100,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'
@@ -111,7 +128,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'
@@ -133,11 +150,11 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Can I deploy Staging?
         id: can_i_deploy_staging
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'
@@ -161,7 +178,7 @@ jobs:
 
       - name: Record staging deployment to pact broker
         id: record_staging_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'
@@ -183,11 +200,11 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Can I deploy Production?
         id: can_i_deploy_production
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'
@@ -211,7 +228,7 @@ jobs:
 
       - name: Record production deployment to pact broker
         id: record_production_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: 'main'

@@ -21,13 +21,13 @@ jobs:
     outputs:
       snapshot_version: ${{ steps.version.outputs.snapshot_version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
       - name: Compute version
         id: compute
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
       - name: Compute snapshot version
         id: version
         shell: bash
@@ -49,7 +49,7 @@ jobs:
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: write
       packages: write
@@ -67,7 +67,7 @@ jobs:
 
   pact-test:
     needs: [ build-and-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: write
       packages: write
@@ -95,12 +95,29 @@ jobs:
       SNYK_TARGET_REFERENCE: main
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Snyk to check app for vulnerabilities
         uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
         with:
           command: code test
           args: --severity-threshold=high
+
+  bdd-test:
+    runs-on: ubuntu-latest
+    needs: [ build-and-test ]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run BDD test suite
+        uses: ./.github/actions/bdd-test
+        with:
+          java-version: *JAVA_VERSION
+          java-distribution: *JDK_DISTRIBUTION
 
   helm-template-check:
     runs-on: ubuntu-latest
@@ -114,7 +131,7 @@ jobs:
           - production
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
@@ -133,8 +150,8 @@ jobs:
             --set namespace="test"
 
   ecr-publish-image:
-    needs: [ build-and-test, compute-snapshot-version ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+    needs: [ build-and-test, compute-snapshot-version, bdd-test ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
     permissions:
       contents: read
       id-token: write
@@ -157,6 +174,7 @@ jobs:
       - ecr-publish-image
       - pact-test
       - vulnerability-scan-app
+      - bdd-test
     runs-on: ubuntu-latest
     environment: uat
     permissions:
@@ -166,7 +184,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Extract release name
         id: extract_release_name_uat
@@ -176,7 +194,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -201,7 +219,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@4daa796eff475c7a107e17daf4e4882b8a1b949b # v2.3.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}

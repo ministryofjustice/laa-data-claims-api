@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 
 /**
@@ -62,9 +62,9 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
     stubProviderSchedules("provider-details/get-firm-schedules-category-mismatch-200.json");
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId = createAmendableClaim(submissionId);
+    Claim claim = createAmendableClaim(submissionId);
 
-    MvcResult result = performPatch(submissionId, claimId, feeCodeChangePatch());
+    MvcResult result = performPatch(submissionId, claim.getId(), feeCodeChangePatch());
 
     assertBadRequestContaining(result, CATEGORY_OF_LAW_NOT_AUTHORISED_CODE);
   }
@@ -75,9 +75,9 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
     stubProviderSchedulesStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId = createAmendableClaim(submissionId);
+    Claim claim = createAmendableClaim(submissionId);
 
-    MvcResult result = performPatch(submissionId, claimId, feeCodeChangePatch());
+    MvcResult result = performPatch(submissionId, claim.getId(), feeCodeChangePatch());
 
     assertBadRequestContaining(result, PDA_TECHNICAL_ERROR_CODE);
   }
@@ -88,9 +88,9 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
     stubProviderSchedulesRawBody("{ this is not valid provider-schedules json ");
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId = createAmendableClaim(submissionId);
+    Claim claim = createAmendableClaim(submissionId);
 
-    MvcResult result = performPatch(submissionId, claimId, feeCodeChangePatch());
+    MvcResult result = performPatch(submissionId, claim.getId(), feeCodeChangePatch());
 
     assertBadRequestContaining(result, PDA_TECHNICAL_ERROR_CODE);
   }
@@ -101,22 +101,11 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
     stubProviderSchedulesConnectionDrop();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    UUID claimId = createAmendableClaim(submissionId);
+    Claim claim = createAmendableClaim(submissionId);
 
-    MvcResult result = performPatch(submissionId, claimId, feeCodeChangePatch());
+    MvcResult result = performPatch(submissionId, claim.getId(), feeCodeChangePatch());
 
     assertBadRequestContaining(result, PDA_TECHNICAL_ERROR_CODE);
-  }
-
-  @Test
-  @Disabled(
-      "INVALID_AREA_OF_LAW_FOR_PROVIDER does not exist in claims-validation-core: the "
-          + "EffectiveCategoryOfLawClaimValidator never reads any area-of-law field from the PDA "
-          + "response, so the library cannot emit this code. Re-enable once the area-of-law check "
-          + "exists (raise with the DSTEW-1774 owner / BA - the AC may be incorrect).")
-  @DisplayName("area of law not authorised - collects INVALID_AREA_OF_LAW_FOR_PROVIDER (gap)")
-  void areaOfLawNotAuthorisedCollectsValidationMessage() {
-    // Intentionally empty: documents a spec-vs-library gap (see @Disabled reason).
   }
 
   // ---------------------------------------------------------------------------
@@ -135,7 +124,7 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
    * Creates a VALID (amendable) claim whose fee code and effective date make the amendment
    * PDA-relevant (a fee-code change always impacts the PDA request).
    */
-  private UUID createAmendableClaim(UUID submissionId) {
+  private Claim createAmendableClaim(UUID submissionId) {
     return createAmendableClaim(
         submissionId, b -> b.feeCode("FEE1").caseStartDate(LocalDate.of(2099, Month.JANUARY, 1)));
   }

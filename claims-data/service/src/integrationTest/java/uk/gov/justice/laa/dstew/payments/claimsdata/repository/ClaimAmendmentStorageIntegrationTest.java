@@ -7,8 +7,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -55,7 +54,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 1. Create the older calculation record (Set timestamp to 10 minutes ago)
     CalculatedFeeDetail firstFeeUpdate =
         amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(500));
-    firstFeeUpdate.setCreatedOn(OffsetDateTime.now().minusMinutes(10));
+    firstFeeUpdate.setCreatedOn(Instant.now().minus(10, ChronoUnit.MINUTES));
 
     if (targetClaim.getCalculatedFeeDetails() == null) {
       targetClaim.setCalculatedFeeDetails(new ArrayList<>());
@@ -67,7 +66,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
     // 2. Create the latest calculation record (Set timestamp to right now)
     CalculatedFeeDetail secondFeeUpdate =
         amendClaimWithNewCalculation(targetClaim, BigDecimal.valueOf(789));
-    secondFeeUpdate.setCreatedOn(OffsetDateTime.now());
+    secondFeeUpdate.setCreatedOn(Instant.now());
 
     targetClaim.getCalculatedFeeDetails().add(secondFeeUpdate);
 
@@ -127,7 +126,10 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
 
     Claim evaluatedClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
 
-    assertThat(evaluatedClaim.getVersion()).isEqualTo(initialVersion + 2);
+    // A single versioned UPDATE of the claim increments the version by exactly one. (Before
+    // created_on was made immutable via @Column(updatable = false), the @CreationTimestamp column
+    // was spuriously rewritten on update, producing a second UPDATE and a misleading +2.)
+    assertThat(evaluatedClaim.getVersion()).isEqualTo(initialVersion + 1);
     assertThat(evaluatedClaim.getCalculatedFeeDetails()).hasSize(baselineSize + 1);
     assertThat(evaluatedClaim.getLatestCalculatedFee()).isNotNull();
     assertThat(evaluatedClaim.getLatestCalculatedFee().getTotalAmount())
@@ -149,7 +151,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
   void shouldAccuratelyPersistAndTrackAuditingMetadataContext() {
     Claim targetClaim = claimRepository.findById(ClaimsDataTestUtil.CLAIM_1_ID).orElseThrow();
     String testingUser = "INTEGRATION_TEST_USER_99";
-    OffsetDateTime testingTime = OffsetDateTime.now(ZoneOffset.UTC);
+    Instant testingTime = Instant.now();
 
     ClaimAmendment auditAmendment =
         claimAmendmentRepository.saveAndFlush(
@@ -208,7 +210,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
                 .requestPayload(massiveComplexJson)
                 .diff(massiveComplexJson)
                 .createdByUserId(ClaimsDataTestUtil.USER_ID)
-                .createdOn(OffsetDateTime.now())
+                .createdOn(Instant.now())
                 .build());
 
     claimAmendmentRepository.flush();
@@ -239,7 +241,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
                 .requestPayload("{}")
                 .diff("{}")
                 .createdByUserId(ClaimsDataTestUtil.USER_ID)
-                .createdOn(OffsetDateTime.now())
+                .createdOn(Instant.now())
                 .build());
 
     return calculatedFeeDetailRepository.saveAndFlush(
@@ -255,7 +257,7 @@ class ClaimAmendmentStorageIntegrationTest extends AbstractIntegrationTest {
             .totalAmount(updatedAmount)
             .isPriceChanged(true)
             .createdByUserId(ClaimsDataTestUtil.USER_ID)
-            .createdOn(OffsetDateTime.now().plusMinutes(5).toInstant().atOffset(ZoneOffset.UTC))
+            .createdOn(Instant.now().plus(5, ChronoUnit.MINUTES))
             .build());
   }
 }

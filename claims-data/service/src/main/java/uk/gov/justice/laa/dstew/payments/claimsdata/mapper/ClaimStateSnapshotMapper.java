@@ -13,6 +13,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
  * Assembles an immutable {@link ClaimStateSnapshot} (the "before" state) from the persisted claim
@@ -91,6 +92,65 @@ public interface ClaimStateSnapshotMapper {
         calculatedFeeDetail.orElse(null),
         latestAssessment.orElse(null));
   }
+
+  /** Map the FeeCalculationResponse to a CalculatedFeeDetailSnapshot. */
+  @Mapping(target = "totalAmount", source = "feeCalculation.totalAmount")
+  @Mapping(target = "vatIndicator", source = "feeCalculation.vatIndicator")
+  @Mapping(target = "vatRateApplied", source = "feeCalculation.vatRateApplied")
+  @Mapping(target = "calculatedVatAmount", source = "feeCalculation.calculatedVatAmount")
+  @Mapping(target = "disbursementAmount", source = "feeCalculation.disbursementAmount")
+  @Mapping(
+      target = "requestedNetDisbursementAmount",
+      source = "feeCalculation.requestedNetDisbursementAmount")
+  @Mapping(target = "disbursementVatAmount", source = "feeCalculation.disbursementVatAmount")
+  @Mapping(target = "hourlyTotalAmount", source = "feeCalculation.hourlyTotalAmount")
+  @Mapping(target = "fixedFeeAmount", source = "feeCalculation.fixedFeeAmount")
+  @Mapping(target = "netProfitCostsAmount", source = "feeCalculation.netProfitCostsAmount")
+  @Mapping(
+      target = "requestedNetProfitCostsAmount",
+      source = "feeCalculation.requestedNetProfitCostsAmount")
+  @Mapping(target = "netCostOfCounselAmount", source = "feeCalculation.netCostOfCounselAmount")
+  @Mapping(target = "netTravelCostsAmount", source = "feeCalculation.netTravelCostsAmount")
+  @Mapping(target = "netWaitingCostsAmount", source = "feeCalculation.netWaitingCostsAmount")
+  @Mapping(
+      target = "detentionTravelAndWaitingCostsAmount",
+      source = "feeCalculation.detentionTravelAndWaitingCostsAmount")
+  @Mapping(target = "jrFormFillingAmount", source = "feeCalculation.jrFormFillingAmount")
+  @Mapping(
+      target = "travelAndWaitingCostsAmount",
+      source = "feeCalculation.travelAndWaitingCostAmount")
+  // Bolt-on fields nested under feeCalculation -> boltOnFeeDetails
+  @Mapping(
+      target = "boltOnTotalFeeAmount",
+      source = "feeCalculation.boltOnFeeDetails.boltOnTotalFeeAmount")
+  @Mapping(
+      target = "boltOnAdjournedHearingCount",
+      source = "feeCalculation.boltOnFeeDetails.boltOnAdjournedHearingCount")
+  @Mapping(
+      target = "boltOnAdjournedHearingFee",
+      source = "feeCalculation.boltOnFeeDetails.boltOnAdjournedHearingFee")
+  @Mapping(
+      target = "boltOnCmrhTelephoneCount",
+      source = "feeCalculation.boltOnFeeDetails.boltOnCmrhTelephoneCount")
+  @Mapping(
+      target = "boltOnCmrhTelephoneFee",
+      source = "feeCalculation.boltOnFeeDetails.boltOnCmrhTelephoneFee")
+  @Mapping(
+      target = "boltOnCmrhOralCount",
+      source = "feeCalculation.boltOnFeeDetails.boltOnCmrhOralCount")
+  @Mapping(
+      target = "boltOnCmrhOralFee",
+      source = "feeCalculation.boltOnFeeDetails.boltOnCmrhOralFee")
+  @Mapping(
+      target = "boltOnHomeOfficeInterviewCount",
+      source = "feeCalculation.boltOnFeeDetails.boltOnHomeOfficeInterviewCount")
+  @Mapping(
+      target = "boltOnHomeOfficeInterviewFee",
+      source = "feeCalculation.boltOnFeeDetails.boltOnHomeOfficeInterviewFee")
+  @Mapping(
+      target = "boltOnSubstantiveHearingFee",
+      source = "feeCalculation.boltOnFeeDetails.boltOnSubstantiveHearingFee")
+  CalculatedFeeDetailSnapshot toSnapshot(FeeCalculationResponse response);
 
   /**
    * Maps the latest calculated fee detail to its read-only snapshot. Same-named fields auto-map.
