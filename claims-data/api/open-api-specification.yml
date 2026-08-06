@@ -467,6 +467,27 @@ paths:
           required: false
           schema:
             type: string
+          description: |
+            Sort results by a field and direction, e.g. `status,asc` or `derived_claim_status,desc`.
+
+            Supported fields include the plain claim columns exposed by the endpoint plus the
+            computed fields `total_warnings`, `submission_period` and `derived_claim_status`.
+            An unsupported field returns a 400 Problem Details response.
+
+            `derived_claim_status` sorts by the canonical business ordering
+            (ACCEPTED, AMENDED, ASSESSED, VOIDED, INVALID, READY_TO_PROCESS for ascending; the
+            reverse for descending) rather than alphabetically. See the `derived_claim_status`
+            schema and docs/derived-claim-status.md for details.
+
+            A deterministic secondary sort by `id` (ascending, UUIDv7) is always appended as the
+            final ordering clause so rows never drift between pages.
+
+            Multi-field sort caveat: plain columns may be combined (each is applied in order,
+            followed by the `id` tie-break). The computed fields (`total_warnings`,
+            `submission_period`, `derived_claim_status`) are applied as single-field sorts and
+            must NOT be combined with any other sort field in the same request; if combined the
+            computed ordering is not guaranteed to be applied. See docs/derived-claim-status.md
+            for how full computed multi-field sorting could be added in future.
         - $ref: '#/components/parameters/pageParam'
         - $ref: '#/components/parameters/sizeParam'
       responses:
@@ -1608,6 +1629,34 @@ components:
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
+    derived_claim_status:
+      type: string
+      enum:
+        - ACCEPTED
+        - AMENDED
+        - ASSESSED
+        - VOIDED
+        - INVALID
+        - READY_TO_PROCESS
+      description: |
+        Derived business status of a claim. This is a read-only value computed from the raw
+        `claim_status` together with `has_assessment` and `is_amended`. It does NOT replace
+        `claim_status`, which remains the authoritative processing status.
+
+        The enum declaration order above is the canonical business ordering and is the single
+        source of truth for both response mapping and sort ordering (ascending follows the order
+        listed; descending is the reverse).
+
+        Derivation precedence (first matching rule wins, not chronological):
+          1. claim_status = VOID              -> VOIDED
+          2. claim_status = INVALID           -> INVALID
+          3. claim_status = READY_TO_PROCESS  -> READY_TO_PROCESS
+          4. has_assessment = true            -> ASSESSED
+          5. is_amended = true                -> AMENDED
+          6. otherwise (claim_status = VALID) -> ACCEPTED
+
+        A null `has_assessment` or `is_amended` is treated as false. `claim_status` is never null.
+        See docs/derived-claim-status.md for the full specification and truth table.
     claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -1908,6 +1957,8 @@ components:
             office_code:
               type: string
               description: Account Office Code for this claim's submission.
+            derived_claim_status:
+              $ref: '#/components/schemas/derived_claim_status'
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.
