@@ -3,8 +3,11 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import org.mapstruct.Mapper;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 
 /**
  * Global type conversion mapper for use with MapStruct. This mapper provides safe conversions from
@@ -13,6 +16,9 @@ import org.springframework.util.StringUtils;
  */
 @Mapper(componentModel = "spring")
 public interface GlobalStringMapper {
+
+  DateTimeFormatter FORMATTER =
+      DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
   /**
    * Normalises {@link String} values by converting {@code null} or blank ("") strings to {@code
@@ -68,12 +74,18 @@ public interface GlobalStringMapper {
    *
    * @param value the string to convert
    * @return a {@link LocalDate} parsed from the string, or {@code null} if input is blank
-   * @throws java.time.format.DateTimeParseException if the string is non-blank and not in the
-   *     expected format
+   * @throws ClaimBadRequestException if the string is non-blank and not in the expected format
    */
   default LocalDate stringToLocalDate(String value) {
-    return StringUtils.hasText(value)
-        ? LocalDate.parse(value, DateTimeFormatter.ofPattern("d/M/yyyy"))
-        : null;
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+
+    try {
+      return LocalDate.parse(value, FORMATTER);
+    } catch (DateTimeParseException ex) {
+      throw new ClaimBadRequestException(
+          String.format("Invalid date value '%s'. Expected format: d/M/yyyy", value));
+    }
   }
 }
