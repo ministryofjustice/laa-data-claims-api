@@ -59,6 +59,7 @@ public final class ClaimSpecification {
   public static final String HAS_ASSESSMENT = "hasAssessment";
   public static final String IS_AMENDED = "isAmended";
   public static final String DERIVED_CLAIM_STATUS_SORT_KEY = "derivedClaimStatus";
+  public static final String CALCULATED_FEE_DETAILS = "calculatedFeeDetails";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various

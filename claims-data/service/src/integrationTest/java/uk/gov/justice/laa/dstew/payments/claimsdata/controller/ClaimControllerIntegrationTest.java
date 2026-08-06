@@ -1,5 +1,25 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
+
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.math.BigDecimal;
@@ -45,32 +65,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.INVALID_CLAIM_STATUS_UPDATE_MESSAGE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_USER_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimPost;
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
-  @Autowired
-  private ClaimsApiProperties claimsApiProperties;
+  @Autowired private ClaimsApiProperties claimsApiProperties;
 
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -231,10 +230,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getCaseReferenceNumber()).isEqualTo(claimPost.getCaseReferenceNumber());
 
     assertThat(
-        listAppender.list.stream()
-            .filter(
-                event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
-            .count())
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
         .isEqualTo(1);
   }
 
@@ -360,10 +359,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(updatedClaim.getCreatedByUserId()).isEqualTo(createdByUserId);
 
     assertThat(
-        listAppender.list.stream()
-            .filter(
-                event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
-            .count())
+            listAppender.list.stream()
+                .filter(
+                    event -> event.getFormattedMessage().contains("Suspicious SQL-like pattern"))
+                .count())
         .isEqualTo(1);
   }
 
@@ -605,15 +604,15 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @ParameterizedTest
   @CsvSource(
       value = {
-          // existingClaimCrn, searchFilter, expectedFound
-          "ABC-1234,ABC,true",
-          "RAC ATE2/1,ATE2/1,true",
-          "RAC ATE2/1,ate2/1,true",
-          "RAC ATE2/1,RAC ATE2/1,true",
-          "RAC ATE2/1,ATE2,true",
-          "RAC ATE2/1,  ,true",
-          "RAC ATE2/1,ATE3,false",
-          "RAC ATE2/1,2/1,true"
+        // existingClaimCrn, searchFilter, expectedFound
+        "ABC-1234,ABC,true",
+        "RAC ATE2/1,ATE2/1,true",
+        "RAC ATE2/1,ate2/1,true",
+        "RAC ATE2/1,RAC ATE2/1,true",
+        "RAC ATE2/1,ATE2,true",
+        "RAC ATE2/1,  ,true",
+        "RAC ATE2/1,ATE3,false",
+        "RAC ATE2/1,2/1,true"
       })
   @DisplayName(
       "GET /api/v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
@@ -737,10 +736,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @ParameterizedTest
   @DisplayName("GET /api/v2/claims - rejects various invalid case_reference_number inputs (400)")
   @CsvSource({
-      "ABC%123,INVALID",
-      "ABC_123,INVALID",
-      "ABC!123,INVALID",
-      "1234567890123456789012345678901,TOO_LONG"
+    "ABC%123,INVALID",
+    "ABC_123,INVALID",
+    "ABC!123,INVALID",
+    "1234567890123456789012345678901,TOO_LONG"
   })
   void shouldRejectInvalidCaseReferenceNumberInV2Search(String input, String expectedType)
       throws Exception {
@@ -873,8 +872,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       mockMvc
           .perform(
               post(
-                  ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
-                  Uuid7.timeBasedUuid())
+                      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
+                      Uuid7.timeBasedUuid())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1083,9 +1082,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           result.getResponse().getContentAsString(), ClaimResultSetV2.class);
     }
 
-    /**
-     * Seeds exactly one claim for each derived status under an isolated office code.
-     */
+    /** Seeds exactly one claim for each derived status under an isolated office code. */
     private void seedOnePerDerivedStatus(Submission submission) {
       persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
       persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
@@ -1166,10 +1163,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @ParameterizedTest
   @CsvSource({
-      "total_amount,desc",
-      "calculated_vat_amount,asc",
-      "escape_case_flag,desc",
-      "category_of_law,asc"
+    "total_amount,desc",
+    "calculated_vat_amount,asc",
+    "escape_case_flag,desc",
+    "category_of_law,asc"
   })
   @DisplayName(
       "GET /api/v2/claims - sorts by fee fields without throwing PropertyReferenceException (Failing Test)")
@@ -1188,55 +1185,63 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("GET /api/v2/claims - sorts by total_amount using the latest calculated fee detail values")
+  @DisplayName(
+      "GET /api/v2/claims - sorts by total_amount using the latest calculated fee detail values")
   void shouldSortByLatestCalculatedFeeValuesCorrectly() throws Exception {
     Instant now = Instant.now();
     String testOffice = "SORTFEE-OFC";
 
     // Create an isolated submission for this test
-    Submission sortSubmission = submissionRepository.saveAndFlush(
-        Submission.builder()
-            .id(Uuid7.timeBasedUuid())
-            .bulkSubmissionId(bulkSubmission.getId())
-            .officeAccountNumber(testOffice)
-            .submissionPeriod("FEB-2025")
-            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-            .status(SubmissionStatus.CREATED)
-            .providerUserId(bulkSubmission.getCreatedByUserId())
-            .createdByUserId(API_USER_ID)
-            .numberOfClaims(2)
-            .createdOn(CREATED_ON)
-            .build());
+    Submission sortSubmission =
+        submissionRepository.saveAndFlush(
+            Submission.builder()
+                .id(Uuid7.timeBasedUuid())
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(testOffice)
+                .submissionPeriod("FEB-2025")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(API_USER_ID)
+                .numberOfClaims(2)
+                .createdOn(CREATED_ON)
+                .build());
 
     // Claim 1: Older total_amount was 500.00, but LATEST total_amount is 50.00
-    Claim claim1 = Claim.builder()
-        .id(Uuid7.timeBasedUuid())
-        .submission(sortSubmission)
-        .caseReferenceNumber("CRN-111")
-        .uniqueFileNumber("UFN-111")
-        .matterTypeCode("TEST-MTC")
-        .lineNumber(1)
-        .status(ClaimStatus.READY_TO_PROCESS)
-        .createdByUserId(API_USER_ID)
-        .build();
+    Claim claim1 =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(sortSubmission)
+            .caseReferenceNumber("CRN-111")
+            .uniqueFileNumber("UFN-111")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(1)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
     claim1 = claimRepository.saveAndFlush(claim1);
-    createCalculatedFeeDetailWithAmount(claim1, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(claim1, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+    createCalculatedFeeDetailWithAmount(
+        claim1, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetailWithAmount(
+        claim1, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
 
     // Claim 2: Older total_amount was 10.00, but LATEST total_amount is 200.00
-    Claim claim2 = Claim.builder()
-        .id(Uuid7.timeBasedUuid())
-        .submission(sortSubmission)
-        .caseReferenceNumber("CRN-222")
-        .uniqueFileNumber("UFN-222")
-        .matterTypeCode("TEST-MTC")
-        .lineNumber(2)
-        .status(ClaimStatus.READY_TO_PROCESS)
-        .createdByUserId(API_USER_ID)
-        .build();
+    Claim claim2 =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(sortSubmission)
+            .caseReferenceNumber("CRN-222")
+            .uniqueFileNumber("UFN-222")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(2)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
     claim2 = claimRepository.saveAndFlush(claim2);
-    createCalculatedFeeDetailWithAmount(claim2, new BigDecimal("10.00"), now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(claim2, new BigDecimal("200.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+    createCalculatedFeeDetailWithAmount(
+        claim2, new BigDecimal("10.00"), now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetailWithAmount(
+        claim2, new BigDecimal("200.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
 
     claimRepository.flush();
 
@@ -1252,7 +1257,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .andReturn();
 
     var resultSetDesc =
-        OBJECT_MAPPER.readValue(resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        OBJECT_MAPPER.readValue(
+            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetDesc.getContent()).hasSize(2);
     assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claim2.getId().toString());
@@ -1272,7 +1278,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .andReturn();
 
     var resultSetAsc =
-        OBJECT_MAPPER.readValue(resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        OBJECT_MAPPER.readValue(
+            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetAsc.getContent()).hasSize(2);
     assertThat(resultSetAsc.getContent().get(0).getId()).isEqualTo(claim1.getId().toString());
@@ -1282,7 +1289,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   // Helper method to seed calculated fee details with specific amounts and timestamps
-  private void createCalculatedFeeDetailWithAmount(Claim claim, BigDecimal totalAmount, Instant createdOn) {
+  private void createCalculatedFeeDetailWithAmount(
+      Claim claim, BigDecimal totalAmount, Instant createdOn) {
     ClaimSummaryFee summaryFee =
         ClaimSummaryFee.builder()
             .claim(claim)

@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification.CALCULATED_FEE_DETAILS;
+
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
@@ -475,21 +477,7 @@ public class ClaimService
 
     Pageable mappedPageable = mapPageableSort(pageable);
 
-    Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
-    sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
-    sanitizedPageable =
-        removeCustomSortFromPageable(
-            sanitizedPageable, "calculatedFeeDetails.calculatedVatAmount");
-    sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.totalAmount");
-    sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.escapeCaseFlag");
-    sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.categoryOfLaw");
-    sanitizedPageable =
-        removeCustomSortFromPageable(
-            sanitizedPageable, ClaimSpecification.DERIVED_CLAIM_STATUS_SORT_KEY);
+    Pageable sanitizedPageable = removeComputedSorts(mappedPageable);
 
     // Deterministic ordering:
     //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
@@ -606,14 +594,37 @@ public class ClaimService
     return assessmentRepository.save(assessment).getId();
   }
 
-  private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {
+  /**
+   * Entity sort paths that are backed by computed ordering {@link Specification}s rather than a
+   * persisted column. Each applies its own {@code id} tie-break, so the sanitized {@link Pageable}
+   * must be left unsorted for these to avoid Spring Data overriding the ordering.
+   */
+  private static final Set<String> COMPUTED_SORT_PATHS =
+      Set.of(
+          "totalWarnings",
+          "submission.submissionPeriod",
+          "derivedClaimStatus",
+          CALCULATED_FEE_DETAILS + ".calculatedVatAmount",
+          CALCULATED_FEE_DETAILS + ".totalAmount",
+          CALCULATED_FEE_DETAILS + ".escapeCaseFlag",
+          CALCULATED_FEE_DETAILS + ".categoryOfLaw");
+
+  private boolean hasComputedSort(Pageable pageable) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return false;
+    }
+    return pageable.getSort().stream()
+        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty()));
+  }
+
+  private Pageable removeComputedSorts(Pageable pageable) {
     if (pageable == null || pageable.getSort().isUnsorted()) {
       return pageable;
     }
 
     List<Sort.Order> remainingOrders =
         pageable.getSort().stream()
-            .filter(order -> !customProperty.equalsIgnoreCase(order.getProperty()))
+            .filter(order -> !COMPUTED_SORT_PATHS.contains(order.getProperty()))
             .toList();
 
     Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
@@ -622,24 +633,8 @@ public class ClaimService
       return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
     }
 
-    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), newSort);
-  }
-
-  /**
-   * Entity sort paths that are backed by computed ordering {@link Specification}s rather than a
-   * persisted column. Each applies its own {@code id} tie-break, so the sanitized {@link Pageable}
-   * must be left unsorted for these to avoid Spring Data overriding the ordering.
-   */
-  private static final Set<String> COMPUTED_SORT_PATHS =
-      Set.of("totalWarnings", "submission.submissionPeriod", "derivedClaimStatus");
-
-  private boolean hasComputedSort(Pageable pageable) {
-    if (pageable == null || pageable.getSort().isUnsorted()) {
-      return false;
-    }
-    return pageable.getSort().stream()
-        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty())
-            || order.getProperty().startsWith("calculatedFeeDetails."));
+    return org.springframework.data.domain.PageRequest.of(
+        pageable.getPageNumber(), pageable.getPageSize(), newSort);
   }
 
   /**
