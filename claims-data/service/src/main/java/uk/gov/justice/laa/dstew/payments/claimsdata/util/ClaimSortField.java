@@ -31,10 +31,10 @@ public enum ClaimSortField {
   SUBMISSION_PERIOD("submission_period", "submission.submissionPeriod"),
 
   FEE_CODE("fee_code", "feeCode"),
-  CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetail.calculatedVatAmount"),
-  TOTAL_AMOUNT("total_amount", "calculatedFeeDetail.totalAmount"),
-  ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
-  CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
+  CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetails.calculatedVatAmount"),
+  TOTAL_AMOUNT("total_amount", "calculatedFeeDetails.totalAmount"),
+  ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetails.escapeCaseFlag"),
+  CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetails.categoryOfLaw"),
 
   TOTAL_WARNINGS("total_warnings", "totalWarnings"),
 
