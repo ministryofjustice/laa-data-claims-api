@@ -427,14 +427,16 @@ public final class ClaimSpecification {
       }
 
       for (Sort.Order order : pageable.getSort()) {
-        // Check if the sort matches one of our custom fee fields
         String property = order.getProperty();
-        if (!property.startsWith("calculatedFeeDetail.")) {
+        // Update to plural "calculatedFeeDetails."
+        if (!property.startsWith("calculatedFeeDetails.")) {
           continue;
         }
 
         // Extract the actual field name (e.g., "totalAmount", "escapeCaseFlag")
-        String feeFieldName = property.substring("calculatedFeeDetail.".length());
+        String feeFieldName = property.substring("calculatedFeeDetails.".length());
+
+        // ... [keep the rest of the subquery logic exactly as it is]
 
         // 1. Subquery to fetch the specific field from the latest CalculatedFeeDetail
         Subquery<Object> latestFeeValueSubquery = query.subquery(Object.class);

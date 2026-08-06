@@ -480,13 +480,13 @@ public class ClaimService
         removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
     sanitizedPageable =
         removeCustomSortFromPageable(
-            sanitizedPageable, "calculatedFeeDetail.calculatedVatAmount");
+            sanitizedPageable, "calculatedFeeDetails.calculatedVatAmount");
     sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.totalAmount");
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.totalAmount");
     sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.escapeCaseFlag");
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.escapeCaseFlag");
     sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.categoryOfLaw");
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetails.categoryOfLaw");
     sanitizedPageable =
         removeCustomSortFromPageable(
             sanitizedPageable, ClaimSpecification.DERIVED_CLAIM_STATUS_SORT_KEY);
@@ -638,7 +638,8 @@ public class ClaimService
       return false;
     }
     return pageable.getSort().stream()
-        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty()));
+        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty())
+            || order.getProperty().startsWith("calculatedFeeDetails."));
   }
 
   /**
