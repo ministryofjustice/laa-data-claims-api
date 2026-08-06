@@ -104,6 +104,16 @@ public class ClaimService
           "version",
           "createdByUserId");
 
+  private static final Set<String> COMPUTED_SORT_PATHS =
+      Set.of(
+          "totalWarnings",
+          "submission.submissionPeriod",
+          "derivedClaimStatus",
+          CALCULATED_FEE_DETAILS + ".calculatedVatAmount",
+          CALCULATED_FEE_DETAILS + ".totalAmount",
+          CALCULATED_FEE_DETAILS + ".escapeCaseFlag",
+          CALCULATED_FEE_DETAILS + ".categoryOfLaw");
+
   @Override
   public SubmissionRepository lookup() {
     return submissionRepository;
@@ -593,21 +603,6 @@ public class ClaimService
             assessmentReason, claim, claimSummaryFee, createdByUserId);
     return assessmentRepository.save(assessment).getId();
   }
-
-  /**
-   * Entity sort paths that are backed by computed ordering {@link Specification}s rather than a
-   * persisted column. Each applies its own {@code id} tie-break, so the sanitized {@link Pageable}
-   * must be left unsorted for these to avoid Spring Data overriding the ordering.
-   */
-  private static final Set<String> COMPUTED_SORT_PATHS =
-      Set.of(
-          "totalWarnings",
-          "submission.submissionPeriod",
-          "derivedClaimStatus",
-          CALCULATED_FEE_DETAILS + ".calculatedVatAmount",
-          CALCULATED_FEE_DETAILS + ".totalAmount",
-          CALCULATED_FEE_DETAILS + ".escapeCaseFlag",
-          CALCULATED_FEE_DETAILS + ".categoryOfLaw");
 
   private boolean hasComputedSort(Pageable pageable) {
     if (pageable == null || pageable.getSort().isUnsorted()) {
