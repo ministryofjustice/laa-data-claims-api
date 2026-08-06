@@ -480,6 +480,15 @@ public class ClaimService
         removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
     sanitizedPageable =
         removeCustomSortFromPageable(
+            sanitizedPageable, "calculatedFeeDetail.calculatedVatAmount");
+    sanitizedPageable =
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.totalAmount");
+    sanitizedPageable =
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.escapeCaseFlag");
+    sanitizedPageable =
+        removeCustomSortFromPageable(sanitizedPageable, "calculatedFeeDetail.categoryOfLaw");
+    sanitizedPageable =
+        removeCustomSortFromPageable(
             sanitizedPageable, ClaimSpecification.DERIVED_CLAIM_STATUS_SORT_KEY);
 
     // Deterministic ordering:
@@ -491,11 +500,14 @@ public class ClaimService
       sanitizedPageable = appendIdTieBreak(sanitizedPageable);
     }
 
+    Specification<Claim> feeSortSpec =
+        ClaimSpecification.orderByLatestCalculatedFee(mappedPageable);
     Specification<Claim> combinedSpec =
         ClaimSpecification.filterBy(request)
             .and(ClaimSpecification.orderByTotalWarningMessages(mappedPageable))
             .and(ClaimSpecification.orderBySubmissionPeriod(mappedPageable))
-            .and(ClaimSpecification.orderByDerivedClaimStatus(mappedPageable));
+            .and(ClaimSpecification.orderByDerivedClaimStatus(mappedPageable))
+            .and(feeSortSpec);
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 

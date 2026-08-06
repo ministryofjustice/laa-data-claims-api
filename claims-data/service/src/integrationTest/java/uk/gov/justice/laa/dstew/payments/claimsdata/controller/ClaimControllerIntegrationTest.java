@@ -1159,4 +1159,27 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isBadRequest());
     }
   }
+
+  @ParameterizedTest
+  @CsvSource({
+    "total_amount,desc",
+    "calculated_vat_amount,asc",
+    "escape_case_flag,desc",
+    "category_of_law,asc"
+  })
+  @DisplayName(
+      "GET /api/v2/claims - sorts by fee fields without throwing PropertyReferenceException (Failing Test)")
+  void shouldSortByFeeFieldsWithoutThrowingExceptionV2(String sortParam) throws Exception {
+    // given: required claims exist in the database via setup
+
+    // when: calling the v2 claims endpoint with a fee-related sort parameter
+    // Expecting 200 OK. Currently fails with a 500 error due to PropertyReferenceException
+    mockMvc
+        .perform(
+            get(GET_CLAIMS_ENDPOINT_V2)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                .param("sort", sortParam)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isOk());
+  }
 }

@@ -415,6 +415,64 @@ public final class ClaimSpecification {
   }
 
   /**
+   * Order by latest calculated fee details.
+   *
+   * @param pageable pageable
+   * @return Claim Specification
+   */
+  public static Specification<Claim> orderByLatestCalculatedFee(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      for (Sort.Order order : pageable.getSort()) {
+        // Check if the sort matches one of our custom fee fields
+        String property = order.getProperty();
+        if (!property.startsWith("calculatedFeeDetail.")) {
+          continue;
+        }
+
+        // Extract the actual field name (e.g., "totalAmount", "escapeCaseFlag")
+        String feeFieldName = property.substring("calculatedFeeDetail.".length());
+
+        // 1. Subquery to fetch the specific field from the latest CalculatedFeeDetail
+        Subquery<Object> latestFeeValueSubquery = query.subquery(Object.class);
+        Root<CalculatedFeeDetail> feeRoot = latestFeeValueSubquery.from(CalculatedFeeDetail.class);
+
+        // 2. The "Not Exists Newer" correlation subquery (reused from your filter logic)
+        Subquery<Integer> newerRecordSubquery = query.subquery(Integer.class);
+        Root<CalculatedFeeDetail> newerFeeRoot =
+            newerRecordSubquery.from(CalculatedFeeDetail.class);
+
+        newerRecordSubquery
+            .select(cb.literal(1))
+            .where(
+                cb.equal(newerFeeRoot.get(CLAIM_ENTITY), feeRoot.get(CLAIM_ENTITY)),
+                cb.or(
+                    cb.greaterThan(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                    cb.and(
+                        cb.equal(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                        cb.greaterThan(newerFeeRoot.get(ID), feeRoot.get(ID)))));
+
+        // 3. Select the requested field where it is tied to this claim AND is the latest
+        latestFeeValueSubquery
+            .select(feeRoot.get(feeFieldName))
+            .where(
+                cb.equal(feeRoot.get(CLAIM_ENTITY), root), cb.not(cb.exists(newerRecordSubquery)));
+
+        // 4. Apply the order by clause using the subquery
+        query.orderBy(
+            order.isAscending() ? cb.asc(latestFeeValueSubquery) : cb.desc(latestFeeValueSubquery));
+
+        break; // Handle primary custom sort
+      }
+
+      return cb.conjunction();
+    };
+  }
+
+  /**
    * Builds the {@code CASE} expression that maps each claim to its {@link DerivedClaimStatus}
    * ordinal. The precedence must mirror {@link DerivedClaimStatusResolver}; the ordinals are taken
    * from the enum so the canonical ordering is defined in exactly one place.
