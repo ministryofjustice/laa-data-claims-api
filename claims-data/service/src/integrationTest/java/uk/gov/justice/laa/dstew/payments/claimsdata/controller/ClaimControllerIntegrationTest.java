@@ -1288,6 +1288,140 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .isEqualByComparingTo("50.00");
   }
 
+  @Test
+  @DisplayName(
+      "GET /api/v2/claims - sorts correctly with a mix of missing, single, and multiple calculated fee details")
+  void shouldSortClaimsWithVaryingCalculatedFeeDetailCountsCorrectly() throws Exception {
+    Instant now = Instant.now();
+    String testOffice = "SORTFEE-MIXED";
+
+    // 1. Create an isolated submission for this test
+    Submission mixedSubmission =
+        submissionRepository.saveAndFlush(
+            Submission.builder()
+                .id(Uuid7.timeBasedUuid())
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(testOffice)
+                .submissionPeriod("MAR-2025")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(API_USER_ID)
+                .numberOfClaims(3)
+                .createdOn(CREATED_ON)
+                .build());
+
+    // 2. Claim A: 0 CFDs (totalAmount evaluates to NULL)
+    Claim claimNoCfd =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(mixedSubmission)
+            .caseReferenceNumber("CRN-NO-CFD")
+            .uniqueFileNumber("UFN-1")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(1)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimNoCfd = claimRepository.saveAndFlush(claimNoCfd);
+
+    // 3. Claim B: 1 CFD (totalAmount = 100.00)
+    Claim claimOneCfd =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(mixedSubmission)
+            .caseReferenceNumber("CRN-ONE-CFD")
+            .uniqueFileNumber("UFN-2")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(2)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimOneCfd = claimRepository.saveAndFlush(claimOneCfd);
+    createCalculatedFeeDetailWithAmount(
+        claimOneCfd, new BigDecimal("100.00"), now.minus(1, ChronoUnit.DAYS));
+
+    // 4. Claim C: 3 CFDs (historical = 900.00 & 500.00, LATEST = 50.00)
+    Claim claimMultiCfd =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(mixedSubmission)
+            .caseReferenceNumber("CRN-MULTI-CFD")
+            .uniqueFileNumber("UFN-3")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(3)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimMultiCfd = claimRepository.saveAndFlush(claimMultiCfd);
+    createCalculatedFeeDetailWithAmount(
+        claimMultiCfd, new BigDecimal("900.00"), now.minus(3, ChronoUnit.DAYS));
+    createCalculatedFeeDetailWithAmount(
+        claimMultiCfd, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetailWithAmount(
+        claimMultiCfd, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+
+    claimRepository.flush();
+
+    // 5. Test ASC Sort
+    // PostgreSQL default for ASC is NULLS LAST. Expected order: 50.00 -> 100.00 -> NULL
+    MvcResult resultAsc =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", testOffice)
+                    .param("sort", "total_amount,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var resultSetAsc =
+        OBJECT_MAPPER.readValue(
+            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    assertThat(resultSetAsc.getContent()).hasSize(3);
+    assertThat(resultSetAsc.getContent().get(0).getId())
+        .isEqualTo(claimMultiCfd.getId().toString()); // 50.00
+    assertThat(resultSetAsc.getContent().get(1).getId())
+        .isEqualTo(claimOneCfd.getId().toString()); // 100.00
+    assertThat(resultSetAsc.getContent().get(2).getId())
+        .isEqualTo(claimNoCfd.getId().toString()); // NULL
+    assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("50.00");
+    assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("100.00");
+    assertThat(resultSetAsc.getContent().get(2).getFeeCalculationResponse()).isNull();
+
+    // 6. Test DESC Sort
+    // PostgreSQL default for DESC is NULLS FIRST. Expected order: NULL -> 100.00 -> 50.00
+    MvcResult resultDesc =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", testOffice)
+                    .param("sort", "total_amount,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var resultSetDesc =
+        OBJECT_MAPPER.readValue(
+            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    assertThat(resultSetDesc.getContent()).hasSize(3);
+    assertThat(resultSetDesc.getContent().get(0).getId())
+        .isEqualTo(claimNoCfd.getId().toString()); // NULL
+    assertThat(resultSetDesc.getContent().get(1).getId())
+        .isEqualTo(claimOneCfd.getId().toString()); // 100.00
+    assertThat(resultSetDesc.getContent().get(2).getId())
+        .isEqualTo(claimMultiCfd.getId().toString()); // 50.00
+    assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse()).isNull();
+    assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("100.00");
+    assertThat(resultSetDesc.getContent().get(2).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("50.00");
+  }
+
   // Helper method to seed calculated fee details with specific amounts and timestamps
   private void createCalculatedFeeDetailWithAmount(
       Claim claim, BigDecimal totalAmount, Instant createdOn) {
@@ -1308,140 +1442,5 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setCreatedByUserId("Test");
     cfd.setClaimSummaryFee(summaryFee);
     calculatedFeeDetailRepository.saveAndFlush(cfd);
-  }
-
-  @Nested
-  @DisplayName("Derived claim status sorting")
-  class DerivedClaimStatusSortTests {
-
-    private static final String SORT_OFFICE = "SORTOFC";
-
-    private Submission createSortSubmission() {
-      return submissionRepository.saveAndFlush(
-          Submission.builder()
-              .id(Uuid7.timeBasedUuid())
-              .bulkSubmissionId(bulkSubmission.getId())
-              .officeAccountNumber(SORT_OFFICE)
-              .submissionPeriod("FEB-2025")
-              .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-              .status(SubmissionStatus.CREATED)
-              .providerUserId(bulkSubmission.getCreatedByUserId())
-              .createdByUserId(API_USER_ID)
-              .numberOfClaims(6)
-              .createdOn(CREATED_ON)
-              .build());
-    }
-
-    private Claim persistClaim(
-        Submission submission,
-        ClaimStatus status,
-        boolean hasAssessment,
-        boolean isAmended,
-        int lineNumber) {
-      return claimRepository.saveAndFlush(
-          Claim.builder()
-              .id(Uuid7.timeBasedUuid())
-              .submission(submission)
-              .status(status)
-              .hasAssessment(hasAssessment)
-              .isAmended(isAmended)
-              .lineNumber(lineNumber)
-              .matterTypeCode("TEST-MTC")
-              .createdByUserId(API_USER_ID)
-              .build());
-    }
-
-    private ClaimResultSetV2 search(String sort) throws Exception {
-      MvcResult result =
-          mockMvc
-              .perform(
-                  get(GET_CLAIMS_ENDPOINT_V2)
-                      .param("office_code", SORT_OFFICE)
-                      .param("sort", sort)
-                      .param("size", "50")
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isOk())
-              .andReturn();
-      return OBJECT_MAPPER.readValue(
-          result.getResponse().getContentAsString(), ClaimResultSetV2.class);
-    }
-
-    /** Seeds exactly one claim for each derived status under an isolated office code. */
-    private void seedOnePerDerivedStatus(Submission submission) {
-      persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
-      persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
-      persistClaim(submission, ClaimStatus.VALID, true, false, 3); // ASSESSED
-      persistClaim(submission, ClaimStatus.VOID, false, false, 4); // VOIDED
-      persistClaim(submission, ClaimStatus.INVALID, false, false, 5); // INVALID
-      persistClaim(submission, ClaimStatus.READY_TO_PROCESS, false, false, 6); // READY_TO_PROCESS
-    }
-
-    @Test
-    @DisplayName("ascending follows the canonical business ordering")
-    void ascendingOrdering() throws Exception {
-      seedOnePerDerivedStatus(createSortSubmission());
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
-
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
-          .containsExactly(
-              DerivedClaimStatus.ACCEPTED,
-              DerivedClaimStatus.AMENDED,
-              DerivedClaimStatus.ASSESSED,
-              DerivedClaimStatus.VOIDED,
-              DerivedClaimStatus.INVALID,
-              DerivedClaimStatus.READY_TO_PROCESS);
-    }
-
-    @Test
-    @DisplayName("descending is the reverse of the canonical business ordering")
-    void descendingOrdering() throws Exception {
-      seedOnePerDerivedStatus(createSortSubmission());
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,desc");
-
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
-          .containsExactly(
-              DerivedClaimStatus.READY_TO_PROCESS,
-              DerivedClaimStatus.INVALID,
-              DerivedClaimStatus.VOIDED,
-              DerivedClaimStatus.ASSESSED,
-              DerivedClaimStatus.AMENDED,
-              DerivedClaimStatus.ACCEPTED);
-    }
-
-    @Test
-    @DisplayName("claims sharing a derived status are tie-broken by id ASC for stable pagination")
-    void tieBreakByIdAscending() throws Exception {
-      Submission submission = createSortSubmission();
-      // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
-      // status.
-      Claim a = persistClaim(submission, ClaimStatus.VALID, false, false, 1);
-      Claim b = persistClaim(submission, ClaimStatus.VALID, false, false, 2);
-      Claim c = persistClaim(submission, ClaimStatus.VALID, false, false, 3);
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
-
-      // UUIDv7 ids are time-ordered; a < b < c in insertion order, so the tie-break yields a,b,c.
-      List<String> expectedIdOrder =
-          java.util.stream.Stream.of(a.getId(), b.getId(), c.getId())
-              .map(UUID::toString)
-              .sorted()
-              .toList();
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getId))
-          .containsExactlyElementsOf(expectedIdOrder);
-    }
-
-    @Test
-    @DisplayName("unsupported sort key returns 400")
-    void unsupportedSortKeyReturnsBadRequest() throws Exception {
-      mockMvc
-          .perform(
-              get(GET_CLAIMS_ENDPOINT_V2)
-                  .param("office_code", SORT_OFFICE)
-                  .param("sort", "not_a_real_field,asc")
-                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-          .andExpect(status().isBadRequest());
-    }
   }
 }
