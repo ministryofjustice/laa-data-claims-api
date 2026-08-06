@@ -429,13 +429,12 @@ public final class ClaimSpecification {
 
       for (Sort.Order order : pageable.getSort()) {
         String property = order.getProperty();
-        // Update to plural "calculatedFeeDetails."
-        if (!property.startsWith("calculatedFeeDetails.")) {
+        if (!property.startsWith(CALCULATED_FEE_DETAILS + ".")) {
           continue;
         }
 
         // Extract the actual field name (e.g., "totalAmount", "escapeCaseFlag")
-        String feeFieldName = property.substring("calculatedFeeDetails.".length());
+        String feeFieldName = property.substring((CALCULATED_FEE_DETAILS + ".").length());
 
         // ... [keep the rest of the subquery logic exactly as it is]
 
