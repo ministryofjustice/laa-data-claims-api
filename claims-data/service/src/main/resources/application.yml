@@ -69,6 +69,8 @@ management:
   # show detailed health status
   endpoint:
     health:
+      probes:
+        enabled: true
       show-details: always
 
   info:
