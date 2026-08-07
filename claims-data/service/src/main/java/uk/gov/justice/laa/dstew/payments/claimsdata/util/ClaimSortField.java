@@ -31,12 +31,18 @@ public enum ClaimSortField {
   SUBMISSION_PERIOD("submission_period", "submission.submissionPeriod"),
 
   FEE_CODE("fee_code", "feeCode"),
-  CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetail.calculatedVatAmount"),
-  TOTAL_AMOUNT("total_amount", "calculatedFeeDetail.totalAmount"),
-  ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
-  CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
+  CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetails.calculatedVatAmount"),
+  TOTAL_AMOUNT("total_amount", "calculatedFeeDetails.totalAmount"),
+  ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetails.escapeCaseFlag"),
+  CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetails.categoryOfLaw"),
 
-  TOTAL_WARNINGS("total_warnings", "totalWarnings");
+  TOTAL_WARNINGS("total_warnings", "totalWarnings"),
+
+  // Computed sort field: not a real entity property. Ordering is applied by
+  // ClaimSpecification.orderByDerivedClaimStatus using a SQL CASE expression whose ordinals come
+  // from the DerivedClaimStatus enum. Treated like the other computed markers (totalWarnings,
+  // submission.submissionPeriod) and stripped from the Pageable before the query executes.
+  DERIVED_CLAIM_STATUS("derived_claim_status", "derivedClaimStatus");
 
   private final String apiName;
   private final String entityPath;
