@@ -44,6 +44,11 @@ spring:
     properties:
       hibernate:
         default_schema: claims
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  shutdown: graceful
 
 # Local connection details for dev, overridden in other envs
 aws:
