@@ -1344,7 +1344,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   void submissionJsonContractIsUnchangedForAmendedClaims() throws Exception {
     // Setup an Amended Submission (1 Claim, 2 Fee Rows)
     Submission amendedSub = createIsolatedSubmission();
-    Claim amendedClaim = createClaimForSubmission(amendedSub);
+    Claim amendedClaim = createClaimForSubmission(amendedSub, 1);
     createFeeDetail(
         amendedClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
     createFeeDetail(amendedClaim, BigDecimal.valueOf(250.00), OffsetDateTime.now(), null);

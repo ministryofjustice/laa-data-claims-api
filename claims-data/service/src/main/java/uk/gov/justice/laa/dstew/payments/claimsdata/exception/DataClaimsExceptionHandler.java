@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -271,7 +272,8 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     // getMostSpecificCause() never returns null (it returns the exception itself when there is no
     // cause), so we only need to guard against a null message.
     String message = ex.getMostSpecificCause().getMessage();
-    return message != null && message.toLowerCase().contains(UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT);
+    return message != null
+        && message.toLowerCase(Locale.ROOT).contains(UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT);
   }
 
   /**
