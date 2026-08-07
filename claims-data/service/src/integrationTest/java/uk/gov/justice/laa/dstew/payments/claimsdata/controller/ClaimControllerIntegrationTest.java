@@ -1261,10 +1261,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetDesc.getContent()).hasSize(2);
+
+    // 1st Item in Descending Order (200.00)
     assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claim2.getId().toString());
-    assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claim1.getId().toString());
     assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("200.00");
+
+    // 2nd Item in Descending Order (50.00)
+    assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claim1.getId().toString());
+    assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("50.00");
 
     // When sorting ascending by total_amount: Claim 1 (50.00) should come before Claim 2 (200.00)
     MvcResult resultAsc =
@@ -1282,10 +1288,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetAsc.getContent()).hasSize(2);
+
+    // 1st Item in Ascending Order (50.00)
     assertThat(resultSetAsc.getContent().get(0).getId()).isEqualTo(claim1.getId().toString());
-    assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claim2.getId().toString());
     assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("50.00");
+
+    // 2nd Item in Ascending Order (200.00)
+    assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claim2.getId().toString());
+    assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+        .isEqualByComparingTo("200.00");
   }
 
   @Test
@@ -1380,16 +1392,20 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetAsc.getContent()).hasSize(3);
+
+    // 1st Item (50.00)
     assertThat(resultSetAsc.getContent().get(0).getId())
-        .isEqualTo(claimMultiCfd.getId().toString()); // 50.00
-    assertThat(resultSetAsc.getContent().get(1).getId())
-        .isEqualTo(claimOneCfd.getId().toString()); // 100.00
-    assertThat(resultSetAsc.getContent().get(2).getId())
-        .isEqualTo(claimNoCfd.getId().toString()); // NULL
+        .isEqualTo(claimMultiCfd.getId().toString());
     assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("50.00");
+
+    // 2nd Item (100.00)
+    assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claimOneCfd.getId().toString());
     assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("100.00");
+
+    // 3rd Item (NULL)
+    assertThat(resultSetAsc.getContent().get(2).getId()).isEqualTo(claimNoCfd.getId().toString());
     assertThat(resultSetAsc.getContent().get(2).getFeeCalculationResponse()).isNull();
 
     // 6. Test DESC Sort
@@ -1409,15 +1425,19 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetDesc.getContent()).hasSize(3);
-    assertThat(resultSetDesc.getContent().get(0).getId())
-        .isEqualTo(claimNoCfd.getId().toString()); // NULL
-    assertThat(resultSetDesc.getContent().get(1).getId())
-        .isEqualTo(claimOneCfd.getId().toString()); // 100.00
-    assertThat(resultSetDesc.getContent().get(2).getId())
-        .isEqualTo(claimMultiCfd.getId().toString()); // 50.00
+
+    // 1st Item (NULL)
+    assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claimNoCfd.getId().toString());
     assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse()).isNull();
+
+    // 2nd Item (100.00)
+    assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claimOneCfd.getId().toString());
     assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("100.00");
+
+    // 3rd Item (50.00)
+    assertThat(resultSetDesc.getContent().get(2).getId())
+        .isEqualTo(claimMultiCfd.getId().toString());
     assertThat(resultSetDesc.getContent().get(2).getFeeCalculationResponse().getTotalAmount())
         .isEqualByComparingTo("50.00");
   }
