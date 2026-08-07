@@ -698,6 +698,80 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).hasSize(1);
   }
 
+  private static ClaimSearchRequest validV2SearchRequest() {
+    return ClaimSearchRequest.builder().officeCode(OFFICE_ACCOUNT_NUMBER).build();
+  }
+
+  @Test
+  void getClaimResultSetV2_unsupportedSortField_throwsClaimBadRequestException() {
+    assertThatThrownBy(
+            () ->
+                claimService.getClaimResultSetV2(
+                    validV2SearchRequest(), PageRequest.of(0, 10, Sort.by("not_a_real_field"))))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("Unsupported sort field: not_a_real_field");
+  }
+
+  @Test
+  void getClaimResultSetV2_plainSort_appendsDeterministicIdTieBreak() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    Sort appliedSort = pageableCaptor.getValue().getSort();
+    // Primary sort remapped to the entity property, then id ASC appended as the tie-break.
+    assertThat(appliedSort.stream().map(Sort.Order::getProperty)).containsExactly("status", "id");
+    assertThat(appliedSort.getOrderFor("status").getDirection()).isEqualTo(Sort.Direction.DESC);
+    assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
+  }
+
+  @Test
+  void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(),
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "derived_claim_status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    // Computed sort: the key is stripped and no id tie-break is layered onto the Pageable so that
+    // the ordering Specification's own orderBy (which includes the id tie-break) is not overridden.
+    assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
+  }
+
+  @Test
+  void getClaimResultSetV2_sortWithoutPaging_isUnpagedSafe() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // A sort-only request (no page/size) resolves to an Unpaged pageable; must not blow up.
+    Pageable unpagedSorted = Pageable.unpaged(Sort.by(Sort.Direction.ASC, "status"));
+
+    assertThat(claimService.getClaimResultSetV2(validV2SearchRequest(), unpagedSorted)).isNotNull();
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+    Pageable applied = pageableCaptor.getValue();
+    assertThat(applied.isUnpaged()).isTrue();
+    // Plain sort still gains the deterministic id tie-break even when unpaged.
+    assertThat(applied.getSort().stream().map(Sort.Order::getProperty))
+        .containsExactly("status", "id");
+  }
+
   @ParameterizedTest
   @MethodSource("provideClaimSearchRequestsForValidation")
   @DisplayName("getClaimResultSetV2 validation cases")
