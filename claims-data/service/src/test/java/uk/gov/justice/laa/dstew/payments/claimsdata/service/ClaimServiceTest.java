@@ -44,6 +44,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -1140,5 +1141,37 @@ class ClaimServiceTest {
           .updatedOn(Instant.now())
           .build();
     }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "total_warnings",
+    "submission_period",
+    "derived_claim_status",
+    "total_amount",
+    "calculated_vat_amount",
+    "escape_case_flag",
+    "category_of_law"
+  })
+  @DisplayName("getClaimResultSetV2 - all computed sorts are stripped from pageable and delegated")
+  void getClaimResultSetV2ComputedSortIsStrippedAndDelegatedToSpecification(String apiSortField) {
+    // Arrange: Mock the repository and mapper to return empty results safely
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // Act: Call the service with a pageable containing one of the computed fee API fields
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, apiSortField)));
+
+    // Assert: Capture the sanitized Pageable that gets passed to the repository
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    // Because this is a computed sort,
+    // removeComputedSorts() should strip the key, and hasComputedSort() should
+    // prevent the ID tie-break from being appended. The Pageable must be unsorted.
+    assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
   }
 }
