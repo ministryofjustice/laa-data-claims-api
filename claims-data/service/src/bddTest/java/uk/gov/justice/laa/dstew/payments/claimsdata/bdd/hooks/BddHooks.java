@@ -4,6 +4,7 @@ import io.cucumber.java.Before;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
@@ -15,9 +16,11 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.PdaMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -33,6 +36,7 @@ public class BddHooks {
   @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired private AssessmentRepository assessmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private ClientRepository clientRepository;
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
@@ -42,6 +46,12 @@ public class BddHooks {
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired private SqsClient sqsClient;
   @Autowired private SnsClient snsClient;
+
+  @Autowired(required = false)
+  private PdaMockServerSupport pdaMockServerSupport;
+
+  @Autowired(required = false)
+  private CacheManager cacheManager;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -53,10 +63,20 @@ public class BddHooks {
   public void resetScenarioContextAndData() {
     context.clear();
     submissionPeriodHelper.reset();
+    if (pdaMockServerSupport != null) {
+      pdaMockServerSupport.reset();
+    }
+    if (cacheManager != null) {
+      cacheManager.getCacheNames().stream()
+          .map(cacheManager::getCache)
+          .filter(cache -> cache != null)
+          .forEach(cache -> cache.clear());
+    }
 
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();

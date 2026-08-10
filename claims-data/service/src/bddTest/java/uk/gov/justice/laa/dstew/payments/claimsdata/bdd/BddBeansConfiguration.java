@@ -6,8 +6,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.AmendmentBddAspect;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.AmendmentBddSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.PdaMockServerSupport;
 
 /**
  * Spring configuration for Cucumber BDD beans. {@code @Bean} methods cannot live on the
@@ -44,6 +47,21 @@ public class BddBeansConfiguration {
   @Bean
   public BddValidationMessageStepSupport bddValidationMessageStepSupport() {
     return new BddValidationMessageStepSupport();
+  }
+
+  @Bean
+  public AmendmentBddSupport amendmentBddSupport() {
+    return new AmendmentBddSupport();
+  }
+
+  @Bean
+  public AmendmentBddAspect amendmentBddAspect() {
+    return new AmendmentBddAspect();
+  }
+
+  @Bean
+  public PdaMockServerSupport pdaMockServerSupport() {
+    return new PdaMockServerSupport();
   }
 
   @Bean

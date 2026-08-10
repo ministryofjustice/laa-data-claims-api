@@ -1,9 +1,10 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context;
 
-import io.cucumber.spring.ScenarioScope;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 /** Scenario-scoped state for BDD steps. Holds the last HTTP response and captured IDs. */
 @Component
-@ScenarioScope
 @Getter
 @Setter
 public class BddScenarioContext {
@@ -52,6 +52,59 @@ public class BddScenarioContext {
   private UUID secondBulkSubmissionId;
   private final List<UUID> firstSubmissionClaimIds = new ArrayList<>();
 
+  // ---------------------------------------------------------------------------
+  // Amendment/PDA scenario state.
+  // ---------------------------------------------------------------------------
+  private UUID amendmentSubmissionId;
+  private UUID amendmentClaimId;
+  private final List<UUID> amendmentSubmissionIds = new ArrayList<>();
+  private final List<UUID> amendmentClaimIds = new ArrayList<>();
+  private final List<Integer> amendmentStatusCodes = new ArrayList<>();
+  private final List<String> amendmentResponseBodies = new ArrayList<>();
+  private String preAmendmentOffice;
+  private String preAmendmentEffectiveDate;
+  private String amendmentOffice;
+  private String amendmentEffectiveDate;
+  private String amendmentFeeCode;
+  private Long configuredAmendmentPdaTimeoutSeconds;
+  private Long configuredNewSubmissionPdaTimeoutSeconds;
+  private Long lastPdaCallElapsedMillis;
+  private Long submittedVersionOverride;
+  private String injectedValidationCode;
+  private boolean forceAreaOfLawValidationError;
+  private boolean failCommitAfterSuccess;
+  private boolean commitAttempted;
+  private boolean commitRolledBack;
+  private String expectedObservedOutcome;
+  private String lastObservedPdaOutcome;
+  private Long lastObservedPdaDurationMillis;
+  private UUID observedClaimId;
+  private final List<String> observedMonitoringEntries = new ArrayList<>();
+  private final List<String> observedLogEntries = new ArrayList<>();
+  private String preAmendmentFeeCode;
+  private Integer preAmendmentCalculatedFeeCount;
+  private Integer preAmendmentHistoryCount;
+  private Boolean preAmendmentClaimAmended;
+  private Long preAmendmentClaimVersion;
+
+  // ---------------------------------------------------------------------------
+  // Amendment classifier scenario state.
+  // ---------------------------------------------------------------------------
+  private boolean classifierScenarioActive;
+  private boolean classifierExpectNoPdaCall;
+  private boolean classifierOfficeChanged;
+  private String classifierExpectedResolvedEffectiveDateBefore;
+  private String classifierExpectedResolvedEffectiveDateAfter;
+  private final Map<String, String> classifierPatchFields = new HashMap<>();
+  private Boolean classifierObservedPdaRelevant;
+  private Boolean classifierObservedImpactsPricing;
+  private String classifierObservedSourceRuleReference;
+  private String classifierObservedPdaSourceRuleReference;
+  private String classifierObservedFspSourceRuleReference;
+  private String classifierObservedResolvedEffectiveDateBefore;
+  private String classifierObservedResolvedEffectiveDateAfter;
+  private final List<String> classifierObservedPricingImpactFields = new ArrayList<>();
+
   /**
    * Overrides the Lombok-generated setter to keep {@link #generatedFileName} in sync with the
    * derived filename. This is the only accessor with non-trivial behaviour.
@@ -82,5 +135,50 @@ public class BddScenarioContext {
     firstBulkSubmissionId = null;
     secondBulkSubmissionId = null;
     firstSubmissionClaimIds.clear();
+    amendmentSubmissionId = null;
+    amendmentClaimId = null;
+    amendmentSubmissionIds.clear();
+    amendmentClaimIds.clear();
+    amendmentStatusCodes.clear();
+    amendmentResponseBodies.clear();
+    preAmendmentOffice = null;
+    preAmendmentEffectiveDate = null;
+    amendmentOffice = null;
+    amendmentEffectiveDate = null;
+    amendmentFeeCode = null;
+    configuredAmendmentPdaTimeoutSeconds = null;
+    configuredNewSubmissionPdaTimeoutSeconds = null;
+    lastPdaCallElapsedMillis = null;
+    submittedVersionOverride = null;
+    injectedValidationCode = null;
+    forceAreaOfLawValidationError = false;
+    failCommitAfterSuccess = false;
+    commitAttempted = false;
+    commitRolledBack = false;
+    expectedObservedOutcome = null;
+    lastObservedPdaOutcome = null;
+    lastObservedPdaDurationMillis = null;
+    observedClaimId = null;
+    observedMonitoringEntries.clear();
+    observedLogEntries.clear();
+    preAmendmentFeeCode = null;
+    preAmendmentCalculatedFeeCount = null;
+    preAmendmentHistoryCount = null;
+    preAmendmentClaimAmended = null;
+    preAmendmentClaimVersion = null;
+    classifierScenarioActive = false;
+    classifierExpectNoPdaCall = false;
+    classifierOfficeChanged = false;
+    classifierExpectedResolvedEffectiveDateBefore = null;
+    classifierExpectedResolvedEffectiveDateAfter = null;
+    classifierPatchFields.clear();
+    classifierObservedPdaRelevant = null;
+    classifierObservedImpactsPricing = null;
+    classifierObservedSourceRuleReference = null;
+    classifierObservedPdaSourceRuleReference = null;
+    classifierObservedFspSourceRuleReference = null;
+    classifierObservedResolvedEffectiveDateBefore = null;
+    classifierObservedResolvedEffectiveDateAfter = null;
+    classifierObservedPricingImpactFields.clear();
   }
 }
