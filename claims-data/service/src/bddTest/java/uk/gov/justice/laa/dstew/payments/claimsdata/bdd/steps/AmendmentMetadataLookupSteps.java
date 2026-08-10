@@ -59,7 +59,7 @@ public class AmendmentMetadataLookupSteps {
   public void theAmendmentMetadataReferenceDataHasBeenSeededWithTheBc574Defaults()
       throws Exception {
     seedBc574Defaults();
-    api.getAmendmentRequestedByReferences();
+    api.setAmendmentRequestedInContextByReferences();
     api.assertLastResponseStatus(200);
 
     JsonNode requestedBy = requestedByArrayFromLastResponse();
@@ -207,7 +207,7 @@ public class AmendmentMetadataLookupSteps {
 
   @When("I request the amendment metadata reference lookup")
   public void iRequestTheAmendmentMetadataReferenceLookup() {
-    api.getAmendmentRequestedByReferences();
+    api.setAmendmentRequestedInContextByReferences();
   }
 
   @When("^I insert a new (.+) row via the seed/load mechanism$")
@@ -526,7 +526,7 @@ public class AmendmentMetadataLookupSteps {
   public void theAmendmentMetadataReferenceLookupReturnsThoseCodesPairedTogether()
       throws Exception {
     ClaimAmendment amendment = requiredPersistedAmendment();
-    api.getAmendmentRequestedByReferences();
+    api.setAmendmentRequestedInContextByReferences();
     api.assertLastResponseStatus(200);
     assertReasonListedUnderRequestedBy(
         amendment.getAmendmentReasonCode(), amendment.getRequestedByCode(), true);

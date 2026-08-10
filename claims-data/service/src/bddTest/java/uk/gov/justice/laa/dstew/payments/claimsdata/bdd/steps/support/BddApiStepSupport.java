@@ -324,7 +324,7 @@ public class BddApiStepSupport {
   }
 
   /** Calls the amendment metadata reference lookup endpoint and captures status/body in context. */
-  public void getAmendmentRequestedByReferences() {
+  public void setAmendmentRequestedInContextByReferences() {
     HttpHeaders headers = new HttpHeaders();
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
     HttpEntity<Void> request = new HttpEntity<>(headers);
