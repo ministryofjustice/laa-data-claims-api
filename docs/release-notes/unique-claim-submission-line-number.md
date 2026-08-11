@@ -29,14 +29,26 @@ plus an application-level pre-check and a 409 mapping (belt-and-braces).
 
 ## Cutoff placeholder (grandfathering existing duplicates)
 
-The index predicate is `WHERE created_on > '${claim_line_number_uniqueness_cutoff}'`. The placeholder
-defaults to the epoch (`1970-01-01 00:00:00+00`), so **clean/fresh databases enforce uniqueness for
-all rows**.
+The index predicate is `WHERE created_on > '${claim_line_number_uniqueness_cutoff}'`, supplied by the
+Flyway placeholder `claim_line_number_uniqueness_cutoff` (backed by the
+`CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF` environment variable).
 
-> **Environments that already contain duplicates MUST override** the placeholder via the
-> `CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF` environment variable with a timestamp *after which the data
-> is known to be clean*, before deploying. Rows at/below the cutoff are grandfathered; rows above it
-> are enforced.
+**Deployed environments (Helm):** the chart sets `CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF` automatically
+to the **deployment time** (rendered by Helm's `now` when `helm upgrade`/install runs, in UTC). This
+means every deployed environment grandfathers **all rows that already existed at deploy time** and
+enforces uniqueness only for claims created afterwards — with **no manual per-environment setting**.
+Because the cutoff is a deploy-time constant baked into the rendered manifest, the migration never
+fails on pre-existing duplicates.
+
+**Local / CI (no env var):** `application.yml` defaults the placeholder to the epoch
+(`1970-01-01 00:00:00+00`), so **clean/fresh databases enforce uniqueness for all rows**.
+
+> The placeholder value is expanded into the SQL before it runs, so it is visible in the index
+> definition (`SELECT pg_get_indexdef('uq_claim_submission_line_number'::regclass)`), but **not** in
+> `flyway_schema_history` (which records only script name, checksum and `installed_on`).
+>
+> Note: the cutoff is the Helm **render time**, not the Flyway apply time, and it is captured on the
+> deploy where V45 first runs; later re-deploys do not re-run V45, so the original cutoff is retained.
 
 ## API behaviour change
 
@@ -53,11 +65,12 @@ field, so an attempt to change it is rejected earlier with **400**
 ---
 
 
-## Pre-deployment check (report; sets the cutoff)
+## Pre-deployment check (optional; informational)
 
-Because the index is partial, the migration will **not** fail on existing duplicates *provided the
-cutoff excludes them*. Run the following to (a) see whether duplicates exist and (b) decide the
-cutoff value:
+Because the Helm chart sets the cutoff to the deploy time, the partial index automatically
+grandfathers any pre-existing duplicates and the migration will **not** fail on them — no manual
+cutoff value is required. The query below is still useful to *understand* the data before release
+(e.g. to decide whether the duplicates warrant separate remediation):
 
 ```sql
 SELECT
@@ -70,10 +83,11 @@ HAVING COUNT(*) > 1;
 ```
 
 - **Who runs it:** the deployer / DBA performing the release, per environment (dev → uat → prod).
-- **If it returns 0 rows:** deploy with the default (epoch) cutoff — uniqueness is enforced for all
-  rows.
-- **If it returns rows:** set `CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF` to a timestamp after the newest
-  duplicate's `created_on` (so all duplicates are grandfathered), then deploy.
+- **If it returns 0 rows:** nothing to grandfather — uniqueness is effectively enforced for all
+  existing rows as well as new ones.
+- **If it returns rows:** they are automatically grandfathered by the deploy-time cutoff; enforcement
+  applies to claims created after deployment. Only manually override
+  `CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF` if you deliberately need a cutoff other than the deploy time.
 
 ### Do not clean up automatically
 

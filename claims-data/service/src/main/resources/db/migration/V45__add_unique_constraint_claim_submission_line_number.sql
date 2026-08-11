@@ -3,11 +3,11 @@
 -- This is a PARTIAL unique index rather than a plain unique constraint so that environments which
 -- already contain historical duplicates (business rule: we never amend or delete historical data)
 -- can adopt it without the index build failing. The cutoff is supplied by the Flyway placeholder
--- ${claim_line_number_uniqueness_cutoff}, which defaults to the epoch so that clean/fresh databases
--- (local, CI, new environments) enforce uniqueness for ALL rows. Any environment that already holds
--- duplicates MUST override the placeholder with a timestamp after which the data is known to be
--- clean, BEFORE deploying (see docs/release-notes/unique-claim-submission-line-number.md and its
--- pre-deploy duplicate-count query).
+-- ${claim_line_number_uniqueness_cutoff}. Local/CI default this to the epoch (see application.yml) so
+-- clean/fresh databases enforce uniqueness for ALL rows. Deployed environments have the Helm chart
+-- set CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF to the deploy time, so all rows existing at deploy are
+-- grandfathered and uniqueness is enforced only for claims created afterwards, without any manual
+-- per-environment configuration (see docs/release-notes/unique-claim-submission-line-number.md).
 --
 -- CAVEAT (old-vs-new): a partial index only enforces uniqueness among the rows it covers, so a new
 -- claim could in theory duplicate a grandfathered historical row sitting below the cutoff. This is
