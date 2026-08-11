@@ -16,8 +16,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/laa_data_claims_api_dev
       - AWS_ACCESS_KEY_ID=dummy-access-key
       - AWS_SECRET_ACCESS_KEY=dummy-access-key
-      - AWS_ENDPOINT_URL=http://host.docker.internal:4566
-      - AWS_SQS_ENDPOINT=http://host.docker.internal:4566
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_SQS_ENDPOINT=http://localstack:4566
       - SPRING_PROFILES_ACTIVE=local
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       - CLAIMS_API_AMENDMENTS_ENABLED=${CLAIMS_API_AMENDMENTS_ENABLED}
