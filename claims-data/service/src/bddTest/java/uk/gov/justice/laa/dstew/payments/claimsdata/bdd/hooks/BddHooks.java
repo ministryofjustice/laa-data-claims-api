@@ -18,6 +18,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeri
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -33,6 +34,7 @@ public class BddHooks {
   @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired private AssessmentRepository assessmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private ClientRepository clientRepository;
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
@@ -57,6 +59,8 @@ public class BddHooks {
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    // Amendments FK back to Claim; must be deleted before claimRepository.deleteAll().
+    claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();

@@ -7,6 +7,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_CLAIM_HISTORY_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
@@ -231,6 +232,29 @@ public class BddApiStepSupport {
       sleepQuietly();
     }
     return lastStatus;
+  }
+
+  /**
+   * Fetches the claim history timeline via {@code GET /api/v1/claims/{claimId}/history}. Returns
+   * the parsed JSON body so scenarios can drill into {@code events[].metadata.changes[]} without
+   * losing the JSON {@code null} vs missing-key distinction that {@link JsonNode} preserves and a
+   * {@code Map<String,Object>} would collapse.
+   */
+  public JsonNode getClaimHistory(UUID claimId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + GET_CLAIM_HISTORY_PATH,
+            HttpMethod.GET,
+            request,
+            String.class,
+            claimId);
+    context.setLastStatusCode(response.getStatusCode().value());
+    context.setLastResponseBody(response.getBody());
+    return objectMapper.readTree(response.getBody());
   }
 
   /**
