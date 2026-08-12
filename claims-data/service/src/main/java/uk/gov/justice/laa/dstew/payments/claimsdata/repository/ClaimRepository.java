@@ -19,6 +19,18 @@ public interface ClaimRepository
 
   Optional<Claim> findByIdAndSubmissionId(UUID id, UUID submissionId);
 
+  /**
+   * Returns whether a claim already exists for the given submission and line number. Used by the
+   * application-level duplicate guard in {@code ClaimService.createClaim}. This checks all rows
+   * (including any historical duplicates grandfathered by the partial DB index), so it also covers
+   * the old-vs-new case the partial index cannot.
+   *
+   * @param submissionId the owning submission id
+   * @param lineNumber the claim line number
+   * @return {@code true} if a claim already exists for that submission and line number
+   */
+  boolean existsBySubmissionIdAndLineNumber(UUID submissionId, Integer lineNumber);
+
   @Modifying
   @Query("UPDATE Claim c SET c.status = :status WHERE c.submission.id = :submissionId")
   int updateStatusBySubmissionId(UUID submissionId, ClaimStatus status);
