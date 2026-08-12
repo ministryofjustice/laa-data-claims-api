@@ -135,4 +135,7 @@ public final class BddTestConstants {
 
   /** {@code POST /api/v1/submissions}. */
   public static final String CREATE_SUBMISSION_PATH = API_URI_PREFIX + "/submissions";
+
+  /** {@code GET /api/v1/claims/{claimId}/history}. */
+  public static final String GET_CLAIM_HISTORY_PATH = API_URI_PREFIX + "/claims/{claimId}/history";
 }
