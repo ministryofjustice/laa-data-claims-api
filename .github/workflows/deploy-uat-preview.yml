@@ -27,7 +27,7 @@ jobs:
           fetch-tags: true
       - name: Compute version
         id: compute
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
       - name: Compute snapshot version
         id: version
         shell: bash
@@ -49,7 +49,7 @@ jobs:
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
     permissions:
       contents: write
       packages: write
@@ -67,7 +67,7 @@ jobs:
 
   pact-test:
     needs: [ build-and-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
     permissions:
       contents: write
       packages: write
@@ -151,7 +151,7 @@ jobs:
 
   ecr-publish-image:
     needs: [ build-and-test, compute-snapshot-version, bdd-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
     permissions:
       contents: read
       id-token: write
@@ -194,7 +194,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -219,7 +219,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@a5977e695ff627aab738dd22a1e4322e78beada6 # v2.4.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
