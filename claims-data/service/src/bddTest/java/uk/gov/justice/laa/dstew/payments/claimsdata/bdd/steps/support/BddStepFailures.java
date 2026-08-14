@@ -42,7 +42,7 @@ public final class BddStepFailures {
   public static void step(String contextDescription, ThrowingRunnable body) {
     try {
       body.run();
-    } catch (Throwable cause) {
+    } catch (Exception | AssertionError cause) {
       throw rewrap(contextDescription, cause);
     }
   }
@@ -51,7 +51,7 @@ public final class BddStepFailures {
   public static <T> T step(String contextDescription, ThrowingSupplier<T> body) {
     try {
       return body.get();
-    } catch (Throwable cause) {
+    } catch (Exception | AssertionError cause) {
       throw rewrap(contextDescription, cause);
     }
   }
