@@ -9,15 +9,14 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
   # Both event types come from ONE source table `claims.assessment` — this is
   # a single mapping with a type split, not two integrations:
   #   event_type = VOID       where assessment_type = 'VOID'
-  #   event_type = ASSESSMENT otherwise (incl. legacy null assessment_type)
+  #   event_type = ASSESSMENT otherwise
   #
   # Source mapping (claims.assessment):
   #   event_timestamp             ← created_on
-  #   actor_user_id               ← created_by_user_id (mandatory on table)
+  #   actor_id                    ← created_by_user_id (mandatory on table)
   #   source_id                   ← id
   #   metadata.assessment_type    ← assessment_type  (ESCAPE_CASE_ASSESSMENT,
-  #                                 STAGE_DISBURSEMENT_ASSESSMENT, VOID, or
-  #                                 ABSENT for legacy null rows)
+  #                                 STAGE_DISBURSEMENT_ASSESSMENT, or VOID)
   #   metadata.assessment_outcome ← assessment_outcome (nullable; VOID rows
   #                                 have none)
   #   metadata.assessment_reason  ← assessment_reason (nullable; for VOID
@@ -33,10 +32,9 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
   #
   # Coverage review (2026-08-11): `ClaimHistoryControllerIntegrationTest`
   # covers happy-path ASSESSMENT and VOID at controller level. Gaps this
-  # file closes: (a) STAGE_DISBURSEMENT_ASSESSMENT sub-type; (b) legacy-null
-  # assessment_type mapped to ASSESSMENT with no fabricated type value;
-  # (c) null nullable columns ABSENT rather than defaulted; (d) VOID row
-  # never presented as ASSESSMENT; (e) no-assessments claim.
+  # file closes: (a) STAGE_DISBURSEMENT_ASSESSMENT sub-type; (b) null nullable
+  # columns ABSENT rather than defaulted; (c) VOID row never presented as
+  # ASSESSMENT; (d) no-assessments claim.
   #
   # OUT OF SCOPE (delegated — do NOT add here):
   #   * Envelope shape           → DSTEW-1811 (claimHistoryTimelineContract.feature)
@@ -63,7 +61,7 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | envelopeField    | value                |
       | event_type       | ASSESSMENT           |
       | event_timestamp  | 2026-05-10T14:03:00Z |
-      | actor_user_id    | user-abc             |
+      | actor_id         | user-abc             |
       | source_id        | assess-uuid-1        |
     And that event's metadata contains
       | metadataField      | value                      |
@@ -99,32 +97,19 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | assessment_reason | Voided at provider request |
     And the VOID event metadata does NOT contain the field "assessment_outcome"
 
-  # De-scoped from BDD (2026-08-13) — audit trail carried in the reporting ledger:
-  #   * @DS1812_4 — the scenario asserts behaviour for a legacy `assessment` row whose
-  #     `assessment_type` is NULL. Migration V36 (`V36__backfill_assessment_fields.sql`)
-  #     backfilled every null and re-added `NOT NULL` on both `assessment_type` and
-  #     `assessment_reason`, so a legacy-null row can no longer exist in the delivered schema.
-  #     The corresponding read-side "legacy null → ASSESSMENT with no fabricated type" behaviour
-  #     cannot be exercised end-to-end. The scenario is removed until either the constraint is
-  #     relaxed or the requirement is formally closed as unreachable.
-  #   * @DS1812_5, `assessment_reason` example — same root cause. `assessment_reason` is now
-  #     `NOT NULL` in the DB (V36), so the "null column ABSENT from metadata" property cannot
-  #     be exercised for that column. The `assessment_outcome` example remains in scope
-  #     (that column stayed nullable per V34).
+  #@DS1812_4
+  #Scenario Outline: Null "<nullableColumn>" is ABSENT from metadata, not defaulted to a placeholder
+  #  Given a claim exists with a claims.assessment row where "<nullableColumn>" is null
+  #  And the other assessment columns are populated
+  #  When I request the claim history timeline
+  #  Then the corresponding ASSESSMENT event's metadata does NOT contain the field "<nullableColumn>"
+  #  And no placeholder value has been substituted for "<nullableColumn>"
+  #
+  #  Examples:
+  #    | nullableColumn      |
+  #    | assessment_outcome  |
 
   @DS1812_5
-  Scenario Outline: Null "<nullableColumn>" is ABSENT from metadata, not defaulted to a placeholder
-    Given a claim exists with a claims.assessment row where "<nullableColumn>" is null
-    And the other assessment columns are populated
-    When I request the claim history timeline
-    Then the corresponding ASSESSMENT event's metadata does NOT contain the field "<nullableColumn>"
-    And no placeholder value has been substituted for "<nullableColumn>"
-
-    Examples:
-      | nullableColumn      |
-      | assessment_outcome  |
-
-  @DS1812_6
   Scenario: ASSESSMENT and VOID events interleave with SUBMISSION in chronological position by created_on
     Given a claim exists with the following lifecycle events in stored `created_on` order
       | event      | source_id     | created_on           | metadata_type          |
@@ -138,7 +123,7 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | ASSESSMENT | assess-uuid-3 |
       | VOID       | assess-uuid-4 |
 
-  @DS1812_7
+  @DS1812_6
   Scenario: A claim with no assessment rows returns a timeline without ASSESSMENT or VOID events
     Given a claim exists that has been submitted but has no claims.assessment rows
     When I request the claim history timeline

@@ -80,7 +80,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   /**
    * If a scenario used {@code Given a claim exists ...} with an explicit assessment_outcome
    * follow-up (e.g. {@code And that row's assessment_outcome is "PAID_IN_FULL"}), we remember the
-   * assessment id created just before so we can update it. Used by DS1812_2 and DS1812_4.
+   * assessment id created just before so we can update it. Used by DS1812_2's outcome follow-up.
    */
   private UUID lastSeededAssessmentId;
 
@@ -300,11 +300,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
           if (expected.containsKey("event_timestamp")) {
             assertTimestamp(event, expected.get("event_timestamp"));
           }
-          String actorExpected =
-              firstNonNull(expected.get("actor_id"), expected.get("actor_user_id"));
+          String actorExpected = expected.get("actor_id");
           if (actorExpected != null) {
-            // The delivered contract calls this field `actor_id`; the feature file happens to spell
-            // it `actor_user_id` in one row — accept either alias so the intent is preserved.
             assertEnvelopeFieldEquals(event, "actor_id", actorExpected);
           }
         });
@@ -602,8 +599,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
 
   /**
    * Native SQL insert used when the target row must carry a null {@code assessment_type} or {@code
-   * assessment_reason} (both are {@code @NotNull} on the entity but nullable in the DB — DS1812_4
-   * and DS1812_5).
+   * assessment_reason} (both are {@code @NotNull} on the entity but nullable in the DB — used by
+   * DS1812_4's Scenario Outline to seed a null nullable column).
    */
   private void insertAssessmentRaw(
       UUID assessmentId,
@@ -741,12 +738,14 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   private void assertMetadataFieldAbsent(JsonNode event, String field) {
     JsonNode metadata = event.path("metadata");
     JsonNode value = metadata.path(field);
-    // "Absent" per the feature-file contract = either the key is missing entirely OR the value is
-    // explicit JSON null (the spec bans both a fabricated placeholder and a leaked-through null).
-    assertThat(value.isMissingNode() || value.isNull())
+    // "Absent" per the feature-file contract means the key is MISSING ENTIRELY. An explicit
+    // JSON null (e.g. `"assessment_outcome": null`) is a leak, not an absence, and must fail
+    // this assertion — the mapper is expected to omit the key altogether when the source
+    // column is null.
+    assertThat(value.isMissingNode())
         .as(
-            "metadata.%s must NOT be surfaced (key present with a real value would be a "
-                + "fabricated placeholder) on event with source_id %s",
+            "metadata.%s must be ABSENT (key omitted) on event with source_id %s — explicit "
+                + "JSON null is a leaked placeholder and is not permitted by the contract",
             field, event.path("source_id").asText())
         .isTrue();
   }
@@ -849,9 +848,5 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
       return null;
     }
     return AssessmentOutcome.valueOf(text);
-  }
-
-  private static String firstNonNull(String a, String b) {
-    return a != null ? a : b;
   }
 }
