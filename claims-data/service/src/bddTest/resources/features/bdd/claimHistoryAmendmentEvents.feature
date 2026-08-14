@@ -125,7 +125,7 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # AC8 — Failed / rejected amendments produce no AMENDMENT event
   # ============================================================================
   #
-  # DE-SCOPED — Type 2 (requires wiring): the outline previously asserted four
+  # DE-SCOPED: the outline previously asserted four distinct write-side
   # distinct write-side failure paths (FSP validation reject, FSP technical
   # failure, post-FSP optimistic version guard, post-FSP persistence failure).
   # Driving any of those from the BDD tier requires the write-side amendment
@@ -137,7 +137,7 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # specific failure paths are tracked in the audit ledger for the follow-up
   # ticket once the harness lands.
 
-  @DS1815_8 @descoped-type2
+  @DS1815_8
   Scenario: A failed amendment attempt leaves no persisted row and produces no AMENDMENT event
     Given a claim exists
     And no `claim_amendment` row has been persisted for that claim
