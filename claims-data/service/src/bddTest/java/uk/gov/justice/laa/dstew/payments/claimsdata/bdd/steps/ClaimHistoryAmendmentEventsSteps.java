@@ -211,16 +211,21 @@ public class ClaimHistoryAmendmentEventsSteps {
   }
 
   // ---------------------------------------------------------------------------
-  // Given — failed / rejected amendments (no row persisted)
+  // Given — no-amendment-row baseline (see @DS1815_8 de-scope note in feature)
   // ---------------------------------------------------------------------------
 
-  @Given("an amendment attempt {} and is not persisted")
-  public void anAmendmentAttemptFailsAndIsNotPersisted(String failureKind) {
-    // No claim_amendment row is created — mirrors the write-side invariant that a rejected
-    // amendment produces no persistent trace. failureKind is documentary (informs which
-    // rejection path the scenario is describing) but the observable outcome is identical:
-    // no AMENDMENT event, no metadata.
-    log.debug("Simulating failed amendment attempt of kind '{}' — no row persisted", failureKind);
+  @Given("no `claim_amendment` row has been persisted for that claim")
+  public void noClaimAmendmentRowHasBeenPersistedForThatClaim() {
+    // Documentary no-op — reads the read-model precondition literally.
+    //
+    // Honest scope note: the BDD tier cannot yet drive the four specific write-side failure
+    // paths originally covered by the @DS1815_8 outline (FSP validation reject, FSP technical
+    // failure, post-FSP version guard, post-FSP persistence). All four would produce this same
+    // observable read-side state (no `claim_amendment` row), but exercising the paths themselves
+    // needs the write-side amendment harness (WireMock PDA/FSP + event-service test hook) which
+    // is not yet in this project. The de-scoped paths are tracked in the audit ledger for
+    // follow-up once the harness lands.
+    log.debug("@DS1815_8 baseline: no claim_amendment row persisted for claim {}", currentClaimId);
   }
 
   // ---------------------------------------------------------------------------
@@ -277,27 +282,26 @@ public class ClaimHistoryAmendmentEventsSteps {
         .isNotNull();
   }
 
-  @Then("the response contains no AMENDMENT event for the failed attempt")
-  public void responseContainsNoAmendmentEventForFailedAttempt() {
+  @Then("the response contains no AMENDMENT event")
+  public void responseContainsNoAmendmentEvent() {
     assertThat(amendmentEvents())
-        .as("no AMENDMENT events expected when the amendment attempt was not persisted")
+        .as("no AMENDMENT events expected when no claim_amendment row is persisted")
         .isEmpty();
   }
 
-  @Then(
-      "the response contains no FSP repricing or escape metadata attributable to the failed"
-          + " attempt")
-  public void responseContainsNoFspMetadataForFailedAttempt() {
+  @Then("the response contains no FSP repricing or escape metadata")
+  public void responseContainsNoFspRepricingOrEscapeMetadata() {
     // Any AMENDMENT event would carry the metadata; absence of the event guarantees absence of
     // its metadata. Belt-and-braces: assert every amendment event we CAN see has
-    // pricing_recalculated=false + escape_case_logged=false (no cross-contamination).
+    // pricing_recalculated=false + escape_case_logged=false (no cross-contamination from an
+    // unrelated event on the same claim).
     for (JsonNode event : amendmentEvents()) {
       JsonNode metadata = event.path("metadata");
       assertThat(booleanOrFalse(metadata.get(KEY_PRICING_RECALCULATED)))
-          .as("failed attempt must not leak pricing_recalculated to other events")
+          .as("no-amendment-row precondition must not leak pricing_recalculated to other events")
           .isFalse();
       assertThat(booleanOrFalse(metadata.get(KEY_ESCAPE_CASE_LOGGED)))
-          .as("failed attempt must not leak escape_case_logged to other events")
+          .as("no-amendment-row precondition must not leak escape_case_logged to other events")
           .isFalse();
     }
   }

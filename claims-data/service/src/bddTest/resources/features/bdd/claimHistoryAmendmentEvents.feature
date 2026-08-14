@@ -64,9 +64,9 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   @DS1815_3
   Scenario: FSP-driven field changes appear in the changes array with change_source "FSP"
     Given a claim exists with a successful amendment
-    And the amendment diff contains a change_source "FSP" entry for field "calculated_fee_detail.total_amount" from "100.00" to "125.00"
+    And the amendment diff contains a change_source "FSP" entry for field "fee.totalAmount" from "100.00" to "125.00"
     When I request the claim history timeline
-    Then the AMENDMENT event metadata "changes" array contains an entry with field_identifier "calculated_fee_detail.total_amount" and change_source "FSP"
+    Then the AMENDMENT event metadata "changes" array contains an entry with field_identifier "fee.totalAmount" and change_source "FSP"
 
   # ============================================================================
   # AC4 — Non-pricing amendment must not fabricate pricing metadata
@@ -124,21 +124,26 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # ============================================================================
   # AC8 — Failed / rejected amendments produce no AMENDMENT event
   # ============================================================================
+  #
+  # DE-SCOPED — Type 2 (requires wiring): the outline previously asserted four
+  # distinct write-side failure paths (FSP validation reject, FSP technical
+  # failure, post-FSP optimistic version guard, post-FSP persistence failure).
+  # Driving any of those from the BDD tier requires the write-side amendment
+  # harness (WireMock PDA/FSP stubs + event-service test hook) which is not
+  # yet in this project — deferred to DSTEW-1770. The scenario below is the
+  # honest reduction: it asserts the single guarantee this file CAN exercise
+  # at the read-model tier — a claim with no persisted `claim_amendment` row
+  # has no AMENDMENT event, regardless of the write-side reason. The four
+  # specific failure paths are tracked in the audit ledger for the follow-up
+  # ticket once the harness lands.
 
-  @DS1815_8
-  Scenario Outline: A <failureKind> amendment produces no AMENDMENT event and no FSP or escape metadata
+  @DS1815_8 @descoped-type2
+  Scenario: A failed amendment attempt leaves no persisted row and produces no AMENDMENT event
     Given a claim exists
-    And an amendment attempt <failureKind> and is not persisted
+    And no `claim_amendment` row has been persisted for that claim
     When I request the claim history timeline
-    Then the response contains no AMENDMENT event for the failed attempt
-    And the response contains no FSP repricing or escape metadata attributable to the failed attempt
-
-    Examples:
-      | failureKind                                        |
-      | fails FSP validation                               |
-      | hits an FSP technical failure                      |
-      | fails the final claim version guard after FSP runs |
-      | fails post-FSP persistence                         |
+    Then the response contains no AMENDMENT event
+    And the response contains no FSP repricing or escape metadata
 
   # ============================================================================
   # AC9 — Contract shape (absence + false semantics; final names owned by 1811)
