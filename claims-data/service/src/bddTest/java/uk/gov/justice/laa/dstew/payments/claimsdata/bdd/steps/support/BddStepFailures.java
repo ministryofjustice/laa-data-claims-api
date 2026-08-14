@@ -31,7 +31,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
  * }
  * }</pre>
  *
- * <p>See {@code memory.md} — Step-definition failure reporting (2026-08-13) for the standing rule.
  */
 public final class BddStepFailures {
 

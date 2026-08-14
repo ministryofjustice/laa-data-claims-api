@@ -49,8 +49,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  *
  * <p>Every step wraps its body in {@link BddStepFailures#step(String,
  * BddStepFailures.ThrowingRunnable)} so scenario failures surface as {@code [BDD step failed]
- * &lt;plain-English context&gt; — &lt;cause&gt;} in the JUnit XML / Cucumber HTML report, per the
- * standing rule in {@code memory.md}.
+ * &lt;plain-English context&gt; — &lt;cause&gt;} in the JUnit XML / Cucumber HTML report. See the
+ * Javadoc on {@link BddStepFailures} for the wrapper's contract.
  */
 @Slf4j
 public class ClaimHistoryAmendmentMetadataSteps {
@@ -260,7 +260,8 @@ public class ClaimHistoryAmendmentMetadataSteps {
   public void theLatestAmendmentEventHasActorAndTimestamp(
       String expectedActorId, String expectedTimestamp) {
     BddStepFailures.step(
-        "Verifying the latest AMENDMENT event (by event_timestamp) has actor_id='"
+        "Verifying the latest AMENDMENT event (first element of the newest-first response) has"
+            + " actor_id='"
             + expectedActorId
             + "' and event_timestamp='"
             + expectedTimestamp
@@ -270,18 +271,15 @@ public class ClaimHistoryAmendmentMetadataSteps {
           assertThat(events)
               .as("no AMENDMENT events on history response — cannot pick 'latest'")
               .isNotEmpty();
-          JsonNode latest =
-              events.stream()
-                  .max(
-                      (a, b) ->
-                          Instant.parse(a.path("event_timestamp").asText())
-                              .compareTo(Instant.parse(b.path("event_timestamp").asText())))
-                  .orElseThrow();
+          // The endpoint contract is newest-first — verify that ordering by taking the
+          // first element in RESPONSE order, NOT by re-sorting client-side (which would
+          // hide an endpoint that returned amendments in the wrong order).
+          JsonNode latest = events.get(0);
           assertThat(latest.path("actor_id").asText())
-              .as("actor_id on the latest AMENDMENT event")
+              .as("actor_id on the latest AMENDMENT event (first element in response order)")
               .isEqualTo(expectedActorId);
           assertThat(latest.path("event_timestamp").asText())
-              .as("event_timestamp on the latest AMENDMENT event")
+              .as("event_timestamp on the latest AMENDMENT event (first element in response order)")
               .isEqualTo(expectedTimestamp);
         });
   }

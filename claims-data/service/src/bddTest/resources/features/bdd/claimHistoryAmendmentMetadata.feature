@@ -35,13 +35,21 @@ Feature: Claim history timeline — AMENDMENT event metadata
   # (`@DS1645_1`), no raw payload / full before-state (`@DS1645_4`), and
   # write-to-read smoke (`@DS1645_7`). DSTEW-1815 file asserts FSP metadata
   # (`pricing_recalculated`, `price_changed`, `escape_case_logged`) and
-  # FSP-flavour `changes[]` entries. Gaps this file closes:
-  #   (a) the 5-field metadata envelope population from a real row;
-  #   (b) `amended_field_identifiers` list contains ONLY change_source='Requested'
-  #       — FSP consequences excluded from this list;
-  #   (c) multi-amendment chronology enabling latest-amendment derivation;
-  #   (d) codes returned exactly as persisted, no label substitution;
-  #   (e) stored order preserved in `amended_field_identifiers`.
+  # FSP-flavour `changes[]` entries.
+  #
+  # Gaps THIS file actually closes with delivered scenarios:
+  #   (a) the two shipped code metadata fields (`requested_by_code` and
+  #       `amendment_reason_code`) are populated on the AMENDMENT event
+  #       envelope from a real persisted `claim_amendment` row;
+  #   (b) multi-amendment chronology on a single claim, enabling
+  #       latest-amendment derivation from the newest-first response order;
+  #   (c) codes are returned exactly as persisted — no label substitution.
+  #
+  # NOT closed by this file (see the de-scope banner below):
+  #   * `amended_field_identifiers` Requested-only filter (`@DS1813_2`) — the
+  #     derivation does not ship on `main` yet, so no BDD hook exists.
+  #   * `amended_field_identifiers` stored-order preservation (`@DS1813_5`) —
+  #     same reason; depends on the same missing derivation.
   #
   # OUT OF SCOPE (delegated — do NOT add here):
   #   * Envelope shape                    → DSTEW-1811 (claimHistoryTimelineContract.feature)
