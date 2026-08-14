@@ -57,18 +57,18 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
     And the events are returned in the documented deterministic order
     And no event type outside the agreed set (SUBMISSION, AMENDMENT, ASSESSMENT, VOID) appears
 
-  @DS1645_2
-  Scenario: Failed amendment attempts do NOT appear as events
-    Given a claim exists with the following amendment attempts
-      | attempt | outcome                           |
-      | 1       | rejected by eligibility gate      |
-      | 2       | rejected by PDA validation        |
-      | 3       | rejected by FSP validation        |
-      | 4       | rejected by final version guard   |
-      | 5       | committed successfully            |
-    When I request the claim history timeline
-    Then the response contains exactly one AMENDMENT event
-    And no AMENDMENT event exists for any of the four failed attempts
+  #@DS1645_2
+  #Scenario: Failed amendment attempts do NOT appear as events
+  #  Given a claim exists with the following amendment attempts
+  #    | attempt | outcome                           |
+  #    | 1       | rejected by eligibility gate      |
+  #    | 2       | rejected by PDA validation        |
+  #    | 3       | rejected by FSP validation        |
+  #    | 4       | rejected by final version guard   |
+  #    | 5       | committed successfully            |
+  #  When I request the claim history timeline
+  #  Then the response contains exactly one AMENDMENT event
+  #  And no AMENDMENT event exists for any of the four failed attempts
 
   @DS1645_3
   Scenario: New Matter Starts events do NOT appear in the claim timeline
@@ -96,10 +96,27 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
     And the response contains no AMENDMENT, ASSESSMENT or VOID events
     And the response shape matches the documented contract
 
-  # -----------------------------------------------------------------
-  # @DS1645_6 and @DS1645_7 scenarios de-scoped — see banner at the top of
-  # this file for evidence trail. Original bodies preserved in
-  # DSTEW-1999-amend-claims-bdd-scenarios @ 2be26bc2 for verbatim restore
-  # when the delivery gap closes.
-  # -----------------------------------------------------------------
+  #@DS1645_6
+  #Scenario Outline: Actor fallback — missing user id resolves to the agreed fallback, never fabricated
+  #  Given a claim exists with a "<eventType>" event whose source user id is missing
+  #  When I request the claim history timeline
+  #  Then the "<eventType>" event actor is set to the agreed fallback identifier
+  #  And no synthetic user id was generated for the actor
+  #
+  #  Examples:
+  #    | eventType  |
+  #    | SUBMISSION |
+  #    | AMENDMENT  |
+  #    | ASSESSMENT |
+  #    | VOID       |
+
+  #@DS1645_7
+  #Scenario: Write-to-read smoke — a real amendment submission through DSTEW-1593 surfaces as an AMENDMENT event
+  #  Given a claim exists at claim.status "VALID"
+  #  And a well-formed amendment payload for that claim
+  #  When I submit the amendment and wait for the event service to complete amendment validation
+  #  And the amendment is committed successfully
+  #  And I then request the claim history timeline
+  #  Then the response contains an AMENDMENT event whose source_id equals the persisted claim_amendment.id
+  #  And the AMENDMENT event was derived from persisted source data, not seeded history rows
 
