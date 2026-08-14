@@ -249,10 +249,30 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
 
   /**
    * Builds a {@code {"schema_version":1,"changes":[...]}} JSONB string from a scenario data table.
-   * Accepts either the flat {@code before_value / after_value} columns (default) or the {@code
-   * *_present / *_value} pair — when {@code *_present=true} and {@code *_value="null"} an explicit
-   * JSON {@code null} is emitted for that side. If a column is omitted entirely the entry omits
-   * that key (used by the "unchanged fields" scenario shape).
+   *
+   * <p>Every emitted {@code changes[]} entry ALWAYS carries all four keys ({@code
+   * field_identifier}, {@code change_source}, {@code before}, {@code after}) — this matches the
+   * delivered wire contract, where {@code DiffEntry.before} / {@code DiffEntry.after} are
+   * non-optional and a cleared field is represented by an explicit JSON {@code null}.
+   *
+   * <p>Accepted column shapes for the {@code before} / {@code after} sides (see {@link
+   * #resolveSide}):
+   *
+   * <ul>
+   *   <li>{@code before_value} / {@code after_value} — bare literal (default form).
+   *   <li>{@code before} / {@code after} — bare literal (alternate spelling used by some
+   *       scenarios).
+   *   <li>{@code before_present} / {@code after_present} paired with {@code before_value} / {@code
+   *       after_value} — legacy tri-state form retained ONLY for de-scoped {@code @DS1814_4}. On
+   *       the shipped contract {@code present=false} collapses to JSON {@code null}, identical to
+   *       an explicit cleared value.
+   * </ul>
+   *
+   * <p>If the column is omitted entirely the emitted key is JSON {@code null} (i.e. treated the
+   * same as an explicit cleared value — the contract has no "omit key" case).
+   *
+   * <p>{@code change_source} is REQUIRED on every row; a missing / blank value fails fast at seed
+   * time (see {@link #normaliseChangeSource}).
    */
   private String buildDiffJson(DataTable table) {
     List<Map<String, String>> rows = table.asMaps(String.class, String.class);
@@ -280,9 +300,10 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
     String valueCol = side + "_value";
     String plainCol = side; // some tables use a bare "before" / "after" column
 
-    // If the table opts into the tri-state form (*_present), respect present=false → explicit null
-    // (delivered model doesn't distinguish present=false from cleared, but this keeps the raw diff
-    // shape produceable if the fixture uses that column set).
+    // Tri-state form kept for the de-scoped @DS1814_4 scenario (see feature-file banner).
+    // The delivered API can't distinguish present=false from JSON null on the wire, so
+    // both settings collapse to JSON null here. Kept only so the scenario can be restored
+    // verbatim if the underlying `DiffEntry` contract is later extended with a `present` flag.
     if (row.containsKey(presentCol)) {
       String present = row.get(presentCol);
       if ("false".equalsIgnoreCase(present)) {
@@ -296,6 +317,9 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
     if (row.containsKey(plainCol)) {
       return renderJsonLiteral(row.get(plainCol));
     }
+    // Column omitted entirely — surface a JSON null. The delivered API always emits both
+    // `before` and `after` keys on every changes[] entry (see buildDiffJson Javadoc), so
+    // "column omitted" means "explicit cleared value" here.
     return "null";
   }
 
@@ -325,7 +349,16 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
 
   private String normaliseChangeSource(String raw) {
     // Feature file uses "Requested" / "FSP" for readability; persisted enum requires upper-case.
-    return raw == null ? null : raw.trim().toUpperCase(Locale.ROOT);
+    // change_source is required — every changes[] entry MUST carry one on the delivered contract.
+    // Fail fast if the scenario table omits it, so a malformed fixture surfaces at seed time
+    // rather than as a mysterious "change_source":"NULL" string downstream.
+    if (raw == null || raw.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+          "buildDiffJson: `change_source` is required on every changes[] row but was missing / "
+              + "blank. Add a `change_source` column (values: Requested | FSP) to the scenario "
+              + "data table.");
+    }
+    return raw.trim().toUpperCase(Locale.ROOT);
   }
 
   // ---------------------------------------------------------------------------

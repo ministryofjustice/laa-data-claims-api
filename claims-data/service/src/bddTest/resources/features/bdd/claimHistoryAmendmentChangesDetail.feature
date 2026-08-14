@@ -17,11 +17,16 @@ Feature: Claim history timeline — AMENDMENT event field-level change detail
   #   * change_source      ← changes[].change_source  ("Requested" | "FSP",
   #                                                    or "System" if later added)
   #
-  # Presence/null semantics (from DSTEW-1659 diff structure):
-  #   before.present=true  + before.value=null → explicit stored null
-  #   before.present=false                     → value not available from source
-  # (Same rule for after.) These MUST survive end-to-end so AaBC can tell a
-  # cleared field from a not-captured one.
+  # Presence/null semantics on the DELIVERED wire contract:
+  #   before / after present with JSON null  → explicit stored null (cleared)
+  #   before / after present with a value    → captured value
+  # The shipped `DiffEntry` DTO carries only flat `before` / `after` fields,
+  # so "not captured / not available from source" is NOT representable on the
+  # wire — both `present=false` (source-not-captured) and `value=null` collapse
+  # to JSON null at the API boundary. The scenario that would have asserted a
+  # distinction (`@DS1814_4`) is de-scoped for this reason (see PR description
+  # and the audit ledger). If a future contract change adds a `present` flag,
+  # `@DS1814_4` can be restored verbatim.
   #
   # Coverage review (2026-08-11):
   #   * Parent `claimHistoryTimelineParent.feature @DS1645_4` owns the raw
@@ -33,9 +38,13 @@ Feature: Claim history timeline — AMENDMENT event field-level change detail
   #     surface from changes[].
   # Gaps this file closes: (a) the full 4-field entry shape from real data;
   # (b) Requested vs FSP entries distinguishable in the SAME changes[] array;
-  # (c) explicit-null `after` (cleared field); (d) not-available `before`
-  # distinguishable from explicit null; (e) unchanged fields absent;
-  # (f) unsupported diff schema_version fails safely.
+  # (c) explicit-null `after` (cleared field) surfaces as JSON null on the wire;
+  # (d) unchanged fields absent from changes[].
+  # De-scoped (see PR description + audit ledger, NOT closed by this file):
+  #   * `@DS1814_4` — cleared-vs-not-captured distinction (unrepresentable in
+  #     the shipped `DiffEntry` contract, see banner above).
+  #   * `@DS1814_6` — unsupported diff `schema_version` fail-safe (the shipped
+  #     read path has no schema-version guard; deferred as a follow-up task).
   #
   # OUT OF SCOPE (delegated — do NOT add here):
   #   * Raw request_payload / full before_state exposure → parent @DS1645_4
