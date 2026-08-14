@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -241,7 +242,7 @@ public class SubmissionCalculatedTotalLatestRowSteps {
       "the earlier calculated_fee_detail row for claim {string} with total_amount {bigdecimal}"
           + " did not contribute to the total")
   public void theEarlierFeeRowDidNotContribute(String claimRef, BigDecimal excludedAmount) {
-    assertRowExcluded(excludedAmount);
+    assertRowExcludedForClaim(claimRef, excludedAmount);
   }
 
   @Then(
@@ -253,7 +254,7 @@ public class SubmissionCalculatedTotalLatestRowSteps {
 
   @Then("the earlier {bigdecimal} row for claim {string} did not contribute to the total")
   public void theEarlierRowForClaimDidNotContribute(BigDecimal excludedAmount, String claimRef) {
-    assertRowExcluded(excludedAmount);
+    assertRowExcludedForClaim(claimRef, excludedAmount);
   }
 
   @Then("the submission response shape is unchanged from today's contract")
@@ -381,23 +382,27 @@ public class SubmissionCalculatedTotalLatestRowSteps {
 
   private void assertRowExcluded(BigDecimal excludedAmount) {
     // Sanity: the seeded row exists (guards against typos in the scenario amount).
+    List<CalculatedFeeDetail> currentSubmissionRows = feeRowsForCurrentSubmission();
     boolean rowPresent =
-        calculatedFeeDetailRepository.findAll().stream()
+        currentSubmissionRows.stream()
             .anyMatch(
                 cfd ->
                     cfd.getTotalAmount() != null
                         && cfd.getTotalAmount().compareTo(excludedAmount) == 0);
     assertThat(rowPresent)
         .as(
-            "excluded row %s must exist in the DB before we can prove it was excluded",
+            "excluded row %s must exist on the current submission before we can prove it was"
+                + " excluded",
             excludedAmount)
         .isTrue();
 
     // The total assertion in the sibling "Then" already proves exclusion arithmetically. This
     // additional assertion adds an explicit anti-double-counting check: the response total must
-    // NOT equal the naive SUM(all rows).
+    // NOT equal the naive SUM of every calculated_fee_detail row on the current submission's
+    // claims. Scoping to the current submission (rather than every row in the DB) keeps this
+    // robust against future harness changes that may retain rows from prior scenarios.
     BigDecimal naiveSumOfAllRows =
-        calculatedFeeDetailRepository.findAll().stream()
+        currentSubmissionRows.stream()
             .map(CalculatedFeeDetail::getTotalAmount)
             .filter(v -> v != null)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -408,21 +413,49 @@ public class SubmissionCalculatedTotalLatestRowSteps {
     assertThat(responseTotal)
         .as(
             "submission calculated_total_amount must not include the earlier row "
-                + "(naive SUM of all rows would be %s)",
+                + "(naive SUM of all rows on this submission would be %s)",
             naiveSumOfAllRows)
         .isNotEqualByComparingTo(naiveSumOfAllRows);
   }
 
+  private void assertRowExcludedForClaim(String claimRef, BigDecimal excludedAmount) {
+    // Assert that the excluded amount really does exist on the referenced claim before proving it
+    // was excluded from the total — otherwise the scenario could pass when the excluded row lives
+    // on a different claim that happens to carry the same amount.
+    UUID targetClaimId = requireClaim(claimRef).getId();
+    boolean rowPresentOnClaim =
+        calculatedFeeDetailRepository.findAll().stream()
+            .anyMatch(
+                cfd ->
+                    cfd.getClaim() != null
+                        && targetClaimId.equals(cfd.getClaim().getId())
+                        && cfd.getTotalAmount() != null
+                        && cfd.getTotalAmount().compareTo(excludedAmount) == 0);
+    assertThat(rowPresentOnClaim)
+        .as(
+            "excluded row %s must exist on claim '%s' before we can prove it was excluded",
+            excludedAmount, claimRef)
+        .isTrue();
+    assertRowExcluded(excludedAmount);
+  }
+
+  private List<CalculatedFeeDetail> feeRowsForCurrentSubmission() {
+    Set<UUID> currentClaimIds = new HashSet<>(claimIdByRef.values());
+    return calculatedFeeDetailRepository.findAll().stream()
+        .filter(cfd -> cfd.getClaim() != null && currentClaimIds.contains(cfd.getClaim().getId()))
+        .toList();
+  }
+
   private void assertResponseShapeMatchesKnownContract() {
-    lastSubmissionResponse
-        .fieldNames()
-        .forEachRemaining(
-            field ->
-                assertThat(EXPECTED_SUBMISSION_RESPONSE_KEYS)
-                    .as(
-                        "Unexpected new field '%s' in submission response — DSTEW-1644 must not"
-                            + " add new fields to the submission read contract",
-                        field)
-                    .contains(field));
+    // Lock the key set: fail if an expected top-level field is missing (contract regression) AND
+    // fail if an unexpected field appears (contract expansion). Missing-key-only or extra-key-only
+    // checks would let one direction of drift through.
+    Set<String> actualKeys = new HashSet<>();
+    lastSubmissionResponse.fieldNames().forEachRemaining(actualKeys::add);
+    assertThat(actualKeys)
+        .as(
+            "submission response top-level key set must exactly match the pre-DSTEW-1644 contract"
+                + " — DSTEW-1644 must not add, remove or rename any submission-response fields")
+        .isEqualTo(EXPECTED_SUBMISSION_RESPONSE_KEYS);
   }
 }
