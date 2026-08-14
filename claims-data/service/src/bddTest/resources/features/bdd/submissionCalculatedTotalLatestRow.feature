@@ -5,7 +5,7 @@
 Feature: Submission calculated total — sum only the latest calculated_fee_detail row per claim
 
   # Jira: DSTEW-1644 (parent: DSTEW-1999)
-  # Endpoint: GET /api/v1/bulk-submissions/{id}     (submission read)
+  # Endpoint: GET /api/v1/submissions/{id}          (submission read)
   #
   # Read-side correctness fix that must land BEFORE or WITH DSTEW-1659
   # (one-to-many `calculated_fee_detail`). If DSTEW-1659 lands first, a
