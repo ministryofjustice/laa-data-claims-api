@@ -60,6 +60,8 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
+            - name: SERVICE_VERSION
+              value: {{ .Values.image.tag | quote }}
             - name: AUTHORIZED_CLIENTS
               valueFrom:
                 secretKeyRef:
