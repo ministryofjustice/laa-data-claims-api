@@ -111,13 +111,24 @@ public class ClaimHistoryTimelineContractSteps {
         this::seedClaim);
   }
 
+  @And("the claim has the following stored values")
+  @Transactional
+  public void theClaimHasStoredValues(DataTable table) {
+    step(
+        "override claim envelope columns to match the feature-file 'stored values' table",
+        () -> {
+          pendingSubmissionValues.putAll(singleFieldValueMap(table));
+          applyPendingSubmissionOverrides();
+        });
+  }
+
   @And("the parent submission has the following stored values")
   @Transactional
   public void theParentSubmissionHasStoredValues(DataTable table) {
     step(
-        "override submission + claim columns to match the feature-file 'stored values' table",
+        "override submission metadata columns to match the feature-file 'stored values' table",
         () -> {
-          pendingSubmissionValues = singleFieldValueMap(table);
+          pendingSubmissionValues.putAll(singleFieldValueMap(table));
           applyPendingSubmissionOverrides();
         });
   }
@@ -304,16 +315,36 @@ public class ClaimHistoryTimelineContractSteps {
   @Then("the response shape matches the existing Claims API claim-not-found contract")
   public void theResponseShapeMatchesClaimNotFoundContract() {
     step(
-        "assert the not-found response body carries the standard error contract shape",
+        "assert the not-found response body carries the standard RFC 9457 Problem Detail shape "
+            + "(see DataClaimsExceptionHandler.buildProblemDetailResponse)",
         () -> {
-          // The delivered ClaimNotFoundException extends ClaimsDataException(HttpStatus.NOT_FOUND);
-          // the Spring exception handler serialises it. We accept either the RFC 7807 shape
-          // (`title` / `status` / `detail`) or the legacy `{message, ...}` shape, and require at
-          // least one of them mentions the claim id so callers can diagnose the failure.
           assertThat(lastResponseBody).as("not-found response body").isNotNull().isNotBlank();
-          assertThat(lastResponseBody.toLowerCase())
-              .as("not-found body mentions the missing claim id")
-              .contains(currentClaimId.toString().toLowerCase());
+          JsonNode body =
+              new com.fasterxml.jackson.databind.ObjectMapper().readTree(lastResponseBody);
+          // RFC 9457 mandatory-when-present fields for a 404 from this handler: type, title,
+          // status, detail, instance. The handler also copies detail into a backwards-compat
+          // `message` property. Anchoring on these keys catches HTML/plain-text regressions.
+          assertThat(body.path("status").asInt()).as("Problem Detail `status`").isEqualTo(404);
+          assertThat(body.path("title").asText())
+              .as("Problem Detail `title`")
+              .isEqualTo("Not Found");
+          assertThat(body.path("type").asText())
+              .as("Problem Detail `type` URI")
+              .isNotBlank()
+              .startsWith("http");
+          assertThat(body.path("detail").asText())
+              .as("Problem Detail `detail` (must reference the missing claim id)")
+              .containsIgnoringCase(currentClaimId.toString());
+          assertThat(body.path("instance").asText())
+              .as("Problem Detail `instance` (must reference the requested endpoint URI)")
+              .contains("/history");
+          // Backwards-compat property emitted by DataClaimsExceptionHandler.
+          assertThat(body.has("message"))
+              .as("Problem Detail must carry the backwards-compat `message` property")
+              .isTrue();
+          assertThat(body.path("message").asText())
+              .as("`message` must mirror `detail`")
+              .isEqualTo(body.path("detail").asText());
         });
   }
 
@@ -383,9 +414,10 @@ public class ClaimHistoryTimelineContractSteps {
     Map<String, String> vals = pendingSubmissionValues;
 
     // The delivered SUBMISSION event derives event_timestamp, actor_id and source_id from the
-    // CLAIM row (see JdbcClaimHistoryRepository.HISTORY_SQL SUBMISSION branch). The feature file
-    // labels these as "the parent submission's stored values" — semantically equivalent for the
-    // scenario, so we pin them on the claim.
+    // CLAIM row (see JdbcClaimHistoryRepository.HISTORY_SQL SUBMISSION branch), and derives its
+    // metadata fields from the parent SUBMISSION row. The feature file provides these values
+    // via two separate "stored values" tables ("the claim has ..." and "the parent submission
+    // has ..."); this helper routes each key to whichever table it belongs on.
     UUID claimId = requireCurrentClaimId();
 
     // id label — bind whatever the feature file names this to the actual claim id.

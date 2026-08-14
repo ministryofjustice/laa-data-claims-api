@@ -47,22 +47,24 @@ Feature: Claim history timeline — contract skeleton & SUBMISSION event
   @smoke @DS1811_1
   Scenario: SUBMISSION event returned with the common envelope + submission metadata
     Given a claim exists that has been submitted but never amended, assessed or voided
+    And the claim has the following stored values
+      | field              | value                |
+      | id                 | claim-uuid-1         |
+      | created_on         | 2026-04-22T11:26:00Z |
+      | created_by_user_id | user-abc             |
     And the parent submission has the following stored values
-      | field                 | value                |
-      | id                    | sub-uuid-1           |
-      | created_on            | 2026-04-22T11:26:00Z |
-      | created_by_user_id    | user-abc             |
-      | submission_period     | APR-2026             |
-      | office_account_number | 0X123Y               |
-      | area_of_law           | CRIME_LOWER          |
+      | field                 | value       |
+      | submission_period     | APR-2026    |
+      | office_account_number | 0X123Y      |
+      | area_of_law           | CRIME_LOWER |
     When I request the claim history timeline
     Then the response contains exactly one event
     And that event matches the following common envelope
       | envelopeField    | value                |
       | event_type       | SUBMISSION           |
       | event_timestamp  | 2026-04-22T11:26:00Z |
-      | actor_user_id    | user-abc             |
-      | source_id        | sub-uuid-1           |
+      | actor_id         | user-abc             |
+      | source_id        | claim-uuid-1         |
     And that event's metadata contains
       | metadataField         | value       |
       | submission_period     | APR-2026    |
