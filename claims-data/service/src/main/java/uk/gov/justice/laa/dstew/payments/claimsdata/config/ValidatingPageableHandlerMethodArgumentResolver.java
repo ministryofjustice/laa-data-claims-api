@@ -19,6 +19,7 @@ public class ValidatingPageableHandlerMethodArgumentResolver
     extends PageableHandlerMethodArgumentResolver {
 
   @Override
+  @NonNull
   public Pageable resolveArgument(
       @NonNull MethodParameter parameter,
       ModelAndViewContainer mavContainer,
@@ -29,10 +30,24 @@ public class ValidatingPageableHandlerMethodArgumentResolver
     if (request != null) {
       String pageParam = request.getParameter("page");
       String sizeParam = request.getParameter("size");
+      String sortParam = request.getParameter("sort");
 
-      // Centralised numeric parsing/validation to avoid duplicated try/catch blocks
-      validateNumericParam(pageParam, "page", 0);
-      validateNumericParam(sizeParam, "size", 1);
+      // If page, size and sort are all absent, return unpaged to preserve existing behaviour
+      // where endpoints without pagination or sorting parameters are considered unpaged. If any
+      // of those parameters are present, delegate to the framework resolver so that
+      // "size-only" or "sort-only" requests still receive the expected semantics (e.g.
+      // sort-only -> page=0,size=default,sort=...).
+      if (pageParam == null && sizeParam == null && sortParam == null) {
+        return Pageable.unpaged();
+      }
+
+      // Validate only parameters that are present
+      if (pageParam != null) {
+        validateNumericParam(pageParam, "page", 0);
+      }
+      if (sizeParam != null) {
+        validateNumericParam(sizeParam, "size", 1);
+      }
     }
 
     // Delegate to super to produce the Pageable instance, then perform final validation on the

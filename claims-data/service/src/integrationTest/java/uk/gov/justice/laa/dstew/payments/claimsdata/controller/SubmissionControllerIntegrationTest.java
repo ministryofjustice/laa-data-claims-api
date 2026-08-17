@@ -1275,6 +1275,39 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Sort-only request (?sort=...) returns reverse chronological order")
+  void getSubmissionsSortOnlySubmissionPeriodDescReturnsReverseChronologicalOrder()
+      throws Exception {
+    // given: DEC-2024 and APR-2025 added alongside seeded submission1 (JAN-2025).
+    // This test explicitly verifies a sort-only request (no page/size) still returns
+    // results ordered by submissionPeriod desc (chronological desc), preventing regressions
+    // where a sort-only request might be treated as unpaged/unordered.
+    List<Submission> fixtures = saveSubmissionPeriodSortFixtures();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                    .param(PARAM_SORT, "submissionPeriod,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var periods =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent()
+            .stream()
+            .map(SubmissionBase::getSubmissionPeriod)
+            .toList();
+
+    assertThat(periods).containsExactly(PERIOD_APR_2025, PERIOD_JAN_2025, PERIOD_DEC_2024);
+
+    deleteSubmissionPeriodSortFixtures(fixtures);
+  }
+
+  @Test
   @DisplayName("Sort by officeAccountNumber is case-insensitive")
   void getSubmissions_sortByOfficeAccountNumber_isCaseInsensitive() throws Exception {
     // given: two submissions for office1 with mixed-case office numbers

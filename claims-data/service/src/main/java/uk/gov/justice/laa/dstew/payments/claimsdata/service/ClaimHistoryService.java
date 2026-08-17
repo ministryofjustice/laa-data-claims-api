@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.InvalidPageableParameterException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
@@ -44,8 +45,20 @@ public class ClaimHistoryService {
     }
 
     int limit = pageable.getPageSize();
-    int offset = Math.multiplyExact(pageable.getPageNumber(), limit);
-    return load(claimId, limit, offset);
+    long offset = pageable.getOffset();
+
+    // Guard against extremely large offsets that would overflow existing int-based repository
+    // parameters. Reject them as a client error rather than letting an overflow produce a 500.
+    if (offset > Integer.MAX_VALUE) {
+      throw new InvalidPageableParameterException(
+          "Requested page offset is too large: "
+              + offset
+              + " (must be <= "
+              + Integer.MAX_VALUE
+              + ")");
+    }
+
+    return load(claimId, limit, (int) offset);
   }
 
   private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize, int offset) {

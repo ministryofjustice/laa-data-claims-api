@@ -85,7 +85,7 @@ class ClaimHistoryControllerTest {
   }
 
   @Test
-  @DisplayName("Uses limit overload when limit provided")
+  @DisplayName("Uses pageable size when size query param supplied")
   void usesLimitOverloadWhenLimitProvided() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
@@ -173,17 +173,19 @@ class ClaimHistoryControllerTest {
   }
 
   @Test
-  @DisplayName("Uses default timeline when limit is null")
+  @DisplayName("Passes null Pageable to service when no pagination parameters supplied")
   void usesDefaultTimelineWhenLimitIsNull() {
-    // The generated contract defaults limit to 50, but the controller stays null-safe when invoked
-    // directly; assert the no-arg overload is used in that case.
+    // The generated contract defaults limit to 50, but when the controller is invoked directly
+    // it passes a null Pageable to the service. Assert the controller remains null-safe and
+    // forwards a null Pageable so service-side unpaged behaviour can be applied.
     UUID claimId = Uuid7.timeBasedUuid();
     ClaimHistoryController controller =
         new ClaimHistoryController(claimHistoryService, objectMapper);
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
         .thenReturn(List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")));
 
-    ResponseEntity<ClaimHistoryResultSet> response = controller.getClaimHistory(claimId, null);
+    ResponseEntity<ClaimHistoryResultSet> response =
+        controller.getClaimHistory(claimId, (org.springframework.data.domain.Pageable) null);
 
     verify(claimHistoryService).getTimeline(eq(claimId), ArgumentMatchers.isNull());
     Assertions.assertThat(response.getBody()).isNotNull();

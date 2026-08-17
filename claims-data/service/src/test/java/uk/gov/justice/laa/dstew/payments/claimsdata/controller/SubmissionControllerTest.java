@@ -216,7 +216,7 @@ class SubmissionControllerTest {
             eq(AREA_OF_LAW),
             eq("2205-19"),
             eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
-            eq(Pageable.ofSize(20).withPage(0)));
+            eq(Pageable.unpaged()));
   }
 
   @Test
