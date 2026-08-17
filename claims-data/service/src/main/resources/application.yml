@@ -20,6 +20,14 @@ spring:
       reporting_password: "reporting_password"
       data_factory_username: ${DATA_FACTORY_USERNAME:data_factory_user}
       data_factory_password: ${DATA_FACTORY_PASSWORD:data_factory_password}
+      # Cutoff for the partial unique index on claim(submission_id, line_number) added in V45.
+      # Local/CI default to the epoch so fresh/clean databases enforce uniqueness for ALL rows.
+      # Deployed environments do NOT use this default: the Helm chart sets
+      # CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF to the deploy time, so all rows existing at deploy are
+      # grandfathered and uniqueness is enforced only for claims created afterwards. Override the env
+      # var manually only if you need a cutoff other than the deploy time.
+      # See docs/release-notes/unique-claim-submission-line-number.md.
+      claim_line_number_uniqueness_cutoff: ${CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF:1970-01-01 00:00:00+00}
   servlet:
     multipart:
       max-file-size: 10MB
@@ -36,6 +44,11 @@ spring:
     properties:
       hibernate:
         default_schema: claims
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  shutdown: graceful
 
 # Local connection details for dev, overridden in other envs
 aws:
@@ -69,6 +82,8 @@ management:
   # show detailed health status
   endpoint:
     health:
+      probes:
+        enabled: true
       show-details: always
 
   info:

@@ -12,7 +12,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -115,11 +115,11 @@ public class CalculatedFeeDetail {
   private String createdByUserId;
 
   @Column(nullable = false)
-  private OffsetDateTime createdOn;
+  private Instant createdOn;
 
   private String updatedByUserId;
 
-  @UpdateTimestamp private OffsetDateTime updatedOn;
+  @UpdateTimestamp private Instant updatedOn;
 
   @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "claim_amendment_id", unique = true) // 'unique = true' ensures a strict 1:1

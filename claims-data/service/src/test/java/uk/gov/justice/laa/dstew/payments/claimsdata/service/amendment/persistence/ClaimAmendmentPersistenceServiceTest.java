@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persisten
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +33,6 @@ class ClaimAmendmentPersistenceServiceTest {
   @Mock private AmendmentDiffAssembler diffAssembler;
   @Mock private AmendmentJsonWriter jsonWriter;
   @Mock private AmendmentEntitiesWriter entitiesWriter;
-  @Mock private AmendmentCalculatedFeeWriter calculatedFeeWriter;
 
   @InjectMocks private ClaimAmendmentPersistenceService service;
 
@@ -57,8 +55,7 @@ class ClaimAmendmentPersistenceServiceTest {
   }
 
   @Test
-  @DisplayName(
-      "assembles and inserts the claim_amendment row, applies claim writes and attaches fee")
+  @DisplayName("assembles and inserts the claim_amendment row and applies claim writes")
   void persistsSuccessfulAmendment() {
     Claim claim = Claim.builder().id(CLAIM_ID).build();
     ClaimAmendmentState state = state();
@@ -87,10 +84,13 @@ class ClaimAmendmentPersistenceServiceTest {
     assertThat(inserted.getRequestPayload()).isEqualTo("PAYLOAD_JSON");
     assertThat(inserted.getDiff()).isEqualTo("DIFF_JSON");
 
+    // The persisted row is returned to the caller (the commit service then links the
+    // calculated_fee_detail to it).
+    assertThat(saved).isSameAs(inserted);
+
     // Delegation to the target writer (which applies claim + related-entity values, marks the
     // claim amended and stamps the amending user onto updated_by_user_id) is verified in
     // AmendmentEntitiesWriterTest.
     verify(entitiesWriter).applyAmendedValues(claim, state.getPostAmendmentState(), "user-123");
-    verify(calculatedFeeWriter).attach(eq(saved), eq(state));
   }
 }

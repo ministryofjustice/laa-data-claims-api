@@ -9,7 +9,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -68,7 +68,7 @@ public class ClaimAmendment {
 
   @NotNull private String createdByUserId; // Entra UUID
 
-  @NotNull private OffsetDateTime createdOn; // Timestamp
+  @NotNull private Instant createdOn; // Timestamp
 
   @OneToOne(mappedBy = "claimAmendment")
   private CalculatedFeeDetail calculatedFeeDetail;

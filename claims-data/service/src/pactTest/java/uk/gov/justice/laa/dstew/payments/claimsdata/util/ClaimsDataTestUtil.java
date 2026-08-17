@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
@@ -666,6 +667,54 @@ public class ClaimsDataTestUtil {
     return new ClaimHistoryEventRow(
         "VOID",
         SUBMITTED_DATE.plusHours(2).toInstant(),
+        PROVIDER_USER_ID,
+        Uuid7.timeBasedUuid(),
+        metadata);
+  }
+
+  /**
+   * A single AMENDMENT history event mirroring the unified claim-history read model (DSTEW-1814).
+   *
+   * <p>Carries the field-level {@code changes} array lifted verbatim from the persisted amendment
+   * diff: a provider-{@code REQUESTED} change, an {@code FSP} repricing consequence, and an {@code
+   * FSP} entry whose {@code before} is an <b>explicit JSON null</b> (a value not previously set).
+   * The explicit null is present-and-null, never an omitted key, so a consumer contract can pin the
+   * null/presence semantics.
+   */
+  public static ClaimHistoryEventRow getAmendmentHistoryEvent() {
+    ObjectNode metadata = JsonNodeFactory.instance.objectNode();
+    metadata.put("requested_by_code", "PROVIDER");
+    metadata.put("amendment_reason_code", "PROVIDER_ERROR");
+    metadata.put("pricing_recalculated", true);
+    metadata.put("price_changed", true);
+    metadata.put("escape_case_logged", false);
+
+    ArrayNode changes = metadata.putArray("changes");
+
+    // Provider-requested change with concrete before/after values.
+    ObjectNode requested = changes.addObject();
+    requested.put("field_identifier", "client.clientForename");
+    requested.put("before", "Alice");
+    requested.put("after", "Alexandra");
+    requested.put("change_source", "REQUESTED");
+
+    // FSP repricing consequence with concrete before/after values.
+    ObjectNode fsp = changes.addObject();
+    fsp.put("field_identifier", "fee.totalAmount");
+    fsp.put("before", "100.00");
+    fsp.put("after", "180.00");
+    fsp.put("change_source", "FSP");
+
+    // FSP consequence whose value was not previously set: before is an explicit JSON null.
+    ObjectNode fspFromNull = changes.addObject();
+    fspFromNull.put("field_identifier", "fee.schemeId");
+    fspFromNull.putNull("before");
+    fspFromNull.put("after", "SCHEME-TEST");
+    fspFromNull.put("change_source", "FSP");
+
+    return new ClaimHistoryEventRow(
+        "AMENDMENT",
+        SUBMITTED_DATE.plusHours(3).toInstant(),
         PROVIDER_USER_ID,
         Uuid7.timeBasedUuid(),
         metadata);
