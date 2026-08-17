@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -34,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 public class BddHooks {
 
   @Autowired private BddScenarioContext context;
+  @Autowired private ClaimsApiProperties claimsApiProperties;
   @Autowired private SubmissionPeriodHelper submissionPeriodHelper;
   @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired private AssessmentRepository assessmentRepository;
@@ -63,6 +65,9 @@ public class BddHooks {
   public void resetScenarioContextAndData() {
     context.clear();
     submissionPeriodHelper.reset();
+
+    // Reset feature flags to default (disabled) to ensure scenario independence
+    claimsApiProperties.getAmendments().setEnabled(null);
 
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();

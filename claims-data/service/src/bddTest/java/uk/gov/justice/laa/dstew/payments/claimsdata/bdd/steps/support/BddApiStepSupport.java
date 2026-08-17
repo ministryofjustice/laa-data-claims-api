@@ -12,6 +12,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_CLAIM_AMENDMENT_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
@@ -39,6 +40,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddBeansConfiguration.BddServerInfo;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
@@ -347,6 +350,49 @@ public class BddApiStepSupport {
 
     context.setLastStatusCode(statusCode);
     context.setLastResponseBody(responseBody);
+  }
+
+  /**
+   * Submits an amendment via PATCH and captures the response status/body in context.
+   *
+   * @param submissionId the submission ID
+   * @param claimId the claim ID
+   * @param payload the amendment request payload (JSON string)
+   */
+  public void submitAmendmentViaHttp(UUID submissionId, UUID claimId, String payload) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<String> request = new HttpEntity<>(payload, headers);
+
+    Integer statusCode;
+    String responseBody;
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl()
+                  + PATCH_CLAIM_AMENDMENT_PATH
+                      .replace("{submissionId}", submissionId.toString())
+                      .replace("{claimId}", claimId.toString()),
+              HttpMethod.PATCH,
+              request,
+              String.class);
+      statusCode = response.getStatusCode().value();
+      responseBody = response.getBody();
+    } catch (RestClientResponseException ex) {
+      statusCode = ex.getStatusCode().value();
+      responseBody = ex.getResponseBodyAsString();
+    } catch (RestClientException ex) {
+      // Connection/execution failure before response received
+      throw new IllegalStateException(
+          "Failed to execute amendment PATCH request: "
+              + ex.getClass().getSimpleName()
+              + (ex.getMessage() == null ? "" : " - " + ex.getMessage()),
+          ex);
+    }
+
+    context.setLastAmendmentHttpStatus(statusCode);
+    context.setLastAmendmentResponseBody(responseBody);
   }
 
   private static void sleepQuietly() {

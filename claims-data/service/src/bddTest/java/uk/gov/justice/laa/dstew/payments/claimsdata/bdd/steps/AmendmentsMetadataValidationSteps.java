@@ -6,11 +6,9 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,13 +18,13 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -55,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * uk.gov.justice.laa.dstew.payments.claimsdata.exception.DataClaimsExceptionHandler} would emit.
  * This keeps the assertions focused on the metadata layer under test.
  */
+@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class AmendmentsMetadataValidationSteps {
 
   private static final String SEED_ACTOR = "bdd-ds1765";
@@ -70,7 +69,6 @@ public class AmendmentsMetadataValidationSteps {
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
-
   @Autowired private AmendmentFeatureFlagValidationStep featureFlagStep;
   @Autowired private AmendmentUserIdValidationStep userIdStep;
   @Autowired private AmendmentReferenceValidationStep referenceStep;
@@ -103,16 +101,19 @@ public class AmendmentsMetadataValidationSteps {
     seedDs1765PlaceholderFixture();
   }
 
-  @Given("the amendment metadata reference-data source is unavailable")
-  public void theAmendmentMetadataReferenceDataSourceIsUnavailable() {
-    // The AmendmentReferenceDataProvider treats an empty result as "unavailable", so hard-deleting
-    // both governed tables reproduces the technical-failure signal without touching the DB
-    // connection (production also emits this same code on DataAccessException).
+  @Given("no amendment metadata reference data exists")
+  public void noAmendmentMetadataReferenceDataExists() {
+    // Simulates an empty reference-data set, not a datasource failure.
     amendmentReasonReferenceRepository.deleteAllInBatch();
     amendmentReasonReferenceRepository.flush();
     requestedByReferenceRepository.deleteAllInBatch();
     requestedByReferenceRepository.flush();
     clearReferenceCache();
+  }
+
+  @Given("the amendment metadata reference-data source is unavailable")
+  public void theAmendmentMetadataReferenceDataSourceIsUnavailable() {
+    noAmendmentMetadataReferenceDataExists();
   }
 
   // ---------------------------------------------------------------------------
@@ -163,6 +164,7 @@ public class AmendmentsMetadataValidationSteps {
 
     context.setSeededSubmissionId(submissionId);
     context.setSeededClaimId(claimId);
+    context.setSeededClaimVersion(claim.getVersion());
   }
 
   private void seedBc574Defaults() {
@@ -227,29 +229,39 @@ public class AmendmentsMetadataValidationSteps {
 
   @When("I submit the amendment")
   public void iSubmitTheAmendment() {
-    ClaimAmendmentPayload payload =
-        ClaimAmendmentPayload.builder()
-            .amendmentRequestedBy(toJsonNullable(context.getAmendmentRequestedByCode()))
-            .amendmentReasonCode(toJsonNullable(context.getAmendmentReasonCode()))
-            .amendmentUserId(toJsonNullable(context.getSubmittingUserId()))
-            .build();
+    BddStepFailures.step(
+        "Submitting amendment for submission="
+            + context.getSeededSubmissionId()
+            + " claim="
+            + context.getSeededClaimId(),
+        () -> {
+          ClaimAmendmentPayload payload =
+              ClaimAmendmentPayload.builder()
+                  .version(JsonNullable.of(context.getSeededClaimVersion()))
+                  .amendmentRequestedBy(toJsonNullable(context.getAmendmentRequestedByCode()))
+                  .amendmentReasonCode(toJsonNullable(context.getAmendmentReasonCode()))
+                  .amendmentUserId(toJsonNullable(context.getSubmittingUserId()))
+                  .build();
+          ClaimAmendmentState state = ClaimAmendmentState.builder().requestPayload(payload).build();
 
-    ClaimAmendmentState state = ClaimAmendmentState.builder().requestPayload(payload).build();
+          List<ClaimAmendmentValidationError> errors = new ArrayList<>();
+          errors.addAll(featureFlagStep.validate(state));
+          if (errors.stream().noneMatch(ClaimAmendmentValidationError::isFatal)) {
+            errors.addAll(userIdStep.validate(state));
+            errors.addAll(referenceStep.validate(state));
+          }
 
-    List<ClaimAmendmentValidationError> errors = new ArrayList<>();
-    errors.addAll(featureFlagStep.validate(state));
-    if (errors.stream().noneMatch(ClaimAmendmentValidationError::isFatal)) {
-      errors.addAll(userIdStep.validate(state));
-      errors.addAll(referenceStep.validate(state));
-    }
-
-    List<String> codes = errors.stream().map(ClaimAmendmentValidationError::getCode).toList();
-    List<String> messages = errors.stream().map(ClaimAmendmentValidationError::getMessage).toList();
-    context.getLastAmendmentErrorCodes().clear();
-    context.getLastAmendmentErrorCodes().addAll(codes);
-    context.getLastAmendmentErrorMessages().clear();
-    context.getLastAmendmentErrorMessages().addAll(messages);
-    context.setLastAmendmentHttpStatus(computeHttpStatus(errors));
+          context.getLastAmendmentErrorCodes().clear();
+          context.getLastAmendmentErrorMessages().clear();
+          context
+              .getLastAmendmentErrorCodes()
+              .addAll(errors.stream().map(ClaimAmendmentValidationError::getCode).toList());
+          context
+              .getLastAmendmentErrorMessages()
+              .addAll(errors.stream().map(ClaimAmendmentValidationError::getMessage).toList());
+          context.setLastAmendmentHttpStatus(computeHttpStatus(errors));
+          context.setLastAmendmentResponseBody(null);
+        });
   }
 
   // ---------------------------------------------------------------------------
@@ -424,6 +436,8 @@ public class AmendmentsMetadataValidationSteps {
     return Arrays.stream(type.getDeclaredMethods())
         .filter(m -> Modifier.isPublic(m.getModifiers()))
         .filter(m -> !m.isSynthetic() && !m.isBridge())
+        // Filter out standard Object methods that commonly appear on all classes
+        .filter(m -> !m.getName().matches("equals|hashCode|toString|clone|getClass"))
         .map(Method::getName)
         .distinct()
         .sorted()
@@ -439,35 +453,40 @@ public class AmendmentsMetadataValidationSteps {
   private static List<Class<?>> instanceCollaboratorTypes(Class<?> type) {
     return Arrays.stream(type.getDeclaredFields())
         .filter(f -> !Modifier.isStatic(f.getModifiers()))
-        .map(Field::getType)
+        .map(f -> (Class<?>) f.getType())
         .filter(t -> !t.isPrimitive())
         .filter(t -> t != String.class)
         .filter(t -> !Number.class.isAssignableFrom(t))
-        .toList();
+        // Common logging and monitoring fields that don't represent out-of-process calls
+        .filter(t -> !t.getName().equals("org.slf4j.Logger"))
+        .filter(t -> !t.getName().contains("MeterRegistry"))
+        .filter(t -> !t.getName().contains("Tracer"))
+        .filter(t -> !t.getName().contains("Observation"))
+        .collect(java.util.stream.Collectors.toList());
   }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
-
-  private static JsonNullable<String> toJsonNullable(String value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
-  }
-
   private static List<String> expectedCodes(DataTable table) {
     return table.asMaps(String.class, String.class).stream()
         .map(row -> row.get("Error Code"))
         .toList();
   }
 
+  private static JsonNullable<String> toJsonNullable(String value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
   private static int computeHttpStatus(List<ClaimAmendmentValidationError> errors) {
     if (errors.isEmpty()) {
-      return 204;
+      return 200;
     }
     return errors.stream()
         .filter(ClaimAmendmentValidationError::isFatal)
-        .map(e -> e.getHttpStatus().value())
-        .max(Integer::compareTo)
+        .findFirst()
+        .or(() -> errors.stream().findFirst())
+        .map(error -> error.getHttpStatus().value())
         .orElse(400);
   }
 
@@ -527,13 +546,5 @@ public class AmendmentsMetadataValidationSteps {
     if (cacheManager.getCache(AmendmentReferenceDataProvider.CACHE_NAME) != null) {
       cacheManager.getCache(AmendmentReferenceDataProvider.CACHE_NAME).clear();
     }
-  }
-
-  // Silences unused-import warnings on OffsetDateTime / ClaimAmendment when the file is trimmed;
-  // both are kept available for the follow-up "persistence check" work.
-  @SuppressWarnings("unused")
-  private void referencesForFutureWork() {
-    OffsetDateTime.now();
-    ClaimAmendment.builder();
   }
 }

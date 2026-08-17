@@ -85,7 +85,6 @@ public class AmendmentMetadataLookupSteps {
 
   @Given("the Requested By value {string} is marked inactive")
   public void theRequestedByValueIsMarkedInactive(String requestedByCode) {
-    // Service currently returns active and inactive values; hard-delete to model "not selectable".
     jdbcTemplate.update(
         "DELETE FROM claims.amendment_reason_reference WHERE requested_by_code = ?",
         requestedByCode);
@@ -97,7 +96,6 @@ public class AmendmentMetadataLookupSteps {
   @Given("the Amendment Reason {string} under Requested By {string} is marked inactive")
   public void theAmendmentReasonUnderRequestedByIsMarkedInactive(
       String reasonCode, String requestedByCode) {
-    // Service currently returns active and inactive values; hard-delete to model "not selectable".
     jdbcTemplate.update(
         "DELETE FROM claims.amendment_reason_reference WHERE requested_by_code = ? AND code = ?",
         requestedByCode,

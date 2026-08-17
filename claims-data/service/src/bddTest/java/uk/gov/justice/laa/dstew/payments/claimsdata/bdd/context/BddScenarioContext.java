@@ -64,9 +64,11 @@ public class BddScenarioContext extends BddResponseContext {
   private String submittingUserId;
   private UUID seededSubmissionId;
   private UUID seededClaimId;
+  private Long seededClaimVersion;
   private final List<String> lastAmendmentErrorCodes = new ArrayList<>();
   private final List<String> lastAmendmentErrorMessages = new ArrayList<>();
   private Integer lastAmendmentHttpStatus;
+  private String lastAmendmentResponseBody;
 
   /**
    * Overrides the Lombok-generated setter to keep {@link #generatedFileName} in sync with the
@@ -105,8 +107,10 @@ public class BddScenarioContext extends BddResponseContext {
     submittingUserId = null;
     seededSubmissionId = null;
     seededClaimId = null;
+    seededClaimVersion = null;
     lastAmendmentErrorCodes.clear();
     lastAmendmentErrorMessages.clear();
     lastAmendmentHttpStatus = null;
+    lastAmendmentResponseBody = null;
   }
 }
