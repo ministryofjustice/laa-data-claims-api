@@ -564,9 +564,9 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         "Given a submission whose claims each have a single calculated-fee row, it sums normally")
     void singleRowPerClaimSumsNormally() {
       Submission submission = createIsolatedSubmission();
-      Claim claim1 = createClaimForSubmission(submission);
-      Claim claim2 = createClaimForSubmission(submission);
-      Claim claim3 = createClaimForSubmission(submission);
+      Claim claim1 = createClaimForSubmission(submission, 1);
+      Claim claim2 = createClaimForSubmission(submission, 2);
+      Claim claim3 = createClaimForSubmission(submission, 3);
 
       createFeeDetail(claim1, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
       createFeeDetail(claim2, BigDecimal.valueOf(200.00), OffsetDateTime.now(), null);
@@ -585,8 +585,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         "Given a submission with claims that have multiple calculated-fee rows, it sums only the latest row using created_on")
     void multipleRowsPerClaimSumsOnlyLatestByCreatedOn() {
       Submission submission = createIsolatedSubmission();
-      Claim claimX = createClaimForSubmission(submission);
-      Claim claimY = createClaimForSubmission(submission);
+      Claim claimX = createClaimForSubmission(submission, 1);
+      Claim claimY = createClaimForSubmission(submission, 2);
 
       // Claim X: Old row = 100.00, Latest row = 125.00
       createFeeDetail(claimX, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(2), null);
@@ -610,7 +610,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         "Given two calculated-fee rows on the same claim have the same created_on, it uses greatest id as the tie-break")
     void multipleRowsPerClaimSameCreatedOnTieBreaksById() {
       Submission submission = createIsolatedSubmission();
-      Claim claim = createClaimForSubmission(submission);
+      Claim claim = createClaimForSubmission(submission, 1);
 
       OffsetDateTime exactSameTime = OffsetDateTime.now();
 
@@ -637,7 +637,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     void bulkGetCalculatedTotalAmountsSumsLatestPerSubmission() {
       // Setup Submission 1 with an amended claim
       Submission sub1 = createIsolatedSubmission();
-      Claim sub1Claim = createClaimForSubmission(sub1);
+      Claim sub1Claim = createClaimForSubmission(sub1, 1);
       createFeeDetail(
           sub1Claim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
       createFeeDetail(
@@ -645,7 +645,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
 
       // Setup Submission 2 with an amended claim
       Submission sub2 = createIsolatedSubmission();
-      Claim sub2Claim = createClaimForSubmission(sub2);
+      Claim sub2Claim = createClaimForSubmission(sub2, 1);
       createFeeDetail(
           sub2Claim, BigDecimal.valueOf(300.00), OffsetDateTime.now().minusDays(1), null);
       createFeeDetail(
@@ -683,12 +683,12 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     void responseShapeIsUnchangedOnlyTotalDiffers() {
       // 1. Setup Classic Submission (1 Claim, 1 Fee Row)
       Submission classicSub = createIsolatedSubmission();
-      Claim classicClaim = createClaimForSubmission(classicSub);
+      Claim classicClaim = createClaimForSubmission(classicSub, 1);
       createFeeDetail(classicClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
 
       // 2. Setup Amended Submission (1 Claim, 2 Fee Rows)
       Submission amendedSub = createIsolatedSubmission();
-      Claim amendedClaim = createClaimForSubmission(amendedSub);
+      Claim amendedClaim = createClaimForSubmission(amendedSub, 1);
       createFeeDetail(
           amendedClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
       createFeeDetail(
@@ -731,7 +731,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     void getCalculatedTotalAmountReturnsNullWhenNoFeeDetails() {
       // 1. Setup Submission with a Claim, but DO NOT create any CalculatedFeeDetail rows
       Submission submission = createIsolatedSubmission();
-      createClaimForSubmission(submission);
+      createClaimForSubmission(submission, 1);
 
       entityManager.flush();
       entityManager.clear();
@@ -750,7 +750,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     void getCalculatedTotalAmountsOmitsSubmissionWhenNoFeeDetails() {
       // 1. Setup Submission with a Claim, but DO NOT create any CalculatedFeeDetail rows
       Submission submission = createIsolatedSubmission();
-      createClaimForSubmission(submission);
+      createClaimForSubmission(submission, 1);
 
       entityManager.flush();
       entityManager.clear();
@@ -771,7 +771,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
     void getCalculatedTotalAmountReturnsNullWhenFeeDetailTotalIsNull() {
       // 1. Setup Submission with a Claim
       Submission submission = createIsolatedSubmission();
-      Claim claim = createClaimForSubmission(submission);
+      Claim claim = createClaimForSubmission(submission, 1);
 
       // 2. Create a fee detail row, but explicitly set the amount to null
       createFeeDetail(claim, null, OffsetDateTime.now(), null);
@@ -795,11 +795,11 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       Submission submission = createIsolatedSubmission();
 
       // 2. Claim 1 with a valid total (e.g., 100.00)
-      Claim claim1 = createClaimForSubmission(submission);
+      Claim claim1 = createClaimForSubmission(submission, 1);
       createFeeDetail(claim1, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
 
       // 3. Claim 2 with a NULL total
-      Claim claim2 = createClaimForSubmission(submission);
+      Claim claim2 = createClaimForSubmission(submission, 2);
       createFeeDetail(claim2, null, OffsetDateTime.now(), null);
 
       entityManager.flush();
@@ -821,11 +821,11 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       Submission submission = createIsolatedSubmission();
 
       // 2. Claim 1 with a valid total
-      Claim claim1 = createClaimForSubmission(submission);
+      Claim claim1 = createClaimForSubmission(submission, 1);
       createFeeDetail(claim1, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
 
       // 3. Claim 2 with a NULL total
-      Claim claim2 = createClaimForSubmission(submission);
+      Claim claim2 = createClaimForSubmission(submission, 2);
       createFeeDetail(claim2, null, OffsetDateTime.now(), null);
 
       entityManager.flush();

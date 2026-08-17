@@ -8,11 +8,12 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  minReadySeconds: 15
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
-      maxSurge: 100%
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "data-claims-api.selectorLabels" . | nindent 6 }}
@@ -20,9 +21,8 @@ spec:
     metadata:
       labels:
         {{- include "data-claims-api.selectorLabels" . | nindent 8 }}
-      annotations:
-        releaseTime: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
     spec:
+      terminationGracePeriodSeconds: 60
       serviceAccountName: "{{ .Values.service_account.name }}"
       containers:
         - name: {{ .Chart.Name }}
@@ -105,6 +105,8 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: data-factory-password
+            - name: CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF
+              value: {{ dateInZone "2006-01-02 15:04:05-07:00" (now) "UTC" | quote }}
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
@@ -166,6 +168,13 @@ spec:
                   name: laa-data-claims-api-secrets
                   key: fee-scheme-platform-api-connect-timeout-ms
                   optional: true
+            # Caps the JVM metaspace explicitly rather than letting the Paketo memory
+            # calculator derive it from a build-time class count (which comes to a lower number of ~169m).
+            # 224m matches this app's real runtime class loading (loaded classes stabilise around 33K)
+            # Under the fixed container memory limit the metaspace reservation comes out of heap;
+            # revisit if heap pressure appears.
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxMetaspaceSize=224m"
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION

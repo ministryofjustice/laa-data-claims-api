@@ -70,6 +70,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -204,6 +205,24 @@ class ClaimServiceTest {
     assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
         .isInstanceOf(SubmissionNotFoundException.class)
         .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
+  void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    post.setLineNumber(7);
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimRepository.existsBySubmissionIdAndLineNumber(submissionId, 7)).thenReturn(true);
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(DuplicateClaimException.class)
+        .hasMessageContaining("line number 7");
+
+    // Fails fast: no claim (or child records) is written.
+    verify(claimRepository, never()).save(any());
   }
 
   @Test

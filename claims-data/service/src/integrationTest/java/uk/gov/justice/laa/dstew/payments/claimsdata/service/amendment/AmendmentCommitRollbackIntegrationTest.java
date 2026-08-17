@@ -66,7 +66,10 @@ class AmendmentCommitRollbackIntegrationTest extends AbstractIntegrationTest {
     ClaimAmendmentValidationStep concurrentModifier =
         state -> {
           Claim racing = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-          racing.setLineNumber(racing.getLineNumber() + 1);
+          // Bump @Version via a non-key field. (Changing line_number could collide with a sibling
+          // claim on the uq_claim_submission_line_number constraint, which would mask the
+          // optimistic-lock behaviour this test targets.)
+          racing.setScheduleReference("RACING-" + racing.getScheduleReference());
           claimRepository.saveAndFlush(racing);
           return List.of();
         };

@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +68,10 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
       LocalDate.of(2024, 4, 12).atStartOfDay().toInstant(ZoneOffset.UTC);
 
   private Submission submission;
+
+  // Monotonic line numbers so multiple claims created in the same submission never collide on the
+  // uq_claim_submission_line_number unique constraint.
+  private final AtomicInteger lineNumberSequence = new AtomicInteger();
 
   @BeforeEach
   void setup() {
@@ -330,7 +335,9 @@ class AssessmentRepositoryIntegrationTest extends AbstractIntegrationTest {
                 .hasAssessment(true)
                 .matterTypeCode("MTC-333")
                 .status(ClaimStatus.READY_TO_PROCESS)
-                .lineNumber(1)
+                // Unique per submission (uq_claim_submission_line_number): several claims may be
+                // created within the same submission by these tests.
+                .lineNumber(lineNumberSequence.incrementAndGet())
                 .createdByUserId(USER_ID)
                 .build());
 
