@@ -202,6 +202,43 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
+      "POST submissions/{id}/claims - returns 409 when the line number already exists in the "
+          + "submission")
+  void shouldReturnConflictWhenClaimLineNumberIsDuplicatedInSubmission() throws Exception {
+    // given: a submission with a claim already persisted (getClaimPost uses lineNumber 123)
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost first = getClaimPost(CASE_REFERENCE);
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(first))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isCreated());
+
+    // when: posting a second claim with the same (submission_id, line_number)
+    final ClaimPost duplicate = getClaimPost("CASE-DUPLICATE");
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(duplicate))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            // then: the duplicate is rejected as a conflict (not a 500)
+            .andExpect(status().isConflict())
+            .andReturn();
+
+    // and: the RFC 9457 body carries the user-safe message
+    String body = result.getResponse().getContentAsString();
+    assertThat(body).contains("already exists for the submission.");
+
+    // and: nothing extra was persisted - only the first claim remains for the submission
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).hasSize(1);
+  }
+
+  @Test
+  @DisplayName(
       "POST submissions/{id}/claims - logs warning for suspicious SQL-like patterns but creates claim")
   void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
     // given: submission test data exists in the database
@@ -962,7 +999,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // Add these mandatory fields to satisfy Bean Validation
     claimA.setMatterTypeCode("TEST-MTC");
-    claimA.setLineNumber(1);
+    // Unique within submission1 (seedClaimsData already uses lines 1,2,4,5) to satisfy
+    // uq_claim_submission_line_number.
+    claimA.setLineNumber(10);
     claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     claimA = claimRepository.saveAndFlush(claimA);
@@ -982,7 +1021,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     // Add these mandatory fields to satisfy Bean Validation
     claimB.setMatterTypeCode("TEST-MTC");
-    claimB.setLineNumber(2);
+    claimB.setLineNumber(11);
     claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     claimB = claimRepository.saveAndFlush(claimB);
