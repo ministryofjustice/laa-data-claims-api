@@ -61,6 +61,10 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
   // cache (keyed on office) isolated between tests and classes.
   private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
 
+  // Static, monotonically increasing line numbers so multiple claims created within the same
+  // submission never collide on the uq_claim_submission_line_number unique constraint.
+  private static final AtomicInteger LINE_SEQ = new AtomicInteger();
+
   // Serialises the patch omitting null fields, so only the keys we explicitly set are sent (an
   // explicit null would be read by the service as "clear this field").
   protected static final ObjectMapper PATCH_MAPPER = nonNullMapper();
@@ -129,7 +133,10 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
             .id(Uuid7.timeBasedUuid())
             .submission(submissionRepository.getReferenceById(submissionId))
             .status(ClaimStatus.VALID)
-            .lineNumber(1)
+            // Unique per submission to satisfy uq_claim_submission_line_number: tests create
+            // several
+            // amendable claims in one submission.
+            .lineNumber(LINE_SEQ.incrementAndGet())
             .caseReferenceNumber("PDA-CRN")
             .matterTypeCode("MTC")
             .createdByUserId(CREATED_BY)
