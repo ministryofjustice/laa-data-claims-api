@@ -220,6 +220,10 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         .usingRecursiveComparison()
         .ignoringFields(
             "id",
+            // claim1 and claim4 are intentionally distinct claims that share the search keys
+            // (office/fee/UFN/status). Since line_number is now unique per submission
+            // (uq_claim_submission_line_number), they differ by line number by design.
+            "lineNumber",
             IGNORE_FIELD_SUBMISSION,
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
