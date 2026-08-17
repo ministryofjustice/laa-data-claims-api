@@ -107,6 +107,8 @@ spec:
                   key: data-factory-password
             - name: CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF
               value: {{ dateInZone "2006-01-02 15:04:05-07:00" (now) "UTC" | quote }}
+            - name: LIVE_SUBMISSION_UNIQUENESS_CUTOFF
+              value: {{ dateInZone "2006-01-02 15:04:05-07:00" (now) "UTC" | quote }}
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"

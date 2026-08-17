@@ -123,8 +123,9 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   private static final String PARAM_OFFICES = "offices";
   private static final String PARAM_SORT = "sort";
 
-  // The uq_submission_live_office_aol_period unique index only applies to submissions created after
-  // this go-live cut-over date, so these tests must use a created_on beyond it to exercise it.
+  // A created_on used by the live-submission duplicate tests. It sits after any realistic
+  // uniqueness cutoff (the ${live_submission_uniqueness_cutoff} Flyway placeholder, which defaults
+  // to the epoch locally) so the uq_submission_live_office_aol_period index covers these rows.
   private static final LocalDate POST_CUTOVER_DATE = LocalDate.of(2026, 9, 2);
 
   @BeforeAll

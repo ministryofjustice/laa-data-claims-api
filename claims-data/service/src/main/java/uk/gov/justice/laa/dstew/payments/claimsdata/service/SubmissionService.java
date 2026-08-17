@@ -12,8 +12,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -54,7 +52,14 @@ public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
 
-  private static final String LIVE_SUBMISSION_UNIQUE_INDEX = "uq_submission_live_office_aol_period";
+  /**
+   * Statuses that mark a submission as superseded (no longer "live"). A submission in one of these
+   * states does not participate in the office/area-of-law/period uniqueness rule, so a failed or
+   * replaced submission never blocks a fresh attempt. Mirrors the {@code WHERE status NOT IN (...)}
+   * predicate of the partial DB index {@code uq_submission_live_office_aol_period}.
+   */
+  private static final List<SubmissionStatus> NON_LIVE_STATUSES =
+      List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED);
 
   private final ValidationService validationService;
   private final SubmissionRepository submissionRepository;
@@ -102,7 +107,9 @@ public class SubmissionService
       }
     }
 
-    persistSubmission(submission);
+    requireNoConflictingLiveSubmission(submission);
+
+    submissionRepository.save(submission);
 
     if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
       publishValidationSucceededAfterCommit(submission.getId());
@@ -112,44 +119,39 @@ public class SubmissionService
   }
 
   /**
-   * Persist the submission, translating a violation of the live-submission unique index into a
-   * {@link DuplicateSubmissionException} so the caller receives a 409 Conflict rather than a
-   * generic server error.
+   * Fail-fast guard that rejects a submission duplicating an existing live one for the same office,
+   * area of law and period, giving callers a clean {@link DuplicateSubmissionException} (409)
+   * before any write. The authoritative, race-safe enforcement is the database partial unique index
+   * {@code uq_submission_live_office_aol_period}; this pre-check simply covers the common path.
    *
-   * <p>{@code saveAndFlush} is used deliberately so the constraint violation surfaces here, inside
-   * this method's boundary, instead of later at transaction commit where it could not be attributed
-   * to this specific constraint.
+   * <p>The check is skipped when any keying field is absent, since the DB index only constrains
+   * rows with a complete key and there is nothing to conflict on.
    *
-   * @param submission the submission to persist
+   * @param submission the submission about to be persisted
    */
-  private void persistSubmission(Submission submission) {
-    try {
-      submissionRepository.saveAndFlush(submission);
-    } catch (DataIntegrityViolationException ex) {
-      if (isLiveSubmissionUniqueViolation(ex)) {
-        throw new DuplicateSubmissionException(
-            "A live submission already exists for office %s, area of law %s and period %s"
-                .formatted(
-                    submission.getOfficeAccountNumber(),
-                    submission.getAreaOfLaw(),
-                    submission.getSubmissionPeriod()),
-            ex);
-      }
-      throw ex;
+  private void requireNoConflictingLiveSubmission(Submission submission) {
+    if (submission.getOfficeAccountNumber() == null
+        || submission.getAreaOfLaw() == null
+        || submission.getSubmissionPeriod() == null) {
+      return;
     }
-  }
 
-  private boolean isLiveSubmissionUniqueViolation(DataIntegrityViolationException ex) {
-    for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
-      if (cause instanceof ConstraintViolationException hibernateViolation
-          && LIVE_SUBMISSION_UNIQUE_INDEX.equals(hibernateViolation.getConstraintName())) {
-        return true;
-      }
+    boolean conflictingLiveSubmissionExists =
+        submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                submission.getOfficeAccountNumber(),
+                submission.getAreaOfLaw(),
+                submission.getSubmissionPeriod(),
+                NON_LIVE_STATUSES);
+
+    if (conflictingLiveSubmissionExists) {
+      throw new DuplicateSubmissionException(
+          "A live submission already exists for office %s, area of law %s and period %s"
+              .formatted(
+                  submission.getOfficeAccountNumber(),
+                  submission.getAreaOfLaw(),
+                  submission.getSubmissionPeriod()));
     }
-    // Fallback: the dialect's constraint-name extractor is not guaranteed to populate the name,
-    // so fall back to the driver-agnostic root-cause message.
-    String mostSpecific = ex.getMostSpecificCause().getMessage();
-    return mostSpecific != null && mostSpecific.contains(LIVE_SUBMISSION_UNIQUE_INDEX);
   }
 
   /**

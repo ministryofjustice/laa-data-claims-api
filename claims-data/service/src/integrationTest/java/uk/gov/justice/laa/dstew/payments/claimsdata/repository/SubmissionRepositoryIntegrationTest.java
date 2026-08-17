@@ -711,6 +711,8 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
           .usingRecursiveComparison()
           .ignoringFields(
               "submissionId", // Ignore root ID
+              "officeAccountNumber", // Unique per isolated submission (see
+              // createIsolatedSubmission)
               "submitted", // Ignore millisecond creation differences
               "claims.claimId", // Ignore nested Claim IDs
               "calculatedTotalAmount" // The ONLY field allowed to differ

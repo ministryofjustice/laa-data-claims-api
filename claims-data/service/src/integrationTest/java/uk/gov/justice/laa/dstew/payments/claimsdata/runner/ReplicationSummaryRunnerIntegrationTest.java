@@ -56,10 +56,10 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
          'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '3 day', NOW() - interval '3 day', 'test provider user'),
         ('22222222-2222-2222-2222-222222222223', '11111111-1111-1111-1111-111111111112',
-         'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
+         'OA002', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '1 day', NOW() - interval '1 day', 'test provider user'),
         ('22222222-2222-2222-2222-222222222224', '11111111-1111-1111-1111-111111111112',
-         'OA001', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
+         'OA003', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '1 day', NOW() - interval '1 day', 'test provider user');
     """);
   }

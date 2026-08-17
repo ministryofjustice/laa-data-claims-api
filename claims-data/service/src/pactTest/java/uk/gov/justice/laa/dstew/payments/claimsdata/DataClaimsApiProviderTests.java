@@ -199,7 +199,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: the system rejects an invalid submission");
     doThrow(new SubmissionBadRequestException("Error found"))
         .when(submissionRepository)
-        .saveAndFlush(any());
+        .save(any());
   }
 
   @State("the submission file contains invalid data")

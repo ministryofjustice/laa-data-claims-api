@@ -11,7 +11,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +21,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +33,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -54,6 +51,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -101,18 +99,18 @@ class SubmissionServiceTest {
     when(submissionMapper.toSubmissionResponse(entity)).thenReturn(submissionResponse);
     when(validationService.validateSubmission(submissionResponse))
         .thenReturn(ValidationResult.builder().isValid(true).build());
-    when(submissionRepository.saveAndFlush(entity)).thenReturn(entity);
+    when(submissionRepository.save(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
     assertThat(result).isEqualTo(id);
-    verify(submissionRepository).saveAndFlush(entity);
+    verify(submissionRepository).save(entity);
   }
 
   @Test
   @DisplayName(
-      "createSubmission: a live-submission unique-index violation maps to DuplicateSubmissionException with 409 status")
-  void shouldThrowDuplicateSubmissionExceptionWhenLiveSubmissionUniqueIndexViolated() {
+      "createSubmission throws DuplicateSubmissionException (409) and does not persist when a live submission already exists for the same office, area of law and period")
+  void duplicateLiveSubmissionThrowsConflict() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity =
@@ -120,71 +118,74 @@ class SubmissionServiceTest {
             .id(id)
             .status(SubmissionStatus.CREATED)
             .officeAccountNumber("OFFICE1")
-            .submissionPeriod("JUL-2026")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod("2026-07")
             .build();
 
     when(submissionMapper.toSubmission(post)).thenReturn(entity);
-    DataIntegrityViolationException violation =
-        new DataIntegrityViolationException(
-            "could not execute statement",
-            new RuntimeException(
-                "duplicate key value violates unique constraint"
-                    + " \"uq_submission_live_office_aol_period\""));
-    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
+    when(submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                "OFFICE1",
+                AreaOfLaw.CRIME_LOWER,
+                "2026-07",
+                List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED)))
+        .thenReturn(true);
 
     DuplicateSubmissionException ex =
         assertThrows(
             DuplicateSubmissionException.class, () -> submissionService.createSubmission(post));
 
     assertThat(ex.getHttpStatus().value()).isEqualTo(409);
-    assertThat(ex.getCause()).isSameAs(violation);
+    verify(submissionRepository, never()).save(any());
   }
 
   @Test
   @DisplayName(
-      "createSubmission: a Hibernate ConstraintViolationException naming the live index maps to DuplicateSubmissionException")
-  void shouldThrowDuplicateSubmissionExceptionWhenHibernateConstraintNameMatches() {
+      "createSubmission persists when no live submission conflicts with the office, area of law and period")
+  void noConflictingLiveSubmissionPersists() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .status(SubmissionStatus.CREATED)
+            .officeAccountNumber("OFFICE1")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod("2026-07")
+            .build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                "OFFICE1",
+                AreaOfLaw.CRIME_LOWER,
+                "2026-07",
+                List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED)))
+        .thenReturn(false);
+
+    UUID result = submissionService.createSubmission(post);
+
+    assertThat(result).isEqualTo(id);
+    verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission skips the duplicate pre-check and persists when a keying field is absent")
+  void missingKeyFieldSkipsDuplicateCheck() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPost post = new SubmissionPost().submissionId(id);
     Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
 
     when(submissionMapper.toSubmission(post)).thenReturn(entity);
-    ConstraintViolationException hibernateViolation =
-        new ConstraintViolationException(
-            "could not execute statement",
-            new SQLException("duplicate key", "23505"),
-            "uq_submission_live_office_aol_period");
-    DataIntegrityViolationException violation =
-        new DataIntegrityViolationException("could not execute statement", hibernateViolation);
-    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
 
-    DuplicateSubmissionException ex =
-        assertThrows(
-            DuplicateSubmissionException.class, () -> submissionService.createSubmission(post));
+    UUID result = submissionService.createSubmission(post);
 
-    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
-  }
-
-  @Test
-  @DisplayName(
-      "createSubmission: an unrelated data integrity violation is rethrown, not mapped to a conflict")
-  void shouldRethrowUnrelatedDataIntegrityViolation() {
-    UUID id = Uuid7.timeBasedUuid();
-    SubmissionPost post = new SubmissionPost().submissionId(id);
-    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
-
-    when(submissionMapper.toSubmission(post)).thenReturn(entity);
-    DataIntegrityViolationException violation =
-        new DataIntegrityViolationException(
-            "could not execute statement",
-            new RuntimeException("violates foreign key constraint \"fk_submission_bulk\""));
-    when(submissionRepository.saveAndFlush(entity)).thenThrow(violation);
-
-    DataIntegrityViolationException ex =
-        assertThrows(
-            DataIntegrityViolationException.class, () -> submissionService.createSubmission(post));
-
-    assertThat(ex).isSameAs(violation);
+    assertThat(result).isEqualTo(id);
+    verify(submissionRepository).save(entity);
+    verify(submissionRepository, never())
+        .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+            any(), any(), any(), any());
   }
 
   @Test
