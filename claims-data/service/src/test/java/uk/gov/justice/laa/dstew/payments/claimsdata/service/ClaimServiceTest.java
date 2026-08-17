@@ -240,7 +240,8 @@ class ClaimServiceTest {
   @Test
   void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.CREATED).build();
     final ClaimPost post = new ClaimPost();
     post.setLineNumber(7);
 

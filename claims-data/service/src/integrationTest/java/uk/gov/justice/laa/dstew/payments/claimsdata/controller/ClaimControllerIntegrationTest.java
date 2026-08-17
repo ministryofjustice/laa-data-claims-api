@@ -220,7 +220,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                         OBJECT_MAPPER.writeValueAsString(
                             ClaimPost.builder()
                                 .status(ClaimStatus.INVALID)
-                                .lineNumber(5)
+                                .lineNumber(6)
                                 .matterTypeCode("TBC")
                                 .createdByUserId("Submit-a-bulk-claim")
                                 .build()))
