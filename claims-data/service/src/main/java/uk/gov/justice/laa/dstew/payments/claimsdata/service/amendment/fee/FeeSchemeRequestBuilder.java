@@ -1,12 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.DoubleUtils.toDouble;
-
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
-import uk.gov.justice.laa.fee.scheme.model.BoltOnType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
+import java.util.Objects;
 
 /**
  * Component responsible for building a pristine {@link FeeCalculationRequest} payload to send to
@@ -15,7 +16,13 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
  * <p>It maps values directly from the fully resolved post-amendment state snapshot.
  */
 @Component
+@RequiredArgsConstructor
 public class FeeSchemeRequestBuilder {
+
+  private final FeeSchemeMapper feeSchemeMapper;
+
+  // No explicit no-arg constructor: use constructor injection. Tests should supply a mapper
+  // instance when constructing directly (e.g. via Mappers.getMapper(FeeSchemeMapper.class)).
 
   /**
    * Builds the calculation request from the current post-amendment state context.
@@ -24,45 +31,21 @@ public class FeeSchemeRequestBuilder {
    * @return the fully populated request contract matching the FSP OpenAPI specifications
    */
   public FeeCalculationRequest buildRequest(ClaimAmendmentState state) {
+    Objects.requireNonNull(state, "ClaimAmendmentState must not be null");
     ClaimStateSnapshot post = state.getPostAmendmentState();
+    Objects.requireNonNull(post, "postAmendmentState must not be null");
 
-    // 1. Build the nested BoltOn block
-    BoltOnType boltOns =
-        new BoltOnType()
-            .boltOnAdjournedHearing(post.getAdjournedHearingFeeAmount())
-            .boltOnCmrhOral(post.getCmrhOralCount())
-            .boltOnCmrhTelephone(post.getCmrhTelephoneCount())
-            .boltOnHomeOfficeInterview(post.getHoInterview())
-            .boltOnSubstantiveHearing(post.getIsSubstantiveHearing());
+    // areaOfLaw must be present; do not default silently
+    Objects.requireNonNull(post.getAreaOfLaw(), "areaOfLaw must be present on ClaimStateSnapshot");
 
-    // 2. Build the root calculation request mapped to the external platform parameters
-    return new FeeCalculationRequest(post.getFeeCode())
-        .claimId(post.getClaimId() != null ? post.getClaimId().toString() : null)
-        .startDate(post.getCaseStartDate())
-        .caseConcludedDate(post.getCaseConcludedDate())
-        .uniqueFileNumber(post.getUniqueFileNumber())
-        .policeStationId(post.getPoliceStationCourtPrisonId())
-        .policeStationSchemeId(post.getSchemeId())
+    // Delegate full mapping to FeeSchemeMapper (mapper is the source-of-truth)
+    FeeCalculationRequest req = feeSchemeMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw());
 
-        // Map financial amounts (BigDecimal -> Double)
-        .netProfitCosts(toDouble(post.getNetProfitCostsAmount()))
-        .netCostOfCounsel(toDouble(post.getNetCounselCostsAmount()))
-        .netDisbursementAmount(toDouble(post.getNetDisbursementAmount()))
-        .disbursementVatAmount(toDouble(post.getDisbursementsVatAmount()))
-        .jrFormFilling(toDouble(post.getJrFormFillingAmount()))
-        .travelAndWaitingCosts(toDouble(post.getTravelWaitingCostsAmount()))
-        .detentionTravelAndWaitingCosts(toDouble(post.getDetentionTravelWaitingCostsAmount()))
+    // MapStruct should never return null for this mapping, but guard defensively
+    if (req == null) {
+      req = new FeeCalculationRequest(post.getFeeCode());
+    }
 
-        // Map time allocations (Integer -> Double)
-        .netTravelCosts(toDouble(post.getTravelTime()))
-        .netWaitingCosts(toDouble(post.getWaitingTime()))
-
-        // Map remaining identifiers and flags
-        .vatIndicator(post.getIsVatApplicable())
-        .londonRate(post.getIsLondonRate())
-        .numberOfMediationSessions(post.getMediationSessionsCount())
-        .representationOrderDate(post.getRepresentationOrderDate())
-        .immigrationPriorAuthorityNumber(post.getPriorAuthorityReference())
-        .boltOns(boltOns);
+    return req;
   }
 }

@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.mapstruct.factory.Mappers;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -12,7 +14,8 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 
 class FeeSchemeRequestBuilderTest {
 
-  private final FeeSchemeRequestBuilder builder = new FeeSchemeRequestBuilder();
+  private final FeeSchemeRequestBuilder builder = new FeeSchemeRequestBuilder(
+      Mappers.getMapper(uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class));
 
   @Test
   @DisplayName("Should map post-amendment state directly to FeeCalculationRequest")
@@ -22,7 +25,8 @@ class FeeSchemeRequestBuilderTest {
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .feeCode("FEE-AMENDED")
             .netProfitCostsAmount(BigDecimal.valueOf(999.00))
-            .travelTime(120)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .travelWaitingCostsAmount(BigDecimal.valueOf(120))
             .build();
 
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
@@ -44,6 +48,7 @@ class FeeSchemeRequestBuilderTest {
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .netProfitCostsAmount(null)
             .travelTime(null)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .build();
 
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
@@ -62,7 +67,10 @@ class FeeSchemeRequestBuilderTest {
     // Arrange
     UUID claimId = UUID.randomUUID();
     ClaimStateSnapshot post =
-        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(claimId).build();
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .claimId(claimId)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
@@ -77,7 +85,7 @@ class FeeSchemeRequestBuilderTest {
   void buildRequest_withNullClaimId_mapsToNull() {
     // Arrange
     ClaimStateSnapshot post =
-        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(null).build();
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(null).areaOfLaw(AreaOfLaw.MEDIATION).build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
@@ -94,7 +102,8 @@ class FeeSchemeRequestBuilderTest {
     ClaimStateSnapshot post =
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .netProfitCostsAmount(BigDecimal.ZERO)
-            .travelTime(0)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .travelWaitingCostsAmount(BigDecimal.ZERO)
             .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
@@ -117,6 +126,7 @@ class FeeSchemeRequestBuilderTest {
             .cmrhTelephoneCount(null)
             .hoInterview(null)
             .isSubstantiveHearing(null)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
             .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
