@@ -1,0 +1,80 @@
+meta {
+  name: 09 Missing baseline CFD rejection (expect 400)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  claim_id: {{CLAIM_ID_NO_CFD}}
+  submission_id: {{SUBMISSION_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+script:pre-request {
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  const submissionId = bru.getEnvVar('SUBMISSION_ID');
+  const claimId = bru.getEnvVar('CLAIM_ID_NO_CFD');
+
+  // Opt-in scenario. If CLAIM_ID_NO_CFD is not set, do nothing and let the tests block also skip.
+  if (!claimId) {
+    bru.setEnvVar('CLAIM_ID_NO_CFD_VERSION', '0');
+    return;
+  }
+  if (!host || !submissionId || !auth) {
+    throw new Error('HOST/SUBMISSION_ID/AUTH_TOKEN must be set in the environment.');
+  }
+  const url = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  const resp = await axios.get(url, { headers: { Authorization: auth } });
+  if (resp.status !== 200 || resp.data == null || resp.data.version == null) {
+    throw new Error(`Pre-request failed: could not read no-CFD claim version (status=${resp.status}).`);
+  }
+  bru.setEnvVar('CLAIM_ID_NO_CFD_VERSION', String(resp.data.version));
+}
+
+body:json {
+  {
+    "version": {{CLAIM_ID_NO_CFD_VERSION}},
+    "net_profit_costs_amount": 9999.00,
+    "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "amendment_requested_by": "PROVIDER",
+    "amendment_reason_code": "CASE_REOPENED_REBILLED"
+  }
+}
+
+tests {
+  if (!bru.getEnvVar("CLAIM_ID_NO_CFD")) {
+    // Opt-in scenario. Set CLAIM_ID_NO_CFD in the environment (pointing at a claim with no
+    // baseline calculated fee detail) to activate strict assertions.
+    return;
+  }
+
+  if (!bru.getEnvVar("CLAIM_ID_NO_CFD_VERSION")) {
+    throw new Error("CLAIM_ID_NO_CFD_VERSION was not set. Pre-request script should have populated it.");
+  }
+
+  if (res.status !== 400) {
+    throw new Error("Expected 400 when baseline calculated fee detail is missing");
+  }
+
+  const body = res.getBody();
+  const text = JSON.stringify(body);
+  if (!text.includes("INVALID_CLAIM_BEFORE_STATE_CFD_MISSING")) {
+    throw new Error("Expected INVALID_CLAIM_BEFORE_STATE_CFD_MISSING in response body");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
