@@ -15,8 +15,17 @@ public class ClaimHistoryContext extends BddResponseContext {
 
   private UUID currentClaimId;
 
-  public void reset() {
+  /** The current claim_summary_fee id created alongside the current claim. */
+  private UUID currentClaimSummaryFeeId;
+
+  /** Last-seeded amendment id (scenario-scoped). */
+  private UUID lastAmendmentId;
+
+  @Override
+  public void clear() {
     super.clear();
     currentClaimId = null;
+    currentClaimSummaryFeeId = null;
+    lastAmendmentId = null;
   }
 }

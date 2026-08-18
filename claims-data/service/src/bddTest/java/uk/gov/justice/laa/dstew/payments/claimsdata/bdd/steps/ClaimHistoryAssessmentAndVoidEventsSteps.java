@@ -23,7 +23,9 @@ import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.ClaimHistoryContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -53,10 +55,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * they map to real UUIDs through a scenario-scoped label→UUID table so multi-row scenarios keep
  * their identifiers stable across Given / Then blocks.
  *
- * <p>Every step body wraps its logic in {@link
- * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures#step(String,
- * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.ThrowingRunnable)}
- * per the project-wide step-failure-reporting standing rule.
+ * <p>Every step body wraps its logic in {@link BddStepFailures#step(String,
+ * BddStepFailures.ThrowingRunnable)} per the project-wide step-failure-reporting standing rule.
  */
 public class ClaimHistoryAssessmentAndVoidEventsSteps {
 
@@ -66,12 +66,12 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   @Autowired private AssessmentRepository assessmentRepository;
   @Autowired private JdbcClient jdbcClient;
   @Autowired private BddApiStepSupport api;
+  @Autowired private ClaimHistoryContext claimHistoryContext;
 
   /** Current claim under test. Set by any {@code Given a claim exists...} step. */
   private UUID currentClaimId;
 
   /** Cache the summary-fee id created alongside the current claim (FK for assessment inserts). */
-  private UUID currentClaimSummaryFeeId;
 
   /** Live label→UUID map so labels like {@code "assess-uuid-1"} stay stable within the scenario. */
   private final Map<String, UUID> labelToUuid = new HashMap<>();
@@ -541,7 +541,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     summaryFee.setClaim(claim);
     summaryFee.setCreatedByUserId(BDD_SEED_USER);
     claimSummaryFeeRepository.saveAndFlush(summaryFee);
-    currentClaimSummaryFeeId = summaryFee.getId();
+    claimHistoryContext.setCurrentClaimSummaryFeeId(summaryFee.getId());
 
     return claim;
   }
@@ -565,9 +565,10 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
       String reason,
       String createdByUserId,
       Instant createdOn) {
+    UUID summaryFeeId = claimHistoryContext.getCurrentClaimSummaryFeeId();
     ClaimSummaryFee summaryFee =
         claimSummaryFeeRepository
-            .findById(currentClaimSummaryFeeId)
+            .findById(summaryFeeId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
@@ -609,7 +610,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
       String assessmentReason,
       String createdByUserId,
       Instant createdOn) {
-    UUID summaryFeeId = currentClaimSummaryFeeId;
+    UUID summaryFeeId = claimHistoryContext.getCurrentClaimSummaryFeeId();
     if (summaryFeeId == null) {
       throw new IllegalStateException(
           "seedClaim() must run before insertAssessmentRaw(); no summary fee cached");
