@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -50,7 +49,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * invariant is "no row → no event".
  */
 @Slf4j
-public class ClaimHistoryAmendmentEventsSteps {
+public class ClaimHistoryAmendmentEventsSteps extends ClaimHistoryTimelineSharedSteps {
 
   private static final String BDD_USER_ID = "bdd-user-1815";
   private static final String AMENDMENT_EVENT_TYPE = "AMENDMENT";
@@ -64,24 +63,8 @@ public class ClaimHistoryAmendmentEventsSteps {
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
-
-  private UUID currentClaimId;
-  private UUID currentSummaryFeeId;
-  // The most recently seeded amendment — targeted by singular "the amendment ..." steps.
-  private UUID currentAmendmentId;
   private UUID amendmentAId;
   private UUID amendmentBId;
-  private JsonNode lastHistoryResponse;
-
-  // ---------------------------------------------------------------------------
-  // Background
-  // ---------------------------------------------------------------------------
-
-  @Given("the amendments feature flag is enabled")
-  public void theAmendmentsFeatureFlagIsEnabled() {
-    // No-op — the feature flag guard lives on the write path (DSTEW-1905). The read-side
-    // history endpoint is unconditional; this Given documents scenario intent.
-  }
 
   // ---------------------------------------------------------------------------
   // Given — claim & amendment seeding
@@ -92,11 +75,9 @@ public class ClaimHistoryAmendmentEventsSteps {
     seedClaim();
   }
 
-  @Given("a claim exists with a successful amendment")
-  public void aClaimExistsWithASuccessfulAmendment() {
-    seedClaim();
-    currentAmendmentId = persistAmendment(emptyDiff());
-  }
+  // NOTE: canonical seeding step for "a claim exists with a successful amendment" lives in
+  // ClaimHistoryTimelineParentSteps. Do NOT duplicate the annotated Given here; read the
+  // seeded amendment id from the shared ClaimHistoryContext when needed.
 
   @Given("a claim exists that was NOT flagged as an escape case before the amendment")
   public void aClaimExistsNotFlaggedAsEscape() {
@@ -131,7 +112,7 @@ public class ClaimHistoryAmendmentEventsSteps {
       "the amendment has an amendment-linked calculated_fee_detail row with is_price_changed"
           + " set to {word}")
   public void amendmentHasLinkedCfdWithIsPriceChanged(String isPriceChanged) {
-    linkCalculatedFeeDetail(currentAmendmentId, Boolean.parseBoolean(isPriceChanged), false);
+    linkCalculatedFeeDetail(requireLastAmendmentId(), Boolean.parseBoolean(isPriceChanged), false);
   }
 
   @Given("the amendment has no amendment-linked calculated_fee_detail row")
@@ -160,7 +141,8 @@ public class ClaimHistoryAmendmentEventsSteps {
       String changeSource, String fieldIdentifier, String before, String after) {
     // Re-persist the current amendment's diff to include a single FSP entry. Simple string
     // replacement is fine — we own the whole diff since it started empty.
-    ClaimAmendment amendment = claimAmendmentRepository.findById(currentAmendmentId).orElseThrow();
+    ClaimAmendment amendment =
+        claimAmendmentRepository.findById(requireLastAmendmentId()).orElseThrow();
     amendment.setDiff(
         diffWithChanges(
             change(fieldIdentifier, quoteIfString(before), quoteIfString(after), changeSource)));
@@ -171,14 +153,16 @@ public class ClaimHistoryAmendmentEventsSteps {
       "a successful amendment produced an amendment-linked transition of"
           + " calculated_fee_detail.escape_case_flag from false to true")
   public void amendmentProducedEscapeTransitionFalseToTrue() {
-    currentAmendmentId = persistAmendment(diffWithChanges(escapeTransitionChange(false, true)));
-    linkCalculatedFeeDetail(currentAmendmentId, true, true);
+    UUID id = persistAmendment(diffWithChanges(escapeTransitionChange(false, true)));
+    claimHistoryContext.setLastAmendmentId(id);
+    linkCalculatedFeeDetail(id, true, true);
   }
 
   @Given("a later successful amendment has an amendment-linked calculated_fee_detail row")
   public void laterSuccessfulAmendmentHasLinkedCfd() {
-    currentAmendmentId = persistAmendment(emptyDiff());
-    linkCalculatedFeeDetail(currentAmendmentId, false, true);
+    UUID id = persistAmendment(emptyDiff());
+    claimHistoryContext.setLastAmendmentId(id);
+    linkCalculatedFeeDetail(id, false, true);
   }
 
   @Given("the later amendment did NOT produce a new amendment-linked escape transition")
@@ -189,7 +173,8 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   @Given("a successful non-pricing amendment is applied")
   public void aSuccessfulNonPricingAmendmentIsApplied() {
-    currentAmendmentId = persistAmendment(emptyDiff());
+    UUID id = persistAmendment(emptyDiff());
+    claimHistoryContext.setLastAmendmentId(id);
   }
 
   @Given(
@@ -225,7 +210,9 @@ public class ClaimHistoryAmendmentEventsSteps {
     // needs the write-side amendment harness (WireMock PDA/FSP + event-service test hook) which
     // is not yet in this project. The de-scoped paths are tracked in the audit ledger for
     // follow-up once the harness lands.
-    log.debug("@DS1815_8 baseline: no claim_amendment row persisted for claim {}", currentClaimId);
+    log.debug(
+        "@DS1815_8 baseline: no claim_amendment row persisted for claim {}",
+        requireCurrentClaimId());
   }
 
   // ---------------------------------------------------------------------------
@@ -237,22 +224,29 @@ public class ClaimHistoryAmendmentEventsSteps {
     seedClaim();
     switch (scenarioCase) {
       case "pricing amendment, FSP changed values" -> {
-        currentAmendmentId = persistAmendment(emptyDiff());
-        linkCalculatedFeeDetail(currentAmendmentId, true, false);
+        UUID id = persistAmendment(emptyDiff());
+        claimHistoryContext.setLastAmendmentId(id);
+        linkCalculatedFeeDetail(id, true, false);
       }
       case "pricing amendment, FSP same-value repricing" -> {
-        currentAmendmentId = persistAmendment(emptyDiff());
-        linkCalculatedFeeDetail(currentAmendmentId, false, false);
+        UUID id = persistAmendment(emptyDiff());
+        claimHistoryContext.setLastAmendmentId(id);
+        linkCalculatedFeeDetail(id, false, false);
       }
-      case "non-pricing amendment" -> currentAmendmentId = persistAmendment(emptyDiff());
+      case "non-pricing amendment" -> {
+        UUID id = persistAmendment(emptyDiff());
+        claimHistoryContext.setLastAmendmentId(id);
+      }
       case "amendment caused escape" -> {
-        currentAmendmentId = persistAmendment(diffWithChanges(escapeTransitionChange(false, true)));
-        linkCalculatedFeeDetail(currentAmendmentId, true, true);
+        UUID id = persistAmendment(diffWithChanges(escapeTransitionChange(false, true)));
+        claimHistoryContext.setLastAmendmentId(id);
+        linkCalculatedFeeDetail(id, true, true);
       }
       case "later amendment on already-escaped claim" -> {
         seedUnlinkedEscapeFeeRow();
-        currentAmendmentId = persistAmendment(emptyDiff());
-        linkCalculatedFeeDetail(currentAmendmentId, false, true);
+        UUID id = persistAmendment(emptyDiff());
+        claimHistoryContext.setLastAmendmentId(id);
+        linkCalculatedFeeDetail(id, false, true);
       }
       case "failed amendment" -> {
         // No amendment persisted — the failed attempt leaves no row.
@@ -265,10 +259,14 @@ public class ClaimHistoryAmendmentEventsSteps {
   // When
   // ---------------------------------------------------------------------------
 
-  @When("I request the claim history timeline")
+  // The canonical step that performs the HTTP request is defined in
+  // ClaimHistoryTimelineCommonSteps. Keep a non-annotated helper for local readability.
   public void iRequestTheClaimHistoryTimeline() throws IOException {
-    assertThat(currentClaimId).as("claim must be seeded before requesting history").isNotNull();
-    lastHistoryResponse = api.getClaimHistory(currentClaimId);
+    assertThat(requireCurrentClaimId())
+        .as("claim must be seeded before requesting history")
+        .isNotNull();
+    // Expect the common step to populate the shared last response; do not perform the request here.
+    assertThat(getLastResponse()).as("claim history response must already be present").isNotNull();
   }
 
   // ---------------------------------------------------------------------------
@@ -277,8 +275,9 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   @Then("the response contains an AMENDMENT event for that amendment")
   public void responseContainsAmendmentEventForThatAmendment() {
-    assertThat(findAmendmentEvent(currentAmendmentId))
-        .as("no AMENDMENT event found for amendment %s", currentAmendmentId)
+    UUID amendmentId = requireLastAmendmentId();
+    assertThat(findAmendmentEvent(amendmentId))
+        .as("no AMENDMENT event found for amendment %s", amendmentId)
         .isNotNull();
   }
 
@@ -312,7 +311,7 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   @Then("the AMENDMENT event metadata field {string} is {word}")
   public void amendmentEventMetadataFieldIs(String fieldName, String expectedBool) {
-    JsonNode event = requireAmendmentEvent(currentAmendmentId);
+    JsonNode event = requireAmendmentEvent(requireLastAmendmentId());
     JsonNode value = event.path("metadata").get(fieldName);
     assertThat(value).as("metadata field '%s' node", fieldName).isNotNull();
     assertThat(value.isBoolean()).as("metadata field '%s' must be a boolean", fieldName).isTrue();
@@ -323,7 +322,7 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   @Then("the AMENDMENT event metadata field {string} is absent or false")
   public void amendmentEventMetadataFieldIsAbsentOrFalse(String fieldName) {
-    JsonNode event = requireAmendmentEvent(currentAmendmentId);
+    JsonNode event = requireAmendmentEvent(requireLastAmendmentId());
     JsonNode value = event.path("metadata").get(fieldName);
     assertThat(booleanOrFalse(value))
         .as("metadata field '%s' must be absent, null, or explicit false", fieldName)
@@ -343,7 +342,7 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   @Then("the AMENDMENT event metadata field {string} for the later amendment is absent or false")
   public void amendmentEventMetadataFieldForLaterAmendmentAbsentOrFalse(String fieldName) {
-    JsonNode event = requireAmendmentEvent(currentAmendmentId);
+    JsonNode event = requireAmendmentEvent(requireLastAmendmentId());
     JsonNode value = event.path("metadata").get(fieldName);
     assertThat(booleanOrFalse(value))
         .as(
@@ -366,7 +365,7 @@ public class ClaimHistoryAmendmentEventsSteps {
           + " {string} and change_source {string}")
   public void amendmentChangesArrayContainsEntry(
       String arrayName, String fieldIdentifier, String changeSource) {
-    JsonNode event = requireAmendmentEvent(currentAmendmentId);
+    JsonNode event = requireAmendmentEvent(requireLastAmendmentId());
     JsonNode arr = event.path("metadata").path(arrayName);
     assertThat(arr.isArray()).as("metadata '%s' must be an array", arrayName).isTrue();
     boolean found = false;
@@ -396,7 +395,7 @@ public class ClaimHistoryAmendmentEventsSteps {
           .isEmpty();
       return;
     }
-    JsonNode event = requireAmendmentEvent(currentAmendmentId);
+    JsonNode event = requireAmendmentEvent(requireLastAmendmentId());
     JsonNode metadata = event.path("metadata");
     for (String clause : expectedContract.split(";")) {
       assertContractClause(metadata, clause.trim());
@@ -480,7 +479,7 @@ public class ClaimHistoryAmendmentEventsSteps {
                 .matterTypeCode("TEST_MATTER")
                 .createdByUserId(BDD_USER_ID)
                 .build());
-    currentClaimId = claim.getId();
+    setCurrentClaimId(claim.getId());
 
     ClaimSummaryFee summaryFee =
         claimSummaryFeeRepository.saveAndFlush(
@@ -489,7 +488,7 @@ public class ClaimHistoryAmendmentEventsSteps {
                 .claim(claim)
                 .createdByUserId(BDD_USER_ID)
                 .build());
-    currentSummaryFeeId = summaryFee.getId();
+    setCurrentClaimSummaryFeeId(summaryFee.getId());
   }
 
   private UUID persistAmendment(String diffJson) {
@@ -497,7 +496,7 @@ public class ClaimHistoryAmendmentEventsSteps {
     claimAmendmentRepository.saveAndFlush(
         ClaimAmendment.builder()
             .id(id)
-            .claim(claimRepository.getReferenceById(currentClaimId))
+            .claim(claimRepository.getReferenceById(requireCurrentClaimId()))
             .requestedByCode("PROVIDER")
             .amendmentReasonCode("PROVIDER_ERROR")
             .beforeState("{}")
@@ -513,8 +512,9 @@ public class ClaimHistoryAmendmentEventsSteps {
     calculatedFeeDetailRepository.saveAndFlush(
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claim(claimRepository.getReferenceById(currentClaimId))
-            .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(currentSummaryFeeId))
+            .claim(claimRepository.getReferenceById(requireCurrentClaimId()))
+            .claimSummaryFee(
+                claimSummaryFeeRepository.getReferenceById(requireCurrentClaimSummaryFeeId()))
             .claimAmendment(claimAmendmentRepository.getReferenceById(amendmentId))
             .isPriceChanged(priceChanged)
             .escapeCaseFlag(escapeFlag)
@@ -528,8 +528,9 @@ public class ClaimHistoryAmendmentEventsSteps {
     calculatedFeeDetailRepository.saveAndFlush(
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .claim(claimRepository.getReferenceById(currentClaimId))
-            .claimSummaryFee(claimSummaryFeeRepository.getReferenceById(currentSummaryFeeId))
+            .claim(claimRepository.getReferenceById(requireCurrentClaimId()))
+            .claimSummaryFee(
+                claimSummaryFeeRepository.getReferenceById(requireCurrentClaimSummaryFeeId()))
             .claimAmendment(null) // unlinked — belongs to an earlier submission/amendment
             .isPriceChanged(priceChanged)
             .escapeCaseFlag(escapeFlag)
@@ -552,7 +553,7 @@ public class ClaimHistoryAmendmentEventsSteps {
 
   private java.util.List<JsonNode> amendmentEvents() {
     java.util.List<JsonNode> results = new java.util.ArrayList<>();
-    JsonNode events = lastHistoryResponse.path("events");
+    JsonNode events = getLastResponse().path("events");
     if (events.isArray()) {
       for (JsonNode event : events) {
         if (AMENDMENT_EVENT_TYPE.equals(event.path("event_type").asText())) {

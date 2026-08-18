@@ -59,7 +59,8 @@ public class BddHooks {
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
-    // Amendments FK back to Claim; must be deleted before claimRepository.deleteAll().
+    // Amendments FK back to Claim; must go before claimRepository.deleteAll(). Added for
+    // DSTEW-1813 / DSTEW-1814 / DSTEW-1815 which are the first BDD scenarios to seed amendments.
     claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();

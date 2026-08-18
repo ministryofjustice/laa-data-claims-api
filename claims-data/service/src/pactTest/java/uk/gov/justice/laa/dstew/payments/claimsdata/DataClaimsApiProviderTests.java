@@ -414,8 +414,9 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a claim exists")
   public void aClaimExists() {
     log.info("Setting up state: a claim exists");
-    when(claimRepository.findByIdAndSubmissionId(any(), any()))
-        .thenReturn(Optional.ofNullable(getClaim()));
+    Claim claim = getClaimV2();
+    claim.setClaimCase(getClaimCase());
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(claim));
     when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
