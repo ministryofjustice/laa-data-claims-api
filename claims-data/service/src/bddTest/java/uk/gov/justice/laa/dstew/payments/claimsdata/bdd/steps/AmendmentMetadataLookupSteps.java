@@ -86,10 +86,14 @@ public class AmendmentMetadataLookupSteps {
   @Given("the Requested By value {string} is marked inactive")
   public void theRequestedByValueIsMarkedInactive(String requestedByCode) {
     jdbcTemplate.update(
-        "DELETE FROM claims.amendment_reason_reference WHERE requested_by_code = ?",
+        """
+            UPDATE claims.requested_by_reference
+            SET is_active = FALSE, updated_by_user_id = ?, updated_on = ?
+            WHERE code = ?
+            """,
+        SEED_ACTOR,
+        Timestamp.from(Instant.now()),
         requestedByCode);
-    jdbcTemplate.update(
-        "DELETE FROM claims.requested_by_reference WHERE code = ?", requestedByCode);
     clearReferenceCache();
   }
 
@@ -97,7 +101,13 @@ public class AmendmentMetadataLookupSteps {
   public void theAmendmentReasonUnderRequestedByIsMarkedInactive(
       String reasonCode, String requestedByCode) {
     jdbcTemplate.update(
-        "DELETE FROM claims.amendment_reason_reference WHERE requested_by_code = ? AND code = ?",
+        """
+            UPDATE claims.amendment_reason_reference
+            SET is_active = FALSE, updated_by_user_id = ?, updated_on = ?
+            WHERE requested_by_code = ? AND code = ?
+            """,
+        SEED_ACTOR,
+        Timestamp.from(Instant.now()),
         requestedByCode,
         reasonCode);
     clearReferenceCache();

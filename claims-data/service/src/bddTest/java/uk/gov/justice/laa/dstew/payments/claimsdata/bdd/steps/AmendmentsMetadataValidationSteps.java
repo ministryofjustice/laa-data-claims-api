@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -9,7 +11,6 @@ import io.cucumber.java.en.When;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +19,10 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
@@ -36,9 +36,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentUserIdValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
@@ -46,12 +43,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * amendmentsMetadata.feature} (tags {@code @DS1765_*}).
  *
  * <p>The DSTEW-1765 acceptance criteria concern the three metadata validation steps only
- * (feature-flag, submitting user id and Requested By / Amendment Reason reference lookup). The
- * downstream PDA and FSP steps require MockServer stubbing which is not part of the BDD harness, so
- * this glue exercises the three metadata steps directly through their Spring beans and constructs
- * the same combined-error response shape the {@link
- * uk.gov.justice.laa.dstew.payments.claimsdata.exception.DataClaimsExceptionHandler} would emit.
- * This keeps the assertions focused on the metadata layer under test.
+ * (feature-flag, submitting user id and Requested By / Amendment Reason reference lookup). This
+ * glue exercises the real HTTP boundary (PATCH /submissions/{sid}/claims/{cid}) to prove the
+ * controller, exception handler, feature-flag interceptor, and JSON response shape all work
+ * correctly end-to-end.
  */
 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class AmendmentsMetadataValidationSteps {
@@ -63,15 +58,15 @@ public class AmendmentsMetadataValidationSteps {
   @Autowired private BddScenarioContext context;
   @Autowired private ClaimsApiProperties claimsApiProperties;
   @Autowired private CacheManager cacheManager;
+  @Autowired private BddApiStepSupport api;
 
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
-  @Autowired private AmendmentFeatureFlagValidationStep featureFlagStep;
-  @Autowired private AmendmentUserIdValidationStep userIdStep;
-  @Autowired private AmendmentReferenceValidationStep referenceStep;
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   // ---------------------------------------------------------------------------
   // Given: feature flag
@@ -242,25 +237,12 @@ public class AmendmentsMetadataValidationSteps {
                   .amendmentReasonCode(toJsonNullable(context.getAmendmentReasonCode()))
                   .amendmentUserId(toJsonNullable(context.getSubmittingUserId()))
                   .build();
-          ClaimAmendmentState state = ClaimAmendmentState.builder().requestPayload(payload).build();
 
-          List<ClaimAmendmentValidationError> errors = new ArrayList<>();
-          errors.addAll(featureFlagStep.validate(state));
-          if (errors.stream().noneMatch(ClaimAmendmentValidationError::isFatal)) {
-            errors.addAll(userIdStep.validate(state));
-            errors.addAll(referenceStep.validate(state));
-          }
+          String jsonPayload = objectMapper.writeValueAsString(payload);
+          api.submitAmendmentViaHttp(
+              context.getSeededSubmissionId(), context.getSeededClaimId(), jsonPayload);
 
-          context.getLastAmendmentErrorCodes().clear();
-          context.getLastAmendmentErrorMessages().clear();
-          context
-              .getLastAmendmentErrorCodes()
-              .addAll(errors.stream().map(ClaimAmendmentValidationError::getCode).toList());
-          context
-              .getLastAmendmentErrorMessages()
-              .addAll(errors.stream().map(ClaimAmendmentValidationError::getMessage).toList());
-          context.setLastAmendmentHttpStatus(computeHttpStatus(errors));
-          context.setLastAmendmentResponseBody(null);
+          extractErrorsFromResponseBody();
         });
   }
 
@@ -478,16 +460,33 @@ public class AmendmentsMetadataValidationSteps {
     return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 
-  private static int computeHttpStatus(List<ClaimAmendmentValidationError> errors) {
-    if (errors.isEmpty()) {
-      return 200;
+  private void extractErrorsFromResponseBody() {
+    context.getLastAmendmentErrorCodes().clear();
+    context.getLastAmendmentErrorMessages().clear();
+
+    String responseBody = context.getLastAmendmentResponseBody();
+    if (responseBody == null || responseBody.isBlank()) {
+      // Success response (2xx) typically has no body or an empty errors array
+      return;
     }
-    return errors.stream()
-        .filter(ClaimAmendmentValidationError::isFatal)
-        .findFirst()
-        .or(() -> errors.stream().findFirst())
-        .map(error -> error.getHttpStatus().value())
-        .orElse(400);
+
+    try {
+      JsonNode root = objectMapper.readTree(responseBody);
+      JsonNode errorsNode = root.get("errors");
+      if (errorsNode != null && errorsNode.isArray()) {
+        for (JsonNode errorNode : errorsNode) {
+          String code = errorNode.path("code").asText();
+          String message = errorNode.path("message").asText();
+          if (!code.isBlank()) {
+            context.getLastAmendmentErrorCodes().add(code);
+            context.getLastAmendmentErrorMessages().add(message);
+          }
+        }
+      }
+    } catch (Exception e) {
+      // If we can't parse the response, log it but don't fail the step
+      // (the HTTP status will still be captured)
+    }
   }
 
   private void seedDs1765PlaceholderFixture() {
