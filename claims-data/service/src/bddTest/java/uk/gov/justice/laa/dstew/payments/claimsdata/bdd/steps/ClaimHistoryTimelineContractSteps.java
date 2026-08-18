@@ -160,7 +160,7 @@ public class ClaimHistoryTimelineContractSteps {
     step(
         "GET /api/v1/claims/" + currentClaimId + "/history (expect 2xx)",
         () -> {
-          lastResponse = api.getClaimHistory(requireCurrentClaimId());
+          lastResponse = api.getClaimHistoryJson(requireCurrentClaimId());
           lastStatusCode = 200;
           lastResponseBody = lastResponse.toString();
         });
