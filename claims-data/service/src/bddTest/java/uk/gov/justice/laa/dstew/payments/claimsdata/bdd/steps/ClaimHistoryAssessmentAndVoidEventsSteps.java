@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +38,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
-import java.util.stream.Stream;
 
 /**
  * Step glue for {@code claimHistoryAssessmentAndVoidEvents.feature} — DSTEW-1812 (1645-B).
@@ -191,14 +191,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
                 BDD_USER,
                 FIXED_INSTANT);
           } else {
-            insertAssessment(
-                claim,
-                type,
-                outcome,
-                reason,
-                BDD_USER,
-                FIXED_INSTANT,
-                assessmentId);
+            insertAssessment(claim, type, outcome, reason, BDD_USER, FIXED_INSTANT, assessmentId);
           }
           lastSeededAssessmentId = assessmentId;
         });
@@ -278,10 +271,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   @Given("a claim exists that has been submitted but has no claims.assessment rows")
   @Transactional
   public void aClaimExistsWithNoAssessmentRows() {
-    step(
-        "seed a claim with a SUBMISSION but zero assessment rows",
-            this::seedClaim
-        );
+    step("seed a claim with a SUBMISSION but zero assessment rows", this::seedClaim);
   }
 
   // ---------------------------------------------------------------------------
@@ -323,10 +313,9 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     step(
         "assert timeline contains an event with event_type=" + eventType,
         () ->
-          assertThat(findFirstEventByType(eventType))
-              .as("event with event_type=%s", eventType)
-              .isNotNull()
-        );
+            assertThat(findFirstEventByType(eventType))
+                .as("event with event_type=%s", eventType)
+                .isNotNull());
   }
 
   @Then("the response contains an event with event_type {string} and source_id {string}")
@@ -429,10 +418,9 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     step(
         "assert metadata." + field + " has not been substituted with a placeholder value",
         () ->
-          // Same assertion as absence — a fabricated placeholder would surface as any non-null
-          // value under the field key.
-          assertMetadataFieldAbsent(requireEventBySourceId(requireSeededAssessmentId()), field)
-    );
+            // Same assertion as absence — a fabricated placeholder would surface as any non-null
+            // value under the field key.
+            assertMetadataFieldAbsent(requireEventBySourceId(requireSeededAssessmentId()), field));
   }
 
   @Then("the corresponding ASSESSMENT event's metadata does NOT contain the field {string}")
@@ -708,9 +696,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
 
   private void assertEnvelopeFieldEquals(JsonNode event, String field, String expected) {
     assertThat(event.path(field).asText())
-        .as(
-            "envelope field '%s' on event with source_id %s",
-            field, event.path(SOURCE_ID).asText())
+        .as("envelope field '%s' on event with source_id %s", field, event.path(SOURCE_ID).asText())
         .isEqualTo(expected);
   }
 
@@ -725,9 +711,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   private void assertMetadataContains(JsonNode event, Map<String, String> expected) {
     JsonNode metadata = event.path(META_DATA);
     assertThat(metadata.isObject())
-        .as(
-            "metadata container present on event with source_id %s",
-            event.path(SOURCE_ID).asText())
+        .as("metadata container present on event with source_id %s", event.path(SOURCE_ID).asText())
         .isTrue();
     expected.forEach(
         (k, v) ->
@@ -803,8 +787,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
    * Generic helper that reads a two-column DataTable into a map.
    *
    * @param table the DataTable expected to contain two columns per row
-   * @param headerName a header label to ignore (case-insensitive) from the first column, or
-   *     {@code null} to accept any value
+   * @param headerName a header label to ignore (case-insensitive) from the first column, or {@code
+   *     null} to accept any value
    * @param nullToEmpty convert null values in the second column to empty string when true
    */
   private static Map<String, String> twoColumnMap(
