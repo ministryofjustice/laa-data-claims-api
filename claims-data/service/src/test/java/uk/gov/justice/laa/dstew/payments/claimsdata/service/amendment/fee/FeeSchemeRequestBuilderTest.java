@@ -177,4 +177,30 @@ class FeeSchemeRequestBuilderTest {
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("areaOfLaw must be present on ClaimStateSnapshot");
   }
+
+  @Test
+  @DisplayName("buildRequest throws IllegalStateException when mapper returns null")
+  void buildRequest_throwsWhenMapperReturnsNull() {
+    // Arrange: mock a mapper that returns null to simulate mapping failure
+    uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper mockMapper =
+        org.mockito.Mockito.mock(
+            uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class);
+
+    FeeSchemeRequestBuilder localBuilder = new FeeSchemeRequestBuilder(mockMapper);
+
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .feeCode("FEE-NULL")
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    org.mockito.Mockito.when(mockMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw()))
+        .thenReturn(null);
+
+    // Act / Assert
+    assertThatThrownBy(() -> localBuilder.buildRequest(state))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Unable to build FeeCalculationRequest");
+  }
 }

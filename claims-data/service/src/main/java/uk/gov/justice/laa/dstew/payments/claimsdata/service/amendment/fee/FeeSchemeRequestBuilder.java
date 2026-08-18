@@ -41,9 +41,11 @@ public class FeeSchemeRequestBuilder {
     FeeCalculationRequest req =
         feeSchemeMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw());
 
-    // MapStruct should never return null for this mapping, but guard defensively
+    // MapStruct should never return null for this mapping. If it does, that's a logical
+    // construction failure and we should fail fast.
     if (req == null) {
-      req = new FeeCalculationRequest(post.getFeeCode());
+      throw new IllegalStateException(
+          "Unable to build FeeCalculationRequest from post-amendment state: mapper returned null");
     }
 
     return req;

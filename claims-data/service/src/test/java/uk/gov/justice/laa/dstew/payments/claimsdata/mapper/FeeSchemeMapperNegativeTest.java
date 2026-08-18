@@ -99,4 +99,17 @@ class FeeSchemeMapperNegativeTest {
     assertThatThrownBy(() -> mapper.mapToFeeCalculationRequest(claim, null))
         .isInstanceOf(NullPointerException.class);
   }
+
+  @Test
+  @DisplayName("Should return null when claim is null for main mapper")
+  void map_nullClaim_returnsNullForMainMapper() {
+    FeeCalculationRequest req = mapper.mapToFeeCalculationRequest(null, AreaOfLaw.MEDIATION);
+    assertThat(req).isNull();
+  }
+
+  @Test
+  @DisplayName("Should return null when claim is null for bolt-on mapper")
+  void map_nullClaim_returnsNullForBoltOn() {
+    assertThat(mapper.mapToBoltOnType(null)).isNull();
+  }
 }

@@ -113,7 +113,7 @@ class AmendmentFspValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
+    assertThat(errors.getFirst().getCode())
         .isEqualTo(ClaimAmendmentValidationCode.INVALID_CLAIM_BEFORE_STATE_CFD_MISSING.toString());
     verifyNoInteractions(fspClient);
   }
@@ -177,7 +177,7 @@ class AmendmentFspValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    ClaimAmendmentValidationError error = errors.get(0);
+    ClaimAmendmentValidationError error = errors.getFirst();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
     assertThat(error.getMessage())
@@ -203,7 +203,7 @@ class AmendmentFspValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    ClaimAmendmentValidationError error = errors.get(0);
+    ClaimAmendmentValidationError error = errors.getFirst();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
   }
@@ -267,15 +267,17 @@ class AmendmentFspValidationStepTest {
     when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);
 
     when(requestBuilder.buildRequest(any()))
-        .thenThrow(new NullPointerException("areaOfLaw must be present on ClaimStateSnapshot"));
+        .thenThrow(
+            new IllegalStateException("Unable to build FeeCalculationRequest: missing data"));
 
     // Act
     List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
 
-    // Assert: A technical repricing failure should be returned and no FSP call should be attempted
+    // Assert: A semantic validation error should be returned and no FSP call should be attempted
     assertThat(errors).hasSize(1);
-    assertThat(errors.get(0).getCode())
-        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
+    assertThat(errors.getFirst().getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
+    assertThat(errors.getFirst().getMessage()).contains("Unable to build FeeCalculationRequest");
     verifyNoInteractions(fspClient);
   }
 
@@ -298,7 +300,7 @@ class AmendmentFspValidationStepTest {
 
     // Assert
     assertThat(errors).hasSize(1);
-    ClaimAmendmentValidationError error = errors.get(0);
+    ClaimAmendmentValidationError error = errors.getFirst();
     assertThat(error.getCode())
         .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
   }
