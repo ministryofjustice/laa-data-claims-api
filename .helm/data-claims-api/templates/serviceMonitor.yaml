@@ -6,7 +6,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- include "data-claims-api.labels" . | nindent 4 }}
+      {{- include "data-claims-api.labels" . | nindent 6 }}
   endpoints:
     - port: {{ .Chart.Name }}-management
       interval: 15s

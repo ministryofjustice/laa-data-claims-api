@@ -8,11 +8,12 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  minReadySeconds: 15
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
-      maxSurge: 100%
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "data-claims-api.selectorLabels" . | nindent 6 }}
@@ -20,9 +21,8 @@ spec:
     metadata:
       labels:
         {{- include "data-claims-api.selectorLabels" . | nindent 8 }}
-      annotations:
-        releaseTime: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
     spec:
+      terminationGracePeriodSeconds: 60
       serviceAccountName: "{{ .Values.service_account.name }}"
       containers:
         - name: {{ .Chart.Name }}
