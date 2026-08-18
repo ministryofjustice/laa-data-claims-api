@@ -36,6 +36,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentVali
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -122,6 +123,29 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+
+    // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
+    // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
+    // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
+    //
+    // CAVEAT (old-vs-new): the DB index is PARTIAL - it grandfathers pre-existing historical
+    // duplicates (business rule: we never amend or delete historical data), so it cannot catch a
+    // NEW claim that duplicates an OLD (grandfathered) row. This pre-check queries all rows, so it
+    // DOES cover that old-vs-new case. It is currently unreachable (claims are only added to
+    // newly-created submissions, never appended to historical ones) but is guarded here defensively
+    // in case that business rule ever changes.
+    //
+    // RACE: this check is not atomic with the insert below, so a small TOCTOU window remains if two
+    // requests create the same (submission_id, line_number) concurrently. The DB unique index
+    // closes that window for the common (post-cutoff) case; the residual race only affects the
+    // old-vs-new scenario above and is considered minimal/acceptable.
+    Integer lineNumber = claimPost.getLineNumber();
+    if (lineNumber != null
+        && claimRepository.existsBySubmissionIdAndLineNumber(submissionId, lineNumber)) {
+      throw new DuplicateClaimException(
+          String.format(
+              "A claim with line number %d already exists for the submission.", lineNumber));
+    }
 
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());

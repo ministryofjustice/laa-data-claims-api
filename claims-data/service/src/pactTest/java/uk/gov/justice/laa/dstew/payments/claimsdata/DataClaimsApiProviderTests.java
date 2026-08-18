@@ -35,6 +35,7 @@ import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
@@ -56,6 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -265,6 +268,26 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
   }
 
+  @State("a claim with the same line number already exists in the submission")
+  public void aClaimWithDuplicateLineNumberExists() {
+    log.info(
+        "Setting up state: a claim with the same line number already exists in the submission");
+    // Creating a claim (not an amendment): the submission exists, but persisting the new claim
+    // trips the uq_claim_submission_line_number unique constraint. The database raises this at
+    // flush/commit; here the mocked repository reproduces it so the provider maps it to a 409
+    // Conflict.
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    doThrow(
+            new DataIntegrityViolationException(
+                "could not execute statement",
+                new ConstraintViolationException(
+                    "duplicate key value violates unique constraint",
+                    new SQLException("duplicate key"),
+                    "uq_claim_submission_line_number")))
+        .when(claimRepository)
+        .save(any());
+  }
+
   @State("the matter start request contains invalid data")
   public void theMatterStartRequestContainsInvalidData() {
     log.info("Setting up state: the matter start request contains invalid data");
@@ -401,8 +424,9 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a claim exists")
   public void aClaimExists() {
     log.info("Setting up state: a claim exists");
-    when(claimRepository.findByIdAndSubmissionId(any(), any()))
-        .thenReturn(Optional.ofNullable(getClaim()));
+    Claim claim = getClaimV2();
+    claim.setClaimCase(getClaimCase());
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(claim));
     when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));

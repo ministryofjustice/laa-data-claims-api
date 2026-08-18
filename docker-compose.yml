@@ -25,7 +25,8 @@ services:
       - PROVIDER_DETAILS_API_ACCESS_TOKEN=${PROVIDER_DETAILS_API_ACCESS_TOKEN}
       - FEE_SCHEME_PLATFORM_API_URL=${FEE_SCHEME_PLATFORM_API_URL}
       - FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN=${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - postgres
       - localstack
