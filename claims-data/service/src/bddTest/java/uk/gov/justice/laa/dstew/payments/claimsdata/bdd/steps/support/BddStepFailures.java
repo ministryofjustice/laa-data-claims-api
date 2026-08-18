@@ -78,10 +78,14 @@ public final class BddStepFailures {
       return null;
     }
     String raw = cause.getMessage();
-    String message = (raw == null || raw.isBlank()) ? cause.getClass().getSimpleName() : raw;
+    boolean blank = (raw == null || raw.isBlank());
     if (cause instanceof AssertionError) {
-      return message;
+      return blank ? cause.getClass().getSimpleName() : raw;
     }
-    return cause.getClass().getSimpleName() + ": " + message;
+    // For non-assertion throwables with a real message, prefix the class name so the reader can
+    // tell at a glance whether the failure came from an I/O error, an HTTP status, etc. When the
+    // message is blank/null we would otherwise produce `NullPointerException: NullPointerException`
+    // — return just the class name in that case.
+    return blank ? cause.getClass().getSimpleName() : cause.getClass().getSimpleName() + ": " + raw;
   }
 }
