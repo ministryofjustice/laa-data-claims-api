@@ -72,7 +72,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.ThrowingRunnable)}
  * per the project-wide step-failure-reporting standing rule.
  */
-public class ClaimHistoryTimelineParentSteps {
+public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedSteps {
 
   private static final Set<String> AGREED_EVENT_TYPES =
       new HashSet<>(Arrays.asList("SUBMISSION", "AMENDMENT", "ASSESSMENT", "VOID"));
@@ -93,12 +93,9 @@ public class ClaimHistoryTimelineParentSteps {
   @Autowired private AssessmentRepository assessmentRepository;
   @Autowired private MatterStartRepository matterStartRepository;
   @Autowired private JdbcClient jdbcClient;
-  @Autowired private BddApiStepSupport api;
 
-  private UUID currentClaimId;
   private UUID currentClaimSummaryFeeId;
   private UUID currentSubmissionId;
-  private JsonNode lastResponse;
 
   /** Ordered timestamps of AMENDMENT events we seeded — used by @DS1645_1 for order assertions. */
   private final List<Instant> seededAmendmentTimestamps = new ArrayList<>();
@@ -265,23 +262,8 @@ public class ClaimHistoryTimelineParentSteps {
                 .update());
   }
 
-  @Given("a claim exists that has been submitted but never amended, assessed or voided")
-  @Transactional
-  public void aClaimExistsThatHasBeenSubmittedOnly() {
-    step("seed a claim with no amendment / assessment / void rows", this::seedClaim);
-  }
-
   // ---------------------------------------------------------------------------
   // When.
-  // ---------------------------------------------------------------------------
-
-  @When("I request the claim history timeline")
-  public void iRequestTheClaimHistoryTimeline() {
-    step(
-        "GET /api/v1/claims/" + currentClaimId + "/history",
-        () -> lastResponse = api.getClaimHistory(requireCurrentClaimId()));
-  }
-
   // ---------------------------------------------------------------------------
   // Thens — @DS1645_1 mixed timeline.
   // ---------------------------------------------------------------------------
@@ -490,10 +472,14 @@ public class ClaimHistoryTimelineParentSteps {
   @Then("the response shape matches the documented contract")
   public void responseShapeMatchesDocumentedContract() {
     step(
-        "assert the response envelope keys are exactly the agreed contract set",
+         "assert the response envelope keys are exactly the agreed contract set",
         () -> {
+          JsonNode response = claimHistoryContext.getLastResponse();
+          if (response == null) {
+            response = lastResponse;
+          }
           Set<String> topLevelKeys = new HashSet<>();
-          lastResponse.fieldNames().forEachRemaining(topLevelKeys::add);
+          response.fieldNames().forEachRemaining(topLevelKeys::add);
           // The delivered ClaimHistoryResultSet emits {claimId, events}. Both keys must be present.
           assertThat(topLevelKeys).as("response envelope keys").contains("claim_id", "events");
           // Every event must carry only agreed envelope fields.
@@ -533,7 +519,7 @@ public class ClaimHistoryTimelineParentSteps {
     claim.setCreatedByUserId("bdd-seed-user");
     claim.setUpdatedByUserId("bdd-seed-user");
     claimRepository.saveAndFlush(claim);
-    currentClaimId = claim.getId();
+    setCurrentClaimId(claim.getId());
 
     ClaimSummaryFee summaryFee = new ClaimSummaryFee();
     summaryFee.setId(Uuid7.timeBasedUuid());
@@ -607,8 +593,12 @@ public class ClaimHistoryTimelineParentSteps {
   // ---------------------------------------------------------------------------
 
   private List<JsonNode> eventList() {
-    assertThat(lastResponse).as("no /history response captured yet").isNotNull();
-    JsonNode events = lastResponse.path("events");
+    JsonNode response = claimHistoryContext.getLastResponse();
+    if (response == null) {
+      response = lastResponse;
+    }
+    assertThat(response).as("no /history response captured yet").isNotNull();
+    JsonNode events = response.path("events");
     if (!events.isArray()) {
       return List.of();
     }
@@ -630,13 +620,5 @@ public class ClaimHistoryTimelineParentSteps {
         .filter(e -> "AMENDMENT".equals(e.path("event_type").asText()))
         .findFirst()
         .orElseThrow(() -> new AssertionError("No AMENDMENT event on /history timeline"));
-  }
-
-  private UUID requireCurrentClaimId() {
-    if (currentClaimId == null) {
-      throw new AssertionError(
-          "No claim id has been established yet — expected a prior Given step.");
-    }
-    return currentClaimId;
   }
 }
