@@ -76,7 +76,7 @@ public class BulkSubmissionMimeCheckSteps {
     assertThat(context.getLastResponseBody())
         .as("Expected the API error response body to contain the validation message")
         .isNotNull()
-        .contains(expectedMessage);
+        .satisfies(body -> assertThat(body.toString()).contains(expectedMessage));
   }
 
   /**
