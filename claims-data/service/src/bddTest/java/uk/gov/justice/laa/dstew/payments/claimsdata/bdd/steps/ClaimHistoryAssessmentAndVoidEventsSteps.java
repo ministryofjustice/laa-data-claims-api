@@ -281,7 +281,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   public void iRequestTheClaimHistoryTimeline() {
     step(
         "GET /api/v1/claims/" + currentClaimId + "/history",
-        () -> lastResponse = api.getClaimHistoryJson(requireCurrentClaimId()));
+        () -> lastResponse = api.getClaimHistory(requireCurrentClaimId()));
   }
 
   // ---------------------------------------------------------------------------
