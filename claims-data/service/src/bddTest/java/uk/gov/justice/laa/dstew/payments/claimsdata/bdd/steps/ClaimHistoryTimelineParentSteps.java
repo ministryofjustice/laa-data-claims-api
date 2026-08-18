@@ -478,8 +478,9 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
           }
           Set<String> topLevelKeys = new HashSet<>();
           response.fieldNames().forEachRemaining(topLevelKeys::add);
-          // The delivered ClaimHistoryResultSet emits {claimId, events}. Both keys must be present.
-          assertThat(topLevelKeys).as("response envelope keys").contains("claim_id", "events");
+          assertThat(topLevelKeys)
+              .as("response envelope keys")
+              .containsExactlyInAnyOrder("claim_id", "events");
           // Every event must carry only agreed envelope fields.
           for (JsonNode event : eventList()) {
             Set<String> envelopeKeys = new HashSet<>();

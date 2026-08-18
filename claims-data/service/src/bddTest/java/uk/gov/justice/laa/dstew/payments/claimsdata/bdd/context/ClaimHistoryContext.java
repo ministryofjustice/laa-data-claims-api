@@ -1,34 +1,26 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.cucumber.spring.ScenarioScope;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.stereotype.Component;
 
 /** Shared context for claim history BDD scenarios. */
 @Component
-public class ClaimHistoryContext {
+@ScenarioScope
+@Getter
+@Setter
+public class ClaimHistoryContext extends BddResponseContext {
 
   private UUID currentClaimId;
   private JsonNode lastResponse;
 
-  public UUID getCurrentClaimId() {
-    return currentClaimId;
-  }
-
-  public void setCurrentClaimId(UUID claimId) {
-    this.currentClaimId = claimId;
-  }
-
-  public JsonNode getLastResponse() {
-    return lastResponse;
-  }
-
-  public void setLastResponse(JsonNode response) {
-    this.lastResponse = response;
-  }
-
   public void reset() {
-    this.currentClaimId = null;
-    this.lastResponse = null;
+    currentClaimId = null;
+    lastResponse = null;
+    setLastStatusCode(null);
+    setLastResponseBody(null);
   }
 }

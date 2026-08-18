@@ -6,27 +6,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.java.en.When;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.ClaimHistoryContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 
 /** Common step definition for both claim history timeline feature files. */
-public class ClaimHistoryTimelineCommonSteps {
+public class ClaimHistoryTimelineCommonSteps extends ClaimHistoryTimelineSharedSteps {
 
   @Autowired private BddApiStepSupport api;
-  @Autowired private ClaimHistoryContext claimHistoryContext;
+  @Autowired private BddScenarioContext scenarioContext;
 
   @When("I request the claim history timeline")
   public void iRequestTheClaimHistoryTimeline() {
+    UUID claimId = requireCurrentClaimId();
     step(
-        "GET /api/v1/claims/" + claimHistoryContext.getCurrentClaimId() + "/history",
+        "GET /api/v1/claims/" + claimId + "/history",
         () -> {
-          UUID claimId = claimHistoryContext.getCurrentClaimId();
-          if (claimId == null) {
-            throw new AssertionError(
-                "No claim id has been established yet — expected a prior Given step.");
-          }
           JsonNode response = api.getClaimHistoryJson(claimId);
-          claimHistoryContext.setLastResponse(response);
+          setLastResponse(response);
+          claimHistoryContext.setLastStatusCode(scenarioContext.getLastStatusCode());
+          claimHistoryContext.setLastResponseBody(scenarioContext.getLastResponseBody());
         });
   }
 }
