@@ -236,6 +236,30 @@ public class BddApiStepSupport {
   }
 
   /**
+   * Fetches the claim history timeline via {@code GET /api/v1/claims/{claimId}/history}. Returns
+   * the parsed JSON body so scenarios can drill into {@code events[].metadata.changes[]} without
+   * losing the JSON {@code null} vs missing-key distinction that {@link JsonNode} preserves and a
+   * {@code Map<String,Object>} would collapse.
+   */
+  public JsonNode getClaimHistory(UUID claimId) throws IOException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+
+    ResponseEntity<String> response =
+        restTemplate.exchange(
+            serverInfo.baseUrl() + GET_CLAIM_HISTORY_PATH,
+            HttpMethod.GET,
+            request,
+            String.class,
+            claimId);
+    context.setLastStatusCode(response.getStatusCode().value());
+    JsonNode responseJson = parseResponseBody(response.getBody());
+    context.setLastResponseBody(responseJson);
+    return responseJson;
+  }
+
+  /**
    * Fetches the persisted submission record for the most recent upload. Useful for assertions that
    * the submission entity was actually saved.
    */
@@ -272,32 +296,6 @@ public class BddApiStepSupport {
             String.class,
             bulkSubmissionId);
     return objectMapper.readTree(response.getBody());
-  }
-
-  /**
-   * Fetches the unified claim-history timeline for {@code claimId} via {@code GET
-   * /api/v1/claims/{claimId}/history} and returns the raw JSON response.
-   *
-   * <p>The raw {@link JsonNode} is intentionally retained so callers can distinguish an explicit
-   * JSON {@code null} in the metadata bag from a missing key — a critical distinction for the
-   * claim-history timeline scenarios (DSTEW-1811 / -1812 / -1813 / -1814 / -1815).
-   */
-  public JsonNode getClaimHistoryJson(UUID claimId) throws IOException {
-    HttpHeaders headers = new HttpHeaders();
-    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
-    HttpEntity<Void> request = new HttpEntity<>(headers);
-
-    ResponseEntity<String> response =
-        restTemplate.exchange(
-            serverInfo.baseUrl() + GET_CLAIM_HISTORY_PATH,
-            HttpMethod.GET,
-            request,
-            String.class,
-            claimId);
-    context.setLastStatusCode(response.getStatusCode().value());
-    JsonNode responseJson = parseResponseBody(response.getBody());
-    context.setLastResponseBody(responseJson);
-    return responseJson;
   }
 
   /**
