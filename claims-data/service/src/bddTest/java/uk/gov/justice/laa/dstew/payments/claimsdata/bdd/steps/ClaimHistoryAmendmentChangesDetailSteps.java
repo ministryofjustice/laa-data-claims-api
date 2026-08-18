@@ -6,13 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
@@ -43,7 +40,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * {@code JdbcClaimHistoryRepositoryIntegrationTest}.
  */
 @Slf4j
-public class ClaimHistoryAmendmentChangesDetailSteps {
+public class ClaimHistoryAmendmentChangesDetailSteps extends ClaimHistoryTimelineSharedSteps {
 
   private static final String BDD_USER_ID = "bdd-user-1814";
   private static final String AMENDMENT_EVENT_TYPE = "AMENDMENT";
@@ -53,11 +50,7 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
 
-  // Scenario-scoped state. Cucumber instantiates one step class per scenario, so plain fields are
-  // safe (no @ScenarioScope needed).
-  private UUID currentClaimId;
-  private JsonNode lastHistoryResponse;
-  private JsonNode lastAmendmentEvent;
+  // Scenario-scoped state is stored in ClaimHistoryTimelineSharedSteps / ClaimHistoryContext.
 
   // ---------------------------------------------------------------------------
   // Given — seed a claim + a successful claim_amendment carrying the diff under test
@@ -108,13 +101,6 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
   // ---------------------------------------------------------------------------
   // When
   // ---------------------------------------------------------------------------
-
-  @When("I request the claim history timeline")
-  public void iRequestTheClaimHistoryTimeline() throws IOException {
-    assertThat(currentClaimId).as("claim must be seeded before requesting history").isNotNull();
-    lastHistoryResponse = api.getClaimHistory(currentClaimId);
-    lastAmendmentEvent = findAmendmentEvent(lastHistoryResponse);
-  }
 
   // ---------------------------------------------------------------------------
   // Then — array size / entry presence
@@ -228,7 +214,7 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
                 .createdByUserId(BDD_USER_ID)
                 .build());
 
-    currentClaimId = claim.getId();
+    setCurrentClaimId(claim.getId());
   }
 
   private void persistAmendment(String diffJson) {
@@ -378,7 +364,8 @@ public class ClaimHistoryAmendmentChangesDetailSteps {
   }
 
   private JsonNode requireChangesArray() {
-    JsonNode changes = lastAmendmentEvent.path("metadata").path("changes");
+    JsonNode amendmentEvent = findAmendmentEvent(getLastResponse());
+    JsonNode changes = amendmentEvent.path("metadata").path("changes");
     assertThat(changes.isArray()).as("AMENDMENT event metadata.changes must be an array").isTrue();
     return changes;
   }
