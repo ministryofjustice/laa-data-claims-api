@@ -1,22 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import org.mapstruct.factory.Mappers;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 
 class FeeSchemeRequestBuilderTest {
 
-  private final FeeSchemeRequestBuilder builder = new FeeSchemeRequestBuilder(
-      Mappers.getMapper(uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class));
+  private final FeeSchemeRequestBuilder builder =
+      new FeeSchemeRequestBuilder(
+          Mappers.getMapper(
+              uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class));
 
   @Test
   @DisplayName("Should map post-amendment state directly to FeeCalculationRequest")
@@ -86,7 +88,10 @@ class FeeSchemeRequestBuilderTest {
   void buildRequest_withNullClaimId_mapsToNull() {
     // Arrange
     ClaimStateSnapshot post =
-        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(null).areaOfLaw(AreaOfLaw.MEDIATION).build();
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .claimId(null)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
@@ -164,7 +169,8 @@ class FeeSchemeRequestBuilderTest {
   @Test
   @DisplayName("buildRequest throws when areaOfLaw is missing on post snapshot")
   void buildRequest_throwsWhenAreaOfLawMissing() {
-    ClaimStateSnapshot post = FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().areaOfLaw(null).build();
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().areaOfLaw(null).build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     assertThatThrownBy(() -> builder.buildRequest(state))

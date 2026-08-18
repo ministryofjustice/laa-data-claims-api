@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
@@ -9,8 +10,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.fee.scheme.model.BoltOnType;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
-
-import java.math.BigDecimal;
 
 /** Maps submission and claim data into requests for the Fee Scheme Platform API. */
 @Mapper(componentModel = "spring")
@@ -42,7 +41,7 @@ public interface FeeSchemeMapper {
   @Mapping(target = "jrFormFilling", source = "jrFormFillingAmount")
   @Mapping(target = "londonRate", source = "isLondonRate", defaultValue = "false")
   FeeCalculationRequest mapToFeeCalculationRequest(
-          ClaimStateSnapshot claim, @Context AreaOfLaw areaOfLaw);
+      ClaimStateSnapshot claim, @Context AreaOfLaw areaOfLaw);
 
   /**
    * Performs area-of-law specific adjustments after MapStruct has mapped common fields.

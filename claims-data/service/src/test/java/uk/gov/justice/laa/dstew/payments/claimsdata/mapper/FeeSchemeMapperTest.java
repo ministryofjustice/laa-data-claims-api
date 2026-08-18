@@ -1,5 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
@@ -7,16 +13,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.fee.scheme.model.BoltOnType;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.Month;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class FeeSchemeMapperTest {
 
-  // Instantiate the generated MapStruct implementation directly (consistent with other mapper tests)
+  // Instantiate the generated MapStruct implementation directly (consistent with other mapper
+  // tests)
   private final FeeSchemeMapper mapper = new FeeSchemeMapperImpl();
 
   @Test
@@ -24,35 +24,36 @@ class FeeSchemeMapperTest {
   void mapAllFieldsWhenAllInputPresent() {
     UUID claimUuid = UUID.randomUUID();
 
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE1")
-        .claimId(claimUuid)
-        .caseStartDate(LocalDate.of(2020, Month.JANUARY, 1))
-        .netProfitCostsAmount(BigDecimal.valueOf(100.5))
-        .netDisbursementAmount(BigDecimal.valueOf(20.0))
-        .netCounselCostsAmount(BigDecimal.valueOf(30.0))
-        .disbursementsVatAmount(BigDecimal.valueOf(4.0))
-        .isVatApplicable(true)
-        .priorAuthorityReference("PA-123")
-        .policeStationCourtPrisonId("PS-1")
-        .schemeId("SCH-1")
-        .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(5.0))
-        .caseConcludedDate(LocalDate.of(2020, Month.FEBRUARY, 1))
-        .uniqueFileNumber("UFN")
-        .mediationSessionsCount(2)
-        .jrFormFillingAmount(BigDecimal.valueOf(1.5))
-        .isLondonRate(true)
-        .adjournedHearingFeeAmount(3)
-        .cmrhOralCount(4)
-        .cmrhTelephoneCount(5)
-        .hoInterview(6)
-        .isSubstantiveHearing(true)
-        .travelWaitingCostsAmount(BigDecimal.valueOf(7.0))
-        .netWaitingCostsAmount(BigDecimal.valueOf(8.0))
-        .travelTime(10)
-        .waitingTime(11)
-        .representationOrderDate(LocalDate.of(2020, Month.MARCH, 1))
-        .build();
+    ClaimStateSnapshot claim =
+        ClaimStateSnapshot.builder()
+            .feeCode("FEE1")
+            .claimId(claimUuid)
+            .caseStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+            .netProfitCostsAmount(BigDecimal.valueOf(100.5))
+            .netDisbursementAmount(BigDecimal.valueOf(20.0))
+            .netCounselCostsAmount(BigDecimal.valueOf(30.0))
+            .disbursementsVatAmount(BigDecimal.valueOf(4.0))
+            .isVatApplicable(true)
+            .priorAuthorityReference("PA-123")
+            .policeStationCourtPrisonId("PS-1")
+            .schemeId("SCH-1")
+            .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(5.0))
+            .caseConcludedDate(LocalDate.of(2020, Month.FEBRUARY, 1))
+            .uniqueFileNumber("UFN")
+            .mediationSessionsCount(2)
+            .jrFormFillingAmount(BigDecimal.valueOf(1.5))
+            .isLondonRate(true)
+            .adjournedHearingFeeAmount(3)
+            .cmrhOralCount(4)
+            .cmrhTelephoneCount(5)
+            .hoInterview(6)
+            .isSubstantiveHearing(true)
+            .travelWaitingCostsAmount(BigDecimal.valueOf(7.0))
+            .netWaitingCostsAmount(BigDecimal.valueOf(8.0))
+            .travelTime(10)
+            .waitingTime(11)
+            .representationOrderDate(LocalDate.of(2020, Month.MARCH, 1))
+            .build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.MEDIATION);
 
@@ -75,7 +76,8 @@ class FeeSchemeMapperTest {
     assertThat(actual.getJrFormFilling()).isEqualTo(1.5);
     assertThat(actual.getLondonRate()).isTrue();
 
-    // Mapper does not set travelAndWaitingCosts/netTravelCosts/netWaitingCosts in default (MEDIATION) branch
+    // Mapper does not set travelAndWaitingCosts/netTravelCosts/netWaitingCosts in default
+    // (MEDIATION) branch
     assertThat(actual.getTravelAndWaitingCosts()).isNull();
     assertThat(actual.getNetTravelCosts()).isNull();
     assertThat(actual.getNetWaitingCosts()).isNull();
@@ -93,11 +95,12 @@ class FeeSchemeMapperTest {
   @Test
   @DisplayName("mapConditionalFieldWhenAreaIsCrimeLower")
   void mapConditionalFieldWhenAreaIsCrimeLower() {
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE2")
-        .travelWaitingCostsAmount(BigDecimal.valueOf(12.25))
-        .netWaitingCostsAmount(BigDecimal.valueOf(4.75))
-        .build();
+    ClaimStateSnapshot claim =
+        ClaimStateSnapshot.builder()
+            .feeCode("FEE2")
+            .travelWaitingCostsAmount(BigDecimal.valueOf(12.25))
+            .netWaitingCostsAmount(BigDecimal.valueOf(4.75))
+            .build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.CRIME_LOWER);
 
@@ -108,10 +111,11 @@ class FeeSchemeMapperTest {
   @Test
   @DisplayName("mapConditionalFieldWhenAreaIsLegalHelp")
   void mapConditionalFieldWhenAreaIsLegalHelp() {
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE3")
-        .travelWaitingCostsAmount(BigDecimal.valueOf(21.5))
-        .build();
+    ClaimStateSnapshot claim =
+        ClaimStateSnapshot.builder()
+            .feeCode("FEE3")
+            .travelWaitingCostsAmount(BigDecimal.valueOf(21.5))
+            .build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.LEGAL_HELP);
 
@@ -121,9 +125,7 @@ class FeeSchemeMapperTest {
   @Test
   @DisplayName("mapWithNullOptionalFields")
   void mapWithNullOptionalFields() {
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE4")
-        .build();
+    ClaimStateSnapshot claim = ClaimStateSnapshot.builder().feeCode("FEE4").build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.MEDIATION);
 
@@ -137,10 +139,11 @@ class FeeSchemeMapperTest {
   @Test
   @DisplayName("mapPrecisionBigDecimalConversion")
   void mapPrecisionBigDecimalConversion() {
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE5")
-        .netProfitCostsAmount(new BigDecimal("100.123456789"))
-        .build();
+    ClaimStateSnapshot claim =
+        ClaimStateSnapshot.builder()
+            .feeCode("FEE5")
+            .netProfitCostsAmount(new BigDecimal("100.123456789"))
+            .build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.MEDIATION);
 
@@ -166,14 +169,15 @@ class FeeSchemeMapperTest {
   @Test
   @DisplayName("mapBoltOnsWhenZerosAndFalse")
   void mapBoltOnsWhenZerosAndFalse() {
-    ClaimStateSnapshot claim = ClaimStateSnapshot.builder()
-        .feeCode("FEE7")
-        .adjournedHearingFeeAmount(0)
-        .cmrhOralCount(0)
-        .cmrhTelephoneCount(0)
-        .hoInterview(0)
-        .isSubstantiveHearing(false)
-        .build();
+    ClaimStateSnapshot claim =
+        ClaimStateSnapshot.builder()
+            .feeCode("FEE7")
+            .adjournedHearingFeeAmount(0)
+            .cmrhOralCount(0)
+            .cmrhTelephoneCount(0)
+            .hoInterview(0)
+            .isSubstantiveHearing(false)
+            .build();
 
     FeeCalculationRequest actual = mapper.mapToFeeCalculationRequest(claim, AreaOfLaw.MEDIATION);
 
@@ -196,6 +200,3 @@ class FeeSchemeMapperTest {
     assertThat(actual.getLondonRate()).isFalse();
   }
 }
-
-
-

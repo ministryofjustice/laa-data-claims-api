@@ -1,13 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
-import org.springframework.stereotype.Component;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
-import java.util.Objects;
 
 /**
  * Component responsible for building a pristine {@link FeeCalculationRequest} payload to send to
@@ -39,7 +38,8 @@ public class FeeSchemeRequestBuilder {
     Objects.requireNonNull(post.getAreaOfLaw(), "areaOfLaw must be present on ClaimStateSnapshot");
 
     // Delegate full mapping to FeeSchemeMapper (mapper is the source-of-truth)
-    FeeCalculationRequest req = feeSchemeMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw());
+    FeeCalculationRequest req =
+        feeSchemeMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw());
 
     // MapStruct should never return null for this mapping, but guard defensively
     if (req == null) {

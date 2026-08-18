@@ -100,4 +100,3 @@ class FeeSchemeMapperNegativeTest {
         .isInstanceOf(NullPointerException.class);
   }
 }
-
