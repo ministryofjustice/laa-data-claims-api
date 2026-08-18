@@ -251,6 +251,35 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
+  @DisplayName(
+      "Should handle exceptions thrown by the FeeSchemeRequestBuilder and return a technical error")
+  void validate_whenRequestBuilderThrows_returnsTechnicalError() {
+    // Arrange: Force execution past the guard with a pricing-impacting fee-code change
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
+            .build();
+
+    AmendmentDiff pricingImpactingDiff =
+        AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);
+
+    when(requestBuilder.buildRequest(any()))
+        .thenThrow(new NullPointerException("areaOfLaw must be present on ClaimStateSnapshot"));
+
+    // Act
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    // Assert: A technical repricing failure should be returned and no FSP call should be attempted
+    assertThat(errors).hasSize(1);
+    assertThat(errors.get(0).getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.TECHNICAL_ERROR_FSP_REPRICING_FAILURE.toString());
+    verifyNoInteractions(fspClient);
+  }
+
+  @Test
   @DisplayName("1595-E: Should capture null response body from FSP and map to technical error")
   void validate_whenFspReturnsNullBody_returnsTechnicalError() {
     // Arrange: Force execution past the guard

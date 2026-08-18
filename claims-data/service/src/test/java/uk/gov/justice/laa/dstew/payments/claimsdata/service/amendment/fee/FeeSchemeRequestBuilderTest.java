@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 
@@ -140,5 +141,34 @@ class FeeSchemeRequestBuilderTest {
     assertThat(request.getBoltOns().getBoltOnCmrhTelephone()).isNull();
     assertThat(request.getBoltOns().getBoltOnHomeOfficeInterview()).isNull();
     assertThat(request.getBoltOns().getBoltOnSubstantiveHearing()).isNull();
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when state is null")
+  void buildRequest_throwsWhenStateIsNull() {
+    assertThatThrownBy(() -> builder.buildRequest(null))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("ClaimAmendmentState must not be null");
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when postAmendmentState is null")
+  void buildRequest_throwsWhenPostIsNull() {
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(null).build();
+
+    assertThatThrownBy(() -> builder.buildRequest(state))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("postAmendmentState must not be null");
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when areaOfLaw is missing on post snapshot")
+  void buildRequest_throwsWhenAreaOfLawMissing() {
+    ClaimStateSnapshot post = FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().areaOfLaw(null).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    assertThatThrownBy(() -> builder.buildRequest(state))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("areaOfLaw must be present on ClaimStateSnapshot");
   }
 }
