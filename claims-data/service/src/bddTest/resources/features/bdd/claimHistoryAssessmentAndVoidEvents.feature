@@ -56,14 +56,14 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | assessment_type    | ESCAPE_CASE_ASSESSMENT       |
       | assessment_outcome | REDUCED_TO_FIXED_FEE         |
       | assessment_reason  | Escape Fee Case Assessment   |
-    When I request the claim history timeline
+    When I request the claim history timeline for the assessment and void feature
     Then the response contains an event with the following envelope
       | envelopeField    | value                |
       | event_type       | ASSESSMENT           |
       | event_timestamp  | 2026-05-10T14:03:00Z |
       | actor_id         | user-abc             |
       | source_id        | assess-uuid-1        |
-    And that event's metadata contains
+    And the ASSESSMENT event metadata contains
       | metadataField      | value                      |
       | assessment_type    | ESCAPE_CASE_ASSESSMENT     |
       | assessment_outcome | REDUCED_TO_FIXED_FEE       |
@@ -73,10 +73,10 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
   Scenario: STAGE_DISBURSEMENT_ASSESSMENT row appears as an ASSESSMENT event, not fabricated as a different sub-type
     Given a claim exists with a claims.assessment row where assessment_type is "STAGE_DISBURSEMENT_ASSESSMENT"
     And that row's assessment_outcome is "PAID_IN_FULL"
-    When I request the claim history timeline
+    When I request the claim history timeline for the assessment and void feature
     Then the response contains an event with event_type "ASSESSMENT"
-    And that event's metadata field "assessment_type" is "STAGE_DISBURSEMENT_ASSESSMENT"
-    And that event's metadata field "assessment_outcome" is "PAID_IN_FULL"
+    And the ASSESSMENT event metadata field "assessment_type" is "STAGE_DISBURSEMENT_ASSESSMENT"
+    And the ASSESSMENT event metadata field "assessment_outcome" is "PAID_IN_FULL"
 
   @DS1812_3
   Scenario: VOID row appears as a VOID event carrying the void's assessment_reason, never as an ASSESSMENT
@@ -88,7 +88,7 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | assessment_type    | VOID                        |
       | assessment_outcome |                             |
       | assessment_reason  | Voided at provider request  |
-    When I request the claim history timeline
+    When I request the claim history timeline for the assessment and void feature
     Then the response contains an event with event_type "VOID" and source_id "assess-uuid-2"
     And the response does NOT contain an event of type "ASSESSMENT" with source_id "assess-uuid-2"
     And the VOID event metadata contains
@@ -116,7 +116,7 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
       | SUBMISSION | sub-uuid-1    | 2026-04-22T11:26:00Z |                        |
       | ASSESSMENT | assess-uuid-3 | 2026-05-10T14:03:00Z | ESCAPE_CASE_ASSESSMENT |
       | VOID       | assess-uuid-4 | 2026-05-12T09:41:00Z | VOID                   |
-    When I request the claim history timeline
+    When I request the claim history timeline for the assessment and void feature
     Then the timeline contains events in the documented default order
       | event      | source_id     |
       | SUBMISSION | sub-uuid-1    |
@@ -126,9 +126,8 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
   @DS1812_6
   Scenario: A claim with no assessment rows returns a timeline without ASSESSMENT or VOID events
     Given a claim exists that has been submitted but has no claims.assessment rows
-    When I request the claim history timeline
-    Then the response contains no event of type "ASSESSMENT"
-    And the response contains no event of type "VOID"
+    When I request the claim history timeline for the assessment and void feature
+    Then the assessment and void timeline contains no event of type "ASSESSMENT"
+    And the assessment and void timeline contains no event of type "VOID"
     And no error is returned
     And no empty ASSESSMENT or VOID stub event is returned
-

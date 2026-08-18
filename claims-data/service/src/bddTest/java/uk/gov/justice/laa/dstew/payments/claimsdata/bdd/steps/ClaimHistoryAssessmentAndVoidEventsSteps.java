@@ -74,7 +74,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   /** Live label→UUID map so labels like {@code "assess-uuid-1"} stay stable within the scenario. */
   private final Map<String, UUID> labelToUuid = new HashMap<>();
 
-  /** Cached raw response for the last {@code When I request the claim history timeline}. */
+  /** Cached raw response for the assessment/void claim-history scenario. */
   private JsonNode lastResponse;
 
   /**
@@ -277,11 +277,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   // When — hit the real endpoint.
   // ---------------------------------------------------------------------------
 
-  @When("I request the claim history timeline")
+  @When("I request the claim history timeline for the assessment and void feature")
   public void iRequestTheClaimHistoryTimeline() {
     step(
         "GET /api/v1/claims/" + currentClaimId + "/history",
-        () -> lastResponse = api.getClaimHistory(requireCurrentClaimId()));
+        () -> lastResponse = api.getClaimHistoryJson(requireCurrentClaimId()));
   }
 
   // ---------------------------------------------------------------------------
@@ -365,8 +365,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         });
   }
 
-  @Then("that event's metadata contains")
-  public void thatEventsMetadataContains(DataTable table) {
+  @Then("the ASSESSMENT event metadata contains")
+  public void theAssessmentEventMetadataContains(DataTable table) {
     step(
         "assert the LAST-inspected event's metadata contains all expected fields",
         () -> {
@@ -387,8 +387,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         });
   }
 
-  @Then("that event's metadata field {string} is {string}")
-  public void thatEventsMetadataFieldIs(String field, String expected) {
+  @Then("the ASSESSMENT event metadata field {string} is {string}")
+  public void theAssessmentEventMetadataFieldIs(String field, String expected) {
     step(
         "assert metadata." + field + " = '" + expected + "' on the last-seeded assessment's event",
         () -> {
@@ -466,8 +466,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         });
   }
 
-  @Then("the response contains no event of type {string}")
-  public void theResponseContainsNoEventOfType(String eventType) {
+  @Then("the assessment and void timeline contains no event of type {string}")
+  public void theAssessmentVoidTimelineContainsNoEventOfType(String eventType) {
     step(
         "assert timeline contains NO event of type '" + eventType + "'",
         () -> {
