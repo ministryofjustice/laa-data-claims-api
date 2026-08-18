@@ -17,8 +17,6 @@ public class ClaimHistoryTimelineSharedSteps {
   @Autowired protected ClaimHistoryContext claimHistoryContext;
 
   protected UUID currentClaimId;
-  protected JsonNode lastResponse;
-  protected Integer lastStatusCode;
 
   protected UUID requireCurrentClaimId() {
     UUID id = claimHistoryContext.getCurrentClaimId();
@@ -35,24 +33,18 @@ public class ClaimHistoryTimelineSharedSteps {
   }
 
   protected JsonNode getLastResponse() {
-    return claimHistoryContext.getLastResponse() != null
-        ? claimHistoryContext.getLastResponse()
-        : lastResponse;
+    return claimHistoryContext.getLastResponseBody();
   }
 
   protected void setLastResponse(JsonNode response) {
-    this.lastResponse = response;
-    claimHistoryContext.setLastResponse(response);
+    claimHistoryContext.setLastResponseBody(response);
   }
 
   protected Integer getLastStatusCode() {
-    return claimHistoryContext.getLastStatusCode() != null
-        ? claimHistoryContext.getLastStatusCode()
-        : lastStatusCode;
+    return claimHistoryContext.getLastStatusCode();
   }
 
   protected void setLastStatusCode(Integer statusCode) {
-    this.lastStatusCode = statusCode;
     claimHistoryContext.setLastStatusCode(statusCode);
   }
 }

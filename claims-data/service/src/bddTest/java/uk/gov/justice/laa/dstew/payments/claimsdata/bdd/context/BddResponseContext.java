@@ -1,13 +1,19 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Shared response state for BDD contexts. */
+/** Shared JSON response state for BDD contexts. */
 @Getter
 @Setter
 public abstract class BddResponseContext {
 
   private Integer lastStatusCode;
-  private String lastResponseBody;
+  private JsonNode lastResponseBody;
+
+  public void clear() {
+    lastStatusCode = null;
+    lastResponseBody = null;
+  }
 }

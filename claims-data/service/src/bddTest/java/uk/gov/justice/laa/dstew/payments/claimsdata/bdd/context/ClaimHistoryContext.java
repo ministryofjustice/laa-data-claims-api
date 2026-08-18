@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.spring.ScenarioScope;
 import java.util.UUID;
 import lombok.Getter;
@@ -15,12 +14,9 @@ import org.springframework.stereotype.Component;
 public class ClaimHistoryContext extends BddResponseContext {
 
   private UUID currentClaimId;
-  private JsonNode lastResponse;
 
   public void reset() {
+    super.clear();
     currentClaimId = null;
-    lastResponse = null;
-    setLastStatusCode(null);
-    setLastResponseBody(null);
   }
 }

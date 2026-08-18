@@ -169,13 +169,11 @@ public class ClaimHistoryTimelineContractSteps extends ClaimHistoryTimelineShare
                     String.class,
                     claimId);
             setLastStatusCode(response.getStatusCode().value());
-            claimHistoryContext.setLastResponseBody(response.getBody());
             setLastResponse(
                 new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody()));
           } catch (HttpStatusCodeException ex) {
             HttpStatusCode status = ex.getStatusCode();
             setLastStatusCode(status.value());
-            claimHistoryContext.setLastResponseBody(ex.getResponseBodyAsString());
             setLastResponse(
                 new com.fasterxml.jackson.databind.ObjectMapper()
                     .readTree(ex.getResponseBodyAsString()));
@@ -461,10 +459,7 @@ public class ClaimHistoryTimelineContractSteps extends ClaimHistoryTimelineShare
   // ---------------------------------------------------------------------------
 
   private JsonNode requireEventsArray() {
-    JsonNode response = claimHistoryContext.getLastResponse();
-    if (response == null) {
-      response = lastResponse;
-    }
+    JsonNode response = getLastResponse();
     assertThat(response).as("no /history response captured yet").isNotNull();
     JsonNode events = response.path("events");
     assertThat(events.isArray()).as("response has an `events` JSON array").isTrue();

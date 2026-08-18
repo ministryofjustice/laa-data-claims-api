@@ -141,9 +141,10 @@ public class BddApiStepSupport {
     }
 
     context.setLastStatusCode(statusCode);
-    context.setLastResponseBody(responseBody);
+    JsonNode responseJson = parseResponseBody(responseBody);
+    context.setLastResponseBody(responseJson);
     context.setLastOffice(office);
-    hydrateIdsFromResponse(responseBody);
+    hydrateIdsFromResponse(responseJson);
   }
 
   private String resolveContentType(String filename) {
@@ -294,8 +295,9 @@ public class BddApiStepSupport {
             String.class,
             claimId);
     context.setLastStatusCode(response.getStatusCode().value());
-    context.setLastResponseBody(response.getBody());
-    return objectMapper.readTree(response.getBody());
+    JsonNode responseJson = parseResponseBody(response.getBody());
+    context.setLastResponseBody(responseJson);
+    return responseJson;
   }
 
   /**
@@ -356,11 +358,49 @@ public class BddApiStepSupport {
               new HttpEntity<>(body, headers),
               String.class,
               claimId);
+      context.setLastStatusCode(response.getStatusCode().value());
+      context.setLastResponseBody(parseResponseBody(response.getBody()));
       return response.getStatusCode().value();
     } catch (HttpStatusCodeException ex) {
       // Preserve the response body in the context so the step can log/assert against it.
-      context.setLastResponseBody(ex.getResponseBodyAsString());
+      context.setLastStatusCode(ex.getStatusCode().value());
+      context.setLastResponseBody(parseResponseBody(ex.getResponseBodyAsString()));
       return ex.getStatusCode().value();
+    }
+  }
+
+  private JsonNode parseResponseBody(String responseBody) {
+    if (responseBody == null || responseBody.isBlank()) {
+      return null;
+    }
+    try {
+      return objectMapper.readTree(responseBody);
+    } catch (IOException ex) {
+      throw new IllegalStateException("Failed to parse API response body as JSON", ex);
+    }
+  }
+
+  private void hydrateIdsFromResponse(JsonNode json) {
+    if (json == null) {
+      return;
+    }
+
+    JsonNode bulkSubmissionNode = json.path("bulk_submission_id");
+    if (!bulkSubmissionNode.isMissingNode() && !bulkSubmissionNode.isNull()) {
+      UUID bulkSubmissionId = UUID.fromString(bulkSubmissionNode.asText());
+      context.setBulkSubmissionId(bulkSubmissionId);
+      context.getBulkSubmissionIds().add(bulkSubmissionId);
+    }
+
+    JsonNode submissionIdsNode = json.path("submission_ids");
+    if (submissionIdsNode.isArray()) {
+      Set<UUID> existing = new HashSet<>(context.getSubmissionIds());
+      for (JsonNode submissionIdNode : submissionIdsNode) {
+        UUID id = UUID.fromString(submissionIdNode.asText());
+        if (!existing.contains(id)) {
+          context.getSubmissionIds().add(id);
+        }
+      }
     }
   }
 
@@ -487,30 +527,5 @@ public class BddApiStepSupport {
         new HttpEntity<>(patch, headers),
         Void.class,
         bulkSubmissionId);
-  }
-
-  private void hydrateIdsFromResponse(String responseBody) throws IOException {
-    if (responseBody == null || responseBody.isBlank()) {
-      return;
-    }
-    JsonNode json = objectMapper.readTree(responseBody);
-
-    JsonNode bulkSubmissionNode = json.path("bulk_submission_id");
-    if (!bulkSubmissionNode.isMissingNode() && !bulkSubmissionNode.isNull()) {
-      UUID bulkSubmissionId = UUID.fromString(bulkSubmissionNode.asText());
-      context.setBulkSubmissionId(bulkSubmissionId);
-      context.getBulkSubmissionIds().add(bulkSubmissionId);
-    }
-
-    JsonNode submissionIdsNode = json.path("submission_ids");
-    if (submissionIdsNode.isArray()) {
-      Set<UUID> existing = new HashSet<>(context.getSubmissionIds());
-      for (JsonNode submissionIdNode : submissionIdsNode) {
-        UUID id = UUID.fromString(submissionIdNode.asText());
-        if (!existing.contains(id)) {
-          context.getSubmissionIds().add(id);
-        }
-      }
-    }
   }
 }

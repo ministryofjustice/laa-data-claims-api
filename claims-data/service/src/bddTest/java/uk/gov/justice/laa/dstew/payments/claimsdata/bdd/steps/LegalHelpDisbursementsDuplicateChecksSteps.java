@@ -229,7 +229,9 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "BDD duplicate-check void");
     assertThat(status)
-        .as("POST /claims/{id}/void should return 201 (body: %s)", context.getLastResponseBody())
+        .as(
+            "POST /claims/{id}/void should return 201 (body: %s)",
+            context.getLastResponseBody() == null ? null : context.getLastResponseBody().toString())
         .isEqualTo(201);
   }
 

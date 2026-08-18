@@ -61,8 +61,7 @@ public class BddScenarioContext extends BddResponseContext {
   }
 
   public void clear() {
-    setLastStatusCode(null);
-    setLastResponseBody(null);
+    super.clear();
     bulkSubmissionId = null;
     bulkSubmissionIds.clear();
     submissionIds.clear();

@@ -472,10 +472,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
     step(
         "assert the response envelope keys are exactly the agreed contract set",
         () -> {
-          JsonNode response = claimHistoryContext.getLastResponse();
-          if (response == null) {
-            response = lastResponse;
-          }
+          JsonNode response = getLastResponse();
           Set<String> topLevelKeys = new HashSet<>();
           response.fieldNames().forEachRemaining(topLevelKeys::add);
           assertThat(topLevelKeys)
@@ -592,10 +589,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
   // ---------------------------------------------------------------------------
 
   private List<JsonNode> eventList() {
-    JsonNode response = claimHistoryContext.getLastResponse();
-    if (response == null) {
-      response = lastResponse;
-    }
+    JsonNode response = getLastResponse();
     assertThat(response).as("no /history response captured yet").isNotNull();
     JsonNode events = response.path("events");
     if (!events.isArray()) {
