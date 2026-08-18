@@ -12,6 +12,7 @@ import io.cucumber.java.en.When;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import java.util.stream.Stream;
 
 /**
  * Step glue for {@code claimHistoryAssessmentAndVoidEvents.feature} — DSTEW-1812 (1645-B).
@@ -77,6 +79,16 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   /** Cached raw response for the assessment/void claim-history scenario. */
   private JsonNode lastResponse;
 
+  private static final String BDD_USER = "bdd-user";
+  private static final String EVENT_TYPE = "event_type";
+  private static final String SOURCE_ID = "source_id";
+  private static final String BDD_SEED_USER = "bdd-seed-user";
+  private static final String EVENT = "event";
+  private static final Instant FIXED_INSTANT = Instant.parse("2026-05-01T00:00:00Z");
+  private static final String CREATED_ON = "created_on";
+  private static final String META_DATA = "metadata";
+  private static final String EVENT_TIMESTAMP = "event_timestamp";
+
   /**
    * If a scenario used {@code Given a claim exists ...} with an explicit assessment_outcome
    * follow-up (e.g. {@code And that row's assessment_outcome is "PAID_IN_FULL"}), we remember the
@@ -97,7 +109,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
           Map<String, String> row = singleFieldValueMap(table);
           Claim claim = seedClaim();
           UUID assessmentId = registerLabel(row.get("id"));
-          Instant createdOn = Instant.parse(row.get("created_on"));
+          Instant createdOn = Instant.parse(row.get(CREATED_ON));
           String createdByUserId = row.get("created_by_user_id");
           String typeText = row.get("assessment_type");
           String outcomeText = row.get("assessment_outcome");
@@ -127,8 +139,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
               parseType(assessmentType),
               null,
               "Seeded by BDD",
-              "bdd-user",
-              Instant.parse("2026-05-01T00:00:00Z"),
+              BDD_USER,
+              FIXED_INSTANT,
               assessmentId);
           lastSeededAssessmentId = assessmentId;
         });
@@ -149,8 +161,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
               /* assessmentType */ null,
               /* assessmentOutcome */ null,
               /* assessmentReason */ "legacy row (assessment_type null)",
-              /* createdByUserId */ "bdd-user",
-              /* createdOn */ Instant.parse("2026-05-01T00:00:00Z"));
+              /* createdByUserId */ BDD_USER,
+              /* createdOn */ FIXED_INSTANT);
           lastSeededAssessmentId = assessmentId;
         });
   }
@@ -176,16 +188,16 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
                 type.getValue(),
                 outcome == null ? null : outcome.getValue(),
                 reason,
-                "bdd-user",
-                Instant.parse("2026-05-01T00:00:00Z"));
+                BDD_USER,
+                FIXED_INSTANT);
           } else {
             insertAssessment(
                 claim,
                 type,
                 outcome,
                 reason,
-                "bdd-user",
-                Instant.parse("2026-05-01T00:00:00Z"),
+                BDD_USER,
+                FIXED_INSTANT,
                 assessmentId);
           }
           lastSeededAssessmentId = assessmentId;
@@ -225,18 +237,18 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
           List<Map<String, String>> rows = table.asMaps();
           // Row 1 is the SUBMISSION — we need to pin claim.created_on and remember the claim UUID
           // under the SUBMISSION source_id label so later assertions can look it up.
-          Map<String, String> submissionRow = rows.get(0);
-          if (!"SUBMISSION".equals(submissionRow.get("event"))) {
+          Map<String, String> submissionRow = rows.getFirst();
+          if (!"SUBMISSION".equals(submissionRow.get(EVENT))) {
             throw new IllegalStateException(
                 "First row of lifecycle table must be SUBMISSION; got " + submissionRow);
           }
           Claim claim = seedClaim();
           UUID claimId = claim.getId();
-          registerLabel(submissionRow.get("source_id"), claimId);
+          registerLabel(submissionRow.get(SOURCE_ID), claimId);
           // The SUBMISSION event's source_id comes from c.id, and event_timestamp from
           // c.created_on. Pin created_on via native SQL (Claim.createdOn is @CreationTimestamp +
           // updatable=false so we must use raw SQL to override).
-          Instant submissionCreatedOn = Instant.parse(submissionRow.get("created_on"));
+          Instant submissionCreatedOn = Instant.parse(submissionRow.get(CREATED_ON));
           jdbcClient
               .sql("UPDATE claims.claim SET created_on = :ts WHERE id = :id")
               .param("ts", OffsetDateTime.ofInstant(submissionCreatedOn, ZoneOffset.UTC))
@@ -245,9 +257,9 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
 
           for (int i = 1; i < rows.size(); i++) {
             Map<String, String> row = rows.get(i);
-            String eventLabel = row.get("event"); // ASSESSMENT | VOID
-            UUID assessmentId = registerLabel(row.get("source_id"));
-            Instant createdOn = Instant.parse(row.get("created_on"));
+            String eventLabel = row.get(EVENT); // ASSESSMENT | VOID
+            UUID assessmentId = registerLabel(row.get(SOURCE_ID));
+            Instant createdOn = Instant.parse(row.get(CREATED_ON));
             String metaType = row.get("metadata_type");
             AssessmentType type = parseType(metaType);
             if ("VOID".equals(eventLabel) && type != AssessmentType.VOID) {
@@ -258,7 +270,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
                 type == AssessmentType.VOID ? null : AssessmentOutcome.PAID_IN_FULL;
             String reason =
                 type == AssessmentType.VOID ? "Voided in interleave scenario" : "populated reason";
-            insertAssessment(claim, type, outcome, reason, "bdd-user", createdOn, assessmentId);
+            insertAssessment(claim, type, outcome, reason, BDD_USER, createdOn, assessmentId);
           }
         });
   }
@@ -268,9 +280,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   public void aClaimExistsWithNoAssessmentRows() {
     step(
         "seed a claim with a SUBMISSION but zero assessment rows",
-        () -> {
-          seedClaim();
-        });
+            this::seedClaim
+        );
   }
 
   // ---------------------------------------------------------------------------
@@ -294,11 +305,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         "assert the timeline contains an event whose envelope matches the feature-file table",
         () -> {
           Map<String, String> expected = envelopeMap(table);
-          UUID expectedSourceId = requireLabel(expected.get("source_id"));
+          UUID expectedSourceId = requireLabel(expected.get(SOURCE_ID));
           JsonNode event = requireEventBySourceId(expectedSourceId);
-          assertEnvelopeFieldEquals(event, "event_type", expected.get("event_type"));
-          if (expected.containsKey("event_timestamp")) {
-            assertTimestamp(event, expected.get("event_timestamp"));
+          assertEnvelopeFieldEquals(event, EVENT_TYPE, expected.get(EVENT_TYPE));
+          if (expected.containsKey(EVENT_TIMESTAMP)) {
+            assertTimestamp(event, expected.get(EVENT_TIMESTAMP));
           }
           String actorExpected = expected.get("actor_id");
           if (actorExpected != null) {
@@ -311,11 +322,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   public void theResponseContainsAnEventWithEventType(String eventType) {
     step(
         "assert timeline contains an event with event_type=" + eventType,
-        () -> {
+        () ->
           assertThat(findFirstEventByType(eventType))
               .as("event with event_type=%s", eventType)
-              .isNotNull();
-        });
+              .isNotNull()
+        );
   }
 
   @Then("the response contains an event with event_type {string} and source_id {string}")
@@ -326,7 +337,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         () -> {
           UUID sourceId = requireLabel(sourceIdLabel);
           JsonNode event = requireEventBySourceId(sourceId);
-          assertEnvelopeFieldEquals(event, "event_type", eventType);
+          assertEnvelopeFieldEquals(event, EVENT_TYPE, eventType);
         });
   }
 
@@ -339,7 +350,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         () -> {
           UUID sourceId = requireSeededAssessmentId();
           JsonNode event = requireEventBySourceId(sourceId);
-          assertEnvelopeFieldEquals(event, "event_type", eventType);
+          assertEnvelopeFieldEquals(event, EVENT_TYPE, eventType);
         });
   }
 
@@ -357,8 +368,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
               events()
                   .anyMatch(
                       e ->
-                          eventType.equals(e.path("event_type").asText())
-                              && sourceId.toString().equals(e.path("source_id").asText()));
+                          eventType.equals(e.path(EVENT_TYPE).asText())
+                              && sourceId.toString().equals(e.path(SOURCE_ID).asText()));
           assertThat(found)
               .as("no %s event with source_id %s should be present", eventType, sourceId)
               .isFalse();
@@ -417,11 +428,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   public void thatEventsMetadataDoesNotContainFabricatedPlaceholder(String field) {
     step(
         "assert metadata." + field + " has not been substituted with a placeholder value",
-        () -> {
+        () ->
           // Same assertion as absence — a fabricated placeholder would surface as any non-null
           // value under the field key.
-          assertMetadataFieldAbsent(requireEventBySourceId(requireSeededAssessmentId()), field);
-        });
+          assertMetadataFieldAbsent(requireEventBySourceId(requireSeededAssessmentId()), field)
+    );
   }
 
   @Then("the corresponding ASSESSMENT event's metadata does NOT contain the field {string}")
@@ -431,7 +442,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         () -> {
           UUID sourceId = requireSeededAssessmentId();
           JsonNode event = requireEventBySourceId(sourceId);
-          assertEnvelopeFieldEquals(event, "event_type", "ASSESSMENT");
+          assertEnvelopeFieldEquals(event, EVENT_TYPE, "ASSESSMENT");
           assertMetadataFieldAbsent(event, field);
         });
   }
@@ -458,10 +469,10 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
           for (int i = 0; i < expected.size(); i++) {
             Map<String, String> row = expected.get(expected.size() - 1 - i);
             JsonNode event = emitted.get(i);
-            assertEnvelopeFieldEquals(event, "event_type", row.get("event"));
-            assertThat(event.path("source_id").asText())
-                .as("event #%d (%s) source_id", i, row.get("event"))
-                .isEqualTo(requireLabel(row.get("source_id")).toString());
+            assertEnvelopeFieldEquals(event, EVENT_TYPE, row.get(EVENT));
+            assertThat(event.path(SOURCE_ID).asText())
+                .as("event #%d (%s) source_id", i, row.get(EVENT))
+                .isEqualTo(requireLabel(row.get(SOURCE_ID)).toString());
           }
         });
   }
@@ -471,7 +482,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     step(
         "assert timeline contains NO event of type '" + eventType + "'",
         () -> {
-          boolean any = events().anyMatch(e -> eventType.equals(e.path("event_type").asText()));
+          boolean any = events().anyMatch(e -> eventType.equals(e.path(EVENT_TYPE).asText()));
           assertThat(any).as("no %s event should be present", eventType).isFalse();
         });
   }
@@ -497,11 +508,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
               events()
                   .anyMatch(
                       e -> {
-                        String type = e.path("event_type").asText();
+                        String type = e.path(EVENT_TYPE).asText();
                         if (!"ASSESSMENT".equals(type) && !"VOID".equals(type)) {
                           return false;
                         }
-                        JsonNode sourceId = e.path("source_id");
+                        JsonNode sourceId = e.path(SOURCE_ID);
                         return sourceId.isMissingNode() || sourceId.isNull();
                       });
           assertThat(stub).as("no synthetic stub ASSESSMENT/VOID event").isFalse();
@@ -519,8 +530,8 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     submission.setSubmissionPeriod("JAN-2025");
     submission.setAreaOfLaw(AreaOfLaw.LEGAL_HELP);
     submission.setStatus(SubmissionStatus.CREATED);
-    submission.setCreatedByUserId("bdd-seed-user");
-    submission.setProviderUserId("bdd-seed-user");
+    submission.setCreatedByUserId(BDD_SEED_USER);
+    submission.setProviderUserId(BDD_SEED_USER);
     submission.setCreatedOn(Instant.now());
     submissionRepository.saveAndFlush(submission);
 
@@ -531,16 +542,16 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     claim.setLineNumber(1);
     claim.setFeeCode("TEST");
     claim.setMatterTypeCode("MAT01");
-    claim.setCaseStartDate(LocalDate.of(2025, 1, 1));
-    claim.setCreatedByUserId("bdd-seed-user");
-    claim.setUpdatedByUserId("bdd-seed-user");
+    claim.setCaseStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    claim.setCreatedByUserId(BDD_SEED_USER);
+    claim.setUpdatedByUserId(BDD_SEED_USER);
     claimRepository.saveAndFlush(claim);
     currentClaimId = claim.getId();
 
     ClaimSummaryFee summaryFee = new ClaimSummaryFee();
     summaryFee.setId(Uuid7.timeBasedUuid());
     summaryFee.setClaim(claim);
-    summaryFee.setCreatedByUserId("bdd-seed-user");
+    summaryFee.setCreatedByUserId(BDD_SEED_USER);
     claimSummaryFeeRepository.saveAndFlush(summaryFee);
     currentClaimSummaryFeeId = summaryFee.getId();
 
@@ -648,11 +659,11 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   // Response-inspection helpers.
   // ---------------------------------------------------------------------------
 
-  private java.util.stream.Stream<JsonNode> events() {
+  private Stream<JsonNode> events() {
     assertThat(lastResponse).as("no /history response captured yet").isNotNull();
     JsonNode events = lastResponse.path("events");
     if (!events.isArray()) {
-      return java.util.stream.Stream.empty();
+      return Stream.empty();
     }
     List<JsonNode> list = new java.util.ArrayList<>();
     events.forEach(list::add);
@@ -665,7 +676,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
   private JsonNode requireEventBySourceId(UUID sourceId) {
     JsonNode event =
         events()
-            .filter(e -> sourceId.toString().equals(e.path("source_id").asText()))
+            .filter(e -> sourceId.toString().equals(e.path(SOURCE_ID).asText()))
             .findFirst()
             .orElseThrow(
                 () ->
@@ -676,7 +687,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
 
   private JsonNode findFirstEventByType(String eventType) {
     return events()
-        .filter(e -> eventType.equals(e.path("event_type").asText()))
+        .filter(e -> eventType.equals(e.path(EVENT_TYPE).asText()))
         .findFirst()
         .orElse(null);
   }
@@ -699,44 +710,44 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     assertThat(event.path(field).asText())
         .as(
             "envelope field '%s' on event with source_id %s",
-            field, event.path("source_id").asText())
+            field, event.path(SOURCE_ID).asText())
         .isEqualTo(expected);
   }
 
   private void assertTimestamp(JsonNode event, String expectedIso) {
     Instant expected = Instant.parse(expectedIso);
-    Instant actual = Instant.parse(event.path("event_timestamp").asText());
+    Instant actual = Instant.parse(event.path(EVENT_TIMESTAMP).asText());
     assertThat(actual)
-        .as("event_timestamp on event with source_id %s", event.path("source_id").asText())
+        .as("event_timestamp on event with source_id %s", event.path(SOURCE_ID).asText())
         .isEqualTo(expected);
   }
 
   private void assertMetadataContains(JsonNode event, Map<String, String> expected) {
-    JsonNode metadata = event.path("metadata");
+    JsonNode metadata = event.path(META_DATA);
     assertThat(metadata.isObject())
         .as(
             "metadata container present on event with source_id %s",
-            event.path("source_id").asText())
+            event.path(SOURCE_ID).asText())
         .isTrue();
     expected.forEach(
         (k, v) ->
             assertThat(metadata.path(k).asText())
-                .as("metadata.%s on event with source_id %s", k, event.path("source_id").asText())
+                .as("metadata.%s on event with source_id %s", k, event.path(SOURCE_ID).asText())
                 .isEqualTo(v));
   }
 
   private void assertMetadataFieldEquals(JsonNode event, String field, String expected) {
-    JsonNode value = event.path("metadata").path(field);
+    JsonNode value = event.path(META_DATA).path(field);
     assertThat(value.isMissingNode() || value.isNull())
         .as("metadata.%s must be present with value '%s'", field, expected)
         .isFalse();
     assertThat(value.asText())
-        .as("metadata.%s on event with source_id %s", field, event.path("source_id").asText())
+        .as("metadata.%s on event with source_id %s", field, event.path(SOURCE_ID).asText())
         .isEqualTo(expected);
   }
 
   private void assertMetadataFieldAbsent(JsonNode event, String field) {
-    JsonNode metadata = event.path("metadata");
+    JsonNode metadata = event.path(META_DATA);
     JsonNode value = metadata.path(field);
     // "Absent" per the feature-file contract means the key is MISSING ENTIRELY. An explicit
     // JSON null (e.g. `"assessment_outcome": null`) is a leak, not an absence, and must fail
@@ -746,7 +757,7 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
         .as(
             "metadata.%s must be ABSENT (key omitted) on event with source_id %s — explicit "
                 + "JSON null is a leaked placeholder and is not permitted by the contract",
-            field, event.path("source_id").asText())
+            field, event.path(SOURCE_ID).asText())
         .isTrue();
   }
 
