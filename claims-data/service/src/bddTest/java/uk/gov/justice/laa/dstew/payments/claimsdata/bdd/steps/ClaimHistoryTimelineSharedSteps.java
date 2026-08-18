@@ -22,7 +22,8 @@ public class ClaimHistoryTimelineSharedSteps {
   protected UUID requireCurrentClaimId() {
     UUID id = claimHistoryContext.getCurrentClaimId();
     if (id == null) {
-      throw new AssertionError("No claim id has been established yet — expected a prior Given step.");
+      throw new AssertionError(
+          "No claim id has been established yet — expected a prior Given step.");
     }
     return id;
   }
@@ -33,7 +34,9 @@ public class ClaimHistoryTimelineSharedSteps {
   }
 
   protected JsonNode getLastResponse() {
-    return claimHistoryContext.getLastResponse() != null ? claimHistoryContext.getLastResponse() : lastResponse;
+    return claimHistoryContext.getLastResponse() != null
+        ? claimHistoryContext.getLastResponse()
+        : lastResponse;
   }
 
   protected void setLastResponse(JsonNode response) {

@@ -136,7 +136,7 @@ public class ClaimHistoryTimelineContractSteps extends ClaimHistoryTimelineShare
         "register the unknown-claim label and confirm the row is absent",
         () -> {
           UUID claimId = UUID.fromString(claimIdString);
-         setCurrentClaimId(claimId);
+          setCurrentClaimId(claimId);
           // Sanity-check the row genuinely doesn't exist. If it somehow does, fail fast with a
           // clear message rather than letting the /history call succeed and confuse the assertion.
           if (claimRepository.existsById(claimId)) {
@@ -155,7 +155,9 @@ public class ClaimHistoryTimelineContractSteps extends ClaimHistoryTimelineShare
   @When("I request the claim history timeline for that claim id")
   public void iRequestTheClaimHistoryTimelineForThatClaimId() {
     step(
-        "GET /api/v1/claims/" + claimHistoryContext.getCurrentClaimId() + "/history (expect a not-found response)",
+        "GET /api/v1/claims/"
+            + claimHistoryContext.getCurrentClaimId()
+            + "/history (expect a not-found response)",
         () -> {
           // The endpoint throws ClaimNotFoundException → framework maps to 404. RestTemplate turns
           // 4xx into HttpStatusCodeException, so we capture status + body without letting the

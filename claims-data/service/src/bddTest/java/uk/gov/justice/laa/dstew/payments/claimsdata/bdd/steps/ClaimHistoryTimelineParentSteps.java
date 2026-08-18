@@ -8,7 +8,6 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,7 +23,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
@@ -472,7 +470,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
   @Then("the response shape matches the documented contract")
   public void responseShapeMatchesDocumentedContract() {
     step(
-         "assert the response envelope keys are exactly the agreed contract set",
+        "assert the response envelope keys are exactly the agreed contract set",
         () -> {
           JsonNode response = claimHistoryContext.getLastResponse();
           if (response == null) {

@@ -22,7 +22,8 @@ public class ClaimHistoryTimelineCommonSteps {
         () -> {
           UUID claimId = claimHistoryContext.getCurrentClaimId();
           if (claimId == null) {
-            throw new AssertionError("No claim id has been established yet — expected a prior Given step.");
+            throw new AssertionError(
+                "No claim id has been established yet — expected a prior Given step.");
           }
           JsonNode response = api.getClaimHistoryJson(claimId);
           claimHistoryContext.setLastResponse(response);
