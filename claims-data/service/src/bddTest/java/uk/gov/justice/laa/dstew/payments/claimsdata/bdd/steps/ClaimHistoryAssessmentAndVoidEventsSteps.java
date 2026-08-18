@@ -799,52 +799,47 @@ public class ClaimHistoryAssessmentAndVoidEventsSteps {
     return currentClaimId;
   }
 
-  /** Reads a two-column {@code field | value} DataTable into a map. */
-  private static Map<String, String> singleFieldValueMap(DataTable table) {
+  /**
+   * Generic helper that reads a two-column DataTable into a map.
+   *
+   * @param table the DataTable expected to contain two columns per row
+   * @param headerName a header label to ignore (case-insensitive) from the first column, or
+   *     {@code null} to accept any value
+   * @param nullToEmpty convert null values in the second column to empty string when true
+   */
+  private static Map<String, String> twoColumnMap(
+      DataTable table, String headerName, boolean nullToEmpty) {
     Map<String, String> out = new HashMap<>();
     for (List<String> row : table.asLists()) {
       if (row.size() < 2) {
         continue;
       }
       String key = row.get(0);
-      if ("field".equalsIgnoreCase(key)) {
+      if (headerName != null && headerName.equalsIgnoreCase(key)) {
         continue; // header row
       }
-      out.put(key, row.get(1) == null ? "" : row.get(1));
+      String value = row.get(1);
+      if (value == null && nullToEmpty) {
+        value = "";
+      }
+      out.put(key, value);
     }
     return out;
+  }
+
+  /** Reads a two-column {@code field | value} DataTable into a map. */
+  private static Map<String, String> singleFieldValueMap(DataTable table) {
+    return twoColumnMap(table, "field", true);
   }
 
   /** Reads a two-column {@code envelopeField | value} DataTable into a map. */
   private static Map<String, String> envelopeMap(DataTable table) {
-    Map<String, String> out = new HashMap<>();
-    for (List<String> row : table.asLists()) {
-      if (row.size() < 2) {
-        continue;
-      }
-      String key = row.get(0);
-      if ("envelopeField".equalsIgnoreCase(key)) {
-        continue;
-      }
-      out.put(key, row.get(1));
-    }
-    return out;
+    return twoColumnMap(table, "envelopeField", false);
   }
 
   /** Reads a two-column {@code metadataField | value} DataTable into a map. */
   private static Map<String, String> metadataMap(DataTable table) {
-    Map<String, String> out = new HashMap<>();
-    for (List<String> row : table.asLists()) {
-      if (row.size() < 2) {
-        continue;
-      }
-      String key = row.get(0);
-      if ("metadataField".equalsIgnoreCase(key)) {
-        continue;
-      }
-      out.put(key, row.get(1));
-    }
-    return out;
+    return twoColumnMap(table, "metadataField", false);
   }
 
   private static AssessmentType parseType(String text) {
