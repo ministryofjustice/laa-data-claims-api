@@ -28,9 +28,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -205,6 +212,184 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                     event -> event.getFormattedMessage().contains(SUSPICIOUS_SQL_PATTERN_LOG_MSG))
                 .count())
         .isEqualTo(0);
+  }
+
+  @Test
+  @DisplayName(
+      "Should return 409 Conflict and leave the existing submission unchanged when the same submissionId is posted twice")
+  void postSubmission_whenDuplicateSubmissionId_shouldReturnConflictAndNotOverwrite()
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.deleteAll();
+
+    SubmissionPost firstPost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_JAN_25)
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    // First create succeeds.
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(firstPost)))
+        .andExpect(status().isCreated());
+
+    // Second create with the same id but deliberately different data - must NOT overwrite.
+    SubmissionPost duplicatePost =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_AAAA01)
+            .submissionPeriod(PERIOD_DEC_2024)
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(duplicatePost)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.title").value("Conflict"))
+        .andExpect(jsonPath("$.detail").value("Submission already exists: " + submissionId))
+        .andExpect(jsonPath("$.message").value("Submission already exists: " + submissionId));
+
+    // Exactly one row exists and its original values are intact (no upsert / no createdOn reset).
+    assertThat(submissionRepository.count()).isEqualTo(1);
+    Submission stored = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(stored.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
+    assertThat(stored.getSubmissionPeriod()).isEqualTo(PERIOD_JAN_25);
+    assertThat(stored.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(stored.getCreatedOn()).isEqualTo(CREATED_ON);
+  }
+
+  @Test
+  @DisplayName(
+      "Should default created-on when a CREATED submission is posted without a submitted date")
+  void postSubmission_whenCreatedStatusWithoutSubmitted_shouldDefaultCreatedOn() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.deleteAll();
+
+    SubmissionPost post =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_JAN_25)
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
+            // deliberately no `submitted` value - the event-service idempotency path
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(post)))
+        .andExpect(status().isCreated());
+
+    Submission stored = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(stored.getCreatedOn()).isNotNull();
+    assertThat(stored.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+  }
+
+  @Test
+  @DisplayName(
+      "Concurrent create with the same submissionId: exactly one 201, one 409, one row, and no spurious events")
+  void postSubmission_concurrentSameSubmissionId_shouldPersistExactlyOnce() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.deleteAll();
+    drainQueue();
+
+    SubmissionPost post =
+        SubmissionPost.builder()
+            .submissionId(submissionId)
+            .bulkSubmissionId(BULK_SUBMISSION_ID)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_JAN_25)
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.CREATED)
+            .providerUserId(BULK_SUBMISSION_CREATED_BY_USER_ID)
+            .createdByUserId(API_USER_ID)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+    final String body = OBJECT_MAPPER.writeValueAsString(post);
+
+    final int threadCount = 2;
+    final CountDownLatch startGate = new CountDownLatch(1);
+    final ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+    final List<Integer> statuses = Collections.synchronizedList(new ArrayList<>());
+    final List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int i = 0; i < threadCount; i++) {
+        futures.add(
+            pool.submit(
+                () -> {
+                  // Release all threads at once so the requests genuinely race.
+                  startGate.await();
+                  int status =
+                      mockMvc
+                          .perform(
+                              post(SUBMISSIONS_ENDPOINT)
+                                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                  .contentType(MediaType.APPLICATION_JSON)
+                                  .content(body))
+                          .andReturn()
+                          .getResponse()
+                          .getStatus();
+                  statuses.add(status);
+                  return null;
+                }));
+      }
+      startGate.countDown();
+      for (Future<?> future : futures) {
+        future.get(30, TimeUnit.SECONDS);
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+
+    // The database primary key - not existsById - guarantees exactly one winner.
+    assertThat(statuses).containsExactlyInAnyOrder(201, 409);
+    assertThat(submissionRepository.count()).isEqualTo(1);
+    Submission stored = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(stored.getStatus()).isEqualTo(SubmissionStatus.CREATED);
+    assertThat(stored.getOfficeAccountNumber()).isEqualTo(OFFICE_ACCOUNT_NUMBER);
+
+    // CREATED submissions never publish a validation-succeeded event; the duplicate must not emit
+    // any spurious downstream event, so the queue stays empty.
+    ReceiveMessageResponse queueState =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    assertThat(queueState.messages()).isEmpty();
+  }
+
+  private void drainQueue() {
+    ReceiveMessageResponse response =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    while (!response.messages().isEmpty()) {
+      IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, response);
+      response = IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    }
   }
 
   @ParameterizedTest

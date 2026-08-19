@@ -197,9 +197,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the system rejects an invalid submission")
   public void theSystemRejectsAnInvalidSubmission() {
     log.info("Setting up state: the system rejects an invalid submission");
+    // createSubmission persists via the insert-only repository method (not save), so the rejection
+    // must be simulated on insertNew to reproduce the 400 the consumer expects.
     doThrow(new SubmissionBadRequestException("Error found"))
         .when(submissionRepository)
-        .save(any());
+        .insertNew(any());
+  }
+
+  @State("a submission with the given id already exists")
+  public void aSubmissionWithTheGivenIdAlreadyExists() {
+    log.info("Setting up state: a submission with the given id already exists");
+    // The early existsById guard short-circuits createSubmission with a
+    // SubmissionAlreadyExistsException, which maps to a 409 Conflict.
+    when(submissionRepository.existsById(any())).thenReturn(true);
   }
 
   @State("the submission file contains invalid data")

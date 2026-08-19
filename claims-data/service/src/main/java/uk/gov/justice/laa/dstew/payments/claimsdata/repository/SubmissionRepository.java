@@ -13,7 +13,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 /** Repository for managing Submission entities. */
 @Repository
 public interface SubmissionRepository
-    extends JpaRepository<Submission, UUID>, JpaSpecificationExecutor<Submission> {
+    extends JpaRepository<Submission, UUID>,
+        JpaSpecificationExecutor<Submission>,
+        SubmissionRepositoryCustom {
 
   /**
    * Projection for Calculated total amounts grouped by submission.
