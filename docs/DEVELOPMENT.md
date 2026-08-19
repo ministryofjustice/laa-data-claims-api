@@ -100,3 +100,4 @@ If you encounter issues:
 For more information, see:
 - [pre-commit documentation](https://pre-commit.com/)
 - [MoJ DevSecOps Hooks](https://github.com/ministryofjustice/devsecops-hooks)
+- [BDD tag run guide (Behave-style)](bdd-behave-tags-guide.md)

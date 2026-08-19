@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -13,14 +14,18 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.aop.JaversAuditingAspect;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
@@ -60,6 +65,11 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected ClaimRepository claimRepository;
 
+  @MockitoBean protected ClaimHistoryRepository claimHistoryRepository;
+
+  // Amendment persistence (DSTEW-1907) repository; needed by ClaimAmendmentPersistenceService.
+  @MockitoBean protected ClaimAmendmentRepository claimAmendmentRepository;
+
   @MockitoBean protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   @MockitoBean protected ClientRepository clientRepository;
@@ -72,6 +82,10 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected AssessmentRepository assessmentRepository;
 
+  @MockitoBean protected RequestedByReferenceRepository requestedByReferenceRepository;
+
+  @MockitoBean protected AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+
   @MockitoBean protected SqsClient sqsClient;
 
   @MockitoBean protected SubmissionEventPublisherService submissionEventPublisherService;
@@ -81,6 +95,11 @@ public class AbstractProviderPactTests {
   // Mocked various DB beans to allow application to run properly without dependencies
   @MockitoBean protected Flyway flyway;
   @MockitoBean protected EntityManagerFactory entityManagerFactory;
+
+  // ClaimAmendmentCommitService injects a bare EntityManager; JPA auto-config is excluded here, so
+  // provide a mock to satisfy that dependency and let the context load.
+  @MockitoBean protected EntityManager entityManager;
+
   @MockitoBean protected PathMappedEndpoints pathMappedEndpoints;
   @MockitoBean protected DataSource dataSource;
 }

@@ -155,8 +155,9 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
             "Outcome item under matter type %s does not have a name.".formatted(matterType));
       }
 
-      String name = nameNode.asText();
-      String value = valueNode == null ? null : valueNode.asText();
+      String name = BulkSubmissionTextSanitiser.sanitise(nameNode.asText());
+      String value =
+          valueNode == null ? null : BulkSubmissionTextSanitiser.sanitise(valueNode.asText());
 
       switch (name) {
         case "FEE_CODE" -> feeCode = value;

@@ -63,7 +63,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       while (rowIterator.hasNextValue()) {
         CsvBulkSubmissionRow csvBulkSubmissionRow;
         List<String> row = rowIterator.nextValue();
-        String rawHeader = row.getFirst().replaceAll("[^\\p{Print}]", "").trim();
+        String rawHeader = BulkSubmissionTextSanitiser.sanitise(row.getFirst()).trim();
         Map<String, String> values = getValues(row, rawHeader);
         // Check if this row is really empty (OK) or if only the record type is missing (Error).
         if (rawHeader.isEmpty()) {
@@ -198,7 +198,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     row.subList(1, row.size())
         .forEach(
             rowValue -> {
-              rowValue = rowValue.replaceAll("[^\\p{Print}]", "").trim();
+              rowValue = BulkSubmissionTextSanitiser.sanitise(rowValue).trim();
               if (StringUtils.isBlank(rowValue)) {
                 log.debug("Blank row value found for {} row. Skipping...", header);
                 return;

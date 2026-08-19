@@ -1,0 +1,24 @@
+meta {
+  name: fetch references
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{HOST}}/api/v1/system/references/amendment-requested-by
+  body: multipartForm
+  auth: inherit
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(test-assets/outcomes_crime_lower_no_schedule.csv) @contentType(text/xml)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

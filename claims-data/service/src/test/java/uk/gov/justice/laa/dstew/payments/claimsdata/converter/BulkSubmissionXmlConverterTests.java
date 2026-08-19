@@ -22,6 +22,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,9 +32,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
 
 /**
@@ -363,6 +366,73 @@ public class BulkSubmissionXmlConverterTests {
           .isEqualTo(
               "Malformed XML / file is corrupt (not well-formed). Please fix XML structure and re-submit.");
     }
+
+    @Test
+    @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1863)")
+    void preservesAccentedLettersAndCurlyApostrophesInNameFields() {
+      String xml =
+          outcomeXml(
+              "<outcomeItem name=\"CLIENT_FORENAME\">Si\u00e2n</outcomeItem>" // U+00E2 a-circumflex
+                  + "<outcomeItem name=\"CLIENT_SURNAME\">O\u2019Brien</outcomeItem>" // U+2019
+                  // quote
+                  + "<outcomeItem name=\"CLIENT2_SURNAME\">\u0141ukasz</outcomeItem>"); // U+0141 L
+
+      XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
+
+      assertThat(outcome.clientForename()).isEqualTo("Si\u00e2n"); // a-circumflex preserved
+      assertThat(outcome.clientSurname()).isEqualTo("O\u2019Brien"); // curly apostrophe preserved
+      assertThat(outcome.client2Surname()).isEqualTo("\u0141ukasz"); // L with stroke preserved
+    }
+
+    @Test
+    @DisplayName(
+        "Removes invisible characters and normalises non-breaking space to a regular space")
+    void removesInvisibleCharactersAndNormalisesNonBreakingSpace() {
+      String xml =
+          outcomeXml(
+              "<outcomeItem name=\"CLIENT_FORENAME\">\uFEFFSi\u00e2\u200bn</outcomeItem>" // BOM/ZWSP
+                  + "<outcomeItem name=\"CLIENT_SURNAME\">O\u00adBrien</outcomeItem>" // soft hyphen
+                  + "<outcomeItem name=\"CLIENT_POST_CODE\">SW1H\u00a09EA</outcomeItem>"); // NBSP
+
+      XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
+
+      assertThat(outcome.clientForename()).isEqualTo("Si\u00e2n"); // invisible chars stripped
+      assertThat(outcome.clientSurname()).isEqualTo("OBrien");
+      assertThat(outcome.clientPostCode()).isEqualTo("SW1H 9EA");
+    }
+
+    @Test
+    @DisplayName("Sanitises invisible characters in the outcome item name so the field still maps")
+    void sanitisesInvisibleCharactersInOutcomeItemName() {
+      // A BOM/zero-width character inside the item name attribute must be stripped so the field is
+      // still recognised rather than treated as an unrecognised field.
+      String xml =
+          outcomeXml("<outcomeItem name=\"\uFEFFCLIENT_SURNAME\u200b\">Test</outcomeItem>"); // BOM
+
+      XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
+
+      assertThat(outcome.clientSurname()).isEqualTo("Test");
+    }
+  }
+
+  private static String outcomeXml(String outcomeItems) {
+    return "<?xml version='1.0' encoding='UTF-8'?>"
+        + "<submission xmlns=\"http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/\">"
+        + "<office account=\"2P554H\">"
+        + "<schedule submissionPeriod=\"JAN-2010\" areaOfLaw=\"CRIME LOWER\" scheduleNum=\"ABC/20000L/10\">"
+        + "<outcome matterType=\"INVC\">"
+        + outcomeItems
+        + "</outcome>"
+        + "</schedule>"
+        + "</office>"
+        + "</submission>";
+  }
+
+  private XmlSubmission convert(String xml) {
+    MultipartFile file =
+        new MockMultipartFile(
+            "file", "submission.xml", "application/xml", xml.getBytes(StandardCharsets.UTF_8));
+    return bulkSubmissionXmlConverter.convert(file);
   }
 
   @Nested

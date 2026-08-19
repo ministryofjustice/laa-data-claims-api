@@ -4,12 +4,12 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidati
 
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +31,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 /** Service containing business logic for handling assessments. */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AssessmentService {
 
   private final ClaimRepository claimRepository;
@@ -56,7 +55,7 @@ public class AssessmentService {
         claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 
     claimValidationService.validateAssessmentType(request.getAssessmentType());
-    updateClaimAssessmentStatus(claim);
+    advanceClaimForAssessment(claim, request.getCreatedByUserId());
 
     Assessment assessment = assessmentMapper.toAssessment(request);
 
@@ -72,25 +71,31 @@ public class AssessmentService {
   }
 
   /**
-   * Updates the claim assessment status when an assessment is first created for a claim.
+   * Advances the claim as a version-advancing action whenever an assessment is created.
    *
-   * <p>This method checks whether the claim has been assessed before. If the claim has not been
-   * assessed ({@link Claim#isHasAssessment()} returns false), it updates the claim's assessment
-   * status to true and logs the result.
+   * <p>Operates on the already-loaded managed {@link Claim} entity so persistence is handled by JPA
+   * dirty checking and optimistic locking within the caller's transaction. On every assessment it:
    *
-   * <p>This is typically called during assessment creation to mark the claim as assessed once the
-   * first assessment is added.
+   * <ul>
+   *   <li>marks the claim as assessed ({@link Claim#setHasAssessment(boolean)} - a no-op after the
+   *       first assessment);
+   *   <li>records the assessing user in {@code updatedByUserId}; and
+   *   <li>refreshes {@code updatedOn} to the current instant.
+   * </ul>
    *
-   * @param claim the claim to update; must not be null
+   * <p>Because {@code updatedOn} always changes, the claim is dirty on every assessment, so a
+   * single versioned {@code UPDATE} advances {@code claim.version} by exactly one - even a repeat
+   * assessment by the same user. This upholds the OCC contract (any amendment loaded beforehand
+   * becomes stale) while keeping the audit fields accurate, and the versioned {@code UPDATE ...
+   * WHERE version = ?} still surfaces concurrent assessments as an optimistic-lock conflict.
+   *
+   * @param claim the managed claim to advance; must not be null
+   * @param userId the id of the user creating the assessment
    */
-  private void updateClaimAssessmentStatus(Claim claim) {
-    if (!claim.isHasAssessment()) {
-      int noOfClaimsUpdated = claimRepository.updateAssessmentStatus(claim.getId(), true);
-      log.info(
-          "Number of claims updated with assessed status: {} Claim id: {}",
-          noOfClaimsUpdated,
-          claim.getId());
-    }
+  private void advanceClaimForAssessment(Claim claim, String userId) {
+    claim.setHasAssessment(true);
+    claim.setUpdatedByUserId(userId);
+    claim.setUpdatedOn(Instant.now());
   }
 
   /**

@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
@@ -8,6 +10,8 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
+import org.openapitools.jackson.nullable.JsonNullable;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -27,7 +31,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
-    imports = {com.fasterxml.uuid.Generators.class},
+    imports = {
+      com.fasterxml.uuid.Generators.class,
+      uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver.class
+    },
     config = AuditFieldsMapper.class)
 public interface ClaimMapper {
 
@@ -44,12 +51,14 @@ public interface ClaimMapper {
    */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   ClaimResponse toClaimResponse(Claim entity);
 
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   @Mapping(target = "dateSubmitted", source = "submission.createdOn")
@@ -57,12 +66,21 @@ public interface ClaimMapper {
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
-  @Mapping(target = ".", source = "calculatedFeeDetail.claimSummaryFee")
+  // Derived business status - single source of truth is DerivedClaimStatusResolver. This does not
+  // replace the raw "status" field, which is mapped automatically and left unchanged.
+  @Mapping(
+      target = "derivedClaimStatus",
+      expression =
+          "java(DerivedClaimStatusResolver.resolve(entity.getStatus(), "
+              + "entity.isHasAssessment(), entity.isAmended()))")
+  // Use the helper method expression to flatten fields from the latest fee's summary
+  @Mapping(target = ".", source = "latestCalculatedFee.claimSummaryFee")
   @Mapping(target = ".", source = "client")
   @Mapping(target = ".", source = "claimCase")
+  // Extract the specific fee calculation payload from the latest calculated record
   @Mapping(
       target = "feeCalculationResponse",
-      source = "calculatedFeeDetail",
+      source = "latestCalculatedFee",
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
   ClaimResponseV2 toClaimResponseV2(Claim entity);
 
@@ -89,6 +107,7 @@ public interface ClaimMapper {
   @Mapping(target = "technicalMessage", source = "message.technicalMessage")
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
+  @Mapping(target = "messageCode", source = "message.messageCode")
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -195,8 +214,36 @@ public interface ClaimMapper {
       return null;
     }
     FeeCalculationPatch target = new FeeCalculationPatch();
-    // reuse your existing update method to avoid duplicating mapping config:
+    // reuse the existing update method to avoid duplicating mapping config:
     updateFeeCalculationResponseFromCalculatedFeeDetail(entity, target);
     return target;
+  }
+
+  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+  ClaimAmendmentPayload toAmendmentPayload(ClaimPatch claimPatch);
+
+  // Explicit OpenAPI JsonNullable wrappers for MapStruct
+  default JsonNullable<String> map(String value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Integer> map(Integer value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Long> map(Long value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<Boolean> map(Boolean value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<BigDecimal> map(BigDecimal value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  }
+
+  default JsonNullable<LocalDate> map(LocalDate value) {
+    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
   }
 }

@@ -12,6 +12,7 @@ import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.sql.Date;
 import java.util.List;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
@@ -379,8 +380,8 @@ class ClaimSpecificationTest {
 
       when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
-      Expression<java.sql.Date> dateExpr = mock(Expression.class);
-      when(cb.function(eq("to_date"), eq(java.sql.Date.class), any(), any())).thenReturn(dateExpr);
+      Expression<Date> dateExpr = mock(Expression.class);
+      when(cb.function(eq("to_date"), eq(Date.class), any(), any())).thenReturn(dateExpr);
 
       // when
       Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
@@ -390,7 +391,7 @@ class ClaimSpecificationTest {
       assertThat(result).isEqualTo(predicate1);
 
       verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
-      verify(cb).function(eq("to_date"), eq(java.sql.Date.class), any(), any());
+      verify(cb).function(eq("to_date"), eq(Date.class), any(), any());
     }
   }
 }

@@ -10,6 +10,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_SUMMARY_FEE_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_3_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CRIME_SCHEDULE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.MATTER_TYPE_CODE;
@@ -32,6 +33,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,6 +72,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -87,12 +92,28 @@ public abstract class AbstractIntegrationTest {
   protected static final UUID VALIDATION_ID_1 = Uuid7.timeBasedUuid();
   protected static final UUID VALIDATION_ID_2 = Uuid7.timeBasedUuid();
   protected static final Instant CREATED_ON =
-      LocalDate.of(2025, 9, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
+      LocalDate.of(2025, Month.SEPTEMBER, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
+  protected static final Instant CREATED_ON_OLDER =
+      LocalDate.of(2025, Month.JULY, 17).atStartOfDay().toInstant(ZoneOffset.UTC);
   protected static final String INVALID_AUTH_TOKEN = "INVALID_AUTH_TOKEN";
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  protected static final String OFFICE_ACCOUNT_NUMBER_1 = "office1";
-  protected static final String OFFICE_ACCOUNT_NUMBER_2 = "office2";
+  protected static final String OFFICE_ACCOUNT_NUMBER_1 = "OFICE1";
+  protected static final String OFFICE_ACCOUNT_NUMBER_2 = "OFICE2";
+
+  // Convention: a seed value is promoted to a named constant only when a test asserts on it, so the
+  // seed below and that assertion share a single source of truth and cannot drift. The remaining
+  // seed literals are deliberately left inline - they are arbitrary, single-use, unasserted fixture
+  // data, so naming them would add noise without any drift or de-duplication benefit. These are the
+  // CLAIM_1 before-state values the amendment integration tests assert on.
+  protected static final String SEEDED_CLIENT_FORENAME = "Alice";
+  protected static final String SEEDED_UNIQUE_CLIENT_NUMBER = "01011990/A/BCDE";
+  protected static final String SEEDED_CASE_ID = "123";
+  protected static final int SEEDED_ADVICE_TIME = 120;
+  protected static final String SEEDED_CATEGORY_OF_LAW = "IMMIGRATION";
+  protected static final String SEEDED_LATEST_ASSESSMENT_ALLOWED_TOTAL_INCL_VAT = "240.00";
+  protected static final String MEETING_ATTENDED_CODE_1 = "MTGA01";
+  protected static final String MEETING_ATTENDED_CODE_2 = "MTGA02";
 
   @Autowired protected ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired protected BulkSubmissionRepository bulkSubmissionRepository;
@@ -104,7 +125,14 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
   @Autowired protected AssessmentRepository assessmentRepository;
+  @Autowired protected ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired protected MockMvc mockMvc;
+
+  // Caching is active in the full application context, so cached snapshots (e.g. the amendment
+  // reference data) must be evicted between tests; otherwise a snapshot built from one test's
+  // rolled-back rows would leak into the next test.
+  @Autowired(required = false)
+  protected CacheManager cacheManager;
 
   protected BulkSubmission bulkSubmission;
   protected Submission submission1;
@@ -113,6 +141,7 @@ public abstract class AbstractIntegrationTest {
   protected Claim claim2;
   protected Claim claim3;
   protected Claim claim4;
+  protected Claim claim5;
   protected ClaimSummaryFee claimSummaryFee1;
   protected ClaimSummaryFee claimSummaryFee2;
   protected CalculatedFeeDetail calculatedFeeDetail1;
@@ -125,6 +154,7 @@ public abstract class AbstractIntegrationTest {
 
   @BeforeEach
   public void abstractSetup() {
+    clearCaches();
     clearIntegrationData();
   }
 
@@ -135,10 +165,25 @@ public abstract class AbstractIntegrationTest {
     postgresContainer.start();
   }
 
+  private void clearCaches() {
+    if (cacheManager != null) {
+      cacheManager
+          .getCacheNames()
+          .forEach(
+              name -> {
+                var cache = cacheManager.getCache(name);
+                if (cache != null) {
+                  cache.clear();
+                }
+              });
+    }
+  }
+
   private void clearIntegrationData() {
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
@@ -221,8 +266,8 @@ public abstract class AbstractIntegrationTest {
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
-            .caseStartDate(LocalDate.of(2025, 8, 1))
-            .caseConcludedDate(LocalDate.of(2025, 8, 10))
+            .caseStartDate(LocalDate.of(2025, Month.FEBRUARY, 1))
+            .caseConcludedDate(LocalDate.of(2025, Month.FEBRUARY, 10))
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
@@ -236,10 +281,10 @@ public abstract class AbstractIntegrationTest {
             .scheduleReference("SCHED-002")
             .lineNumber(2)
             .caseReferenceNumber("CASE-002")
-            .uniqueFileNumber("UFN-002")
-            .caseStartDate(LocalDate.of(2025, 8, 5))
-            .caseConcludedDate(LocalDate.of(2025, 8, 12))
-            .matterTypeCode("MAT2")
+            .uniqueFileNumber("020125/002")
+            .caseStartDate(LocalDate.of(2024, Month.JANUARY, 5))
+            .caseConcludedDate(LocalDate.of(2024, Month.APRIL, 12))
+            .matterTypeCode("MATT:222")
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .build();
@@ -247,12 +292,12 @@ public abstract class AbstractIntegrationTest {
         Claim.builder()
             .id(CLAIM_3_ID)
             .submission(submissionRepository.getReferenceById(SUBMISSION_2_ID))
-            .uniqueFileNumber("UFN_333")
+            .uniqueFileNumber("030125/003")
             .lineNumber(333)
-            .matterTypeCode("MTC_333")
+            .matterTypeCode("MATT:333")
             .caseStartDate(LocalDate.now().minusDays(365))
             .caseConcludedDate(LocalDate.now().minusDays(30))
-            .feeCode("FEE_333")
+            .feeCode("FEE333")
             .status(ClaimStatus.INVALID)
             .createdByUserId(USER_ID)
             .createdOn(SUBMITTED_DATE.toInstant())
@@ -264,24 +309,46 @@ public abstract class AbstractIntegrationTest {
             .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
             .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference(SCHEDULE_REFERENCE)
-            .lineNumber(1)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            // claim4 shares submission/fee/UFN/status with claim1 but needs a distinct line number.
+            .lineNumber(4)
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
-            .caseStartDate(LocalDate.of(2025, 8, 1))
-            .caseConcludedDate(LocalDate.of(2025, 8, 10))
+            .caseStartDate(LocalDate.of(2025, Month.FEBRUARY, 1))
+            .caseConcludedDate(LocalDate.of(2025, Month.FEBRUARY, 10))
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON)
             .build();
-    claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4));
+    claim5 =
+        Claim.builder()
+            .id(CLAIM_5_ID)
+            .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
+            .status(ClaimStatus.VALID)
+            .scheduleReference(SCHEDULE_REFERENCE)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            .lineNumber(5)
+            .caseReferenceNumber(CASE_REFERENCE)
+            .feeCode(FEE_CODE)
+            .uniqueFileNumber(UNIQUE_FILE_NUMBER)
+            .caseStartDate(LocalDate.of(2025, Month.JUNE, 1))
+            .caseConcludedDate(LocalDate.of(2025, Month.JUNE, 10))
+            .matterTypeCode(MATTER_TYPE_CODE)
+            .createdByUserId(USER_ID)
+            .createdOn(CREATED_ON_OLDER)
+            .build();
 
-    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+    claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4, claim5));
+
+    // ClaimSummaryFee / CalculatedFeeDetail persist createdOn as Instant (UTC), consistent with the
+    // other amendment-era entities; seed them straight from the Instant constant.
+    var createdDateTime = CREATED_ON;
     claimSummaryFee1 =
         ClaimSummaryFee.builder()
             .id(CLAIM_1_SUMMARY_FEE_ID)
             .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-            .adviceTime(120)
+            .adviceTime(SEEDED_ADVICE_TIME)
             .travelTime(45)
             .waitingTime(30)
             .netProfitCostsAmount(BigDecimal.valueOf(250))
@@ -292,28 +359,28 @@ public abstract class AbstractIntegrationTest {
             .netWaitingCostsAmount(BigDecimal.valueOf(12))
             .isVatApplicable(true)
             .isToleranceApplicable(false)
-            .priorAuthorityReference("PA-REF-001")
+            .priorAuthorityReference("PAR0001")
             .isLondonRate(true)
             .adjournedHearingFeeAmount(2)
             .isAdditionalTravelPayment(true)
             .costsDamagesRecoveredAmount(BigDecimal.valueOf(75))
-            .meetingsAttendedCode("MEET-A")
+            .meetingsAttendedCode(MEETING_ATTENDED_CODE_1)
             .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(11))
             .jrFormFillingAmount(BigDecimal.valueOf(9))
             .isEligibleClient(true)
             .courtLocationCode("CRT-001")
-            .adviceTypeCode("ADV-001")
+            .adviceTypeCode("FTF")
             .medicalReportsCount(2)
             .isIrcSurgery(false)
-            .surgeryDate(LocalDate.of(2025, 7, 15))
+            .surgeryDate(LocalDate.of(2025, Month.JULY, 15))
             .surgeryClientsCount(3)
             .surgeryMattersCount(1)
             .cmrhOralCount(1)
             .cmrhTelephoneCount(0)
-            .aitHearingCentreCode("AIT-001")
+            .aitHearingCentreCode("01")
             .isSubstantiveHearing(true)
             .hoInterview(1)
-            .localAuthorityNumber("LA-001")
+            .localAuthorityNumber("LA001")
             .createdByUserId(USER_ID)
             .createdOn(createdDateTime)
             .build();
@@ -333,28 +400,28 @@ public abstract class AbstractIntegrationTest {
             .netWaitingCostsAmount(BigDecimal.valueOf(6))
             .isVatApplicable(false)
             .isToleranceApplicable(true)
-            .priorAuthorityReference("PA-REF-002")
+            .priorAuthorityReference("PAR0002")
             .isLondonRate(false)
             .adjournedHearingFeeAmount(1)
             .isAdditionalTravelPayment(false)
             .costsDamagesRecoveredAmount(BigDecimal.valueOf(50))
-            .meetingsAttendedCode("MEET-B")
+            .meetingsAttendedCode(MEETING_ATTENDED_CODE_2)
             .detentionTravelWaitingCostsAmount(BigDecimal.valueOf(7))
             .jrFormFillingAmount(BigDecimal.valueOf(4))
             .isEligibleClient(false)
             .courtLocationCode("CRT-002")
-            .adviceTypeCode("ADV-002")
+            .adviceTypeCode("REM")
             .medicalReportsCount(1)
             .isIrcSurgery(true)
-            .surgeryDate(LocalDate.of(2025, 7, 20))
+            .surgeryDate(LocalDate.of(2025, Month.JULY, 20))
             .surgeryClientsCount(2)
             .surgeryMattersCount(2)
             .cmrhOralCount(0)
             .cmrhTelephoneCount(2)
-            .aitHearingCentreCode("AIT-002")
+            .aitHearingCentreCode("02")
             .isSubstantiveHearing(false)
             .hoInterview(2)
-            .localAuthorityNumber("LA-002")
+            .localAuthorityNumber("LA002")
             .createdByUserId(USER_ID)
             .createdOn(createdDateTime)
             .build();
@@ -369,7 +436,7 @@ public abstract class AbstractIntegrationTest {
             .feeCode("CALC-FEE-1")
             .feeType(FeeCalculationType.DISB_ONLY)
             .feeCodeDescription("Calculated fee for claim 1")
-            .categoryOfLaw("IMMIGRATION")
+            .categoryOfLaw(SEEDED_CATEGORY_OF_LAW)
             .totalAmount(BigDecimal.valueOf(125))
             .vatIndicator(true)
             .vatRateApplied(new BigDecimal("0.20"))
@@ -451,9 +518,14 @@ public abstract class AbstractIntegrationTest {
             Client.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-                .clientForename("Alice")
+                .clientForename(SEEDED_CLIENT_FORENAME)
                 .clientSurname("Smith")
-                .uniqueClientNumber("UCN_111")
+                .clientDateOfBirth(LocalDate.of(1990, Month.JANUARY, 1))
+                .clientPostcode("SW1H 9HE")
+                .genderCode("F")
+                .ethnicityCode("99")
+                .disabilityCode("COG")
+                .uniqueClientNumber(SEEDED_UNIQUE_CLIENT_NUMBER)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build(),
@@ -462,7 +534,12 @@ public abstract class AbstractIntegrationTest {
                 .claim(claimRepository.getReferenceById(CLAIM_3_ID))
                 .clientForename("Bob")
                 .clientSurname("Jones")
-                .uniqueClientNumber("UCN_333")
+                .clientDateOfBirth(LocalDate.of(1990, Month.JANUARY, 2))
+                .clientPostcode("SW1H 9HE")
+                .genderCode("M")
+                .ethnicityCode("99")
+                .disabilityCode("NCD")
+                .uniqueClientNumber("02021991/B/CDEF")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build()));
@@ -472,21 +549,21 @@ public abstract class AbstractIntegrationTest {
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_1_ID))
-                .caseId("CASE_ID_1")
+                .caseId(SEEDED_CASE_ID)
                 .uniqueCaseId("UC_ID_1")
-                .caseStageCode("CASE_STAGE_CODE")
-                .stageReachedCode("STAGE_REACHED_CODE")
-                .standardFeeCategoryCode("STD_FEE_CAT_CODE_1")
-                .outcomeCode("OUTCOME_CODE_1")
-                .designatedAccreditedRepresentativeCode("DAR_CODE_1")
+                .caseStageCode("FPL01")
+                .stageReachedCode("AB")
+                .standardFeeCategoryCode("1A")
+                .outcomeCode("AB")
+                .designatedAccreditedRepresentativeCode("1")
                 .isPostalApplicationAccepted(true)
                 .isClient2PostalApplicationAccepted(true)
-                .mentalHealthTribunalReference("MHT_REF_1")
+                .mentalHealthTribunalReference("AA/1234/56789")
                 .isNrmAdvice(true)
                 .followOnWork("FOLLOW_1")
-                .transferDate(LocalDate.of(2025, 7, 20))
-                .exemptionCriteriaSatisfied("ALL")
-                .exceptionalCaseFundingReference("ECF_REF_1")
+                .transferDate(LocalDate.of(2025, Month.JULY, 20))
+                .exemptionCriteriaSatisfied("AB123")
+                .exceptionalCaseFundingReference("1234567AB")
                 .isLegacyCase(true)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -494,21 +571,21 @@ public abstract class AbstractIntegrationTest {
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(CLAIM_3_ID))
-                .caseId("CASE_ID_2")
+                .caseId("456")
                 .uniqueCaseId("UC_ID_2")
-                .caseStageCode("CASE_STAGE_CODE")
-                .stageReachedCode("STAGE_REACHED_CODE")
-                .standardFeeCategoryCode("STD_FEE_CAT_CODE_2")
+                .caseStageCode("FPL02")
+                .stageReachedCode("ABCD")
+                .standardFeeCategoryCode("2A")
                 .outcomeCode(null)
-                .designatedAccreditedRepresentativeCode("DAR_CODE_2")
+                .designatedAccreditedRepresentativeCode("2")
                 .isPostalApplicationAccepted(false)
                 .isClient2PostalApplicationAccepted(false)
-                .mentalHealthTribunalReference("MHT_REF_2")
+                .mentalHealthTribunalReference("AB12345")
                 .isNrmAdvice(false)
                 .followOnWork("FOLLOW_2")
-                .transferDate(LocalDate.of(2025, 10, 20))
-                .exemptionCriteriaSatisfied("ALL")
-                .exceptionalCaseFundingReference("ECF_REF_2")
+                .transferDate(LocalDate.of(2025, Month.OCTOBER, 20))
+                .exemptionCriteriaSatisfied("AB123")
+                .exceptionalCaseFundingReference("7654321CD")
                 .isLegacyCase(false)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -526,7 +603,9 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing case reference",
                 "Field `caseReferenceNumber` is required",
-                CREATED_ON),
+                null, // messageCode - null for SYSTEM source
+                CREATED_ON,
+                null),
             new ValidationMessageLog(
                 VALIDATION_ID_2,
                 SUBMISSION_1_ID,
@@ -535,7 +614,9 @@ public abstract class AbstractIntegrationTest {
                 "SYSTEM",
                 "Missing UFN",
                 "Field `uniqueFileNumber` is required",
-                CREATED_ON)));
+                null, // messageCode - null for SYSTEM source
+                CREATED_ON,
+                null)));
   }
 
   void createAssessmentsTestData() {
@@ -557,7 +638,7 @@ public abstract class AbstractIntegrationTest {
             .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
             .assessmentReason("Reason for assessment")
             .allowedTotalVat(new BigDecimal("200.00"))
-            .allowedTotalInclVat(new BigDecimal("240.00"))
+            .allowedTotalInclVat(new BigDecimal(SEEDED_LATEST_ASSESSMENT_ALLOWED_TOTAL_INCL_VAT))
             .createdOn(Instant.now())
             .build();
     Assessment assessment3 =
@@ -694,13 +775,13 @@ public abstract class AbstractIntegrationTest {
                 .submission(submissionRepository.getReferenceById(submissionId))
                 .status(ClaimStatus.INVALID)
                 .lineNumber(1)
-                .matterTypeCode("CRIME-MATTER")
-                .crimeMatterTypeCode("CR-MAT-1")
-                .feeCode("CRIME-FEE")
+                .matterTypeCode("CMAT")
+                .crimeMatterTypeCode("01")
+                .feeCode("CRIMEFEE")
                 .caseReferenceNumber("CRIME-CASE-1")
-                .uniqueFileNumber("CRIME-UFN-1")
-                .caseStartDate(LocalDate.of(2025, 2, 1))
-                .caseConcludedDate(LocalDate.of(2025, 2, 10))
+                .uniqueFileNumber("040225/004")
+                .caseStartDate(LocalDate.of(2025, Month.FEBRUARY, 1))
+                .caseConcludedDate(LocalDate.of(2025, Month.FEBRUARY, 10))
                 .scheduleReference("CR-SCH-1")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -722,8 +803,8 @@ public abstract class AbstractIntegrationTest {
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
-                .stageReachedCode("CRIME-STAGE")
-                .outcomeCode("CRIME-OUTCOME")
+                .stageReachedCode("ABCD")
+                .outcomeCode(null)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
                 .build()));
@@ -740,7 +821,7 @@ public abstract class AbstractIntegrationTest {
                 .isVatApplicable(true)
                 .disbursementsVatAmount(BigDecimal.valueOf(4))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -768,7 +849,7 @@ public abstract class AbstractIntegrationTest {
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(6))
                 .escapeCaseFlag(true)
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -802,15 +883,15 @@ public abstract class AbstractIntegrationTest {
                 .submission(submissionRepository.getReferenceById(submissionId))
                 .status(ClaimStatus.READY_TO_PROCESS)
                 .lineNumber(1)
-                .matterTypeCode("MED-MATTER")
-                .feeCode("MED-FEE")
+                .matterTypeCode("MEDA")
+                .feeCode("MEDFEE")
                 .caseReferenceNumber("MED-CASE-001")
-                .caseStartDate(LocalDate.of(2025, 8, 2))
-                .caseConcludedDate(LocalDate.of(2025, 8, 12))
+                .caseStartDate(LocalDate.of(2025, Month.AUGUST, 2))
+                .caseConcludedDate(LocalDate.of(2025, Month.AUGUST, 12))
                 .mediationSessionsCount(4)
                 .mediationTimeMinutes(90)
-                .outreachLocation("Outreach centre")
-                .referralSource("Court referral")
+                .outreachLocation("OUT")
+                .referralSource("02")
                 .scheduleReference("MED-SCHED-001")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -823,21 +904,21 @@ public abstract class AbstractIntegrationTest {
                 .claim(claimRepository.getReferenceById(claimId))
                 .clientForename("Mia")
                 .clientSurname("Green")
-                .clientDateOfBirth(LocalDate.of(1985, 4, 12))
-                .uniqueClientNumber("MED-UCN-1")
+                .clientDateOfBirth(LocalDate.of(1985, Month.APRIL, 12))
+                .uniqueClientNumber("03031992/C/DEFG")
                 .clientPostcode("AB1 2CD")
                 .genderCode("F")
-                .ethnicityCode("A")
-                .disabilityCode("N")
+                .ethnicityCode("01")
+                .disabilityCode("NCD")
                 .isLegallyAided(true)
                 .client2Forename("Noah")
                 .client2Surname("Green")
-                .client2DateOfBirth(LocalDate.of(1986, 6, 10))
-                .client2Ucn("MED-UCN-2")
+                .client2DateOfBirth(LocalDate.of(1986, Month.JUNE, 10))
+                .client2Ucn("04041993/D/EFGH")
                 .client2Postcode("AB1 2CD")
                 .client2GenderCode("M")
-                .client2EthnicityCode("B")
-                .client2DisabilityCode("N")
+                .client2EthnicityCode("02")
+                .client2DisabilityCode("NCD")
                 .client2IsLegallyAided(false)
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -848,7 +929,7 @@ public abstract class AbstractIntegrationTest {
             ClaimCase.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claimRepository.getReferenceById(claimId))
-                .outcomeCode("MED-OUTCOME")
+                .outcomeCode(null)
                 .isPostalApplicationAccepted(true)
                 .isClient2PostalApplicationAccepted(false)
                 .createdByUserId(USER_ID)
@@ -864,7 +945,7 @@ public abstract class AbstractIntegrationTest {
                 .netDisbursementAmount(BigDecimal.valueOf(33))
                 .disbursementsVatAmount(BigDecimal.valueOf(7))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -890,7 +971,7 @@ public abstract class AbstractIntegrationTest {
                 .netWaitingCostsAmount(BigDecimal.valueOf(5))
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(15))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -917,5 +998,60 @@ public abstract class AbstractIntegrationTest {
     // Attach it to the logger
     logger.addAppender(listAppender);
     return listAppender;
+  }
+
+  // --- Helper Methods specifically for Submissions Totals testing ---
+
+  protected Submission createIsolatedSubmission() {
+    Submission submission =
+        Submission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .officeAccountNumber("totals-office")
+            .status(SubmissionStatus.CREATED)
+            .submissionPeriod("JAN-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    return submissionRepository.saveAndFlush(submission);
+  }
+
+  protected Claim createClaimForSubmission(Submission submission, int lineNumber) {
+    Claim claim =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(submission)
+            .status(ClaimStatus.VALID)
+            .feeCode("TEST")
+            .lineNumber(lineNumber)
+            .matterTypeCode("TEST_MATTER")
+            .createdByUserId(USER_ID)
+            .build();
+    claim = claimRepository.saveAndFlush(claim);
+
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .createdByUserId(USER_ID)
+            .build();
+    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+    return claim;
+  }
+
+  protected void createFeeDetail(
+      Claim claim, BigDecimal amount, OffsetDateTime createdOn, UUID forceId) {
+    UUID idToUse = forceId != null ? forceId : Uuid7.timeBasedUuid();
+    calculatedFeeDetailRepository.saveAndFlush(
+        CalculatedFeeDetail.builder()
+            .id(idToUse)
+            .claim(claim)
+            .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
+            .totalAmount(amount)
+            .createdOn(createdOn.toInstant())
+            .createdByUserId(USER_ID)
+            .build());
   }
 }

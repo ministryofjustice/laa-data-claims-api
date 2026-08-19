@@ -27,7 +27,7 @@ public class ClaimCaseRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(result).isPresent();
     ClaimCase claimCase = result.get();
     assertThat(claimCase.getClaim().getId()).isEqualTo(CLAIM_1_ID);
-    assertThat(claimCase.getCaseId()).isEqualTo("CASE_ID_1");
+    assertThat(claimCase.getCaseId()).isEqualTo("123");
     assertThat(claimCase.getUniqueCaseId()).isEqualTo("UC_ID_1");
     assertThat(claimCase.getTransferDate()).isEqualTo(LocalDate.of(2025, 7, 20));
   }

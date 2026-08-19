@@ -13,6 +13,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_5_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
@@ -21,8 +22,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -33,9 +37,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
@@ -46,6 +55,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
@@ -56,6 +67,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
+
+  @Autowired private ClaimsApiProperties claimsApiProperties;
 
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -70,9 +83,21 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
+  private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
+
+  private Boolean amendmentSwitch;
+
   @BeforeEach
   void setUp() {
+    // Capture the original boolean state
+    amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
     seedClaimsData();
+  }
+
+  @AfterEach
+  void tearDown() {
+    // Use String.valueOf() for a null-safe string conversion
+    claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
   }
 
   @Test
@@ -107,9 +132,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(claimResponse.getAdviceTime()).isEqualTo(120);
     assertThat(claimResponse.getTravelTime()).isEqualTo(45);
     assertThat(claimResponse.getIsLondonRate()).isTrue();
-    assertThat(claimResponse.getCaseId()).isEqualTo("CASE_ID_1");
+    assertThat(claimResponse.getCaseId()).isEqualTo("123");
     assertThat(claimResponse.getUniqueCaseId()).isEqualTo("UC_ID_1");
-    assertThat(claimResponse.getOutcomeCode()).isEqualTo("OUTCOME_CODE_1");
+    assertThat(claimResponse.getOutcomeCode()).isEqualTo("AB");
 
     var feeCalculationResponse = claimResponse.getFeeCalculationResponse();
     assertThat(feeCalculationResponse).isNotNull();
@@ -166,6 +191,43 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @Test
+  @DisplayName(
+      "POST submissions/{id}/claims - returns 409 when the line number already exists in the "
+          + "submission")
+  void shouldReturnConflictWhenClaimLineNumberIsDuplicatedInSubmission() throws Exception {
+    // given: a submission with a claim already persisted (getClaimPost uses lineNumber 123)
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost first = getClaimPost(CASE_REFERENCE);
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(first))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isCreated());
+
+    // when: posting a second claim with the same (submission_id, line_number)
+    final ClaimPost duplicate = getClaimPost("CASE-DUPLICATE");
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(duplicate))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            // then: the duplicate is rejected as a conflict (not a 500)
+            .andExpect(status().isConflict())
+            .andReturn();
+
+    // and: the RFC 9457 body carries the user-safe message
+    String body = result.getResponse().getContentAsString();
+    assertThat(body).contains("already exists for the submission.");
+
+    // and: nothing extra was persisted - only the first claim remains for the submission
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).hasSize(1);
   }
 
   @Test
@@ -246,6 +308,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
     mockMvc
@@ -269,9 +332,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("PATCH submissions/{id}/claims/{id} - 400 when attempting invalid void update")
   void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
+    claimsApiProperties.getAmendments().setEnabled("false");
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode(FEE_CODE);
     claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
 
@@ -279,7 +342,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     MvcResult result =
         mockMvc
             .perform(
-                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_2_ID)
+                patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .content(OBJECT_MAPPER.writeValueAsString(claimPatch))
                     .contentType(MediaType.APPLICATION_JSON))
@@ -298,14 +361,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
     // given: required claims exist in the database
 
-    String caseReference = "' OR name LIKE '%'";
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(caseReference);
+    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    String createdByUserId = "' OR name LIKE '%'";
+    claimPatch.setCreatedByUserId(createdByUserId);
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()
-                .displayMessage(caseReference + "is not allowed")
+                .displayMessage("createdByUserId" + "is not allowed")
                 .source("test")
                 .type(ValidationMessageType.ERROR)));
     // Get the logger used by the class under test
@@ -327,7 +392,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
-    assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(caseReference);
+    assertThat(updatedClaim.getCreatedByUserId()).isEqualTo(createdByUserId);
 
     assertThat(
             listAppender.list.stream()
@@ -343,6 +408,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // given: required claims exist in the database
 
     ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setVersion(1L); // ADDED VERSION
 
     // when: calling the PATCH endpoint to update the claim for an unknown claimId, 404 should be
     // returned.
@@ -381,7 +447,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "office1")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -389,17 +455,27 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test
   @DisplayName("GET /claims - returns claims for office code and unique file reference")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
+    var amendedClaim =
+        claimRepository
+            .findById(CLAIM_2_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+    amendedClaim.setHasAssessment(true);
+    amendedClaim.setAmended(true);
+    claimRepository.saveAndFlush(amendedClaim);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -407,8 +483,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "office1")
-                    .param("unique_file_number", "UFN-002")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .param("unique_file_number", "020125/002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -418,7 +494,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
+    var claimResponse = claimResultSet.getContent().getFirst();
+    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+    assertThat(claimResponse.getHasAssessment()).isTrue();
+    assertThat(claimResponse.getIsAmended()).isTrue();
   }
 
   @Test
@@ -476,7 +555,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -484,17 +563,27 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     // then: response body contains the expected number of claims
     String responseBody = result.getResponse().getContentAsString();
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(3);
-    assertThat(claimResultSet.getContent()).hasSize(3);
+    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
     assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
         .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(), CLAIM_2_ID.toString(), CLAIM_4_ID.toString());
+            CLAIM_1_ID.toString(),
+            CLAIM_2_ID.toString(),
+            CLAIM_4_ID.toString(),
+            CLAIM_5_ID.toString());
   }
 
   @Test
   @DisplayName("GET /api/v2/claims - returns claims for office code and unique file reference (v2)")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
     // given: required claims exist in the database
+    var amendedClaim =
+        claimRepository
+            .findById(CLAIM_2_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+    amendedClaim.setHasAssessment(false);
+    amendedClaim.setAmended(true);
+    claimRepository.saveAndFlush(amendedClaim);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -502,8 +591,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc
             .perform(
                 get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "office1")
-                    .param("unique_file_number", "UFN-002")
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .param("unique_file_number", "020125/002")
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
             .andExpect(status().isOk())
             .andReturn();
@@ -513,7 +602,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
+    var claimResponse = claimResultSet.getContent().getFirst();
+    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+    assertThat(claimResponse.getHasAssessment()).isFalse();
+    assertThat(claimResponse.getIsAmended()).isTrue();
   }
 
   @Test
@@ -875,6 +967,255 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-1943)")
+  void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
+    // given: we use an existing office code from the setup
+
+    // when: calling the v2 claims endpoint with the escaped_case_flag filter
+    // Note: This was FAILing with a 500 error because ClaimSpecification
+    // attempted to join on a scalar "calculatedFeeDetail" field, but the Claim entity
+    // now uses a List "calculatedFeeDetails" and gets the first (latest) item
+    mockMvc
+        .perform(
+            get(GET_CLAIMS_ENDPOINT_V2)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                .param("escaped_case_flag", "true")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isOk()); // Will fail here until the specification bug is fixed
+  }
+
+  @Test
+  @DisplayName("GET /api/v2/claims - filtering by escaped_case_flag isolates the latest fee record")
+  void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
+    // given: set up a submission context to satisfy the mandatory office code check
+    Instant now = Instant.now();
+
+    // 1. Claim A: Historical records are false, but the LATEST is true -> Should be FOUND
+    Claim claimA = new Claim();
+    claimA.setId(Uuid7.timeBasedUuid());
+    claimA.setSubmission(submission1);
+    claimA.setCaseReferenceNumber("CRN-AAA");
+    claimA.setUniqueFileNumber("UFN-AAA");
+    claimA.setCreatedByUserId(API_USER_ID);
+
+    // Add these mandatory fields to satisfy Bean Validation
+    claimA.setMatterTypeCode("TEST-MTC");
+    // Unique within submission1 (seedClaimsData already uses lines 1,2,4,5) to satisfy
+    // uq_claim_submission_line_number.
+    claimA.setLineNumber(10);
+    claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+    claimA = claimRepository.saveAndFlush(claimA);
+
+    // ... (CFD creations)
+    createCalculatedFeeDetail(claimA, false, now.minus(3, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimA, false, now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimA, true, now.minus(1, ChronoUnit.DAYS)); // latest
+
+    // 2. Claim B: Historical records are true, but the LATEST is false -> Should be IGNORED
+    Claim claimB = new Claim();
+    claimB.setId(Uuid7.timeBasedUuid());
+    claimB.setSubmission(submission1);
+    claimB.setCaseReferenceNumber("CRN-BBB");
+    claimB.setUniqueFileNumber("UFN-BBB");
+    claimB.setCreatedByUserId(API_USER_ID);
+
+    // Add these mandatory fields to satisfy Bean Validation
+    claimB.setMatterTypeCode("TEST-MTC");
+    claimB.setLineNumber(11);
+    claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+    claimB = claimRepository.saveAndFlush(claimB);
+
+    createCalculatedFeeDetail(claimB, true, now.minus(3, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimB, true, now.minus(2, ChronoUnit.DAYS));
+    createCalculatedFeeDetail(claimB, false, now.minus(1, ChronoUnit.DAYS)); // latest
+
+    // Ensure Hibernate flushes state to the database before running the query
+    claimRepository.flush();
+
+    // when: filtering for escaped_case_flag = true
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .param("escaped_case_flag", "true")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // then: unpack and verify that only Claim A is returned
+    var claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+        .contains(claimA.getId().toString())
+        .doesNotContain(claimB.getId().toString());
+  }
+
+  // Helper method to cleanly persist fee records for the scenario
+  private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
+    // 1. Create and persist the ClaimSummaryFee
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .claim(claim)
+            .id(Uuid7.timeBasedUuid())
+            .createdByUserId("Test")
+            .build();
+
+    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+    // 2. Create and persist the CalculatedFeeDetail, linking the newly saved summary fee
+    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
+    cfd.setId(Uuid7.timeBasedUuid());
+    cfd.setClaim(claim);
+    cfd.setEscapeCaseFlag(escapeCaseFlag);
+    cfd.setCreatedOn(createdOn);
+    cfd.setFeeCode("FEE-123");
+    cfd.setCreatedByUserId("Test");
+    cfd.setClaimSummaryFee(summaryFee);
+
+    calculatedFeeDetailRepository.saveAndFlush(cfd);
+  }
+
+  @Nested
+  @DisplayName("Derived claim status sorting")
+  class DerivedClaimStatusSortTests {
+
+    private static final String SORT_OFFICE = "SORTOFC";
+
+    private Submission createSortSubmission() {
+      return submissionRepository.saveAndFlush(
+          Submission.builder()
+              .id(Uuid7.timeBasedUuid())
+              .bulkSubmissionId(bulkSubmission.getId())
+              .officeAccountNumber(SORT_OFFICE)
+              .submissionPeriod("FEB-2025")
+              .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+              .status(SubmissionStatus.CREATED)
+              .providerUserId(bulkSubmission.getCreatedByUserId())
+              .createdByUserId(API_USER_ID)
+              .numberOfClaims(6)
+              .createdOn(CREATED_ON)
+              .build());
+    }
+
+    private Claim persistClaim(
+        Submission submission,
+        ClaimStatus status,
+        boolean hasAssessment,
+        boolean isAmended,
+        int lineNumber) {
+      return claimRepository.saveAndFlush(
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(submission)
+              .status(status)
+              .hasAssessment(hasAssessment)
+              .isAmended(isAmended)
+              .lineNumber(lineNumber)
+              .matterTypeCode("TEST-MTC")
+              .createdByUserId(API_USER_ID)
+              .build());
+    }
+
+    private ClaimResultSetV2 search(String sort) throws Exception {
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", SORT_OFFICE)
+                      .param("sort", sort)
+                      .param("size", "50")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+      return OBJECT_MAPPER.readValue(
+          result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+    }
+
+    /** Seeds exactly one claim for each derived status under an isolated office code. */
+    private void seedOnePerDerivedStatus(Submission submission) {
+      persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
+      persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
+      persistClaim(submission, ClaimStatus.VALID, true, false, 3); // ASSESSED
+      persistClaim(submission, ClaimStatus.VOID, false, false, 4); // VOIDED
+      persistClaim(submission, ClaimStatus.INVALID, false, false, 5); // INVALID
+      persistClaim(submission, ClaimStatus.READY_TO_PROCESS, false, false, 6); // READY_TO_PROCESS
+    }
+
+    @Test
+    @DisplayName("ascending follows the canonical business ordering")
+    void ascendingOrdering() throws Exception {
+      seedOnePerDerivedStatus(createSortSubmission());
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+          .containsExactly(
+              DerivedClaimStatus.ACCEPTED,
+              DerivedClaimStatus.AMENDED,
+              DerivedClaimStatus.ASSESSED,
+              DerivedClaimStatus.VOIDED,
+              DerivedClaimStatus.INVALID,
+              DerivedClaimStatus.READY_TO_PROCESS);
+    }
+
+    @Test
+    @DisplayName("descending is the reverse of the canonical business ordering")
+    void descendingOrdering() throws Exception {
+      seedOnePerDerivedStatus(createSortSubmission());
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,desc");
+
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+          .containsExactly(
+              DerivedClaimStatus.READY_TO_PROCESS,
+              DerivedClaimStatus.INVALID,
+              DerivedClaimStatus.VOIDED,
+              DerivedClaimStatus.ASSESSED,
+              DerivedClaimStatus.AMENDED,
+              DerivedClaimStatus.ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("claims sharing a derived status are tie-broken by id ASC for stable pagination")
+    void tieBreakByIdAscending() throws Exception {
+      Submission submission = createSortSubmission();
+      // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
+      // status.
+      Claim a = persistClaim(submission, ClaimStatus.VALID, false, false, 1);
+      Claim b = persistClaim(submission, ClaimStatus.VALID, false, false, 2);
+      Claim c = persistClaim(submission, ClaimStatus.VALID, false, false, 3);
+
+      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+      // UUIDv7 ids are time-ordered; a < b < c in insertion order, so the tie-break yields a,b,c.
+      List<String> expectedIdOrder =
+          java.util.stream.Stream.of(a.getId(), b.getId(), c.getId())
+              .map(UUID::toString)
+              .sorted()
+              .toList();
+      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getId))
+          .containsExactlyElementsOf(expectedIdOrder);
+    }
+
+    @Test
+    @DisplayName("unsupported sort key returns 400")
+    void unsupportedSortKeyReturnsBadRequest() throws Exception {
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT_V2)
+                  .param("office_code", SORT_OFFICE)
+                  .param("sort", "not_a_real_field,asc")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
     }
   }
 }

@@ -19,6 +19,13 @@ headers {
   Authorization: {{AUTH_TOKEN}}
 }
 
+tests {
+  if(res.status === 200){
+    const body = res.getBody();
+    bru.setEnvVar("SUMMARY_FEE_ID", body.fee_calculation_response.claim_summary_fee_id);
+  }
+}
+
 settings {
   encodeUrl: true
   timeout: 0

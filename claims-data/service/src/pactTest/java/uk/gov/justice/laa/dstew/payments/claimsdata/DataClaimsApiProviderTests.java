@@ -1,10 +1,29 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAmendmentHistoryEvent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionMatterStartMediationType;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOffice;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionOutcome;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getBulkSubmissionSchedule;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getCalculatedFeeDetail;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaim;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimCase;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimSummaryFee;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimV2;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmissionHistoryEvent;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessageProjection;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getVoidHistoryEvent;
 
 import au.com.dius.pact.provider.junit5.HttpTestTarget;
 import au.com.dius.pact.provider.junit5.PactVerificationContext;
@@ -16,6 +35,8 @@ import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,25 +46,34 @@ import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
+import org.hibernate.exception.ConstraintViolationException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -95,10 +125,23 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @LocalServerPort private int port;
 
+  @Autowired private ClaimsApiProperties claimsApiProperties;
+
+  private Boolean originalAmendmentState;
+
   @BeforeEach
   void setUp(PactVerificationContext context) {
     HttpTestTarget target = new HttpTestTarget("localhost", port);
     context.setTarget(target);
+
+    // 1. Capture the original state from the application context
+    originalAmendmentState = claimsApiProperties.getAmendments().isEnabled();
+  }
+
+  @AfterEach
+  void tearDown() {
+    // Safely restore the original state using String.valueOf()
+    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
   }
 
   @State("the system is ready to process a valid bulk submission")
@@ -187,9 +230,25 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the claim patch contains invalid data")
   public void theClaimPatchContainsInvalidData() {
     log.info("Setting up state: the claim patch contains invalid data");
+    claimsApiProperties.getAmendments().setEnabled("true");
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
+  }
+
+  @State("the claim has changed since it was loaded")
+  public void theClaimHasChangedSinceItWasLoaded() {
+    log.info(
+        "Setting up state: the claim has changed since it was loaded (stale amendment version)");
+    // Amendments must be enabled for the amendment flow - and its early version gate - to run.
+    claimsApiProperties.getAmendments().setEnabled("true");
+    // The current stored claim carries a known version. A consumer contract exercising this state
+    // submits a different (stale) version, which the early version gate rejects with a 409 Conflict
+    // whose body carries the stable machine-readable code CLAIM_VERSION_CONFLICT.
+    Claim current = getClaim();
+    current.setStatus(ClaimStatus.VALID);
+    current.setVersion(5L);
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
   }
 
   @State("the claim request contains invalid data")
@@ -197,6 +256,26 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: the claim request contains invalid data");
     when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
+  }
+
+  @State("a claim with the same line number already exists in the submission")
+  public void aClaimWithDuplicateLineNumberExists() {
+    log.info(
+        "Setting up state: a claim with the same line number already exists in the submission");
+    // Creating a claim (not an amendment): the submission exists, but persisting the new claim
+    // trips the uq_claim_submission_line_number unique constraint. The database raises this at
+    // flush/commit; here the mocked repository reproduces it so the provider maps it to a 409
+    // Conflict.
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    doThrow(
+            new DataIntegrityViolationException(
+                "could not execute statement",
+                new ConstraintViolationException(
+                    "duplicate key value violates unique constraint",
+                    new SQLException("duplicate key"),
+                    "uq_claim_submission_line_number")))
+        .when(claimRepository)
+        .save(any());
   }
 
   @State("the matter start request contains invalid data")
@@ -229,7 +308,43 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("no claim exists")
   public void noClaimExists() {
     log.info("Setting up state: no claim exists");
+    when(claimRepository.existsById(any())).thenReturn(false);
     when(claimRepository.findById(any())).thenReturn(Optional.empty());
+  }
+
+  @State("a claim history exists")
+  public void aClaimHistoryExists() {
+    log.info("Setting up state: a claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(List.of(getSubmissionHistoryEvent()));
+  }
+
+  @State("no claim history exists")
+  public void noClaimHistoryExists() {
+    log.info("Setting up state: no claim history exists");
+    when(claimRepository.existsById(any())).thenReturn(false);
+  }
+
+  @State("a claim history with assessment and void events exists")
+  public void aClaimHistoryWithAssessmentAndVoidEventsExists() {
+    log.info("Setting up state: a claim history with assessment and void events exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    // Reverse-chronological order: VOID (newest) -> ASSESSMENT -> SUBMISSION (oldest).
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(
+            List.of(
+                getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
+  }
+
+  @State("a claim history with an amendment event exists")
+  public void aClaimHistoryWithAnAmendmentEventExists() {
+    log.info("Setting up state: a claim history with an amendment event exists");
+    when(claimRepository.existsById(any())).thenReturn(true);
+    // Reverse-chronological order: AMENDMENT (newest) -> SUBMISSION (oldest). The amendment event
+    // carries the DSTEW-1814 field-level changes array (REQUESTED + FSP + explicit-null before).
+    when(claimHistoryRepository.findHistory(any(), anyInt()))
+        .thenReturn(List.of(getAmendmentHistoryEvent(), getSubmissionHistoryEvent()));
   }
 
   @State("a matter start exists")
@@ -299,12 +414,13 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("a claim exists")
   public void aClaimExists() {
     log.info("Setting up state: a claim exists");
-    when(claimRepository.findByIdAndSubmissionId(any(), any()))
-        .thenReturn(Optional.ofNullable(getClaim()));
+    Claim claim = getClaimV2();
+    claim.setClaimCase(getClaimCase());
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(claim));
     when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
-    when(calculatedFeeDetailRepository.findByClaimId(any()))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
     when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
   }
@@ -356,7 +472,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
-    when(calculatedFeeDetailRepository.findByClaimId(any()))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
         .thenReturn(Optional.of(getCalculatedFeeDetail()));
     when(claimCaseRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClaimCase()));
   }
@@ -418,6 +534,69 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: no submissions exist for the search criteria");
     when(submissionRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl(Collections.emptyList()));
+  }
+
+  @State("amendment reference data exists")
+  public void amendmentReferenceDataExists() {
+    log.info("Setting up state: amendment reference data exists");
+    when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                RequestedByReferenceEntity.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000a1"))
+                    .code("PROVIDER")
+                    .displayLabel("Provider")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+    when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                AmendmentReasonReferenceEntity.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000b1"))
+                    .requestedByCode("PROVIDER")
+                    .code("PROVIDER_ERROR")
+                    .displayLabel("Provider Error")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+  }
+
+  @State("no amendment reference data exists")
+  public void noAmendmentReferenceDataExists() {
+    log.info("Setting up state: no amendment reference data exists");
+    when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+    when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+  }
+
+  @State("no assessments exist for the claim")
+  public void noAssessmentExistsForClaimId() {
+    log.info("Setting up state: no assessments exist for the claim");
+    when(claimRepository.existsById(any(UUID.class))).thenReturn(true);
+    when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+  }
+
+  @State("assessments exist for the claim")
+  public void assessmentExistsForClaimId() {
+    log.info("Setting up state: assessments exist for the claim");
+    List<Assessment> assessments =
+        List.of(
+            Assessment.builder()
+                .assessmentOutcome(AssessmentOutcome.PAID_IN_FULL)
+                .assessmentReason("Reason")
+                .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .createdByUserId("User")
+                .createdOn(Instant.now())
+                .id(UUID.randomUUID())
+                .build());
+    when(assessmentRepository.findByClaimId(any(UUID.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(assessments));
+    when(claimRepository.existsById(any(UUID.class))).thenReturn(true);
   }
 
   @TargetRequestFilter

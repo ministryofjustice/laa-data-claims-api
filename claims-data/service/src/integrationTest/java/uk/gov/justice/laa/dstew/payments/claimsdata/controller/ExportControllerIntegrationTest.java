@@ -222,12 +222,12 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo(CRIME_OFFICE);
     assertThat(firstRow.get("Submission Month")).isEqualTo("FEB-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("CRIME_LOWER");
-    assertThat(firstRow.get("Fee Code")).isEqualTo("CRIME-FEE");
+    assertThat(firstRow.get("Fee Code")).isEqualTo("CRIMEFEE");
     assertThat(firstRow.get("Claim Status")).isEqualTo("INVALID");
     assertThat(firstRow.get("Client surname")).isEqualTo("Davis");
     assertThat(firstRow.get("Client Initial")).isEqualTo("Chris");
-    assertThat(firstRow.get("UFN")).isEqualTo("CRIME-UFN-1");
-    assertThat(firstRow.get("Stage Reached (Claim Code)")).isEqualTo("CRIME-STAGE");
+    assertThat(firstRow.get("UFN")).isEqualTo("040225/004");
+    assertThat(firstRow.get("Stage Reached (Claim Code)")).isEqualTo("ABCD");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Crime fee detail");
@@ -236,14 +236,14 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   private void assertLegalHelpValues(Map<String, String> firstRow) {
-    assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo("office1");
+    assertThat(firstRow.get("Providers LAA Office Number")).isEqualTo(OFFICE_ACCOUNT_NUMBER_1);
     assertThat(firstRow.get("Submission Month")).isEqualTo("JAN-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("LEGAL_HELP");
-    assertThat(firstRow.get("Fee Code")).isEqualTo("FEE_123");
+    assertThat(firstRow.get("Fee Code")).isEqualTo("FEE123");
     assertThat(firstRow.get("Case Reference Number")).isEqualTo("CASE-123");
     assertThat(firstRow.get("Client Forename")).isEqualTo("Alice");
     assertThat(firstRow.get("Client Surname")).isEqualTo("Smith");
-    assertThat(firstRow.get("Case ID")).isEqualTo("CASE_ID_1");
+    assertThat(firstRow.get("Case ID")).isEqualTo("123");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("DISB_ONLY");
   }
 
@@ -252,15 +252,15 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(firstRow.get("Submission Month")).isEqualTo("MAY-2025");
     assertThat(firstRow.get("Area of Law")).isEqualTo("MEDIATION");
     assertThat(firstRow.get("Mediation Submission Reference")).isEqualTo("MED-SUB-001");
-    assertThat(firstRow.get("Matter Type (1:2)")).isEqualTo("MED-MATTER");
-    assertThat(firstRow.get("Fee Code")).isEqualTo("MED-FEE");
+    assertThat(firstRow.get("Matter Type (1:2)")).isEqualTo("MEDA");
+    assertThat(firstRow.get("Fee Code")).isEqualTo("MEDFEE");
     assertThat(firstRow.get("Case Reference Number")).isEqualTo("MED-CASE-001");
     assertThat(firstRow.get("Client 1 Forename")).isEqualTo("Mia");
     assertThat(firstRow.get("Client 1 Surname")).isEqualTo("Green");
     assertThat(firstRow.get("Client 2 Forename")).isEqualTo("Noah");
     assertThat(firstRow.get("Number of Mediation Sessions")).isEqualTo("4");
     assertThat(firstRow.get("Mediation Time (mins)")).isEqualTo("90");
-    assertThat(firstRow.get("Referral")).isEqualTo("Court referral");
+    assertThat(firstRow.get("Referral")).isEqualTo("02");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Type")).isEqualTo("FIXED");
     assertThat(firstRow.get("Calculated Fee Detail - Fee Code Description"))
         .isEqualTo("Mediation fee detail");

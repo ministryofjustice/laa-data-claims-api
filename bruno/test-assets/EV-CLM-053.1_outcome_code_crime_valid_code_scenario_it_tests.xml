@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<submission xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd">
+  <office account="0P322F">
+    <schedule submissionPeriod="OCT-2025" areaOfLaw="CRIME LOWER" scheduleNum="000123/EV0531/01">
+      <outcome matterType="INVC">
+        <outcomeItem name="FEE_CODE">INVC</outcomeItem>
+        <outcomeItem name="CASE_REF_NUMBER">EV0531CR-OUTC</outcomeItem>
+        <outcomeItem name="UFN">101224/931</outcomeItem>
+        <outcomeItem name="CASE_START_DATE">08/11/2025</outcomeItem>
+        <outcomeItem name="WORK_CONCLUDED_DATE">10/11/2025</outcomeItem>
+        <outcomeItem name="CLIENT_FORENAME">Alice</outcomeItem>
+        <outcomeItem name="CLIENT_SURNAME">EV0531CR-OUTC</outcomeItem>
+        <outcomeItem name="CLIENT_DATE_OF_BIRTH">01/01/1990</outcomeItem>
+        <outcomeItem name="CLIENT_POST_CODE">SW1H 9EA</outcomeItem>
+        <outcomeItem name="GENDER">F</outcomeItem>
+        <outcomeItem name="ETHNICITY">02</outcomeItem>
+        <outcomeItem name="OUTCOME_CODE">CN02</outcomeItem>
+        <outcomeItem name="CRIME_MATTER_TYPE">03</outcomeItem>
+        <outcomeItem name="STAGE_REACHED">INVA</outcomeItem>
+        <outcomeItem name="PROFIT_COST">150.00</outcomeItem>
+        <outcomeItem name="DISBURSEMENTS_AMOUNT">25.00</outcomeItem>
+        <outcomeItem name="TRAVEL_COSTS">10.00</outcomeItem>
+        <outcomeItem name="TRAVEL_WAITING_COSTS">5.00</outcomeItem>
+        <outcomeItem name="VAT_INDICATOR">Y</outcomeItem>
+        <outcomeItem name="DISBURSEMENTS_VAT">5.00</outcomeItem>
+        <outcomeItem name="NO_OF_SUSPECTS">1</outcomeItem>
+        <outcomeItem name="NO_OF_POLICE_STATION">1</outcomeItem>
+        <outcomeItem name="POLICE_STATION">NE001</outcomeItem>
+        <outcomeItem name="DSCC_NUMBER">EV0531DS01</outcomeItem>
+        <outcomeItem name="DUTY_SOLICITOR">N</outcomeItem>
+        <outcomeItem name="YOUTH_COURT">N</outcomeItem>
+        <outcomeItem name="SCHEME_ID">1013</outcomeItem>
+      </outcome>
+    </schedule>
+  </office>
+</submission>

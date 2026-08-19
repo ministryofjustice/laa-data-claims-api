@@ -11,165 +11,117 @@ env:
   JAVA_VERSION: &JAVA_VERSION '25'
   JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-
-  build-test:
-    if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
+  compute-snapshot-version:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      actions: read
+    outputs:
+      snapshot_version: ${{ steps.version.outputs.snapshot_version }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          java-version: *JAVA_VERSION
-          distribution: *JDK_DISTRIBUTION
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.0.0
-
-      - name: Build and test
-        run: ./gradlew build
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Compute version
+        id: compute
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+      - name: Compute snapshot version
+        id: version
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Test coverage verification
-        run: ./gradlew jacocoTestCoverageVerification
-
-      - name: Integration test
-        run: ./gradlew integrationTest --tests '*IntegrationTest'
-
-      - name: Publish api models package
+          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+          MAJOR:     ${{ steps.compute.outputs.major }}
+          MINOR:     ${{ steps.compute.outputs.minor }}
+          PATCH:     ${{ steps.compute.outputs.patch }}
         run: |
-          version=$(git rev-parse --short HEAD)
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            version=${version}-SNAPSHOT
-          fi
-          ./gradlew :claims-data:api:publish -Pversion=$version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          set -eu
+          BUMP="${BUMP_TYPE:-none}"
+          M="${MAJOR:-0}"; N="${MINOR:-0}"; P="${PATCH:-0}"
+          if [[ "$BUMP" == "none" ]]; then P=$((P+1)); fi
+          HASH=$(git rev-parse --short HEAD)
+          VERSION="${M}.${N}.${P}-${HASH}-SNAPSHOT"
+          echo "snapshot_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Snapshot version: ${VERSION}"
 
-      - name: Upload service JAR artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: service-jar
-          path: claims-data/service/build/libs/*.jar
-          retention-days: 1
-
-      - name: Upload checkstyle report for claims-data
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: checkstyle-report
-          path: claims-data/service/build/reports/checkstyle
-          retention-days: 14
-
-      - name: Upload test report for claims-data
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: test-report
-          path: claims-data/service/build/reports/tests
-          retention-days: 14
-
-      - name: Upload jacoco coverage report for claims-data
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: jacoco-coverage-report
-          path: claims-data/service/build/reports/jacoco
-          retention-days: 14
-
-  sca-scan:
-    needs:
-      - build-test
-    uses: ./.github/workflows/sca-analysis.yml
+  build-and-test:
+    needs: [ compute-snapshot-version ]
+    if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
     permissions:
-      contents: read
+      contents: write
+      packages: write
     with:
-      java-version: *JAVA_VERSION
-      distribution: *JDK_DISTRIBUTION
+      java_version: *JAVA_VERSION
+      java_distribution: *JDK_DISTRIBUTION
+      integration_test_task: 'integrationTest'
+      release_type: 'snapshot'
+      override_version: ${{ needs.compute-snapshot-version.outputs.snapshot_version }}
+      semgrep_check: 'true'
+      jacoco_coverage_report: 'true'
+      jacoco_coverage_report_path: 'claims-data/service/build/reports/jacoco'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
 
-  semgrep-scan:
-    name: semgrep-security-scan
-    needs: build-test
-    runs-on: ubuntu-latest
-    container:
-      image: returntocorp/semgrep
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Run Semgrep scan
-        run: semgrep scan --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token --error --config auto
+  pact-test:
+    needs: [ build-and-test ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    with:
+      pact_test_task: ":claims-data:service:pactTest"
+      pacticipant_name: 'laa-data-claims-api'
+      is_provider: true
+      java_version: *JAVA_VERSION
+      java_distribution: *JDK_DISTRIBUTION
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
+      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
+      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   vulnerability-scan-app:
     runs-on: ubuntu-latest
-    needs:
-      - build-test
+    needs: [ build-and-test ]
     permissions:
       contents: read
-      security-events: write
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       SNYK_TEST_EXCLUDE: build,generated
       SNYK_TARGET_REFERENCE: main
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Snyk to check app for vulnerabilities
-        uses: snyk/actions/gradle@master # WARNING: Using mutable master branch - consider pinning to specific commit
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
         with:
           command: code test
           args: --severity-threshold=high
 
-  vulnerability-scan-docker:
+  bdd-test:
     runs-on: ubuntu-latest
-    needs:
-      - build-test
+    needs: [ build-and-test ]
+    timeout-minutes: 20
     permissions:
       contents: read
-      security-events: write
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      packages: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      - name: Run BDD test suite
+        uses: ./.github/actions/bdd-test
         with:
           java-version: *JAVA_VERSION
-          distribution: *JDK_DISTRIBUTION
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.0.0
-
-      - name: Build app jar with gradle
-        run: ./gradlew build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build local Docker image
-        run: |
-          docker build -t claims-data-scan .
-          docker save claims-data-scan -o image.tar
-
-      - name: Run Snyk to scan Docker image from tarball
-        uses: snyk/actions/docker@master # WARNING: Using mutable master branch - consider pinning to specific commit
-        with:
-          image: image.tar
-          args: --docker --severity-threshold=high --policy-path=.snyk
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          java-distribution: *JDK_DISTRIBUTION
 
   helm-template-check:
     runs-on: ubuntu-latest
-    needs:
-      - build-test
+    needs: [ build-and-test ]
     strategy:
       fail-fast: false
       matrix:
@@ -179,10 +131,10 @@ jobs:
           - production
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Helm
-        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
 
       - name: Render chart for ${{ matrix.environment }}
         run: |
@@ -198,54 +150,32 @@ jobs:
             --set namespace="test"
 
   ecr-publish-image:
-    needs:
-      - build-test
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+    needs: [ build-and-test, compute-snapshot-version, bdd-test ]
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
     permissions:
       contents: read
       id-token: write
       security-events: write
     with:
       jar_subproject: 'claims-data:service'
-      image_version: ${{ github.sha }}
-      java_version: '25'
-      java_distribution: 'corretto'
+      image_version: ${{ format('{0}-{1}', vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX, needs.compute-snapshot-version.outputs.snapshot_version) }}
+      java_version: *JAVA_VERSION
+      java_distribution: *JDK_DISTRIBUTION
+      image_scan: 'true'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-  pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
-    needs:
-      - build-test
-    permissions:
-      contents: write
-      packages: write
-      pull-requests: write
-    with:
-      pact_test_task: ":claims-data:service:pactTest"
-      pacticipant_name: 'laa-data-claims-api'
-      is_provider: true
-      java_version: '25'
-      java_distribution: 'corretto'
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-      pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
-      pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
-      pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   deploy-uat-preview:
-    runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
       - pact-test
-      - semgrep-scan
       - vulnerability-scan-app
-      - vulnerability-scan-docker
-      - sca-scan
+      - bdd-test
+    runs-on: ubuntu-latest
     environment: uat
     permissions:
       id-token: write
@@ -254,7 +184,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Extract release name
         id: extract_release_name_uat
@@ -264,7 +194,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -289,7 +219,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@345e0172073b135f5bb0dfaa8ba3731abe1054cc # v2.1.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}

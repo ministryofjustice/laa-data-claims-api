@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.runner;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import ch.qos.logback.classic.Level;
@@ -182,7 +184,7 @@ class ReplicationSummaryRunnerTest {
     logger.addAppender(listAppender);
 
     // Act & Assert: exception is propagated
-    org.junit.jupiter.api.Assertions.assertThrows(
+    assertThrows(
         DataAccessResourceFailureException.class,
         () -> runner.run(mock(ApplicationArguments.class)));
 
@@ -193,8 +195,7 @@ class ReplicationSummaryRunnerTest {
                 e ->
                     e.getLevel().equals(Level.ERROR)
                         && e.getFormattedMessage().contains("Database access error"));
-    org.junit.jupiter.api.Assertions.assertTrue(
-        foundError, "Expected an ERROR log for DataAccessException");
+    assertTrue(foundError, "Expected an ERROR log for DataAccessException");
 
     // cleanup
     logger.detachAppender(listAppender);
@@ -213,8 +214,7 @@ class ReplicationSummaryRunnerTest {
     logger.addAppender(listAppender);
 
     // Act & Assert: runtime exception is propagated
-    org.junit.jupiter.api.Assertions.assertThrows(
-        RuntimeException.class, () -> runner.run(mock(ApplicationArguments.class)));
+    assertThrows(RuntimeException.class, () -> runner.run(mock(ApplicationArguments.class)));
 
     // Verify an error log was emitted for unexpected error
     boolean foundError =
@@ -224,8 +224,7 @@ class ReplicationSummaryRunnerTest {
                     e.getLevel().equals(Level.ERROR)
                         && e.getFormattedMessage()
                             .contains("Unexpected error while updating replication summary"));
-    org.junit.jupiter.api.Assertions.assertTrue(
-        foundError, "Expected an ERROR log for unexpected exception");
+    assertTrue(foundError, "Expected an ERROR log for unexpected exception");
 
     // cleanup
     logger.detachAppender(listAppender);

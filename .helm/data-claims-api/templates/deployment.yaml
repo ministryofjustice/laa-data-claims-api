@@ -8,11 +8,12 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  minReadySeconds: 15
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
-      maxSurge: 100%
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "data-claims-api.selectorLabels" . | nindent 6 }}
@@ -20,9 +21,8 @@ spec:
     metadata:
       labels:
         {{- include "data-claims-api.selectorLabels" . | nindent 8 }}
-      annotations:
-        releaseTime: {{ dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote }}
     spec:
+      terminationGracePeriodSeconds: 60
       serviceAccountName: "{{ .Values.service_account.name }}"
       containers:
         - name: {{ .Chart.Name }}
@@ -32,16 +32,24 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/liveness
               port: 8081
             initialDelaySeconds: 60
+            periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8081
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
+            periodSeconds: 10
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
@@ -87,6 +95,18 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: reporting-password
+            - name: DATA_FACTORY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: data-factory-username
+            - name: DATA_FACTORY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: data-factory-password
+            - name: CLAIM_LINE_NUMBER_UNIQUENESS_CUTOFF
+              value: {{ dateInZone "2006-01-02 15:04:05-07:00" (now) "UTC" | quote }}
             {{ include "dbConnectionDetails" . | nindent 12 }}
             - name: DB_URL
               value: "jdbc:postgresql://$(DB_HOST):5432/$(DB_NAME)"
@@ -105,11 +125,56 @@ spec:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: hikari-idle-timeout
+            - name: CLAIMS_API_AMENDMENTS_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: amendments-enabled
+                  optional: true
             - name: HIKARI_CONNECTION_TIMEOUT
               valueFrom:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
                   key: hikari-connection-timeout
+            - name: PROVIDER_DETAILS_API_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: provider-details-api-access-token
+            - name: PROVIDER_DETAILS_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: provider-details-api-url
+            - name: FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-access-token
+            - name: FEE_SCHEME_PLATFORM_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-url
+            - name: FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-read-timeout-ms
+                  optional: true
+            - name: FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: fee-scheme-platform-api-connect-timeout-ms
+                  optional: true
+            # Caps the JVM metaspace explicitly rather than letting the Paketo memory
+            # calculator derive it from a build-time class count (which comes to a lower number of ~169m).
+            # 224m matches this app's real runtime class loading (loaded classes stabilise around 33K)
+            # Under the fixed container memory limit the metaspace reservation comes out of heap;
+            # revisit if heap pressure appears.
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxMetaspaceSize=224m"
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION

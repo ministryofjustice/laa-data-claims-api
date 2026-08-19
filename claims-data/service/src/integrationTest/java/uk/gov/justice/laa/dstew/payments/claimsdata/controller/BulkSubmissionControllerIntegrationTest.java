@@ -481,6 +481,52 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
   }
 
+  @Test
+  @DisplayName(
+      "Preserves accented letters and curly apostrophes through CSV upload and DB round-trip")
+  void shouldPreserveUnicodeNamesForCsvUpload() throws Exception {
+    assertUnicodeNamesPreservedEndToEnd(
+        "test_upload_files/csv/outcomes_unicode_names.csv", TEXT_CSV);
+  }
+
+  @Test
+  @DisplayName(
+      "Preserves accented letters and curly apostrophes through XML upload and DB round-trip")
+  void shouldPreserveUnicodeNamesForXmlUpload() throws Exception {
+    assertUnicodeNamesPreservedEndToEnd(
+        "test_upload_files/xml/outcomes_unicode_names.xml", "text/xml");
+  }
+
+  private void assertUnicodeNamesPreservedEndToEnd(String filePath, String contentType)
+      throws Exception {
+    ClassPathResource resource = new ClassPathResource(filePath);
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), contentType, resource.getInputStream());
+
+    // when: uploading a file whose name fields contain accented letters and a curly apostrophe
+    mockMvc
+        .perform(
+            multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                .file(file)
+                .param(USER_ID_PARAM, TEST_USER)
+                .param(OFFICES_PARAM, TEST_OFFICE)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isCreated());
+
+    // then: the characters survive HTTP upload, parsing, JSONB storage and retrieval unchanged
+    List<BulkSubmission> submissions = bulkSubmissionRepository.findAll();
+    assertThat(submissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = submissions.getFirst();
+    BulkSubmissionOutcome outcome = savedBulkSubmission.getData().getOutcomes().getFirst();
+
+    assertThat(outcome.getClientForename()).isEqualTo("Si\u00e2n"); // Siân
+    assertThat(outcome.getClientSurname()).isEqualTo("O\u2019Brien"); // O’Brien (curly apostrophe)
+    assertThat(outcome.getClient2Surname()).isEqualTo("\u0141ukasz"); // Łukasz
+
+    // drain the SQS message this upload published so it cannot leak into later tests
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
   private void verifyIfSqsMessageIsReceived(BulkSubmission saved) {
     // then: SQS has received a message
     ReceiveMessageResponse receiveResp =

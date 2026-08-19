@@ -1,0 +1,45 @@
+meta {
+  name: SETUP: Verify claim has fee calculation
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://{{HOST}}/api/v1/submissions/:submission_id/claims/:claim_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  submission_id: {{SUBMISSION_ID}}
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+tests {
+  if (res.status !== 200) {
+    throw new Error("Expected 200 from claim lookup. Check SUBMISSION_ID/CLAIM_ID and environment HOST.");
+  }
+
+  const body = res.getBody();
+  const fee = body.fee_calculation_response;
+
+  if (!fee) {
+    throw new Error(
+      "Claim has no fee_calculation_response. Create/find another claim (run valid setup again) or wait for downstream pricing completion."
+    );
+  }
+
+  bru.setEnvVar("SUMMARY_FEE_ID", String(fee.claim_summary_fee_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

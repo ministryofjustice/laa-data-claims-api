@@ -4,6 +4,11 @@
 
 Describe what you did and why.
 
+> **PR title must follow [Conventional Commits](https://www.conventionalcommits.org/)** (e.g. `feat(DSTEW-XXX): add outcome validation`).\
+> It is linted in CI and drives the release version bump.\
+> Allowed types: `feat`, `fix`, `chore`, `refactor`, `test`, `spike`, `docs`, `ci`, `infra`.\
+> Version bump: `feat` → minor; any type followed by `!` or a `BREAKING CHANGE` footer → major; every other type (`fix`, `chore`, `refactor`, `test`, `spike`, `docs`, `ci`, `infra`) → patch.
+
 ## Checklist
 
 Before you ask people to review this PR please ensure the following and mark as complete when done:

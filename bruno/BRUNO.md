@@ -31,6 +31,54 @@ Maintaining this collection well means teams can debug faster, reproduce issues 
 - Use Bruno UI for daily work (open collection, select environment, edit variable values, run requests).
 - Before commit, review generated `.bru` diffs manually for quality and portability.
 - Convert machine-specific absolute upload paths to repo-relative paths before pushing.
+- Never commit `.bru` files that reference absolute personal paths (for example `/Users/<name>/...`). Use repo-committed assets instead.
+
+## Upload assets (`test-assets/`)
+
+Upload files used by requests live in `bruno/test-assets/` so the collection is
+self-contained and portable across machines and CI.
+
+- Put shared sample files directly under `bruno/test-assets/`.
+- Group ticket- or scenario-specific files in a subfolder, e.g. `bruno/test-assets/DSTEW-1256/`.
+- `@file(...)` paths are resolved relative to the collection root (`bruno/`), so
+  reference assets as `@file(test-assets/<name>)`.
+
+Examples:
+
+```
+body:multipart-form {
+  file: @file(test-assets/outcomes_crime_lower_no_schedule.csv) @contentType(text/csv)
+}
+```
+
+```
+body:multipart-form {
+  file: @file(test-assets/DSTEW-1256/DEC-2025.csv) @contentType(text/csv)
+}
+```
+
+When adding a new upload:
+
+1. Copy a sanitised sample file into `bruno/test-assets/` (never real client / PII data).
+2. Reference it with a repo-relative `@file(test-assets/...)` path.
+3. Reuse existing samples where possible instead of duplicating.
+
+All upload requests in this collection reference files under `bruno/test-assets/`, so the
+collection is fully self-contained and does not depend on files elsewhere in the repo.
+
+### No PII / synthetic data only
+
+Files in `bruno/test-assets/` must contain synthetic test data only — never real
+client or personal data. When adding or editing an asset, use obvious placeholder
+values, for example:
+
+- Names: `Test` / `Person 001` (avoid real forenames/surnames).
+- Dates of birth: placeholder dates (e.g. `01/01/1990`).
+- Postcodes: non-residential values (e.g. `SW1H 9EA`).
+- Identifiers (UCN, case refs, DSCC numbers, scheme IDs): made-up test values.
+
+Do not include National Insurance numbers, email addresses, phone numbers, or any
+real addresses. Review new assets before commit to confirm they are PII-free.
 
 ## Quick start (UI)
 
@@ -46,6 +94,18 @@ Expected result:
 
 - Setup requests populate IDs such as `SUBMISSION_ID` and `CLAIM_ID`.
 - You can then run requests under `api/v1/...` without manually copying IDs.
+
+### Amendment repricing scenario pack (DSTEW-1757..1762)
+
+- Scenario folder: `api/v1/submissions/claims/amendment-repricing/`
+- Full runbook: `AMENDMENT-REPRICING-TEST-STRATEGY.md`
+- Run setup requests first, then execute the scenario requests in sequence.
+
+### Amendment smoke scenario pack
+
+- Scenario folder: `api/v1/submissions/claims/amendment-smoke/`
+- Purpose: quick happy-path check that amendment PATCH succeeds and claim fields are updated.
+- Run setup requests first, then execute `01 ...` and `02 ...` in sequence.
 
 Helpful docs:
 
@@ -99,12 +159,18 @@ Execution order:
 3. `SETUP: Grab claim id from submission`
    - Reads submission by `SUBMISSION_ID`.
    - Writes `CLAIM_ID`.
+4. `SETUP: Verify claim has fee calculation`
+   - Reads claim by `SUBMISSION_ID` + `CLAIM_ID`.
+   - Fails fast if `fee_calculation_response` is null.
+   - Writes `SUMMARY_FEE_ID` and baseline fee snapshot vars used by amendment-repricing checks.
 
 Path portability rule:
 
 - Bruno UI will save upload file paths as absolute local paths.
 - Bruno UI does not currently provide a feature to convert those file paths to repo-relative paths.
-- Before commit, manually edit the request `.bru` file and change upload paths to repo-relative values..
+- Before commit, manually edit the request `.bru` file and change the upload path to a
+  repo-relative `@file(test-assets/...)` value (see "Upload assets" above), copying the
+  file into `bruno/test-assets/` if it is not already committed.
 
 Helpful docs:
 

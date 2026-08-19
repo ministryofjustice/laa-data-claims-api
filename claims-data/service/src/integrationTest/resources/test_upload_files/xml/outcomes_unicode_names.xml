@@ -1,0 +1,30 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+    xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <office account="0U099L">
+        <schedule submissionPeriod="APR-2021" areaOfLaw="LEGAL HELP" scheduleNum="0U099L/LEGAL_HELP">
+            <outcome matterType="IALB:IFRA">
+                <outcomeItem name="CASE_REF_NUMBER">TestCaseRef</outcomeItem>
+                <outcomeItem name="CASE_START_DATE">07/07/2022</outcomeItem>
+                <outcomeItem name="CASE_ID">001</outcomeItem>
+                <outcomeItem name="UFN">070722/001</outcomeItem>
+                <outcomeItem name="PROCUREMENT_AREA">PA00136</outcomeItem>
+                <outcomeItem name="ACCESS_POINT">AP00137</outcomeItem>
+                <outcomeItem name="CLIENT_FORENAME">Siân</outcomeItem>
+                <outcomeItem name="CLIENT_SURNAME">O’Brien</outcomeItem>
+                <outcomeItem name="CLIENT2_SURNAME">Łukasz</outcomeItem>
+                <outcomeItem name="CLIENT_DATE_OF_BIRTH">14/09/1962</outcomeItem>
+                <outcomeItem name="UCN">14091962/T/PERS</outcomeItem>
+                <outcomeItem name="GENDER">M</outcomeItem>
+                <outcomeItem name="ETHNICITY">99</outcomeItem>
+                <outcomeItem name="DISABILITY">UKN</outcomeItem>
+                <outcomeItem name="CLIENT_POST_CODE">SW1H 9EA</outcomeItem>
+                <outcomeItem name="WORK_CONCLUDED_DATE">21/10/2022</outcomeItem>
+                <outcomeItem name="PROFIT_COST">228.00</outcomeItem>
+                <outcomeItem name="OUTCOME_CODE">IX</outcomeItem>
+            </outcome>
+        </schedule>
+    </office>
+</submission>
+

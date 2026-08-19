@@ -1,0 +1,5 @@
+{
+  "categoryOfLawCodes": ["string"],
+  "feeCodeDescription": "disbursement fee description",
+  "feeType": "DISB_ONLY"
+}

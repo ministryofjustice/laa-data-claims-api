@@ -28,7 +28,7 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
     ClaimSummaryFee summaryFee = result.get();
     assertThat(summaryFee.getClaim().getId()).isEqualTo(CLAIM_1_ID);
     assertThat(summaryFee.getAdviceTime()).isEqualTo(120);
-    assertThat(summaryFee.getMeetingsAttendedCode()).isEqualTo("MEET-A");
+    assertThat(summaryFee.getMeetingsAttendedCode()).isEqualTo(MEETING_ATTENDED_CODE_1);
   }
 
   @Test
@@ -37,7 +37,7 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
     var result = claimSummaryFeeRepository.findByClaim(claim);
 
     assertThat(result).isPresent();
-    assertThat(result.get().getAdviceTypeCode()).isEqualTo("ADV-002");
+    assertThat(result.get().getAdviceTypeCode()).isEqualTo("REM");
   }
 
   @Test

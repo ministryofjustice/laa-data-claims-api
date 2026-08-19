@@ -2,8 +2,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CASE_REFERENCE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.FEE_CODE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SCHEDULE_REFERENCE;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -16,6 +18,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
@@ -27,6 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * This contains integration tests to verify the filtering logic implemented in the {@link
  * ClaimSpecification} and used by the {@link ClaimRepository}.
  */
+@Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("ClaimRepository Integration Test")
 public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -120,7 +124,7 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     Page<Claim> result =
         claimRepository.findAll(
             ClaimSpecification.filterBy(
-                "office2",
+                OFFICE_ACCOUNT_NUMBER_2,
                 null,
                 List.of(
                     SubmissionStatus.CREATED,
@@ -156,7 +160,16 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     Page<Claim> result =
         claimRepository.findAll(
             ClaimSpecification.filterBy(
-                "office2", null, List.of(), null, null, null, null, List.of(), null, null),
+                OFFICE_ACCOUNT_NUMBER_2,
+                null,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                null,
+                null),
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(1);
@@ -178,11 +191,11 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
     Page<Claim> result =
         claimRepository.findAll(
             ClaimSpecification.filterBy(
-                "office1",
+                OFFICE_ACCOUNT_NUMBER_1,
                 null,
                 null,
-                "FEE_123",
-                "UFN_123",
+                FEE_CODE,
+                UNIQUE_FILE_NUMBER,
                 null,
                 null,
                 List.of(ClaimStatus.READY_TO_PROCESS),
@@ -207,6 +220,10 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
         .usingRecursiveComparison()
         .ignoringFields(
             "id",
+            // claim1 and claim4 are intentionally distinct claims that share the search keys
+            // (office/fee/UFN/status). Since line_number is now unique per submission
+            // (uq_claim_submission_line_number), they differ by line number by design.
+            "lineNumber",
             IGNORE_FIELD_SUBMISSION,
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
@@ -226,11 +243,20 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
    */
   public static Stream<Arguments> getClaimsSearchQueryParams() {
     return Stream.of(
-        Arguments.of("office2", null, null, null, null, null, null, null, null, null),
+        Arguments.of(OFFICE_ACCOUNT_NUMBER_2, null, null, null, null, null, null, null, null, null),
         Arguments.of(
-            "office2", SUBMISSION_2_ID.toString(), null, null, null, null, null, null, null, null),
+            OFFICE_ACCOUNT_NUMBER_2,
+            SUBMISSION_2_ID.toString(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null),
         Arguments.of(
-            "office2",
+            OFFICE_ACCOUNT_NUMBER_2,
             null,
             List.of(SubmissionStatus.VALIDATION_SUCCEEDED),
             null,
@@ -240,12 +266,25 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             null,
             null,
             null),
-        Arguments.of("office2", null, null, "FEE_333", null, null, null, null, null, null),
-        Arguments.of("office2", null, null, null, "UFN_333", null, null, null, null, null),
-        Arguments.of("office2", null, null, null, null, "UCN_333", null, null, null, null),
-        Arguments.of("office2", null, null, null, null, null, "UC_ID_2", null, null, null),
         Arguments.of(
-            "office2",
+            OFFICE_ACCOUNT_NUMBER_2, null, null, "FEE333", null, null, null, null, null, null),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2, null, null, null, "030125/003", null, null, null, null, null),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2,
+            null,
+            null,
+            null,
+            null,
+            "02021991/B/CDEF",
+            null,
+            null,
+            null,
+            null),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2, null, null, null, null, null, "UC_ID_2", null, null, null),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2,
             null,
             null,
             null,
@@ -255,7 +294,9 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             List.of(ClaimStatus.INVALID),
             null,
             null),
-        Arguments.of("office2", null, null, null, null, null, null, null, "APR-2024", null),
-        Arguments.of("office2", null, null, null, null, null, null, null, null, "CASE-123"));
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2, null, null, null, null, null, null, null, "APR-2024", null),
+        Arguments.of(
+            OFFICE_ACCOUNT_NUMBER_2, null, null, null, null, null, null, null, null, "CASE-123"));
   }
 }

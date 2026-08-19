@@ -3,6 +3,20 @@ version: v1.25.1
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 #
 ignore:
+  # CVE-2026-4438 - glibc/libc6 (Ubuntu 24.04 base-image OS package).
+  # Transitive base-image vulnerability, not a dependency declared by this repo.
+  # The application runtime image is amazoncorretto:*-alpine (musl, no glibc); glibc/libc6
+  # only appears in the Ubuntu-based build stage / scanner image. Fixed upstream in
+  # 2.39-0ubuntu8.8 and will be picked up automatically on the next clean base-image
+  # rebuild (docker build --pull). No application-code remediation is available.
+  # Time-boxed so it is revisited once the updated base image has propagated.
+  SNYK-UBUNTU2404-GLIBC-15804816:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-4438. Fixed upstream in
+          2.39-0ubuntu8.8; resolved by rebuilding on the updated base image. Not
+          present in the shipped Alpine runtime and not fixable from app code.
+        expires: 2026-08-26T00:00:00.000Z
 # Example entry format:
 #  SNYK-VULNERABILITY-ID:
 #    - '<package>@<version>':

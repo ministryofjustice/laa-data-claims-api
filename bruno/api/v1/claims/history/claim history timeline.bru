@@ -1,0 +1,29 @@
+meta {
+  name: claim history timeline
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://{{HOST}}/api/v1/claims/:claim_id/history?limit=50
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 50
+}
+
+params:path {
+  claim_id: {{CLAIM_ID}}
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

@@ -11,9 +11,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,6 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
@@ -38,6 +44,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ClaimMapper tests")
 class ClaimMapperTest {
 
   @InjectMocks private final ClaimMapperImpl mapper = new ClaimMapperImpl();
@@ -139,6 +146,8 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .hasAssessment(true)
+            .isAmended(false)
             .submission(Submission.builder().id(submissionId).submissionPeriod("APR-2025").build())
             .build();
 
@@ -177,6 +186,8 @@ class ClaimMapperTest {
     assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.isHasAssessment(), fields.getHasAssessment());
+    assertEquals(entity.isAmended(), fields.getIsAmended());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
   }
@@ -214,12 +225,20 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .hasAssessment(false)
+            .isAmended(true)
+            .claimSummaryFee(new ArrayList<>())
             .submission(
                 Submission.builder()
                     .id(submissionId)
                     .submissionPeriod("APR-2025")
                     .createdOn(Instant.now())
                     .build())
+            .calculatedFeeDetails(
+                List.of(
+                    CalculatedFeeDetail.builder()
+                        .claimSummaryFee(ClaimSummaryFee.builder().isVatApplicable(true).build())
+                        .build()))
             .build();
 
     final ClaimResponseV2 fields = mapper.toClaimResponseV2(entity);
@@ -257,9 +276,14 @@ class ClaimMapperTest {
     assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.isHasAssessment(), fields.getHasAssessment());
+    assertEquals(entity.isAmended(), fields.getIsAmended());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
     assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
+    assertEquals(
+        entity.getLatestCalculatedFee().getClaimSummaryFee().getIsVatApplicable(),
+        fields.getIsVatApplicable());
   }
 
   @Test
@@ -277,6 +301,44 @@ class ClaimMapperTest {
     assertNotNull(response);
     assertEquals(id, response.getClaimId());
     assertEquals(ClaimStatus.READY_TO_PROCESS, response.getStatus());
+  }
+
+  @ParameterizedTest(name = "[{index}] status={0}, hasAssessment={1}, isAmended={2} -> {3}")
+  @CsvSource({
+    "VOID,             false, false, VOIDED",
+    "INVALID,          false, false, INVALID",
+    "READY_TO_PROCESS, false, false, READY_TO_PROCESS",
+    "VALID,            false, false, ACCEPTED",
+    "VALID,            false, true,  AMENDED",
+    "VALID,            true,  false, ASSESSED",
+    "VALID,            true,  true,  ASSESSED",
+  })
+  @DisplayName("toClaimResponseV2 derives derived_claim_status and leaves raw status unchanged")
+  void toClaimResponseV2_populatesDerivedClaimStatus(
+      ClaimStatus status,
+      boolean hasAssessment,
+      boolean isAmended,
+      DerivedClaimStatus expectedDerived) {
+    final Claim entity =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .status(status)
+            .hasAssessment(hasAssessment)
+            .isAmended(isAmended)
+            .claimSummaryFee(new ArrayList<>())
+            .calculatedFeeDetails(new ArrayList<>())
+            .submission(Submission.builder().id(Uuid7.timeBasedUuid()).build())
+            .build();
+
+    final ClaimResponseV2 response = mapper.toClaimResponseV2(entity);
+
+    assertNotNull(response);
+    // Derived business status is populated from the resolver...
+    assertEquals(expectedDerived, response.getDerivedClaimStatus());
+    // ...and the raw processing status is left untouched.
+    assertEquals(status, response.getStatus());
+    assertEquals(hasAssessment, response.getHasAssessment());
+    assertEquals(isAmended, response.getIsAmended());
   }
 
   @Test
@@ -332,6 +394,31 @@ class ClaimMapperTest {
     assertEquals("SYSTEM", log.getSource());
     assertEquals("A display message", log.getDisplayMessage());
     assertEquals("A technical message", log.getTechnicalMessage());
+  }
+
+  @Test
+  void toValidationMessageLog_mapsMessageCodeForFspMessages() {
+    final Submission submission = Submission.builder().id(Uuid7.timeBasedUuid()).build();
+    final Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).submission(submission).build();
+
+    final ValidationMessagePatch patch =
+        new ValidationMessagePatch()
+            .type(ValidationMessageType.ERROR)
+            .source("FSP")
+            .displayMessage("FSP error message")
+            .technicalMessage("FSP technical details")
+            .messageCode("ERRALL1");
+
+    final ValidationMessageLog log = mapper.toValidationMessageLog(patch, claim);
+
+    assertNotNull(log.getId());
+    assertEquals(submission.getId(), log.getSubmissionId());
+    assertEquals(claim.getId(), log.getClaimId());
+    assertEquals(ValidationMessageType.ERROR, log.getType());
+    assertEquals("FSP", log.getSource());
+    assertEquals("FSP error message", log.getDisplayMessage());
+    assertEquals("FSP technical details", log.getTechnicalMessage());
+    assertEquals("ERRALL1", log.getMessageCode());
   }
 
   @Test

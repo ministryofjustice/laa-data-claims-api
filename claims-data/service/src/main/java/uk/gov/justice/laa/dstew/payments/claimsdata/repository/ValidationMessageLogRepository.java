@@ -48,6 +48,7 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
                   v.type            AS type,
                   v.source          AS source,
                   v.displayMessage  AS displayMessage,
+                  v.messageCode     AS messageCode,
                   cl.uniqueFileNumber        AS uniqueFileNumber,
                   cli.clientForename         AS clientForename,
                   cli.clientSurname          AS clientSurname,

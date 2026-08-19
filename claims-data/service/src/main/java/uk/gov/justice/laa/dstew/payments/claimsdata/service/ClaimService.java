@@ -1,10 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
-import java.time.OffsetDateTime;
+import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +19,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -26,9 +32,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -53,6 +61,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
@@ -80,6 +90,18 @@ public class ClaimService
   private final ClaimValidationService claimValidationService;
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
+  private final ClaimAmendmentService claimAmendmentService;
+  private final ClaimAmendmentStateService claimAmendmentStateService;
+
+  private static final Set<String> IGNORED_FIELDS =
+      Set.of(
+          "id",
+          "submissionId",
+          "status",
+          "validationMessages",
+          "feeCalculationResponse",
+          "version",
+          "createdByUserId");
 
   @Override
   public SubmissionRepository lookup() {
@@ -101,6 +123,29 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+
+    // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
+    // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
+    // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
+    //
+    // CAVEAT (old-vs-new): the DB index is PARTIAL - it grandfathers pre-existing historical
+    // duplicates (business rule: we never amend or delete historical data), so it cannot catch a
+    // NEW claim that duplicates an OLD (grandfathered) row. This pre-check queries all rows, so it
+    // DOES cover that old-vs-new case. It is currently unreachable (claims are only added to
+    // newly-created submissions, never appended to historical ones) but is guarded here defensively
+    // in case that business rule ever changes.
+    //
+    // RACE: this check is not atomic with the insert below, so a small TOCTOU window remains if two
+    // requests create the same (submission_id, line_number) concurrently. The DB unique index
+    // closes that window for the common (post-cutoff) case; the residual race only affects the
+    // old-vs-new scenario above and is considered minimal/acceptable.
+    Integer lineNumber = claimPost.getLineNumber();
+    if (lineNumber != null
+        && claimRepository.existsBySubmissionIdAndLineNumber(submissionId, lineNumber)) {
+      throw new DuplicateClaimException(
+          String.format(
+              "A claim with line number %d already exists for the submission.", lineNumber));
+    }
 
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
@@ -149,7 +194,7 @@ public class ClaimService
         .findByClaimId(claimId)
         .ifPresent(fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, response));
     calculatedFeeDetailRepository
-        .findByClaimId(claimId)
+        .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId)
         .ifPresent(
             feeDetail ->
                 claimMapper.updateClaimResponseFromCalculatedFeeDetail(feeDetail, response));
@@ -183,27 +228,67 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
-    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
-    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
-    claimRepository.save(claim);
-
-    // If we have calculated fee details from the FSP as part of this patch, save them.
-    if (claimPatch.getFeeCalculationResponse() != null) {
-      CalculatedFeeDetail calculatedFeeDetail =
-          claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
-      // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
-      calculatedFeeDetail.setCreatedOn(OffsetDateTime.now());
-
-      // Get existing calculated fee detail, and set the ID if it exists
-      calculatedFeeDetailRepository
-          .findByClaimId(claimId)
-          .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
-
-      calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
-      calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
-      calculatedFeeDetailRepository.save(calculatedFeeDetail);
+    if (isAnAmendment(claimPatch, claim)) {
+      amendClaim(claim, claimPatch);
+    } else {
+      updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
+  }
+
+  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
+    if (claimPatch.getStatus() == null) {
+      return true;
+    }
+    return hasAdditionalFieldUpdates(claimPatch, claim);
+  }
+
+  /**
+   * Checks if the patch contains any fields outside of the standard status/fee update flow.
+   * Leverages short-circuit evaluation for maximum performance.
+   */
+  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+    if (patch == null) {
+      return false;
+    }
+
+    AtomicBoolean hasUpdates = new AtomicBoolean(false);
+
+    ReflectionUtils.doWithFields(
+        patch.getClass(),
+        patchField -> {
+          if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
+            return;
+          }
+
+          ReflectionUtils.makeAccessible(patchField);
+          Object patchValue = patchField.get(patch);
+
+          if (patchValue != null) {
+            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
+
+            if (claimField != null) {
+              ReflectionUtils.makeAccessible(claimField);
+              Object claimValue = claimField.get(claim);
+
+              if (Objects.equals(patchValue, claimValue)) {
+                return;
+              }
+            }
+            hasUpdates.set(true);
+          }
+        },
+        ReflectionUtils.COPYABLE_FIELDS);
+
+    return hasUpdates.get();
+  }
+
+  /**
+   * This method is called to allow legacy updates to still work.
+   *
+   * @param claim claim
+   * @param claimPatch claim patch
+   */
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
@@ -214,6 +299,51 @@ public class ClaimService
                 ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
                 validationMessageLogRepository.save(log);
               });
+    }
+
+    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
+    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
+    claimRepository.save(claim);
+
+    // If we have calculated fee details from the FSP as part of this patch, save them.
+    if (claimPatch.getFeeCalculationResponse() != null) {
+      CalculatedFeeDetail calculatedFeeDetail =
+          claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
+      // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
+      calculatedFeeDetail.setCreatedOn(Instant.now());
+
+      // Get existing calculated fee detail, and set the ID if it exists
+      calculatedFeeDetailRepository
+          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
+          .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
+
+      calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
+      calculatedFeeDetail.setClaim(claim);
+      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
+      calculatedFeeDetailRepository.save(calculatedFeeDetail);
+    }
+  }
+
+  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
+
+    if (claimPatch.getValidationMessages() != null
+        && !claimPatch.getValidationMessages().isEmpty()) {
+      claimPatch
+          .getValidationMessages()
+          .forEach(
+              message -> {
+                ValidationMessageLog validationLog =
+                    claimMapper.toValidationMessageLog(message, claim);
+                validationMessageLogRepository.save(validationLog);
+              });
+    }
+
+    ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
+
+    ClaimAmendmentResult result = claimAmendmentService.submitAmendment(claim, payload);
+
+    if (result.errors() != null && !result.errors().isEmpty()) {
+      throw new ClaimAmendmentValidationException(result.errors());
     }
   }
 
@@ -334,7 +464,7 @@ public class ClaimService
             .ifPresent(
                 fee -> claimMapper.updateClaimResponseFromClaimSummaryFee(fee, claimResponse));
         calculatedFeeDetailRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(UUID.fromString(claimResponse.getId()))
             .ifPresent(
                 feeDetail ->
                     claimMapper.updateClaimResponseFromCalculatedFeeDetail(
@@ -369,16 +499,27 @@ public class ClaimService
 
     Pageable mappedPageable = mapPageableSort(pageable);
 
-    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
-    Specification<Claim> warningSortSpec =
-        ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
-    Specification<Claim> submissionPeriodSortSpec =
-        ClaimSpecification.orderBySubmissionPeriod(mappedPageable);
-    Specification<Claim> combinedSpec = baseSpec.and(warningSortSpec).and(submissionPeriodSortSpec);
-
     Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
     sanitizedPageable =
         removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
+    sanitizedPageable =
+        removeCustomSortFromPageable(
+            sanitizedPageable, ClaimSpecification.DERIVED_CLAIM_STATUS_SORT_KEY);
+
+    // Deterministic ordering:
+    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
+    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
+    //    unsorted so Spring Data does not override that ordering.
+    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
+    if (!hasComputedSort(mappedPageable)) {
+      sanitizedPageable = appendIdTieBreak(sanitizedPageable);
+    }
+
+    Specification<Claim> combinedSpec =
+        ClaimSpecification.filterBy(request)
+            .and(ClaimSpecification.orderByTotalWarningMessages(mappedPageable))
+            .and(ClaimSpecification.orderBySubmissionPeriod(mappedPageable))
+            .and(ClaimSpecification.orderByDerivedClaimStatus(mappedPageable));
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
@@ -425,6 +566,12 @@ public class ClaimService
     }
 
     Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+
+    // A sort-only request (no page/size) resolves to an Unpaged pageable, which does not support
+    // getPageNumber()/getPageSize(); carry the mapped sort on an unpaged instance in that case.
+    if (pageable.isUnpaged()) {
+      return Pageable.unpaged(mappedSort);
+    }
 
     return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
   }
@@ -483,7 +630,40 @@ public class ClaimService
 
     Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
 
-    return org.springframework.data.domain.PageRequest.of(
-        pageable.getPageNumber(), pageable.getPageSize(), newSort);
+    if (pageable.isUnpaged()) {
+      return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
+    }
+
+    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), newSort);
+  }
+
+  /**
+   * Entity sort paths that are backed by computed ordering {@link Specification}s rather than a
+   * persisted column. Each applies its own {@code id} tie-break, so the sanitized {@link Pageable}
+   * must be left unsorted for these to avoid Spring Data overriding the ordering.
+   */
+  private static final Set<String> COMPUTED_SORT_PATHS =
+      Set.of("totalWarnings", "submission.submissionPeriod", "derivedClaimStatus");
+
+  private boolean hasComputedSort(Pageable pageable) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return false;
+    }
+    return pageable.getSort().stream()
+        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty()));
+  }
+
+  /**
+   * Appends a deterministic secondary sort by {@code id} (ascending, UUIDv7) so rows never drift
+   * between pages. No-op for unpaged requests.
+   */
+  private Pageable appendIdTieBreak(Pageable pageable) {
+    if (pageable == null) {
+      return null;
+    }
+    Sort sortWithTieBreak = pageable.getSort().and(Sort.by(Sort.Direction.ASC, "id"));
+    return pageable.isUnpaged()
+        ? Pageable.unpaged(sortWithTieBreak)
+        : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreak);
   }
 }

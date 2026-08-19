@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -68,6 +69,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -92,6 +94,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRe
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -111,34 +115,16 @@ class ClaimServiceTest {
   @Mock private AssessmentRepository assessmentRepository;
   @Mock private ClaimValidationService claimValidationService;
   @Mock private AssessmentService assessmentService;
+  @Mock private ClaimAmendmentService claimAmendmentService;
+  @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+
+  @Spy
   private final ClaimSearchRequestValidator claimSearchRequestValidator =
       new ClaimSearchRequestValidator();
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
-  private ClaimService claimService;
-
-  @BeforeEach
-  void initServiceWithRealValidator() {
-    // Ensure the ClaimService used in tests has the real (spied) ClaimSearchRequestValidator
-    // injected.
-    claimService =
-        new ClaimService(
-            submissionRepository,
-            claimRepository,
-            clientRepository,
-            claimMapper,
-            clientMapper,
-            validationMessageLogRepository,
-            claimResultSetMapper,
-            claimSummaryFeeRepository,
-            calculatedFeeDetailRepository,
-            claimCaseRepository,
-            assessmentRepository,
-            claimValidationService,
-            assessmentService,
-            claimSearchRequestValidator);
-  }
+  @InjectMocks private ClaimService claimService;
 
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
@@ -221,6 +207,24 @@ class ClaimServiceTest {
   }
 
   @Test
+  void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    post.setLineNumber(7);
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimRepository.existsBySubmissionIdAndLineNumber(submissionId, 7)).thenReturn(true);
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(DuplicateClaimException.class)
+        .hasMessageContaining("line number 7");
+
+    // Fails fast: no claim (or child records) is written.
+    verify(claimRepository, never()).save(any());
+  }
+
+  @Test
   void shouldGetClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
@@ -236,7 +240,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.of(client));
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimCase));
 
@@ -261,7 +265,8 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
+        .thenReturn(Optional.empty());
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
@@ -283,7 +288,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
@@ -306,7 +311,8 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.of(claimSummaryFee));
-    when(calculatedFeeDetailRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
+        .thenReturn(Optional.empty());
 
     final ClaimResponse result = claimService.getClaim(submissionId, claimId);
 
@@ -328,7 +334,7 @@ class ClaimServiceTest {
     when(claimMapper.toClaimResponse(claim)).thenReturn(fields);
     when(clientRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
-    when(calculatedFeeDetailRepository.findByClaimId(claimId))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(claimId))
         .thenReturn(Optional.of(calculatedFeeDetail));
     when(claimCaseRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
 
@@ -387,8 +393,9 @@ class ClaimServiceTest {
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final Claim claim = Claim.builder().id(claimId).build();
+    final Claim claim = Claim.builder().id(claimId).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
@@ -404,6 +411,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setVersion(1L);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -417,8 +425,11 @@ class ClaimServiceTest {
   @Test
   void shouldCreateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -442,8 +453,11 @@ class ClaimServiceTest {
   @Test
   void shouldUpdateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
     patch.setValidationMessages(Collections.emptyList());
@@ -457,7 +471,7 @@ class ClaimServiceTest {
     final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
     UUID calculatedFeeDetailId = new UUID(0, 1);
     calculatedFeeDetail.setId(calculatedFeeDetailId);
-    when(calculatedFeeDetailRepository.findByClaimId(CLAIM_1_ID))
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID))
         .thenReturn(Optional.of(calculatedFeeDetail));
     final CalculatedFeeDetail resultingFeeDetail = new CalculatedFeeDetail();
     when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(resultingFeeDetail);
@@ -472,8 +486,11 @@ class ClaimServiceTest {
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
     final ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final Submission submission = ClaimsDataTestUtil.getSubmission();
-    final Claim claim = ClaimsDataTestUtil.getClaimBuilder().submission(submission).build();
+    // Added version to mock Claim
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
 
@@ -510,9 +527,11 @@ class ClaimServiceTest {
     final Claim claim =
         Claim.builder()
             .id(claimId)
+            .version(1L) // Added version to mock Claim
             .submission(Submission.builder().id(submissionId).build())
             .build();
     final ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
 
@@ -696,6 +715,80 @@ class ClaimServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  private static ClaimSearchRequest validV2SearchRequest() {
+    return ClaimSearchRequest.builder().officeCode(OFFICE_ACCOUNT_NUMBER).build();
+  }
+
+  @Test
+  void getClaimResultSetV2_unsupportedSortField_throwsClaimBadRequestException() {
+    assertThatThrownBy(
+            () ->
+                claimService.getClaimResultSetV2(
+                    validV2SearchRequest(), PageRequest.of(0, 10, Sort.by("not_a_real_field"))))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("Unsupported sort field: not_a_real_field");
+  }
+
+  @Test
+  void getClaimResultSetV2_plainSort_appendsDeterministicIdTieBreak() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    Sort appliedSort = pageableCaptor.getValue().getSort();
+    // Primary sort remapped to the entity property, then id ASC appended as the tie-break.
+    assertThat(appliedSort.stream().map(Sort.Order::getProperty)).containsExactly("status", "id");
+    assertThat(appliedSort.getOrderFor("status").getDirection()).isEqualTo(Sort.Direction.DESC);
+    assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
+  }
+
+  @Test
+  void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(),
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "derived_claim_status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    // Computed sort: the key is stripped and no id tie-break is layered onto the Pageable so that
+    // the ordering Specification's own orderBy (which includes the id tie-break) is not overridden.
+    assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
+  }
+
+  @Test
+  void getClaimResultSetV2_sortWithoutPaging_isUnpagedSafe() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // A sort-only request (no page/size) resolves to an Unpaged pageable; must not blow up.
+    Pageable unpagedSorted = Pageable.unpaged(Sort.by(Sort.Direction.ASC, "status"));
+
+    assertThat(claimService.getClaimResultSetV2(validV2SearchRequest(), unpagedSorted)).isNotNull();
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+    Pageable applied = pageableCaptor.getValue();
+    assertThat(applied.isUnpaged()).isTrue();
+    // Plain sort still gains the deterministic id tie-break even when unpaged.
+    assertThat(applied.getSort().stream().map(Sort.Order::getProperty))
+        .containsExactly("status", "id");
   }
 
   @ParameterizedTest

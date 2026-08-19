@@ -12,8 +12,12 @@ tags:
     description: Operations related to submissions
   - name: Claims
     description: Operations related to claims
+  - name: Claim History
+    description: Unified chronological history timeline for a single claim
   - name: Matter Starts
     description: Operations related to matter starts
+  - name: System References
+    description: Read-only governed reference data lookups (e.g. amendment metadata)
 
 paths:
   /api/v1/bulk-submissions:
@@ -463,6 +467,27 @@ paths:
           required: false
           schema:
             type: string
+          description: |
+            Sort results by a field and direction, e.g. `status,asc` or `derived_claim_status,desc`.
+
+            Supported fields include the plain claim columns exposed by the endpoint plus the
+            computed fields `total_warnings`, `submission_period` and `derived_claim_status`.
+            An unsupported field returns a 400 Problem Details response.
+
+            `derived_claim_status` sorts by the canonical business ordering
+            (ACCEPTED, AMENDED, ASSESSED, VOIDED, INVALID, READY_TO_PROCESS for ascending; the
+            reverse for descending) rather than alphabetically. See the `derived_claim_status`
+            schema and docs/derived-claim-status.md for details.
+
+            A deterministic secondary sort by `id` (ascending, UUIDv7) is always appended as the
+            final ordering clause so rows never drift between pages.
+
+            Multi-field sort caveat: plain columns may be combined (each is applied in order,
+            followed by the `id` tie-break). The computed fields (`total_warnings`,
+            `submission_period`, `derived_claim_status`) are applied as single-field sorts and
+            must NOT be combined with any other sort field in the same request; if combined the
+            computed ordering is not guaranteed to be applied. See docs/derived-claim-status.md
+            for how full computed multi-field sorting could be added in future.
         - $ref: '#/components/parameters/pageParam'
         - $ref: '#/components/parameters/sizeParam'
       responses:
@@ -627,6 +652,8 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '409':
+          description: 'Conflict - a claim with the same line number already exists in this submission'
         '429':
           description: 'Too many requests'
         '500':
@@ -1005,6 +1032,73 @@ paths:
         '500':
           description: 'Internal server error'
 
+  /api/v1/claims/{claimId}/history:
+    get:
+      operationId: getClaimHistory
+      tags:
+        - Claim History
+      summary: Get a claim's unified history timeline
+      description: |
+        Returns the complete history of a single claim as one unified, chronologically ordered
+        timeline (newest event first). The timeline is composed from multiple business tables
+        (submission, amendments, assessments) in a single query and ordered purely by event time,
+        with the UUIDv7 source id as a deterministic tie-breaker.
+
+        **Call pattern (one-response):** history is retrieved with a single request by claim id.
+        There are no split summary/detail endpoints, expansion flags or event-type/date-range
+        filters; a consumer populates its history page from this one response, optionally bounding
+        the page size with `limit`. Pagination is not offered yet (a future keyset/cursor overload
+        may be added without reshaping this contract).
+
+        **Default ordering:** `event_timestamp` descending (newest first), with the UUIDv7
+        `source_id` descending as the deterministic same-timestamp tie-break. `event_type` never
+        participates in ordering.
+
+        **Actor fallback:** `actor_id` is always populated; where the source record holds no user
+        id the agreed `SYSTEM` value is returned rather than the field being omitted.
+
+        **Metadata extension point:** every event shares the common envelope and carries its
+        event-specific attributes in the open `metadata` container, so later event types extend the
+        contract without reshaping it.
+
+        **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: UUID of the claim
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of timeline events to return (page size).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Claim history timeline retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/claim_history_result_set'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: Claim not found
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+
   /api/v1/validation-messages:
     get:
       operationId: getValidationMessages
@@ -1211,6 +1305,35 @@ paths:
         '500':
           description: Internal server error
 
+  /api/v1/system/references/amendment-requested-by:
+    get:
+      operationId: getAmendmentRequestedByReferences
+      tags:
+        - System References
+      summary: Get amendment Requested By reference data with nested Amendment Reasons
+      description: |
+        Returns the governed Requested By reference values and, for each one, the Amendment
+        Reason values valid for that requesting party, in configured display order. Both active
+        and inactive values are returned, each flagged with is_active, so consumers can resolve
+        display labels for historical amendments while still identifying which values are
+        currently selectable. The response is stable enough for consumers (e.g. AaBC) to cache
+        once at startup and reuse for the lifetime of the running pod.
+      responses:
+        '200':
+          description: Amendment reference data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/amendment_requested_by_reference_list'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: Internal server error
+
 components:
   parameters:
     pageParam:
@@ -1232,6 +1355,60 @@ components:
         default: 20
       description: Number of records per page. Defaults to 20.
   schemas:
+    amendment_requested_by_reference_list:
+      type: object
+      description: Top-level wrapper for the amendment Requested By reference lookup.
+      properties:
+        requested_by:
+          type: array
+          description: >
+            All Requested By values in display order (active and inactive), each with its reasons
+            and an is_active flag.
+          items:
+            $ref: '#/components/schemas/amendment_requested_by_reference'
+    amendment_requested_by_reference:
+      type: object
+      description: A governed Requested By reference value with its valid Amendment Reasons.
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable business code persisted on the amendment record.
+        display_label:
+          type: string
+          description: Human-readable label for dropdown rendering.
+        display_order:
+          type: integer
+          description: Lower values render first.
+        is_active:
+          type: boolean
+          description: >
+            Whether the value is currently selectable. Inactive values are still returned so
+            consumers can resolve display labels for historical amendments.
+        reasons:
+          type: array
+          description: >
+            Amendment Reason values valid for this Requested By value, in display order (active and
+            inactive, each flagged with is_active).
+          items:
+            $ref: '#/components/schemas/amendment_reason_reference'
+    amendment_reason_reference:
+      type: object
+      description: A governed Amendment Reason reference value scoped to a Requested By value.
+      properties:
+        code:
+          type: string
+          description: Stable, machine-readable business code persisted on the amendment record.
+        display_label:
+          type: string
+          description: Human-readable label for dropdown rendering.
+        display_order:
+          type: integer
+          description: Lower values render first.
+        is_active:
+          type: boolean
+          description: >
+            Whether the reason is currently selectable. Inactive reasons are still returned so
+            consumers can resolve display labels for historical amendments.
     bulk_submission_patch:
       type: object
       description: bulk submission patch details
@@ -1269,7 +1446,6 @@ components:
         - $ref: '#/components/schemas/submission_base'
       required:
         - submission_id
-        - bulk_submission_id
         - office_account_number
         - submission_period
         - area_of_law
@@ -1350,7 +1526,7 @@ components:
         bulk_submission_id:
           type: string
           format: uuid
-          description: UUID of the associated bulk submission.
+          description: Optional UUID of the associated bulk submission.
         office_account_number:
           type: string
           description: The office account number.
@@ -1428,6 +1604,19 @@ components:
         - $ref: '#/components/schemas/claim_response'
         - type: object
           properties:
+            amendment_requested_by:
+              type: string
+              description: "Requesting party code for an amendment (governed reference). Use values from GET /api/v1/system/references/amendment-requested-by"
+              nullable: true
+            amendment_user_id:
+              type: string
+              format: uuid
+              description: "UUID of the user who requested the amendment (provider/Entra user id)."
+              nullable: true
+            amendment_reason_code:
+              type: string
+              description: "Amendment reason code valid for the requesting party (see amendment_requested_by reference reasons)."
+              nullable: true
             validation_messages:
               type: array
               items:
@@ -1442,6 +1631,34 @@ components:
       description: |
         System-maintained processing status indicator that tracks the validation lifecycle of a
         claim record from initial submission through to final approval or rejection.
+    derived_claim_status:
+      type: string
+      enum:
+        - ACCEPTED
+        - AMENDED
+        - ASSESSED
+        - VOIDED
+        - INVALID
+        - READY_TO_PROCESS
+      description: |
+        Derived business status of a claim. This is a read-only value computed from the raw
+        `claim_status` together with `has_assessment` and `is_amended`. It does NOT replace
+        `claim_status`, which remains the authoritative processing status.
+
+        The enum declaration order above is the canonical business ordering and is the single
+        source of truth for both response mapping and sort ordering (ascending follows the order
+        listed; descending is the reverse).
+
+        Derivation precedence (first matching rule wins, not chronological):
+          1. claim_status = VOID              -> VOIDED
+          2. claim_status = INVALID           -> INVALID
+          3. claim_status = READY_TO_PROCESS  -> READY_TO_PROCESS
+          4. has_assessment = true            -> ASSESSED
+          5. is_amended = true                -> AMENDED
+          6. otherwise (claim_status = VALID) -> ACCEPTED
+
+        A null `has_assessment` or `is_amended` is treated as false. `claim_status` is never null.
+        See docs/derived-claim-status.md for the full specification and truth table.
     claim_result_set:
       allOf:
         - $ref: "#/components/schemas/page"
@@ -1742,6 +1959,8 @@ components:
             office_code:
               type: string
               description: Account Office Code for this claim's submission.
+            derived_claim_status:
+              $ref: '#/components/schemas/derived_claim_status'
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.
@@ -2149,6 +2368,10 @@ components:
           type: string
         technical_message:
           type: string
+        message_code:
+          type: string
+          maxLength: 20
+          description: Message code from FSP payload (e.g. WARFAM1, ERRALL1).
     validation_message_base:
       type: object
       description: Validation message
@@ -2168,6 +2391,10 @@ components:
           type: string
         display_message:
           type: string
+        message_code:
+          type: string
+          maxLength: 20
+          description: Message code from FSP payload.
         client_forename:
           type: string
           description: Client 1 forename from the associated claim
@@ -2300,6 +2527,161 @@ components:
           type: string
           format: date-time
           description: Date and time the assessment was created
+    claim_history_event_type:
+      type: string
+      enum:
+        - SUBMISSION
+        - AMENDMENT
+        - ASSESSMENT
+        - VOID
+      description: |
+        Discriminator identifying which business source produced the timeline event.
+    claim_history_event:
+      type: object
+      description: A single entry on a claim's history timeline.
+      properties:
+        event_type:
+          $ref: '#/components/schemas/claim_history_event_type'
+        event_timestamp:
+          type: string
+          format: date-time
+          description: Business time the event occurred; the sole driver of timeline ordering.
+        actor_id:
+          type: string
+          description: >
+            The user who caused the event. Always populated; "SYSTEM" when the source record has no
+            user id.
+        source_id:
+          type: string
+          format: uuid
+          description: >
+            Primary key (UUIDv7) of the originating row, used as the deterministic ordering
+            tie-breaker and future keyset cursor.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: >
+            Event-specific attributes, shaped per event type. The concrete shape is determined by
+            event_type; see the documented per-type schemas:
+            claim_history_submission_metadata (SUBMISSION),
+            claim_history_amendment_metadata (AMENDMENT),
+            claim_history_assessment_metadata (ASSESSMENT) and
+            claim_history_void_metadata (VOID). The container stays open (additionalProperties)
+            so new event types and attributes can be added without reshaping the contract.
+    claim_history_change_entry:
+      type: object
+      description: >
+        A single field-level change recorded on an amendment, lifted verbatim from the persisted
+        amendment diff. change_source distinguishes provider-requested changes from FSP
+        (Fee Scheme Platform) repricing consequences.
+      properties:
+        field_identifier:
+          type: string
+          description: Stable, machine-readable identifier of the changed field (not a display label).
+        change_source:
+          type: string
+          enum:
+            - REQUESTED
+            - FSP
+          description: >
+            Origin of the change. "REQUESTED" is a provider-requested change; "FSP" is a downstream
+            consequence of Fee Scheme Platform repricing. The value is the stable, upper-case label
+            persisted in the amendment diff and surfaced verbatim.
+        before:
+          nullable: true
+          description: Value before the amendment, in its natural JSON type. Null means cleared.
+        after:
+          nullable: true
+          description: Value after the amendment, in its natural JSON type. Null means cleared.
+    claim_history_submission_metadata:
+      type: object
+      description: Metadata carried by a SUBMISSION event.
+      properties:
+        submission_period:
+          type: string
+          description: The submission period the claim belongs to.
+        office_account_number:
+          type: string
+          description: The provider office account number for the submission.
+        area_of_law:
+          type: string
+          description: The area of law of the submission.
+    claim_history_amendment_metadata:
+      type: object
+      description: >
+        Metadata carried by an AMENDMENT event. The FSP indicators are derived exclusively from
+        amendment-linked persisted data (the linked calculated_fee_detail and the amendment diff),
+        never inferred from current claim state.
+      properties:
+        requested_by_code:
+          type: string
+          description: Governed reference code for the requesting party (e.g. PROVIDER).
+        amendment_reason_code:
+          type: string
+          description: Governed reference code for the amendment reason.
+        pricing_recalculated:
+          type: boolean
+          description: >
+            True when FSP repricing ran for this amendment, i.e. a calculated_fee_detail row is
+            linked to the amendment.
+        price_changed:
+          type: boolean
+          description: >
+            True when repricing changed the monetary value (currently driven by a change in
+            total_amount versus the previous calculated_fee_detail). False when repricing ran with
+            no monetary change, or when it did not run.
+        escape_case_logged:
+          type: boolean
+          description: >
+            True only when this amendment CAUSED the claim to become an escape case
+            (an FSP-sourced fee.escapeCaseFlag transition from false to true recorded in the
+            amendment diff). An already-escaped claim, or an amendment that did not trigger an
+            escape transition, yields false.
+        changes:
+          type: array
+          description: Field-level changes recorded on this amendment (may be empty).
+          items:
+            $ref: '#/components/schemas/claim_history_change_entry'
+    claim_history_assessment_metadata:
+      type: object
+      description: Metadata carried by an ASSESSMENT event.
+      properties:
+        assessment_type:
+          type: string
+          nullable: true
+          description: The type of assessment (null for legacy rows with no populated type).
+        assessment_outcome:
+          type: string
+          nullable: true
+          description: The assessment outcome (null when not yet determined).
+        assessment_reason:
+          type: string
+          description: The reason recorded against the assessment.
+    claim_history_void_metadata:
+      type: object
+      description: >
+        Metadata carried by a VOID event. A void carries no outcome; assessment_reason holds the
+        void reason.
+      properties:
+        assessment_type:
+          type: string
+          description: Always VOID for this event type.
+        assessment_reason:
+          type: string
+          description: The reason the claim was voided.
+    claim_history_result_set:
+      type: object
+      description: A claim's history events in reverse-chronological order.
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+          description: The claim the timeline belongs to.
+        events:
+          type: array
+          description: Timeline events, newest first.
+          items:
+            $ref: '#/components/schemas/claim_history_event'
     page:
       type: 'object'
       properties:

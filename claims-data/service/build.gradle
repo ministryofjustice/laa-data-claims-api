@@ -1,6 +1,6 @@
 plugins {
     id 'io.freefair.lombok' version '9.2.0'
-    id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
+    id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
     id "com.dorongold.task-tree" version "2.1.1"
     id("com.diffplug.spotless") version "7.2.1"
     id "io.sentry.jvm.gradle" version "5.12.2"
@@ -8,8 +8,7 @@ plugins {
 }
 
 def versions = [
-        sentry        : '8.28.0',
-        testcontainers: '1.20.1'
+        sentry        : '8.28.0'
 ]
 
 test {
@@ -41,9 +40,15 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 // Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
-// (SNYK-JAVA-IONETTY-16438929, SNYK-JAVA-IONETTY-16438323, SNYK-JAVA-IONETTY-16438931)
-ext['netty.version'] = '4.2.13.Final'
-ext['tomcat.version'] = '11.0.22'
+
+// Upgrade logback to fix Expression Injection (SNYK-JAVA-CHQOSLOGBACK-17675439)
+// Overrides the Spring Boot managed logback.version for logback-core and logback-classic.
+ext['logback.version'] = '1.5.36'
+
+// Upgrade Tomcat to fix Improper Authentication (SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890)
+// and Detection of Error Condition Without Action (SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746),
+// plus related Medium-severity CVEs, present in the BOM-managed 11.0.22.
+ext['tomcat.version'] = '11.0.23'
 
 dependencyManagement {
     dependencies {
@@ -51,23 +56,35 @@ dependencyManagement {
             entry 'sentry-spring-boot-starter'
             entry 'sentry-logback'
         }
+
+        imports {
+            // Upgrade to fix vulnerabilities in netty
+            mavenBom('io.netty:netty-bom:4.2.17.Final')
+        }
+
+        // === INSERT YOUR OVERRIDES HERE ===
+        // Force jackson-core 2.x to fix Snyk vulnerability
+        dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
+        dependency "com.fasterxml.jackson.core:jackson-databind:2.21.5"
+        // Bump Log4j API to resolve Snyk issue (upgrade from 2.25.4 -> 2.25.5)
+        dependency "org.apache.logging.log4j:log4j-api:2.25.5"
+        dependency "org.apache.logging.log4j:log4j-to-slf4j:2.25.5"
+        // Force tools.jackson jackson-core/jackson-databind 3.1.5 to fix Snyk vulnerability
+        dependency "tools.jackson.core:jackson-core:3.1.5"
+        dependency "tools.jackson.core:jackson-databind:3.1.5"
     }
 }
 
 dependencies {
-    // Fixes SNYK-JAVA-TOOLSJACKSONCORE-15907550
-    implementation 'tools.jackson.core:jackson-core:3.1.1'
-
     implementation project(':claims-data:api')
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.4'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
-    //Enable access token authentication
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-auth'
-    //If the ScanForSql annotation is used, the values will be checked and a warning logged if suspicious SQL-like commands are found in any values
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-sql-scanner'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-sql-scanner'
+    implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-export'
+
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
-    // Export starter for csv export endpoints
-    implementation 'uk.gov.laa.springboot:laa-spring-boot-starter-export'
-
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
@@ -76,6 +93,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
+
+    // Caching for governed reference data (Caffeine, TTL eviction)
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
@@ -86,6 +107,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.44'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
 
+    // Generates metadata for @ConfigurationProperties so IDEs offer auto-completion/validation
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
@@ -93,12 +117,13 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
     implementation 'software.amazon.awssdk:sts'
     implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-    implementation(platform("tools.jackson:jackson-bom:3.1.1"))
+    implementation(platform("tools.jackson:jackson-bom:3.1.4"))
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")
@@ -108,20 +133,29 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
-    runtimeOnly 'org.postgresql:postgresql:42.7.11'
+    // Upgrade to fix Incorrect Implementation of Authentication Algorithm (SNYK-JAVA-ORGPOSTGRESQL-17874248)
+    runtimeOnly 'org.postgresql:postgresql:42.7.12'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation "software.amazon.awssdk:sqs"
-    testImplementation "org.testcontainers:junit-jupiter:$versions.testcontainers"
+    // Testcontainers 2.x renamed the module artifacts with a "testcontainers-" prefix.
+    // Versions are managed by the Spring Boot dependency management BOM.
+    testImplementation "org.testcontainers:testcontainers-junit-jupiter"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     // Add this to ensure Spring Security classes are available during tests
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation "org.testcontainers:postgresql:$versions.testcontainers"
-    testImplementation "org.testcontainers:localstack:$versions.testcontainers"
+    testImplementation "org.testcontainers:testcontainers-postgresql"
+    testImplementation "org.testcontainers:testcontainers-localstack"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
+
+    // MockServer (Testcontainers) for stubbing the validation-core external HTTP calls
+    // (Fee Scheme Platform / Provider Details) in integration tests. Version of the client is
+    // pinned to match the container image tag used in MockServerIntegrationTest.
+    integrationTestImplementation "org.testcontainers:testcontainers-mockserver"
+    integrationTestImplementation "org.mock-server:mockserver-client-java:5.15.0"
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
@@ -139,6 +173,10 @@ sourceSets {
             runtimeClasspath += main.output + test.output
         }
     }
+    bddTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output + sourceSets.integrationTest.output
+    }
 }
 
 configurations {
@@ -147,12 +185,67 @@ configurations {
     }
     pactTestImplementation.extendsFrom(testImplementation)
     pactTestRuntimeOnly.extendsFrom(testRuntimeOnly)
+
+    bddTestImplementation.extendsFrom(testImplementation, integrationTestImplementation)
+    bddTestRuntimeOnly.extendsFrom(testRuntimeOnly, integrationTestRuntimeOnly)
+    bddTestCompileOnly.extendsFrom(testCompileOnly)
+    bddTestAnnotationProcessor.extendsFrom(testAnnotationProcessor)
 }
 
+dependencies {
+    // Cucumber BDD scaffolding (end-to-end tests against the running application)
+    bddTestImplementation 'io.cucumber:cucumber-java:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-junit-platform-engine:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-spring:7.22.1'
+    bddTestImplementation 'org.junit.platform:junit-platform-suite'
+    bddTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    bddTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    bddTestImplementation "org.testcontainers:testcontainers-junit-jupiter"
+    bddTestImplementation "org.testcontainers:testcontainers-postgresql"
+    bddTestImplementation "org.testcontainers:testcontainers-localstack"
+    bddTestImplementation "software.amazon.awssdk:sqs"
+    bddTestImplementation 'org.projectlombok:lombok:1.18.44'
+    bddTestAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
+    bddTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    bddTestRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+}
+
+tasks.register('bddTest', Test) {
+    description = 'Runs the BDD (Cucumber) end-to-end tests against the embedded application.'
+    group = 'verification'
+    useJUnitPlatform()
+
+    testClassesDirs = sourceSets.bddTest.output.classesDirs
+    classpath = sourceSets.bddTest.runtimeClasspath
+    shouldRunAfter test
+
+    // Allow Behave-style tag filtering via -Dcucumber.filter.tags='@api'
+    def tagFilter = providers.systemProperty('cucumber.filter.tags').getOrElse('')
+    if (tagFilter?.trim()) {
+        systemProperty 'cucumber.filter.tags', tagFilter
+    }
+}
+
+// Hibernate is published under two coordinates that share the capability
+// 'org.hibernate:hibernate-core':
+//   - legacy: org.hibernate:hibernate-core (pulled in transitively by Javers)
+//   - current: org.hibernate.orm:hibernate-core (managed by Spring Boot)
+// This causes a capability conflict. Always prefer the modern org.hibernate.orm module.
+configurations.all {
+    resolutionStrategy.capabilitiesResolution.withCapability('org.hibernate:hibernate-core') {
+        def preferred = candidates.find {
+            it.id instanceof ModuleComponentIdentifier && it.id.group == 'org.hibernate.orm'
+        }
+        if (preferred != null) {
+            select(preferred)
+            because 'Prefer the current org.hibernate.orm:hibernate-core coordinates over the legacy org.hibernate:hibernate-core'
+        }
+    }
+}
 
 dependencies {
     // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
-    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.0-beta.3'
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.1'
     pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
     pactTestImplementation 'org.springframework.boot:spring-boot-autoconfigure'
     pactTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
