@@ -14,10 +14,8 @@ import org.springframework.stereotype.Component;
 @ScenarioScope
 @Getter
 @Setter
-public class BddScenarioContext {
+public class BddScenarioContext extends BddResponseContext {
 
-  private int lastStatusCode;
-  private String lastResponseBody;
   private UUID bulkSubmissionId;
   private final List<UUID> bulkSubmissionIds = new ArrayList<>();
   private final List<UUID> submissionIds = new ArrayList<>();
@@ -62,9 +60,9 @@ public class BddScenarioContext {
         generatedFilePath == null ? null : generatedFilePath.getFileName().toString();
   }
 
+  @Override
   public void clear() {
-    lastStatusCode = 0;
-    lastResponseBody = null;
+    super.clear();
     bulkSubmissionId = null;
     bulkSubmissionIds.clear();
     submissionIds.clear();

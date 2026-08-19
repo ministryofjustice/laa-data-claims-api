@@ -1,7 +1,7 @@
 meta {
-  name: Amend a Claim
+  name: Patch claim start date
   type: http
-  seq: 3
+  seq: 6
 }
 
 patch {
@@ -11,8 +11,8 @@ patch {
 }
 
 params:path {
-  claim_id: {{CLAIM_ID}}
   submission_id: {{SUBMISSION_ID}}
+  claim_id: {{CLAIM_ID}}
 }
 
 headers {
@@ -21,11 +21,7 @@ headers {
 
 body:json {
   {
-    "client_forename": "Testy",
-    "client_surname": "McTestFace",
-    "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "amendment_requested_by": "PROVIDER",
-    "amendment_reason_code": "CASE_REOPENED_REBILLED"
+    "case_start_date": "01/07/2025"
   }
 }
 
@@ -33,3 +29,4 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+
