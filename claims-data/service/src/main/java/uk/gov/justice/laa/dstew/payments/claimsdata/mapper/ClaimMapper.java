@@ -54,12 +54,14 @@ public interface ClaimMapper {
    */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   ClaimResponse toClaimResponse(Claim entity);
 
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   @Mapping(target = "dateSubmitted", source = "submission.createdOn")
