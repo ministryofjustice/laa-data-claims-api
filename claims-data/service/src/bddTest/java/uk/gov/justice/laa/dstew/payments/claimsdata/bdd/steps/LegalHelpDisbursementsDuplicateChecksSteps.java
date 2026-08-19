@@ -103,7 +103,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
     List<Map<String, String>> rows = table.asMaps(String.class, String.class);
 
     // "On or before the duplicate cutoff" — pin the earlier file to the earliest legal period.
-    String firstPeriod = MONTHS.get(0) + "-2018";
+    String firstPeriod = MONTHS.getFirst() + "-2018";
     String secondPeriod = offsetPeriod(firstPeriod, 1);
 
     GeneratedPair pair = generator.generatePair(format, office, 1, firstPeriod, secondPeriod, rows);
@@ -209,7 +209,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
       assertThat(submissionIds)
           .as("Expected at least one submission id captured from the first bulk-submission POST")
           .isNotEmpty();
-      UUID submissionId = submissionIds.get(0);
+      UUID submissionId = submissionIds.getFirst();
       UUID bulkSubmissionId = context.getFirstBulkSubmissionId();
       String office = context.getFirstOffice();
       String period = context.getFirstSubmissionPeriod();
@@ -225,7 +225,7 @@ public class LegalHelpDisbursementsDuplicateChecksSteps {
 
     int status =
         api.voidClaim(
-            claimIds.get(0),
+            claimIds.getFirst(),
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "BDD duplicate-check void");
     assertThat(status)

@@ -60,6 +60,7 @@ public class BddScenarioContext extends BddResponseContext {
         generatedFilePath == null ? null : generatedFilePath.getFileName().toString();
   }
 
+  @Override
   public void clear() {
     super.clear();
     bulkSubmissionId = null;

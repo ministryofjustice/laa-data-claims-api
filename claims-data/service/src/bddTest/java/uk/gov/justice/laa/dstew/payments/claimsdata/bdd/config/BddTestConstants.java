@@ -44,7 +44,7 @@ public final class BddTestConstants {
 
   /** Pool of office account numbers used by the Legal Help file generator. */
   public static final List<String> DEFAULT_OFFICES =
-      List.of("0U099L", "0P322F", "2L847Q", "2N199K", "2P746R", "1T102C");
+      List.of(DEFAULT_OFFICE, "0P322F", "2L847Q", "2N199K", "2P746R", "1T102C");
 
   /** Default Legal Help fee codes used when no per-claim override is supplied. */
   public static final List<String> DEFAULT_FEE_CODES = List.of("CAPA", "COM");
@@ -107,37 +107,36 @@ public final class BddTestConstants {
   /** {@code POST /api/v1/bulk-submissions}. */
   public static final String POST_BULK_SUBMISSION_PATH = API_URI_PREFIX + "/bulk-submissions";
 
-  /** {@code GET /api/v1/submissions}. */
-  public static final String GET_SUBMISSIONS_PATH = API_URI_PREFIX + "/submissions";
-
-  /** {@code GET /api/v1/submissions/{id}}. */
-  public static final String GET_SUBMISSION_BY_ID_PATH = API_URI_PREFIX + "/submissions/{id}";
-
   /** {@code GET /api/v1/bulk-submissions/{id}}. */
-  public static final String GET_BULK_SUBMISSION_BY_ID_PATH =
-      API_URI_PREFIX + "/bulk-submissions/{id}";
+  public static final String GET_BULK_SUBMISSION_BY_ID_PATH = POST_BULK_SUBMISSION_PATH + "/{id}";
 
   /** {@code GET /api/v1/bulk-submissions/{id}/summary}. */
   public static final String BULK_SUBMISSION_SUMMARY_PATH =
-      API_URI_PREFIX + "/bulk-submissions/{id}/summary";
+      GET_BULK_SUBMISSION_BY_ID_PATH + "/summary";
 
   /** {@code PATCH /api/v1/bulk-submissions/{id}}. */
-  public static final String PATCH_BULK_SUBMISSION_PATH = API_URI_PREFIX + "/bulk-submissions/{id}";
+  public static final String PATCH_BULK_SUBMISSION_PATH = GET_BULK_SUBMISSION_BY_ID_PATH;
+
+  /** {@code GET /api/v1/submissions}. */
+  public static final String GET_SUBMISSIONS_PATH = API_URI_PREFIX + "/submissions";
+
+  /** {@code POST /api/v1/submissions}. */
+  public static final String CREATE_SUBMISSION_PATH = GET_SUBMISSIONS_PATH;
+
+  /** {@code GET /api/v1/submissions/{id}}. */
+  public static final String GET_SUBMISSION_BY_ID_PATH = GET_SUBMISSIONS_PATH + "/{id}";
+
+  /** {@code POST /api/v1/submissions/{id}/claims}. */
+  public static final String CREATE_CLAIM_PATH = GET_SUBMISSION_BY_ID_PATH + "/claims";
 
   /** {@code GET /api/v1/validation-messages}. */
   public static final String GET_VALIDATION_MESSAGES_PATH = API_URI_PREFIX + "/validation-messages";
 
-  /** {@code POST /api/v1/claims/{claimId}/void}. */
-  public static final String VOID_CLAIM_PATH = API_URI_PREFIX + "/claims/{claimId}/void";
-
-  /** {@code POST /api/v1/submissions/{id}/claims}. */
-  public static final String CREATE_CLAIM_PATH = API_URI_PREFIX + "/submissions/{id}/claims";
-
-  /** {@code POST /api/v1/submissions}. */
-  public static final String CREATE_SUBMISSION_PATH = API_URI_PREFIX + "/submissions";
-
   /** {@code GET /api/v1/claims/{claimId}}. */
   public static final String GET_CLAIM_PATH = API_URI_PREFIX + "/claims/{claimId}";
+
+  /** {@code POST /api/v1/claims/{claimId}/void}. */
+  public static final String VOID_CLAIM_PATH = GET_CLAIM_PATH + "/void";
 
   /** {@code GET /api/v1/claims/{claimId}/history}. */
   public static final String GET_CLAIM_HISTORY_PATH = GET_CLAIM_PATH + "/history";

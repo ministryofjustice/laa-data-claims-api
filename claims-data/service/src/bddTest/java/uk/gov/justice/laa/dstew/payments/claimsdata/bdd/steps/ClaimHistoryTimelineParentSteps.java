@@ -92,7 +92,6 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
   @Autowired private MatterStartRepository matterStartRepository;
   @Autowired private JdbcClient jdbcClient;
 
-  private UUID currentClaimSummaryFeeId;
   private UUID currentSubmissionId;
 
   /** Ordered timestamps of AMENDMENT events we seeded — used by @DS1645_1 for order assertions. */
@@ -449,7 +448,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
         () -> {
           List<JsonNode> events = eventList();
           assertThat(events).as("total events").hasSize(1);
-          assertThat(events.get(0).path("event_type").asText())
+          assertThat(events.getFirst().path("event_type").asText())
               .as("only event's type")
               .isEqualTo("SUBMISSION");
         });
@@ -522,7 +521,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
     summaryFee.setClaim(claim);
     summaryFee.setCreatedByUserId("bdd-seed-user");
     claimSummaryFeeRepository.saveAndFlush(summaryFee);
-    currentClaimSummaryFeeId = summaryFee.getId();
+    setCurrentClaimSummaryFeeId(summaryFee.getId());
   }
 
   private void pinClaimCreatedOn(Instant when) {
@@ -548,6 +547,8 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
             .createdOn(when)
             .build();
     claimAmendmentRepository.saveAndFlush(amendment);
+    // Record the seeded amendment id in the shared scenario context for downstream step glue.
+    claimHistoryContext.setLastAmendmentId(amendment.getId());
     // Pin created_on — CreationTimestamp behaviour on ClaimAmendment sets this on persist
     // (V39 also has DEFAULT now() at DB level), so we overwrite defensively.
     jdbcClient
@@ -560,7 +561,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
   private void persistAssessment(AssessmentType type, Instant when) {
     Claim claim = claimRepository.findById(currentClaimId).orElseThrow();
     ClaimSummaryFee summaryFee =
-        claimSummaryFeeRepository.findById(currentClaimSummaryFeeId).orElseThrow();
+        claimSummaryFeeRepository.findById(requireCurrentClaimSummaryFeeId()).orElseThrow();
     Assessment assessment =
         Assessment.builder()
             .id(Uuid7.timeBasedUuid())

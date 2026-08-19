@@ -40,6 +40,28 @@ public class ClaimHistoryTimelineSharedSteps {
     claimHistoryContext.setLastResponseBody(response);
   }
 
+  protected UUID requireLastAmendmentId() {
+    UUID id = claimHistoryContext.getLastAmendmentId();
+    if (id == null) {
+      throw new AssertionError(
+          "No amendment id has been recorded yet — expected a prior Given step.");
+    }
+    return id;
+  }
+
+  protected void setCurrentClaimSummaryFeeId(UUID id) {
+    claimHistoryContext.setCurrentClaimSummaryFeeId(id);
+  }
+
+  protected UUID requireCurrentClaimSummaryFeeId() {
+    UUID id = claimHistoryContext.getCurrentClaimSummaryFeeId();
+    if (id == null) {
+      throw new AssertionError(
+          "No claim_summary_fee id has been recorded yet — expected a prior Given step.");
+    }
+    return id;
+  }
+
   protected Integer getLastStatusCode() {
     return claimHistoryContext.getLastStatusCode();
   }

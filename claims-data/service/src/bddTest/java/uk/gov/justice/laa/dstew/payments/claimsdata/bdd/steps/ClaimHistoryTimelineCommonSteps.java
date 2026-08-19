@@ -19,7 +19,7 @@ public class ClaimHistoryTimelineCommonSteps extends ClaimHistoryTimelineSharedS
     step(
         "GET /api/v1/claims/" + claimId + "/history",
         () -> {
-          JsonNode response = api.getClaimHistoryJson(claimId);
+          JsonNode response = api.getClaimHistory(claimId);
           setLastResponse(response);
           setLastStatusCode(200);
         });
