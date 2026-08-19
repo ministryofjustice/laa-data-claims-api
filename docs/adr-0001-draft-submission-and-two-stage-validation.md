@@ -52,7 +52,7 @@ Key facts that constrain this decision:
   `SUBMISSION_VALIDATION_SUCCEEDED`). There is **no scheduler/timeout** mechanism anywhere.
 - **Status values are hard-coded in three places** and must be kept in lock-step:
   1. OpenAPI enums (API) → generated Java enums, consumed by the frontend and event service.
-  2. Liquibase `CHECK` constraints in the **API** DB (`chk_claim_status`, `chk_submission_status`,
+  2. Flyway `CHECK` constraints in the **API** DB (`chk_claim_status`, `chk_submission_status`,
      `chk_bulk_submission_status`).
   3. The **reporting service**, which has its **own** DB with its **own** `CHECK` constraints and
      materialized views (`mvw_report_000/012/014`, `report_013`) that **whitelist**
@@ -175,7 +175,7 @@ Claims/submissions in `READY_FOR_SUBMISSION` **are** considered for duplicate ch
 ### API (`laa-data-claims-api`)
 - OpenAPI enum additions (`ClaimStatus`, `SubmissionStatus`) → regenerate models; treat as an
   additive, backwards-compatible schema change and version accordingly.
-- New Liquibase migrations to widen `chk_claim_status` and `chk_submission_status`; add
+- New Flyway migrations to widen `chk_claim_status` and `chk_submission_status`; add
   `requires_additional_information` (+ optional `additional_information_type`) to `claim`; add
   `stage` to `validation_message_log`.
 - New service transitions: initial-validation completion → `READY_FOR_SUBMISSION`; submit → full

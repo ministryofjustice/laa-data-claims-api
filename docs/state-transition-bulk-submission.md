@@ -20,7 +20,7 @@ stateDiagram-v2
 
     PARSING_COMPLETED --> INITIAL_VALIDATION : INITIAL validation runs
     state INITIAL_VALIDATION <<choice>>
-    INITIAL_VALIDATION --> INITIAL_VALIDATION_FAILED : blocking ERROR<br/>(new; provider must re-upload)
+    INITIAL_VALIDATION --> INITIAL_VALIDATION_FAILED : blocking ERROR<br/>(new, provider must re-upload)
     INITIAL_VALIDATION --> DRAFT_READY : passes<br/>(submission -> READY_FOR_SUBMISSION)
 
     DRAFT_READY --> FULL_VALIDATION : provider submits draft
@@ -73,4 +73,3 @@ stateDiagram-v2
 - Any new value must be added to the bulk-submission `CHECK` constraint in **both** the API and
   reporting DBs.
 - `ABANDONED` requires a timeout/scheduler that does not exist today.
-```
