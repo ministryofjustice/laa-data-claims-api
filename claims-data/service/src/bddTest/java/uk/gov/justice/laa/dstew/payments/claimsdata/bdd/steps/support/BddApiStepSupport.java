@@ -349,7 +349,7 @@ public class BddApiStepSupport {
     }
 
     context.setLastStatusCode(statusCode);
-    context.setLastResponseBody(responseBody);
+    context.setLastResponseBody(parseResponseBody(responseBody));
   }
 
   /**

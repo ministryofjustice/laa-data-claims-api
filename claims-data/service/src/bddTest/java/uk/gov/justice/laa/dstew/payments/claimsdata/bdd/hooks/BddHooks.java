@@ -46,7 +46,6 @@ public class BddHooks {
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired private MatterStartRepository matterStartRepository;
   @Autowired private ClaimRepository claimRepository;
-  @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;

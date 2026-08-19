@@ -555,13 +555,12 @@ public class AmendmentMetadataLookupSteps {
   }
 
   private JsonNode requestedByArrayFromLastResponse() throws IOException {
-    String body = context.getLastResponseBody();
+    JsonNode body = context.getLastResponseBody();
     assertThat(body)
         .as("Last response body should be captured before lookup assertions")
-        .isNotBlank();
+        .isNotNull();
 
-    JsonNode root = objectMapper.readTree(body);
-    return root.path("requested_by");
+    return body.path("requested_by");
   }
 
   private JsonNode reasonsForRequestedBy(String requestedByCode) throws IOException {

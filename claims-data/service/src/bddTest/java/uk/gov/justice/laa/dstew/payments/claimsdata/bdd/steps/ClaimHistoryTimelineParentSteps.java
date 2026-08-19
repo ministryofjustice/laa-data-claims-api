@@ -101,21 +101,6 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
   private final List<Instant> seededAssessmentTimestamps = new ArrayList<>();
 
   // ---------------------------------------------------------------------------
-  // Background — no-op locally.
-  // ---------------------------------------------------------------------------
-
-  @Given("the amendments feature flag is enabled")
-  public void theAmendmentsFeatureFlagIsEnabled() {
-    step(
-        "no-op — the delivered `/history` endpoint is read-side and does not gate on the "
-            + "amendments feature flag",
-        () -> {
-          // The write-side amendment endpoint gates on the flag; the read endpoint we exercise
-          // here has no such gate. Documented so the reader understands the assumption.
-        });
-  }
-
-  // ---------------------------------------------------------------------------
   // Givens.
   // ---------------------------------------------------------------------------
 
