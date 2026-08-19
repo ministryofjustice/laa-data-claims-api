@@ -469,6 +469,13 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET /claims - returns claims for office code and unique file reference")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
     // given: required claims exist in the database
+    var amendedClaim =
+        claimRepository
+            .findById(CLAIM_2_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+    amendedClaim.setHasAssessment(true);
+    amendedClaim.setAmended(true);
+    claimRepository.saveAndFlush(amendedClaim);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -487,7 +494,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
+    var claimResponse = claimResultSet.getContent().getFirst();
+    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+    assertThat(claimResponse.getHasAssessment()).isTrue();
+    assertThat(claimResponse.getIsAmended()).isTrue();
   }
 
   @Test
@@ -567,6 +577,13 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET /api/v2/claims - returns claims for office code and unique file reference (v2)")
   void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
     // given: required claims exist in the database
+    var amendedClaim =
+        claimRepository
+            .findById(CLAIM_2_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+    amendedClaim.setHasAssessment(false);
+    amendedClaim.setAmended(true);
+    claimRepository.saveAndFlush(amendedClaim);
 
     // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
     // number
@@ -585,7 +602,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
     assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
     assertThat(claimResultSet.getContent()).hasSize(1);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(CLAIM_2_ID.toString());
+    var claimResponse = claimResultSet.getContent().getFirst();
+    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+    assertThat(claimResponse.getHasAssessment()).isFalse();
+    assertThat(claimResponse.getIsAmended()).isTrue();
   }
 
   @Test

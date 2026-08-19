@@ -146,6 +146,8 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .hasAssessment(true)
+            .isAmended(false)
             .submission(Submission.builder().id(submissionId).submissionPeriod("APR-2025").build())
             .build();
 
@@ -184,6 +186,8 @@ class ClaimMapperTest {
     assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.isHasAssessment(), fields.getHasAssessment());
+    assertEquals(entity.isAmended(), fields.getIsAmended());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
   }
@@ -221,6 +225,8 @@ class ClaimMapperTest {
             .mediationTimeMinutes(90)
             .outreachLocation("OUTLOC")
             .referralSource("REFSRC")
+            .hasAssessment(false)
+            .isAmended(true)
             .claimSummaryFee(new ArrayList<>())
             .submission(
                 Submission.builder()
@@ -270,6 +276,8 @@ class ClaimMapperTest {
     assertEquals(entity.getMediationTimeMinutes(), fields.getMediationTimeMinutes());
     assertEquals(entity.getOutreachLocation(), fields.getOutreachLocation());
     assertEquals(entity.getReferralSource(), fields.getReferralSource());
+    assertEquals(entity.isHasAssessment(), fields.getHasAssessment());
+    assertEquals(entity.isAmended(), fields.getIsAmended());
     assertEquals(entity.getSubmission().getId().toString(), fields.getSubmissionId());
     assertEquals(entity.getSubmission().getSubmissionPeriod(), fields.getSubmissionPeriod());
     assertEquals(entity.getSubmission().getCreatedOn(), fields.getDateSubmitted().toInstant());
@@ -329,6 +337,8 @@ class ClaimMapperTest {
     assertEquals(expectedDerived, response.getDerivedClaimStatus());
     // ...and the raw processing status is left untouched.
     assertEquals(status, response.getStatus());
+    assertEquals(hasAssessment, response.getHasAssessment());
+    assertEquals(isAmended, response.getIsAmended());
   }
 
   @Test
