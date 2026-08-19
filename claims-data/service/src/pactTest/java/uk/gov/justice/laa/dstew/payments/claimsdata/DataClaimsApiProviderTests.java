@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAmendmentHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
@@ -81,7 +82,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission20
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ClaimConfirmationError;
 
 /**
  * Unit tests for the {@code DataClaimsApiProvider} using Pact for consumer-driven contract testing.
@@ -167,6 +171,32 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: the system is ready to update a submission");
     when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
     when(submissionRepository.update(any())).thenReturn(1L);
+  }
+
+  @State("a draft submission can be confirmed")
+  public void aDraftSubmissionCanBeConfirmed() {
+    var submission = getSubmission();
+    submission.setStatus(SubmissionStatus.READY_FOR_SUBMISSION);
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(submission));
+    when(claimConfirmationValidator.validate(any())).thenReturn(List.of());
+  }
+
+  @State("a draft submission has confirmation errors")
+  public void aDraftSubmissionHasConfirmationErrors() {
+    var submission = getSubmission();
+    submission.setStatus(SubmissionStatus.READY_FOR_SUBMISSION);
+    when(submissionRepository.findById(any())).thenReturn(Optional.of(submission));
+    when(claimConfirmationValidator.validate(any()))
+        .thenReturn(
+            List.of(
+                new ClaimConfirmationError(
+                    CLAIM_1_ID,
+                    List.of(
+                        new ValidationMessagePatch()
+                            .displayMessage("Complete the inquest details")
+                            .technicalMessage("Missing inquest fields")
+                            .type(ValidationMessageType.ERROR)
+                            .source("CLAIMS_API")))));
   }
 
   @State("the system is ready to update a claim")

@@ -12,6 +12,7 @@ import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.confirmation.ClaimConfirmationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
 @DisplayName("DataClaimsExceptionHandler Tests")
@@ -65,6 +68,23 @@ class DataClaimsExceptionHandlerTest {
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "An unexpected application error has occurred.");
+  }
+
+  @Test
+  void confirmationValidationReturnsClaimReports() {
+    ClaimConfirmationError claimReport =
+        new ClaimConfirmationError(
+            UUID.randomUUID(),
+            List.of(new ValidationMessagePatch().displayMessage("Complete the inquest details")));
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleConfirmationValidationException(
+            new ConfirmationValidationException(List.of(claimReport)), mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(BAD_REQUEST);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getProperties())
+        .containsEntry("claimReports", List.of(claimReport));
   }
 
   @ParameterizedTest(name = "{0} returns {1} status")

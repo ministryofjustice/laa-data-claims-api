@@ -325,7 +325,14 @@ class BulkSubmissionMapperTests {
             "localAuthorityNumber",
             "paNumber",
             "0.10",
-            "08/01/2000"));
+            "08/01/2000",
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(),
+            List.of()));
   }
 
   private CsvSubmission createCsvSubmission(CsvOutcome outcome) {
@@ -640,7 +647,14 @@ class BulkSubmissionMapperTests {
         "localAuthorityNumber",
         "paNumber",
         excessTravelCosts,
-        "08/01/2000");
+        "08/01/2000",
+        null,
+        null,
+        null,
+        null,
+        null,
+        List.of(),
+        List.of());
   }
 
   private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(

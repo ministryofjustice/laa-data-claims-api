@@ -35,6 +35,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -75,6 +77,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDataWrite;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -117,6 +120,7 @@ class ClaimServiceTest {
   @Mock private AssessmentService assessmentService;
   @Mock private ClaimAmendmentService claimAmendmentService;
   @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+  @Mock private InquestDataService inquestDataService;
 
   @Spy
   private final ClaimSearchRequestValidator claimSearchRequestValidator =
@@ -130,7 +134,8 @@ class ClaimServiceTest {
   @MethodSource("getClientTestingArguments")
   void shouldCreateClaimAndClient(Client client) {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
     final ClaimPost post = new ClaimPost();
     post.setCreatedByUserId(API_USER_ID);
     final Claim claim = Claim.builder().build();
@@ -174,7 +179,8 @@ class ClaimServiceTest {
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
     final ClaimPost post = new ClaimPost();
     final Claim claim = Claim.builder().build();
     final Client emptyClient = Client.builder().build();
@@ -192,6 +198,31 @@ class ClaimServiceTest {
     assertThat(id).isNotNull();
     verify(claimRepository).save(claim);
     verify(clientRepository, never()).save(emptyClient);
+    verifyNoInteractions(inquestDataService);
+  }
+
+  @Test
+  void shouldPersistSuppliedInquestDataWithCreatedClaim() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.READY_FOR_SUBMISSION).build();
+    ClaimInquestDataWrite inquestData =
+        new ClaimInquestDataWrite()
+            .actorUserId(API_USER_ID)
+            .interestedDepartmentCodes(Set.of())
+            .interestedPublicAuthorities(List.of());
+    ClaimPost post = new ClaimPost().createdByUserId(API_USER_ID).inquestData(inquestData);
+    Claim claim = Claim.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(ClaimSummaryFee.builder().build());
+    when(claimMapper.toClaimCase(post)).thenReturn(ClaimCase.builder().build());
+
+    UUID claimId = claimService.createClaim(submissionId, post);
+
+    verify(inquestDataService).create(claimId, inquestData);
   }
 
   @Test
@@ -209,7 +240,8 @@ class ClaimServiceTest {
   @Test
   void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
     final UUID submissionId = Uuid7.timeBasedUuid();
-    final Submission submission = Submission.builder().id(submissionId).build();
+    final Submission submission =
+        Submission.builder().id(submissionId).status(SubmissionStatus.CREATED).build();
     final ClaimPost post = new ClaimPost();
     post.setLineNumber(7);
 
@@ -221,6 +253,23 @@ class ClaimServiceTest {
         .hasMessageContaining("line number 7");
 
     // Fails fast: no claim (or child records) is written.
+    verify(claimRepository, never()).save(any());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SubmissionStatus.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = {"CREATED", "READY_FOR_SUBMISSION"})
+  void shouldNotCreateClaimForClosedSubmission(SubmissionStatus status) {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Submission submission = Submission.builder().id(submissionId).status(status).build();
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, new ClaimPost()))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("open submission");
+
     verify(claimRepository, never()).save(any());
   }
 

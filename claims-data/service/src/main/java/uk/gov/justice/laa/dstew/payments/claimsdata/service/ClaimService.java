@@ -92,6 +92,7 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
+  private final InquestDataService inquestDataService;
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
@@ -123,6 +124,10 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+    if (submission.getStatus() != SubmissionStatus.CREATED
+        && submission.getStatus() != SubmissionStatus.READY_FOR_SUBMISSION) {
+      throw new ClaimBadRequestException("Claims can only be added to an open submission");
+    }
 
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
@@ -171,6 +176,10 @@ public class ClaimService
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
+    }
+
+    if (claimPost.getInquestData() != null) {
+      inquestDataService.create(claim.getId(), claimPost.getInquestData());
     }
 
     return claim.getId();

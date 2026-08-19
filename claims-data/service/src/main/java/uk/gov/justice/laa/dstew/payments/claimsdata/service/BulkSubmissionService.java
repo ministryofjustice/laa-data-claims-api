@@ -336,6 +336,20 @@ public class BulkSubmissionService
    */
   @Transactional
   public void updateBulkSubmission(UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
+    BulkSubmissionStatus currentStatus =
+        bulkSubmissionRepository
+            .findStatusById(id)
+            .orElseThrow(
+                () ->
+                    new BulkSubmissionNotFoundException(
+                        "Bulk submission not found with id: " + id));
+    if (currentStatus == BulkSubmissionStatus.DISCARDED) {
+      throw new BulkSubmissionValidationException("A discarded bulk submission cannot be changed");
+    }
+    if (bulkSubmissionPatch.getStatus() == BulkSubmissionStatus.DISCARDED
+        && currentStatus != BulkSubmissionStatus.READY_FOR_SUBMISSION) {
+      throw new BulkSubmissionValidationException("Only a draft bulk submission can be discarded");
+    }
 
     int updateCount =
         bulkSubmissionRepository.updateBulkSubmission(

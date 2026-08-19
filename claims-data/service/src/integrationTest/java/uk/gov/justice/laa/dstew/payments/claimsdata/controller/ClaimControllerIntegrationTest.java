@@ -83,6 +83,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
+  private static final String GET_CLAIM_INQUEST_DATA_ENDPOINT =
+      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/inquest-data";
+
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
   private Boolean amendmentSwitch;
@@ -147,6 +150,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET claim inquest data - returns 404 when the claim has no inquest detail")
+  void shouldReturnNotFoundWhenClaimHasNoInquestDetail() throws Exception {
+    mockMvc
+        .perform(
+            get(GET_CLAIM_INQUEST_DATA_ENDPOINT, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
   @DisplayName("GET submission/claims - unauthorized when invalid auth token supplied")
   void shouldReturnUnauthorizedWhenAnInvalidAuthTokenIsSupplied() throws Exception {
     mockMvc
@@ -191,6 +204,59 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @Test
+  @DisplayName("POST submissions/{id}/claims - adds a claim to a draft submission")
+  void shouldAddClaimToDraftSubmission() throws Exception {
+    submission1.setStatus(SubmissionStatus.READY_FOR_SUBMISSION);
+    submissionRepository.save(submission1);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_1_ID)
+                    .content(
+                        OBJECT_MAPPER.writeValueAsString(
+                            ClaimPost.builder()
+                                .status(ClaimStatus.INVALID)
+                                .lineNumber(6)
+                                .matterTypeCode("TBC")
+                                .createdByUserId("Submit-a-bulk-claim")
+                                .build()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    UUID claimId =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), CreateClaim201Response.class)
+            .getId();
+    assertThat(claimRepository.findById(claimId).orElseThrow().getSubmission().getId())
+        .isEqualTo(SUBMISSION_1_ID);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = SubmissionStatus.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = {"CREATED", "READY_FOR_SUBMISSION"})
+  @DisplayName("POST submissions/{id}/claims - rejects a closed submission")
+  void shouldRejectClaimForClosedSubmission(SubmissionStatus submissionStatus) throws Exception {
+    submission1.setStatus(submissionStatus);
+    submissionRepository.save(submission1);
+    long existingClaimCount = claimRepository.count();
+
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_1_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(CASE_REFERENCE)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+
+    assertThat(claimRepository.count()).isEqualTo(existingClaimCount);
   }
 
   @Test

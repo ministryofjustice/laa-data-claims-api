@@ -47,6 +47,19 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Pattern EXCEPTION_SUFFIX = Pattern.compile("Exception$");
   private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
 
+  /** Return claim-level reports when confirmation validation rejects a draft transition. */
+  @ExceptionHandler(ConfirmationValidationException.class)
+  public ResponseEntity<ProblemDetail> handleConfirmationValidationException(
+      ConfirmationValidationException exception, HttpServletRequest request) {
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(
+            HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
+    if (response.getBody() != null) {
+      response.getBody().setProperty("claimReports", exception.getClaimReports());
+    }
+    return response;
+  }
+
   /**
    * Name of the database unique constraint enforcing that a claim's line number is unique within a
    * submission (see Flyway migration {@code V45}). A violation of this specific constraint is a
