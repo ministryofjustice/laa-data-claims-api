@@ -63,7 +63,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.ThrowingRunnable)}
  * per the project-wide step-failure-reporting standing rule.
  */
-public class ClaimHistoryTimelineContractSteps {
+public class ClaimHistoryTimelineContractSteps extends ClaimHistoryTimelineSharedSteps {
 
   /**
    * Fields the feature file allows on the SUBMISSION event's {@code metadata} bag. Guards the "no
@@ -80,14 +80,8 @@ public class ClaimHistoryTimelineContractSteps {
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimRepository claimRepository;
   @Autowired private JdbcClient jdbcClient;
-  @Autowired private BddApiStepSupport api;
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;
-
-  private UUID currentClaimId;
-  private JsonNode lastResponse;
-  private int lastStatusCode;
-  private String lastResponseBody;
 
   private final Map<String, UUID> labelToUuid = new HashMap<>();
 
@@ -139,7 +133,7 @@ public class ClaimHistoryTimelineContractSteps {
         "register the unknown-claim label and confirm the row is absent",
         () -> {
           UUID claimId = UUID.fromString(claimIdString);
-          currentClaimId = claimId;
+          setCurrentClaimId(claimId);
           // Sanity-check the row genuinely doesn't exist. If it somehow does, fail fast with a
           // clear message rather than letting the /history call succeed and confuse the assertion.
           if (claimRepository.existsById(claimId)) {
@@ -155,21 +149,11 @@ public class ClaimHistoryTimelineContractSteps {
   // When.
   // ---------------------------------------------------------------------------
 
-  @When("I request the claim history timeline")
-  public void iRequestTheClaimHistoryTimeline() {
-    step(
-        "GET /api/v1/claims/" + currentClaimId + "/history (expect 2xx)",
-        () -> {
-          lastResponse = api.getClaimHistoryJson(requireCurrentClaimId());
-          lastStatusCode = 200;
-          lastResponseBody = lastResponse.toString();
-        });
-  }
-
   @When("I request the claim history timeline for that claim id")
   public void iRequestTheClaimHistoryTimelineForThatClaimId() {
+    UUID claimId = requireCurrentClaimId();
     step(
-        "GET /api/v1/claims/" + currentClaimId + "/history (expect a not-found response)",
+        "GET /api/v1/claims/" + claimId + "/history (expect a not-found response)",
         () -> {
           // The endpoint throws ClaimNotFoundException → framework maps to 404. RestTemplate turns
           // 4xx into HttpStatusCodeException, so we capture status + body without letting the
@@ -183,13 +167,16 @@ public class ClaimHistoryTimelineContractSteps {
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     String.class,
-                    requireCurrentClaimId());
-            lastStatusCode = response.getStatusCode().value();
-            lastResponseBody = response.getBody();
+                    claimId);
+            setLastStatusCode(response.getStatusCode().value());
+            setLastResponse(
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody()));
           } catch (HttpStatusCodeException ex) {
             HttpStatusCode status = ex.getStatusCode();
-            lastStatusCode = status.value();
-            lastResponseBody = ex.getResponseBodyAsString();
+            setLastStatusCode(status.value());
+            setLastResponse(
+                new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(ex.getResponseBodyAsString()));
           }
         });
   }
@@ -306,7 +293,7 @@ public class ClaimHistoryTimelineContractSteps {
     step(
         "assert /history returned HTTP 404 for the unknown claim id",
         () -> {
-          assertThat(lastStatusCode)
+          assertThat(getLastStatusCode())
               .as("status code for GET /history of unknown claim %s", currentClaimId)
               .isEqualTo(404);
         });
@@ -318,9 +305,8 @@ public class ClaimHistoryTimelineContractSteps {
         "assert the not-found response body carries the standard RFC 9457 Problem Detail shape "
             + "(see DataClaimsExceptionHandler.buildProblemDetailResponse)",
         () -> {
-          assertThat(lastResponseBody).as("not-found response body").isNotNull().isNotBlank();
-          JsonNode body =
-              new com.fasterxml.jackson.databind.ObjectMapper().readTree(lastResponseBody);
+          JsonNode body = getLastResponse();
+          assertThat(body).as("not-found response body").isNotNull();
           // RFC 9457 mandatory-when-present fields for a 404 from this handler: type, title,
           // status, detail, instance. The handler also copies detail into a backwards-compat
           // `message` property. Anchoring on these keys catches HTML/plain-text regressions.
@@ -355,22 +341,14 @@ public class ClaimHistoryTimelineContractSteps {
         () -> {
           // A 404 body from ClaimsDataException carries an error payload, NOT a
           // ClaimHistoryResultSet — so `events` must be absent (or, if present, empty).
-          if (lastResponseBody == null || lastResponseBody.isBlank()) {
-            return;
-          }
-          try {
-            JsonNode body =
-                new com.fasterxml.jackson.databind.ObjectMapper().readTree(lastResponseBody);
-            JsonNode events = body.path("events");
-            if (events.isMissingNode() || events.isNull()) {
-              return;
-            }
-            assertThat(events.isArray() && events.size() == 0)
-                .as("not-found body must not contain history events")
-                .isTrue();
-          } catch (Exception ignored) {
-            // Body isn't JSON — still fine; no events array present.
-          }
+          JsonNode body = getLastResponse();
+          JsonNode events = body.path("events");
+          assertThat(
+                  events.isMissingNode()
+                      || events.isNull()
+                      || (events.isArray() && events.size() == 0))
+              .as("not-found body must not contain history events")
+              .isTrue();
         });
   }
 
@@ -401,7 +379,7 @@ public class ClaimHistoryTimelineContractSteps {
     claim.setCreatedByUserId("bdd-seed-user");
     claim.setUpdatedByUserId("bdd-seed-user");
     claimRepository.saveAndFlush(claim);
-    currentClaimId = claim.getId();
+    setCurrentClaimId(claim.getId());
 
     // If the previous step captured a "stored values" table, apply it now.
     applyPendingSubmissionOverrides();
@@ -481,8 +459,9 @@ public class ClaimHistoryTimelineContractSteps {
   // ---------------------------------------------------------------------------
 
   private JsonNode requireEventsArray() {
-    assertThat(lastResponse).as("no /history response captured yet").isNotNull();
-    JsonNode events = lastResponse.path("events");
+    JsonNode response = getLastResponse();
+    assertThat(response).as("no /history response captured yet").isNotNull();
+    JsonNode events = response.path("events");
     assertThat(events.isArray()).as("response has an `events` JSON array").isTrue();
     return events;
   }
@@ -514,14 +493,6 @@ public class ClaimHistoryTimelineContractSteps {
           "No UUID registered for label '" + label + "'. Known labels: " + labelToUuid.keySet());
     }
     return id;
-  }
-
-  private UUID requireCurrentClaimId() {
-    if (currentClaimId == null) {
-      throw new AssertionError(
-          "No claim id has been established yet — expected a prior Given step.");
-    }
-    return currentClaimId;
   }
 
   // ---------------------------------------------------------------------------

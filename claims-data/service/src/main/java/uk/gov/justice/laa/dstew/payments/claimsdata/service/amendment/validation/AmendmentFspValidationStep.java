@@ -147,6 +147,13 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
           ClaimAmendmentValidationError.of(
               ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE,
               ex.getResponseBodyAsString()));
+    } catch (IllegalStateException ex) {
+      // Failures originating from request construction indicate invalid or incomplete input
+      // and should be reported as semantic validation rejections rather than technical faults.
+      log.warn("Failed to build FSP request: {}", ex.getMessage());
+      return List.of(
+          ClaimAmendmentValidationError.of(
+              ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE, ex.getMessage()));
 
     } catch (Exception ex) {
       // 1595-E: Catch technical timeouts or connection exceptions

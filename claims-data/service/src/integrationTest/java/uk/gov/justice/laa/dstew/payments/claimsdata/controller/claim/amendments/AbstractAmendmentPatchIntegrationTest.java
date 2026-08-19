@@ -169,12 +169,21 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    */
   protected MvcResult performPatch(UUID submissionId, UUID claimId, ClaimPatch patch)
       throws Exception {
+    return performPatch(submissionId, claimId, PATCH_MAPPER.writeValueAsString(patch));
+  }
+
+  /**
+   * Performs the amendment PATCH for the given submission/claim with the supplied patch body.
+   *
+   * @return the completed {@link MvcResult}
+   */
+  protected MvcResult performPatch(UUID submissionId, UUID claimId, String body) throws Exception {
     return mockMvc
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, submissionId, claimId)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_MAPPER.writeValueAsString(patch)))
+                .content(body))
         .andReturn();
   }
 }
