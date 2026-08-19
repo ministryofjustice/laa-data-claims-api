@@ -579,5 +579,89 @@ class ClaimSpecificationTest {
       // The ordering should use the latestFeeSubquery as an expression
       verify(cb).asc(root.get(ClaimSpecification.ID));
     }
+
+    @Test
+    @DisplayName("with descending primary sort preserves id asc tie-break")
+    void orderByLatestCalculatedFeeWithDescendingPrimaryPreservesIdAscTieBreak() {
+      // given
+      String sortProp = ClaimSpecification.CALCULATED_FEE_DETAILS + ".totalAmount";
+      Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.desc(sortProp)));
+
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      // Prepare latestFeeValueSubquery
+      Subquery<Object> latestFeeSubquery = mock(Subquery.class);
+      Root<CalculatedFeeDetail> feeRoot = mock(Root.class);
+
+      when(query.subquery(Object.class)).thenReturn(latestFeeSubquery);
+      when(latestFeeSubquery.from(CalculatedFeeDetail.class)).thenReturn(feeRoot);
+
+      // Prepare newerRecordSubquery
+      Subquery<Integer> newerRecordSubquery = mock(Subquery.class);
+      Root<CalculatedFeeDetail> newerFeeRoot = mock(Root.class);
+
+      when(query.subquery(Integer.class)).thenReturn(newerRecordSubquery);
+      when(newerRecordSubquery.from(CalculatedFeeDetail.class)).thenReturn(newerFeeRoot);
+
+      // Mock literal select
+      Expression<Integer> literalExpr = mock(Expression.class);
+      when(cb.literal(1)).thenReturn(literalExpr);
+      when(newerRecordSubquery.select(literalExpr)).thenReturn(newerRecordSubquery);
+
+      // Predicates for newerRecordSubquery.where(...)
+      Predicate newerEqualPredicate = mock(Predicate.class);
+      Predicate greaterThanPredicate = mock(Predicate.class);
+      Predicate equalCreatedOnPredicate = mock(Predicate.class);
+      Predicate greaterIdPredicate = mock(Predicate.class);
+      Predicate andPredicate = mock(Predicate.class);
+      Predicate orPredicate = mock(Predicate.class);
+
+      when(cb.equal(
+              newerFeeRoot.get(ClaimSpecification.CLAIM_ENTITY),
+              feeRoot.get(ClaimSpecification.CLAIM_ENTITY)))
+          .thenReturn(newerEqualPredicate);
+      when(cb.greaterThan(
+              newerFeeRoot.get(ClaimSpecification.CREATED_ON),
+              feeRoot.get(ClaimSpecification.CREATED_ON)))
+          .thenReturn(greaterThanPredicate);
+      when(cb.equal(
+              newerFeeRoot.get(ClaimSpecification.CREATED_ON),
+              feeRoot.get(ClaimSpecification.CREATED_ON)))
+          .thenReturn(equalCreatedOnPredicate);
+      when(cb.greaterThan(
+              newerFeeRoot.get(ClaimSpecification.ID), feeRoot.get(ClaimSpecification.ID)))
+          .thenReturn(greaterIdPredicate);
+
+      when(cb.and(equalCreatedOnPredicate, greaterIdPredicate)).thenReturn(andPredicate);
+      when(cb.or(greaterThanPredicate, andPredicate)).thenReturn(orPredicate);
+
+      when(newerRecordSubquery.where(newerEqualPredicate, orPredicate))
+          .thenReturn(newerRecordSubquery);
+
+      // latestFeeSubquery.select(feeRoot.get(feeFieldName))
+      when(latestFeeSubquery.select(feeRoot.get("totalAmount"))).thenReturn(latestFeeSubquery);
+
+      // cb.exists(newerRecordSubquery) and cb.not(...)
+      Predicate existsPredicate = mock(Predicate.class);
+      Predicate notExistsPredicate = mock(Predicate.class);
+      when(cb.exists(newerRecordSubquery)).thenReturn(existsPredicate);
+      when(cb.not(existsPredicate)).thenReturn(notExistsPredicate);
+
+      when(latestFeeSubquery.where(
+              cb.equal(feeRoot.get(ClaimSpecification.CLAIM_ENTITY), root), notExistsPredicate))
+          .thenReturn(latestFeeSubquery);
+
+      // when
+      Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(query).subquery(Object.class);
+      verify(query).subquery(Integer.class);
+      // The ordering should use DESC for the primary expression and still use ID ASC as tie-break
+      verify(cb).desc(any(Expression.class));
+      verify(cb).asc(root.get(ClaimSpecification.ID));
+    }
   }
 }

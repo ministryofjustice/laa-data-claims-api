@@ -1522,4 +1522,137 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     cfd.setClaimSummaryFee(summaryFee);
     calculatedFeeDetailRepository.saveAndFlush(cfd);
   }
+
+  @Test
+  @DisplayName("tie-break equal latest fees by claim id and maintain pagination stability")
+  void tieBreakEqualLatestFeesByClaimIdAndMaintainPaginationStability() throws Exception {
+    Instant now = Instant.now();
+    String testOffice = "TIEFEE-OFC";
+
+    // Create an isolated submission for this test
+    Submission sortSubmission =
+        submissionRepository.saveAndFlush(
+            Submission.builder()
+                .id(Uuid7.timeBasedUuid())
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(testOffice)
+                .submissionPeriod("AUG-2026")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(API_USER_ID)
+                .numberOfClaims(3)
+                .createdOn(CREATED_ON)
+                .build());
+
+    // Create three claims with identical latest totalAmount
+    Claim claimA =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(sortSubmission)
+            .caseReferenceNumber("CRN-A")
+            .uniqueFileNumber("UFN-A")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(1)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimA = claimRepository.saveAndFlush(claimA);
+    createCalculatedFeeDetailWithAmount(claimA, new BigDecimal("100.00"), now);
+
+    Claim claimB =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(sortSubmission)
+            .caseReferenceNumber("CRN-B")
+            .uniqueFileNumber("UFN-B")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(2)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimB = claimRepository.saveAndFlush(claimB);
+    createCalculatedFeeDetailWithAmount(claimB, new BigDecimal("100.00"), now);
+
+    Claim claimC =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(sortSubmission)
+            .caseReferenceNumber("CRN-C")
+            .uniqueFileNumber("UFN-C")
+            .matterTypeCode("TEST-MTC")
+            .lineNumber(3)
+            .status(ClaimStatus.READY_TO_PROCESS)
+            .createdByUserId(API_USER_ID)
+            .build();
+    claimC = claimRepository.saveAndFlush(claimC);
+    createCalculatedFeeDetailWithAmount(claimC, new BigDecimal("100.00"), now);
+
+    claimRepository.flush();
+
+    // Expected order is deterministic by Claim.id ASC
+    List<String> expectedIdOrder =
+        java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
+            .map(UUID::toString)
+            .sorted()
+            .toList();
+
+    // 1) Verify full list ordering with ASC primary
+    MvcResult resultAsc =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", testOffice)
+                    .param("sort", "total_amount,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var resultSetAsc =
+        OBJECT_MAPPER.readValue(
+            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    assertThat(resultSetAsc.getContent().stream().map(ClaimResponseV2::getId))
+        .containsExactlyElementsOf(expectedIdOrder);
+
+    // 2) Verify pagination stability (page size 1)
+    for (int i = 0; i < expectedIdOrder.size(); i++) {
+      MvcResult pageResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,asc")
+                      .param("size", "1")
+                      .param("page", String.valueOf(i))
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var pageSet =
+          OBJECT_MAPPER.readValue(
+              pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
+      assertThat(pageSet.getContent()).hasSize(1);
+      assertThat(pageSet.getContent().get(0).getId()).isEqualTo(expectedIdOrder.get(i));
+    }
+
+    // 3) Verify DESC primary also ties by Claim.id ASC
+    MvcResult resultDesc =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", testOffice)
+                    .param("sort", "total_amount,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var resultSetDesc =
+        OBJECT_MAPPER.readValue(
+            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+    // All primary values equal; tie-break is deterministic by Claim.id ASC
+    assertThat(resultSetDesc.getContent().stream().map(ClaimResponseV2::getId))
+        .containsExactlyElementsOf(expectedIdOrder);
+  }
 }
