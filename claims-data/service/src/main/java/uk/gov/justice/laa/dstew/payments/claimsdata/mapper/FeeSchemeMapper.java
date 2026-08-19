@@ -21,12 +21,8 @@ public interface FeeSchemeMapper {
    * @param claim the claim to map
    * @return a {@code FeeCalculationRequest} representing the claim
    */
-  // claimId is the property on ClaimStateSnapshot (was incorrectly referencing "id")
-  @Mapping(target = "claimId", source = "claimId")
-  @Mapping(target = "feeCode", source = "feeCode")
   @Mapping(target = "startDate", source = "caseStartDate")
   @Mapping(target = "netProfitCosts", source = "netProfitCostsAmount")
-  @Mapping(target = "netDisbursementAmount", source = "netDisbursementAmount")
   @Mapping(target = "netCostOfCounsel", source = "netCounselCostsAmount")
   @Mapping(target = "disbursementVatAmount", source = "disbursementsVatAmount")
   @Mapping(target = "vatIndicator", source = "isVatApplicable")
@@ -35,8 +31,6 @@ public interface FeeSchemeMapper {
   @Mapping(target = "policeStationSchemeId", source = "schemeId")
   @Mapping(target = "boltOns", source = "claim")
   @Mapping(target = "detentionTravelAndWaitingCosts", source = "detentionTravelWaitingCostsAmount")
-  @Mapping(target = "caseConcludedDate", source = "caseConcludedDate")
-  @Mapping(target = "uniqueFileNumber", source = "uniqueFileNumber")
   @Mapping(target = "numberOfMediationSessions", source = "mediationSessionsCount")
   @Mapping(target = "jrFormFilling", source = "jrFormFillingAmount")
   @Mapping(target = "londonRate", source = "isLondonRate", defaultValue = "false")
