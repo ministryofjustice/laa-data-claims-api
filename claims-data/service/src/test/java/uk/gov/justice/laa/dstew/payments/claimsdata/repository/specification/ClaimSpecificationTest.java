@@ -59,170 +59,187 @@ class ClaimSpecificationTest {
   // filterBy(String, ...)
   // -------------------------------------------------------------------------
 
-  @Test
-  void filterBy_withMinimalMandatoryParams_buildsPredicate() {
-    // given
-    String officeCode = "OFF-123";
-    String submissionId = null;
-    List<SubmissionStatus> submissionStatuses = null;
-    String feeCode = null;
-    String uniqueFileNumber = null;
-    String uniqueClientNumber = null;
-    String uniqueCaseId = null;
-    List<ClaimStatus> claimStatuses = null;
-    String submissionPeriod = null;
-    String caseReferenceNumber = null;
+  @Nested
+  @DisplayName("filterBy(String,...)")
+  class FilterByTests {
 
-    // mock submission join
-    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+    @Test
+    @DisplayName("with minimal mandatory params builds predicate")
+    void filterByWithMinimalMandatoryParamsBuildsPredicate() {
+      // given
+      String officeCode = "OFF-123";
+      String submissionId = null;
+      List<SubmissionStatus> submissionStatuses = null;
+      String feeCode = null;
+      String uniqueFileNumber = null;
+      String uniqueClientNumber = null;
+      String uniqueCaseId = null;
+      List<ClaimStatus> claimStatuses = null;
+      String submissionPeriod = null;
+      String caseReferenceNumber = null;
 
-    // mock office code predicate
-    when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-        .thenReturn(predicate1);
-    when(cb.and(predicate1)).thenReturn(predicate1);
+      // mock submission join
+      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
-    when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+      // mock office code predicate
+      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
+          .thenReturn(predicate1);
+      when(cb.and(predicate1)).thenReturn(predicate1);
 
-    Specification<Claim> spec =
-        ClaimSpecification.filterBy(
-            officeCode,
-            submissionId,
-            submissionStatuses,
-            feeCode,
-            uniqueFileNumber,
-            uniqueClientNumber,
-            uniqueCaseId,
-            claimStatuses,
-            submissionPeriod,
-            caseReferenceNumber);
+      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      Specification<Claim> spec =
+          ClaimSpecification.filterBy(
+              officeCode,
+              submissionId,
+              submissionStatuses,
+              feeCode,
+              uniqueFileNumber,
+              uniqueClientNumber,
+              uniqueCaseId,
+              claimStatuses,
+              submissionPeriod,
+              caseReferenceNumber);
 
-    // then
-    assertThat(result).isNotNull();
-    verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
-    verify(cb).equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode);
-    //        verify(cb).and(any(Predicate[].class));
-  }
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-  @Test
-  void filterBy_withUniqueClientAndCase_usesSubqueries() {
-    // given
-    String officeCode = "OFF-123";
-    String uniqueClientNumber = "CL-999";
-    String uniqueCaseId = "CASE-001";
+      // then
+      assertThat(result).isNotNull();
+      verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
+      verify(cb).equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode);
+      //        verify(cb).and(any(Predicate[].class));
+    }
 
-    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+    @Test
+    @DisplayName("with unique client and case uses subqueries")
+    void filterByWithUniqueClientAndCaseUsesSubqueries() {
+      // given
+      String officeCode = "OFF-123";
+      String uniqueClientNumber = "CL-999";
+      String uniqueCaseId = "CASE-001";
 
-    Predicate officePredicate = mock(Predicate.class);
-    when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-        .thenReturn(officePredicate);
-    when(cb.and(any(Predicate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
-    // Client subquery
-    Subquery<Client> clientSubquery = mock(Subquery.class);
-    Root<Client> clientRoot = mock(Root.class);
+      Predicate officePredicate = mock(Predicate.class);
+      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
+          .thenReturn(officePredicate);
+      when(cb.and(any(Predicate.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-    when(query.subquery(Client.class)).thenReturn(clientSubquery);
-    when(clientSubquery.from(Client.class)).thenReturn(clientRoot);
+      // Client subquery
+      Subquery<Client> clientSubquery = mock(Subquery.class);
+      Root<Client> clientRoot = mock(Root.class);
 
-    Predicate clientPredicate1 = mock(Predicate.class);
-    Predicate clientPredicate2 = mock(Predicate.class);
+      when(query.subquery(Client.class)).thenReturn(clientSubquery);
+      when(clientSubquery.from(Client.class)).thenReturn(clientRoot);
 
-    when(cb.equal(clientRoot.get(ClaimSpecification.CLAIM_ENTITY), root))
-        .thenReturn(clientPredicate1);
-    when(cb.equal(clientRoot.get(ClaimSpecification.UNIQUE_CLIENT_NUMBER), uniqueClientNumber))
-        .thenReturn(clientPredicate2);
+      Predicate clientPredicate1 = mock(Predicate.class);
+      Predicate clientPredicate2 = mock(Predicate.class);
 
-    when(clientSubquery.select(clientRoot.get(ClaimSpecification.ID))).thenReturn(clientSubquery);
-    when(clientSubquery.where(clientPredicate1, clientPredicate2)).thenReturn(clientSubquery);
+      when(cb.equal(clientRoot.get(ClaimSpecification.CLAIM_ENTITY), root))
+          .thenReturn(clientPredicate1);
+      when(cb.equal(clientRoot.get(ClaimSpecification.UNIQUE_CLIENT_NUMBER), uniqueClientNumber))
+          .thenReturn(clientPredicate2);
 
-    Predicate clientExistsPredicate = mock(Predicate.class);
-    when(cb.exists(clientSubquery)).thenReturn(clientExistsPredicate);
+      when(clientSubquery.select(clientRoot.get(ClaimSpecification.ID))).thenReturn(clientSubquery);
+      when(clientSubquery.where(clientPredicate1, clientPredicate2)).thenReturn(clientSubquery);
 
-    // ClaimCase subquery
-    Subquery<ClaimCase> claimCaseSubquery = mock(Subquery.class);
-    Root<ClaimCase> claimCaseRoot = mock(Root.class);
+      Predicate clientExistsPredicate = mock(Predicate.class);
+      when(cb.exists(clientSubquery)).thenReturn(clientExistsPredicate);
 
-    when(query.subquery(ClaimCase.class)).thenReturn(claimCaseSubquery);
-    when(claimCaseSubquery.from(ClaimCase.class)).thenReturn(claimCaseRoot);
+      // ClaimCase subquery
+      Subquery<ClaimCase> claimCaseSubquery = mock(Subquery.class);
+      Root<ClaimCase> claimCaseRoot = mock(Root.class);
 
-    Predicate claimCasePredicate1 = mock(Predicate.class);
-    Predicate claimCasePredicate2 = mock(Predicate.class);
+      when(query.subquery(ClaimCase.class)).thenReturn(claimCaseSubquery);
+      when(claimCaseSubquery.from(ClaimCase.class)).thenReturn(claimCaseRoot);
 
-    when(cb.equal(claimCaseRoot.get(ClaimSpecification.CLAIM_ENTITY), root))
-        .thenReturn(claimCasePredicate1);
-    when(cb.equal(claimCaseRoot.get(ClaimSpecification.UNIQUE_CASE_ID), uniqueCaseId))
-        .thenReturn(claimCasePredicate2);
+      Predicate claimCasePredicate1 = mock(Predicate.class);
+      Predicate claimCasePredicate2 = mock(Predicate.class);
 
-    when(claimCaseSubquery.select(claimCaseRoot.get(ClaimSpecification.ID)))
-        .thenReturn(claimCaseSubquery);
-    when(claimCaseSubquery.where(claimCasePredicate1, claimCasePredicate2))
-        .thenReturn(claimCaseSubquery);
+      when(cb.equal(claimCaseRoot.get(ClaimSpecification.CLAIM_ENTITY), root))
+          .thenReturn(claimCasePredicate1);
+      when(cb.equal(claimCaseRoot.get(ClaimSpecification.UNIQUE_CASE_ID), uniqueCaseId))
+          .thenReturn(claimCasePredicate2);
 
-    Predicate claimCaseExistsPredicate = mock(Predicate.class);
-    when(cb.exists(claimCaseSubquery)).thenReturn(claimCaseExistsPredicate);
+      when(claimCaseSubquery.select(claimCaseRoot.get(ClaimSpecification.ID)))
+          .thenReturn(claimCaseSubquery);
+      when(claimCaseSubquery.where(claimCasePredicate1, claimCasePredicate2))
+          .thenReturn(claimCaseSubquery);
 
-    when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+      Predicate claimCaseExistsPredicate = mock(Predicate.class);
+      when(cb.exists(claimCaseSubquery)).thenReturn(claimCaseExistsPredicate);
 
-    Specification<Claim> spec =
-        ClaimSpecification.filterBy(
-            officeCode, null, null, null, null, uniqueClientNumber, uniqueCaseId, null, null, null);
+      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      Specification<Claim> spec =
+          ClaimSpecification.filterBy(
+              officeCode,
+              null,
+              null,
+              null,
+              null,
+              uniqueClientNumber,
+              uniqueCaseId,
+              null,
+              null,
+              null);
 
-    // then
-    assertThat(result).isNotNull();
-    verify(query).subquery(Client.class);
-    verify(query).subquery(ClaimCase.class);
-    verify(cb).exists(clientSubquery);
-    verify(cb).exists(claimCaseSubquery);
-  }
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
 
-  @Test
-  void filterBy_withCaseReferenceNumber_usesCaseInsensitiveLike() {
-    // given
-    String officeCode = "OFF-123";
-    String caseReferenceNumber = "ABC";
+      // then
+      assertThat(result).isNotNull();
+      verify(query).subquery(Client.class);
+      verify(query).subquery(ClaimCase.class);
+      verify(cb).exists(clientSubquery);
+      verify(cb).exists(claimCaseSubquery);
+    }
 
-    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+    @Test
+    @DisplayName("with case reference number uses case-insensitive like")
+    void filterByWithCaseReferenceNumberUsesCaseInsensitiveLike() {
+      // given
+      String officeCode = "OFF-123";
+      String caseReferenceNumber = "ABC";
 
-    // mock office predicate
-    Predicate officePredicate = mock(Predicate.class);
-    when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-        .thenReturn(officePredicate);
-    when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
-    // mock case reference handling: root.get(...), cb.lower(...), cb.like(...)
-    Path<String> casePath = mock(Path.class);
-    Expression<String> lowerExpr = mock(Expression.class);
+      // mock office predicate
+      Predicate officePredicate = mock(Predicate.class);
+      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
+          .thenReturn(officePredicate);
+      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
 
-    // use doReturn to avoid generics-related stubbing issues with Mockito
-    doReturn(casePath).when(root).get(ClaimSpecification.CASE_REFERENCE_NUMBER);
-    when(cb.lower(casePath)).thenReturn(lowerExpr);
+      // mock case reference handling: root.get(...), cb.lower(...), cb.like(...)
+      Path<String> casePath = mock(Path.class);
+      Expression<String> lowerExpr = mock(Expression.class);
 
-    String expectedPattern = "%" + caseReferenceNumber.toLowerCase() + "%";
-    when(cb.like(lowerExpr, expectedPattern)).thenReturn(predicate2);
+      // use doReturn to avoid generics-related stubbing issues with Mockito
+      doReturn(casePath).when(root).get(ClaimSpecification.CASE_REFERENCE_NUMBER);
+      when(cb.lower(casePath)).thenReturn(lowerExpr);
 
-    // build a request-based model to call the request-based filterBy
-    ClaimSearchRequest requestModel =
-        ClaimSearchRequest.builder()
-            .officeCode(officeCode)
-            .caseReferenceNumber(caseReferenceNumber)
-            .build();
+      String expectedPattern = "%" + caseReferenceNumber.toLowerCase() + "%";
+      when(cb.like(lowerExpr, expectedPattern)).thenReturn(predicate2);
 
-    Specification<Claim> spec = ClaimSpecification.filterBy(requestModel);
+      // build a request-based model to call the request-based filterBy
+      ClaimSearchRequest requestModel =
+          ClaimSearchRequest.builder()
+              .officeCode(officeCode)
+              .caseReferenceNumber(caseReferenceNumber)
+              .build();
 
-    // when
-    Predicate result = spec.toPredicate(root, query, cb);
+      Specification<Claim> spec = ClaimSpecification.filterBy(requestModel);
 
-    // then
-    assertThat(result).isNotNull();
-    verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
-    verify(cb).lower(casePath);
-    verify(cb).like(lowerExpr, expectedPattern);
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isNotNull();
+      verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
+      verify(cb).lower(casePath);
+      verify(cb).like(lowerExpr, expectedPattern);
+    }
   }
 
   @Nested
@@ -230,7 +247,8 @@ class ClaimSpecificationTest {
   class OrderByTotalWarningMessagesTest {
 
     @Test
-    void orderByTotalWarningMessages_withNullPageable_returnsConjunction() {
+    @DisplayName("with null pageable returns conjunction")
+    void orderByTotalWarningMessagesWithNullPageableReturnsConjunction() {
       // given
       Pageable pageable = null;
       when(cb.conjunction()).thenReturn(predicate1);
@@ -247,7 +265,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderByTotalWarningMessages_withNoSort_returnsConjunction() {
+    @DisplayName("with no sort returns conjunction")
+    void orderByTotalWarningMessagesWithNoSortReturnsConjunction() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
       when(cb.conjunction()).thenReturn(predicate1);
@@ -264,7 +283,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderByTotalWarningMessages_withNonMatchingSortProperty_doesNotAlterQuery() {
+    @DisplayName("with non-matching sort property does not alter query")
+    void orderByTotalWarningMessagesWithNonMatchingSortPropertyDoesNotAlterQuery() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by("someOtherField"));
       when(cb.conjunction()).thenReturn(predicate1);
@@ -281,7 +301,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderByTotalWarningMessages_withTotalWarningsSort_addsSubqueryOrderBy() {
+    @DisplayName("with totalWarnings sort adds subquery order by")
+    void orderByTotalWarningMessagesWithTotalWarningsSortAddsSubqueryOrderBy() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("totalWarnings")));
 
@@ -321,7 +342,8 @@ class ClaimSpecificationTest {
   class OrderBySubmissionPeriodTest {
 
     @Test
-    void orderBySubmissionPeriod_withNullPageable_returnsConjunction() {
+    @DisplayName("with null pageable returns conjunction")
+    void orderBySubmissionPeriodWithNullPageableReturnsConjunction() {
       // given
       Pageable pageable = null;
       when(cb.conjunction()).thenReturn(predicate1);
@@ -338,7 +360,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderBySubmissionPeriod_withUnsortedPageable_returnsConjunction() {
+    @DisplayName("with unsorted pageable returns conjunction")
+    void orderBySubmissionPeriodWithUnsortedPageableReturnsConjunction() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
       when(cb.conjunction()).thenReturn(predicate1);
@@ -355,7 +378,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderBySubmissionPeriod_withNonMatchingSortProperty_doesNothing() {
+    @DisplayName("with non-matching sort property does nothing")
+    void orderBySubmissionPeriodWithNonMatchingSortPropertyDoesNothing() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
       when(cb.conjunction()).thenReturn(predicate1);
@@ -372,7 +396,8 @@ class ClaimSpecificationTest {
     }
 
     @Test
-    void orderBySubmissionPeriod_withMatchingSortProperty_addsOrderByClause() {
+    @DisplayName("with matching sort property adds order by clause")
+    void orderBySubmissionPeriodWithMatchingSortPropertyAddsOrderByClause() {
       // given
       Pageable pageable =
           PageRequest.of(0, 10, Sort.by(Sort.Order.asc("submission.submissionPeriod")));
@@ -392,6 +417,167 @@ class ClaimSpecificationTest {
 
       verify(root).join(ClaimSpecification.SUBMISSION_ENTITY);
       verify(cb).function(eq("to_date"), eq(Date.class), any(), any());
+    }
+  }
+
+  @Nested
+  @DisplayName("orderByDerivedClaimStatus(Pageable)")
+  class OrderByDerivedClaimStatusTest {
+
+    @Test
+    @DisplayName("with null pageable returns conjunction")
+    void orderByDerivedClaimStatusWithNullPageableReturnsConjunction() {
+      Pageable pageable = null;
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      Specification<Claim> spec = ClaimSpecification.orderByDerivedClaimStatus(pageable);
+
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    @DisplayName("with matching sort builds case expression")
+    void orderByDerivedClaimStatusWithMatchingSortBuildsCaseExpression() {
+      Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("derivedClaimStatus")));
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      // Mock the selectCase() chain to return an Expression<Integer>
+      CriteriaBuilder.Case<Integer> caseBuilder =
+          mock(CriteriaBuilder.Case.class, org.mockito.Answers.RETURNS_SELF);
+      Expression<Integer> derivedExpr = mock(Expression.class);
+
+      // Ensure cb.equal(...) and cb.isTrue(...) return non-null predicates so the chained
+      // caseBuilder.when(...) calls receive non-null arguments (Mockito matchers do not match
+      // null by default).
+      Predicate anyPredicate = mock(Predicate.class);
+      when(cb.equal(any(), any())).thenReturn(anyPredicate);
+      when(cb.isTrue(any())).thenReturn(anyPredicate);
+
+      when(cb.<Integer>selectCase()).thenReturn(caseBuilder);
+      // The chained when(...) calls can return the same caseBuilder instance. Use doReturn to avoid
+      // calling the real method on the mock during stubbing (which would return null).
+      // Note: the when(...) method takes an Expression (Predicate extends Expression<Boolean>), so
+      // match against Expression to ensure the stub is applied.
+      // The RETURNS_SELF mock will cause chained when(...) calls to return the same mock instance.
+      // Ensure the mock is returned for selectCase()
+      // No explicit doReturn for when() is required because of RETURNS_SELF.
+      // finally, the otherwise(...) call should return an Expression
+      doReturn(derivedExpr).when(caseBuilder).otherwise(anyInt());
+
+      Specification<Claim> spec = ClaimSpecification.orderByDerivedClaimStatus(pageable);
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).selectCase();
+      verify(caseBuilder).otherwise(anyInt());
+      verify(cb).asc(root.get(ClaimSpecification.ID));
+    }
+  }
+
+  @Nested
+  @DisplayName("orderByLatestCalculatedFee(Pageable)")
+  class OrderByLatestCalculatedFeeTest {
+
+    @Test
+    @DisplayName("with null pageable returns conjunction")
+    void orderByLatestCalculatedFeeWithNullPageableReturnsConjunction() {
+      Pageable pageable = null;
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
+
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    @DisplayName("with matching property builds subqueries and orders")
+    void orderByLatestCalculatedFeeWithMatchingPropertyBuildsSubqueriesAndOrders() {
+      // given
+      String sortProp = ClaimSpecification.CALCULATED_FEE_DETAILS + ".totalAmount";
+      Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc(sortProp)));
+
+      when(cb.conjunction()).thenReturn(predicate1);
+
+      // Prepare latestFeeValueSubquery
+      Subquery<Object> latestFeeSubquery = mock(Subquery.class);
+      Root<CalculatedFeeDetail> feeRoot = mock(Root.class);
+
+      when(query.subquery(Object.class)).thenReturn(latestFeeSubquery);
+      when(latestFeeSubquery.from(CalculatedFeeDetail.class)).thenReturn(feeRoot);
+
+      // Prepare newerRecordSubquery
+      Subquery<Integer> newerRecordSubquery = mock(Subquery.class);
+      Root<CalculatedFeeDetail> newerFeeRoot = mock(Root.class);
+
+      when(query.subquery(Integer.class)).thenReturn(newerRecordSubquery);
+      when(newerRecordSubquery.from(CalculatedFeeDetail.class)).thenReturn(newerFeeRoot);
+
+      // Mock literal select
+      Expression<Integer> literalExpr = mock(Expression.class);
+      when(cb.literal(1)).thenReturn(literalExpr);
+      when(newerRecordSubquery.select(literalExpr)).thenReturn(newerRecordSubquery);
+
+      // Predicates for newerRecordSubquery.where(...)
+      Predicate newerEqualPredicate = mock(Predicate.class);
+      Predicate greaterThanPredicate = mock(Predicate.class);
+      Predicate equalCreatedOnPredicate = mock(Predicate.class);
+      Predicate greaterIdPredicate = mock(Predicate.class);
+      Predicate andPredicate = mock(Predicate.class);
+      Predicate orPredicate = mock(Predicate.class);
+
+      when(cb.equal(
+              newerFeeRoot.get(ClaimSpecification.CLAIM_ENTITY),
+              feeRoot.get(ClaimSpecification.CLAIM_ENTITY)))
+          .thenReturn(newerEqualPredicate);
+      when(cb.greaterThan(
+              newerFeeRoot.get(ClaimSpecification.CREATED_ON),
+              feeRoot.get(ClaimSpecification.CREATED_ON)))
+          .thenReturn(greaterThanPredicate);
+      when(cb.equal(
+              newerFeeRoot.get(ClaimSpecification.CREATED_ON),
+              feeRoot.get(ClaimSpecification.CREATED_ON)))
+          .thenReturn(equalCreatedOnPredicate);
+      when(cb.greaterThan(
+              newerFeeRoot.get(ClaimSpecification.ID), feeRoot.get(ClaimSpecification.ID)))
+          .thenReturn(greaterIdPredicate);
+
+      when(cb.and(equalCreatedOnPredicate, greaterIdPredicate)).thenReturn(andPredicate);
+      when(cb.or(greaterThanPredicate, andPredicate)).thenReturn(orPredicate);
+
+      when(newerRecordSubquery.where(newerEqualPredicate, orPredicate))
+          .thenReturn(newerRecordSubquery);
+
+      // latestFeeSubquery.select(feeRoot.get(feeFieldName))
+      when(latestFeeSubquery.select(feeRoot.get("totalAmount"))).thenReturn(latestFeeSubquery);
+
+      // cb.exists(newerRecordSubquery) and cb.not(...)
+      Predicate existsPredicate = mock(Predicate.class);
+      Predicate notExistsPredicate = mock(Predicate.class);
+      when(cb.exists(newerRecordSubquery)).thenReturn(existsPredicate);
+      when(cb.not(existsPredicate)).thenReturn(notExistsPredicate);
+
+      when(latestFeeSubquery.where(
+              cb.equal(feeRoot.get(ClaimSpecification.CLAIM_ENTITY), root), notExistsPredicate))
+          .thenReturn(latestFeeSubquery);
+
+      // when
+      Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(query).subquery(Object.class);
+      verify(query).subquery(Integer.class);
+      // The ordering should use the latestFeeSubquery as an expression
+      verify(cb).asc(root.get(ClaimSpecification.ID));
     }
   }
 }
