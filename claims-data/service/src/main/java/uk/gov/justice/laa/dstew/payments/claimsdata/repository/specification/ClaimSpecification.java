@@ -466,8 +466,9 @@ public final class ClaimSpecification {
         // 4. Apply the order by clause using the subquery
         query.orderBy(
             order.isAscending() ? cb.asc(latestFeeValueSubquery) : cb.desc(latestFeeValueSubquery),
-            // Deterministic secondary sort so rows never drift between pages.
-            cb.asc(root.get(ID)));
+            // Deterministic secondary sort so rows never drift between pages. Follow the same
+            // direction as the primary sort so tie-break behaviour is intuitive to callers.
+            (order.isAscending() ? cb.asc(root.get(ID)) : cb.desc(root.get(ID))));
 
         break; // Handle primary custom sort
       }

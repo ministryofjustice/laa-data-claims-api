@@ -1590,11 +1590,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     claimRepository.flush();
 
-    // Expected order is deterministic by Claim.id ASC
-    List<String> expectedIdOrder =
+    // Expected order is deterministic by Claim.id ASC for an ASC primary, and the reverse for DESC
+    List<String> expectedAscIdOrder =
         java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
             .map(UUID::toString)
             .sorted()
+            .toList();
+
+    List<String> expectedDescIdOrder =
+        java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
+            .map(UUID::toString)
+            .sorted(java.util.Comparator.reverseOrder())
             .toList();
 
     // 1) Verify full list ordering with ASC primary
@@ -1613,10 +1619,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
     assertThat(resultSetAsc.getContent().stream().map(ClaimResponseV2::getId))
-        .containsExactlyElementsOf(expectedIdOrder);
+        .containsExactlyElementsOf(expectedAscIdOrder);
 
-    // 2) Verify pagination stability (page size 1)
-    for (int i = 0; i < expectedIdOrder.size(); i++) {
+    // 2) Verify pagination stability (page size 1) for ASC
+    for (int i = 0; i < expectedAscIdOrder.size(); i++) {
       MvcResult pageResult =
           mockMvc
               .perform(
@@ -1633,10 +1639,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           OBJECT_MAPPER.readValue(
               pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
       assertThat(pageSet.getContent()).hasSize(1);
-      assertThat(pageSet.getContent().get(0).getId()).isEqualTo(expectedIdOrder.get(i));
+      assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedAscIdOrder.get(i));
     }
 
-    // 3) Verify DESC primary also ties by Claim.id ASC
+    // 3) Verify full list ordering with DESC primary uses ID DESC as the tie-break
     MvcResult resultDesc =
         mockMvc
             .perform(
@@ -1651,8 +1657,29 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(
             resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
-    // All primary values equal; tie-break is deterministic by Claim.id ASC
+    // All primary values equal; tie-break is deterministic by Claim.id DESC
     assertThat(resultSetDesc.getContent().stream().map(ClaimResponseV2::getId))
-        .containsExactlyElementsOf(expectedIdOrder);
+        .containsExactlyElementsOf(expectedDescIdOrder);
+
+    // 4) Verify pagination stability (page size 1) for DESC
+    for (int i = 0; i < expectedDescIdOrder.size(); i++) {
+      MvcResult pageResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,desc")
+                      .param("size", "1")
+                      .param("page", String.valueOf(i))
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var pageSet =
+          OBJECT_MAPPER.readValue(
+              pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
+      assertThat(pageSet.getContent()).hasSize(1);
+      assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedDescIdOrder.get(i));
+    }
   }
 }

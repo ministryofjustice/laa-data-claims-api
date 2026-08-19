@@ -659,9 +659,9 @@ class ClaimSpecificationTest {
       assertThat(result).isEqualTo(predicate1);
       verify(query).subquery(Object.class);
       verify(query).subquery(Integer.class);
-      // The ordering should use DESC for the primary expression and still use ID ASC as tie-break
+      // The ordering should use DESC for the primary expression and use ID DESC as the tie-break
       verify(cb).desc(any(Expression.class));
-      verify(cb).asc(root.get(ClaimSpecification.ID));
+      verify(cb).desc(root.get(ClaimSpecification.ID));
     }
   }
 }
