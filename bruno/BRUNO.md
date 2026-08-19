@@ -95,6 +95,18 @@ Expected result:
 - Setup requests populate IDs such as `SUBMISSION_ID` and `CLAIM_ID`.
 - You can then run requests under `api/v1/...` without manually copying IDs.
 
+### Amendment repricing scenario pack (DSTEW-1757..1762)
+
+- Scenario folder: `api/v1/submissions/claims/amendment-repricing/`
+- Full runbook: `AMENDMENT-REPRICING-TEST-STRATEGY.md`
+- Run setup requests first, then execute the scenario requests in sequence.
+
+### Amendment smoke scenario pack
+
+- Scenario folder: `api/v1/submissions/claims/amendment-smoke/`
+- Purpose: quick happy-path check that amendment PATCH succeeds and claim fields are updated.
+- Run setup requests first, then execute `01 ...` and `02 ...` in sequence.
+
 Helpful docs:
 
 - Download/install: https://docs.usebruno.com/bruno-basics/download
@@ -147,6 +159,10 @@ Execution order:
 3. `SETUP: Grab claim id from submission`
    - Reads submission by `SUBMISSION_ID`.
    - Writes `CLAIM_ID`.
+4. `SETUP: Verify claim has fee calculation`
+   - Reads claim by `SUBMISSION_ID` + `CLAIM_ID`.
+   - Fails fast if `fee_calculation_response` is null.
+   - Writes `SUMMARY_FEE_ID` and baseline fee snapshot vars used by amendment-repricing checks.
 
 Path portability rule:
 

@@ -1,7 +1,7 @@
 meta {
-  name: Amend a Claim
+  name: 01 Amend claim smoke happy path (expect 204)
   type: http
-  seq: 3
+  seq: 2
 }
 
 patch {
@@ -21,11 +21,17 @@ headers {
 
 body:json {
   {
-    "client_forename": "Testy",
-    "client_surname": "McTestFace",
+    "client_forename": "AmendSmoke",
+    "client_surname": "HappyPath",
     "amendment_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "amendment_requested_by": "PROVIDER",
     "amendment_reason_code": "CASE_REOPENED_REBILLED"
+  }
+}
+
+tests {
+  if (res.status !== 204) {
+    throw new Error("Expected 204 for amendment smoke PATCH request");
   }
 }
 

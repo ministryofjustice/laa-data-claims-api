@@ -9,35 +9,57 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
  * identifiers (claim id, tag id, expected value) that make a failure diagnosable at a glance
  * without opening the Java stack trace.
  *
+ * <p>Both overloads use functional interfaces that allow {@code throws Exception}, so step lambdas
+ * calling e.g. {@link
+ * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport#getClaimHistory(java.util.UUID)}
+ * (which declares {@link java.io.IOException}) don't force each step method to swallow-then-rethrow
+ * the checked exception.
+ *
  * <p>On failure the wrapper rethrows an {@link AssertionError} whose message is {@code [BDD step
  * failed] <contextDescription> — <cause summary>} and chains the original throwable via {@link
  * Throwable#initCause(Throwable)}, so the Cucumber HTML report and the JUnit XML both show the
  * friendly line first and the deep stack second. AssertJ assertions inside the body still use
  * {@code .as("…")} to describe the specific assertion; the wrapper prepends the outer step context
  * so both show side by side.
+ *
+ * <p>Usage:
+ *
+ * <pre>{@code
+ * @When("I request the claim history timeline")
+ * public void iRequestTheClaimHistoryTimeline() {
+ *   BddStepFailures.step(
+ *       "Requesting claim history timeline for claim " + currentClaimId,
+ *       () -> lastHistoryResponse = api.getClaimHistory(currentClaimId));
+ * }
+ * }</pre>
  */
 public final class BddStepFailures {
 
   private BddStepFailures() {
-    // utility class
+    // Utility class - no instances.
   }
 
-  /** Body that returns nothing and may throw any checked/unchecked exception. */
+  /** Runnable that returns nothing and may throw any checked/unchecked exception. */
   @FunctionalInterface
   public interface ThrowingRunnable {
     void run() throws Exception;
   }
 
-  /** Body that returns a value and may throw any checked/unchecked exception. */
+  /** Supplier that returns a value and may throw any checked/unchecked exception. */
   @FunctionalInterface
   public interface ThrowingSupplier<T> {
     T get() throws Exception;
   }
 
   /**
-   * Runs {@code body} inside a friendly-failure envelope. On any thrown exception, rewraps as
-   * {@link AssertionError} with a prefixed, business-language message and preserves the original
-   * cause + stack via {@link Throwable#initCause(Throwable)}.
+   * Executes {@code body} and, on any failure, rethrows an {@link AssertionError} whose first line
+   * describes {@code contextDescription}.
+   *
+   * @param contextDescription a plain-English sentence starting with the verb + noun of what the
+   *     step is doing (e.g. "Verifying AMENDMENT metadata field 'requested_by_code' equals
+   *     'PROVIDER' for claim {claimId}"). Include the scenario-scoped identifiers that make the
+   *     failure diagnosable at a glance.
+   * @param body the actual step work — assertions, HTTP calls, DB seeding.
    */
   public static void step(String contextDescription, ThrowingRunnable body) {
     try {
@@ -78,10 +100,14 @@ public final class BddStepFailures {
       return null;
     }
     String raw = cause.getMessage();
-    String message = (raw == null || raw.isBlank()) ? cause.getClass().getSimpleName() : raw;
+    boolean blank = (raw == null || raw.isBlank());
     if (cause instanceof AssertionError) {
-      return message;
+      return blank ? cause.getClass().getSimpleName() : raw;
     }
-    return cause.getClass().getSimpleName() + ": " + message;
+    // For non-assertion throwables with a real message, prefix the class name so the reader can
+    // tell at a glance whether the failure came from an I/O error, an HTTP status, etc. When the
+    // message is blank/null we would otherwise produce `NullPointerException: NullPointerException`
+    // — return just the class name in that case.
+    return blank ? cause.getClass().getSimpleName() : cause.getClass().getSimpleName() + ": " + raw;
   }
 }
