@@ -89,12 +89,12 @@ Feature: Claim history timeline — AMENDMENT event metadata
       | amendment_reason_code | PROVIDER_ERROR               |
     And the amendment's stored diff contains a `change_source` "Requested" entry for field "client_surname"
     When I request the claim history timeline
-    Then the response contains an event with the following envelope
+    Then the amendment event contains the following envelope
       | envelopeField    | value                |
       | event_type       | AMENDMENT            |
       | event_timestamp  | 2026-05-02T09:14:00Z |
       | actor_id         | entra-user-abc       |
-    And that event's metadata contains
+    And the amendment event metadata contains
       | metadataField         | value          |
       | requested_by_code     | PROVIDER       |
       | amendment_reason_code | PROVIDER_ERROR |
@@ -124,5 +124,3 @@ Feature: Claim history timeline — AMENDMENT event metadata
       | PROVIDER            | PROVIDER_ERROR             |
       | CONTRACT_MANAGEMENT | INCORRECT_MEANS_ASSESSMENT |
       | ASSURANCE           | OTHER                      |
-
-

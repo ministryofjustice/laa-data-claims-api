@@ -7,7 +7,6 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
@@ -53,21 +51,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * Javadoc on {@link BddStepFailures} for the wrapper's contract.
  */
 @Slf4j
-public class ClaimHistoryAmendmentMetadataSteps {
+public class ClaimHistoryAmendmentMetadataSteps extends ClaimHistoryTimelineSharedSteps {
 
   private static final String BDD_USER_ID = "bdd-user-1813";
   private static final String AMENDMENT_EVENT_TYPE = "AMENDMENT";
 
-  @Autowired private BddApiStepSupport api;
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
 
-  private UUID currentClaimId;
   private UUID currentAmendmentId;
   private final List<UUID> amendmentIdsInOrder = new ArrayList<>();
-  private JsonNode lastHistoryResponse;
 
   // ---------------------------------------------------------------------------
   // Given — single-amendment seeding
@@ -166,24 +161,12 @@ public class ClaimHistoryAmendmentMetadataSteps {
   // When
   // ---------------------------------------------------------------------------
 
-  @When("I request the claim history timeline")
-  public void iRequestTheClaimHistoryTimeline() {
-    BddStepFailures.step(
-        "Requesting claim history timeline for claim " + currentClaimId,
-        () -> {
-          assertThat(currentClaimId)
-              .as("claim must be seeded before requesting history")
-              .isNotNull();
-          lastHistoryResponse = api.getClaimHistory(currentClaimId);
-        });
-  }
-
   // ---------------------------------------------------------------------------
   // Then — envelope
   // ---------------------------------------------------------------------------
 
-  @Then("the response contains an event with the following envelope")
-  public void theResponseContainsAnEventWithTheFollowingEnvelope(DataTable table) {
+  @Then("the amendment event contains the following envelope")
+  public void theAmendmentEventContainsTheFollowingEnvelope(DataTable table) {
     BddStepFailures.step(
         "Verifying an AMENDMENT event with the scenario-declared envelope fields is present"
             + " on the history response for claim "
@@ -206,8 +189,8 @@ public class ClaimHistoryAmendmentMetadataSteps {
         });
   }
 
-  @And("that event's metadata contains")
-  public void thatEventsMetadataContains(DataTable table) {
+  @And("the amendment event metadata contains")
+  public void theAmendmentEventMetadataContains(DataTable table) {
     BddStepFailures.step(
         "Verifying the AMENDMENT event for amendment "
             + currentAmendmentId
@@ -351,7 +334,7 @@ public class ClaimHistoryAmendmentMetadataSteps {
                 .matterTypeCode("TEST_MATTER")
                 .createdByUserId(BDD_USER_ID)
                 .build());
-    currentClaimId = claim.getId();
+    setCurrentClaimId(claim.getId());
 
     // Seed a summary fee row so downstream amendment-linked CFD lookups (not exercised in this
     // ticket) don't blow up if invoked accidentally from a shared helper.
@@ -427,7 +410,8 @@ public class ClaimHistoryAmendmentMetadataSteps {
 
   private List<JsonNode> eventsArray() {
     List<JsonNode> results = new ArrayList<>();
-    JsonNode events = lastHistoryResponse == null ? null : lastHistoryResponse.path("events");
+    JsonNode response = getLastResponse();
+    JsonNode events = response == null ? null : response.path("events");
     if (events != null && events.isArray()) {
       events.forEach(results::add);
     }

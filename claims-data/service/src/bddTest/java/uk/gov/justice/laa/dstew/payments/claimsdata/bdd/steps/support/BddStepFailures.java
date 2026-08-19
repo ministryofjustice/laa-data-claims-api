@@ -8,6 +8,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
  * contextDescription} is a plain-English sentence naming the verb + noun and any scenario-scoped
  * identifiers (claim id, tag id, expected value) that make a failure diagnosable at a glance
  * without opening the Java stack trace.
+ *
  * <p>Both overloads use functional interfaces that allow {@code throws Exception}, so step lambdas
  * calling e.g. {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport#getClaimHistory(java.util.UUID)}
@@ -20,6 +21,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
  * friendly line first and the deep stack second. AssertJ assertions inside the body still use
  * {@code .as("…")} to describe the specific assertion; the wrapper prepends the outer step context
  * so both show side by side.
+ *
  * <p>Usage:
  *
  * <pre>{@code
@@ -30,7 +32,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support;
  *       () -> lastHistoryResponse = api.getClaimHistory(currentClaimId));
  * }
  * }</pre>
- *
  */
 public final class BddStepFailures {
 
