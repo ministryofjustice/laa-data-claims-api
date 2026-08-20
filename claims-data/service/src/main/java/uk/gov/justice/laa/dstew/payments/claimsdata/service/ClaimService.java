@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +42,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -225,7 +226,7 @@ public class ClaimService
    * @param claimPatch patch payload
    */
   @Transactional
-  public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+  public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
     if (isAnAmendment(claimPatch, claim)) {
@@ -235,7 +236,7 @@ public class ClaimService
     }
   }
 
-  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
+  private boolean isAnAmendment(ClaimAmendmentPatch claimPatch, Claim claim) {
     if (claimPatch.getStatus() == null) {
       return true;
     }
@@ -245,8 +246,17 @@ public class ClaimService
   /**
    * Checks if the patch contains any fields outside of the standard status/fee update flow.
    * Leverages short-circuit evaluation for maximum performance.
+   *
+   * <p>Amendment fields are wrapped in {@link JsonNullable}: an omitted field ({@code
+   * JsonNullable.undefined()}) is skipped. A present, <strong>non-null</strong> value that differs
+   * from the persisted claim counts as an update (and therefore an amendment).
+   *
+   * <p>An explicit null (a "clear") is deliberately <strong>not</strong> treated as an amendment
+   * trigger here. Clearing a persisted field back to {@code null} is an amendment-only feature; on
+   * the legacy status/fee path an explicit null is a no-op, mirroring the pre-amendment contract
+   * where an absent and an explicitly-null field were indistinguishable.
    */
-  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+  private boolean hasAdditionalFieldUpdates(ClaimAmendmentPatch patch, Claim claim) {
     if (patch == null) {
       return false;
     }
@@ -259,21 +269,7 @@ public class ClaimService
           if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
             return;
           }
-
-          ReflectionUtils.makeAccessible(patchField);
-          Object patchValue = patchField.get(patch);
-
-          if (patchValue != null) {
-            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
-
-            if (claimField != null) {
-              ReflectionUtils.makeAccessible(claimField);
-              Object claimValue = claimField.get(claim);
-
-              if (Objects.equals(patchValue, claimValue)) {
-                return;
-              }
-            }
+          if (fieldRepresentsChange(patchField, patch, claim)) {
             hasUpdates.set(true);
           }
         },
@@ -283,12 +279,71 @@ public class ClaimService
   }
 
   /**
+   * Determines whether a single patch field carries a real, persistable change relative to the
+   * claim. Omitted fields and explicit-null "clears" never count - only a present, non-null value
+   * that differs from the persisted claim does.
+   */
+  private boolean fieldRepresentsChange(Field patchField, ClaimAmendmentPatch patch, Claim claim) {
+    ReflectionUtils.makeAccessible(patchField);
+    Object rawValue = ReflectionUtils.getField(patchField, patch);
+
+    // Tri-state fields: omitted or explicit null -> skip; present non-null -> consider.
+    Object candidateValue = rawValue;
+    if (rawValue instanceof JsonNullable<?> jsonNullable) {
+      candidateValue = jsonNullable.isPresent() ? jsonNullable.get() : null;
+    }
+
+    return candidateValue != null
+        && !Objects.equals(candidateValue, readClaimField(claim, patchField.getName()));
+  }
+
+  /**
+   * Neutralises explicit-null "clears" on the legacy status/fee update path.
+   *
+   * <p>Setting a persisted field back to {@code null} is an amendment-only feature. On the legacy
+   * path an explicit JSON null must behave exactly like an omitted field - a no-op - matching the
+   * pre-amendment contract. Converting any present-null {@link JsonNullable} back to {@link
+   * JsonNullable#undefined()} makes the MapStruct mapper skip it instead of writing {@code null}
+   * over the existing value.
+   */
+  private void stripExplicitNullClears(ClaimAmendmentPatch patch) {
+    if (patch == null) {
+      return;
+    }
+
+    ReflectionUtils.doWithFields(
+        patch.getClass(),
+        patchField -> {
+          ReflectionUtils.makeAccessible(patchField);
+          if (ReflectionUtils.getField(patchField, patch) instanceof JsonNullable<?> jsonNullable
+              && jsonNullable.isPresent()
+              && jsonNullable.get() == null) {
+            ReflectionUtils.setField(patchField, patch, JsonNullable.undefined());
+          }
+        },
+        ReflectionUtils.COPYABLE_FIELDS);
+  }
+
+  private Object readClaimField(Claim claim, String fieldName) {
+    Field claimField = ReflectionUtils.findField(claim.getClass(), fieldName);
+    if (claimField == null) {
+      return null;
+    }
+    ReflectionUtils.makeAccessible(claimField);
+    return ReflectionUtils.getField(claimField, claim);
+  }
+
+  /**
    * This method is called to allow legacy updates to still work.
    *
    * @param claim claim
    * @param claimPatch claim patch
    */
-  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
+
+    // Field clearing is amendment-only: on the legacy path an explicit null must not overwrite an
+    // existing value, so strip explicit-null "clears" before mapping onto the entity.
+    stripExplicitNullClears(claimPatch);
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
@@ -319,12 +374,12 @@ public class ClaimService
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
+      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId().orElse(null));
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
   }
 
-  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
+  private void amendClaim(Claim claim, ClaimAmendmentPatch claimPatch) {
 
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {

@@ -58,6 +58,7 @@ public class Claim {
 
   @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("createdOn DESC, id DESC") // Matches the DB index for latest selection
+  @Builder.Default
   private List<CalculatedFeeDetail> calculatedFeeDetails = new ArrayList<>();
 
   @NotNull

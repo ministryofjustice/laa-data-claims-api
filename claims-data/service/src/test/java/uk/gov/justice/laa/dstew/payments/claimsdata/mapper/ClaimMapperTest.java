@@ -29,7 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -358,8 +358,8 @@ class ClaimMapperTest {
             .scheduleReference("OLD_SCH")
             .build();
 
-    final ClaimPatch patch =
-        new ClaimPatch()
+    final ClaimAmendmentPatch patch =
+        new ClaimAmendmentPatch()
             .isDutySolicitor(true)
             .isYouthCourt(true)
             .status(ClaimStatus.READY_TO_PROCESS)

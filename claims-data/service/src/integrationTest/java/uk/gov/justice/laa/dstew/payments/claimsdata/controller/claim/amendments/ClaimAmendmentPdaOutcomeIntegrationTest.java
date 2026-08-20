@@ -131,7 +131,7 @@ class ClaimAmendmentPdaOutcomeIntegrationTest extends AbstractAmendmentPatchInte
 
   /** A patch carrying valid amendment metadata plus a PDA-relevant fee-code change. */
   private ClaimPatch feeCodeChangePatch() {
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setFeeCode("FEE2");
     return patch;
   }

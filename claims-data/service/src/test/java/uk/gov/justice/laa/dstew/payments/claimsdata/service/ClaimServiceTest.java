@@ -51,6 +51,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -58,6 +59,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -75,7 +77,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -394,7 +396,7 @@ class ClaimServiceTest {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
@@ -410,8 +412,8 @@ class ClaimServiceTest {
   void shouldThrowWhenClaimNotFoundOnUpdate() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L);
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    patch.setVersion(JsonNullable.of(1L));
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -428,7 +430,7 @@ class ClaimServiceTest {
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -456,7 +458,7 @@ class ClaimServiceTest {
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -485,7 +487,7 @@ class ClaimServiceTest {
 
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
@@ -530,7 +532,7 @@ class ClaimServiceTest {
             .version(1L) // Added version to mock Claim
             .submission(Submission.builder().id(submissionId).build())
             .build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
@@ -545,6 +547,126 @@ class ClaimServiceTest {
     verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
     verify(claimRepository).save(claim);
     verify(claimMapper).toValidationMessageLog(message1, claim);
+  }
+
+  @Nested
+  @DisplayName("updateClaim - status/amendment routing and null-clear handling")
+  class UpdateClaimRoutingAndNullHandling {
+
+    /**
+     * Regression for the Pact 503: a status-only patch that carries explicit JSON nulls for other
+     * fields (as the consumer serialises them) must take the legacy path and must NOT be treated as
+     * an amendment. The explicit nulls must be neutralised so the mapper cannot clear persisted
+     * values.
+     */
+    @Test
+    void statusOnlyWithExplicitNullClears_usesLegacyPathAndDoesNotClearFields() {
+      final Claim claim =
+          Claim.builder()
+              .id(CLAIM_1_ID)
+              .version(1L)
+              .scheduleReference("OLD_SCH")
+              .feeCode("OLD_FEE")
+              .build();
+
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch().status(ClaimStatus.VALID);
+      patch.setScheduleReference(JsonNullable.of(null));
+      patch.setFeeCode(JsonNullable.of(null));
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      // Legacy path taken; the amendment flow (and its feature gate) is never invoked.
+      verifyNoInteractions(claimAmendmentService);
+
+      final ArgumentCaptor<ClaimAmendmentPatch> captor =
+          ArgumentCaptor.forClass(ClaimAmendmentPatch.class);
+      verify(claimMapper).updateSubmissionClaimFromPatch(captor.capture(), eq(claim));
+      verify(claimRepository).save(claim);
+
+      final ClaimAmendmentPatch mapped = captor.getValue();
+      assertThat(mapped.getStatus()).isEqualTo(ClaimStatus.VALID);
+      assertThat(mapped.getScheduleReference()).isEqualTo(JsonNullable.undefined());
+      assertThat(mapped.getFeeCode()).isEqualTo(JsonNullable.undefined());
+    }
+
+    /** An explicit null on a field that is already null is still a no-op on the legacy path. */
+    @Test
+    void explicitNullOnAlreadyNullField_staysLegacyAndIsNeutralised() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch().status(ClaimStatus.VALID);
+      patch.setScheduleReference(JsonNullable.of(null));
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verifyNoInteractions(claimAmendmentService);
+      final ArgumentCaptor<ClaimAmendmentPatch> captor =
+          ArgumentCaptor.forClass(ClaimAmendmentPatch.class);
+      verify(claimMapper).updateSubmissionClaimFromPatch(captor.capture(), eq(claim));
+      assertThat(captor.getValue().getScheduleReference()).isEqualTo(JsonNullable.undefined());
+    }
+
+    /** A set (present, non-null) value that actually differs is a real change - an amendment. */
+    @Test
+    void statusWithNonNullFieldChange_usesAmendmentPath() {
+      final Claim claim =
+          Claim.builder().id(CLAIM_1_ID).version(1L).scheduleReference("OLD_SCH").build();
+
+      final ClaimAmendmentPatch patch =
+          new ClaimAmendmentPatch().status(ClaimStatus.VALID).scheduleReference("NEW_SCH");
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimMapper, never()).updateSubmissionClaimFromPatch(any(), any());
+      verify(claimRepository, never()).save(claim);
+    }
+
+    /** A set value equal to the persisted value is not a change - it stays on the legacy path. */
+    @Test
+    void nonNullFieldEqualToPersistedValue_staysLegacy() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).feeCode("ABC").build();
+
+      final ClaimAmendmentPatch patch =
+          new ClaimAmendmentPatch().status(ClaimStatus.VALID).feeCode("ABC");
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verifyNoInteractions(claimAmendmentService);
+      verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+      verify(claimRepository).save(claim);
+    }
+
+    /** A missing status still signals an amendment regardless of the other fields. */
+    @Test
+    void nullStatus_usesAmendmentPath() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimMapper, never()).updateSubmissionClaimFromPatch(any(), any());
+    }
   }
 
   @Test
