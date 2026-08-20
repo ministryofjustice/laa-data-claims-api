@@ -21,6 +21,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
@@ -78,6 +79,7 @@ public class AmendmentMetadataValidationSteps {
 
   @Autowired private BddApiStepSupport api;
   @Autowired private BddScenarioContext context;
+  @Autowired private SharedAmendmentPatchContext sharedPatchContext;
   @Autowired private SubmissionPeriodHelper periodHelper;
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
@@ -148,6 +150,22 @@ public class AmendmentMetadataValidationSteps {
   /** Submits the amendment via PATCH and captures the response status + body on the context. */
   @When("I submit the amendment and wait for the event service to complete amendment validation")
   public void submitAmendmentAndAwaitValidation() {
+    // Other amendment-related step classes (e.g. DSTEW-1772 PDA trigger) provision their own
+    // submission + claim + patch body and publish them via SharedAmendmentPatchContext so this
+    // single @When definition can serve every scenario that uses the phrase without duplicating
+    // the step definition (which Cucumber forbids).
+    if (sharedPatchContext.isPopulated()) {
+      api.patchClaimAmendment(
+          sharedPatchContext.getSubmissionId(),
+          sharedPatchContext.getClaimId(),
+          sharedPatchContext.getPatchJson());
+      log.info(
+          "PATCH amendment (shared context) for claim {} → status={} body={}",
+          sharedPatchContext.getClaimId(),
+          context.getLastStatusCode(),
+          context.getLastResponseBody());
+      return;
+    }
     if (submissionId == null || claimId == null) {
       throw new IllegalStateException(
           "No amendable claim provisioned — 'an amendment with metadata' step must run first");
