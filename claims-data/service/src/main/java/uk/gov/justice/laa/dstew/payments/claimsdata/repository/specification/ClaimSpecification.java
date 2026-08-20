@@ -59,6 +59,7 @@ public final class ClaimSpecification {
   public static final String HAS_ASSESSMENT = "hasAssessment";
   public static final String IS_AMENDED = "isAmended";
   public static final String DERIVED_CLAIM_STATUS_SORT_KEY = "derivedClaimStatus";
+  public static final String CALCULATED_FEE_DETAILS = "calculatedFeeDetails";
 
   /**
    * Constructs a JPA {@link Specification} for filtering {@link Claim} records based on various
@@ -408,6 +409,68 @@ public final class ClaimSpecification {
 
         // Only handle the first matching custom sort
         break;
+      }
+
+      return cb.conjunction();
+    };
+  }
+
+  /**
+   * Order by latest calculated fee details.
+   *
+   * @param pageable pageable
+   * @return Claim Specification
+   */
+  public static Specification<Claim> orderByLatestCalculatedFee(Pageable pageable) {
+    return (root, query, cb) -> {
+      if (pageable == null || pageable.getSort().isUnsorted()) {
+        return cb.conjunction();
+      }
+
+      for (Sort.Order order : pageable.getSort()) {
+        String property = order.getProperty();
+        if (!property.startsWith(CALCULATED_FEE_DETAILS + ".")) {
+          continue;
+        }
+
+        // Extract the actual field name (e.g., "totalAmount", "escapeCaseFlag")
+        String feeFieldName = property.substring((CALCULATED_FEE_DETAILS + ".").length());
+
+        // ... [keep the rest of the subquery logic exactly as it is]
+
+        // 1. Subquery to fetch the specific field from the latest CalculatedFeeDetail
+        Subquery<Object> latestFeeValueSubquery = query.subquery(Object.class);
+        Root<CalculatedFeeDetail> feeRoot = latestFeeValueSubquery.from(CalculatedFeeDetail.class);
+
+        // 2. The "Not Exists Newer" correlation subquery (reused from your filter logic)
+        Subquery<Integer> newerRecordSubquery = query.subquery(Integer.class);
+        Root<CalculatedFeeDetail> newerFeeRoot =
+            newerRecordSubquery.from(CalculatedFeeDetail.class);
+
+        newerRecordSubquery
+            .select(cb.literal(1))
+            .where(
+                cb.equal(newerFeeRoot.get(CLAIM_ENTITY), feeRoot.get(CLAIM_ENTITY)),
+                cb.or(
+                    cb.greaterThan(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                    cb.and(
+                        cb.equal(newerFeeRoot.get(CREATED_ON), feeRoot.get(CREATED_ON)),
+                        cb.greaterThan(newerFeeRoot.get(ID), feeRoot.get(ID)))));
+
+        // 3. Select the requested field where it is tied to this claim AND is the latest
+        latestFeeValueSubquery
+            .select(feeRoot.get(feeFieldName))
+            .where(
+                cb.equal(feeRoot.get(CLAIM_ENTITY), root), cb.not(cb.exists(newerRecordSubquery)));
+
+        // 4. Apply the order by clause using the subquery
+        query.orderBy(
+            order.isAscending() ? cb.asc(latestFeeValueSubquery) : cb.desc(latestFeeValueSubquery),
+            // Deterministic secondary sort so rows never drift between pages. Follow the same
+            // direction as the primary sort so tie-break behaviour is intuitive to callers.
+            (order.isAscending() ? cb.asc(root.get(ID)) : cb.desc(root.get(ID))));
+
+        break; // Handle primary custom sort
       }
 
       return cb.conjunction();
