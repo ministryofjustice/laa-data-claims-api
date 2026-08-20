@@ -15,6 +15,7 @@ import jakarta.persistence.criteria.Subquery;
 import java.sql.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -47,6 +48,14 @@ class ClaimSpecificationTest {
   @BeforeEach
   void setUp() {
     mocks = MockitoAnnotations.openMocks(this);
+    // Default stubs used by the majority of tests to reduce boilerplate. Individual tests may
+    // override these where they need different behaviour.
+    when(cb.conjunction()).thenReturn(predicate1);
+    when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+
+    // Use helper to stub submission join and a harmless default office predicate to reduce
+    // duplication. Individual tests may still override office equality when necessary.
+    stubSubmissionJoinAndOffice("DEFAULT_OFFICE");
   }
 
   @AfterEach
@@ -54,6 +63,110 @@ class ClaimSpecificationTest {
     if (mocks != null) {
       mocks.close();
     }
+  }
+
+  /**
+   * Build a {@link ClaimSearchRequest} with a mandatory officeCode and optional additional
+   * configuration.
+   *
+   * <p>Purpose: - Reduce repeated inline builder code where tests set the officeCode and one other
+   * field.
+   *
+   * <p>Why it exists: - Many tests create `ClaimSearchRequest` instances differing by exactly one
+   * field. This helper makes the difference explicit and avoids repeated `builder()` boilerplate.
+   *
+   * <p>What duplication it removes: - Repeated
+   * `ClaimSearchRequest.builder().officeCode(...).<optional>().build()` in tests.
+   *
+   * @param officeCode the office code to set on the builder
+   * @param configure optional consumer to apply further builder configuration; may be null
+   * @return the built {@link ClaimSearchRequest}
+   */
+  private ClaimSearchRequest buildRequestWithOffice(
+      String officeCode, Consumer<ClaimSearchRequest.ClaimSearchRequestBuilder> configure) {
+    ClaimSearchRequest.ClaimSearchRequestBuilder b =
+        ClaimSearchRequest.builder().officeCode(officeCode);
+    if (configure != null) {
+      configure.accept(b);
+    }
+    return b.build();
+  }
+
+  /**
+   * Stub the common submission join and office-account predicate used by most tests.
+   *
+   * <p>Purpose: - Provide a single place to stub `root.join(ClaimSpecification.SUBMISSION_ENTITY)`
+   * and the corresponding `cb.equal(submissionJoin.get(OFFICE_ACCOUNT_NUMBER), officeCode)` call.
+   *
+   * <p>Why it exists: - Many tests begin by establishing the submission join and office equality
+   * predicate. Centralizing this reduces boilerplate and ensures consistent mocking behavior across
+   * tests.
+   *
+   * <p>What duplication it removes: - Repeated `when(root.join(...)).thenReturn(...)`,
+   * `when(cb.equal(..., officeCode)).thenReturn(...)` sequences scattered through tests.
+   *
+   * @param officeCode the office account code to use for stubbing
+   * @param returnPredicate the predicate mock to return from the cb.equal(...) call
+   * @return the supplied returnPredicate for convenience
+   */
+  private Predicate stubSubmissionJoinAndOffice(String officeCode, Predicate returnPredicate) {
+    when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+    when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
+        .thenReturn(returnPredicate);
+    return returnPredicate;
+  }
+
+  /**
+   * Convenience overload that creates and returns a mock Predicate used for the office equality.
+   *
+   * @param officeCode the office account code to use for stubbing
+   * @return the created office predicate mock
+   */
+  private Predicate stubSubmissionJoinAndOffice(String officeCode) {
+    Predicate officePredicate = mock(Predicate.class);
+    return stubSubmissionJoinAndOffice(officeCode, officePredicate);
+  }
+
+  /**
+   * Helper to mock a Path retrieved from a {@link Join} and stub its {@code in(...)} call.
+   *
+   * <p>Purpose: - Reduce repeated boilerplate where tests create a mocked Path, stub {@code
+   * parent.get(field)} to return it, and then stub {@code path.in(List.of(...))} to return a
+   * Predicate.
+   *
+   * <p>Why it exists: - Several tests in this class perform the same pattern for IN predicates on
+   * joins (e.g. submission statuses). Centralizing this reduces duplication while keeping the
+   * returned Predicate available for further stubbing or verification in the test.
+   *
+   * @param parent the mocked {@link Join} from which to retrieve the attribute Path
+   * @param attr the attribute name to pass to {@code parent.get(attr)}
+   * @param values the list of values to pass to {@code path.in(values)}
+   * @param <T> the element type of the IN list
+   * @return the mocked {@link Predicate} returned from {@code path.in(values)}
+   */
+  private <T> Predicate mockPathInFromJoin(Join<?, ?> parent, String attr, List<T> values) {
+    Path<T> path = mock(Path.class);
+    Predicate inPredicate = mock(Predicate.class);
+    doReturn(path).when(parent).get(attr);
+    when(path.in(values)).thenReturn(inPredicate);
+    return inPredicate;
+  }
+
+  /**
+   * Helper to mock a Path retrieved from a {@link Root} and stub its {@code in(...)} call.
+   *
+   * @param parent the mocked {@link Root} from which to retrieve the attribute Path
+   * @param attr the attribute name to pass to {@code parent.get(attr)}
+   * @param values the list of values to pass to {@code path.in(values)}
+   * @param <T> the element type of the IN list
+   * @return the mocked {@link Predicate} returned from {@code path.in(values)}
+   */
+  private <T> Predicate mockPathInFromRoot(Root<?> parent, String attr, List<T> values) {
+    Path<T> path = mock(Path.class);
+    Predicate inPredicate = mock(Predicate.class);
+    doReturn(path).when(parent).get(attr);
+    when(path.in(values)).thenReturn(inPredicate);
+    return inPredicate;
   }
 
   // -------------------------------------------------------------------------
@@ -79,15 +192,8 @@ class ClaimSpecificationTest {
       String submissionPeriod = null;
       String caseReferenceNumber = null;
 
-      // mock submission join
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
-      // mock office code predicate
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(predicate1);
-      when(cb.and(predicate1)).thenReturn(predicate1);
-
-      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+      // mock submission join and office predicate
+      stubSubmissionJoinAndOffice(officeCode, predicate1);
 
       Specification<Claim> spec =
           ClaimSpecification.filterBy(
@@ -120,7 +226,7 @@ class ClaimSpecificationTest {
       String uniqueClientNumber = "CL-999";
       String uniqueCaseId = "CASE-001";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+      stubSubmissionJoinAndOffice(officeCode);
 
       Predicate officePredicate = mock(Predicate.class);
       when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
@@ -171,8 +277,6 @@ class ClaimSpecificationTest {
       Predicate claimCaseExistsPredicate = mock(Predicate.class);
       when(cb.exists(claimCaseSubquery)).thenReturn(claimCaseExistsPredicate);
 
-      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
-
       Specification<Claim> spec =
           ClaimSpecification.filterBy(
               officeCode,
@@ -204,13 +308,7 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-123";
       String caseReferenceNumber = "ABC";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
-      // mock office predicate
-      Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
-      when(cb.and(any(Predicate[].class))).thenReturn(predicate1);
+      stubSubmissionJoinAndOffice(officeCode, predicate1);
 
       // mock case reference handling: root.get(...), cb.lower(...), cb.like(...)
       Path<String> casePath = mock(Path.class);
@@ -225,10 +323,7 @@ class ClaimSpecificationTest {
 
       // build a request-based model to call the request-based filterBy
       ClaimSearchRequest requestModel =
-          ClaimSearchRequest.builder()
-              .officeCode(officeCode)
-              .caseReferenceNumber(caseReferenceNumber)
-              .build();
+          buildRequestWithOffice(officeCode, b -> b.caseReferenceNumber(caseReferenceNumber));
 
       Specification<Claim> spec = ClaimSpecification.filterBy(requestModel);
 
@@ -247,25 +342,21 @@ class ClaimSpecificationTest {
     void filterByRequestWithAreaOfLawAddsPredicate() {
       // arrange
       String officeCode = "OFF-A";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
-      Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
-      when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, mock(Predicate.class));
 
       // request without areaOfLaw should work
-      ClaimSearchRequest req = ClaimSearchRequest.builder().officeCode(officeCode).build();
+      ClaimSearchRequest req = buildRequestWithOffice(officeCode, null);
       Specification<Claim> spec = ClaimSpecification.filterBy(req);
       Predicate result = spec.toPredicate(root, query, cb);
       assertThat(result).isNotNull();
 
       // now exercise areaOfLaw branch
       ClaimSearchRequest reqWithArea =
-          ClaimSearchRequest.builder()
-              .officeCode(officeCode)
-              .areaOfLaw(uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw.LEGAL_HELP)
-              .build();
+          buildRequestWithOffice(
+              officeCode,
+              b ->
+                  b.areaOfLaw(
+                      uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw.LEGAL_HELP));
 
       Path areaPath = mock(Path.class);
       Predicate areaPredicate = mock(Predicate.class);
@@ -286,11 +377,7 @@ class ClaimSpecificationTest {
     void filterByRequestWithEscapedCaseFlagUsesLatestFeeSubquery() {
       // arrange
       String officeCode = "OFF-B";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-      Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
-      when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, mock(Predicate.class));
 
       // Prepare subqueries similar to production logic
       Subquery<UUID> latestFeeSubquery = mock(Subquery.class);
@@ -345,8 +432,7 @@ class ClaimSpecificationTest {
               cb.equal(feeRoot.get(ClaimSpecification.CLAIM_ENTITY), root), notExists))
           .thenReturn(latestFeeSubquery);
 
-      ClaimSearchRequest req =
-          ClaimSearchRequest.builder().officeCode(officeCode).escapedCaseFlag(true).build();
+      ClaimSearchRequest req = buildRequestWithOffice(officeCode, b -> b.escapedCaseFlag(true));
       Specification<Claim> spec = ClaimSpecification.filterBy(req);
       Predicate result = spec.toPredicate(root, query, cb);
       assertThat(result).isNotNull();
@@ -358,10 +444,8 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-R1";
       UUID submissionId = UUID.randomUUID();
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
       ClaimSearchRequest req =
@@ -378,16 +462,12 @@ class ClaimSpecificationTest {
     @DisplayName("request based: with submissionStatuses applies IN predicate")
     void filterByRequestWithSubmissionStatusesAddsPredicate() {
       String officeCode = "OFF-R2";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
-      Path statusPath = mock(Path.class);
-      Predicate inPredicate = mock(Predicate.class);
-      when(submissionJoin.get(ClaimSpecification.STATUS)).thenReturn(statusPath);
-      when(statusPath.in(List.of(SubmissionStatus.CREATED))).thenReturn(inPredicate);
+      mockPathInFromJoin(
+          submissionJoin, ClaimSpecification.STATUS, List.of(SubmissionStatus.CREATED));
 
       ClaimSearchRequest req =
           ClaimSearchRequest.builder()
@@ -404,10 +484,8 @@ class ClaimSpecificationTest {
     void filterByRequestWithSubmissionPeriodAddsPredicate() {
       String officeCode = "OFF-R3";
       String period = "FEB-2025";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
       Predicate periodPredicate = mock(Predicate.class);
@@ -425,16 +503,11 @@ class ClaimSpecificationTest {
     @DisplayName("request based: with claimStatuses applies IN predicate")
     void filterByRequestWithClaimStatusesAddsPredicate() {
       String officeCode = "OFF-R4";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
-      Path claimStatusPath = mock(Path.class);
-      Predicate inPredicate = mock(Predicate.class);
-      when(root.get(ClaimSpecification.STATUS)).thenReturn(claimStatusPath);
-      when(claimStatusPath.in(List.of(ClaimStatus.READY_TO_PROCESS))).thenReturn(inPredicate);
+      mockPathInFromRoot(root, ClaimSpecification.STATUS, List.of(ClaimStatus.READY_TO_PROCESS));
 
       ClaimSearchRequest req =
           ClaimSearchRequest.builder()
@@ -452,10 +525,8 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-R5";
       String feeCode = "F-R-1";
       String ufn = "UFN-R-1";
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
       Path feePath = mock(Path.class);
@@ -469,11 +540,7 @@ class ClaimSpecificationTest {
       when(cb.equal(ufnPath, ufn)).thenReturn(ufnPredicate);
 
       ClaimSearchRequest req =
-          ClaimSearchRequest.builder()
-              .officeCode(officeCode)
-              .feeCode(feeCode)
-              .uniqueFileNumber(ufn)
-              .build();
+          buildRequestWithOffice(officeCode, b -> b.feeCode(feeCode).uniqueFileNumber(ufn));
       Specification<Claim> spec = ClaimSpecification.filterBy(req);
       Predicate result = spec.toPredicate(root, query, cb);
       assertThat(result).isNotNull();
@@ -486,10 +553,8 @@ class ClaimSpecificationTest {
       String uniqueClientNumber = "CL-R-1";
       String uniqueCaseId = "UC-R-1";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
       // Client join branch in request-based filter
@@ -505,11 +570,8 @@ class ClaimSpecificationTest {
           .thenReturn(mock(Predicate.class));
 
       ClaimSearchRequest req =
-          ClaimSearchRequest.builder()
-              .officeCode(officeCode)
-              .uniqueClientNumber(uniqueClientNumber)
-              .uniqueCaseId(uniqueCaseId)
-              .build();
+          buildRequestWithOffice(
+              officeCode, b -> b.uniqueClientNumber(uniqueClientNumber).uniqueCaseId(uniqueCaseId));
       Specification<Claim> spec = ClaimSpecification.filterBy(req);
       Predicate result = spec.toPredicate(root, query, cb);
       assertThat(result).isNotNull();
@@ -523,9 +585,7 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-Q1";
       String uniqueClientNumber = "CL-NULL-1";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(predicate1);
+      stubSubmissionJoinAndOffice(officeCode, predicate1);
 
       Specification<Claim> spec =
           ClaimSpecification.filterBy(
@@ -544,9 +604,7 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-Q2";
       String uniqueCaseId = "CASE-NULL-1";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(predicate1);
+      stubSubmissionJoinAndOffice(officeCode, predicate1);
 
       Specification<Claim> spec =
           ClaimSpecification.filterBy(
@@ -565,7 +623,7 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-1";
       UUID submissionId = UUID.randomUUID();
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
+      stubSubmissionJoinAndOffice(officeCode);
 
       Predicate officePredicate = mock(Predicate.class);
       when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
@@ -595,16 +653,11 @@ class ClaimSpecificationTest {
       // given
       String officeCode = "OFF-2";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
 
-      Path submissionStatusPath = mock(Path.class);
-      Predicate inPredicate = mock(Predicate.class);
-      when(submissionJoin.get(ClaimSpecification.STATUS)).thenReturn(submissionStatusPath);
-      when(submissionStatusPath.in(List.of(SubmissionStatus.CREATED))).thenReturn(inPredicate);
+      mockPathInFromJoin(
+          submissionJoin, ClaimSpecification.STATUS, List.of(SubmissionStatus.CREATED));
 
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
@@ -633,11 +686,8 @@ class ClaimSpecificationTest {
       String officeCode = "OFF-3";
       String period = "JAN-2025";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
 
       Predicate periodPredicate = mock(Predicate.class);
       when(cb.equal(submissionJoin.get(ClaimSpecification.SUBMISSION_PERIOD), period))
@@ -660,11 +710,8 @@ class ClaimSpecificationTest {
       String feeCode = "FEE-1";
       String ufn = "UFN-1";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
 
       Path feePath = mock(Path.class);
       Predicate feePredicate = mock(Predicate.class);
@@ -691,16 +738,10 @@ class ClaimSpecificationTest {
     void filterByWithClaimStatusesAddsPredicate() {
       String officeCode = "OFF-5";
 
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Predicate officePredicate = mock(Predicate.class);
-      when(cb.equal(submissionJoin.get(ClaimSpecification.OFFICE_ACCOUNT_NUMBER), officeCode))
-          .thenReturn(officePredicate);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
 
-      Path claimStatusPath = mock(Path.class);
-      Predicate inPredicate = mock(Predicate.class);
-      when(root.get(ClaimSpecification.STATUS)).thenReturn(claimStatusPath);
-      when(claimStatusPath.in(List.of(ClaimStatus.READY_TO_PROCESS))).thenReturn(inPredicate);
+      mockPathInFromRoot(root, ClaimSpecification.STATUS, List.of(ClaimStatus.READY_TO_PROCESS));
       when(cb.and(any(Predicate[].class))).thenReturn(officePredicate);
 
       Specification<Claim> spec =
@@ -719,6 +760,99 @@ class ClaimSpecificationTest {
       Predicate result = spec.toPredicate(root, query, cb);
       assertThat(result).isNotNull();
     }
+
+    @Test
+    @DisplayName("with empty submissionStatuses does not add IN predicate")
+    void filterByWithEmptySubmissionStatusesDoesNotAddInPredicate() {
+      // given
+      String officeCode = "OFF-EMPTY-SUB";
+
+      Predicate officePredicate = mock(Predicate.class);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
+
+      // when: explicitly pass an empty list (not null)
+      Specification<Claim> spec =
+          ClaimSpecification.filterBy(
+              officeCode,
+              null,
+              List.of(), // empty submissionStatuses
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null);
+
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isNotNull();
+      // Ensure submission status path was not accessed for IN predicate
+      verify(submissionJoin, never()).get(ClaimSpecification.STATUS);
+    }
+
+    @Test
+    @DisplayName("with empty claimStatuses does not add IN predicate")
+    void filterByWithEmptyClaimStatusesDoesNotAddInPredicate() {
+      // given
+      String officeCode = "OFF-EMPTY-CLM";
+
+      Predicate officePredicate = mock(Predicate.class);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
+
+      // when: explicitly pass an empty list (not null)
+      Specification<Claim> spec =
+          ClaimSpecification.filterBy(
+              officeCode,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              List.of(), // empty claimStatuses
+              null,
+              null);
+
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isNotNull();
+      // Ensure claim status path was not accessed for IN predicate
+      verify(root, never()).get(ClaimSpecification.STATUS);
+    }
+
+    @Test
+    @DisplayName("with caseReferenceNumber (string param) uses equality predicate")
+    void filterByWithCaseReferenceNumberUsesEquality() {
+      // given
+      String officeCode = "OFF-CRN-EQ";
+      String caseReferenceNumber = "CRN-999";
+
+      Predicate officePredicate = mock(Predicate.class);
+      stubSubmissionJoinAndOffice(officeCode, officePredicate);
+
+      // mock case reference handling: root.get(...), cb.equal(...)
+      Path<String> casePath = mock(Path.class);
+      Predicate eqPredicate = mock(Predicate.class);
+      doReturn(casePath).when(root).get(ClaimSpecification.CASE_REFERENCE_NUMBER);
+      when(cb.equal(casePath, caseReferenceNumber)).thenReturn(eqPredicate);
+
+      // when
+      Specification<Claim> spec =
+          ClaimSpecification.filterBy(
+              officeCode, null, null, null, null, null, null, null, null, caseReferenceNumber);
+
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isNotNull();
+      verify(root).get(ClaimSpecification.CASE_REFERENCE_NUMBER);
+      verify(cb).equal(casePath, caseReferenceNumber);
+      // Ensure the request-based LIKE branch is not used here
+      verify(cb, never()).like(any(Expression.class), anyString());
+    }
   }
 
   @Nested
@@ -730,7 +864,6 @@ class ClaimSpecificationTest {
     void orderByTotalWarningMessagesWithNullPageableReturnsConjunction() {
       // given
       Pageable pageable = null;
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
 
@@ -748,7 +881,6 @@ class ClaimSpecificationTest {
     void orderByTotalWarningMessagesWithNoSortReturnsConjunction() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
 
@@ -766,7 +898,6 @@ class ClaimSpecificationTest {
     void orderByTotalWarningMessagesWithNonMatchingSortPropertyDoesNotAlterQuery() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by("someOtherField"));
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderByTotalWarningMessages(pageable);
 
@@ -784,8 +915,6 @@ class ClaimSpecificationTest {
     void orderByTotalWarningMessagesWithTotalWarningsSortAddsSubqueryOrderBy() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("totalWarnings")));
-
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Subquery<Long> warningSubquery = mock(Subquery.class);
       Root<ValidationMessageLog> vmlRoot = mock(Root.class);
@@ -820,8 +949,6 @@ class ClaimSpecificationTest {
     void orderByTotalWarningMessagesWithTotalWarningsDescAddsSubqueryOrderBy() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.desc("totalWarnings")));
-
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Subquery<Long> warningSubquery = mock(Subquery.class);
       Root<ValidationMessageLog> vmlRoot = mock(Root.class);
@@ -860,8 +987,6 @@ class ClaimSpecificationTest {
           PageRequest.of(
               0, 10, Sort.by(Sort.Order.asc("otherField"), Sort.Order.asc("totalWarnings")));
 
-      when(cb.conjunction()).thenReturn(predicate1);
-
       Subquery<Long> warningSubquery = mock(Subquery.class);
       Root<ValidationMessageLog> vmlRoot = mock(Root.class);
 
@@ -896,8 +1021,6 @@ class ClaimSpecificationTest {
       Pageable pageable =
           PageRequest.of(
               0, 10, Sort.by(Sort.Order.asc("otherField"), Sort.Order.desc("totalWarnings")));
-
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Subquery<Long> warningSubquery = mock(Subquery.class);
       Root<ValidationMessageLog> vmlRoot = mock(Root.class);
@@ -935,7 +1058,6 @@ class ClaimSpecificationTest {
     void orderBySubmissionPeriodWithNullPageableReturnsConjunction() {
       // given
       Pageable pageable = null;
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
@@ -953,7 +1075,6 @@ class ClaimSpecificationTest {
     void orderBySubmissionPeriodWithUnsortedPageableReturnsConjunction() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
@@ -971,7 +1092,6 @@ class ClaimSpecificationTest {
     void orderBySubmissionPeriodWithNonMatchingSortPropertyDoesNothing() {
       // given
       Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderBySubmissionPeriod(pageable);
 
@@ -990,9 +1110,6 @@ class ClaimSpecificationTest {
       // given
       Pageable pageable =
           PageRequest.of(0, 10, Sort.by(Sort.Order.asc("submission.submissionPeriod")));
-      when(cb.conjunction()).thenReturn(predicate1);
-
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
       Expression<Date> dateExpr = mock(Expression.class);
       when(cb.function(eq("to_date"), eq(Date.class), any(), any())).thenReturn(dateExpr);
@@ -1013,9 +1130,6 @@ class ClaimSpecificationTest {
     void orderBySubmissionPeriodWithMatchingSortPropertyDescAddsOrderByClause() {
       Pageable pageable =
           PageRequest.of(0, 10, Sort.by(Sort.Order.desc("submission.submissionPeriod")));
-      when(cb.conjunction()).thenReturn(predicate1);
-
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
 
       Expression<Date> dateExpr = mock(Expression.class);
       when(cb.function(eq("to_date"), eq(Date.class), any(), any())).thenReturn(dateExpr);
@@ -1037,9 +1151,6 @@ class ClaimSpecificationTest {
               10,
               Sort.by(Sort.Order.asc("otherField"), Sort.Order.asc("submission.submissionPeriod")));
 
-      when(cb.conjunction()).thenReturn(predicate1);
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Expression<Date> dateExpr = mock(Expression.class);
       when(cb.function(eq("to_date"), eq(Date.class), any(), any())).thenReturn(dateExpr);
 
@@ -1060,9 +1171,6 @@ class ClaimSpecificationTest {
               Sort.by(
                   Sort.Order.asc("otherField"), Sort.Order.desc("submission.submissionPeriod")));
 
-      when(cb.conjunction()).thenReturn(predicate1);
-      when(root.join(ClaimSpecification.SUBMISSION_ENTITY)).thenReturn((Join) submissionJoin);
-
       Expression<Date> dateExpr = mock(Expression.class);
       when(cb.function(eq("to_date"), eq(Date.class), any(), any())).thenReturn(dateExpr);
 
@@ -1082,7 +1190,6 @@ class ClaimSpecificationTest {
     @DisplayName("with null pageable returns conjunction")
     void orderByDerivedClaimStatusWithNullPageableReturnsConjunction() {
       Pageable pageable = null;
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderByDerivedClaimStatus(pageable);
 
@@ -1094,10 +1201,43 @@ class ClaimSpecificationTest {
     }
 
     @Test
+    @DisplayName("with unsorted pageable returns conjunction")
+    void orderByDerivedClaimStatusWithUnsortedPageableReturnsConjunction() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
+
+      Specification<Claim> spec = ClaimSpecification.orderByDerivedClaimStatus(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    @DisplayName("with non-matching sort property does nothing")
+    void orderByDerivedClaimStatusWithNonMatchingSortPropertyDoesNothing() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
+
+      Specification<Claim> spec = ClaimSpecification.orderByDerivedClaimStatus(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
     @DisplayName("with matching sort builds case expression")
     void orderByDerivedClaimStatusWithMatchingSortBuildsCaseExpression() {
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc("derivedClaimStatus")));
-      when(cb.conjunction()).thenReturn(predicate1);
 
       // Mock the selectCase() chain to return an Expression<Integer>
       CriteriaBuilder.Case<Integer> caseBuilder =
@@ -1135,7 +1275,6 @@ class ClaimSpecificationTest {
     @DisplayName("with matching sort descending builds case expression and uses DESC")
     void orderByDerivedClaimStatusWithMatchingSortDescendingUsesDesc() {
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.desc("derivedClaimStatus")));
-      when(cb.conjunction()).thenReturn(predicate1);
 
       CriteriaBuilder.Case<Integer> caseBuilder =
           mock(CriteriaBuilder.Case.class, org.mockito.Answers.RETURNS_SELF);
@@ -1165,7 +1304,6 @@ class ClaimSpecificationTest {
     @DisplayName("with null pageable returns conjunction")
     void orderByLatestCalculatedFeeWithNullPageableReturnsConjunction() {
       Pageable pageable = null;
-      when(cb.conjunction()).thenReturn(predicate1);
 
       Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
 
@@ -1177,13 +1315,45 @@ class ClaimSpecificationTest {
     }
 
     @Test
+    @DisplayName("with unsorted pageable returns conjunction")
+    void orderByLatestCalculatedFeeWithUnsortedPageableReturnsConjunction() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.unsorted());
+
+      Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    @DisplayName("with non-matching sort property does nothing")
+    void orderByLatestCalculatedFeeWithNonMatchingSortPropertyDoesNothing() {
+      // given
+      Pageable pageable = PageRequest.of(0, 10, Sort.by("anotherField"));
+
+      Specification<Claim> spec = ClaimSpecification.orderByLatestCalculatedFee(pageable);
+
+      // when
+      Predicate result = spec.toPredicate(root, query, cb);
+
+      // then
+      assertThat(result).isEqualTo(predicate1);
+      verify(cb).conjunction();
+      verifyNoMoreInteractions(query);
+    }
+
+    @Test
     @DisplayName("with matching property builds subqueries and orders")
     void orderByLatestCalculatedFeeWithMatchingPropertyBuildsSubqueriesAndOrders() {
       // given
       String sortProp = ClaimSpecification.CALCULATED_FEE_DETAILS + ".totalAmount";
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.asc(sortProp)));
-
-      when(cb.conjunction()).thenReturn(predicate1);
 
       // Prepare latestFeeValueSubquery
       Subquery<Object> latestFeeSubquery = mock(Subquery.class);
@@ -1265,8 +1435,6 @@ class ClaimSpecificationTest {
       // given
       String sortProp = ClaimSpecification.CALCULATED_FEE_DETAILS + ".totalAmount";
       Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Order.desc(sortProp)));
-
-      when(cb.conjunction()).thenReturn(predicate1);
 
       // Prepare latestFeeValueSubquery
       Subquery<Object> latestFeeSubquery = mock(Subquery.class);
