@@ -6,22 +6,22 @@ flowchart TD
     B --> C{Validation ERROR?}
     C -->|Validation ERROR| D["Submission: VALIDATION1_FAILED<br/>Claims: INVALID<br/>Provider must correct the source<br/>and create a new submission"]
     C -->|No Validation errors| E["Submission: READY_FOR_VALIDATION2<br/>Claims: READY_FOR_VALIDATION2, not yet VALID"]
-    E --> E1["FSP identifies Inquest Claims which are marked as \nadditional_data_required = true and shown on the ToDo list in the front end
-                (The rest of the claims have additional_data_required = null)"]
+    E --> E1["FSP identifies Inquest Claims which are marked as \ninquest_data_required = true and shown on the ToDo list in the front end
+                (The rest of the claims have inquest_data_required = null)"]
     E1 --> E2{"Are there \nInquest claims in the\n To Do List?"}            
     E2 --> |Yes|F[Provider inputs inquest data for a claim in the To Do list]
     E2 --> |No|G
     F --> F1{"Front end (or API?)\n check for Inquest-fields\n validation errors"}
     F1 --> |Errors Found|F
-    F1 --> |No Errors|F2[mark claim as additional_data_required=false]
+    F1 --> |No Errors|F2[mark claim as inquest_data_required=false]
     F2 --> F3{Any more To Do items?}
     F3 -->|Yes, next item| F
     F3 -->|No, all complete| G["Submission held in READY_FOR_VALIDATION2 (previously DRAFT) status"]
     G --> G1{Submission\n waiting for Provider\n action}
     G1 --> |Provider selects the\n Submit option|H1[FINAL validation]
     G1 --> |Provider select the\n Discard option|H2["Submission and all claims set to DISCARDED"]
-    G1 --> |No provider action, wait period elapsed|H3["Submission and all claims set to ABANDONED"]
-    H1 --> I{Validation ERROR?\n Any claims with \nadditional_data_required=true cause a \Validation error now.}
+    G1 --> |No provider action, wait period elapsed|H3["Notification/reminder sent?\n Submission and all claims set to ABANDONED? Or Submitted?"]
+    H1 --> I{Validation ERROR?\n Any claims with \ninquest_data_required=true cause a \Validation error now.}
 
     I -->|Any Validation errors| J["Submission: VALIDATION_FAILED<br/>Claims: INVALID<br/>Final submission cannot return to Draft<br/>Correction requires a new submission"]
 
