@@ -1003,13 +1003,19 @@ public abstract class AbstractIntegrationTest {
   // --- Helper Methods specifically for Submissions Totals testing ---
 
   protected Submission createIsolatedSubmission() {
-    UUID submissionId = Uuid7.timeBasedUuid();
+    return createIsolatedSubmission("totals-office");
+  }
+
+  /**
+   * Creates an isolated submission with the given office account number. Tests that persist more
+   * than one live submission for the same area of law and period must pass distinct office values,
+   * otherwise they trip the {@code uq_submission_live_office_aol_period} unique index.
+   */
+  protected Submission createIsolatedSubmission(String officeAccountNumber) {
     Submission submission =
         Submission.builder()
-            .id(submissionId)
-            // Keep the office unique per submission so each is genuinely isolated and does not trip
-            // the uq_submission_live_office_aol_period unique index when a test creates several.
-            .officeAccountNumber("totals-office-" + submissionId)
+            .id(Uuid7.timeBasedUuid())
+            .officeAccountNumber(officeAccountNumber)
             .status(SubmissionStatus.CREATED)
             .submissionPeriod("JAN-2025")
             .areaOfLaw(AreaOfLaw.LEGAL_HELP)

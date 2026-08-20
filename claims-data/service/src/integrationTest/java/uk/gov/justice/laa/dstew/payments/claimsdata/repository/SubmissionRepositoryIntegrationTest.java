@@ -636,7 +636,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         "Bulk Submissions: Given multiple submissions, it groups by submission and sums only the latest row per claim")
     void bulkGetCalculatedTotalAmountsSumsLatestPerSubmission() {
       // Setup Submission 1 with an amended claim
-      Submission sub1 = createIsolatedSubmission();
+      Submission sub1 = createIsolatedSubmission("totals-office-1");
       Claim sub1Claim = createClaimForSubmission(sub1, 1);
       createFeeDetail(
           sub1Claim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
@@ -644,7 +644,7 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
           sub1Claim, BigDecimal.valueOf(150.00), OffsetDateTime.now(), null); // Latest for Sub 1
 
       // Setup Submission 2 with an amended claim
-      Submission sub2 = createIsolatedSubmission();
+      Submission sub2 = createIsolatedSubmission("totals-office-2");
       Claim sub2Claim = createClaimForSubmission(sub2, 1);
       createFeeDetail(
           sub2Claim, BigDecimal.valueOf(300.00), OffsetDateTime.now().minusDays(1), null);
@@ -682,12 +682,12 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
         "Response shape is unchanged and only calculated-total differs for multi-row claims")
     void responseShapeIsUnchangedOnlyTotalDiffers() {
       // 1. Setup Classic Submission (1 Claim, 1 Fee Row)
-      Submission classicSub = createIsolatedSubmission();
+      Submission classicSub = createIsolatedSubmission("totals-office-classic");
       Claim classicClaim = createClaimForSubmission(classicSub, 1);
       createFeeDetail(classicClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now(), null);
 
       // 2. Setup Amended Submission (1 Claim, 2 Fee Rows)
-      Submission amendedSub = createIsolatedSubmission();
+      Submission amendedSub = createIsolatedSubmission("totals-office-amended");
       Claim amendedClaim = createClaimForSubmission(amendedSub, 1);
       createFeeDetail(
           amendedClaim, BigDecimal.valueOf(100.00), OffsetDateTime.now().minusDays(1), null);
@@ -705,22 +705,25 @@ public class SubmissionRepositoryIntegrationTest extends AbstractIntegrationTest
       assertThat(classicResponse.getCalculatedTotalAmount()).isEqualByComparingTo("100.00");
       assertThat(amendedResponse.getCalculatedTotalAmount()).isEqualByComparingTo("250.00");
 
+      // The recursive comparison below ignores officeAccountNumber because the unique
+      // live-submission
+      // index forces these two submissions to use distinct offices; assert each is returned
+      // correctly.
+      assertThat(classicResponse.getOfficeAccountNumber()).isEqualTo("totals-office-classic");
+      assertThat(amendedResponse.getOfficeAccountNumber()).isEqualTo("totals-office-amended");
+
       // 5. Assert the SHAPE and DATA remain absolutely identical
       // (proving the extra fee row didn't duplicate the claims list or alter the structure)
       assertThat(amendedResponse)
           .usingRecursiveComparison()
           .ignoringFields(
               "submissionId", // Ignore root ID
-              "officeAccountNumber", // Unique per isolated submission (see
-              // createIsolatedSubmission)
+              "officeAccountNumber", // Distinct per submission so both can be live (unique index)
               "submitted", // Ignore millisecond creation differences
               "claims.claimId", // Ignore nested Claim IDs
               "calculatedTotalAmount" // The ONLY field allowed to differ
               )
           .isEqualTo(classicResponse);
-
-      // Explicitly prove the one-to-many join didn't duplicate the claim in the array
-      assertThat(amendedResponse.getClaims()).hasSize(1);
 
       // Explicitly prove the one-to-many join didn't duplicate the claim in the array
       assertThat(amendedResponse.getClaims()).hasSize(1);
