@@ -67,6 +67,54 @@ public class BddValidationMessageStepSupport {
             expectedErrorMessage, submissionId, VALIDATION_POLL_TIMEOUT.toMillis()));
   }
 
+  /**
+   * Asserts that no validation message for the given submission contains the specified search text.
+   * Polls for validation messages to be populated.
+   */
+  public void assertNoSubmissionErrorContains(UUID submissionId, String searchTextToExclude)
+      throws Exception {
+    long deadline = System.nanoTime() + VALIDATION_POLL_TIMEOUT.toNanos();
+    String searchLower = searchTextToExclude.toLowerCase();
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    String url =
+        serverInfo.baseUrl() + GET_VALIDATION_MESSAGES_PATH + "?submission-id=" + submissionId;
+
+    while (System.nanoTime() < deadline) {
+      ResponseEntity<String> response =
+          restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+      assertThat(response.getStatusCode().value())
+          .as("Validation messages endpoint should return 200")
+          .isEqualTo(200);
+
+      JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+      JsonNode validationMessages = jsonResponse.path("content");
+
+      if (validationMessages.isArray() && !validationMessages.isEmpty()) {
+        // Check all messages to ensure none contain the search text
+        for (JsonNode messageNode : validationMessages) {
+          String displayMessage = messageNode.path("display_message").asText("").toLowerCase();
+          assertThat(displayMessage)
+              .as(
+                  "Expected no validation message to contain '%s' but found: %s",
+                  searchTextToExclude, displayMessage)
+              .doesNotContain(searchLower);
+        }
+        // At least one message exists and none contain the search text — success
+        return;
+      }
+
+      Thread.sleep(POLL_INTERVAL.toMillis());
+    }
+
+    throw new AssertionError(
+        String.format(
+            "Expected at least one validation message for submission %s within %d ms",
+            submissionId, VALIDATION_POLL_TIMEOUT.toMillis()));
+  }
+
   public void assertSubmissionExists(UUID submissionId) {
     long deadline = System.nanoTime() + VALIDATION_POLL_TIMEOUT.toNanos();
     while (System.nanoTime() < deadline) {
