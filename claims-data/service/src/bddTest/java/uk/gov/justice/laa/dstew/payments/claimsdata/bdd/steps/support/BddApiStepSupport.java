@@ -6,6 +6,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.BULK_TERMINAL_STATES;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_CLAIM_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.CREATE_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_AMENDMENT_METADATA_REFERENCE_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_BULK_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_CLAIM_HISTORY_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
@@ -569,6 +570,30 @@ public class BddApiStepSupport {
       return objectMapper.readTree(body);
     } catch (IOException ex) {
       return null;
+    }
+  }
+
+  /**
+   * Calls {@code GET /api/v1/system/references/amendment-requested-by} — the amendment metadata
+   * reference lookup — and captures the status code + parsed JSON body on the scenario context.
+   * Non-2xx responses are captured on the context rather than thrown so scenarios can assert on
+   * error shapes.
+   */
+  public void getAmendmentMetadataReferenceLookup() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + GET_AMENDMENT_METADATA_REFERENCE_PATH,
+              HttpMethod.GET,
+              new HttpEntity<>(headers),
+              String.class);
+      context.setLastStatusCode(response.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(response.getBody()));
+    } catch (HttpStatusCodeException ex) {
+      context.setLastStatusCode(ex.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(ex.getResponseBodyAsString()));
     }
   }
 }

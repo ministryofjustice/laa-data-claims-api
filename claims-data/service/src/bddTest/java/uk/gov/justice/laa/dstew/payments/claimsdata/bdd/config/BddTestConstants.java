@@ -144,4 +144,8 @@ public final class BddTestConstants {
 
   /** {@code GET /api/v1/claims/{claimId}/history}. */
   public static final String GET_CLAIM_HISTORY_PATH = GET_CLAIM_PATH + "/history";
+
+  /** {@code GET /api/v1/system/references/amendment-requested-by} — amendment metadata lookup. */
+  public static final String GET_AMENDMENT_METADATA_REFERENCE_PATH =
+      API_URI_PREFIX + "/system/references/amendment-requested-by";
 }
