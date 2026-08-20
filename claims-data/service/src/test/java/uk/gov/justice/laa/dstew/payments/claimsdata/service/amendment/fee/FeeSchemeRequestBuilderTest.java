@@ -1,18 +1,24 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 
 class FeeSchemeRequestBuilderTest {
 
-  private final FeeSchemeRequestBuilder builder = new FeeSchemeRequestBuilder();
+  private final FeeSchemeRequestBuilder builder =
+      new FeeSchemeRequestBuilder(
+          Mappers.getMapper(
+              uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class));
 
   @Test
   @DisplayName("Should map post-amendment state directly to FeeCalculationRequest")
@@ -22,7 +28,8 @@ class FeeSchemeRequestBuilderTest {
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .feeCode("FEE-AMENDED")
             .netProfitCostsAmount(BigDecimal.valueOf(999.00))
-            .travelTime(120)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .travelWaitingCostsAmount(BigDecimal.valueOf(120))
             .build();
 
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
@@ -44,6 +51,7 @@ class FeeSchemeRequestBuilderTest {
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .netProfitCostsAmount(null)
             .travelTime(null)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .build();
 
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
@@ -62,7 +70,10 @@ class FeeSchemeRequestBuilderTest {
     // Arrange
     UUID claimId = UUID.randomUUID();
     ClaimStateSnapshot post =
-        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(claimId).build();
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .claimId(claimId)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
@@ -77,7 +88,10 @@ class FeeSchemeRequestBuilderTest {
   void buildRequest_withNullClaimId_mapsToNull() {
     // Arrange
     ClaimStateSnapshot post =
-        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().claimId(null).build();
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .claimId(null)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
     // Act
@@ -94,7 +108,8 @@ class FeeSchemeRequestBuilderTest {
     ClaimStateSnapshot post =
         FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
             .netProfitCostsAmount(BigDecimal.ZERO)
-            .travelTime(0)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .travelWaitingCostsAmount(BigDecimal.ZERO)
             .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
@@ -117,6 +132,7 @@ class FeeSchemeRequestBuilderTest {
             .cmrhTelephoneCount(null)
             .hoInterview(null)
             .isSubstantiveHearing(null)
+            .areaOfLaw(AreaOfLaw.MEDIATION)
             .build();
     ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
 
@@ -130,5 +146,61 @@ class FeeSchemeRequestBuilderTest {
     assertThat(request.getBoltOns().getBoltOnCmrhTelephone()).isNull();
     assertThat(request.getBoltOns().getBoltOnHomeOfficeInterview()).isNull();
     assertThat(request.getBoltOns().getBoltOnSubstantiveHearing()).isNull();
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when state is null")
+  void buildRequest_throwsWhenStateIsNull() {
+    assertThatThrownBy(() -> builder.buildRequest(null))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("ClaimAmendmentState must not be null");
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when postAmendmentState is null")
+  void buildRequest_throwsWhenPostIsNull() {
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(null).build();
+
+    assertThatThrownBy(() -> builder.buildRequest(state))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("postAmendmentState must not be null");
+  }
+
+  @Test
+  @DisplayName("buildRequest throws when areaOfLaw is missing on post snapshot")
+  void buildRequest_throwsWhenAreaOfLawMissing() {
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder().areaOfLaw(null).build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    assertThatThrownBy(() -> builder.buildRequest(state))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("areaOfLaw must be present on ClaimStateSnapshot");
+  }
+
+  @Test
+  @DisplayName("buildRequest throws IllegalStateException when mapper returns null")
+  void buildRequest_throwsWhenMapperReturnsNull() {
+    // Arrange: mock a mapper that returns null to simulate mapping failure
+    uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper mockMapper =
+        org.mockito.Mockito.mock(
+            uk.gov.justice.laa.dstew.payments.claimsdata.mapper.FeeSchemeMapper.class);
+
+    FeeSchemeRequestBuilder localBuilder = new FeeSchemeRequestBuilder(mockMapper);
+
+    ClaimStateSnapshot post =
+        FeeSchemeTestDataHelper.createBaseBeforeStateBuilder()
+            .feeCode("FEE-NULL")
+            .areaOfLaw(AreaOfLaw.MEDIATION)
+            .build();
+    ClaimAmendmentState state = ClaimAmendmentState.builder().postAmendmentState(post).build();
+
+    org.mockito.Mockito.when(mockMapper.mapToFeeCalculationRequest(post, post.getAreaOfLaw()))
+        .thenReturn(null);
+
+    // Act / Assert
+    assertThatThrownBy(() -> localBuilder.buildRequest(state))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Unable to build FeeCalculationRequest");
   }
 }
