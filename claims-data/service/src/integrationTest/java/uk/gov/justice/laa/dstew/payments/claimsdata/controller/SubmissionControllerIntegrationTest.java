@@ -26,6 +26,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -159,6 +160,222 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @BeforeEach
   void setup() {
     seedSubmissionsData();
+  }
+
+  // Scenario 1 - No pageable parameters
+  // Explanation: When no 'page' or 'size' parameters are provided, the request must behave as
+  // unpaged. This test seeds >20 records then calls the endpoint without page/size/sort and
+  // verifies all persisted records are returned (i.e. not truncated to 20) and the response
+  // indicates an unpaged result (number 0 and single total page).
+  @Test
+  @DisplayName("No pageable parameters: returns all persisted records and is unpaged")
+  void getSubmissionsNoPageableParametersReturnsAllRecordsUnpaged() throws Exception {
+    // start with a clean store for deterministic assertions
+    submissionRepository.deleteAll();
+
+    final String office = VALID_OFFICE_ACCOUNT_NUMBER;
+    // create 25 submissions to make truncation obvious
+    List<Submission> fixtures = saveManySubmissions(office, 25);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    SubmissionsResultSet resultSet =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionsResultSet.class);
+
+    // verify all records returned and not truncated to 20
+    assertThat(resultSet.getTotalElements()).isEqualTo(fixtures.size());
+    assertThat(resultSet.getContent()).hasSize(fixtures.size());
+    assertThat(resultSet.getTotalElements()).isGreaterThan(20);
+
+    // verify unpaged-like behaviour: first page (0) and single total page
+    assertThat(resultSet.getNumber()).isEqualTo(0);
+    assertThat(resultSet.getTotalPages()).isEqualTo(1);
+
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  // Scenario 2 - Size only
+  // Explanation: A request with only '?size=10' should resolve to page 0 with the supplied
+  // size. This test deletes seeded data, creates a dataset (>10), requests with size=10 and
+  // verifies page 0 is used and a maximum of 10 records are returned.
+  @Test
+  @DisplayName("Size-only request resolves to page 0 with the supplied size")
+  void getSubmissionsSizeOnlyResolvesToPageZeroWithSuppliedSize() throws Exception {
+    submissionRepository.deleteAll();
+
+    final String office = VALID_OFFICE_ACCOUNT_NUMBER;
+    List<Submission> fixtures = saveManySubmissions(office, 15);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .param("size", "10")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    SubmissionsResultSet resultSet =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionsResultSet.class);
+
+    assertThat(resultSet.getNumber()).isEqualTo(0);
+    assertThat(resultSet.getSize()).isEqualTo(10);
+    assertThat(resultSet.getContent()).hasSize(10);
+    // totalElements should reflect the total persisted records
+    assertThat(resultSet.getTotalElements()).isEqualTo(fixtures.size());
+
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  // Scenario 3 - Explicit page and size
+  // Explanation: A request with '?page=1&size=10' should return the second page. For
+  // determinism this test clears the DB, seeds 25 submissions with distinct createdOn values,
+  // requests page=1,size=10 sorted by createdOn ascending and asserts the returned slice
+  // matches the expected elements.
+  @Test
+  @DisplayName("Explicit page and size returns the expected slice of results")
+  void getSubmissionsExplicitPageAndSizeReturnsExpectedSlice() throws Exception {
+    submissionRepository.deleteAll();
+
+    final String office = VALID_OFFICE_ACCOUNT_NUMBER;
+    List<Submission> fixtures = saveManySubmissions(office, 25);
+
+    // Sort by createdOn ascending so paging slice is deterministic
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .param("page", "1")
+                    .param("size", "10")
+                    .param(PARAM_SORT, "createdOn,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    SubmissionsResultSet resultSet =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionsResultSet.class);
+
+    // page index should be 1 and size 10
+    assertThat(resultSet.getNumber()).isEqualTo(1);
+    assertThat(resultSet.getSize()).isEqualTo(10);
+    assertThat(resultSet.getContent()).hasSize(10);
+
+    // verify returned slice corresponds to fixtures[10..19] when ordered by createdOn asc
+    var returnedCreatedOns =
+        resultSet.getContent().stream()
+            .map(submission -> Instant.from(submission.getSubmitted()))
+            .toList();
+    var expectedCreatedOns =
+        fixtures.stream()
+            .sorted((a, b) -> a.getCreatedOn().compareTo(b.getCreatedOn()))
+            .skip(10)
+            .limit(10)
+            .map(Submission::getCreatedOn)
+            .toList();
+
+    assertThat(returnedCreatedOns).containsExactlyElementsOf(expectedCreatedOns);
+
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  @Test
+  @DisplayName("Sort ascending by submissionPeriod returns chronological ascending order")
+  // Scenario 4 - Sort ascending
+  // Explanation: Verifies that sorting by an API sort-field (submissionPeriod) in ascending
+  // order returns records in chronological ascending order. Uses the existing helper fixtures
+  // that make chronological vs alphabetical order divergent.
+  void getSubmissionsSortAscendingReturnsAscendingOrder() throws Exception {
+    List<Submission> fixtures = saveSubmissionPeriodSortFixtures();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                    .param(PARAM_SORT, "submissionPeriod,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var periods =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent()
+            .stream()
+            .map(SubmissionBase::getSubmissionPeriod)
+            .toList();
+
+    assertThat(periods).containsExactly(PERIOD_DEC_2024, PERIOD_JAN_2025, PERIOD_APR_2025);
+
+    deleteSubmissionPeriodSortFixtures(fixtures);
+  }
+
+  // Scenario 5 - Sort descending
+  // Explanation: Verifies that sorting by an API sort-field (submissionPeriod) in descending
+  // order returns records in reverse chronological order.
+  @Test
+  @DisplayName("Sort descending by submissionPeriod returns chronological descending order")
+  void getSubmissionsSortDescendingReturnsDescendingOrder() throws Exception {
+    List<Submission> fixtures = saveSubmissionPeriodSortFixtures();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, OFFICE_ACCOUNT_NUMBER_1)
+                    .param(PARAM_SORT, "submissionPeriod,desc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    var periods =
+        OBJECT_MAPPER
+            .readValue(result.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent()
+            .stream()
+            .map(SubmissionBase::getSubmissionPeriod)
+            .toList();
+
+    assertThat(periods).containsExactly(PERIOD_APR_2025, PERIOD_JAN_2025, PERIOD_DEC_2024);
+
+    deleteSubmissionPeriodSortFixtures(fixtures);
+  }
+
+  /**
+   * Helper to create a number of submissions for the given office using monotonically increasing
+   * createdOn values so sort order is deterministic for tests that rely on createdOn.
+   */
+  private List<Submission> saveManySubmissions(String officeAccountNumber, int count) {
+    List<Submission> list = new java.util.ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      Submission s =
+          Submission.builder()
+              .id(UUID.randomUUID())
+              .bulkSubmissionId(null)
+              .officeAccountNumber(officeAccountNumber)
+              .submissionPeriod(PERIOD_JAN_2025)
+              .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+              .status(SubmissionStatus.CREATED)
+              .createdByUserId(USER_ID)
+              .providerUserId("user-" + i)
+              .createdOn(CREATED_ON.plusSeconds(i))
+              .build();
+      list.add(s);
+    }
+    submissionRepository.saveAll(list);
+    return list;
   }
 
   @Test
@@ -790,6 +1007,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("POST without valid payload returns Bad Request")
   void postSubmission_shouldReturnBadRequest() throws Exception {
     // when: calling post endpoint without a valid payload, should return bad request
     mockMvc
@@ -802,6 +1020,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submission by id returns 200 and correct payload")
   void getSubmission_Returns200() throws Exception {
     createClaimsTestData();
 
@@ -833,6 +1052,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("POST submission with error messages creates submission and persists messages")
   void postSubmission_shouldCreateWithErrorMessages() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
     // given: a SubmissionPost payload with errorMessages
@@ -872,6 +1092,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submission returns persisted error messages")
   void getSubmission_shouldReturnErrorMessages() throws Exception {
     // given: a submission with errorMessages
     Submission submissionWithError = submissionRepository.findById(SUBMISSION_1_ID).orElseThrow();
@@ -898,6 +1119,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submission with unknown id returns 404 Not Found")
   void getSubmission_ReturnsNotFound() throws Exception {
     // when: calling get endpoint without a valid ID, should return not found
     mockMvc
@@ -909,6 +1131,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submissions for office returns 200 and expected first result")
   void getSubmissions_Returns200() throws Exception {
     // when: calling get all submissions endpoint with a valid office
     MvcResult result =
@@ -931,6 +1154,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submissions without offices parameter returns Bad Request")
   void getSubmissions_NoOffices_BadRequest() throws Exception {
     // when: calling get all submissions endpoint without an office, should return bad request
     mockMvc
@@ -940,6 +1164,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH submission updates fields and logs suspicious SQL-like patterns")
   void updateSubmission_shouldUpdate() throws Exception {
     // given: a Submission patch payload with the changes to make
     String sqlInjectionString = "'; SELECT * FROM information_schema.tables; --";
@@ -982,6 +1207,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH submission to READY_FOR_VALIDATION publishes validation event and updates")
   void updateSubmission_shouldPublishValidationEventAndUpdate() throws Exception {
     // given: a submission patch payload changing the status to READY_FOR_VALIDATION
     SubmissionPatch patch =
@@ -1012,6 +1238,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH submission with validation messages persists messages and keeps submission")
   void updateSubmission_shouldHandleValidationMessages() throws Exception {
     // given: a submission patch with validation messages
     ValidationMessagePatch messagePatch =
@@ -1048,6 +1275,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH submission updates error messages on the submission")
   void updateSubmission_shouldUpdateErrorMessages() throws Exception {
     // given: a submission patch payload with errorMessages
     String errorMessage = "Updated error message from integration test";
@@ -1071,6 +1299,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH unknown submission id returns 404 Not Found")
   void updateSubmission_shouldReturnNotFound() throws Exception {
     // given: a submission patch payload
     SubmissionPatch patch =
@@ -1088,6 +1317,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("PATCH submission with invalid payload returns Bad Request")
   void updateSubmission_shouldReturnBadRequest() throws Exception {
     // given: and invalid JSON payload
     String invalidJson = "{ \"status\": \"INVALID_ENUM\" }";
@@ -1134,6 +1364,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("When submission set to VALIDATION_FAILED all related claims are marked INVALID")
   void updateSubmission_shouldUpdateAllClaimsAsInvalid_WhenSubmissionIsInvalid() throws Exception {
     // given: a Submission patch payload with the changes to make
     SubmissionPatch patch =

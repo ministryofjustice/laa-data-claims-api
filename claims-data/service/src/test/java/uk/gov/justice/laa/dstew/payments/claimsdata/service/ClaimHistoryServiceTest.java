@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -44,7 +45,8 @@ class ClaimHistoryServiceTest {
   }
 
   @Test
-  void getTimeline_usesDefaultPageSize_whenNoPageSizeProvided() {
+  @DisplayName("getTimeline uses default page size when no page size provided")
+  void getTimelineUsesDefaultPageSizeWhenNoPageSizeProvided() {
     UUID claimId = UUID.randomUUID();
     ClaimHistoryEventRow row = submissionRow(claimId);
     when(claimRepository.existsById(claimId)).thenReturn(true);
@@ -59,7 +61,8 @@ class ClaimHistoryServiceTest {
   }
 
   @Test
-  void getTimeline_passesThroughRequestedPageSize() {
+  @DisplayName("getTimeline passes through requested page size")
+  void getTimelinePassesThroughRequestedPageSize() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(0))).thenReturn(List.of());
@@ -72,7 +75,8 @@ class ClaimHistoryServiceTest {
   }
 
   @Test
-  void getTimeline_withPageable_computesLimitAndOffset() {
+  @DisplayName("getTimeline with pageable computes limit and offset")
+  void getTimelineWithPageableComputesLimitAndOffset() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(20))).thenReturn(List.of());
@@ -85,7 +89,8 @@ class ClaimHistoryServiceTest {
   }
 
   @Test
-  void getTimeline_throwsNotFound_whenClaimDoesNotExist() {
+  @DisplayName("getTimeline throws NotFound when claim does not exist")
+  void getTimelineThrowsNotFoundWhenClaimDoesNotExist() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(false);
 
@@ -97,7 +102,8 @@ class ClaimHistoryServiceTest {
   }
 
   @Test
-  void getTimeline_withPageSize_throwsNotFound_whenClaimDoesNotExist() {
+  @DisplayName("getTimeline with page size throws NotFound when claim does not exist")
+  void getTimelineWithPageSizeThrowsNotFoundWhenClaimDoesNotExist() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(false);
 

@@ -6,6 +6,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
@@ -21,7 +22,8 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void findByClaimId_returnsSummaryFee() {
+  @DisplayName("findByClaimId returns summary fee")
+  void findByClaimIdReturnsSummaryFee() {
     var result = claimSummaryFeeRepository.findByClaimId(CLAIM_1_ID);
 
     assertThat(result).isPresent();
@@ -32,7 +34,8 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void findByClaim_returnsSummaryFee() {
+  @DisplayName("findByClaim returns summary fee")
+  void findByClaimReturnsSummaryFee() {
     var claim = claimRepository.findById(CLAIM_2_ID).orElseThrow();
     var result = claimSummaryFeeRepository.findByClaim(claim);
 
@@ -41,7 +44,8 @@ class ClaimSummaryFeeRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  void findByClaimId_whenUnknown_returnsEmpty() {
+  @DisplayName("findByClaimId when unknown returns empty")
+  void findByClaimIdWhenUnknownReturnsEmpty() {
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result = claimSummaryFeeRepository.findByClaimId(unknownClaimId);
 

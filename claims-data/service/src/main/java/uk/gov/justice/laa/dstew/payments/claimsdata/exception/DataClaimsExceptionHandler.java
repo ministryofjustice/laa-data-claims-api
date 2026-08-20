@@ -18,7 +18,6 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ValidatingPageableHandlerMethodArgumentResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
 
@@ -120,27 +119,6 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     log.warn("ExportValidationException occurred: {}", exception.getMessage());
     return buildProblemDetailResponse(
         HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
-  }
-
-  /**
-   * Handle invalid pageable request parameters.
-   *
-   * <p>Invoked when the {@link ValidatingPageableHandlerMethodArgumentResolver} detects malformed
-   * or out-of-range "page"/"size" query parameters. Converts the {@link
-   * InvalidPageableParameterException} into a standard RFC 9457 {@link ProblemDetail} response with
-   * HTTP 400 Bad Request. The exception message is used as the ProblemDetail detail to provide a
-   * user-friendly explanation of the validation failure.
-   *
-   * @param ex the invalid pageable parameter exception
-   * @param request the servlet request used to populate the ProblemDetail instance field
-   * @return a ProblemDetail response with HTTP 400
-   */
-  @ExceptionHandler(InvalidPageableParameterException.class)
-  public ResponseEntity<ProblemDetail> handleInvalidPageableParameterException(
-      InvalidPageableParameterException ex, HttpServletRequest request) {
-    log.warn("Invalid pageable parameters: {}", ex.getMessage());
-    return buildProblemDetailResponse(
-        HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getClass(), request);
   }
 
   /**

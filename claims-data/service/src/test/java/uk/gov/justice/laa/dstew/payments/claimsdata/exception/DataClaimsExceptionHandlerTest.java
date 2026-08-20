@@ -137,7 +137,9 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
-  void handleClaimAmendmentValidationException_returnsBadRequestWithErrorsPropertyWhenNonFatal() {
+  @DisplayName(
+      "handleClaimAmendmentValidationException returns Bad Request with errors property when non-fatal")
+  void handleClaimAmendmentValidationExceptionReturnsBadRequestWithErrorsPropertyWhenNonFatal() {
     // Arrange: Create a non-fatal validation error scenario
     ClaimAmendmentValidationError nonFatalError =
         ClaimAmendmentValidationError.of(
@@ -183,7 +185,8 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
-  void handleClaimAmendmentVersionValidationException_returnsCustomStatusWhenFatal() {
+  @DisplayName("handleClaimAmendmentValidationException returns custom status when fatal")
+  void handleClaimAmendmentVersionValidationExceptionReturnsCustomStatusWhenFatal() {
     // Arrange: Create a fatal validation error scenario
     ClaimAmendmentValidationError fatalError =
         ClaimAmendmentValidationError.of(
@@ -226,7 +229,9 @@ class DataClaimsExceptionHandlerTest {
   }
 
   @Test
-  void handleDatabaseOptimisticLockingException_returnsConflictStatusWithPredefinedMessage() {
+  @DisplayName(
+      "handleDatabaseOptimisticLockException returns Conflict status with predefined message")
+  void handleDatabaseOptimisticLockingExceptionReturnsConflictStatusWithPredefinedMessage() {
     // Arrange
     OptimisticLockException ex =
         new OptimisticLockException("Row was updated or deleted by another transaction", null);

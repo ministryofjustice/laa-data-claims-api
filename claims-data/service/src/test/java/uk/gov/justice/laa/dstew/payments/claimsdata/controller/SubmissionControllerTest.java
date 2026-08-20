@@ -21,8 +21,12 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Sort;
+import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,8 +66,9 @@ class SubmissionControllerTest {
 
   @MockitoBean private SubmissionService submissionService;
 
+  @DisplayName("create submission returns 201 Created and Location header")
   @Test
-  void createSubmission_returnsCreatedStatusAndLocationHeader() throws Exception {
+  void createSubmissionReturnsCreatedStatusAndLocationHeader() throws Exception {
     UUID id = Uuid7.timeBasedUuid();
     when(submissionService.createSubmission(any(SubmissionPost.class))).thenReturn(id);
 
@@ -92,8 +97,9 @@ class SubmissionControllerTest {
         .andExpect(jsonPath("$.id").value(id.toString()));
   }
 
+  @DisplayName("create submission returns 400 Bad Request when body is invalid")
   @Test
-  void createSubmission_returnsBadRequestStatusWhenInvalidBody() throws Exception {
+  void createSubmissionReturnsBadRequestStatusWhenInvalidBody() throws Exception {
     mockMvc
         .perform(post(SUBMISSIONS_URI).contentType(MediaType.APPLICATION_JSON).content("{ }"))
         .andExpect(status().isBadRequest())
@@ -105,8 +111,9 @@ class SubmissionControllerTest {
     verify(submissionService, never()).createSubmission(any());
   }
 
+  @DisplayName("get submission returns submission details")
   @Test
-  void getSubmission_returnsSubmissionDetails() throws Exception {
+  void getSubmissionReturnsSubmissionDetails() throws Exception {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionResponse response =
         new SubmissionResponse()
@@ -126,8 +133,9 @@ class SubmissionControllerTest {
         .andExpect(jsonPath("$.submission_id").value(id.toString()));
   }
 
+  @DisplayName("update submission returns 204 No Content")
   @Test
-  void updateSubmission_returnsNoContent() throws Exception {
+  void updateSubmissionReturnsNoContent() throws Exception {
     UUID id = Uuid7.timeBasedUuid();
     String body = "{\"crime_lower_schedule_number\":\"123\"}";
 
@@ -141,8 +149,9 @@ class SubmissionControllerTest {
     verify(submissionService).updateSubmission(eq(id), any());
   }
 
+  @DisplayName("get submissions returns submission result set")
   @Test
-  void getSubmissions_returnsSubmissionDetails() throws Exception {
+  void getSubmissionsReturnsSubmissionDetails() throws Exception {
     var submissionBase = new SubmissionBase();
     var expected = new SubmissionsResultSet().content(List.of(submissionBase));
 
@@ -164,8 +173,8 @@ class SubmissionControllerTest {
             get(SUBMISSIONS_URI)
                 .queryParam("offices", String.valueOf(List.of("office1", "office2", "office3")))
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
-                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
+                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
                 .queryParam("area_of_law", AREA_OF_LAW.name())
                 .queryParam("submission_period", "2205-19")
                 .queryParam(
@@ -179,7 +188,7 @@ class SubmissionControllerTest {
 
   @DisplayName("should call submission service with right arguments")
   @Test
-  void getSubmissions_callsSubmissionServiceWithRightArguments() throws Exception {
+  void getSubmissionsCallsSubmissionServiceWithRightArguments() throws Exception {
 
     var submissionBase = ClaimsDataTestUtil.getSubmissionBase();
     var expected = new SubmissionsResultSet().content(List.of(submissionBase));
@@ -199,8 +208,10 @@ class SubmissionControllerTest {
             get(SUBMISSIONS_URI)
                 .queryParam("offices", "office1", "office2", "office3")
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, 1, 1)))
-                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, 12, 31)))
+                .queryParam(
+                    "submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
+                .queryParam(
+                    "submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
                 .queryParam("area_of_law", AREA_OF_LAW.name())
                 .queryParam("submission_period", "2205-19")
                 .queryParam("submission_statuses", "CREATED", "READY_FOR_VALIDATION")
@@ -211,16 +222,61 @@ class SubmissionControllerTest {
         .getSubmissionsResultSet(
             eq(List.of("office1", "office2", "office3")),
             eq(String.valueOf(SUBMISSION_ID)),
-            eq(LocalDate.of(2025, 1, 1)),
-            eq(LocalDate.of(2025, 12, 31)),
+            eq(LocalDate.of(2025, Month.JANUARY, 1)),
+            eq(LocalDate.of(2025, Month.DECEMBER, 31)),
             eq(AREA_OF_LAW),
             eq("2205-19"),
             eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
-            eq(Pageable.unpaged()));
+            any(Pageable.class));
   }
 
+  @DisplayName("get submissions default pageable is applied")
   @Test
-  void getSubmissions_withValidSortField_returnsOk() throws Exception {
+  void getSubmissionsDefaultPageableIsApplied() throws Exception {
+    var submissionBase = ClaimsDataTestUtil.getSubmissionBase();
+    var expected = new SubmissionsResultSet().content(List.of(submissionBase));
+
+    when(submissionService.getSubmissionsResultSet(
+            anyList(), anyString(), any(LocalDate.class), any(LocalDate.class), any(AreaOfLaw.class), anyString(), anyList(), any(Pageable.class)))
+        .thenReturn(expected);
+
+    mockMvc
+        .perform(
+            get(SUBMISSIONS_URI)
+                .queryParam("offices", "office1", "office2", "office3")
+                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
+                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
+                .queryParam("area_of_law", AREA_OF_LAW.name())
+                .queryParam("submission_period", "2205-19")
+                .queryParam("submission_statuses", "CREATED", "READY_FOR_VALIDATION"))
+        .andExpect(status().isOk());
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+    verify(submissionService)
+        .getSubmissionsResultSet(
+            eq(List.of("office1", "office2", "office3")),
+            eq(String.valueOf(SUBMISSION_ID)),
+            eq(LocalDate.of(2025, Month.JANUARY, 1)),
+            eq(LocalDate.of(2025, Month.DECEMBER, 31)),
+            eq(AREA_OF_LAW),
+            eq("2205-19"),
+            eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
+            pageableCaptor.capture());
+
+    Pageable captured = pageableCaptor.getValue();
+    // PageableUtils defaults: page 0, size 20, and appends id tie-breaker (ASC)
+    assertTrue(captured.isPaged());
+    assertEquals(0, captured.getPageNumber());
+    assertEquals(20, captured.getPageSize());
+    assertNotNull(captured.getSort().getOrderFor("id"));
+    assertEquals(Sort.Direction.ASC, captured.getSort().getOrderFor("id").getDirection());
+  }
+
+  @DisplayName("get submissions with valid sort field returns 200 OK")
+  @Test
+  void getSubmissionsWithValidSortFieldReturnsOk() throws Exception {
     when(submissionService.getSubmissionsResultSet(
             anyList(), any(), any(), any(), any(), any(), any(), any(Pageable.class)))
         .thenReturn(new SubmissionsResultSet());
@@ -233,8 +289,9 @@ class SubmissionControllerTest {
         .andExpect(status().isOk());
   }
 
+  @DisplayName("get submissions with invalid sort field returns 400 Bad Request")
   @Test
-  void getSubmissions_withInvalidSortField_returnsBadRequest() throws Exception {
+  void getSubmissionsWithInvalidSortFieldReturnsBadRequest() throws Exception {
     doThrow(new SubmissionBadRequestException("Invalid sort field: 'unknownField'"))
         .when(submissionService)
         .getSubmissionsResultSet(

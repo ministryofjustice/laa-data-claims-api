@@ -10,10 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.InvalidPageableParameterException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
 
 /**
  * Read-only service that returns a claim's activity as a single chronological timeline.
@@ -27,9 +27,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimH
 @Slf4j
 public class ClaimHistoryService {
 
-  /** Default page size used when a caller does not specify one. */
-  private static final int DEFAULT_PAGE_SIZE = 20;
-
   private final ClaimHistoryRepository claimHistoryRepository;
   private final ClaimRepository claimRepository;
 
@@ -41,24 +38,12 @@ public class ClaimHistoryService {
   @Transactional(readOnly = true)
   public List<ClaimHistoryEventRow> getTimeline(UUID claimId, Pageable pageable) {
     if (pageable == null || pageable.isUnpaged()) {
-      return load(claimId, DEFAULT_PAGE_SIZE, 0);
+      return load(claimId, PageableUtils.DEFAULT_PAGE_SIZE, PageableUtils.DEFAULT_PAGE_NUMBER);
     }
 
-    int limit = pageable.getPageSize();
+    int pageSize = pageable.getPageSize();
     long offset = pageable.getOffset();
-
-    // Guard against extremely large offsets that would overflow existing int-based repository
-    // parameters. Reject them as a client error rather than letting an overflow produce a 500.
-    if (offset > Integer.MAX_VALUE) {
-      throw new InvalidPageableParameterException(
-          "Requested page offset is too large: "
-              + offset
-              + " (must be <= "
-              + Integer.MAX_VALUE
-              + ")");
-    }
-
-    return load(claimId, limit, (int) offset);
+    return load(claimId, pageSize, (int) offset);
   }
 
   private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize, int offset) {

@@ -119,28 +119,6 @@ class ClaimHistoryControllerTest {
   }
 
   @Test
-  @DisplayName("Returns 400 Bad Request for negative size")
-  void returnsBadRequestForNegativeSize() throws Exception {
-    UUID claimId = Uuid7.timeBasedUuid();
-    when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of());
-    mockMvc
-        .perform(get(HISTORY_URI, claimId).param("size", "-1"))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("Returns 400 Bad Request for negative page")
-  void returnsBadRequestForNegativePage() throws Exception {
-    UUID claimId = Uuid7.timeBasedUuid();
-    when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of());
-    mockMvc
-        .perform(get(HISTORY_URI, claimId).param("page", "-1"))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
   @DisplayName("Populates actor fallback from service value")
   void populatesActorFallbackFromServiceValue() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
