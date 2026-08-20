@@ -11,6 +11,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSIONS_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_CLAIM_AMENDMENT_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
@@ -525,5 +526,49 @@ public class BddApiStepSupport {
         new HttpEntity<>(patch, headers),
         Void.class,
         bulkSubmissionId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // PATCH claim amendment (used by BDD scenarios that exercise the amendment
+  // metadata validation flow via PATCH /api/v1/submissions/{sid}/claims/{cid}).
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Sends a PATCH to the amendment endpoint and captures the resulting status code and JSON body on
+   * the scenario context. Unlike normal RestTemplate calls, this does <em>not</em> throw on 4xx/5xx
+   * responses — the scenario itself asserts on the outcome. The {@code patchJson} argument must be
+   * a JSON string carrying a {@code ClaimPatch} shape (snake_case field names).
+   */
+  public void patchClaimAmendment(UUID submissionId, UUID claimId, String patchJson) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + PATCH_CLAIM_AMENDMENT_PATH,
+              HttpMethod.PATCH,
+              new HttpEntity<>(patchJson, headers),
+              String.class,
+              submissionId,
+              claimId);
+      context.setLastStatusCode(response.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(response.getBody()));
+    } catch (HttpStatusCodeException ex) {
+      context.setLastStatusCode(ex.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(ex.getResponseBodyAsString()));
+    }
+  }
+
+  private JsonNode parseBodyOrNull(String body) {
+    if (body == null || body.isBlank()) {
+      return null;
+    }
+    try {
+      return objectMapper.readTree(body);
+    } catch (IOException ex) {
+      return null;
+    }
   }
 }

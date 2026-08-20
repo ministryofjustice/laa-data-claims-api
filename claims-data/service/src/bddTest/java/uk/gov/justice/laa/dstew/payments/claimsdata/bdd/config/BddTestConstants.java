@@ -129,6 +129,10 @@ public final class BddTestConstants {
   /** {@code POST /api/v1/submissions/{id}/claims}. */
   public static final String CREATE_CLAIM_PATH = GET_SUBMISSION_BY_ID_PATH + "/claims";
 
+  /** {@code PATCH /api/v1/submissions/{submissionId}/claims/{claimId}} — amendment endpoint. */
+  public static final String PATCH_CLAIM_AMENDMENT_PATH =
+      GET_SUBMISSION_BY_ID_PATH + "/claims/{claimId}";
+
   /** {@code GET /api/v1/validation-messages}. */
   public static final String GET_VALIDATION_MESSAGES_PATH = API_URI_PREFIX + "/validation-messages";
 
