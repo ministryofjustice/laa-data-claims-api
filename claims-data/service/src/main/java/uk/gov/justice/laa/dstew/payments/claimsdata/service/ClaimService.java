@@ -517,11 +517,17 @@ public class ClaimService
     Pageable sanitizedPageable = removeComputedSorts(mappedPageable);
 
     // Deterministic ordering:
-    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
-    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
-    //    unsorted so Spring Data does not override that ordering.
-    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
-    if (!hasComputedSort(mappedPageable)) {
+    //  - A computed sort (totalWarnings, submissionPeriod, derivedClaimStatus, latest calculated
+    //    fee) applies its own id tie-break inside the ordering Specification. When every requested
+    //    sort is computed the sanitized Pageable is left unsorted, so Spring Data does not override
+    //    that Specification ordering and we must not append a tie-break here.
+    //  - Any plain-column sort that survives sanitisation is applied by Spring Data and would
+    //    override the Specification ordering, so it needs the id tie-break appended here. This also
+    //    covers requests that mix a plain-column sort with a computed sort (e.g.
+    //    sort=effective_total_value,asc&sort=total_warnings,asc): stripping the computed order must
+    //    not leave the surviving plain sort without a deterministic tie-break.
+    //  - The unsorted default likewise gets the id tie-break appended.
+    if (sanitizedPageable.getSort().isSorted() || !hasComputedSort(mappedPageable)) {
       sanitizedPageable = appendIdTieBreak(sanitizedPageable);
     }
 
