@@ -1,5 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.util;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification.CALCULATED_FEE_DETAILS;
+
 import java.util.Arrays;
 import java.util.Optional;
 import lombok.Getter;
@@ -31,18 +33,24 @@ public enum ClaimSortField {
   SUBMISSION_PERIOD("submission_period", "submission.submissionPeriod"),
 
   FEE_CODE("fee_code", "feeCode"),
-  CALCULATED_VAT_AMOUNT("calculated_vat_amount", "calculatedFeeDetail.calculatedVatAmount"),
-  TOTAL_AMOUNT("total_amount", "calculatedFeeDetail.totalAmount"),
-  ESCAPE_CASE_FLAG("escape_case_flag", "calculatedFeeDetail.escapeCaseFlag"),
-  CATEGORY_OF_LAW("category_of_law", "calculatedFeeDetail.categoryOfLaw"),
+  CALCULATED_VAT_AMOUNT("calculated_vat_amount", CALCULATED_FEE_DETAILS + ".calculatedVatAmount"),
+  TOTAL_AMOUNT("total_amount", CALCULATED_FEE_DETAILS + ".totalAmount"),
+  ESCAPE_CASE_FLAG("escape_case_flag", CALCULATED_FEE_DETAILS + ".escapeCaseFlag"),
+  CATEGORY_OF_LAW("category_of_law", CALCULATED_FEE_DETAILS + ".categoryOfLaw"),
+
+  TOTAL_WARNINGS("total_warnings", "totalWarnings"),
+
+  // Computed sort field: not a real entity property. Ordering is applied by
+  // ClaimSpecification.orderByDerivedClaimStatus using a SQL CASE expression whose ordinals come
+  // from the DerivedClaimStatus enum. Treated like the other computed markers (totalWarnings,
+  // submission.submissionPeriod) and stripped from the Pageable before the query executes.
+  DERIVED_CLAIM_STATUS("derived_claim_status", "derivedClaimStatus"),
 
   // Effective total value is exposed on the Claim entity as an @Formula-derived property (backed by
   // the vw_claim_effective_value view), so it maps to a real entity property and sorts natively
   // across
   // the whole result set (before pagination), with an id tie-breaker applied by the service.
-  EFFECTIVE_TOTAL_VALUE("effective_total_value", "effectiveTotalValue"),
-
-  TOTAL_WARNINGS("total_warnings", "totalWarnings");
+  EFFECTIVE_TOTAL_VALUE("effective_total_value", "effectiveTotalValue");
 
   private final String apiName;
   private final String entityPath;

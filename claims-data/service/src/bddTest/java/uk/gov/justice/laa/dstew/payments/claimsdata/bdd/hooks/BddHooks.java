@@ -15,9 +15,11 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
@@ -30,9 +32,11 @@ public class BddHooks {
 
   @Autowired private BddScenarioContext context;
   @Autowired private SubmissionPeriodHelper submissionPeriodHelper;
+  @Autowired private ClaimsApiProperties claimsApiProperties;
   @Autowired private ValidationMessageLogRepository validationMessageLogRepository;
   @Autowired private AssessmentRepository assessmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private ClientRepository clientRepository;
   @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
@@ -54,9 +58,16 @@ public class BddHooks {
     context.clear();
     submissionPeriodHelper.reset();
 
+    // Reset amendments feature flag to null (not configured) — each scenario explicitly
+    // configures it as needed. This ensures independent scenario isolation.
+    claimsApiProperties.getAmendments().setEnabled(null);
+
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
     calculatedFeeDetailRepository.deleteAll();
+    // Amendments FK back to Claim; must go before claimRepository.deleteAll(). Added for
+    // DSTEW-1813 / DSTEW-1814 / DSTEW-1815 which are the first BDD scenarios to seed amendments.
+    claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();

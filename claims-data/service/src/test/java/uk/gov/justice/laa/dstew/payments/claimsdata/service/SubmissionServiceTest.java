@@ -45,11 +45,13 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
@@ -103,6 +105,87 @@ class SubmissionServiceTest {
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
     assertThat(result).isEqualTo(id);
     verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission throws DuplicateSubmissionException (409) and does not persist when a live submission already exists for the same office, area of law and period")
+  void duplicateLiveSubmissionThrowsConflict() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .status(SubmissionStatus.CREATED)
+            .officeAccountNumber("OFFICE1")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod("2026-07")
+            .build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                "OFFICE1",
+                AreaOfLaw.CRIME_LOWER,
+                "2026-07",
+                List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED)))
+        .thenReturn(true);
+
+    DuplicateSubmissionException ex =
+        assertThrows(
+            DuplicateSubmissionException.class, () -> submissionService.createSubmission(post));
+
+    assertThat(ex.getHttpStatus().value()).isEqualTo(409);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission persists when no live submission conflicts with the office, area of law and period")
+  void noConflictingLiveSubmissionPersists() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .status(SubmissionStatus.CREATED)
+            .officeAccountNumber("OFFICE1")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod("2026-07")
+            .build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+    when(submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                "OFFICE1",
+                AreaOfLaw.CRIME_LOWER,
+                "2026-07",
+                List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED)))
+        .thenReturn(false);
+
+    UUID result = submissionService.createSubmission(post);
+
+    assertThat(result).isEqualTo(id);
+    verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "createSubmission skips the duplicate pre-check and persists when a keying field is absent")
+  void missingKeyFieldSkipsDuplicateCheck() {
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPost post = new SubmissionPost().submissionId(id);
+    Submission entity = Submission.builder().id(id).status(SubmissionStatus.CREATED).build();
+
+    when(submissionMapper.toSubmission(post)).thenReturn(entity);
+
+    UUID result = submissionService.createSubmission(post);
+
+    assertThat(result).isEqualTo(id);
+    verify(submissionRepository).save(entity);
+    verify(submissionRepository, never())
+        .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+            any(), any(), any(), any());
   }
 
   @Test

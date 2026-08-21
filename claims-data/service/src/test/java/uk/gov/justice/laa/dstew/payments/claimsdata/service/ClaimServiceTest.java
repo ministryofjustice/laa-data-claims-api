@@ -44,6 +44,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -69,6 +71,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -203,6 +206,24 @@ class ClaimServiceTest {
     assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
         .isInstanceOf(SubmissionNotFoundException.class)
         .hasMessageContaining(submissionId.toString());
+  }
+
+  @Test
+  void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    post.setLineNumber(7);
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimRepository.existsBySubmissionIdAndLineNumber(submissionId, 7)).thenReturn(true);
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(DuplicateClaimException.class)
+        .hasMessageContaining("line number 7");
+
+    // Fails fast: no claim (or child records) is written.
+    verify(claimRepository, never()).save(any());
   }
 
   @Test
@@ -566,8 +587,10 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
-  @Test
-  void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+  @ParameterizedTest
+  @EnumSource(ClaimStatus.class)
+  void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet(
+      ClaimStatus claimStatus) {
     Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(new Claim()));
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
@@ -585,7 +608,7 @@ class ClaimServiceTest {
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
-            List.of(ClaimStatus.READY_TO_PROCESS),
+            List.of(claimStatus),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));
@@ -594,8 +617,10 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).hasSize(1);
   }
 
-  @Test
-  void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
+  @ParameterizedTest
+  @EnumSource(ClaimStatus.class)
+  void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet(
+      ClaimStatus claimStatus) {
     Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
@@ -612,7 +637,7 @@ class ClaimServiceTest {
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
-            List.of(ClaimStatus.READY_TO_PROCESS),
+            List.of(claimStatus),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));
@@ -696,6 +721,80 @@ class ClaimServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+  }
+
+  private static ClaimSearchRequest validV2SearchRequest() {
+    return ClaimSearchRequest.builder().officeCode(OFFICE_ACCOUNT_NUMBER).build();
+  }
+
+  @Test
+  void getClaimResultSetV2_unsupportedSortField_throwsClaimBadRequestException() {
+    assertThatThrownBy(
+            () ->
+                claimService.getClaimResultSetV2(
+                    validV2SearchRequest(), PageRequest.of(0, 10, Sort.by("not_a_real_field"))))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("Unsupported sort field: not_a_real_field");
+  }
+
+  @Test
+  void getClaimResultSetV2_plainSort_appendsDeterministicIdTieBreak() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    Sort appliedSort = pageableCaptor.getValue().getSort();
+    // Primary sort remapped to the entity property, then id ASC appended as the tie-break.
+    assertThat(appliedSort.stream().map(Sort.Order::getProperty)).containsExactly("status", "id");
+    assertThat(appliedSort.getOrderFor("status").getDirection()).isEqualTo(Sort.Direction.DESC);
+    assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
+  }
+
+  @Test
+  void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(),
+        PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "derived_claim_status")));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    // Computed sort: the key is stripped and no id tie-break is layered onto the Pageable so that
+    // the ordering Specification's own orderBy (which includes the id tie-break) is not overridden.
+    assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
+  }
+
+  @Test
+  void getClaimResultSetV2_sortWithoutPaging_isUnpagedSafe() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // A sort-only request (no page/size) resolves to an Unpaged pageable; must not blow up.
+    Pageable unpagedSorted = Pageable.unpaged(Sort.by(Sort.Direction.ASC, "status"));
+
+    assertThat(claimService.getClaimResultSetV2(validV2SearchRequest(), unpagedSorted)).isNotNull();
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+    Pageable applied = pageableCaptor.getValue();
+    assertThat(applied.isUnpaged()).isTrue();
+    // Plain sort still gains the deterministic id tie-break even when unpaged.
+    assertThat(applied.getSort().stream().map(Sort.Order::getProperty))
+        .containsExactly("status", "id");
   }
 
   @ParameterizedTest
@@ -1066,5 +1165,37 @@ class ClaimServiceTest {
           .updatedOn(Instant.now())
           .build();
     }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "total_warnings",
+    "submission_period",
+    "derived_claim_status",
+    "total_amount",
+    "calculated_vat_amount",
+    "escape_case_flag",
+    "category_of_law"
+  })
+  @DisplayName("getClaimResultSetV2 - all computed sorts are stripped from pageable and delegated")
+  void getClaimResultSetV2ComputedSortIsStrippedAndDelegatedToSpecification(String apiSortField) {
+    // Arrange: Mock the repository and mapper to return empty results safely
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // Act: Call the service with a pageable containing one of the computed fee API fields
+    claimService.getClaimResultSetV2(
+        validV2SearchRequest(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, apiSortField)));
+
+    // Assert: Capture the sanitized Pageable that gets passed to the repository
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    // Because this is a computed sort,
+    // removeComputedSorts() should strip the key, and hasComputedSort() should
+    // prevent the ID tie-break from being appended. The Pageable must be unsorted.
+    assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
   }
 }

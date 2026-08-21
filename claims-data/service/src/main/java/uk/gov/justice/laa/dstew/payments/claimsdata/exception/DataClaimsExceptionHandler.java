@@ -7,8 +7,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +48,32 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Pattern CAMEL_CASE = Pattern.compile("([a-z])([A-Z])");
 
   /**
+   * Name of the database unique constraint enforcing that a claim's line number is unique within a
+   * submission (see Flyway migration {@code V45}). A violation of this specific constraint is a
+   * client conflict (409), not an internal error.
+   */
+  private static final String UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT =
+      "uq_claim_submission_line_number";
+
+  /**
+   * User-facing message for a duplicate claim line number (no raw SQL/constraint detail leaked).
+   */
+  private static final String DUPLICATE_CLAIM_LINE_NUMBER_MESSAGE =
+      "A claim with this line number already exists for the submission.";
+
+  /**
+   * Name of the database partial unique index enforcing that only one "live" submission may exist
+   * for a given office, area of law and submission period (see Flyway migration {@code V46}). A
+   * violation of this specific constraint is a client conflict (409), not an internal error.
+   */
+  private static final String UNIQUE_LIVE_SUBMISSION_CONSTRAINT =
+      "uq_submission_live_office_aol_period";
+
+  /** User-facing message for a duplicate live submission (no raw SQL/constraint detail leaked). */
+  private static final String DUPLICATE_LIVE_SUBMISSION_MESSAGE =
+      "A live submission already exists for this office, area of law and period.";
+
+  /**
    * Handle {@link SubmissionValidationException} and include the list of validation issues as a
    * structured property inside the RFC 9457 Problem Detail body.
    *
@@ -62,8 +90,9 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     }
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, exception.getMessage(), exception.getClass(), request);
-    if (response.getBody() != null) {
-      response.getBody().setProperty("issues", exception.getIssues());
+    var problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("issues", exception.getIssues());
     }
     return response;
   }
@@ -159,8 +188,9 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
 
-    if (response.getBody() != null) {
-      response.getBody().setProperty("errors", ex.getErrors());
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("errors", ex.getErrors());
     }
 
     return response;
@@ -216,6 +246,60 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handles database integrity violations. A violation of the {@code
+   * uq_claim_submission_line_number} unique constraint (a claim's line number must be unique within
+   * its submission) or the {@code uq_submission_live_office_aol_period} partial unique index (only
+   * one live submission per office/area-of-law/period) is a client conflict, so it is mapped to
+   * HTTP {@code 409 Conflict}. Any other integrity violation retains the previous behaviour (a
+   * generic {@code 500 Internal Server Error}), so unrelated constraint failures are not
+   * mislabelled as conflicts.
+   *
+   * @param ex the data integrity violation raised at flush/commit
+   * @param request the HTTP request
+   * @return a 409 Problem Detail for a recognised duplicate, otherwise a 500 response
+   */
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ProblemDetail> handleDataIntegrityViolationException(
+      DataIntegrityViolationException ex, HttpServletRequest request) {
+
+    if (violatesConstraint(ex, UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT)) {
+      log.warn("Duplicate claim line number within a submission:", ex.getMostSpecificCause());
+      return buildProblemDetailResponse(
+          HttpStatus.CONFLICT, DUPLICATE_CLAIM_LINE_NUMBER_MESSAGE, ex.getClass(), request);
+    }
+
+    if (violatesConstraint(ex, UNIQUE_LIVE_SUBMISSION_CONSTRAINT)) {
+      log.warn(
+          "Duplicate live submission for office/area-of-law/period:", ex.getMostSpecificCause());
+      return buildProblemDetailResponse(
+          HttpStatus.CONFLICT, DUPLICATE_LIVE_SUBMISSION_MESSAGE, ex.getClass(), request);
+    }
+
+    return handleGenericException(ex, request);
+  }
+
+  /**
+   * Determines whether the given integrity violation was caused by the named unique constraint.
+   * Prefers Hibernate's parsed constraint name and falls back to matching the constraint name in
+   * the underlying message for robustness across driver/Hibernate versions.
+   *
+   * @param ex the data integrity violation
+   * @param constraintName the database constraint/index name to match
+   * @return {@code true} if the violation was caused by that constraint
+   */
+  private boolean violatesConstraint(DataIntegrityViolationException ex, String constraintName) {
+    if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException hce
+        && constraintName.equalsIgnoreCase(hce.getConstraintName())) {
+      return true;
+    }
+    // getMostSpecificCause() never returns null (it returns the exception itself when there is no
+    // cause), so we only need to guard against a null message.
+    String message = ex.getMostSpecificCause().getMessage();
+    return message != null
+        && message.toLowerCase(Locale.ROOT).contains(constraintName.toLowerCase(Locale.ROOT));
+  }
+
+  /**
    * Builds the shared stale-version 409 Conflict response used by both the early version gate and
    * the final transactional (optimistic-lock) guard.
    *
@@ -238,10 +322,10 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
             CLAIM_VERSION_CONFLICT.getMessageTemplate(),
             exceptionClass,
             request);
-    if (response.getBody() != null) {
-      response
-          .getBody()
-          .setProperty("errors", List.of(ClaimAmendmentValidationError.of(CLAIM_VERSION_CONFLICT)));
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty(
+          "errors", List.of(ClaimAmendmentValidationError.of(CLAIM_VERSION_CONFLICT)));
     }
     return response;
   }

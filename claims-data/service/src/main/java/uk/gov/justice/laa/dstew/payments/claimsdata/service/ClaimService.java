@@ -1,7 +1,9 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification.CALCULATED_FEE_DETAILS;
+
 import java.lang.reflect.Field;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +38,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentVali
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateClaimException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
@@ -105,14 +108,15 @@ public class ClaimService
           // provider-requested change that triggers the amendment path.
           "effectiveTotalValue");
 
-  /**
-   * Entity paths whose ordering is applied by a {@link ClaimSpecification} {@code ORDER BY} rather
-   * than by the {@link Pageable} sort. They are excluded from the {@code id} tie-breaker because
-   * they are stripped from the {@code Pageable} before querying, so any order left on it would
-   * override the specification's ordering.
-   */
-  private static final Set<String> CUSTOM_ORDERED_ENTITY_PATHS =
-      Set.of("totalWarnings", "submission.submissionPeriod");
+  private static final Set<String> COMPUTED_SORT_PATHS =
+      Set.of(
+          "totalWarnings",
+          "submission.submissionPeriod",
+          "derivedClaimStatus",
+          CALCULATED_FEE_DETAILS + ".calculatedVatAmount",
+          CALCULATED_FEE_DETAILS + ".totalAmount",
+          CALCULATED_FEE_DETAILS + ".escapeCaseFlag",
+          CALCULATED_FEE_DETAILS + ".categoryOfLaw");
 
   @Override
   public SubmissionRepository lookup() {
@@ -134,6 +138,29 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     Submission submission = requireEntity(submissionId);
+
+    // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
+    // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
+    // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
+    //
+    // CAVEAT (old-vs-new): the DB index is PARTIAL - it grandfathers pre-existing historical
+    // duplicates (business rule: we never amend or delete historical data), so it cannot catch a
+    // NEW claim that duplicates an OLD (grandfathered) row. This pre-check queries all rows, so it
+    // DOES cover that old-vs-new case. It is currently unreachable (claims are only added to
+    // newly-created submissions, never appended to historical ones) but is guarded here defensively
+    // in case that business rule ever changes.
+    //
+    // RACE: this check is not atomic with the insert below, so a small TOCTOU window remains if two
+    // requests create the same (submission_id, line_number) concurrently. The DB unique index
+    // closes that window for the common (post-cutoff) case; the residual race only affects the
+    // old-vs-new scenario above and is considered minimal/acceptable.
+    Integer lineNumber = claimPost.getLineNumber();
+    if (lineNumber != null
+        && claimRepository.existsBySubmissionIdAndLineNumber(submissionId, lineNumber)) {
+      throw new DuplicateClaimException(
+          String.format(
+              "A claim with line number %d already exists for the submission.", lineNumber));
+    }
 
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
@@ -298,7 +325,7 @@ public class ClaimService
       CalculatedFeeDetail calculatedFeeDetail =
           claimMapper.toCalculatedFeeDetail(claimPatch.getFeeCalculationResponse());
       // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
-      calculatedFeeDetail.setCreatedOn(OffsetDateTime.now());
+      calculatedFeeDetail.setCreatedOn(Instant.now());
 
       // Get existing calculated fee detail, and set the ID if it exists
       calculatedFeeDetailRepository
@@ -487,16 +514,25 @@ public class ClaimService
 
     Pageable mappedPageable = mapPageableSort(pageable);
 
-    Specification<Claim> baseSpec = ClaimSpecification.filterBy(request);
-    Specification<Claim> warningSortSpec =
-        ClaimSpecification.orderByTotalWarningMessages(mappedPageable);
-    Specification<Claim> submissionPeriodSortSpec =
-        ClaimSpecification.orderBySubmissionPeriod(mappedPageable);
-    Specification<Claim> combinedSpec = baseSpec.and(warningSortSpec).and(submissionPeriodSortSpec);
+    Pageable sanitizedPageable = removeComputedSorts(mappedPageable);
 
-    Pageable sanitizedPageable = removeCustomSortFromPageable(mappedPageable, "totalWarnings");
-    sanitizedPageable =
-        removeCustomSortFromPageable(sanitizedPageable, "submission.submissionPeriod");
+    // Deterministic ordering:
+    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
+    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
+    //    unsorted so Spring Data does not override that ordering.
+    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
+    if (!hasComputedSort(mappedPageable)) {
+      sanitizedPageable = appendIdTieBreak(sanitizedPageable);
+    }
+
+    Specification<Claim> feeSortSpec =
+        ClaimSpecification.orderByLatestCalculatedFee(mappedPageable);
+    Specification<Claim> combinedSpec =
+        ClaimSpecification.filterBy(request)
+            .and(ClaimSpecification.orderByTotalWarningMessages(mappedPageable))
+            .and(ClaimSpecification.orderBySubmissionPeriod(mappedPageable))
+            .and(ClaimSpecification.orderByDerivedClaimStatus(mappedPageable))
+            .and(feeSortSpec);
 
     Page<Claim> page = claimRepository.findAll(combinedSpec, sanitizedPageable);
 
@@ -543,7 +579,7 @@ public class ClaimService
     }
 
     List<Sort.Order> mappedOrders = originalSort.stream().map(this::mapOrder).toList();
-    Sort mappedSort = appendIdTieBreaker(mappedOrders);
+    Sort mappedSort = Sort.by(mappedOrders);
 
     // An unpaged request still carries a sort, but exposes no page number/size; building a
     // PageRequest from it would throw. Return an unpaged pageable that keeps the mapped sort so all
@@ -553,29 +589,6 @@ public class ClaimService
     }
 
     return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
-  }
-
-  /**
-   * Appends a deterministic secondary sort by {@code id} so rows sharing the same primary value
-   * keep a stable order across pages. The tie-breaker is omitted when the primary field is one
-   * whose ordering is applied by a {@link ClaimSpecification} {@code ORDER BY} (see {@link
-   * #CUSTOM_ORDERED_ENTITY_PATHS}); those paths are stripped from the {@link Pageable} before the
-   * query runs, so a residual {@code id} order would be the only order left and would silently
-   * replace the specification's ordering.
-   */
-  private Sort appendIdTieBreaker(List<Sort.Order> mappedOrders) {
-    Sort mappedSort = Sort.by(mappedOrders);
-
-    boolean handledByCustomSpecification =
-        mappedOrders.stream()
-            .map(Sort.Order::getProperty)
-            .anyMatch(CUSTOM_ORDERED_ENTITY_PATHS::contains);
-    if (handledByCustomSpecification) {
-      return mappedSort;
-    }
-
-    Sort.Direction primaryDirection = mappedOrders.getFirst().getDirection();
-    return mappedSort.and(Sort.by(primaryDirection, "id"));
   }
 
   private Sort.Order mapOrder(Sort.Order order) {
@@ -620,24 +633,45 @@ public class ClaimService
     return assessmentRepository.save(assessment).getId();
   }
 
-  private Pageable removeCustomSortFromPageable(Pageable pageable, String customProperty) {
+  private boolean hasComputedSort(Pageable pageable) {
+    if (pageable == null || pageable.getSort().isUnsorted()) {
+      return false;
+    }
+    return pageable.getSort().stream()
+        .anyMatch(order -> COMPUTED_SORT_PATHS.contains(order.getProperty()));
+  }
+
+  private Pageable removeComputedSorts(Pageable pageable) {
     if (pageable == null || pageable.getSort().isUnsorted()) {
       return pageable;
     }
 
     List<Sort.Order> remainingOrders =
         pageable.getSort().stream()
-            .filter(order -> !customProperty.equalsIgnoreCase(order.getProperty()))
+            .filter(order -> !COMPUTED_SORT_PATHS.contains(order.getProperty()))
             .toList();
 
     Sort newSort = remainingOrders.isEmpty() ? Sort.unsorted() : Sort.by(remainingOrders);
 
-    // An unpaged pageable has no page number/size to rebuild, so preserve its unpaged nature and
-    // only re-apply the (possibly emptied) sort.
     if (pageable.isUnpaged()) {
       return newSort.isSorted() ? Pageable.unpaged(newSort) : Pageable.unpaged();
     }
 
-    return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), newSort);
+    return org.springframework.data.domain.PageRequest.of(
+        pageable.getPageNumber(), pageable.getPageSize(), newSort);
+  }
+
+  /**
+   * Appends a deterministic secondary sort by {@code id} (ascending, UUIDv7) so rows never drift
+   * between pages. No-op for unpaged requests.
+   */
+  private Pageable appendIdTieBreak(Pageable pageable) {
+    if (pageable == null) {
+      return null;
+    }
+    Sort sortWithTieBreak = pageable.getSort().and(Sort.by(Sort.Direction.ASC, "id"));
+    return pageable.isUnpaged()
+        ? Pageable.unpaged(sortWithTieBreak)
+        : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sortWithTieBreak);
   }
 }

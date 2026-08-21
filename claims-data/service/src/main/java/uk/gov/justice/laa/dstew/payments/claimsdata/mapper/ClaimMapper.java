@@ -31,7 +31,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     uses = {GlobalStringMapper.class, GlobalDateTimeMapper.class},
-    imports = {com.fasterxml.uuid.Generators.class},
+    imports = {
+      com.fasterxml.uuid.Generators.class,
+      uk.gov.justice.laa.dstew.payments.claimsdata.util.DerivedClaimStatusResolver.class
+    },
     config = AuditFieldsMapper.class)
 public interface ClaimMapper {
 
@@ -48,12 +51,14 @@ public interface ClaimMapper {
    */
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   ClaimResponse toClaimResponse(Claim entity);
 
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
   @Mapping(target = "isYouthCourt", source = "youthCourt")
+  @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
   @Mapping(target = "dateSubmitted", source = "submission.createdOn")
@@ -61,6 +66,13 @@ public interface ClaimMapper {
   @Mapping(target = "officeCode", source = "submission.officeAccountNumber")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "createdByUserId", source = "createdByUserId")
+  // Derived business status - single source of truth is DerivedClaimStatusResolver. This does not
+  // replace the raw "status" field, which is mapped automatically and left unchanged.
+  @Mapping(
+      target = "derivedClaimStatus",
+      expression =
+          "java(DerivedClaimStatusResolver.resolve(entity.getStatus(), "
+              + "entity.isHasAssessment(), entity.isAmended()))")
   // Use the helper method expression to flatten fields from the latest fee's summary
   @Mapping(target = ".", source = "latestCalculatedFee.claimSummaryFee")
   @Mapping(target = ".", source = "client")

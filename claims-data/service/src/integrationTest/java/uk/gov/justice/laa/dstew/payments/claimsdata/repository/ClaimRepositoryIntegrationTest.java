@@ -204,31 +204,40 @@ public class ClaimRepositoryIntegrationTest extends AbstractIntegrationTest {
             Pageable.ofSize(10).withPage(0));
 
     assertThat(result.getTotalElements()).isEqualTo(2);
-    var actualClaim1 = result.getContent().getFirst();
-    var actualClaim2 = result.getContent().get(1);
-    assertThat(actualClaim1)
-        .usingRecursiveComparison()
-        .ignoringFields(
-            IGNORE_FIELD_SUBMISSION,
-            IGNORE_FIELD_CREATED_ON,
-            IGNORE_FIELD_UPDATED_ON,
-            IGNORE_FIELD_CLIENT,
-            IGNORE_FIELD_CLAIM_CASE)
-        .ignoringFields(IGNORE_FIELD_CALCULATED_FEE_DETAIL, IGNORE_FIELD_CLAIM_SUMMARY_FEE)
-        .isEqualTo(claim1);
-    assertThat(actualClaim1)
+    var content = result.getContent();
+
+    // The repository query does not guarantee a stable ordering when no Sort is provided. Make
+    // the test order-agnostic: assert the two expected claims are present, and that they are
+    // identical except for id/lineNumber as intended by the fixture.
+    assertThat(content)
+        .extracting(Claim::getId)
+        .containsExactlyInAnyOrder(claim1.getId(), claim4.getId());
+
+    // The two returned claims should be equal to each other apart from id and lineNumber and the
+    // unrelated fields ignored in previous assertions.
+    assertThat(content.get(0))
         .usingRecursiveComparison()
         .ignoringFields(
             "id",
+            // claim1 and claim4 are intentionally distinct claims that share the search keys
+            // (office/fee/UFN/status). Since line_number is now unique per submission
+            // (uq_claim_submission_line_number), they differ by line number by design.
+            "lineNumber",
             IGNORE_FIELD_SUBMISSION,
             IGNORE_FIELD_CREATED_ON,
             IGNORE_FIELD_UPDATED_ON,
             IGNORE_FIELD_CLIENT,
             IGNORE_FIELD_CLAIM_CASE)
         .ignoringFields(IGNORE_FIELD_CALCULATED_FEE_DETAIL, IGNORE_FIELD_CLAIM_SUMMARY_FEE)
-        .isEqualTo(actualClaim2);
-    assertThat(actualClaim1.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
-    assertThat(actualClaim1.getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
+        .isEqualTo(content.get(1));
+
+    // Both returned claims should have the expected case and schedule references.
+    assertThat(content)
+        .allSatisfy(
+            c -> {
+              assertThat(c.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+              assertThat(c.getScheduleReference()).isEqualTo(SCHEDULE_REFERENCE);
+            });
   }
 
   /**

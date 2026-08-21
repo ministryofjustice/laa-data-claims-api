@@ -10,14 +10,17 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Stream;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -56,9 +59,9 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Internal Server Error");
     assertThat(result.getBody().getDetail())
         .isEqualTo("An unexpected application error has occurred.");
-    assertThat(result.getBody().getType().toString())
-        .isEqualTo("https://claimsdata.payments.laa.justice.gov.uk/errors/runtime");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getType())
+        .hasToString("https://claimsdata.payments.laa.justice.gov.uk/errors/runtime");
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "An unexpected application error has occurred.");
@@ -80,7 +83,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo(expectedStatus.getReasonPhrase());
     assertThat(result.getBody().getDetail()).isEqualTo(exception.getMessage());
     assertThat(result.getBody().getType().toString()).contains(expectedTypeFragment);
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", exception.getMessage());
   }
 
@@ -127,7 +130,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
     assertThat(result.getBody().getDetail()).isEqualTo("Filter submissionId must be a UUID");
     assertThat(result.getBody().getType().toString()).contains("export-validation");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "Filter submissionId must be a UUID");
@@ -153,7 +156,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getStatus()).isEqualTo(BAD_REQUEST.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
     assertThat(result.getBody().getType().toString()).contains("claim-amendment-validation");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
 
     // Verify our custom properties structure
     assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
@@ -243,7 +246,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(expectedMessage);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
     assertStableConflictCodeIsPresent(result);
   }
@@ -317,7 +320,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertStableConflictCodeIsPresent(result);
   }
 
@@ -338,7 +341,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertStableConflictCodeIsPresent(result);
   }
 
@@ -364,6 +367,81 @@ class DataClaimsExceptionHandlerTest {
     // Same stable machine-readable conflict code in the shared 'errors' envelope
     assertStableConflictCodeIsPresent(jpaResult);
     assertStableConflictCodeIsPresent(springResult);
+  }
+
+  @Test
+  @DisplayName("A uq_claim_submission_line_number violation maps to 409 with a user-safe message")
+  void handleDataIntegrityViolation_duplicateLineNumber_returnsConflict() {
+    ConstraintViolationException hibernateCause =
+        new ConstraintViolationException(
+            "duplicate key value violates unique constraint",
+            new SQLException("duplicate key"),
+            "uq_claim_submission_line_number");
+    DataIntegrityViolationException ex =
+        new DataIntegrityViolationException("could not execute statement", hibernateCause);
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDataIntegrityViolationException(ex, mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail())
+        .isEqualTo("A claim with this line number already exists for the submission.");
+    assertThat(result.getBody().getType().toString()).contains("data-integrity-violation");
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
+    assertThat(result.getBody().getProperties())
+        .containsEntry(
+            "message", "A claim with this line number already exists for the submission.");
+  }
+
+  @Test
+  @DisplayName(
+      "A uq_submission_live_office_aol_period violation maps to 409 with a user-safe message")
+  void handleDataIntegrityViolation_duplicateLiveSubmission_returnsConflict() {
+    ConstraintViolationException hibernateCause =
+        new ConstraintViolationException(
+            "duplicate key value violates unique constraint",
+            new SQLException("duplicate key"),
+            "uq_submission_live_office_aol_period");
+    DataIntegrityViolationException ex =
+        new DataIntegrityViolationException("could not execute statement", hibernateCause);
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDataIntegrityViolationException(ex, mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail())
+        .isEqualTo("A live submission already exists for this office, area of law and period.");
+    assertThat(result.getBody().getType().toString()).contains("data-integrity-violation");
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
+    assertThat(result.getBody().getProperties())
+        .containsEntry(
+            "message", "A live submission already exists for this office, area of law and period.");
+  }
+
+  @Test
+  @DisplayName(
+      "A different integrity violation is not mislabelled as a conflict and keeps the 500 behaviour")
+  void handleDataIntegrityViolation_otherConstraint_returnsInternalServerError() {
+    ConstraintViolationException hibernateCause =
+        new ConstraintViolationException(
+            "null value in column violates not-null constraint",
+            new SQLException("not-null"),
+            "some_other_constraint");
+    DataIntegrityViolationException ex =
+        new DataIntegrityViolationException("could not execute statement", hibernateCause);
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDataIntegrityViolationException(ex, mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(INTERNAL_SERVER_ERROR.value());
   }
 
   /**

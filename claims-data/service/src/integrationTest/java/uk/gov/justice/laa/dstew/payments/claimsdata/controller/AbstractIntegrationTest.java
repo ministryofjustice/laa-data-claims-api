@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -308,7 +309,9 @@ public abstract class AbstractIntegrationTest {
             .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
             .status(ClaimStatus.READY_TO_PROCESS)
             .scheduleReference(SCHEDULE_REFERENCE)
-            .lineNumber(1)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            // claim4 shares submission/fee/UFN/status with claim1 but needs a distinct line number.
+            .lineNumber(4)
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
@@ -324,12 +327,13 @@ public abstract class AbstractIntegrationTest {
             .submission(submissionRepository.getReferenceById(SUBMISSION_1_ID))
             .status(ClaimStatus.VALID)
             .scheduleReference(SCHEDULE_REFERENCE)
-            .lineNumber(1)
+            // line_number must be unique within a submission (uq_claim_submission_line_number).
+            .lineNumber(5)
             .caseReferenceNumber(CASE_REFERENCE)
             .feeCode(FEE_CODE)
             .uniqueFileNumber(UNIQUE_FILE_NUMBER)
-            .caseStartDate(LocalDate.of(2025, 6, 1))
-            .caseConcludedDate(LocalDate.of(2025, 6, 10))
+            .caseStartDate(LocalDate.of(2025, Month.JUNE, 1))
+            .caseConcludedDate(LocalDate.of(2025, Month.JUNE, 10))
             .matterTypeCode(MATTER_TYPE_CODE)
             .createdByUserId(USER_ID)
             .createdOn(CREATED_ON_OLDER)
@@ -337,7 +341,9 @@ public abstract class AbstractIntegrationTest {
 
     claimRepository.saveAll(List.of(claim1, claim2, claim3, claim4, claim5));
 
-    var createdDateTime = CREATED_ON.atOffset(ZoneOffset.UTC);
+    // ClaimSummaryFee / CalculatedFeeDetail persist createdOn as Instant (UTC), consistent with the
+    // other amendment-era entities; seed them straight from the Instant constant.
+    var createdDateTime = CREATED_ON;
     claimSummaryFee1 =
         ClaimSummaryFee.builder()
             .id(CLAIM_1_SUMMARY_FEE_ID)
@@ -366,7 +372,7 @@ public abstract class AbstractIntegrationTest {
             .adviceTypeCode("FTF")
             .medicalReportsCount(2)
             .isIrcSurgery(false)
-            .surgeryDate(LocalDate.of(2025, 7, 15))
+            .surgeryDate(LocalDate.of(2025, Month.JULY, 15))
             .surgeryClientsCount(3)
             .surgeryMattersCount(1)
             .cmrhOralCount(1)
@@ -407,7 +413,7 @@ public abstract class AbstractIntegrationTest {
             .adviceTypeCode("REM")
             .medicalReportsCount(1)
             .isIrcSurgery(true)
-            .surgeryDate(LocalDate.of(2025, 7, 20))
+            .surgeryDate(LocalDate.of(2025, Month.JULY, 20))
             .surgeryClientsCount(2)
             .surgeryMattersCount(2)
             .cmrhOralCount(0)
@@ -555,7 +561,7 @@ public abstract class AbstractIntegrationTest {
                 .mentalHealthTribunalReference("AA/1234/56789")
                 .isNrmAdvice(true)
                 .followOnWork("FOLLOW_1")
-                .transferDate(LocalDate.of(2025, 7, 20))
+                .transferDate(LocalDate.of(2025, Month.JULY, 20))
                 .exemptionCriteriaSatisfied("AB123")
                 .exceptionalCaseFundingReference("1234567AB")
                 .isLegacyCase(true)
@@ -577,7 +583,7 @@ public abstract class AbstractIntegrationTest {
                 .mentalHealthTribunalReference("AB12345")
                 .isNrmAdvice(false)
                 .followOnWork("FOLLOW_2")
-                .transferDate(LocalDate.of(2025, 10, 20))
+                .transferDate(LocalDate.of(2025, Month.OCTOBER, 20))
                 .exemptionCriteriaSatisfied("AB123")
                 .exceptionalCaseFundingReference("7654321CD")
                 .isLegacyCase(false)
@@ -774,8 +780,8 @@ public abstract class AbstractIntegrationTest {
                 .feeCode("CRIMEFEE")
                 .caseReferenceNumber("CRIME-CASE-1")
                 .uniqueFileNumber("040225/004")
-                .caseStartDate(LocalDate.of(2025, 2, 1))
-                .caseConcludedDate(LocalDate.of(2025, 2, 10))
+                .caseStartDate(LocalDate.of(2025, Month.FEBRUARY, 1))
+                .caseConcludedDate(LocalDate.of(2025, Month.FEBRUARY, 10))
                 .scheduleReference("CR-SCH-1")
                 .createdByUserId(USER_ID)
                 .createdOn(CREATED_ON)
@@ -815,7 +821,7 @@ public abstract class AbstractIntegrationTest {
                 .isVatApplicable(true)
                 .disbursementsVatAmount(BigDecimal.valueOf(4))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -843,7 +849,7 @@ public abstract class AbstractIntegrationTest {
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(6))
                 .escapeCaseFlag(true)
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -880,8 +886,8 @@ public abstract class AbstractIntegrationTest {
                 .matterTypeCode("MEDA")
                 .feeCode("MEDFEE")
                 .caseReferenceNumber("MED-CASE-001")
-                .caseStartDate(LocalDate.of(2025, 8, 2))
-                .caseConcludedDate(LocalDate.of(2025, 8, 12))
+                .caseStartDate(LocalDate.of(2025, Month.AUGUST, 2))
+                .caseConcludedDate(LocalDate.of(2025, Month.AUGUST, 12))
                 .mediationSessionsCount(4)
                 .mediationTimeMinutes(90)
                 .outreachLocation("OUT")
@@ -939,7 +945,7 @@ public abstract class AbstractIntegrationTest {
                 .netDisbursementAmount(BigDecimal.valueOf(33))
                 .disbursementsVatAmount(BigDecimal.valueOf(7))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
 
     calculatedFeeDetailRepository.saveAll(
@@ -965,7 +971,7 @@ public abstract class AbstractIntegrationTest {
                 .netWaitingCostsAmount(BigDecimal.valueOf(5))
                 .travelAndWaitingCostsAmount(BigDecimal.valueOf(15))
                 .createdByUserId(USER_ID)
-                .createdOn(CREATED_ON.atOffset(ZoneOffset.UTC))
+                .createdOn(CREATED_ON)
                 .build()));
     createAssessmentDataForClaimAndSummaryFeeId(claimId, claimSummaryFeeId, false);
     return submissionId;
@@ -992,5 +998,69 @@ public abstract class AbstractIntegrationTest {
     // Attach it to the logger
     logger.addAppender(listAppender);
     return listAppender;
+  }
+
+  // --- Helper Methods specifically for Submissions Totals testing ---
+
+  protected Submission createIsolatedSubmission() {
+    return createIsolatedSubmission("totals-office");
+  }
+
+  /**
+   * Creates an isolated submission with the given office account number. Tests that persist more
+   * than one live submission for the same area of law and period must pass distinct office values,
+   * otherwise they trip the {@code uq_submission_live_office_aol_period} unique index.
+   */
+  protected Submission createIsolatedSubmission(String officeAccountNumber) {
+    Submission submission =
+        Submission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .officeAccountNumber(officeAccountNumber)
+            .status(SubmissionStatus.CREATED)
+            .submissionPeriod("JAN-2025")
+            .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(Instant.now())
+            .build();
+    return submissionRepository.saveAndFlush(submission);
+  }
+
+  protected Claim createClaimForSubmission(Submission submission, int lineNumber) {
+    Claim claim =
+        Claim.builder()
+            .id(Uuid7.timeBasedUuid())
+            .submission(submission)
+            .status(ClaimStatus.VALID)
+            .feeCode("TEST")
+            .lineNumber(lineNumber)
+            .matterTypeCode("TEST_MATTER")
+            .createdByUserId(USER_ID)
+            .build();
+    claim = claimRepository.saveAndFlush(claim);
+
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .createdByUserId(USER_ID)
+            .build();
+    claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+    return claim;
+  }
+
+  protected void createFeeDetail(
+      Claim claim, BigDecimal amount, OffsetDateTime createdOn, UUID forceId) {
+    UUID idToUse = forceId != null ? forceId : Uuid7.timeBasedUuid();
+    calculatedFeeDetailRepository.saveAndFlush(
+        CalculatedFeeDetail.builder()
+            .id(idToUse)
+            .claim(claim)
+            .claimSummaryFee(claimSummaryFeeRepository.findByClaimId(claim.getId()).orElseThrow())
+            .totalAmount(amount)
+            .createdOn(createdOn.toInstant())
+            .createdByUserId(USER_ID)
+            .build());
   }
 }

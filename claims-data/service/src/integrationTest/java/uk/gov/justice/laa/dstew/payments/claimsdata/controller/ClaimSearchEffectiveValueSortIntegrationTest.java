@@ -10,8 +10,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentBuilder;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,9 +128,9 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
     // Two claims with an identical effective value of 200; created in a known order so the id
     // tie-breaker (ascending) yields a deterministic sequence across single-row pages.
     Claim first = newClaim(1, ClaimStatus.VALID);
-    addCalculatedFee(first, newSummaryFee(first), "200", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(first, newSummaryFee(first), "200", Instant.now());
     Claim second = newClaim(2, ClaimStatus.VALID);
-    addCalculatedFee(second, newSummaryFee(second), "200", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(second, newSummaryFee(second), "200", Instant.now());
 
     List<UUID> firstPage = orderedIds(search("effective_total_value,asc", 0, 1));
     List<UUID> secondPage = orderedIds(search("effective_total_value,asc", 1, 1));
@@ -151,11 +151,11 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
     // (mid on page 0, high on page 1), so the value-based ORDER BY must span pages for this to
     // hold.
     Claim low = newClaim(1, ClaimStatus.VALID);
-    addCalculatedFee(low, newSummaryFee(low), "100", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(low, newSummaryFee(low), "100", Instant.now());
     Claim mid = newClaim(2, ClaimStatus.VALID);
-    addCalculatedFee(mid, newSummaryFee(mid), "200", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(mid, newSummaryFee(mid), "200", Instant.now());
     Claim high = newClaim(3, ClaimStatus.VALID);
-    addCalculatedFee(high, newSummaryFee(high), "300", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(high, newSummaryFee(high), "300", Instant.now());
 
     List<UUID> firstPage = orderedIds(search("effective_total_value,asc", 0, 2));
     List<UUID> secondPage = orderedIds(search("effective_total_value,asc", 1, 2));
@@ -172,12 +172,11 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
   @DisplayName("the effective-value sort composes with a claim status filter")
   void effectiveValueSortComposesWithStatusFilter() throws Exception {
     Claim validHigh = newClaim(1, ClaimStatus.VALID);
-    addCalculatedFee(
-        validHigh, newSummaryFee(validHigh), "400", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(validHigh, newSummaryFee(validHigh), "400", Instant.now());
     Claim validLow = newClaim(2, ClaimStatus.VALID);
-    addCalculatedFee(validLow, newSummaryFee(validLow), "100", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(validLow, newSummaryFee(validLow), "100", Instant.now());
     Claim invalid = newClaim(3, ClaimStatus.INVALID);
-    addCalculatedFee(invalid, newSummaryFee(invalid), "50", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(invalid, newSummaryFee(invalid), "50", Instant.now());
 
     MvcResult mvcResult =
         mockMvc
@@ -206,9 +205,9 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
           + "unpaged pageable")
   void sortWithoutPageDoesNotError() throws Exception {
     Claim high = newClaim(1, ClaimStatus.VALID);
-    addCalculatedFee(high, newSummaryFee(high), "300", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(high, newSummaryFee(high), "300", Instant.now());
     Claim low = newClaim(2, ClaimStatus.VALID);
-    addCalculatedFee(low, newSummaryFee(low), "100", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(low, newSummaryFee(low), "100", Instant.now());
 
     MvcResult mvcResult =
         mockMvc
@@ -256,25 +255,24 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
     // Voided: void assessment records a zero allowed total, so effective value resolves to 0.
     Claim voided = newClaim(1, ClaimStatus.VOID);
     ClaimSummaryFee voidedFee = newSummaryFee(voided);
-    addCalculatedFee(voided, voidedFee, "999", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(voided, voidedFee, "999", Instant.now());
     addAssessment(voided, voidedFee, AssessmentType.VOID, "0");
 
     // Assessed: the latest assessment's allowed total wins over any calculated fee.
     Claim assessed = newClaim(2, ClaimStatus.VALID);
     ClaimSummaryFee assessedFee = newSummaryFee(assessed);
-    addCalculatedFee(assessed, assessedFee, "999", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(assessed, assessedFee, "999", Instant.now());
     addAssessment(assessed, assessedFee, AssessmentType.ESCAPE_CASE_ASSESSMENT, "150");
 
     // Untouched: a single calculated fee, no assessment.
     Claim untouched = newClaim(3, ClaimStatus.VALID);
-    addCalculatedFee(
-        untouched, newSummaryFee(untouched), "300", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(untouched, newSummaryFee(untouched), "300", Instant.now());
 
     // Repriced: two calculated fees; the latest (by created_on) is the effective value.
     Claim repriced = newClaim(4, ClaimStatus.VALID);
     ClaimSummaryFee repricedFee = newSummaryFee(repriced);
-    addCalculatedFee(repriced, repricedFee, "100", OffsetDateTime.now(ZoneOffset.UTC).minusDays(1));
-    addCalculatedFee(repriced, repricedFee, "500", OffsetDateTime.now(ZoneOffset.UTC));
+    addCalculatedFee(repriced, repricedFee, "100", Instant.now().minus(1, ChronoUnit.DAYS));
+    addCalculatedFee(repriced, repricedFee, "500", Instant.now());
 
     // Unpriced: no calculated fee and no assessment, so no effective value.
     Claim unpriced = newClaim(5, ClaimStatus.VALID);
@@ -304,7 +302,7 @@ class ClaimSearchEffectiveValueSortIntegrationTest extends AbstractIntegrationTe
   }
 
   private void addCalculatedFee(
-      Claim claim, ClaimSummaryFee fee, String totalAmount, OffsetDateTime createdOn) {
+      Claim claim, ClaimSummaryFee fee, String totalAmount, Instant createdOn) {
     CalculatedFeeDetail cfd = new CalculatedFeeDetail();
     cfd.setId(Uuid7.timeBasedUuid());
     cfd.setClaim(claim);
