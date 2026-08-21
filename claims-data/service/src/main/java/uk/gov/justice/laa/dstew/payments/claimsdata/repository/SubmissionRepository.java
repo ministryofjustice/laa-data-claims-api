@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,11 +10,35 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /** Repository for managing Submission entities. */
 @Repository
 public interface SubmissionRepository
     extends JpaRepository<Submission, UUID>, JpaSpecificationExecutor<Submission> {
+
+  /**
+   * Returns whether a "live" submission already exists for the given office, area of law and
+   * submission period. Used by the application-level duplicate guard in {@code
+   * SubmissionService.createSubmission}.
+   *
+   * <p>A submission is "live" unless it has been superseded; the {@code statuses} argument is the
+   * set of non-live statuses to exclude (i.e. {@code VALIDATION_FAILED} and {@code REPLACED}),
+   * mirroring the partial DB index {@code uq_submission_live_office_aol_period} so a failed or
+   * replaced submission does not block a fresh attempt for the same combination.
+   *
+   * @param officeAccountNumber the office account number
+   * @param areaOfLaw the area of law
+   * @param submissionPeriod the submission period
+   * @param statuses the non-live statuses to exclude from the match
+   * @return {@code true} if a live submission already exists for that combination
+   */
+  boolean existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+      String officeAccountNumber,
+      AreaOfLaw areaOfLaw,
+      String submissionPeriod,
+      Collection<SubmissionStatus> statuses);
 
   /**
    * Projection for Calculated total amounts grouped by submission.

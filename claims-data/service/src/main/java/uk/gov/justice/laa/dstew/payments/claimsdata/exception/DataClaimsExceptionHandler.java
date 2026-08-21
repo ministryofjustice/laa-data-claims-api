@@ -62,6 +62,18 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
       "A claim with this line number already exists for the submission.";
 
   /**
+   * Name of the database partial unique index enforcing that only one "live" submission may exist
+   * for a given office, area of law and submission period (see Flyway migration {@code V46}). A
+   * violation of this specific constraint is a client conflict (409), not an internal error.
+   */
+  private static final String UNIQUE_LIVE_SUBMISSION_CONSTRAINT =
+      "uq_submission_live_office_aol_period";
+
+  /** User-facing message for a duplicate live submission (no raw SQL/constraint detail leaked). */
+  private static final String DUPLICATE_LIVE_SUBMISSION_MESSAGE =
+      "A live submission already exists for this office, area of law and period.";
+
+  /**
    * Handle {@link SubmissionValidationException} and include the list of validation issues as a
    * structured property inside the RFC 9457 Problem Detail body.
    *
@@ -78,8 +90,9 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     }
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, exception.getMessage(), exception.getClass(), request);
-    if (response.getBody() != null) {
-      response.getBody().setProperty("issues", exception.getIssues());
+    var problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("issues", exception.getIssues());
     }
     return response;
   }
@@ -175,8 +188,9 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
 
-    if (response.getBody() != null) {
-      response.getBody().setProperty("errors", ex.getErrors());
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("errors", ex.getErrors());
     }
 
     return response;
@@ -234,46 +248,55 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   /**
    * Handles database integrity violations. A violation of the {@code
    * uq_claim_submission_line_number} unique constraint (a claim's line number must be unique within
-   * its submission) is a client conflict, so it is mapped to HTTP {@code 409 Conflict}. Any other
-   * integrity violation retains the previous behaviour (a generic {@code 500 Internal Server
-   * Error}), so unrelated constraint failures are not mislabelled as conflicts.
+   * its submission) or the {@code uq_submission_live_office_aol_period} partial unique index (only
+   * one live submission per office/area-of-law/period) is a client conflict, so it is mapped to
+   * HTTP {@code 409 Conflict}. Any other integrity violation retains the previous behaviour (a
+   * generic {@code 500 Internal Server Error}), so unrelated constraint failures are not
+   * mislabelled as conflicts.
    *
    * @param ex the data integrity violation raised at flush/commit
    * @param request the HTTP request
-   * @return a 409 Problem Detail for a duplicate claim line number, otherwise a 500 response
+   * @return a 409 Problem Detail for a recognised duplicate, otherwise a 500 response
    */
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ProblemDetail> handleDataIntegrityViolationException(
       DataIntegrityViolationException ex, HttpServletRequest request) {
 
-    if (isDuplicateClaimLineNumberViolation(ex)) {
+    if (violatesConstraint(ex, UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT)) {
       log.warn("Duplicate claim line number within a submission:", ex.getMostSpecificCause());
       return buildProblemDetailResponse(
           HttpStatus.CONFLICT, DUPLICATE_CLAIM_LINE_NUMBER_MESSAGE, ex.getClass(), request);
+    }
+
+    if (violatesConstraint(ex, UNIQUE_LIVE_SUBMISSION_CONSTRAINT)) {
+      log.warn(
+          "Duplicate live submission for office/area-of-law/period:", ex.getMostSpecificCause());
+      return buildProblemDetailResponse(
+          HttpStatus.CONFLICT, DUPLICATE_LIVE_SUBMISSION_MESSAGE, ex.getClass(), request);
     }
 
     return handleGenericException(ex, request);
   }
 
   /**
-   * Determines whether the given integrity violation was caused by the {@code
-   * uq_claim_submission_line_number} unique constraint. Prefers Hibernate's parsed constraint name
-   * and falls back to matching the constraint name in the underlying message for robustness across
-   * driver/Hibernate versions.
+   * Determines whether the given integrity violation was caused by the named unique constraint.
+   * Prefers Hibernate's parsed constraint name and falls back to matching the constraint name in
+   * the underlying message for robustness across driver/Hibernate versions.
    *
    * @param ex the data integrity violation
-   * @return {@code true} if this is a duplicate claim line-number violation
+   * @param constraintName the database constraint/index name to match
+   * @return {@code true} if the violation was caused by that constraint
    */
-  private boolean isDuplicateClaimLineNumberViolation(DataIntegrityViolationException ex) {
+  private boolean violatesConstraint(DataIntegrityViolationException ex, String constraintName) {
     if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException hce
-        && UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT.equalsIgnoreCase(hce.getConstraintName())) {
+        && constraintName.equalsIgnoreCase(hce.getConstraintName())) {
       return true;
     }
     // getMostSpecificCause() never returns null (it returns the exception itself when there is no
     // cause), so we only need to guard against a null message.
     String message = ex.getMostSpecificCause().getMessage();
     return message != null
-        && message.toLowerCase(Locale.ROOT).contains(UNIQUE_CLAIM_LINE_NUMBER_CONSTRAINT);
+        && message.toLowerCase(Locale.ROOT).contains(constraintName.toLowerCase(Locale.ROOT));
   }
 
   /**
@@ -299,10 +322,10 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
             CLAIM_VERSION_CONFLICT.getMessageTemplate(),
             exceptionClass,
             request);
-    if (response.getBody() != null) {
-      response
-          .getBody()
-          .setProperty("errors", List.of(ClaimAmendmentValidationError.of(CLAIM_VERSION_CONFLICT)));
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty(
+          "errors", List.of(ClaimAmendmentValidationError.of(CLAIM_VERSION_CONFLICT)));
     }
     return response;
   }
