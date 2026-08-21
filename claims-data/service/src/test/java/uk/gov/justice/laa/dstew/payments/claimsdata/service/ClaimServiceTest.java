@@ -45,6 +45,7 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -586,8 +587,10 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
-  @Test
-  void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
+  @ParameterizedTest
+  @EnumSource(ClaimStatus.class)
+  void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet(
+      ClaimStatus claimStatus) {
     Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(new Claim()));
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
@@ -605,7 +608,7 @@ class ClaimServiceTest {
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
-            List.of(ClaimStatus.READY_TO_PROCESS),
+            List.of(claimStatus),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));
@@ -614,8 +617,10 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).hasSize(1);
   }
 
-  @Test
-  void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
+  @ParameterizedTest
+  @EnumSource(ClaimStatus.class)
+  void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet(
+      ClaimStatus claimStatus) {
     Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
@@ -632,7 +637,7 @@ class ClaimServiceTest {
             UNIQUE_FILE_NUMBER,
             UNIQUE_CLIENT_NUMBER,
             UNIQUE_CASE_ID,
-            List.of(ClaimStatus.READY_TO_PROCESS),
+            List.of(claimStatus),
             SUBMISSION_PERIOD,
             CASE_REFERENCE,
             Pageable.ofSize(10).withPage(0));

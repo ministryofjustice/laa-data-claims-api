@@ -59,9 +59,9 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Internal Server Error");
     assertThat(result.getBody().getDetail())
         .isEqualTo("An unexpected application error has occurred.");
-    assertThat(result.getBody().getType().toString())
-        .isEqualTo("https://claimsdata.payments.laa.justice.gov.uk/errors/runtime");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getType())
+        .hasToString("https://claimsdata.payments.laa.justice.gov.uk/errors/runtime");
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "An unexpected application error has occurred.");
@@ -83,7 +83,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo(expectedStatus.getReasonPhrase());
     assertThat(result.getBody().getDetail()).isEqualTo(exception.getMessage());
     assertThat(result.getBody().getType().toString()).contains(expectedTypeFragment);
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", exception.getMessage());
   }
 
@@ -130,7 +130,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
     assertThat(result.getBody().getDetail()).isEqualTo("Filter submissionId must be a UUID");
     assertThat(result.getBody().getType().toString()).contains("export-validation");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     // Verify backward compatibility property
     assertThat(result.getBody().getProperties())
         .containsEntry("message", "Filter submissionId must be a UUID");
@@ -158,7 +158,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getStatus()).isEqualTo(BAD_REQUEST.value());
     assertThat(result.getBody().getTitle()).isEqualTo("Bad Request");
     assertThat(result.getBody().getType().toString()).contains("claim-amendment-validation");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
 
     // Verify our custom properties structure
     assertThat(result.getBody().getProperties()).containsEntry("errors", ex.getErrors());
@@ -251,7 +251,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(expectedMessage);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties()).containsEntry("message", expectedMessage);
     assertStableConflictCodeIsPresent(result);
   }
@@ -325,7 +325,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertStableConflictCodeIsPresent(result);
   }
 
@@ -346,7 +346,7 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
     assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
     assertThat(result.getBody().getType().toString()).contains("optimistic-lock");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertStableConflictCodeIsPresent(result);
   }
 
@@ -395,10 +395,38 @@ class DataClaimsExceptionHandlerTest {
     assertThat(result.getBody().getDetail())
         .isEqualTo("A claim with this line number already exists for the submission.");
     assertThat(result.getBody().getType().toString()).contains("data-integrity-violation");
-    assertThat(result.getBody().getInstance().toString()).isEqualTo(TEST_REQUEST_URI);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
     assertThat(result.getBody().getProperties())
         .containsEntry(
             "message", "A claim with this line number already exists for the submission.");
+  }
+
+  @Test
+  @DisplayName(
+      "A uq_submission_live_office_aol_period violation maps to 409 with a user-safe message")
+  void handleDataIntegrityViolation_duplicateLiveSubmission_returnsConflict() {
+    ConstraintViolationException hibernateCause =
+        new ConstraintViolationException(
+            "duplicate key value violates unique constraint",
+            new SQLException("duplicate key"),
+            "uq_submission_live_office_aol_period");
+    DataIntegrityViolationException ex =
+        new DataIntegrityViolationException("could not execute statement", hibernateCause);
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleDataIntegrityViolationException(ex, mockRequest);
+
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail())
+        .isEqualTo("A live submission already exists for this office, area of law and period.");
+    assertThat(result.getBody().getType().toString()).contains("data-integrity-violation");
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
+    assertThat(result.getBody().getProperties())
+        .containsEntry(
+            "message", "A live submission already exists for this office, area of law and period.");
   }
 
   @Test

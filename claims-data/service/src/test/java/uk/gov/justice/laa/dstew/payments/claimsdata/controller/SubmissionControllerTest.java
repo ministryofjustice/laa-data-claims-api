@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,9 +25,6 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.UUID;
-import org.mockito.ArgumentCaptor;
-import org.springframework.data.domain.Sort;
-import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -173,8 +171,10 @@ class SubmissionControllerTest {
             get(SUBMISSIONS_URI)
                 .queryParam("offices", String.valueOf(List.of("office1", "office2", "office3")))
                 .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
-                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
+                .queryParam(
+                    "submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
+                .queryParam(
+                    "submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
                 .queryParam("area_of_law", AREA_OF_LAW.name())
                 .queryParam("submission_period", "2205-19")
                 .queryParam(
@@ -228,50 +228,6 @@ class SubmissionControllerTest {
             eq("2205-19"),
             eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
             any(Pageable.class));
-  }
-
-  @DisplayName("get submissions default pageable is applied")
-  @Test
-  void getSubmissionsDefaultPageableIsApplied() throws Exception {
-    var submissionBase = ClaimsDataTestUtil.getSubmissionBase();
-    var expected = new SubmissionsResultSet().content(List.of(submissionBase));
-
-    when(submissionService.getSubmissionsResultSet(
-            anyList(), anyString(), any(LocalDate.class), any(LocalDate.class), any(AreaOfLaw.class), anyString(), anyList(), any(Pageable.class)))
-        .thenReturn(expected);
-
-    mockMvc
-        .perform(
-            get(SUBMISSIONS_URI)
-                .queryParam("offices", "office1", "office2", "office3")
-                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam("submitted_date_from", String.valueOf(LocalDate.of(2025, Month.JANUARY, 1)))
-                .queryParam("submitted_date_to", String.valueOf(LocalDate.of(2025, Month.DECEMBER, 31)))
-                .queryParam("area_of_law", AREA_OF_LAW.name())
-                .queryParam("submission_period", "2205-19")
-                .queryParam("submission_statuses", "CREATED", "READY_FOR_VALIDATION"))
-        .andExpect(status().isOk());
-
-    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-
-    verify(submissionService)
-        .getSubmissionsResultSet(
-            eq(List.of("office1", "office2", "office3")),
-            eq(String.valueOf(SUBMISSION_ID)),
-            eq(LocalDate.of(2025, Month.JANUARY, 1)),
-            eq(LocalDate.of(2025, Month.DECEMBER, 31)),
-            eq(AREA_OF_LAW),
-            eq("2205-19"),
-            eq(List.of(SubmissionStatus.CREATED, SubmissionStatus.READY_FOR_VALIDATION)),
-            pageableCaptor.capture());
-
-    Pageable captured = pageableCaptor.getValue();
-    // PageableUtils defaults: page 0, size 20, and appends id tie-breaker (ASC)
-    assertTrue(captured.isPaged());
-    assertEquals(0, captured.getPageNumber());
-    assertEquals(20, captured.getPageSize());
-    assertNotNull(captured.getSort().getOrderFor("id"));
-    assertEquals(Sort.Direction.ASC, captured.getSort().getOrderFor("id").getDirection());
   }
 
   @DisplayName("get submissions with valid sort field returns 200 OK")

@@ -102,18 +102,14 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
 
   // ---------------------------------------------------------------------------
   // Background — no-op locally.
+  //
+  // NOTE: the {@code Given("the amendments feature flag is enabled")} step is owned by
+  // {@link AmendmentsFeatureFlagSteps} (DSTEW-1905) which sets the runtime flag on
+  // {@link uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties}.
+  // For the read-side {@code /history} endpoint exercised in this class the flag is
+  // irrelevant, so we intentionally reuse that shared step (setting the flag to true
+  // is a safe no-op here).
   // ---------------------------------------------------------------------------
-
-  @Given("the amendments feature flag is enabled")
-  public void theAmendmentsFeatureFlagIsEnabled() {
-    step(
-        "no-op — the delivered `/history` endpoint is read-side and does not gate on the "
-            + "amendments feature flag",
-        () -> {
-          // The write-side amendment endpoint gates on the flag; the read endpoint we exercise
-          // here has no such gate. Documented so the reader understands the assumption.
-        });
-  }
 
   // ---------------------------------------------------------------------------
   // Givens.

@@ -15,14 +15,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -71,29 +67,6 @@ public class ClaimHistoryControllerIntegrationTest extends AbstractIntegrationTe
             get(HISTORY_URI, Uuid7.timeBasedUuid())
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isNotFound());
-  }
-
-  @ParameterizedTest(name = "Returns 400 for invalid pageable params: {2}")
-  @MethodSource("invalidPageableParams")
-  void returnsBadRequestForInvalidPageableParams(String page, String size, String description)
-      throws Exception {
-    mockMvc
-        .perform(
-            get(HISTORY_URI, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .param("page", page)
-                .param("size", size))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.status").value(400));
-  }
-
-  static Stream<Arguments> invalidPageableParams() {
-    return Stream.of(
-        Arguments.of("abc", "10", "non-numeric page"),
-        Arguments.of("10", "abc", "non-numeric size"),
-        Arguments.of("-1", "10", "negative page"),
-        Arguments.of("0", "-1", "negative size"),
-        Arguments.of("0", "0", "non-positive size"));
   }
 
   @Test

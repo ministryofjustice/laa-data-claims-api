@@ -102,7 +102,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("GET submission/claims - returns 404 when submission and claim IDs do not exist")
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - returns 404 when submission and claim IDs do not exist")
   void shouldReturnNotFoundWhenSubmissionIdAndClaimIdDoNotExist() throws Exception {
     mockMvc
         .perform(
@@ -112,7 +113,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("GET submission/claims - returns claim when submission and claim exist")
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - returns claim when submission and claim exist")
   void shouldReturnAClaimWhenASubmissionAndClaimExists() throws Exception {
     // given: required claims exist in the database
 
@@ -148,7 +150,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("GET submission/claims - unauthorized when invalid auth token supplied")
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - unauthorized when invalid auth token supplied")
   void shouldReturnUnauthorizedWhenAnInvalidAuthTokenIsSupplied() throws Exception {
     mockMvc
         .perform(
@@ -159,7 +162,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(AreaOfLaw.class)
-  @DisplayName("POST submissions/{id}/claims - saves a claim to the database for each area of law")
+  @DisplayName(
+      "POST v1/submissions/{id}/claims - saves a claim to the database for each area of law")
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(areaOfLaw);
@@ -196,7 +200,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "POST submissions/{id}/claims - returns 409 when the line number already exists in the "
+      "POST v1/submissions/{id}/claims - returns 409 when the line number already exists in the "
           + "submission")
   void shouldReturnConflictWhenClaimLineNumberIsDuplicatedInSubmission() throws Exception {
     // given: a submission with a claim already persisted (getClaimPost uses lineNumber 123)
@@ -233,7 +237,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "POST submissions/{id}/claims - logs warning for suspicious SQL-like patterns but creates claim")
+      "POST v1/submissions/{id}/claims - logs warning for suspicious SQL-like patterns but creates claim")
   void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
@@ -275,7 +279,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST submissions/{id}/claims - 400 Bad Request for incorrect body")
+  @DisplayName("POST v1/submissions/{id}/claims - 400 Bad Request for incorrect body")
   void shouldReturnBadRequestWhenPostIsCalledWithIncorrectBody() throws Exception {
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
@@ -288,7 +292,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST submissions/{id}/claims - 401 Unauthorized for invalid token")
+  @DisplayName("POST v1/submissions/{id}/claims - 401 Unauthorized for invalid token")
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
     final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
     // when: calling the POST endpoint with an invalid token, 401 should be returned
@@ -302,7 +306,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH submissions/{id}/claims/{id} - updates an existing claim")
+  @DisplayName("PATCH v1/submissions/{submissionId}/claims/{claimId} - updates an existing claim")
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
 
@@ -331,7 +335,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH submissions/{id}/claims/{id} - 400 when attempting invalid void update")
+  @DisplayName(
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - 400 when attempting invalid void update")
   void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
     claimsApiProperties.getAmendments().setEnabled("false");
     // given: required claims exist in the database
@@ -358,7 +363,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "PATCH submissions/{id}/claims/{id} - detects SQL-like patterns in patch and logs warning")
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - detects SQL-like patterns in patch and logs warning")
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
     // given: required claims exist in the database
 
@@ -404,7 +409,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH submissions/{id}/claims/{id} - 404 when submission or claim not found")
+  @DisplayName(
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - 404 when submission or claim not found")
   void shouldReturnNotFoundWhenSubmissionOrClaimAreNotFound() throws Exception {
     // given: required claims exist in the database
 
@@ -423,7 +429,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("PATCH submissions/{id}/claims/{id} - 400 for incorrect request body")
+  @DisplayName(
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - 400 for incorrect request body")
   void shouldReturnBadRequestWhenAnIncorrectBodyIsSupplied() throws Exception {
     // given: required claims exist in the database
 
@@ -438,418 +445,408 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .andExpect(status().isBadRequest());
   }
 
-  @Test
-  @DisplayName("GET /claims - returns all claims for the given office code")
-  void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
-    // given: required claims exist in the database
+  @Nested
+  @DisplayName("V1 Claim Endpoint")
+  class V1ClaimTests {
 
-    // when: calling the GET endpoint to retrieve all claims for an office_code
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
+    @Test
+    @DisplayName("GET v1/claims - returns all claims for the given office code")
+    void shouldReturnAllClaimsForAGivenOfficeCode() throws Exception {
+      // given: required claims exist in the database
 
-    // then: response body contains the expected number of claims
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
-    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
-    assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
-        .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(),
-            CLAIM_2_ID.toString(),
-            CLAIM_4_ID.toString(),
-            CLAIM_5_ID.toString());
-  }
+      // when: calling the GET endpoint to retrieve all claims for an office_code
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
 
-  @Test
-  @DisplayName("GET /claims - returns claims for office code and unique file reference")
-  void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
-    // given: required claims exist in the database
-    var amendedClaim =
-        claimRepository
-            .findById(CLAIM_2_ID)
-            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
-    amendedClaim.setHasAssessment(true);
-    amendedClaim.setAmended(true);
-    claimRepository.saveAndFlush(amendedClaim);
+      // then: response body contains the expected number of claims
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+      assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
+      assertThat(claimResultSet.getContent().stream().map(ClaimResponse::getId))
+          .containsExactlyInAnyOrder(
+              CLAIM_1_ID.toString(),
+              CLAIM_2_ID.toString(),
+              CLAIM_4_ID.toString(),
+              CLAIM_5_ID.toString());
+    }
 
-    // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
-    // number
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                    .param("unique_file_number", "020125/002")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
+    @Test
+    @DisplayName("GET v1/claims - returns claims for office code and unique file reference")
+    void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReference() throws Exception {
+      // given: required claims exist in the database
+      var amendedClaim =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+      amendedClaim.setHasAssessment(true);
+      amendedClaim.setAmended(true);
+      claimRepository.saveAndFlush(amendedClaim);
 
-    // then: response body contains the expected number of claims
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
-    assertThat(claimResultSet.getContent()).hasSize(1);
-    var claimResponse = claimResultSet.getContent().getFirst();
-    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
-    assertThat(claimResponse.getHasAssessment()).isTrue();
-    assertThat(claimResponse.getIsAmended()).isTrue();
-  }
+      // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
+      // number
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                      .param("unique_file_number", "020125/002")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
 
-  @Test
-  @DisplayName("GET /claims - bad request for unknown parameters")
-  void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
-    // given: required claims exist in the database
-
-    // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
-    // be returned.
-    mockMvc
-        .perform(
-            get(GET_CLAIMS_ENDPOINT)
-                .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
-                .param("unknown-parameter", "UFN-002")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("GET /claims - returns empty when office code does not match")
-  void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
-    // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
-
-    // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", "OFFICE-CODE-002")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    // then: response body contains no claims.
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("GET /claims - bad request when office code is not supplied")
-  void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied() throws Exception {
-    mockMvc
-        .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - returns all claims for the given office code (v2)")
-  void shouldReturnAllClaimsForAGivenOfficeCodeV2() throws Exception {
-    // given: required claims exist in the database
-
-    // when: calling the GET endpoint to retrieve all claims for an office_code
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    // then: response body contains the expected number of claims
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
-    assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
-    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
-        .containsExactlyInAnyOrder(
-            CLAIM_1_ID.toString(),
-            CLAIM_2_ID.toString(),
-            CLAIM_4_ID.toString(),
-            CLAIM_5_ID.toString());
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - returns claims for office code and unique file reference (v2)")
-  void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
-    // given: required claims exist in the database
-    var amendedClaim =
-        claimRepository
-            .findById(CLAIM_2_ID)
-            .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
-    amendedClaim.setHasAssessment(false);
-    amendedClaim.setAmended(true);
-    claimRepository.saveAndFlush(amendedClaim);
-
-    // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
-    // number
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                    .param("unique_file_number", "020125/002")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    // then: response body contains the expected number of claims
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
-    assertThat(claimResultSet.getContent()).hasSize(1);
-    var claimResponse = claimResultSet.getContent().getFirst();
-    assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
-    assertThat(claimResponse.getHasAssessment()).isFalse();
-    assertThat(claimResponse.getIsAmended()).isTrue();
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - bad request for unknown parameters (v2)")
-  void shouldReturnBadRequestWhenUnknownParametersAreSuppliedV2() throws Exception {
-    // given: required claims exist in the database
-
-    // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
-    // be returned.
-    mockMvc
-        .perform(
-            get(GET_CLAIMS_ENDPOINT_V2)
-                .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
-                .param("unknown-parameter", "UFN-002")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - returns empty when office code does not match (v2)")
-  void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatchV2() throws Exception {
-    // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
-
-    // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", "OFFICE-CODE-002")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    // then: response body contains no claims.
-    String responseBody = result.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - bad request when office code not supplied (v2)")
-  void shouldReturnBadRequestWhenOfficeCodeIsNotSuppliedV2() throws Exception {
-    mockMvc
-        .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isBadRequest());
-  }
-
-  /*
-   * Additional tests covering /api/v2/claims case_reference_number matching behavior
-   */
-
-  @ParameterizedTest
-  @CsvSource(
-      value = {
-        // existingClaimCrn, searchFilter, expectedFound
-        "ABC-1234,ABC,true",
-        "RAC ATE2/1,ATE2/1,true",
-        "RAC ATE2/1,ate2/1,true",
-        "RAC ATE2/1,RAC ATE2/1,true",
-        "RAC ATE2/1,ATE2,true",
-        "RAC ATE2/1,  ,true",
-        "RAC ATE2/1,ATE3,false",
-        "RAC ATE2/1,2/1,true"
-      })
-  @DisplayName(
-      "GET /api/v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
-  void shouldMatchCaseReferenceVariantsV2(
-      String existingCrn, String searchFilter, boolean expectedFound) throws Exception {
-
-    UUID newClaimId = createAndValidateClaimWithCRN(existingCrn);
-
-    // when: calling the v2 claims endpoint with the case_reference_number filter
-    MvcResult getResult =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", searchFilter)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    String resultBody = getResult.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
-
-    if (expectedFound) {
+      // then: response body contains the expected number of claims
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
       assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
-      assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
-    } else {
+      assertThat(claimResultSet.getContent()).hasSize(1);
+      var claimResponse = claimResultSet.getContent().getFirst();
+      assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+      assertThat(claimResponse.getHasAssessment()).isTrue();
+      assertThat(claimResponse.getIsAmended()).isTrue();
+    }
+
+    @Test
+    @DisplayName("GET v1/claims - bad request for unknown parameters")
+    void shouldReturnBadRequestWhenUnknownParametersAreSupplied() throws Exception {
+      // given: required claims exist in the database
+
+      // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
+      // be returned.
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT)
+                  .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
+                  .param("unknown-parameter", "UFN-002")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET v1/claims - returns empty when office code does not match")
+    void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatch() throws Exception {
+      // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
+
+      // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT)
+                      .param("office_code", "OFFICE-CODE-002")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      // then: response body contains no claims.
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
       assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
     }
-  }
 
-  @Test
-  @DisplayName("GET /api/v2/claims - rejects short case_reference_number (min length)")
-  void shouldRejectShortCaseReferenceFiltersV2() throws Exception {
-    // when: calling v2 with a short (trimmed length < 3) case_reference_number
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", "AB")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-    // then: user is informed that at least 3 characters are required
-    String responseBody = result.getResponse().getContentAsString();
-    assertThat(responseBody).containsIgnoringCase("at least 3");
-  }
-
-  @Test
-  @DisplayName("GET /api/v2/claims - returns no results when no CRN matches")
-  void shouldReturnNoResultsWhenNoCrnMatchesV2() throws Exception {
-
-    // when: searching for a non-matching value
-    MvcResult getResult =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", "NOPE-123")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    String resultBody = getResult.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("GET /claims (v1) - exact match behaviour remains unchanged")
-  void shouldNotChangeV1ExactMatchBehaviour() throws Exception {
-
-    UUID newClaimId = createAndValidateClaimWithCRN("V1-EXACT-1");
-
-    // when: calling v1 with the exact CRN
-    MvcResult getResult =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", "V1-EXACT-1")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    String resultBody = getResult.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSet.class);
-    assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
-    assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
-  }
-
-  @Test
-  @DisplayName(
-      "GET /api/v2/claims - pagination and other filters unaffected by case_reference filter")
-  void paginationAndOtherFiltersUnaffectedWhenUsingCaseReferenceV2() throws Exception {
-
-    UUID newClaimId = createAndValidateClaimWithCRN("PAG-123");
-
-    // when: calling v2 with case_reference_number and pagination/sorting params
-    MvcResult getResult =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", "PAG")
-                    .param("page", "0")
-                    .param("size", "10")
-                    .param("sort", "submission_period,asc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    String resultBody = getResult.getResponse().getContentAsString();
-    var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
-    assertThat(claimResultSet.getTotalElements()).isGreaterThanOrEqualTo(1);
-    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
-        .contains(newClaimId.toString());
-  }
-
-  @ParameterizedTest
-  @DisplayName("GET /api/v2/claims - rejects various invalid case_reference_number inputs (400)")
-  @CsvSource({
-    "ABC%123,INVALID",
-    "ABC_123,INVALID",
-    "ABC!123,INVALID",
-    "1234567890123456789012345678901,TOO_LONG"
-  })
-  void shouldRejectInvalidCaseReferenceNumberInV2Search(String input, String expectedType)
-      throws Exception {
-
-    // when: calling the v2 claims endpoint with an invalid case_reference_number
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                    .param("case_reference_number", input)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-    // then: response should contain the correct validation message constant
-    String responseBody = result.getResponse().getContentAsString();
-
-    String expectedMessage;
-    switch (expectedType) {
-      case "TOO_LONG":
-        expectedMessage =
-            String.format(
-                ClaimSearchRequestValidator.CASE_REFERENCE_TOO_LONG,
-                ClaimSearchRequestValidator.MAX_CASE_REFERENCE_LENGTH);
-        break;
-      case "INVALID":
-      default:
-        expectedMessage = ClaimSearchRequestValidator.CASE_REFERENCE_INVALID;
-        break;
+    @Test
+    @DisplayName("GET v1/claims - bad request when office code is not supplied")
+    void shouldReturnBadRequestWhenOfficeCodeIsNotSupplied() throws Exception {
+      mockMvc
+          .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
     }
 
-    assertThat(responseBody).contains(expectedMessage);
+    @Test
+    @DisplayName("GET v1/claims - exact match behaviour remains unchanged")
+    void shouldNotChangeV1ExactMatchBehaviour() throws Exception {
+
+      UUID newClaimId = createAndValidateClaimWithCRN("V1-EXACT-1");
+
+      // when: calling v1 with the exact CRN
+      MvcResult getResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", "V1-EXACT-1")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      String resultBody = getResult.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSet.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+      assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
+    }
   }
 
-  private UUID createAndValidateClaimWithCRN(String crn) throws Exception {
+  @Nested
+  @DisplayName("V2 Claim Endpoint")
+  class V2ClaimTests {
 
-    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    @Test
+    @DisplayName("GET v2/claims - returns all claims for the given office code")
+    void shouldReturnAllClaimsForAGivenOfficeCodeV2() throws Exception {
+      // given: required claims exist in the database
 
-    MvcResult postResult =
-        mockMvc
-            .perform(
-                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
-                    .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(crn)))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isCreated())
-            .andReturn();
+      // when: calling the GET endpoint to retrieve all claims for an office_code
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
 
-    String createdBody = postResult.getResponse().getContentAsString();
-    var created = OBJECT_MAPPER.readValue(createdBody, CreateClaim201Response.class);
+      // then: response body contains the expected number of claims
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(NO_CLAIMS_IN_SUBMISSION1);
+      assertThat(claimResultSet.getContent()).hasSize(NO_CLAIMS_IN_SUBMISSION1);
+      assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+          .containsExactlyInAnyOrder(
+              CLAIM_1_ID.toString(),
+              CLAIM_2_ID.toString(),
+              CLAIM_4_ID.toString(),
+              CLAIM_5_ID.toString());
+    }
 
-    return created.getId();
+    @Test
+    @DisplayName("GET v2/claims - returns claims for office code and unique file reference")
+    void shouldReturnAllClaimsForAGivenOfficeCodeAndUniqueFileReferenceV2() throws Exception {
+      // given: required claims exist in the database
+      var amendedClaim =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found for fixture setup"));
+      amendedClaim.setHasAssessment(false);
+      amendedClaim.setAmended(true);
+      claimRepository.saveAndFlush(amendedClaim);
+
+      // when: calling the GET endpoint to retrieve all claims for an office_code and a unique file
+      // number
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                      .param("unique_file_number", "020125/002")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      // then: response body contains the expected number of claims
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSetV2.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+      assertThat(claimResultSet.getContent()).hasSize(1);
+      var claimResponse = claimResultSet.getContent().getFirst();
+      assertThat(claimResponse.getId()).isEqualTo(CLAIM_2_ID.toString());
+      assertThat(claimResponse.getHasAssessment()).isFalse();
+      assertThat(claimResponse.getIsAmended()).isTrue();
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - bad request for unknown parameters")
+    void shouldReturnBadRequestWhenUnknownParametersAreSuppliedV2() throws Exception {
+      // given: required claims exist in the database
+
+      // when: calling the GET endpoint to retrieve all claims with an unknown parameter, 400 should
+      // be returned.
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT_V2)
+                  .param("office_code_unknown", OFFICE_ACCOUNT_NUMBER)
+                  .param("unknown-parameter", "UFN-002")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - returns empty when office code does not match")
+    void shouldReturnEmptyClaimsWhenOfficeCodeDoesNotMatchV2() throws Exception {
+      // given: required claims exist in the database with OFFICE_ACCOUNT_NUMBER code
+
+      // when: calling the GET endpoint to retrieve all claims with an unexisting office_code
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", "OFFICE-CODE-002")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      // then: response body contains no claims.
+      String responseBody = result.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(responseBody, ClaimResultSet.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - bad request when office code not supplied")
+    void shouldReturnBadRequestWhenOfficeCodeIsNotSuppliedV2() throws Exception {
+      mockMvc
+          .perform(get(GET_CLAIMS_ENDPOINT_V2).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+    }
+
+    /*
+     * Additional tests covering /api/v2/claims case_reference_number matching behavior
+     */
+
+    @ParameterizedTest
+    @CsvSource(
+        value = {
+          // existingClaimCrn, searchFilter, expectedFound
+          "ABC-1234,ABC,true",
+          "RAC ATE2/1,ATE2/1,true",
+          "RAC ATE2/1,ate2/1,true",
+          "RAC ATE2/1,RAC ATE2/1,true",
+          "RAC ATE2/1,ATE2,true",
+          "RAC ATE2/1,  ,true",
+          "RAC ATE2/1,ATE3,false",
+          "RAC ATE2/1,2/1,true"
+        })
+    @DisplayName(
+        "GET /api/v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
+    void shouldMatchCaseReferenceVariantsV2(
+        String existingCrn, String searchFilter, boolean expectedFound) throws Exception {
+
+      UUID newClaimId = createAndValidateClaimWithCRN(existingCrn);
+
+      // when: calling the v2 claims endpoint with the case_reference_number filter
+      MvcResult getResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", searchFilter)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      String resultBody = getResult.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+
+      if (expectedFound) {
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(1);
+        assertThat(claimResultSet.getContent().getFirst().getId()).isEqualTo(newClaimId.toString());
+      } else {
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+      }
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - rejects short case_reference_number (min length)")
+    void shouldRejectShortCaseReferenceFiltersV2() throws Exception {
+      // when: calling v2 with a short (trimmed length < 3) case_reference_number
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", "AB")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      // then: user is informed that at least 3 characters are required
+      String responseBody = result.getResponse().getContentAsString();
+      assertThat(responseBody).containsIgnoringCase("at least 3");
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - returns no results when no CRN matches")
+    void shouldReturnNoResultsWhenNoCrnMatchesV2() throws Exception {
+
+      // when: searching for a non-matching value
+      MvcResult getResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", "NOPE-123")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      String resultBody = getResult.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+      assertThat(claimResultSet.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName(
+        "GET /api/v2/claims - pagination and other filters unaffected by case_reference filter")
+    void paginationAndOtherFiltersUnaffectedWhenUsingCaseReferenceV2() throws Exception {
+
+      UUID newClaimId = createAndValidateClaimWithCRN("PAG-123");
+
+      // when: calling v2 with case_reference_number and pagination/sorting params
+      MvcResult getResult =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", "PAG")
+                      .param("page", "0")
+                      .param("size", "10")
+                      .param("sort", "submission_period,asc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      String resultBody = getResult.getResponse().getContentAsString();
+      var claimResultSet = OBJECT_MAPPER.readValue(resultBody, ClaimResultSetV2.class);
+      assertThat(claimResultSet.getTotalElements()).isGreaterThanOrEqualTo(1);
+      assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+          .contains(newClaimId.toString());
+    }
+
+    @ParameterizedTest
+    @DisplayName("GET v2/claims - rejects various invalid case_reference_number inputs (400)")
+    @CsvSource({
+      "ABC%123,INVALID",
+      "ABC_123,INVALID",
+      "ABC!123,INVALID",
+      "1234567890123456789012345678901,TOO_LONG"
+    })
+    void shouldRejectInvalidCaseReferenceNumberInV2Search(String input, String expectedType)
+        throws Exception {
+
+      // when: calling the v2 claims endpoint with an invalid case_reference_number
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                      .param("case_reference_number", input)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      // then: response should contain the correct validation message constant
+      String responseBody = result.getResponse().getContentAsString();
+
+      String expectedMessage;
+      switch (expectedType) {
+        case "TOO_LONG":
+          expectedMessage =
+              String.format(
+                  ClaimSearchRequestValidator.CASE_REFERENCE_TOO_LONG,
+                  ClaimSearchRequestValidator.MAX_CASE_REFERENCE_LENGTH);
+          break;
+        case "INVALID":
+        default:
+          expectedMessage = ClaimSearchRequestValidator.CASE_REFERENCE_INVALID;
+          break;
+      }
+
+      assertThat(responseBody).contains(expectedMessage);
+    }
   }
 
   @Nested
@@ -857,6 +854,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   class VoidClaimTests {
 
     @Test
+    @DisplayName("POST /claims/{id}/void - voids a claim and creates an assessment")
     void shouldVoidClaimAndCreateAssessment() throws Exception {
 
       UUID userId = Uuid7.timeBasedUuid();
@@ -897,6 +895,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName(
+        "POST /claims/{id}/void - returns 400 when claim is not in a valid status for voiding")
     void shouldReturnBadRequestWhenClaimDoesNotExistInValidStatus() throws Exception {
       String requestBody =
           "{"
@@ -916,6 +916,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /claims/{id}/void - returns 404 when claim does not exist")
     void shouldReturnNotFoundWhenClaimDoesNotExistForVoidOperation() throws Exception {
 
       String requestBody =
@@ -938,6 +939,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /claims/{id}/void - returns 400 when created_by_user_id is missing")
     void shouldReturnBadRequestWhenCreatedByUserIdIsMissing() throws Exception {
 
       String requestBody = "{" + "\"assessment_reason\":\"test reason\"" + "}";
@@ -952,6 +954,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /claims/{id}/void - unauthorized when invalid token supplied")
     void shouldReturnUnauthorizedWhenVoidClaimCalledWithInvalidToken() throws Exception {
       String requestBody =
           "{"
@@ -991,7 +994,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("GET /api/v2/claims - filtering by escaped_case_flag isolates the latest fee record")
+  @DisplayName("GET v2/claims - filtering by escaped_case_flag isolates the latest fee record")
   void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
     // given: set up a submission context to satisfy the mandatory office code check
     Instant now = Instant.now();
@@ -1152,7 +1155,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("ascending follows the canonical business ordering")
+    @DisplayName("GET v2/claims - ascending follows the canonical business ordering")
     void ascendingOrdering() throws Exception {
       seedOnePerDerivedStatus(createSortSubmission());
 
@@ -1169,7 +1172,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("descending is the reverse of the canonical business ordering")
+    @DisplayName("GET v2/claims - descending is the reverse of the canonical business ordering")
     void descendingOrdering() throws Exception {
       seedOnePerDerivedStatus(createSortSubmission());
 
@@ -1186,7 +1189,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("claims sharing a derived status are tie-broken by id ASC for stable pagination")
+    @DisplayName(
+        "GET v2/claims - claims sharing a derived status are tie-broken by id ASC for stable pagination")
     void tieBreakByIdAscending() throws Exception {
       Submission submission = createSortSubmission();
       // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
@@ -1208,7 +1212,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("unsupported sort key returns 400")
+    @DisplayName("GET v2/claims - unsupported sort key returns 400")
     void unsupportedSortKeyReturnsBadRequest() throws Exception {
       mockMvc
           .perform(
@@ -1524,7 +1528,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("tie-break equal latest fees by claim id and maintain pagination stability")
+  @DisplayName(
+      "GET v2/claims - tie-break equal latest fees by claim id and maintain pagination stability")
   void tieBreakEqualLatestFeesByClaimIdAndMaintainPaginationStability() throws Exception {
     Instant now = Instant.now();
     String testOffice = "TIEFEE-OFC";
@@ -1681,5 +1686,25 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       assertThat(pageSet.getContent()).hasSize(1);
       assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedDescIdOrder.get(i));
     }
+  }
+
+  private UUID createAndValidateClaimWithCRN(String crn) throws Exception {
+
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+
+    MvcResult postResult =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(getClaimPost(crn)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    String createdBody = postResult.getResponse().getContentAsString();
+    var created = OBJECT_MAPPER.readValue(createdBody, CreateClaim201Response.class);
+
+    return created.getId();
   }
 }

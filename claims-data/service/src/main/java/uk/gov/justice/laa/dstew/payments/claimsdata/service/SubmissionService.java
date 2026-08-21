@@ -21,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
@@ -50,6 +51,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
 public class SubmissionService
     implements AbstractEntityLookup<Submission, SubmissionRepository, SubmissionNotFoundException> {
   public static final short DECIMAL_PLACES = 2;
+
+  /**
+   * Statuses that mark a submission as superseded (no longer "live"). A submission in one of these
+   * states does not participate in the office/area-of-law/period uniqueness rule, so a failed or
+   * replaced submission never blocks a fresh attempt. Mirrors the {@code WHERE status NOT IN (...)}
+   * predicate of the partial DB index {@code uq_submission_live_office_aol_period}.
+   */
+  private static final List<SubmissionStatus> NON_LIVE_STATUSES =
+      List.of(SubmissionStatus.VALIDATION_FAILED, SubmissionStatus.REPLACED);
 
   private final ValidationService validationService;
   private final SubmissionRepository submissionRepository;
@@ -97,6 +107,8 @@ public class SubmissionService
       }
     }
 
+    requireNoConflictingLiveSubmission(submission);
+
     submissionRepository.save(submission);
 
     if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
@@ -104,6 +116,42 @@ public class SubmissionService
     }
 
     return submission.getId();
+  }
+
+  /**
+   * Fail-fast guard that rejects a submission duplicating an existing live one for the same office,
+   * area of law and period, giving callers a clean {@link DuplicateSubmissionException} (409)
+   * before any write. The authoritative, race-safe enforcement is the database partial unique index
+   * {@code uq_submission_live_office_aol_period}; this pre-check simply covers the common path.
+   *
+   * <p>The check is skipped when any keying field is absent, since the DB index only constrains
+   * rows with a complete key and there is nothing to conflict on.
+   *
+   * @param submission the submission about to be persisted
+   */
+  private void requireNoConflictingLiveSubmission(Submission submission) {
+    if (submission.getOfficeAccountNumber() == null
+        || submission.getAreaOfLaw() == null
+        || submission.getSubmissionPeriod() == null) {
+      return;
+    }
+
+    boolean conflictingLiveSubmissionExists =
+        submissionRepository
+            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+                submission.getOfficeAccountNumber(),
+                submission.getAreaOfLaw(),
+                submission.getSubmissionPeriod(),
+                NON_LIVE_STATUSES);
+
+    if (conflictingLiveSubmissionExists) {
+      throw new DuplicateSubmissionException(
+          "A live submission already exists for office %s, area of law %s and period %s"
+              .formatted(
+                  submission.getOfficeAccountNumber(),
+                  submission.getAreaOfLaw(),
+                  submission.getSubmissionPeriod()));
+    }
   }
 
   /**

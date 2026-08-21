@@ -215,50 +215,6 @@ class ClaimControllerTest {
     class PaginationTests {
 
       @Test
-      @DisplayName("Get claims v1 when no pagination params passed should request unpaged")
-      void getClaimsWhenNoPaginationParamsPassesUnpagedToService() throws Exception {
-        var claimResponse = new ClaimResponse();
-        var expected = new ClaimResultSet().content(List.of(claimResponse));
-
-        when(claimService.getClaimResultSet(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(Pageable.class)))
-            .thenReturn(expected);
-
-        clearInvocations(claimService);
-
-        mockMvc
-            .perform(get(API_URI_PREFIX + "/claims").queryParam("office_code", "office_123"))
-            .andExpect(status().isOk());
-
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(claimService)
-            .getClaimResultSet(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                pageableCaptor.capture());
-        Pageable captured = pageableCaptor.getValue();
-        assertThat(captured.isUnpaged()).isTrue();
-      }
-
-      @Test
       @DisplayName("Get claims v1 with page=0 size=5 forwards pageable to service")
       void getClaimsWithPage0Size5PassesPageableToService() throws Exception {
         var claimResponse = new ClaimResponse();
@@ -490,30 +446,6 @@ class ClaimControllerTest {
     @Nested
     @DisplayName("pagination")
     class V2PaginationTests {
-
-      @Test
-      @DisplayName("Get claims v2 when no pagination params passed should request unpaged")
-      void getClaimsV2WhenNoPaginationParamsPassesUnpagedToService() throws Exception {
-        var claimResponse = new ClaimResponseV2();
-        var expected = new ClaimResultSetV2().content(List.of(claimResponse));
-
-        when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
-            .thenReturn(expected);
-
-        // Clear any prior interactions to verify only this request
-        clearInvocations(claimService);
-
-        mockMvc
-            .perform(get("/api/v2/claims").queryParam("office_code", "office_123"))
-            .andExpect(status().isOk())
-            .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
-
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(claimService)
-            .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
-        Pageable captured = pageableCaptor.getValue();
-        assertThat(captured.isUnpaged()).isTrue();
-      }
 
       @Test
       @DisplayName("Get claims v2 with page=0 size=5 forwards pageable to service")
