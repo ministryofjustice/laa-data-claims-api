@@ -159,7 +159,7 @@ public class Claim {
    */
   @Formula(
       "(select cev.effective_total_value from claims.vw_claim_effective_value cev"
-          + " where cev.claim_id = id)")
+          + " where cev.claim_id = {alias}.id)")
   private BigDecimal effectiveTotalValue;
 
   @Version
