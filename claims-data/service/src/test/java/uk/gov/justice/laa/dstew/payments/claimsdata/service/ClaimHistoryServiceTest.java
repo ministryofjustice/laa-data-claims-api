@@ -41,7 +41,8 @@ class ClaimHistoryServiceTest {
         Instant.parse("2026-04-22T11:26:00Z"),
         "provider-user-id",
         sourceId,
-        JsonNodeFactory.instance.objectNode());
+        JsonNodeFactory.instance.objectNode(),
+        1L);
   }
 
   @Test
@@ -51,12 +52,14 @@ class ClaimHistoryServiceTest {
     ClaimHistoryEventRow row = submissionRow(claimId);
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(claimId, DEFAULT_PAGE_SIZE, 0))
-        .thenReturn(List.of(row));
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(row), 1L, 0, DEFAULT_PAGE_SIZE));
 
-    List<ClaimHistoryEventRow> result =
+    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
         claimHistoryService.getTimeline(claimId, Pageable.unpaged());
 
-    assertThat(result).containsExactly(row);
+    assertThat(result.getEvents()).containsExactly(row);
     verify(claimHistoryRepository).findHistory(claimId, DEFAULT_PAGE_SIZE, 0);
   }
 
@@ -65,12 +68,15 @@ class ClaimHistoryServiceTest {
   void getTimelinePassesThroughRequestedPageSize() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
-    when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(0))).thenReturn(List.of());
+    when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(0)))
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(), 0L, 0, 10));
 
-    List<ClaimHistoryEventRow> result =
+    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
         claimHistoryService.getTimeline(claimId, PageRequest.of(0, 10));
 
-    assertThat(result).isEmpty();
+    assertThat(result.getEvents()).isEmpty();
     verify(claimHistoryRepository).findHistory(claimId, 10, 0);
   }
 
@@ -79,12 +85,15 @@ class ClaimHistoryServiceTest {
   void getTimelineWithPageableComputesLimitAndOffset() {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
-    when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(20))).thenReturn(List.of());
+    when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(20)))
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(), 0L, 2, 10));
 
-    List<ClaimHistoryEventRow> result =
+    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
         claimHistoryService.getTimeline(claimId, PageRequest.of(2, 10));
 
-    assertThat(result).isEmpty();
+    assertThat(result.getEvents()).isEmpty();
     verify(claimHistoryRepository).findHistory(claimId, 10, 20);
   }
 

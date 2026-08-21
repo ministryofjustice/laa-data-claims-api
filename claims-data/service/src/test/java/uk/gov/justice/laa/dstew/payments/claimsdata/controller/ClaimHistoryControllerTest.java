@@ -58,7 +58,7 @@ class ClaimHistoryControllerTest {
     metadata.put("office_account_number", "0X123Y");
     metadata.put("area_of_law", "CRIME LOWER");
     return new ClaimHistoryEventRow(
-        "SUBMISSION", Instant.parse("2026-04-22T11:26:00Z"), actorId, sourceId, metadata);
+        "SUBMISSION", Instant.parse("2026-04-22T11:26:00Z"), actorId, sourceId, metadata, 1L);
   }
 
   @Test
@@ -67,7 +67,9 @@ class ClaimHistoryControllerTest {
     UUID claimId = Uuid7.timeBasedUuid();
     UUID sourceId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of(submissionRow(sourceId, "provider-user-id")));
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(submissionRow(sourceId, "provider-user-id")), 1L, 0, 20));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId))
@@ -89,7 +91,9 @@ class ClaimHistoryControllerTest {
   void usesLimitOverloadWhenLimitProvided() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of());
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(), 0L, 0, 10));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId).param("size", "10"))
@@ -105,7 +109,9 @@ class ClaimHistoryControllerTest {
   void passesPageAndSizeToService() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of());
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(), 0L, 2, 10));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId).param("page", "2").param("size", "10"))
@@ -123,7 +129,9 @@ class ClaimHistoryControllerTest {
   void populatesActorFallbackFromServiceValue() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")));
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")), 1L, 0, 20));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId))
@@ -160,7 +168,9 @@ class ClaimHistoryControllerTest {
     ClaimHistoryController controller =
         new ClaimHistoryController(claimHistoryService, objectMapper);
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
-        .thenReturn(List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")));
+        .thenReturn(
+            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+                List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")), 1L, 0, 20));
 
     ResponseEntity<ClaimHistoryResultSet> response =
         controller.getClaimHistory(claimId, (org.springframework.data.domain.Pageable) null);

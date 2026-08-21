@@ -1,8 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
-import java.util.List;
 import java.util.UUID;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 
 /**
  * Read-model repository that assembles a single claim's complete history as a unified,
@@ -27,5 +25,5 @@ public interface ClaimHistoryRepository {
    * @param offset the number of rows to skip (zero-based)
    * @return events ordered newest-first by {@code event_timestamp DESC, source_id DESC}
    */
-  List<ClaimHistoryEventRow> findHistory(UUID claimId, int limit, int offset);
+  ClaimHistoryPage findHistory(UUID claimId, int limit, int offset);
 }

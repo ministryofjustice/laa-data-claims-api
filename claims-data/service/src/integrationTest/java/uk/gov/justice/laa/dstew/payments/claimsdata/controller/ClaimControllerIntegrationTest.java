@@ -163,7 +163,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @ParameterizedTest
   @EnumSource(AreaOfLaw.class)
   @DisplayName(
-      "POST v1/submissions/{id}/claims - saves a claim to the database for each area of law")
+      "POST v1/submissions/{submissionId}/claims - saves a claim to the database for each area of law")
   void shouldSaveAClaimToDatabase(AreaOfLaw areaOfLaw) throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(areaOfLaw);
@@ -200,7 +200,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "POST v1/submissions/{id}/claims - returns 409 when the line number already exists in the "
+      "POST v1/submissions/{submissionId}/claims - returns 409 when the line number already exists in the "
           + "submission")
   void shouldReturnConflictWhenClaimLineNumberIsDuplicatedInSubmission() throws Exception {
     // given: a submission with a claim already persisted (getClaimPost uses lineNumber 123)
@@ -237,7 +237,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @DisplayName(
-      "POST v1/submissions/{id}/claims - logs warning for suspicious SQL-like patterns but creates claim")
+      "POST v1/submissions/{submissionId}/claims - logs warning for suspicious SQL-like patterns but creates claim")
   void shouldLogAWarningWhenSqlLikePatternIsDetectedInStringFields() throws Exception {
     // given: submission test data exists in the database
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
@@ -279,7 +279,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST v1/submissions/{id}/claims - 400 Bad Request for incorrect body")
+  @DisplayName("POST v1/submissions/{submissionId}/claims - 400 Bad Request for incorrect body")
   void shouldReturnBadRequestWhenPostIsCalledWithIncorrectBody() throws Exception {
     // when: calling the POST endpoint with an incorrect body, 400 should be returned
     mockMvc
@@ -292,7 +292,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
-  @DisplayName("POST v1/submissions/{id}/claims - 401 Unauthorized for invalid token")
+  @DisplayName("POST v1/submissions/{submissionId}/claims - 401 Unauthorized for invalid token")
   void shouldReturnUnAuthorisedWhenPostIsCalledWithInvalidToken() throws Exception {
     final ClaimPost claimPost = getClaimPost(CASE_REFERENCE);
     // when: calling the POST endpoint with an invalid token, 401 should be returned
@@ -586,6 +586,725 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   class V2ClaimTests {
 
     @Test
+    @DisplayName("GET v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-1943)")
+    void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
+      // given: we use an existing office code from the setup
+
+      // when: calling the v2 claims endpoint with the escaped_case_flag filter
+      // Note: This was FAILing with a 500 error because ClaimSpecification
+      // attempted to join on a scalar "calculatedFeeDetail" field, but the Claim entity
+      // now uses a List "calculatedFeeDetails" and gets the first (latest) item
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT_V2)
+                  .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                  .param("escaped_case_flag", "true")
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isOk()); // Will fail here until the specification bug is fixed
+    }
+
+    @Test
+    @DisplayName("GET v2/claims - filtering by escaped_case_flag isolates the latest fee record")
+    void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
+      // given: set up a submission context to satisfy the mandatory office code check
+      Instant now = Instant.now();
+
+      // 1. Claim A: Historical records are false, but the LATEST is true -> Should be FOUND
+      Claim claimA = new Claim();
+      claimA.setId(Uuid7.timeBasedUuid());
+      claimA.setSubmission(submission1);
+      claimA.setCaseReferenceNumber("CRN-AAA");
+      claimA.setUniqueFileNumber("UFN-AAA");
+      claimA.setCreatedByUserId(API_USER_ID);
+
+      // Add these mandatory fields to satisfy Bean Validation
+      claimA.setMatterTypeCode("TEST-MTC");
+      // Unique within submission1 (seedClaimsData already uses lines 1,2,4,5) to satisfy
+      // uq_claim_submission_line_number.
+      claimA.setLineNumber(10);
+      claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+      claimA = claimRepository.saveAndFlush(claimA);
+
+      // ... (CFD creations)
+      createCalculatedFeeDetail(claimA, false, now.minus(3, ChronoUnit.DAYS));
+      createCalculatedFeeDetail(claimA, false, now.minus(2, ChronoUnit.DAYS));
+      createCalculatedFeeDetail(claimA, true, now.minus(1, ChronoUnit.DAYS)); // latest
+
+      // 2. Claim B: Historical records are true, but the LATEST is false -> Should be IGNORED
+      Claim claimB = new Claim();
+      claimB.setId(Uuid7.timeBasedUuid());
+      claimB.setSubmission(submission1);
+      claimB.setCaseReferenceNumber("CRN-BBB");
+      claimB.setUniqueFileNumber("UFN-BBB");
+      claimB.setCreatedByUserId(API_USER_ID);
+
+      // Add these mandatory fields to satisfy Bean Validation
+      claimB.setMatterTypeCode("TEST-MTC");
+      claimB.setLineNumber(11);
+      claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
+
+      claimB = claimRepository.saveAndFlush(claimB);
+
+      createCalculatedFeeDetail(claimB, true, now.minus(3, ChronoUnit.DAYS));
+      createCalculatedFeeDetail(claimB, true, now.minus(2, ChronoUnit.DAYS));
+      createCalculatedFeeDetail(claimB, false, now.minus(1, ChronoUnit.DAYS)); // latest
+
+      // Ensure Hibernate flushes state to the database before running the query
+      claimRepository.flush();
+
+      // when: filtering for escaped_case_flag = true
+      MvcResult result =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                      .param("escaped_case_flag", "true")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      // then: unpack and verify that only Claim A is returned
+      var claimResultSet =
+          OBJECT_MAPPER.readValue(
+              result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
+          .contains(claimA.getId().toString())
+          .doesNotContain(claimB.getId().toString());
+    }
+
+    // Helper method to cleanly persist fee records for the scenario
+    private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
+      // 1. Create and persist the ClaimSummaryFee
+      ClaimSummaryFee summaryFee =
+          ClaimSummaryFee.builder()
+              .claim(claim)
+              .id(Uuid7.timeBasedUuid())
+              .createdByUserId("Test")
+              .build();
+
+      claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+      // 2. Create and persist the CalculatedFeeDetail, linking the newly saved summary fee
+      CalculatedFeeDetail cfd = new CalculatedFeeDetail();
+      cfd.setId(Uuid7.timeBasedUuid());
+      cfd.setClaim(claim);
+      cfd.setEscapeCaseFlag(escapeCaseFlag);
+      cfd.setCreatedOn(createdOn);
+      cfd.setFeeCode("FEE-123");
+      cfd.setCreatedByUserId("Test");
+      cfd.setClaimSummaryFee(summaryFee);
+
+      calculatedFeeDetailRepository.saveAndFlush(cfd);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+      "total_amount,desc",
+      "calculated_vat_amount,asc",
+      "escape_case_flag,desc",
+      "category_of_law,asc"
+    })
+    @DisplayName(
+        "GET v2/claims - sorts by fee fields without throwing PropertyReferenceException (Failing Test)")
+    void shouldSortByFeeFieldsWithoutThrowingExceptionV2(String sortParam) throws Exception {
+      // given: required claims exist in the database via setup
+
+      // when: calling the v2 claims endpoint with a fee-related sort parameter
+      // Expecting 200 OK. Currently fails with a 500 error due to PropertyReferenceException
+      mockMvc
+          .perform(
+              get(GET_CLAIMS_ENDPOINT_V2)
+                  .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                  .param("sort", sortParam)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName(
+        "GET v2/claims - sorts by total_amount using the latest calculated fee detail values")
+    void shouldSortByLatestCalculatedFeeValuesCorrectly() throws Exception {
+      Instant now = Instant.now();
+      String testOffice = "SORTFEE-OFC";
+
+      // Create an isolated submission for this test
+      Submission sortSubmission =
+          submissionRepository.saveAndFlush(
+              Submission.builder()
+                  .id(Uuid7.timeBasedUuid())
+                  .bulkSubmissionId(bulkSubmission.getId())
+                  .officeAccountNumber(testOffice)
+                  .submissionPeriod("FEB-2025")
+                  .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                  .status(SubmissionStatus.CREATED)
+                  .providerUserId(bulkSubmission.getCreatedByUserId())
+                  .createdByUserId(API_USER_ID)
+                  .numberOfClaims(2)
+                  .createdOn(CREATED_ON)
+                  .build());
+
+      // Claim 1: Older total_amount was 500.00, but LATEST total_amount is 50.00
+      Claim claim1 =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(sortSubmission)
+              .caseReferenceNumber("CRN-111")
+              .uniqueFileNumber("UFN-111")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(1)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claim1 = claimRepository.saveAndFlush(claim1);
+      createCalculatedFeeDetailWithAmount(
+          claim1, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
+      createCalculatedFeeDetailWithAmount(
+          claim1, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+
+      // Claim 2: Older total_amount was 10.00, but LATEST total_amount is 200.00
+      Claim claim2 =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(sortSubmission)
+              .caseReferenceNumber("CRN-222")
+              .uniqueFileNumber("UFN-222")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(2)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claim2 = claimRepository.saveAndFlush(claim2);
+      createCalculatedFeeDetailWithAmount(
+          claim2, new BigDecimal("10.00"), now.minus(2, ChronoUnit.DAYS));
+      createCalculatedFeeDetailWithAmount(
+          claim2, new BigDecimal("200.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+
+      claimRepository.flush();
+
+      // When sorting descending by total_amount: Claim 2 (200.00) should come before Claim 1
+      // (50.00)
+      MvcResult resultDesc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,desc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetDesc =
+          OBJECT_MAPPER.readValue(
+              resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(resultSetDesc.getContent()).hasSize(2);
+
+      // 1st Item in Descending Order (200.00)
+      assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claim2.getId().toString());
+      assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("200.00");
+
+      // 2nd Item in Descending Order (50.00)
+      assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claim1.getId().toString());
+      assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("50.00");
+
+      // When sorting ascending by total_amount: Claim 1 (50.00) should come before Claim 2 (200.00)
+      MvcResult resultAsc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,asc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetAsc =
+          OBJECT_MAPPER.readValue(
+              resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(resultSetAsc.getContent()).hasSize(2);
+
+      // 1st Item in Ascending Order (50.00)
+      assertThat(resultSetAsc.getContent().get(0).getId()).isEqualTo(claim1.getId().toString());
+      assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("50.00");
+
+      // 2nd Item in Ascending Order (200.00)
+      assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claim2.getId().toString());
+      assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("200.00");
+    }
+
+    @Test
+    @DisplayName(
+        "GET v2/claims - sorts correctly with a mix of missing, single, and multiple calculated fee details")
+    void shouldSortClaimsWithVaryingCalculatedFeeDetailCountsCorrectly() throws Exception {
+      Instant now = Instant.now();
+      String testOffice = "SORTFEE-MIXED";
+
+      // 1. Create an isolated submission for this test
+      Submission mixedSubmission =
+          submissionRepository.saveAndFlush(
+              Submission.builder()
+                  .id(Uuid7.timeBasedUuid())
+                  .bulkSubmissionId(bulkSubmission.getId())
+                  .officeAccountNumber(testOffice)
+                  .submissionPeriod("MAR-2025")
+                  .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                  .status(SubmissionStatus.CREATED)
+                  .providerUserId(bulkSubmission.getCreatedByUserId())
+                  .createdByUserId(API_USER_ID)
+                  .numberOfClaims(3)
+                  .createdOn(CREATED_ON)
+                  .build());
+
+      // 2. Claim A: 0 CFDs (totalAmount evaluates to NULL)
+      Claim claimNoCfd =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(mixedSubmission)
+              .caseReferenceNumber("CRN-NO-CFD")
+              .uniqueFileNumber("UFN-1")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(1)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimNoCfd = claimRepository.saveAndFlush(claimNoCfd);
+
+      // 3. Claim B: 1 CFD (totalAmount = 100.00)
+      Claim claimOneCfd =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(mixedSubmission)
+              .caseReferenceNumber("CRN-ONE-CFD")
+              .uniqueFileNumber("UFN-2")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(2)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimOneCfd = claimRepository.saveAndFlush(claimOneCfd);
+      createCalculatedFeeDetailWithAmount(
+          claimOneCfd, new BigDecimal("100.00"), now.minus(1, ChronoUnit.DAYS));
+
+      // 4. Claim C: 3 CFDs (historical = 900.00 & 500.00, LATEST = 50.00)
+      Claim claimMultiCfd =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(mixedSubmission)
+              .caseReferenceNumber("CRN-MULTI-CFD")
+              .uniqueFileNumber("UFN-3")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(3)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimMultiCfd = claimRepository.saveAndFlush(claimMultiCfd);
+      createCalculatedFeeDetailWithAmount(
+          claimMultiCfd, new BigDecimal("900.00"), now.minus(3, ChronoUnit.DAYS));
+      createCalculatedFeeDetailWithAmount(
+          claimMultiCfd, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
+      createCalculatedFeeDetailWithAmount(
+          claimMultiCfd, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
+
+      claimRepository.flush();
+
+      // 5. Test ASC Sort
+      // PostgreSQL default for ASC is NULLS LAST. Expected order: 50.00 -> 100.00 -> NULL
+      MvcResult resultAsc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,asc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetAsc =
+          OBJECT_MAPPER.readValue(
+              resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(resultSetAsc.getContent()).hasSize(3);
+
+      // 1st Item (50.00)
+      assertThat(resultSetAsc.getContent().get(0).getId())
+          .isEqualTo(claimMultiCfd.getId().toString());
+      assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("50.00");
+
+      // 2nd Item (100.00)
+      assertThat(resultSetAsc.getContent().get(1).getId())
+          .isEqualTo(claimOneCfd.getId().toString());
+      assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("100.00");
+
+      // 3rd Item (NULL)
+      assertThat(resultSetAsc.getContent().get(2).getId()).isEqualTo(claimNoCfd.getId().toString());
+      assertThat(resultSetAsc.getContent().get(2).getFeeCalculationResponse()).isNull();
+
+      // 6. Test DESC Sort
+      // PostgreSQL default for DESC is NULLS FIRST. Expected order: NULL -> 100.00 -> 50.00
+      MvcResult resultDesc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,desc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetDesc =
+          OBJECT_MAPPER.readValue(
+              resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(resultSetDesc.getContent()).hasSize(3);
+
+      // 1st Item (NULL)
+      assertThat(resultSetDesc.getContent().get(0).getId())
+          .isEqualTo(claimNoCfd.getId().toString());
+      assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse()).isNull();
+
+      // 2nd Item (100.00)
+      assertThat(resultSetDesc.getContent().get(1).getId())
+          .isEqualTo(claimOneCfd.getId().toString());
+      assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("100.00");
+
+      // 3rd Item (50.00)
+      assertThat(resultSetDesc.getContent().get(2).getId())
+          .isEqualTo(claimMultiCfd.getId().toString());
+      assertThat(resultSetDesc.getContent().get(2).getFeeCalculationResponse().getTotalAmount())
+          .isEqualByComparingTo("50.00");
+    }
+
+    // Helper method to seed calculated fee details with specific amounts and timestamps
+    private void createCalculatedFeeDetailWithAmount(
+        Claim claim, BigDecimal totalAmount, Instant createdOn) {
+      ClaimSummaryFee summaryFee =
+          ClaimSummaryFee.builder()
+              .claim(claim)
+              .id(Uuid7.timeBasedUuid())
+              .createdByUserId("Test")
+              .build();
+      claimSummaryFeeRepository.saveAndFlush(summaryFee);
+
+      CalculatedFeeDetail cfd = new CalculatedFeeDetail();
+      cfd.setId(Uuid7.timeBasedUuid());
+      cfd.setClaim(claim);
+      cfd.setTotalAmount(totalAmount);
+      cfd.setCreatedOn(createdOn);
+      cfd.setFeeCode("FEE-123");
+      cfd.setCreatedByUserId("Test");
+      cfd.setClaimSummaryFee(summaryFee);
+      calculatedFeeDetailRepository.saveAndFlush(cfd);
+    }
+
+    @Test
+    @DisplayName(
+        "GET v2/claims - tie-break equal latest fees by claim id and maintain pagination stability")
+    void tieBreakEqualLatestFeesByClaimIdAndMaintainPaginationStability() throws Exception {
+      Instant now = Instant.now();
+      String testOffice = "TIEFEE-OFC";
+
+      // Create an isolated submission for this test
+      Submission sortSubmission =
+          submissionRepository.saveAndFlush(
+              Submission.builder()
+                  .id(Uuid7.timeBasedUuid())
+                  .bulkSubmissionId(bulkSubmission.getId())
+                  .officeAccountNumber(testOffice)
+                  .submissionPeriod("AUG-2026")
+                  .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                  .status(SubmissionStatus.CREATED)
+                  .providerUserId(bulkSubmission.getCreatedByUserId())
+                  .createdByUserId(API_USER_ID)
+                  .numberOfClaims(3)
+                  .createdOn(CREATED_ON)
+                  .build());
+
+      // Create three claims with identical latest totalAmount
+      Claim claimA =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(sortSubmission)
+              .caseReferenceNumber("CRN-A")
+              .uniqueFileNumber("UFN-A")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(1)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimA = claimRepository.saveAndFlush(claimA);
+      createCalculatedFeeDetailWithAmount(claimA, new BigDecimal("100.00"), now);
+
+      Claim claimB =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(sortSubmission)
+              .caseReferenceNumber("CRN-B")
+              .uniqueFileNumber("UFN-B")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(2)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimB = claimRepository.saveAndFlush(claimB);
+      createCalculatedFeeDetailWithAmount(claimB, new BigDecimal("100.00"), now);
+
+      Claim claimC =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(sortSubmission)
+              .caseReferenceNumber("CRN-C")
+              .uniqueFileNumber("UFN-C")
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(3)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .build();
+      claimC = claimRepository.saveAndFlush(claimC);
+      createCalculatedFeeDetailWithAmount(claimC, new BigDecimal("100.00"), now);
+
+      claimRepository.flush();
+
+      // Expected order is deterministic by Claim.id ASC for an ASC primary, and the reverse for
+      // DESC
+      List<String> expectedAscIdOrder =
+          java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
+              .map(UUID::toString)
+              .sorted()
+              .toList();
+
+      List<String> expectedDescIdOrder =
+          java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
+              .map(UUID::toString)
+              .sorted(java.util.Comparator.reverseOrder())
+              .toList();
+
+      // 1) Verify full list ordering with ASC primary
+      MvcResult resultAsc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,asc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetAsc =
+          OBJECT_MAPPER.readValue(
+              resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      assertThat(resultSetAsc.getContent().stream().map(ClaimResponseV2::getId))
+          .containsExactlyElementsOf(expectedAscIdOrder);
+
+      // 2) Verify pagination stability (page size 1) for ASC
+      for (int i = 0; i < expectedAscIdOrder.size(); i++) {
+        MvcResult pageResult =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", testOffice)
+                        .param("sort", "total_amount,asc")
+                        .param("size", "1")
+                        .param("page", String.valueOf(i))
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var pageSet =
+            OBJECT_MAPPER.readValue(
+                pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        assertThat(pageSet.getContent()).hasSize(1);
+        assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedAscIdOrder.get(i));
+      }
+
+      // 3) Verify full list ordering with DESC primary uses ID DESC as the tie-break
+      MvcResult resultDesc =
+          mockMvc
+              .perform(
+                  get(GET_CLAIMS_ENDPOINT_V2)
+                      .param("office_code", testOffice)
+                      .param("sort", "total_amount,desc")
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      var resultSetDesc =
+          OBJECT_MAPPER.readValue(
+              resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+      // All primary values equal; tie-break is deterministic by Claim.id DESC
+      assertThat(resultSetDesc.getContent().stream().map(ClaimResponseV2::getId))
+          .containsExactlyElementsOf(expectedDescIdOrder);
+
+      // 4) Verify pagination stability (page size 1) for DESC
+      for (int i = 0; i < expectedDescIdOrder.size(); i++) {
+        MvcResult pageResult =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", testOffice)
+                        .param("sort", "total_amount,desc")
+                        .param("size", "1")
+                        .param("page", String.valueOf(i))
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var pageSet =
+            OBJECT_MAPPER.readValue(
+                pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        assertThat(pageSet.getContent()).hasSize(1);
+        assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedDescIdOrder.get(i));
+      }
+    }
+
+    @Nested
+    @DisplayName("Derived claim status sorting")
+    class DerivedClaimStatusSortTests {
+
+      private static final String SORT_OFFICE = "SORTOFC";
+
+      private Submission createSortSubmission() {
+        return submissionRepository.saveAndFlush(
+            Submission.builder()
+                .id(Uuid7.timeBasedUuid())
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(SORT_OFFICE)
+                .submissionPeriod("FEB-2025")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(API_USER_ID)
+                .numberOfClaims(6)
+                .createdOn(CREATED_ON)
+                .build());
+      }
+
+      private Claim persistClaim(
+          Submission submission,
+          ClaimStatus status,
+          boolean hasAssessment,
+          boolean isAmended,
+          int lineNumber) {
+        return claimRepository.saveAndFlush(
+            Claim.builder()
+                .id(Uuid7.timeBasedUuid())
+                .submission(submission)
+                .status(status)
+                .hasAssessment(hasAssessment)
+                .isAmended(isAmended)
+                .lineNumber(lineNumber)
+                .matterTypeCode("TEST-MTC")
+                .createdByUserId(API_USER_ID)
+                .build());
+      }
+
+      private ClaimResultSetV2 search(String sort) throws Exception {
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", SORT_OFFICE)
+                        .param("sort", sort)
+                        .param("size", "50")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+        return OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+      }
+
+      /** Seeds exactly one claim for each derived status under an isolated office code. */
+      private void seedOnePerDerivedStatus(Submission submission) {
+        persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
+        persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
+        persistClaim(submission, ClaimStatus.VALID, true, false, 3); // ASSESSED
+        persistClaim(submission, ClaimStatus.VOID, false, false, 4); // VOIDED
+        persistClaim(submission, ClaimStatus.INVALID, false, false, 5); // INVALID
+        persistClaim(submission, ClaimStatus.READY_TO_PROCESS, false, false, 6); // READY_TO_PROCESS
+      }
+
+      @Test
+      @DisplayName("GET v2/claims - ascending follows the canonical business ordering")
+      void ascendingOrdering() throws Exception {
+        seedOnePerDerivedStatus(createSortSubmission());
+
+        ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+        assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+            .containsExactly(
+                DerivedClaimStatus.ACCEPTED,
+                DerivedClaimStatus.AMENDED,
+                DerivedClaimStatus.ASSESSED,
+                DerivedClaimStatus.VOIDED,
+                DerivedClaimStatus.INVALID,
+                DerivedClaimStatus.READY_TO_PROCESS);
+      }
+
+      @Test
+      @DisplayName("GET v2/claims - descending is the reverse of the canonical business ordering")
+      void descendingOrdering() throws Exception {
+        seedOnePerDerivedStatus(createSortSubmission());
+
+        ClaimResultSetV2 resultSet = search("derived_claim_status,desc");
+
+        assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
+            .containsExactly(
+                DerivedClaimStatus.READY_TO_PROCESS,
+                DerivedClaimStatus.INVALID,
+                DerivedClaimStatus.VOIDED,
+                DerivedClaimStatus.ASSESSED,
+                DerivedClaimStatus.AMENDED,
+                DerivedClaimStatus.ACCEPTED);
+      }
+
+      @Test
+      @DisplayName(
+          "GET v2/claims - claims sharing a derived status are tie-broken by id ASC for stable pagination")
+      void tieBreakByIdAscending() throws Exception {
+        Submission submission = createSortSubmission();
+        // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
+        // status.
+        Claim a = persistClaim(submission, ClaimStatus.VALID, false, false, 1);
+        Claim b = persistClaim(submission, ClaimStatus.VALID, false, false, 2);
+        Claim c = persistClaim(submission, ClaimStatus.VALID, false, false, 3);
+
+        ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
+
+        // UUIDv7 ids are time-ordered; a < b < c in insertion order, so the tie-break yields a,b,c.
+        List<String> expectedIdOrder =
+            java.util.stream.Stream.of(a.getId(), b.getId(), c.getId())
+                .map(UUID::toString)
+                .sorted()
+                .toList();
+        assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getId))
+            .containsExactlyElementsOf(expectedIdOrder);
+      }
+
+      @Test
+      @DisplayName("GET v2/claims - unsupported sort key returns 400")
+      void unsupportedSortKeyReturnsBadRequest() throws Exception {
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", SORT_OFFICE)
+                    .param("sort", "not_a_real_field,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest());
+      }
+    }
+
+    @Test
     @DisplayName("GET v2/claims - returns all claims for the given office code")
     void shouldReturnAllClaimsForAGivenOfficeCodeV2() throws Exception {
       // given: required claims exist in the database
@@ -694,7 +1413,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     /*
-     * Additional tests covering /api/v2/claims case_reference_number matching behavior
+     * Additional tests covering v2/claims case_reference_number matching behavior
      */
 
     @ParameterizedTest
@@ -711,7 +1430,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           "RAC ATE2/1,2/1,true"
         })
     @DisplayName(
-        "GET /api/v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
+        "GET v2/claims - case_reference_number matching behaviour (partial/contains/case-insensitive/exact)")
     void shouldMatchCaseReferenceVariantsV2(
         String existingCrn, String searchFilter, boolean expectedFound) throws Exception {
 
@@ -779,8 +1498,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName(
-        "GET /api/v2/claims - pagination and other filters unaffected by case_reference filter")
+    @DisplayName("GET v2/claims - pagination and other filters unaffected by case_reference filter")
     void paginationAndOtherFiltersUnaffectedWhenUsingCaseReferenceV2() throws Exception {
 
       UUID newClaimId = createAndValidateClaimWithCRN("PAG-123");
@@ -850,11 +1568,11 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Nested
-  @DisplayName("Void Claim Endpoint")
+  @DisplayName("V1 Claim Void Endpoint")
   class VoidClaimTests {
 
     @Test
-    @DisplayName("POST /claims/{id}/void - voids a claim and creates an assessment")
+    @DisplayName("POST v1/claims/{id}/void - voids a claim and creates an assessment")
     void shouldVoidClaimAndCreateAssessment() throws Exception {
 
       UUID userId = Uuid7.timeBasedUuid();
@@ -896,7 +1614,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName(
-        "POST /claims/{id}/void - returns 400 when claim is not in a valid status for voiding")
+        "POST v1/claims/{id}/void - returns 400 when claim is not in a valid status for voiding")
     void shouldReturnBadRequestWhenClaimDoesNotExistInValidStatus() throws Exception {
       String requestBody =
           "{"
@@ -916,7 +1634,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /claims/{id}/void - returns 404 when claim does not exist")
+    @DisplayName("POST v1/claims/{id}/void - returns 404 when claim does not exist")
     void shouldReturnNotFoundWhenClaimDoesNotExistForVoidOperation() throws Exception {
 
       String requestBody =
@@ -939,7 +1657,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /claims/{id}/void - returns 400 when created_by_user_id is missing")
+    @DisplayName("POST v1/claims/{id}/void - returns 400 when created_by_user_id is missing")
     void shouldReturnBadRequestWhenCreatedByUserIdIsMissing() throws Exception {
 
       String requestBody = "{" + "\"assessment_reason\":\"test reason\"" + "}";
@@ -954,7 +1672,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /claims/{id}/void - unauthorized when invalid token supplied")
+    @DisplayName("POST v1/claims/{id}/void - unauthorized when invalid token supplied")
     void shouldReturnUnauthorizedWhenVoidClaimCalledWithInvalidToken() throws Exception {
       String requestBody =
           "{"
@@ -971,720 +1689,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
-    }
-  }
-
-  @Test
-  @DisplayName(
-      "GET /api/v2/claims - filtering by escaped_case_flag (Failing Test for Bug DSTEW-1943)")
-  void shouldReturnClaimsWhenFilteredByEscapedCaseFlag() throws Exception {
-    // given: we use an existing office code from the setup
-
-    // when: calling the v2 claims endpoint with the escaped_case_flag filter
-    // Note: This was FAILing with a 500 error because ClaimSpecification
-    // attempted to join on a scalar "calculatedFeeDetail" field, but the Claim entity
-    // now uses a List "calculatedFeeDetails" and gets the first (latest) item
-    mockMvc
-        .perform(
-            get(GET_CLAIMS_ENDPOINT_V2)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                .param("escaped_case_flag", "true")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isOk()); // Will fail here until the specification bug is fixed
-  }
-
-  @Test
-  @DisplayName("GET v2/claims - filtering by escaped_case_flag isolates the latest fee record")
-  void shouldReturnLatestClaimCFDsWhenFilteredByEscapedCaseFlag() throws Exception {
-    // given: set up a submission context to satisfy the mandatory office code check
-    Instant now = Instant.now();
-
-    // 1. Claim A: Historical records are false, but the LATEST is true -> Should be FOUND
-    Claim claimA = new Claim();
-    claimA.setId(Uuid7.timeBasedUuid());
-    claimA.setSubmission(submission1);
-    claimA.setCaseReferenceNumber("CRN-AAA");
-    claimA.setUniqueFileNumber("UFN-AAA");
-    claimA.setCreatedByUserId(API_USER_ID);
-
-    // Add these mandatory fields to satisfy Bean Validation
-    claimA.setMatterTypeCode("TEST-MTC");
-    // Unique within submission1 (seedClaimsData already uses lines 1,2,4,5) to satisfy
-    // uq_claim_submission_line_number.
-    claimA.setLineNumber(10);
-    claimA.setStatus(ClaimStatus.READY_TO_PROCESS);
-
-    claimA = claimRepository.saveAndFlush(claimA);
-
-    // ... (CFD creations)
-    createCalculatedFeeDetail(claimA, false, now.minus(3, ChronoUnit.DAYS));
-    createCalculatedFeeDetail(claimA, false, now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetail(claimA, true, now.minus(1, ChronoUnit.DAYS)); // latest
-
-    // 2. Claim B: Historical records are true, but the LATEST is false -> Should be IGNORED
-    Claim claimB = new Claim();
-    claimB.setId(Uuid7.timeBasedUuid());
-    claimB.setSubmission(submission1);
-    claimB.setCaseReferenceNumber("CRN-BBB");
-    claimB.setUniqueFileNumber("UFN-BBB");
-    claimB.setCreatedByUserId(API_USER_ID);
-
-    // Add these mandatory fields to satisfy Bean Validation
-    claimB.setMatterTypeCode("TEST-MTC");
-    claimB.setLineNumber(11);
-    claimB.setStatus(ClaimStatus.READY_TO_PROCESS);
-
-    claimB = claimRepository.saveAndFlush(claimB);
-
-    createCalculatedFeeDetail(claimB, true, now.minus(3, ChronoUnit.DAYS));
-    createCalculatedFeeDetail(claimB, true, now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetail(claimB, false, now.minus(1, ChronoUnit.DAYS)); // latest
-
-    // Ensure Hibernate flushes state to the database before running the query
-    claimRepository.flush();
-
-    // when: filtering for escaped_case_flag = true
-    MvcResult result =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                    .param("escaped_case_flag", "true")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    // then: unpack and verify that only Claim A is returned
-    var claimResultSet =
-        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(claimResultSet.getContent().stream().map(ClaimResponseV2::getId))
-        .contains(claimA.getId().toString())
-        .doesNotContain(claimB.getId().toString());
-  }
-
-  // Helper method to cleanly persist fee records for the scenario
-  private void createCalculatedFeeDetail(Claim claim, boolean escapeCaseFlag, Instant createdOn) {
-    // 1. Create and persist the ClaimSummaryFee
-    ClaimSummaryFee summaryFee =
-        ClaimSummaryFee.builder()
-            .claim(claim)
-            .id(Uuid7.timeBasedUuid())
-            .createdByUserId("Test")
-            .build();
-
-    claimSummaryFeeRepository.saveAndFlush(summaryFee);
-
-    // 2. Create and persist the CalculatedFeeDetail, linking the newly saved summary fee
-    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
-    cfd.setId(Uuid7.timeBasedUuid());
-    cfd.setClaim(claim);
-    cfd.setEscapeCaseFlag(escapeCaseFlag);
-    cfd.setCreatedOn(createdOn);
-    cfd.setFeeCode("FEE-123");
-    cfd.setCreatedByUserId("Test");
-    cfd.setClaimSummaryFee(summaryFee);
-
-    calculatedFeeDetailRepository.saveAndFlush(cfd);
-  }
-
-  @Nested
-  @DisplayName("Derived claim status sorting")
-  class DerivedClaimStatusSortTests {
-
-    private static final String SORT_OFFICE = "SORTOFC";
-
-    private Submission createSortSubmission() {
-      return submissionRepository.saveAndFlush(
-          Submission.builder()
-              .id(Uuid7.timeBasedUuid())
-              .bulkSubmissionId(bulkSubmission.getId())
-              .officeAccountNumber(SORT_OFFICE)
-              .submissionPeriod("FEB-2025")
-              .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-              .status(SubmissionStatus.CREATED)
-              .providerUserId(bulkSubmission.getCreatedByUserId())
-              .createdByUserId(API_USER_ID)
-              .numberOfClaims(6)
-              .createdOn(CREATED_ON)
-              .build());
-    }
-
-    private Claim persistClaim(
-        Submission submission,
-        ClaimStatus status,
-        boolean hasAssessment,
-        boolean isAmended,
-        int lineNumber) {
-      return claimRepository.saveAndFlush(
-          Claim.builder()
-              .id(Uuid7.timeBasedUuid())
-              .submission(submission)
-              .status(status)
-              .hasAssessment(hasAssessment)
-              .isAmended(isAmended)
-              .lineNumber(lineNumber)
-              .matterTypeCode("TEST-MTC")
-              .createdByUserId(API_USER_ID)
-              .build());
-    }
-
-    private ClaimResultSetV2 search(String sort) throws Exception {
-      MvcResult result =
-          mockMvc
-              .perform(
-                  get(GET_CLAIMS_ENDPOINT_V2)
-                      .param("office_code", SORT_OFFICE)
-                      .param("sort", sort)
-                      .param("size", "50")
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isOk())
-              .andReturn();
-      return OBJECT_MAPPER.readValue(
-          result.getResponse().getContentAsString(), ClaimResultSetV2.class);
-    }
-
-    /** Seeds exactly one claim for each derived status under an isolated office code. */
-    private void seedOnePerDerivedStatus(Submission submission) {
-      persistClaim(submission, ClaimStatus.VALID, false, false, 1); // ACCEPTED
-      persistClaim(submission, ClaimStatus.VALID, false, true, 2); // AMENDED
-      persistClaim(submission, ClaimStatus.VALID, true, false, 3); // ASSESSED
-      persistClaim(submission, ClaimStatus.VOID, false, false, 4); // VOIDED
-      persistClaim(submission, ClaimStatus.INVALID, false, false, 5); // INVALID
-      persistClaim(submission, ClaimStatus.READY_TO_PROCESS, false, false, 6); // READY_TO_PROCESS
-    }
-
-    @Test
-    @DisplayName("GET v2/claims - ascending follows the canonical business ordering")
-    void ascendingOrdering() throws Exception {
-      seedOnePerDerivedStatus(createSortSubmission());
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
-
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
-          .containsExactly(
-              DerivedClaimStatus.ACCEPTED,
-              DerivedClaimStatus.AMENDED,
-              DerivedClaimStatus.ASSESSED,
-              DerivedClaimStatus.VOIDED,
-              DerivedClaimStatus.INVALID,
-              DerivedClaimStatus.READY_TO_PROCESS);
-    }
-
-    @Test
-    @DisplayName("GET v2/claims - descending is the reverse of the canonical business ordering")
-    void descendingOrdering() throws Exception {
-      seedOnePerDerivedStatus(createSortSubmission());
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,desc");
-
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getDerivedClaimStatus))
-          .containsExactly(
-              DerivedClaimStatus.READY_TO_PROCESS,
-              DerivedClaimStatus.INVALID,
-              DerivedClaimStatus.VOIDED,
-              DerivedClaimStatus.ASSESSED,
-              DerivedClaimStatus.AMENDED,
-              DerivedClaimStatus.ACCEPTED);
-    }
-
-    @Test
-    @DisplayName(
-        "GET v2/claims - claims sharing a derived status are tie-broken by id ASC for stable pagination")
-    void tieBreakByIdAscending() throws Exception {
-      Submission submission = createSortSubmission();
-      // Several ACCEPTED claims (VALID, no assessment, not amended) sharing the same derived
-      // status.
-      Claim a = persistClaim(submission, ClaimStatus.VALID, false, false, 1);
-      Claim b = persistClaim(submission, ClaimStatus.VALID, false, false, 2);
-      Claim c = persistClaim(submission, ClaimStatus.VALID, false, false, 3);
-
-      ClaimResultSetV2 resultSet = search("derived_claim_status,asc");
-
-      // UUIDv7 ids are time-ordered; a < b < c in insertion order, so the tie-break yields a,b,c.
-      List<String> expectedIdOrder =
-          java.util.stream.Stream.of(a.getId(), b.getId(), c.getId())
-              .map(UUID::toString)
-              .sorted()
-              .toList();
-      assertThat(resultSet.getContent().stream().map(ClaimResponseV2::getId))
-          .containsExactlyElementsOf(expectedIdOrder);
-    }
-
-    @Test
-    @DisplayName("GET v2/claims - unsupported sort key returns 400")
-    void unsupportedSortKeyReturnsBadRequest() throws Exception {
-      mockMvc
-          .perform(
-              get(GET_CLAIMS_ENDPOINT_V2)
-                  .param("office_code", SORT_OFFICE)
-                  .param("sort", "not_a_real_field,asc")
-                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-          .andExpect(status().isBadRequest());
-    }
-  }
-
-  @ParameterizedTest
-  @CsvSource({
-    "total_amount,desc",
-    "calculated_vat_amount,asc",
-    "escape_case_flag,desc",
-    "category_of_law,asc"
-  })
-  @DisplayName(
-      "GET /api/v2/claims - sorts by fee fields without throwing PropertyReferenceException (Failing Test)")
-  void shouldSortByFeeFieldsWithoutThrowingExceptionV2(String sortParam) throws Exception {
-    // given: required claims exist in the database via setup
-
-    // when: calling the v2 claims endpoint with a fee-related sort parameter
-    // Expecting 200 OK. Currently fails with a 500 error due to PropertyReferenceException
-    mockMvc
-        .perform(
-            get(GET_CLAIMS_ENDPOINT_V2)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
-                .param("sort", sortParam)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-        .andExpect(status().isOk());
-  }
-
-  @Test
-  @DisplayName(
-      "GET /api/v2/claims - sorts by total_amount using the latest calculated fee detail values")
-  void shouldSortByLatestCalculatedFeeValuesCorrectly() throws Exception {
-    Instant now = Instant.now();
-    String testOffice = "SORTFEE-OFC";
-
-    // Create an isolated submission for this test
-    Submission sortSubmission =
-        submissionRepository.saveAndFlush(
-            Submission.builder()
-                .id(Uuid7.timeBasedUuid())
-                .bulkSubmissionId(bulkSubmission.getId())
-                .officeAccountNumber(testOffice)
-                .submissionPeriod("FEB-2025")
-                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-                .status(SubmissionStatus.CREATED)
-                .providerUserId(bulkSubmission.getCreatedByUserId())
-                .createdByUserId(API_USER_ID)
-                .numberOfClaims(2)
-                .createdOn(CREATED_ON)
-                .build());
-
-    // Claim 1: Older total_amount was 500.00, but LATEST total_amount is 50.00
-    Claim claim1 =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(sortSubmission)
-            .caseReferenceNumber("CRN-111")
-            .uniqueFileNumber("UFN-111")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(1)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claim1 = claimRepository.saveAndFlush(claim1);
-    createCalculatedFeeDetailWithAmount(
-        claim1, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(
-        claim1, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
-
-    // Claim 2: Older total_amount was 10.00, but LATEST total_amount is 200.00
-    Claim claim2 =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(sortSubmission)
-            .caseReferenceNumber("CRN-222")
-            .uniqueFileNumber("UFN-222")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(2)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claim2 = claimRepository.saveAndFlush(claim2);
-    createCalculatedFeeDetailWithAmount(
-        claim2, new BigDecimal("10.00"), now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(
-        claim2, new BigDecimal("200.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
-
-    claimRepository.flush();
-
-    // When sorting descending by total_amount: Claim 2 (200.00) should come before Claim 1 (50.00)
-    MvcResult resultDesc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,desc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetDesc =
-        OBJECT_MAPPER.readValue(
-            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(resultSetDesc.getContent()).hasSize(2);
-
-    // 1st Item in Descending Order (200.00)
-    assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claim2.getId().toString());
-    assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("200.00");
-
-    // 2nd Item in Descending Order (50.00)
-    assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claim1.getId().toString());
-    assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("50.00");
-
-    // When sorting ascending by total_amount: Claim 1 (50.00) should come before Claim 2 (200.00)
-    MvcResult resultAsc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,asc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetAsc =
-        OBJECT_MAPPER.readValue(
-            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(resultSetAsc.getContent()).hasSize(2);
-
-    // 1st Item in Ascending Order (50.00)
-    assertThat(resultSetAsc.getContent().get(0).getId()).isEqualTo(claim1.getId().toString());
-    assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("50.00");
-
-    // 2nd Item in Ascending Order (200.00)
-    assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claim2.getId().toString());
-    assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("200.00");
-  }
-
-  @Test
-  @DisplayName(
-      "GET /api/v2/claims - sorts correctly with a mix of missing, single, and multiple calculated fee details")
-  void shouldSortClaimsWithVaryingCalculatedFeeDetailCountsCorrectly() throws Exception {
-    Instant now = Instant.now();
-    String testOffice = "SORTFEE-MIXED";
-
-    // 1. Create an isolated submission for this test
-    Submission mixedSubmission =
-        submissionRepository.saveAndFlush(
-            Submission.builder()
-                .id(Uuid7.timeBasedUuid())
-                .bulkSubmissionId(bulkSubmission.getId())
-                .officeAccountNumber(testOffice)
-                .submissionPeriod("MAR-2025")
-                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-                .status(SubmissionStatus.CREATED)
-                .providerUserId(bulkSubmission.getCreatedByUserId())
-                .createdByUserId(API_USER_ID)
-                .numberOfClaims(3)
-                .createdOn(CREATED_ON)
-                .build());
-
-    // 2. Claim A: 0 CFDs (totalAmount evaluates to NULL)
-    Claim claimNoCfd =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(mixedSubmission)
-            .caseReferenceNumber("CRN-NO-CFD")
-            .uniqueFileNumber("UFN-1")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(1)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimNoCfd = claimRepository.saveAndFlush(claimNoCfd);
-
-    // 3. Claim B: 1 CFD (totalAmount = 100.00)
-    Claim claimOneCfd =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(mixedSubmission)
-            .caseReferenceNumber("CRN-ONE-CFD")
-            .uniqueFileNumber("UFN-2")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(2)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimOneCfd = claimRepository.saveAndFlush(claimOneCfd);
-    createCalculatedFeeDetailWithAmount(
-        claimOneCfd, new BigDecimal("100.00"), now.minus(1, ChronoUnit.DAYS));
-
-    // 4. Claim C: 3 CFDs (historical = 900.00 & 500.00, LATEST = 50.00)
-    Claim claimMultiCfd =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(mixedSubmission)
-            .caseReferenceNumber("CRN-MULTI-CFD")
-            .uniqueFileNumber("UFN-3")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(3)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimMultiCfd = claimRepository.saveAndFlush(claimMultiCfd);
-    createCalculatedFeeDetailWithAmount(
-        claimMultiCfd, new BigDecimal("900.00"), now.minus(3, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(
-        claimMultiCfd, new BigDecimal("500.00"), now.minus(2, ChronoUnit.DAYS));
-    createCalculatedFeeDetailWithAmount(
-        claimMultiCfd, new BigDecimal("50.00"), now.minus(1, ChronoUnit.DAYS)); // Latest
-
-    claimRepository.flush();
-
-    // 5. Test ASC Sort
-    // PostgreSQL default for ASC is NULLS LAST. Expected order: 50.00 -> 100.00 -> NULL
-    MvcResult resultAsc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,asc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetAsc =
-        OBJECT_MAPPER.readValue(
-            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(resultSetAsc.getContent()).hasSize(3);
-
-    // 1st Item (50.00)
-    assertThat(resultSetAsc.getContent().get(0).getId())
-        .isEqualTo(claimMultiCfd.getId().toString());
-    assertThat(resultSetAsc.getContent().get(0).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("50.00");
-
-    // 2nd Item (100.00)
-    assertThat(resultSetAsc.getContent().get(1).getId()).isEqualTo(claimOneCfd.getId().toString());
-    assertThat(resultSetAsc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("100.00");
-
-    // 3rd Item (NULL)
-    assertThat(resultSetAsc.getContent().get(2).getId()).isEqualTo(claimNoCfd.getId().toString());
-    assertThat(resultSetAsc.getContent().get(2).getFeeCalculationResponse()).isNull();
-
-    // 6. Test DESC Sort
-    // PostgreSQL default for DESC is NULLS FIRST. Expected order: NULL -> 100.00 -> 50.00
-    MvcResult resultDesc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,desc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetDesc =
-        OBJECT_MAPPER.readValue(
-            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(resultSetDesc.getContent()).hasSize(3);
-
-    // 1st Item (NULL)
-    assertThat(resultSetDesc.getContent().get(0).getId()).isEqualTo(claimNoCfd.getId().toString());
-    assertThat(resultSetDesc.getContent().get(0).getFeeCalculationResponse()).isNull();
-
-    // 2nd Item (100.00)
-    assertThat(resultSetDesc.getContent().get(1).getId()).isEqualTo(claimOneCfd.getId().toString());
-    assertThat(resultSetDesc.getContent().get(1).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("100.00");
-
-    // 3rd Item (50.00)
-    assertThat(resultSetDesc.getContent().get(2).getId())
-        .isEqualTo(claimMultiCfd.getId().toString());
-    assertThat(resultSetDesc.getContent().get(2).getFeeCalculationResponse().getTotalAmount())
-        .isEqualByComparingTo("50.00");
-  }
-
-  // Helper method to seed calculated fee details with specific amounts and timestamps
-  private void createCalculatedFeeDetailWithAmount(
-      Claim claim, BigDecimal totalAmount, Instant createdOn) {
-    ClaimSummaryFee summaryFee =
-        ClaimSummaryFee.builder()
-            .claim(claim)
-            .id(Uuid7.timeBasedUuid())
-            .createdByUserId("Test")
-            .build();
-    claimSummaryFeeRepository.saveAndFlush(summaryFee);
-
-    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
-    cfd.setId(Uuid7.timeBasedUuid());
-    cfd.setClaim(claim);
-    cfd.setTotalAmount(totalAmount);
-    cfd.setCreatedOn(createdOn);
-    cfd.setFeeCode("FEE-123");
-    cfd.setCreatedByUserId("Test");
-    cfd.setClaimSummaryFee(summaryFee);
-    calculatedFeeDetailRepository.saveAndFlush(cfd);
-  }
-
-  @Test
-  @DisplayName(
-      "GET v2/claims - tie-break equal latest fees by claim id and maintain pagination stability")
-  void tieBreakEqualLatestFeesByClaimIdAndMaintainPaginationStability() throws Exception {
-    Instant now = Instant.now();
-    String testOffice = "TIEFEE-OFC";
-
-    // Create an isolated submission for this test
-    Submission sortSubmission =
-        submissionRepository.saveAndFlush(
-            Submission.builder()
-                .id(Uuid7.timeBasedUuid())
-                .bulkSubmissionId(bulkSubmission.getId())
-                .officeAccountNumber(testOffice)
-                .submissionPeriod("AUG-2026")
-                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-                .status(SubmissionStatus.CREATED)
-                .providerUserId(bulkSubmission.getCreatedByUserId())
-                .createdByUserId(API_USER_ID)
-                .numberOfClaims(3)
-                .createdOn(CREATED_ON)
-                .build());
-
-    // Create three claims with identical latest totalAmount
-    Claim claimA =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(sortSubmission)
-            .caseReferenceNumber("CRN-A")
-            .uniqueFileNumber("UFN-A")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(1)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimA = claimRepository.saveAndFlush(claimA);
-    createCalculatedFeeDetailWithAmount(claimA, new BigDecimal("100.00"), now);
-
-    Claim claimB =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(sortSubmission)
-            .caseReferenceNumber("CRN-B")
-            .uniqueFileNumber("UFN-B")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(2)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimB = claimRepository.saveAndFlush(claimB);
-    createCalculatedFeeDetailWithAmount(claimB, new BigDecimal("100.00"), now);
-
-    Claim claimC =
-        Claim.builder()
-            .id(Uuid7.timeBasedUuid())
-            .submission(sortSubmission)
-            .caseReferenceNumber("CRN-C")
-            .uniqueFileNumber("UFN-C")
-            .matterTypeCode("TEST-MTC")
-            .lineNumber(3)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .createdByUserId(API_USER_ID)
-            .build();
-    claimC = claimRepository.saveAndFlush(claimC);
-    createCalculatedFeeDetailWithAmount(claimC, new BigDecimal("100.00"), now);
-
-    claimRepository.flush();
-
-    // Expected order is deterministic by Claim.id ASC for an ASC primary, and the reverse for DESC
-    List<String> expectedAscIdOrder =
-        java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
-            .map(UUID::toString)
-            .sorted()
-            .toList();
-
-    List<String> expectedDescIdOrder =
-        java.util.stream.Stream.of(claimA.getId(), claimB.getId(), claimC.getId())
-            .map(UUID::toString)
-            .sorted(java.util.Comparator.reverseOrder())
-            .toList();
-
-    // 1) Verify full list ordering with ASC primary
-    MvcResult resultAsc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,asc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetAsc =
-        OBJECT_MAPPER.readValue(
-            resultAsc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    assertThat(resultSetAsc.getContent().stream().map(ClaimResponseV2::getId))
-        .containsExactlyElementsOf(expectedAscIdOrder);
-
-    // 2) Verify pagination stability (page size 1) for ASC
-    for (int i = 0; i < expectedAscIdOrder.size(); i++) {
-      MvcResult pageResult =
-          mockMvc
-              .perform(
-                  get(GET_CLAIMS_ENDPOINT_V2)
-                      .param("office_code", testOffice)
-                      .param("sort", "total_amount,asc")
-                      .param("size", "1")
-                      .param("page", String.valueOf(i))
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isOk())
-              .andReturn();
-
-      var pageSet =
-          OBJECT_MAPPER.readValue(
-              pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
-      assertThat(pageSet.getContent()).hasSize(1);
-      assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedAscIdOrder.get(i));
-    }
-
-    // 3) Verify full list ordering with DESC primary uses ID DESC as the tie-break
-    MvcResult resultDesc =
-        mockMvc
-            .perform(
-                get(GET_CLAIMS_ENDPOINT_V2)
-                    .param("office_code", testOffice)
-                    .param("sort", "total_amount,desc")
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    var resultSetDesc =
-        OBJECT_MAPPER.readValue(
-            resultDesc.getResponse().getContentAsString(), ClaimResultSetV2.class);
-
-    // All primary values equal; tie-break is deterministic by Claim.id DESC
-    assertThat(resultSetDesc.getContent().stream().map(ClaimResponseV2::getId))
-        .containsExactlyElementsOf(expectedDescIdOrder);
-
-    // 4) Verify pagination stability (page size 1) for DESC
-    for (int i = 0; i < expectedDescIdOrder.size(); i++) {
-      MvcResult pageResult =
-          mockMvc
-              .perform(
-                  get(GET_CLAIMS_ENDPOINT_V2)
-                      .param("office_code", testOffice)
-                      .param("sort", "total_amount,desc")
-                      .param("size", "1")
-                      .param("page", String.valueOf(i))
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isOk())
-              .andReturn();
-
-      var pageSet =
-          OBJECT_MAPPER.readValue(
-              pageResult.getResponse().getContentAsString(), ClaimResultSetV2.class);
-      assertThat(pageSet.getContent()).hasSize(1);
-      assertThat(pageSet.getContent().getFirst().getId()).isEqualTo(expectedDescIdOrder.get(i));
     }
   }
 

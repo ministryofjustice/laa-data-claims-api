@@ -82,6 +82,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
 
 /**
  * Unit tests for the {@code DataClaimsApiProvider} using Pact for consumer-driven contract testing.
@@ -317,7 +318,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a claim history exists");
     when(claimRepository.existsById(any())).thenReturn(true);
     when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(getSubmissionHistoryEvent()));
+        .thenReturn(new ClaimHistoryPage(List.of(getSubmissionHistoryEvent()), 1L, 0, 20));
   }
 
   @State("no claim history exists")
@@ -333,8 +334,14 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     // Reverse-chronological order: VOID (newest) -> ASSESSMENT -> SUBMISSION (oldest).
     when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
         .thenReturn(
-            List.of(
-                getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
+            new ClaimHistoryPage(
+                List.of(
+                    getVoidHistoryEvent(),
+                    getAssessmentHistoryEvent(),
+                    getSubmissionHistoryEvent()),
+                3L,
+                0,
+                20));
   }
 
   @State("a claim history with an amendment event exists")
@@ -344,7 +351,9 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     // Reverse-chronological order: AMENDMENT (newest) -> SUBMISSION (oldest). The amendment event
     // carries the DSTEW-1814 field-level changes array (REQUESTED + FSP + explicit-null before).
     when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(getAmendmentHistoryEvent(), getSubmissionHistoryEvent()));
+        .thenReturn(
+            new ClaimHistoryPage(
+                List.of(getAmendmentHistoryEvent(), getSubmissionHistoryEvent()), 2L, 0, 20));
   }
 
   @State("a matter start exists")

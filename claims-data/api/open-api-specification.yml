@@ -2665,6 +2665,8 @@ components:
           type: string
           description: The reason the claim was voided.
     claim_history_result_set:
+      allOf:
+        - $ref: '#/components/schemas/page'
       type: object
       description: A claim's history events in reverse-chronological order.
       properties:

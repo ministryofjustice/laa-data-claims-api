@@ -21,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimHistoryApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEventType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 
@@ -41,12 +42,28 @@ public class ClaimHistoryController implements ClaimHistoryApi {
     // Pageable parameters are validated by a registered HandlerMethodArgumentResolver which will
     // throw an InvalidPageableParameterException for invalid client input.
 
-    List<ClaimHistoryEventRow> rows = claimHistoryService.getTimeline(claimId, pageable);
+    ClaimHistoryPage page = claimHistoryService.getTimeline(claimId, pageable);
 
+    List<ClaimHistoryEventRow> rows = page.getEvents() == null ? List.of() : page.getEvents();
     List<ClaimHistoryEvent> events = rows.stream().map(this::toModel).toList();
 
+    long totalElements = page.getTotalElements();
+    int pageSize = page.getPageSize();
+    int pageNumber = page.getPageNumber();
+    int totalPages = 0;
+    if (pageSize > 0) {
+      totalPages = (int) Math.ceil((double) totalElements / pageSize);
+    }
+
     ClaimHistoryResultSet result =
-        ClaimHistoryResultSet.builder().claimId(claimId).events(events).build();
+        ClaimHistoryResultSet.builder()
+            .claimId(claimId)
+            .events(events)
+            .totalElements((int) totalElements)
+            .totalPages(totalPages)
+            .number(pageNumber)
+            .size(pageSize)
+            .build();
 
     return ResponseEntity.ok(result);
   }

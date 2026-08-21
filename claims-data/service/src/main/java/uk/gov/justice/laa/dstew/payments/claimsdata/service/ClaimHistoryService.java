@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService.NO_CLAIM_FOUND_WITH_ID_ERROR;
 
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,9 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
 
 /**
@@ -36,7 +35,7 @@ public class ClaimHistoryService {
    * are converted to a limit/offset pair and applied to the underlying query.
    */
   @Transactional(readOnly = true)
-  public List<ClaimHistoryEventRow> getTimeline(UUID claimId, Pageable pageable) {
+  public ClaimHistoryPage getTimeline(UUID claimId, Pageable pageable) {
     if (pageable == null || pageable.isUnpaged()) {
       return load(claimId, PageableUtils.DEFAULT_PAGE_SIZE, PageableUtils.DEFAULT_PAGE_NUMBER);
     }
@@ -46,13 +45,15 @@ public class ClaimHistoryService {
     return load(claimId, pageSize, (int) offset);
   }
 
-  private List<ClaimHistoryEventRow> load(UUID claimId, int pageSize, int offset) {
+  private ClaimHistoryPage load(UUID claimId, int pageSize, int offset) {
     if (!claimRepository.existsById(claimId)) {
       throw new ClaimNotFoundException(String.format(NO_CLAIM_FOUND_WITH_ID_ERROR, claimId));
     }
-    List<ClaimHistoryEventRow> timeline =
-        claimHistoryRepository.findHistory(claimId, pageSize, offset);
-    log.debug("Loaded {} history event(s) for claim {}", timeline.size(), claimId);
+    ClaimHistoryPage timeline = claimHistoryRepository.findHistory(claimId, pageSize, offset);
+    log.debug(
+        "Loaded {} history event(s) for claim {}",
+        timeline.getEvents() == null ? 0 : timeline.getEvents().size(),
+        claimId);
     return timeline;
   }
 }

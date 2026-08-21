@@ -678,7 +678,7 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
   // ----------------------------------------------------------------------------------------------
 
   private List<ClaimHistoryEventRow> findHistory() {
-    return claimHistoryRepository.findHistory(CLAIM_1_ID, HISTORY_LIMIT, 0);
+    return claimHistoryRepository.findHistory(CLAIM_1_ID, HISTORY_LIMIT, 0).getEvents();
   }
 
   private ClaimHistoryEventRow findEvent(UUID sourceId) {
@@ -787,7 +787,8 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
 
     // Find the absolute positions of the two inserted assessments within the full timeline and
     // assert that fetching a single-item page at those offsets returns the expected source id.
-    List<ClaimHistoryEventRow> full = claimHistoryRepository.findHistory(CLAIM_1_ID, 100, 0);
+    List<ClaimHistoryEventRow> full =
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 100, 0).getEvents();
     int idxFirst = -1;
     int idxSecond = -1;
     for (int i = 0; i < full.size(); i++) {
@@ -803,9 +804,9 @@ class JdbcClaimHistoryRepositoryIntegrationTest extends AbstractIntegrationTest 
     assertThat(idxSecond).isGreaterThanOrEqualTo(0);
 
     List<ClaimHistoryEventRow> pageAtFirst =
-        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxFirst);
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxFirst).getEvents();
     List<ClaimHistoryEventRow> pageAtSecond =
-        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxSecond);
+        claimHistoryRepository.findHistory(CLAIM_1_ID, 1, idxSecond).getEvents();
 
     assertThat(pageAtFirst).hasSize(1);
     assertThat(pageAtSecond).hasSize(1);
