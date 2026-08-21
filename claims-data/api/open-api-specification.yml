@@ -1434,7 +1434,9 @@ components:
         - VALIDATION_FAILED
         - REPLACED
         - UNAUTHORISED
+        - READY_FOR_SUBMISSION
         - VALIDATION_SUCCEEDED
+        - DISCARDED
     bulk_submission_error_code:
       type: string
       enum:
@@ -1469,7 +1471,9 @@ components:
         - VALIDATION_IN_PROGRESS
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
+        - READY_FOR_SUBMISSION
         - REPLACED
+        - DISCARDED
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
     submission_claim:
