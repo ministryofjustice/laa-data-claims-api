@@ -470,8 +470,12 @@ paths:
           description: |
             Sort results by a field and direction, e.g. `status,asc` or `derived_claim_status,desc`.
 
-            Supported fields include the plain claim columns exposed by the endpoint plus the
-            computed fields `total_warnings`, `submission_period` and `derived_claim_status`.
+            Supported fields include the plain claim columns exposed by the endpoint, the
+            computed fields `total_warnings`, `submission_period` and `derived_claim_status`, and
+            `effective_total_value`. The latter is backed by an entity property (derived from the
+            `vw_claim_effective_value` view) and therefore sorts natively like a plain column,
+            not subject to the computed-sort caveat below.
+
             An unsupported field returns a 400 Problem Details response.
 
             `derived_claim_status` sorts by the canonical business ordering
@@ -1966,6 +1970,15 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: '#/components/schemas/fee_calculation_patch'
+            effective_total_value:
+              type: number
+              nullable: true
+              description: >-
+                The claim's effective (most recent priced) value. This is the allowed total
+                (incl. VAT) of the latest assessment when the claim has any assessment (0 for a
+                void assessment); otherwise the latest calculated fee total amount (initial pricing
+                or an amendment reprice); otherwise null when the claim has neither. Sortable via
+                the `sort` query parameter as `effective_total_value`.
             date_submitted:
               type: string
               format: date-time
