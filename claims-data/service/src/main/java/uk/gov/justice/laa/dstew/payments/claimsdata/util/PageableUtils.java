@@ -28,8 +28,8 @@ import org.springframework.data.domain.Sort;
 @UtilityClass
 public class PageableUtils {
 
-  private static final int DEFAULT_PAGE_NUMBER = 0;
-  private static final int DEFAULT_PAGE_SIZE = 20;
+  public static final int DEFAULT_PAGE_NUMBER = 0;
+  public static final int DEFAULT_PAGE_SIZE = 20;
 
   /** Implementation: validates against {@code fieldMap}, remaps aliases, appends id tie-breaker. */
   private static Pageable validateAndRemap(

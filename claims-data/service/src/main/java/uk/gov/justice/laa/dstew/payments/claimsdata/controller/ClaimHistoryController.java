@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimHistoryApi;
@@ -36,11 +37,11 @@ public class ClaimHistoryController implements ClaimHistoryApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Integer limit) {
-    List<ClaimHistoryEventRow> rows =
-        limit == null
-            ? claimHistoryService.getTimeline(claimId)
-            : claimHistoryService.getTimeline(claimId, limit);
+  public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Pageable pageable) {
+    // Pageable parameters are validated by a registered HandlerMethodArgumentResolver which will
+    // throw an InvalidPageableParameterException for invalid client input.
+
+    List<ClaimHistoryEventRow> rows = claimHistoryService.getTimeline(claimId, pageable);
 
     List<ClaimHistoryEvent> events = rows.stream().map(this::toModel).toList();
 

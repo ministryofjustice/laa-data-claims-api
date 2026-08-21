@@ -1,10 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +23,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
@@ -61,258 +66,444 @@ class ClaimControllerTest {
 
   @MockitoBean private ClaimService claimService;
 
-  @Test
-  void createClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-    when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
+  @Nested
+  @DisplayName("v1 endpoints")
+  class V1Tests {
 
-    final String body =
-        "{"
-            + "\"status\":\"READY_TO_PROCESS\","
-            + "\"schedule_reference\":\"SCH-001\","
-            + "\"line_number\":1,"
-            + "\"case_reference_number\":\"CRN-123\","
-            + "\"unique_file_number\":\"UFN-999\","
-            + "\"case_start_date\":\"2025-07-01\","
-            + "\"case_concluded_date\":\"2025-07-31\","
-            + "\"matter_type_code\":\"MAT01\","
-            + "\"outcome_code\":\"OUT01\","
-            + "\"created_by_user_id\":\"test-user\""
-            + "}";
+    @Test
+    @DisplayName("Create claim returns Created status and Location header")
+    void createClaimReturnsCreatedStatusAndLocationHeader() throws Exception {
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID claimId = Uuid7.timeBasedUuid();
+      when(claimService.createClaim(eq(submissionId), any(ClaimPost.class))).thenReturn(claimId);
 
-    mockMvc
-        .perform(
-            post(SUBMISSIONS_CLAIMS_URI + "/{id}/claims", submissionId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
-        .andExpect(status().isCreated())
-        .andExpect(
-            header()
-                .string(
-                    "Location",
-                    containsString(
-                        SUBMISSIONS_CLAIMS_URI + "/" + submissionId + "/claims/" + claimId)))
-        .andExpect(jsonPath("$.id").value(claimId.toString()));
+      final String body =
+          "{"
+              + "\"status\":\"READY_TO_PROCESS\","
+              + "\"schedule_reference\":\"SCH-001\","
+              + "\"line_number\":1,"
+              + "\"case_reference_number\":\"CRN-123\","
+              + "\"unique_file_number\":\"UFN-999\","
+              + "\"case_start_date\":\"2025-07-01\","
+              + "\"case_concluded_date\":\"2025-07-31\","
+              + "\"matter_type_code\":\"MAT01\","
+              + "\"outcome_code\":\"OUT01\","
+              + "\"created_by_user_id\":\"test-user\""
+              + "}";
 
-    verify(claimService).createClaim(eq(submissionId), any(ClaimPost.class));
+      mockMvc
+          .perform(
+              post(SUBMISSIONS_CLAIMS_URI + "/{id}/claims", submissionId)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body))
+          .andExpect(status().isCreated())
+          .andExpect(
+              header()
+                  .string(
+                      "Location",
+                      containsString(
+                          SUBMISSIONS_CLAIMS_URI + "/" + submissionId + "/claims/" + claimId)))
+          .andExpect(jsonPath("$.id").value(claimId.toString()));
+
+      verify(claimService).createClaim(eq(submissionId), any(ClaimPost.class));
+    }
+
+    @Test
+    @DisplayName("Get claim returns claim details")
+    void getClaimReturnsClaimDetails() throws Exception {
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID claimId = Uuid7.timeBasedUuid();
+      final ClaimResponse claimFields =
+          new ClaimResponse()
+              .status(ClaimStatus.VALID)
+              .scheduleReference("SCH-777")
+              .lineNumber(42)
+              .caseReferenceNumber("CRN-777")
+              .uniqueFileNumber("UFN-777")
+              .caseStartDate("01/06/2025")
+              .caseConcludedDate("30/06/2025")
+              .matterTypeCode("MAT77")
+              .outcomeCode("OUT77");
+      when(claimService.getClaim(submissionId, claimId)).thenReturn(claimFields);
+
+      mockMvc
+          .perform(
+              get(
+                  SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
+                  submissionId,
+                  claimId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.status").value("VALID"))
+          .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
+          .andExpect(jsonPath("$.line_number").value(42))
+          .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
+          .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
+          .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
+          .andExpect(jsonPath("$.outcome_code").value("OUT77"));
+
+      verify(claimService).getClaim(submissionId, claimId);
+    }
+
+    @Test
+    @DisplayName("Update claim returns No Content")
+    void updateClaimReturnsNoContent() throws Exception {
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID claimId = Uuid7.timeBasedUuid();
+      final String body = "{ \"status\": \"INVALID\" }";
+
+      mockMvc
+          .perform(
+              patch(
+                      SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
+                      submissionId,
+                      claimId)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body))
+          .andExpect(status().isNoContent());
+
+      verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
+    }
+
+    @Test
+    @DisplayName("Get claims returns claim details")
+    void getClaimsReturnsClaimDetails() throws Exception {
+      var claimResponse = new ClaimResponse();
+      var expected = new ClaimResultSet().content(List.of(claimResponse));
+
+      when(claimService.getClaimResultSet(
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(Pageable.class)))
+          .thenReturn(expected);
+
+      String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+
+      mockMvc
+          .perform(
+              get(API_URI_PREFIX + "/claims")
+                  .queryParam("office_code", "office_123")
+                  .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                  .queryParam(
+                      "submission_statuses",
+                      String.valueOf(SubmissionStatus.CREATED),
+                      String.valueOf(SubmissionStatus.REPLACED))
+                  .queryParam("fee_code", "fee_123")
+                  .queryParam("unique_file_number", "UFN_123")
+                  .queryParam("unique_client_number", "UCN_123")
+                  .queryParam("unique_case_id", "UC_ID_123")
+                  .queryParam(
+                      "claim_statuses",
+                      String.valueOf(ClaimStatus.VALID),
+                      String.valueOf(ClaimStatus.INVALID))
+                  .queryParam("submission_period", "APR-2025")
+                  .queryParam("case_reference_number", "CASE_123")
+                  .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+          .andExpect(status().isOk())
+          .andExpect(content().json(jsonContent));
+    }
+
+    @Nested
+    @DisplayName("pagination")
+    class PaginationTests {
+
+      @Test
+      @DisplayName("Get claims v1 with page=0 size=5 forwards pageable to service")
+      void getClaimsWithPage0Size5PassesPageableToService() throws Exception {
+        var claimResponse = new ClaimResponse();
+        var expected = new ClaimResultSet().content(List.of(claimResponse));
+
+        when(claimService.getClaimResultSet(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(Pageable.class)))
+            .thenReturn(expected);
+
+        clearInvocations(claimService);
+
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/claims")
+                    .queryParam("office_code", "office_123")
+                    .queryParam("page", "0")
+                    .queryParam("size", "5"))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(claimService)
+            .getClaimResultSet(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assertThat(captured.isUnpaged()).isFalse();
+        assertThat(captured.getPageNumber()).isZero();
+        assertThat(captured.getPageSize()).isEqualTo(5);
+      }
+
+      @Test
+      @DisplayName("Get claims v1 with page=2 size=5 forwards pageable to service")
+      void getClaimsWithPage2Size5PassesPageableToService() throws Exception {
+        var claimResponse = new ClaimResponse();
+        var expected = new ClaimResultSet().content(List.of(claimResponse));
+
+        when(claimService.getClaimResultSet(
+                anyString(),
+                anyString(),
+                anyList(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyList(),
+                anyString(),
+                anyString(),
+                any(Pageable.class)))
+            .thenReturn(expected);
+
+        clearInvocations(claimService);
+
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/claims")
+                    .queryParam("office_code", "office_123")
+                    .queryParam("page", "2")
+                    .queryParam("size", "5"))
+            .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(claimService)
+            .getClaimResultSet(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assertThat(captured.isUnpaged()).isFalse();
+        assertThat(captured.getPageNumber()).isEqualTo(2);
+        assertThat(captured.getPageSize()).isEqualTo(5);
+      }
+    }
+
+    @Test
+    @DisplayName("Void claim returns Created status and Location header")
+    void voidClaimReturnsCreatedStatusAndLocationHeader() throws Exception {
+
+      UUID claimId = Uuid7.timeBasedUuid();
+      UUID assessmentId = Uuid7.timeBasedUuid();
+      UUID createdByUserId = UUID.randomUUID();
+
+      when(claimService.voidClaimByIdAndCreateAssessment(
+              eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment")))
+          .thenReturn(assessmentId);
+
+      String body =
+          "{"
+              + "\"created_by_user_id\":\""
+              + createdByUserId
+              + "\","
+              + "\"assessment_reason\":\"Escape Fee Case Assessment\""
+              + "}";
+
+      mockMvc
+          .perform(
+              post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body))
+          .andExpect(status().isCreated())
+          .andExpect(
+              header()
+                  .string(
+                      "Location",
+                      containsString("/api/v1/claims/" + claimId + "/assessments/" + assessmentId)))
+          .andExpect(jsonPath("$.id").value(assessmentId.toString()));
+
+      verify(claimService)
+          .voidClaimByIdAndCreateAssessment(
+              eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment"));
+    }
+
+    @Test
+    @DisplayName("Void claim missing body returns Bad Request")
+    void voidClaimMissingBodyReturnsBadRequest() throws Exception {
+      UUID claimId = Uuid7.timeBasedUuid();
+      mockMvc
+          .perform(
+              post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content("{}"))
+          .andExpect(status().isBadRequest());
+
+      verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any(), any());
+    }
   }
 
-  @Test
-  void getClaim_returnsClaimDetails() throws Exception {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-    final ClaimResponse claimFields =
-        new ClaimResponse()
-            .status(ClaimStatus.VALID)
-            .scheduleReference("SCH-777")
-            .lineNumber(42)
-            .caseReferenceNumber("CRN-777")
-            .uniqueFileNumber("UFN-777")
-            .caseStartDate("01/06/2025")
-            .caseConcludedDate("30/06/2025")
-            .matterTypeCode("MAT77")
-            .outcomeCode("OUT77");
-    when(claimService.getClaim(submissionId, claimId)).thenReturn(claimFields);
+  @Nested
+  @DisplayName("v2 endpoints")
+  class V2Tests {
 
-    mockMvc
-        .perform(
-            get(
-                SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
-                submissionId,
-                claimId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("VALID"))
-        .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
-        .andExpect(jsonPath("$.line_number").value(42))
-        .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
-        .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
-        .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
-        .andExpect(jsonPath("$.outcome_code").value("OUT77"));
+    @Test
+    @DisplayName("Get claim v2 returns claim details")
+    void getClaimV2ReturnsClaimDetails() throws Exception {
+      final UUID submissionId = Uuid7.timeBasedUuid();
+      final UUID claimId = Uuid7.timeBasedUuid();
+      final ClaimResponseV2 claimFields =
+          new ClaimResponseV2()
+              .status(ClaimStatus.VALID)
+              .scheduleReference("SCH-777")
+              .lineNumber(42)
+              .caseReferenceNumber("CRN-777")
+              .uniqueFileNumber("UFN-777")
+              .caseStartDate("01/06/2025")
+              .caseConcludedDate("30/06/2025")
+              .matterTypeCode("MAT77")
+              .outcomeCode("OUT77");
+      when(claimService.getClaimV2(submissionId, claimId)).thenReturn(claimFields);
 
-    verify(claimService).getClaim(submissionId, claimId);
-  }
+      mockMvc
+          .perform(
+              get(
+                  SUBMISSIONS_CLAIMS_V2_URI + "/{submission-id}/claims/{claim-id}",
+                  submissionId,
+                  claimId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.status").value("VALID"))
+          .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
+          .andExpect(jsonPath("$.line_number").value(42))
+          .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
+          .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
+          .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
+          .andExpect(jsonPath("$.outcome_code").value("OUT77"));
 
-  @Test
-  void getClaimV2_returnsClaimDetails() throws Exception {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-    final ClaimResponseV2 claimFields =
-        new ClaimResponseV2()
-            .status(ClaimStatus.VALID)
-            .scheduleReference("SCH-777")
-            .lineNumber(42)
-            .caseReferenceNumber("CRN-777")
-            .uniqueFileNumber("UFN-777")
-            .caseStartDate("01/06/2025")
-            .caseConcludedDate("30/06/2025")
-            .matterTypeCode("MAT77")
-            .outcomeCode("OUT77");
-    when(claimService.getClaimV2(submissionId, claimId)).thenReturn(claimFields);
+      verify(claimService).getClaimV2(submissionId, claimId);
+    }
 
-    mockMvc
-        .perform(
-            get(
-                SUBMISSIONS_CLAIMS_V2_URI + "/{submission-id}/claims/{claim-id}",
-                submissionId,
-                claimId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("VALID"))
-        .andExpect(jsonPath("$.schedule_reference").value("SCH-777"))
-        .andExpect(jsonPath("$.line_number").value(42))
-        .andExpect(jsonPath("$.case_reference_number").value("CRN-777"))
-        .andExpect(jsonPath("$.unique_file_number").value("UFN-777"))
-        .andExpect(jsonPath("$.matter_type_code").value("MAT77"))
-        .andExpect(jsonPath("$.outcome_code").value("OUT77"));
+    @Test
+    @DisplayName("Get claims v2 returns claim details")
+    void getClaimsV2ReturnsClaimDetails() throws Exception {
+      var claimResponse = new ClaimResponseV2();
+      var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
-    verify(claimService).getClaimV2(submissionId, claimId);
-  }
+      when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+          .thenReturn(expected);
 
-  @Test
-  void updateClaim_returnsNoContent() throws Exception {
-    final UUID submissionId = Uuid7.timeBasedUuid();
-    final UUID claimId = Uuid7.timeBasedUuid();
-    final String body = "{ \"status\": \"INVALID\" }";
+      String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
 
-    mockMvc
-        .perform(
-            patch(
-                    SUBMISSIONS_CLAIMS_URI + "/{submission-id}/claims/{claim-id}",
-                    submissionId,
-                    claimId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
-        .andExpect(status().isNoContent());
+      mockMvc
+          .perform(
+              get("/api/v2/claims")
+                  .queryParam("office_code", "office_123")
+                  .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
+                  .queryParam(
+                      "submission_statuses",
+                      String.valueOf(SubmissionStatus.CREATED),
+                      String.valueOf(SubmissionStatus.REPLACED))
+                  .queryParam("fee_code", "fee_123")
+                  .queryParam("unique_file_number", "UFN_123")
+                  .queryParam("unique_client_number", "UCN_123")
+                  .queryParam("unique_case_id", "UC_ID_123")
+                  .queryParam(
+                      "claim_statuses",
+                      String.valueOf(ClaimStatus.VALID),
+                      String.valueOf(ClaimStatus.INVALID))
+                  .queryParam("submission_period", "APR-2025")
+                  .queryParam("case_reference_number", "CASE_123")
+                  .queryParam("pageable", String.valueOf(Pageable.unpaged())))
+          .andExpect(status().isOk())
+          .andExpect(content().json(jsonContent));
+    }
 
-    verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
-  }
+    @Nested
+    @DisplayName("pagination")
+    class V2PaginationTests {
 
-  @Test
-  void getClaims_returnsClaimDetails() throws Exception {
-    var claimResponse = new ClaimResponse();
-    var expected = new ClaimResultSet().content(List.of(claimResponse));
+      @Test
+      @DisplayName("Get claims v2 with page=0 size=5 forwards pageable to service")
+      void getClaimsV2WithPage0Size5PassesPageableToService() throws Exception {
+        var claimResponse = new ClaimResponseV2();
+        var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
-    when(claimService.getClaimResultSet(
-            anyString(),
-            anyString(),
-            anyList(),
-            anyString(),
-            anyString(),
-            anyString(),
-            anyString(),
-            anyList(),
-            anyString(),
-            anyString(),
-            any(Pageable.class)))
-        .thenReturn(expected);
+        when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+            .thenReturn(expected);
 
-    String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+        clearInvocations(claimService);
 
-    mockMvc
-        .perform(
-            get(API_URI_PREFIX + "/claims")
-                .queryParam("office_code", "office_123")
-                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam(
-                    "submission_statuses",
-                    String.valueOf(SubmissionStatus.CREATED),
-                    String.valueOf(SubmissionStatus.REPLACED))
-                .queryParam("fee_code", "fee_123")
-                .queryParam("unique_file_number", "UFN_123")
-                .queryParam("unique_client_number", "UCN_123")
-                .queryParam("unique_case_id", "UC_ID_123")
-                .queryParam(
-                    "claim_statuses",
-                    String.valueOf(ClaimStatus.VALID),
-                    String.valueOf(ClaimStatus.INVALID))
-                .queryParam("submission_period", "APR-2025")
-                .queryParam("case_reference_number", "CASE_123")
-                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
-        .andExpect(status().isOk())
-        .andExpect(content().json(jsonContent));
-  }
+        mockMvc
+            .perform(
+                get("/api/v2/claims")
+                    .queryParam("office_code", "office_123")
+                    .queryParam("page", "0")
+                    .queryParam("size", "5"))
+            .andExpect(status().isOk())
+            .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
 
-  @Test
-  void getClaims_v2_returnsClaimDetails() throws Exception {
-    var claimResponse = new ClaimResponseV2();
-    var expected = new ClaimResultSetV2().content(List.of(claimResponse));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(claimService)
+            .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assertThat(captured.isUnpaged()).isFalse();
+        assertThat(captured.getPageNumber()).isZero();
+        assertThat(captured.getPageSize()).isEqualTo(5);
+      }
 
-    when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
-        .thenReturn(expected);
+      @Test
+      @DisplayName("Get claims v2 with page=2 size=5 forwards pageable to service")
+      void getClaimsV2WithPage2Size5PassesPageableToService() throws Exception {
+        var claimResponse = new ClaimResponseV2();
+        var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
-    String jsonContent = OBJECT_MAPPER.writeValueAsString(expected);
+        when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+            .thenReturn(expected);
 
-    mockMvc
-        .perform(
-            get("/api/v2/claims")
-                .queryParam("office_code", "office_123")
-                .queryParam("submission_id", String.valueOf(SUBMISSION_ID))
-                .queryParam(
-                    "submission_statuses",
-                    String.valueOf(SubmissionStatus.CREATED),
-                    String.valueOf(SubmissionStatus.REPLACED))
-                .queryParam("fee_code", "fee_123")
-                .queryParam("unique_file_number", "UFN_123")
-                .queryParam("unique_client_number", "UCN_123")
-                .queryParam("unique_case_id", "UC_ID_123")
-                .queryParam(
-                    "claim_statuses",
-                    String.valueOf(ClaimStatus.VALID),
-                    String.valueOf(ClaimStatus.INVALID))
-                .queryParam("submission_period", "APR-2025")
-                .queryParam("case_reference_number", "CASE_123")
-                .queryParam("pageable", String.valueOf(Pageable.unpaged())))
-        .andExpect(status().isOk())
-        .andExpect(content().json(jsonContent));
-  }
+        clearInvocations(claimService);
 
-  @Test
-  void voidClaim_returnsCreatedStatusAndLocationHeader() throws Exception {
+        mockMvc
+            .perform(
+                get("/api/v2/claims")
+                    .queryParam("office_code", "office_123")
+                    .queryParam("page", "2")
+                    .queryParam("size", "5"))
+            .andExpect(status().isOk())
+            .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
 
-    UUID claimId = Uuid7.timeBasedUuid();
-    UUID assessmentId = Uuid7.timeBasedUuid();
-    UUID createdByUserId = UUID.randomUUID();
-
-    when(claimService.voidClaimByIdAndCreateAssessment(
-            eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment")))
-        .thenReturn(assessmentId);
-
-    String body =
-        "{"
-            + "\"created_by_user_id\":\""
-            + createdByUserId
-            + "\","
-            + "\"assessment_reason\":\"Escape Fee Case Assessment\""
-            + "}";
-
-    mockMvc
-        .perform(
-            post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
-        .andExpect(status().isCreated())
-        .andExpect(
-            header()
-                .string(
-                    "Location",
-                    containsString("/api/v1/claims/" + claimId + "/assessments/" + assessmentId)))
-        .andExpect(jsonPath("$.id").value(assessmentId.toString()));
-
-    verify(claimService)
-        .voidClaimByIdAndCreateAssessment(
-            eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment"));
-  }
-
-  @Test
-  void voidClaim_missingBody_returnsBadRequest() throws Exception {
-    UUID claimId = Uuid7.timeBasedUuid();
-    mockMvc
-        .perform(
-            post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-        .andExpect(status().isBadRequest());
-
-    verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any(), any());
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(claimService)
+            .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assertThat(captured.isUnpaged()).isFalse();
+        assertThat(captured.getPageNumber()).isEqualTo(2);
+        assertThat(captured.getPageSize()).isEqualTo(5);
+      }
+    }
   }
 }

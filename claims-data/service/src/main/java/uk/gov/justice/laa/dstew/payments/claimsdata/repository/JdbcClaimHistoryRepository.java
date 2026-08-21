@@ -131,8 +131,9 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
           FROM claims.assessment asmt
           WHERE asmt.claim_id = :claimId
       ) AS claim_history
-      ORDER BY event_timestamp DESC, source_id DESC
-      LIMIT :limit
+       ORDER BY event_timestamp DESC, source_id DESC
+       LIMIT :limit
+       OFFSET :offset
       """;
 
   private final JdbcClient jdbcClient;
@@ -144,11 +145,12 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
   }
 
   @Override
-  public List<ClaimHistoryEventRow> findHistory(UUID claimId, int limit) {
+  public List<ClaimHistoryEventRow> findHistory(UUID claimId, int limit, int offset) {
     return jdbcClient
         .sql(HISTORY_SQL)
         .param("claimId", claimId)
         .param("limit", limit)
+        .param("offset", offset)
         .query(rowMapper)
         .list();
   }

@@ -316,7 +316,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void aClaimHistoryExists() {
     log.info("Setting up state: a claim history exists");
     when(claimRepository.existsById(any())).thenReturn(true);
-    when(claimHistoryRepository.findHistory(any(), anyInt()))
+    when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
         .thenReturn(List.of(getSubmissionHistoryEvent()));
   }
 
@@ -331,7 +331,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a claim history with assessment and void events exists");
     when(claimRepository.existsById(any())).thenReturn(true);
     // Reverse-chronological order: VOID (newest) -> ASSESSMENT -> SUBMISSION (oldest).
-    when(claimHistoryRepository.findHistory(any(), anyInt()))
+    when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
         .thenReturn(
             List.of(
                 getVoidHistoryEvent(), getAssessmentHistoryEvent(), getSubmissionHistoryEvent()));
@@ -343,7 +343,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(claimRepository.existsById(any())).thenReturn(true);
     // Reverse-chronological order: AMENDMENT (newest) -> SUBMISSION (oldest). The amendment event
     // carries the DSTEW-1814 field-level changes array (REQUESTED + FSP + explicit-null before).
-    when(claimHistoryRepository.findHistory(any(), anyInt()))
+    when(claimHistoryRepository.findHistory(any(), anyInt(), anyInt()))
         .thenReturn(List.of(getAmendmentHistoryEvent(), getSubmissionHistoryEvent()));
   }
 
