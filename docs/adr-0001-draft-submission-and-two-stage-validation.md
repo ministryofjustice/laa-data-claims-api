@@ -81,8 +81,6 @@ Key facts that constrain this decision:
 
 ## Options considered
 
-### Option 1 — Expand the claim/submission status enums
-
 ### Option 1 — Expand the claim/submission status enums *(SELECTED)*
 
 Add lifecycle stages directly to the status enums, as in [`inquest-flow.md`](./inquest-flow.md), e.g.
