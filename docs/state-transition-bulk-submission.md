@@ -1,14 +1,16 @@
 # Bulk submission — state-transition diagram (recommended model)
 
 Companion to [ADR-0001](./adr-0001-draft-submission-and-two-stage-validation.md). Shows the
-`BulkSubmissionStatus` lifecycle. The bulk-submission layer is where the **INITIAL** validation
-window is represented; per-submission and per-claim outcomes are shown in the
+`BulkSubmissionStatus` lifecycle.
+
+**Change from the earlier draft of this doc:** the updated [`inquest-flow.md`](./inquest-flow.md)
+now models the **initial-validation lifecycle and the draft-hold on the `submission`**, not on the
+bulk-submission layer. The bulk layer therefore stays focused on **parsing** and the **overall
+outcome**; per-stage initial/final validation and draft/discard/abandon states live on the
 [submission](./state-transition-submission.md) and [claim](./state-transition-claim.md) diagrams.
 
-Existing values are retained. Under the two-stage model, `VALIDATION_SUCCEEDED` /
-`VALIDATION_FAILED` at this layer reflect the **full** validation outcome; a new
-`INITIAL_VALIDATION_FAILED` (optional) makes an initial-stage failure explicit rather than reusing
-`VALIDATION_FAILED`.
+Existing bulk values are retained. `VALIDATION_SUCCEEDED` / `VALIDATION_FAILED` at this layer reflect
+the **final** outcome once the underlying submission completes.
 
 ```mermaid
 stateDiagram-v2
@@ -18,58 +20,47 @@ stateDiagram-v2
     READY_FOR_PARSING --> UNAUTHORISED : office not authorised
     READY_FOR_PARSING --> PARSING_COMPLETED : split into submission + claims
 
-    PARSING_COMPLETED --> INITIAL_VALIDATION : INITIAL validation runs
-    state INITIAL_VALIDATION <<choice>>
-    INITIAL_VALIDATION --> INITIAL_VALIDATION_FAILED : blocking ERROR<br/>(new, provider must re-upload)
-    INITIAL_VALIDATION --> DRAFT_READY : passes<br/>(submission -> READY_FOR_SUBMISSION)
-
-    DRAFT_READY --> FULL_VALIDATION : provider submits draft
-    DRAFT_READY --> DISCARDED : provider discards
-    DRAFT_READY --> ABANDONED : wait period elapsed
-
-    state FULL_VALIDATION <<choice>>
-    FULL_VALIDATION --> VALIDATION_SUCCEEDED : no blocking errors
-    FULL_VALIDATION --> VALIDATION_FAILED : blocking ERROR
+    PARSING_COMPLETED --> OUTCOME : submission progresses through<br/>INITIAL -> draft -> FINAL validation<br/>(see submission diagram)
+    state OUTCOME <<choice>>
+    OUTCOME --> VALIDATION_SUCCEEDED : submission VALIDATION_SUCCEEDED
+    OUTCOME --> VALIDATION_FAILED : submission INITIAL_VALIDATION_FAILED<br/>or VALIDATION_FAILED
 
     VALIDATION_SUCCEEDED --> REPLACED : superseded
     PARSING_FAILED --> [*]
     UNAUTHORISED --> [*]
-    INITIAL_VALIDATION_FAILED --> [*]
     VALIDATION_FAILED --> [*]
     VALIDATION_SUCCEEDED --> [*]
     REPLACED --> [*]
-    DISCARDED --> [*]
-    ABANDONED --> [*]
 ```
 
-> `DRAFT_READY`, `INITIAL_VALIDATION` and `FULL_VALIDATION` above are **modelling helpers** (choice
-> pseudo-states / the draft-holding phase), not necessarily new persisted enum values. Whether the
-> bulk layer needs its own `INITIAL_VALIDATION_FAILED`, `DISCARDED`, `ABANDONED` values, or whether
-> those live only on `submission`/`claim`, is an ADR follow-up (see below).
+> `OUTCOME` above is a **modelling helper** (choice pseudo-state), not a persisted enum value. The
+> whole initial → draft → final journey happens on the `submission`; the bulk record only reflects
+> the terminal outcome.
 
 ## Status reference (persisted values)
 
 | Status | New? | Meaning |
 |--------|------|---------|
 | `READY_FOR_PARSING` | existing | Uploaded, authorised, queued for parsing |
-| `PARSING_COMPLETED` | existing | Split into submission + claims; INITIAL validation can run |
+| `PARSING_COMPLETED` | existing | Split into submission + claims; submission takes over the validation lifecycle |
 | `PARSING_FAILED` | existing | Could not parse the file |
 | `UNAUTHORISED` | existing | Office not authorised |
-| `INITIAL_VALIDATION_FAILED` | **candidate new** | Blocking failure at initial stage (vs reusing `VALIDATION_FAILED`) |
-| `VALIDATION_SUCCEEDED` | existing (FULL) | Full validation passed |
-| `VALIDATION_FAILED` | existing (FULL) | Full validation failed |
+| `VALIDATION_SUCCEEDED` | existing | Underlying submission passed final validation |
+| `VALIDATION_FAILED` | existing | Underlying submission failed initial or final validation |
 | `REPLACED` | existing | Superseded by a later bulk submission |
-| `DISCARDED` | **candidate new** | Draft discarded (if tracked at bulk layer) |
-| `ABANDONED` | **candidate new** | Draft expired (if tracked at bulk layer) |
 
 ## Notes / open decisions
 
-- **Where do draft terminal states live?** They must exist on `submission`/`claim`; whether they are
-  duplicated onto `bulk_submission` is a follow-up decision. Keeping them off the bulk layer reduces
-  enum/constraint churn.
-- **Reuse vs new for initial failure:** reusing `VALIDATION_FAILED` for an initial-stage failure is
-  cheaper but loses the stage distinction at this layer; `INITIAL_VALIDATION_FAILED` is clearer. The
-  per-message `stage` field (see ADR) provides the distinction regardless.
-- Any new value must be added to the bulk-submission `CHECK` constraint in **both** the API and
-  reporting DBs.
-- `ABANDONED` requires a timeout/scheduler that does not exist today.
+- **No new bulk statuses are proposed.** The initial-stage (`READY_FOR_INITIAL_VALIDATION`,
+  `INITIAL_VALIDATION_IN_PROGRESS`, `INITIAL_VALIDATION_FAILED`), draft-hold
+  (`READY_FOR_FINAL_VALIDATION`) and terminal draft states (`DISCARDED`, `ABANDONED`) live on the
+  **submission** and **claim**, keeping bulk-layer enum/constraint churn to zero.
+- **Open question:** should the bulk record distinguish an initial-stage failure (e.g. a dedicated
+  status) or continue to collapse both initial and final failures into `VALIDATION_FAILED`? The
+  per-message `stage` field (see ADR) preserves the distinction regardless, so collapsing is the
+  cheaper default.
+- **Open question:** how should the bulk record reflect a draft that is `DISCARDED` or `ABANDONED`?
+  Options: leave it in `PARSING_COMPLETED`, or add bulk-level terminal states. Decide alongside the
+  submission model.
+- Any new bulk value (if introduced) must be added to the bulk-submission `CHECK` constraint in
+  **both** the API and reporting DBs.

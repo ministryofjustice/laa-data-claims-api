@@ -83,18 +83,22 @@ Key facts that constrain this decision:
 
 ### Option 1 — Expand the claim/submission status enums
 
-Add lifecycle stages directly to the status enums, e.g.
-`READY_TO_PROCESS → INITIAL_VALIDATION_IN_PROGRESS → INITIAL_VALIDATION_FAILED / DRAFT_VALID →
-FULL_VALIDATION_IN_PROGRESS → INVALID / VALID`.
+### Option 1 — Expand the claim/submission status enums *(SELECTED)*
 
-- **Pros:** single field to read; explicit; easy to query "what stage is this in".
-- **Cons:** conflates *lifecycle/draft state* with *validation result*; combinatorial growth
-  (draft × passed/failed × stage); every new value must be added to **two** DBs' CHECK constraints
-  **and** the reporting materialized views, or rows silently disappear from reports; breaks the
-  meaning of the existing terminal `VALID/INVALID` that many consumers assume; invalidates the
-  `DerivedClaimStatus` derivation rules.
+Add lifecycle stages directly to the status enums, as in [`inquest-flow.md`](./inquest-flow.md), e.g.
+submission `CREATED → READY_FOR_INITIAL_VALIDATION → INITIAL_VALIDATION_IN_PROGRESS →
+INITIAL_VALIDATION_FAILED / READY_FOR_FINAL_VALIDATION → VALIDATION_IN_PROGRESS →
+VALIDATION_FAILED / VALIDATION_SUCCEEDED`, with `DISCARDED` / `ABANDONED` terminal draft states.
 
-### Option 2 — Keep `VALID`/`INVALID` as the validation *result* and model draft/stage separately
+- **Pros:** single field to read; explicit; easy to query "what stage is this in"; matches the agreed
+  flowchart.
+- **Cons (and mitigations):** risks conflating *lifecycle* with *validation result* — **mitigated**
+  by keeping `inquest_data_required` as a separate flag and leaving terminal `VALID`/`INVALID`
+  semantics unchanged; every new value must be added to **two** DBs' CHECK constraints (and,
+  deliberately, kept **out** of the reporting materialized views) — accepted as a one-off migration
+  cost; `DerivedClaimStatus` derivation must be extended for the new non-terminal states.
+
+### Option 2 — Keep `VALID`/`INVALID` as the validation *result* and model draft/stage separately *(not selected)*
 
 Retain the raw validation-result statuses and represent draft state, validation stage and
 "additional information required" as **separate, orthogonal fields** (plus a small number of new
@@ -111,49 +115,61 @@ derived status, exactly as `DerivedClaimStatus` already does.
 
 ## Decision (recommended)
 
-**Adopt a hybrid that is predominantly Option 2:** model **validation result**, **lifecycle/draft
-state** and **stage-tagged validation messages** as separate concepts, and introduce a **small,
-explicit** set of new lifecycle statuses for the states that genuinely need to be first-class and
-queryable (draft, discarded, abandoned). Expose a single friendly value to the UI through the
-existing derived-status mechanism.
+**Adopt Option 1 — explicit per-stage lifecycle statuses — aligned to the agreed
+[`inquest-flow.md`](./inquest-flow.md).** The initial-validation lifecycle, the draft-hold and the
+terminal draft states are represented directly as `SubmissionStatus` / `ClaimStatus` values.
+"Additional information required" remains a **flag** (not a status), validation messages are
+**stage-tagged**, and a friendly value is exposed to the UI via the existing derived-status
+mechanism. Option 2's concerns (reporting-whitelist churn, `DerivedClaimStatus` derivation) are
+**mitigated** by: keeping the terminal `VALID`/`INVALID` result semantics unchanged; leaving the new
+non-terminal states out of the reporting whitelist by default; and deriving the UI label rather than
+overloading the raw status.
 
-### 1. Claim status (`ClaimStatus`) — add a draft-holding state, keep result semantics
+### 1. Claim status (`ClaimStatus`)
 
-Proposed values: `READY_TO_PROCESS, READY_FOR_SUBMISSION, VALID, INVALID, VOID, DISCARDED, ABANDONED`.
+Proposed values: `READY_TO_PROCESS, READY_FOR_FINAL_VALIDATION, VALID, INVALID, VOID, DISCARDED,
+ABANDONED`.
 
 - `READY_TO_PROCESS` — created by parsing; awaiting initial validation (unchanged meaning).
-- `READY_FOR_SUBMISSION` — **new.** Passed initial validation, part of a draft; may still be
-  awaiting additional information. This is the draft-holding state.
-- `VALID` / `INVALID` — **result of full validation** (unchanged terminal meaning). `INVALID` is also
-  the result of a blocking initial-validation failure that forces a new submission.
+- `READY_FOR_FINAL_VALIDATION` — **new.** Passed initial validation, part of a draft; may still be
+  awaiting inquest data. This is the draft-holding state (previously discussed as `READY_FOR_SUBMISSION`
+  / "DRAFT").
+- `VALID` / `INVALID` — **result of final validation** (unchanged terminal meaning). `INVALID` is also
+  the result of an initial-validation error that forces a new submission.
 - `VOID` — unchanged.
 - `DISCARDED` — **new.** Provider discarded the draft.
-- `ABANDONED` — **new.** Draft expired without provider action.
+- `ABANDONED` — **new.** Draft expired without provider action (subject to the wait-period open
+  question below).
 
-### 2. "Additional information required" is a flag, not a status
+### 2. "Inquest data required" is a flag, not a status
 
-Add a boolean **`requires_additional_information`** (generalising the flowchart's
-`inquest_data_missing`) plus, if needed, a small `additional_information_type` discriminator. This
-drives the To-Do list and is **orthogonal** to `claim_status`. It is set true when initial
-validation records a "missing info" WARNING and cleared when the provider supplies valid data.
-Keeping it a flag avoids a combinatorial explosion of statuses and reuses the raw-vs-flag pattern
-that already feeds `DerivedClaimStatus`.
+Add a boolean **`inquest_data_required`** (true / false / null) to `claim`. Per the flowchart it is
+set by the **Fee Scheme Platform (FSP)**, which identifies inquest claims during the initial stage;
+it drives the front-end To-Do list and is **orthogonal** to `claim_status`. It is cleared when the
+provider supplies valid inquest data. If it is still `true` when the provider submits, it causes a
+**validation ERROR at the final stage**. Keeping it a flag avoids a combinatorial explosion of
+statuses and reuses the raw-vs-flag pattern that already feeds `DerivedClaimStatus`.
 
-### 3. Submission status (`SubmissionStatus`) — add draft + terminal draft states
+> Generalisation: if the capability extends beyond inquest, replace this with a generic
+> `requires_additional_information` boolean plus an `additional_information_type` discriminator. The
+> flowchart is currently inquest-specific; see follow-ups.
 
-Proposed additions: `READY_FOR_SUBMISSION` (draft, initial validation passed),
-`DISCARDED`, `ABANDONED`. Existing `CREATED, READY_FOR_VALIDATION, VALIDATION_IN_PROGRESS,
-VALIDATION_SUCCEEDED, VALIDATION_FAILED, REPLACED` are retained; `VALIDATION_IN_PROGRESS` now
-represents **full** validation in progress. (The initial-validation in-progress window is short and
-is represented at the bulk-submission layer — see the bulk-submission diagram — rather than adding
-yet another submission state; revisit if initial validation becomes long-running.)
+### 3. Submission status (`SubmissionStatus`)
+
+Proposed additions: `READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
+`INITIAL_VALIDATION_FAILED`, `READY_FOR_FINAL_VALIDATION` (draft-hold), `DISCARDED`, `ABANDONED`.
+Existing `CREATED, VALIDATION_IN_PROGRESS, VALIDATION_SUCCEEDED, VALIDATION_FAILED, REPLACED` are
+retained; `VALIDATION_IN_PROGRESS`/`VALIDATION_SUCCEEDED`/`VALIDATION_FAILED` now scope to the
+**final** stage. The existing `READY_FOR_VALIDATION` is effectively split into the initial/final
+`READY_FOR_*` states — decide whether to retire it or map it to `READY_FOR_FINAL_VALIDATION` (see
+migration notes).
 
 ### 4. Validation stage is recorded on the message, not (only) inferred from status
 
-Add an explicit **`stage`** value (`INITIAL` | `FULL`) to `validation_message_log` (or a controlled
+Add an explicit **`stage`** value (`INITIAL` | `FINAL`) to `validation_message_log` (or a controlled
 `source` convention). This answers *"how are validation errors associated with each stage"*
-unambiguously and lets the same rule be a **WARNING at INITIAL** and a **blocking ERROR at FULL**
-(the inquest escalation) without losing its provenance.
+unambiguously and lets the inquest concern be non-blocking at INITIAL and a **blocking ERROR at
+FINAL** without losing its provenance.
 
 ### 5. UI label via derived status
 
@@ -164,7 +180,7 @@ raw enums.
 
 ### 6. Duplicate rules
 
-Claims/submissions in `READY_FOR_SUBMISSION` **are** considered for duplicate checks;
+Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplicate checks;
 `DISCARDED` and `ABANDONED` are **not**. Update `DuplicateClaimValidation` (currently
 `List.of(READY_TO_PROCESS, VALID)`) accordingly.
 
@@ -176,38 +192,44 @@ Claims/submissions in `READY_FOR_SUBMISSION` **are** considered for duplicate ch
 - OpenAPI enum additions (`ClaimStatus`, `SubmissionStatus`) → regenerate models; treat as an
   additive, backwards-compatible schema change and version accordingly.
 - New Flyway migrations to widen `chk_claim_status` and `chk_submission_status`; add
-  `requires_additional_information` (+ optional `additional_information_type`) to `claim`; add
-  `stage` to `validation_message_log`.
-- New service transitions: initial-validation completion → `READY_FOR_SUBMISSION`; submit → full
-  validation; discard → `DISCARDED`; timeout → `ABANDONED`.
+  `inquest_data_required` (or generic `requires_additional_information` + `additional_information_type`)
+  to `claim`; add `stage` to `validation_message_log`.
+- New service transitions: parse → `READY_FOR_INITIAL_VALIDATION`; initial-validation completion →
+  `READY_FOR_FINAL_VALIDATION`; submit → final validation; discard → `DISCARDED`; timeout →
+  `ABANDONED`.
 
 ### Event service (`laa-data-claims-event-service`)
-- Split validators into **INITIAL** vs **FULL** rule sets and tag emitted messages with `stage`.
-- Downgrade "missing additional info" to a WARNING at INITIAL and escalate to a blocking ERROR at
-  FULL.
-- Update duplicate strategy for the new statuses.
+- Split validators into **INITIAL** vs **FINAL** rule sets and tag emitted messages with `stage`.
+- Integrate FSP inquest **identification** at the initial stage (sets `inquest_data_required`), and
+  escalate a still-set flag to a blocking ERROR at FINAL.
+- Update duplicate strategy for the new statuses (include `READY_FOR_FINAL_VALIDATION`, exclude
+  `DISCARDED`/`ABANDONED`).
 - **New capability required:** a timeout/scheduler to move stale drafts to `ABANDONED` — none exists
   today (all flows are SQS-driven). Decide mechanism, period and idempotency.
 
 ### Frontend (`laa-submit-a-bulk-claim`)
-- New screens/flows: To-Do list (driven by `requires_additional_information`), additional-info entry,
+- New screens/flows: To-Do list (driven by `inquest_data_required`), inquest-data entry,
   Submit and Discard actions.
 - New status→label mappings and i18n; render draft/discarded/abandoned/submitted via derived status,
   not raw enums.
-- Polling (meta-refresh) now spans two async windows (initial and full validation).
+- Polling (meta-refresh) now spans two async windows (initial and final validation).
 
 ### Reporting (`laa-data-claims-reporting-service`) — **highest backwards-compat risk**
 - The reporting DB has its **own** `CHECK` constraints and **whitelisting** materialized views.
-  New claim statuses must be added to the reporting `CHECK` constraints or ingestion will fail.
-- Drafts/discarded/abandoned should be **deliberately excluded** from REP000/012/013/014 (they must
-  not appear in financial reports). Because the views already whitelist
+  New claim/submission statuses must be added to the reporting `CHECK` constraints or ingestion will
+  fail.
+- Drafts/discarded/abandoned/initial-stage states should be **deliberately excluded** from
+  REP000/012/013/014 (they must not appear in financial reports). Because the views already whitelist
   `VALIDATION_SUCCEEDED`/`VALID`/`VOID`, the default behaviour is exclusion — but this must be
   **verified per report**, not assumed.
 - Confirm and document how the reporting DB is fed (replication/events) and update that pipeline.
 
 ### Migration / backwards compatibility
-- Additive enum values only; no existing value changes meaning.
+- Additive enum values only; no existing value changes meaning (terminal `VALID`/`INVALID` and
+  `VALIDATION_SUCCEEDED` semantics are preserved, which is what keeps the reporting whitelist safe).
 - Ship DB constraint widening **before** any service emits new values.
+- Decide the fate of the existing `READY_FOR_VALIDATION` (retire vs map to
+  `READY_FOR_FINAL_VALIDATION`).
 - Provide an OpenAPI version bump / consumer-contract note; audit operational tooling and dashboards
   that group by status.
 
@@ -215,24 +237,34 @@ Claims/submissions in `READY_FOR_SUBMISSION` **are** considered for duplicate ch
 
 ## Open questions / follow-ups (candidate stories)
 
-1. Confirm generalisation beyond inquest (is `requires_additional_information` + type sufficient?).
-2. Define the exact **INITIAL vs FULL** rule split (which existing validators run when).
-3. Design the **ABANDONED** timeout mechanism (scheduler, configurable period, idempotency, re-drive).
+1. Confirm generalisation beyond inquest (keep `inquest_data_required`, or adopt a generic
+   `requires_additional_information` + type?).
+2. Define the exact **INITIAL vs FINAL** rule split (which existing validators run when), and confirm
+   FSP inquest identification runs at INITIAL (one FSP call vs a separate lighter call).
+3. Resolve the **wait-period expiry** behaviour posed by the flowchart: `ABANDONED`, a
+   reminder/notification, or automatic submission — and design the timeout mechanism (scheduler,
+   configurable period, idempotency, re-drive).
 4. Decide `stage` on `validation_message_log` vs a `source` convention; migrate existing rows.
 5. Reconcile draft edits with the existing amendment model (`is_amended`, `has_assessment`,
    `version`, `claim_amendment`) and optimistic-locking behaviour on concurrent edits.
 6. Per-report impact sign-off for REP000/012/013/014 and the reporting ingestion pipeline.
 7. New/changed events (initial-validation-complete, submitted, discarded, abandoned) and endpoints
    (submit, discard).
-8. Terminology alignment: "initial file validation" (requirement) == `INITIAL` (this ADR).
+8. Decide ownership of inline inquest field validation (front-end vs API — the flowchart leaves this
+   open).
+9. Decide the fate of the existing `READY_FOR_VALIDATION` submission status.
+10. Terminology alignment: "initial file validation" (requirement) == `INITIAL`; "full validation"
+    (requirement) == `FINAL` (flowchart/this ADR).
 
 ---
 
 ## Recommendation summary
 
-Represent **validation result** (`VALID`/`INVALID`), **lifecycle/draft state**
-(`READY_FOR_SUBMISSION`/`DISCARDED`/`ABANDONED` + the existing states), and **stage-tagged messages**
-as separate concepts; expose one friendly value to the UI via derived status. This keeps terminal
-result semantics stable for the reporting whitelist, mirrors the existing raw-vs-derived precedent,
-and provides enough definition to write implementation stories without re-designing the model during
-delivery.
+Adopt **explicit per-stage lifecycle statuses** (Option 1) as in [`inquest-flow.md`]:
+initial-stage statuses (`READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
+`INITIAL_VALIDATION_FAILED`), a draft-hold (`READY_FOR_FINAL_VALIDATION`), and terminal draft states
+(`DISCARDED`, `ABANDONED`) — while keeping terminal `VALID`/`INVALID`/`VALIDATION_SUCCEEDED`
+semantics unchanged, modelling `inquest_data_required` as an orthogonal flag, tagging messages with
+`stage`, and exposing one friendly value to the UI via derived status. This keeps result semantics
+stable for the reporting whitelist and provides enough definition to write implementation stories
+without re-designing the model during delivery.

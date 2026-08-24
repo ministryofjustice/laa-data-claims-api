@@ -1,12 +1,16 @@
 # Claim — state-transition diagram (recommended model)
 
 Companion to [ADR-0001](./adr-0001-draft-submission-and-two-stage-validation.md). Shows the
-recommended `ClaimStatus` lifecycle under draft submission and two-stage validation.
+recommended `ClaimStatus` lifecycle under draft submission and two-stage validation, aligned to
+[`inquest-flow.md`](./inquest-flow.md).
 
 - **Result** statuses (`VALID`, `INVALID`, `VOID`) keep their existing meaning.
-- `READY_FOR_SUBMISSION` is the new draft-holding state after initial validation passes.
-- `requires_additional_information` (generalising `inquest_data_missing`) is an **orthogonal flag**,
-  not a status — shown here as guards/notes.
+- `READY_FOR_FINAL_VALIDATION` is the new draft-holding state after initial validation passes
+  (previously called "DRAFT"; supersedes the earlier working name `READY_FOR_SUBMISSION`).
+- `inquest_data_required` is an **orthogonal flag** (true / false / null), not a status. It is set by
+  the **Fee Scheme Platform (FSP)**, which identifies inquest claims during the initial stage; those
+  claims appear on the front-end To-Do list. (Generalises to a `requires_additional_information` flag
+  if the capability extends beyond inquest — see ADR.)
 - `DISCARDED` / `ABANDONED` are new terminal draft states and are **excluded** from duplicate checks
   and reporting.
 
@@ -14,23 +18,23 @@ recommended `ClaimStatus` lifecycle under draft submission and two-stage validat
 stateDiagram-v2
     [*] --> READY_TO_PROCESS : parsed from bulk file
 
-    READY_TO_PROCESS --> INVALID : INITIAL validation<br/>blocking ERROR
-    READY_TO_PROCESS --> READY_FOR_SUBMISSION : INITIAL validation passes<br/>(missing info -> WARNING,<br/>requires_additional_information = true)
+    READY_TO_PROCESS --> INVALID : INITIAL validation<br/>validation ERROR
+    READY_TO_PROCESS --> READY_FOR_FINAL_VALIDATION : INITIAL validation passes<br/>(FSP flags inquest claims:<br/>inquest_data_required = true)
 
-    state READY_FOR_SUBMISSION {
-        [*] --> InfoRequired : requires_additional_information = true<br/>(shown on To-Do list)
-        [*] --> InfoComplete : requires_additional_information = false
-        InfoRequired --> InfoComplete : provider supplies valid data<br/>(inline field validation passes)
+    state READY_FOR_FINAL_VALIDATION {
+        [*] --> InfoRequired : inquest_data_required = true<br/>(shown on To-Do list)
+        [*] --> InfoComplete : inquest_data_required = false / null
+        InfoRequired --> InfoComplete : provider supplies valid inquest data<br/>(front-end or API field validation passes)
         InfoComplete --> InfoRequired : provider clears / edits data
     }
 
-    READY_FOR_SUBMISSION --> VALIDATION : provider selects Submit<br/>=> FULL validation
-    READY_FOR_SUBMISSION --> DISCARDED : provider selects Discard
-    READY_FOR_SUBMISSION --> ABANDONED : wait period elapsed<br/>(no provider action)
+    READY_FOR_FINAL_VALIDATION --> VALIDATION : provider selects Submit<br/>=> FINAL validation
+    READY_FOR_FINAL_VALIDATION --> DISCARDED : provider selects Discard
+    READY_FOR_FINAL_VALIDATION --> ABANDONED : wait period elapsed<br/>(reminder? see open questions)
 
     state VALIDATION <<choice>>
-    VALIDATION --> INVALID : any blocking ERROR<br/>(requires_additional_information = true<br/>now escalates to ERROR)
-    VALIDATION --> VALID : no blocking errors
+    VALIDATION --> INVALID : any validation ERROR<br/>(inquest_data_required = true<br/>now causes a validation error)
+    VALIDATION --> VALID : no validation errors
 
     VALID --> VOID : voided downstream
     INVALID --> [*] : correction requires a new submission
@@ -45,21 +49,23 @@ stateDiagram-v2
 | Status | Stage | Meaning | Duplicate check? | Reportable? |
 |--------|-------|---------|------------------|-------------|
 | `READY_TO_PROCESS` | pre-initial | Parsed; awaiting initial validation | Yes | No |
-| `READY_FOR_SUBMISSION` | draft | Passed initial validation; may await additional info | **Yes** | No |
-| `VALID` | full result | Passed full validation | Yes | Yes |
-| `INVALID` | either result | Blocking ERROR at initial or full validation | No | No |
+| `READY_FOR_FINAL_VALIDATION` | draft | Passed initial validation; may await inquest data | **Yes** | No |
+| `VALID` | final result | Passed final validation | Yes | Yes |
+| `INVALID` | either result | Validation ERROR at initial or final validation | No | No |
 | `VOID` | post-submit | Voided downstream | n/a | Yes (as void) |
 | `DISCARDED` | terminal draft | Provider discarded draft | **No** | No |
-| `ABANDONED` | terminal draft | Draft expired | **No** | No |
+| `ABANDONED` | terminal draft | Draft expired (subject to open question) | **No** | No |
 
 ## Notes
 
-- `requires_additional_information` is a separate boolean column; combining it with
-  `READY_FOR_SUBMISSION` avoids a combinatorial explosion of statuses.
-- The same rule can be a **WARNING at INITIAL** and a **blocking ERROR at FULL** — captured via the
-  `stage` field on `validation_message_log`.
+- `inquest_data_required` is a separate boolean column; combining it with
+  `READY_FOR_FINAL_VALIDATION` avoids a combinatorial explosion of statuses.
+- Per the flowchart, FSP **identifies** inquest claims at the initial stage (rather than the missing
+  data being recorded as a WARNING). If `inquest_data_required` is still `true` when the provider
+  submits, it becomes a **validation ERROR** at the FINAL stage — captured via the `stage` field on
+  `validation_message_log`.
 - The UI renders "Draft / Discarded / Abandoned / Submitted" via the derived business status; raw
   `ClaimStatus` stays stable for machine consumers (see `derived-claim-status.md`).
 - `DuplicateClaimValidation` must be updated from `List.of(READY_TO_PROCESS, VALID)` to also include
-  `READY_FOR_SUBMISSION`, and to exclude `DISCARDED`/`ABANDONED`.
+  `READY_FOR_FINAL_VALIDATION`, and to exclude `DISCARDED`/`ABANDONED`.
 ```
