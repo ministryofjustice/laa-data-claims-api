@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
@@ -46,6 +47,7 @@ public class BddHooks {
   @Autowired private BulkSubmissionRepository bulkSubmissionRepository;
   @Autowired private SqsClient sqsClient;
   @Autowired private SnsClient snsClient;
+  @Autowired private BddMockServerSupport bddMockServerSupport;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -75,6 +77,10 @@ public class BddHooks {
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+
+    // Clear MockServer expectations and recorded requests so PDA-driven scenarios
+    // (DSTEW-1646 / DSTEW-1773 / DSTEW-1774) start with a clean call log.
+    bddMockServerSupport.reset();
   }
 
   @Before(order = 1)
