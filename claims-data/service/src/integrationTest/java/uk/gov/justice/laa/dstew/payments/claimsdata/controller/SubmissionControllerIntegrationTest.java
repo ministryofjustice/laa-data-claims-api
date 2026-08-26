@@ -317,6 +317,90 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET v1/submissions - page size limits results to requested size")
+  void pageSizeLimitsResultsV1Submissions() throws Exception {
+    submissionRepository.deleteAll();
+
+    final String office = VALID_OFFICE_ACCOUNT_NUMBER;
+    // create 25 submissions to make truncation obvious
+    List<Submission> fixtures = saveManySubmissions(office, 25);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .param("size", "10")
+                    .param("page", "0")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    SubmissionsResultSet resultSet =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), SubmissionsResultSet.class);
+
+    assertThat(resultSet.getTotalElements()).isEqualTo(fixtures.size());
+    assertThat(resultSet.getSize()).isEqualTo(10);
+    assertThat(resultSet.getContent()).hasSize(10);
+
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  @Test
+  @DisplayName("GET v1/submissions - page offset returns correct subset (items 11-20)")
+  void pageOffsetReturnsCorrectSubsetV1Submissions() throws Exception {
+    submissionRepository.deleteAll();
+
+    final String office = VALID_OFFICE_ACCOUNT_NUMBER;
+    List<Submission> fixtures = saveManySubmissions(office, 25);
+
+    MvcResult page0 =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .param("page", "0")
+                    .param("size", "10")
+                    .param(PARAM_SORT, "createdOn,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    MvcResult page1 =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, office)
+                    .param("page", "1")
+                    .param("size", "10")
+                    .param(PARAM_SORT, "createdOn,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    SubmissionsResultSet r0 =
+        OBJECT_MAPPER.readValue(
+            page0.getResponse().getContentAsString(), SubmissionsResultSet.class);
+    SubmissionsResultSet r1 =
+        OBJECT_MAPPER.readValue(
+            page1.getResponse().getContentAsString(), SubmissionsResultSet.class);
+
+    assertThat(r0.getContent()).hasSize(10);
+    assertThat(r1.getContent()).hasSize(10);
+
+    var returnedCreatedOns0 =
+        r0.getContent().stream().map(submission -> submission.getSubmitted()).toList();
+    var returnedCreatedOns1 =
+        r1.getContent().stream().map(submission -> submission.getSubmitted()).toList();
+
+    // Ensure pages don't overlap
+    assertThat(returnedCreatedOns0).doesNotContainAnyElementsOf(returnedCreatedOns1);
+
+    submissionRepository.deleteAll(fixtures);
+  }
+
+  @Test
   @DisplayName("Sort by submissionPeriod asc returns chronological order, not alphabetical")
   void getSubmissionsSortBySubmissionPeriodAscReturnsChronologicalOrder() throws Exception {
     // given: DEC-2024 and APR-2025 added alongside seeded submission1 (JAN-2025).
