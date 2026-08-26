@@ -1,6 +1,5 @@
 # Build stage
-FROM gradle:8-jdk21 AS builder
-
+FROM gradle:9-jdk25 AS builder
 
 # Set up working directory for build
 WORKDIR /build
@@ -17,7 +16,7 @@ RUN gradle claims-data:service:spotlessApply build
 RUN find /build -name "*.jar" & false
 
 # Specify java runtime base image
-FROM amazoncorretto:21-alpine
+FROM amazoncorretto:25-alpine
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-data-claims-api/claims-data/
