@@ -1,4 +1,4 @@
-# ADR 0001 — Storage model for Inquest MI data
+# ADR 0002 — Storage model for Inquest MI data
 
 - **Status:** Proposed — awaiting Payments Data Stewardship (PDS) decision
 - **Date:** 2026-08-24
@@ -50,10 +50,12 @@ A **governed reference list** of central-government departments. Columns of note
 "interested government department" dropdown and lets MI group/label consistently.
 
 ### 2.3 `claim_interested_department` — governed link table (many per claim)
-One row per (claim, department) pairing. FK is on the **business code**
+One row per (claim, department) pairing. In the PoC the FK is on the **business code**
 (`department_code REFERENCES department_reference(code)`), not the surrogate `id`, with
-`UNIQUE (claim_id, department_code)`. This binds interested-department selections to the
-governed list, so MI over departments is clean and aggregatable.
+`UNIQUE (claim_id, department_code)`. The FK to the governed list is what makes MI over
+departments clean and aggregatable — but note that this benefit comes from having a *governed
+FK at all*, **not** from which column it points at. Whether that FK should be the `code` or the
+surrogate `id` is a distinct decision with real trade-offs; see §2.8.
 
 ### 2.4 `claim_interested_public_authority` — free-text, ordered (many per claim)
 One row per interested public authority, stored as **free text** (`authority_name`) with a
@@ -82,17 +84,69 @@ later (add an `authority_code` FK, backfill matched names) **without changing th
 - **UI:** `laa-submit-a-bulk-claim` captures/edits the same fields during draft review.
 
 ### 2.7 Technical observations PoC Developers want PDS to be aware of
-- **FK-on-code is intentional and MI-friendly.** Persisting the stable business `code` (not the UUID)
-  keeps historical claims readable and joins simple. It does mean codes are effectively permanent.
-- **Governed rows must be *deactivated*, not deleted.** Because `claim_interested_department` FKs the
-  code, a department that has ever been referenced cannot be hard-deleted. The model already carries
-  `is_active` for exactly this. **This directly affects the DSIT "24 → 23" change** (see §6).
+- **Department FK identity is a live design question (see §2.8).** The PoC FKs the business `code`,
+  which freezes the code forever. This is analysed as its own decision below.
+- **Governed rows must be *deactivated*, not deleted.** Because `claim_interested_department`
+  references governed departments, a department that has ever been selected cannot be hard-deleted
+  without orphaning history. The model already carries `is_active` for exactly this. **This directly
+  affects the DSIT "24 → 23" change** (see §6), and holds regardless of whether the FK is on `code`
+  or the surrogate `id`.
 - **`display_order UNIQUE` on public authorities** is slightly brittle: any future reordering/edit
   path must delete-then-insert (as `replace()` already does) or risk a transient unique-constraint
   clash. Not a blocker, but worth noting for the target schema.
 - **No claim-type gate.** Nothing enforces that inquest rows only attach to inquest-type claims; the
   1:1 `UNIQUE` on `inquest_detail.claim_id` is the only structural guard. PDS may wish to comment on
   whether MI needs a stronger link to claim/matter type.
+
+### 2.8 Department identity: UUID key + optional code, not code-as-key
+The PoC makes the **business code** (`MOJ`, `HO`, …) the foreign key from
+`claim_interested_department` to `department_reference`. That conflates two separate jobs the code
+column is doing:
+
+1. **Identity / foreign key (structural).** What every claim row points at.
+2. **A human-readable handle (convenience).** A short, legible token for seeds, migrations, logs,
+   test fixtures, ad-hoc SQL and the API contract.
+
+Making the *code* do job 1 causes the core problem: because child rows reference the string, the
+code can never change. A department's `display_label` may legitimately be renamed over time (machinery
+-of-government changes, reorganisations), while the code — frozen forever — can **drift** until the
+acronym no longer matches the name it labels (e.g. a `DSIT`-style code left describing a body that has
+since merged or been renamed). Crucially, the often-cited pro — "clean, aggregatable MI" — is **not**
+a differentiator here: MI is clean because a governed FK exists, and it is *equally* clean if that FK
+is the surrogate `id` (you simply join and read the current `code`/`display_label`).
+
+It is also worth being clear that UK government department codes are **not a universally recognised
+cross-government primary key**. Departmental acronyms are a widely-understood *de facto* shorthand on
+GOV.UK and elsewhere, but there is no authoritative shared identifier — so the code should not be
+treated as one.
+
+**Three sub-options for department identity:**
+
+- **Option 1 — Code as FK / identity (current PoC).** Self-describing child rows; no join needed to
+  read which department was selected. But the code is immutable forever → the drift risk above, and
+  it leans on a token that isn't an authoritative shared key. *Not recommended.*
+- **Option 2 — Surrogate `id` (UUID) as identity, `code` retained as a *mutable* attribute
+  (recommended).** Child rows FK the UUID; `code` and `display_label` both become ordinary,
+  changeable attributes on `department_reference`. Drift disappears — because nothing FKs the code, it
+  can be corrected if a reorg makes it nonsensical. MI stays clean (join on `id`). The readable `code`
+  is kept precisely *because* it is no longer frozen, so it still earns its keep in seed data,
+  migrations, logs, test fixtures and as the least-bad stable token in the API contract
+  (`interested_department_codes`). Low-stakes and reversible: with UUID as identity, adding or dropping
+  a non-key `code` later doesn't touch claim history.
+- **Option 3 — Surrogate `id` as identity, drop `code` entirely.** Leanest reference table, but seeds,
+  fixtures and logs become opaque UUID literals, and the API contract must expose either UUIDs
+  (opaque) or `display_label` (fragile — renames break the contract). Defensible only if no consumer
+  genuinely benefits from a readable handle.
+
+**Note — label-as-at-claim-time is orthogonal.** *None* of these options snapshots the department
+label as it was when the claim was made; if a label changes, historical claims display the new label
+whichever column is joined. If MI ever needs "the department as described at the time," the label (and/
+or code) must be **copied onto the child row** at write time — a separate decision from identity, but
+one that also cheaply restores self-describing rows under Options 2/3.
+
+**PoC Developers' recommendation: Option 2** — surrogate UUID as the identity/FK, with `code` kept as a
+mutable convenience/interchange attribute. This removes the drift risk while preserving the readability
+benefits the code was really providing. Final call rests with PDS (see §8).
 
 ## 3. Decision drivers
 
@@ -101,6 +155,9 @@ later (add an `authority_code` FK, backfill matched names) **without changing th
   interested departments and (potentially) public authorities.
 - **Governance of reference data:** which lists are controlled, and how they evolve (add/rename/merge)
   without breaking historical records.
+- **Reference-data identity vs. attributes:** keys should be stable and free of business meaning, so
+  human-readable attributes (codes, labels) can change without rewriting history or drifting out of
+  sync (see §2.8).
 - **Historical accuracy:** a claim's stored facts (incl. which body was selected, and its label at
   the time) must remain interpretable years later.
 - **Change cost & deployment path:** whatever is chosen must go through GLAD and normal migrations,
@@ -167,6 +224,10 @@ A now does not foreclose B.
 Options C and D are not recommended: both trade away the referential integrity and clean joins that
 make this dataset useful for MI, which runs against the primary reason PDS owns it.
 
+Within Option A, PoC Developers further recommend the **§2.8 department-identity refinement** —
+surrogate UUID as the FK with `code` retained as a mutable attribute — rather than the PoC's
+code-as-FK, to remove the code/label drift risk at no MI cost.
+
 **The one substantive thing PoC Developers asks PDS to rule on** is the governance policy for interested
 **public authorities**: (a) leave free text for now (Option A), or (b) govern immediately (Option B).
 Everything else in Option A is a sound default pending that call.
@@ -174,11 +235,13 @@ Everything else in Option A is a sound default pending that call.
 ## 6. Consequences
 
 - **DSIT "24 → 23":** implement as a **deactivation** (`is_active = FALSE`), **not a delete**, because
-  `claim_interested_department.department_code` FKs the governed code and historical claims may
-  reference DSIT. This keeps historical claims valid and their labels resolvable. The `display_order`
-  gap left behind is cosmetic; renumbering is optional and, if done, must respect the `UNIQUE`
-  constraint. PDS to confirm the intended target label/mapping (e.g. where DSIT responsibilities now
-  sit) so the reference data reflects the merge correctly.
+  historical claims may reference DSIT and the governed FK must remain resolvable. This holds whether
+  the FK is on `code` or the surrogate `id` (see §2.8). Under the recommended UUID-identity option the
+  DSIT *code* itself can additionally be corrected if the merge makes it nonsensical; under the
+  current code-as-FK PoC it cannot. This keeps historical claims valid and their labels resolvable.
+  The `display_order` gap left behind is cosmetic; renumbering is optional and, if done, must respect
+  the `UNIQUE` constraint. PDS to confirm the intended target label/mapping (e.g. where DSIT
+  responsibilities now sit) so the reference data reflects the merge correctly.
 - **Reference data is governed data:** future department add/rename/merge follows the same
   deactivate-and-add discipline and goes through GLAD.
 - **Public authorities:** remain free text under Option A; MI consumers must expect variance until/
@@ -204,14 +267,19 @@ Suggested follow-up tickets (raise once PDS decides):
    GLAD/normal deployment, out of the PoC branch.
 2. **DSIT reference-data correction (24 → 23)** — deactivate DSIT (and set any agreed successor
    mapping); ship as a governed migration.
-3. *(Only if PDS chooses Option B)* **Introduce `public_authority_reference` + `authority_code`** and
+3. **Department identity refinement (if PDS chooses §2.8 Option 2/3)** — re-point
+   `claim_interested_department` from `department_code` to a surrogate `id` FK; retain or drop `code`
+   per the decision; migrate existing rows.
+4. *(Only if PDS chooses Option B)* **Introduce `public_authority_reference` + `authority_code`** and
    backfill matched `authority_name` values.
-4. **Schema hardening** — `display_order` constraint review on public authorities; optional
+5. **Schema hardening** — `display_order` constraint review on public authorities; optional
    claim/matter-type guard on `inquest_detail`.
 
 ## 8. PDS decision (to be completed by PDS)
 
 - **Chosen option:** _____
+- **Department identity (§2.8):** code-as-FK (1) / UUID key + retain `code` (2, recommended) / UUID key, drop `code` (3) / _____
+- **Snapshot department code/label onto claim rows for as-at-time MI?** yes / no / _____
 - **Public-authority governance:** free text (A) / governed now (B) / _____
 - **DSIT handling & successor mapping:** _____
 - **Rationale:** _____
