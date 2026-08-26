@@ -1,9 +1,8 @@
-package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
+package uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection;
 
 import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 
 /** Simple page holder returned by ClaimHistoryRepository to carry events and total count. */
 @Getter

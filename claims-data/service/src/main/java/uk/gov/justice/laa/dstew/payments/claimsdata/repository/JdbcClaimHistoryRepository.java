@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventRowMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * PostgreSQL implementation of {@link ClaimHistoryRepository}.
@@ -157,7 +158,7 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
 
     long totalElements = 0L;
     if (rows != null && !rows.isEmpty()) {
-      totalElements = rows.get(0).totalCount();
+      totalElements = rows.getFirst().totalCount();
     }
 
     int pageNumber = 0;

@@ -25,6 +25,7 @@ import ch.qos.logback.core.read.ListAppender;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -555,6 +556,90 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       mockMvc
           .perform(get(GET_CLAIMS_ENDPOINT).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
           .andExpect(status().isBadRequest());
+    }
+
+    @Nested
+    @DisplayName("V1 Pagination integration")
+    class PaginationIntegrationTestsV1 {
+
+      @Test
+      @DisplayName("GET v1/claims - no pageable values returns all claims")
+      void noPageableValuesReturnsAllClaimsV1() throws Exception {
+        String testOffice = "PAG-V1-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        createClaimsForOffice(testOffice, created);
+
+        // when: call without page/size
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT).param("office_code", testOffice).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+
+        // then: all created claims are returned
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(created);
+      }
+
+      @Test
+      @DisplayName("GET v1/claims - page size limits results to requested size")
+      void pageSizeLimitsResultsV1() throws Exception {
+        String testOffice = "PAG-V1-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        var createdIds = createClaimsForOffice(testOffice, created);
+
+        // when: request size=10 and sort by line_number to ensure deterministic order
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT)
+                        .param("office_code", testOffice)
+                        .param("size", "10")
+                        .param("page", "0")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(10);
+
+        // verify first page contains line numbers 1..10
+        var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
+        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
+      }
+
+      @Test
+      @DisplayName("GET v1/claims - page offset returns correct subset (claims 11-20)")
+      void offsetPageReturnsCorrectSubsetV1() throws Exception {
+        String testOffice = "PAG-V1-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        var createdIds = createClaimsForOffice(testOffice, created);
+
+        // when: request page=1 size=10 (0-based pages)
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT)
+                        .param("office_code", testOffice)
+                        .param("size", "10")
+                        .param("page", "1")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(10);
+
+        var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
+        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
+      }
     }
 
     @Test
@@ -1412,6 +1497,87 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isBadRequest());
     }
 
+    @Nested
+    @DisplayName("pagination integration")
+    class PaginationIntegrationTestsV2 {
+
+      @Test
+      @DisplayName("GET v2/claims - no pageable values returns all claims")
+      void noPageableValuesReturnsAllClaimsV2() throws Exception {
+        String testOffice = "PAG-V2-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        createClaimsForOffice(testOffice, created);
+
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2).param("office_code", testOffice).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(created);
+      }
+
+      @Test
+      @DisplayName("GET v2/claims - page size limits results to requested size")
+      void pageSizeLimitsResultsV2() throws Exception {
+        String testOffice = "PAG-V2-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        var createdIds = createClaimsForOffice(testOffice, created);
+
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", testOffice)
+                        .param("size", "10")
+                        .param("page", "0")
+                        .param("sort", "line_number,asc")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(10);
+
+        var returnedIds = claimResultSet.getContent().stream().map(ClaimResponseV2::getId).toList();
+        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
+      }
+
+      @Test
+      @DisplayName("GET v2/claims - page offset returns correct subset (claims 11-20)")
+      void offsetPageReturnsCorrectSubsetV2() throws Exception {
+        String testOffice = "PAG-V2-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        var createdIds = createClaimsForOffice(testOffice, created);
+
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", testOffice)
+                        .param("size", "10")
+                        .param("page", "1")
+                        .param("sort", "line_number,asc")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(10);
+
+        var returnedIds = claimResultSet.getContent().stream().map(ClaimResponseV2::getId).toList();
+        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
+      }
+    }
+
     /*
      * Additional tests covering v2/claims case_reference_number matching behavior
      */
@@ -1710,5 +1876,46 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     var created = OBJECT_MAPPER.readValue(createdBody, CreateClaim201Response.class);
 
     return created.getId();
+  }
+
+  // Helper to create an isolated submission and persist `count` claims with sequential line numbers.
+  private List<UUID> createClaimsForOffice(String officeCode, int count) {
+    Submission submission =
+        submissionRepository.saveAndFlush(
+            Submission.builder()
+                .id(Uuid7.timeBasedUuid())
+                .bulkSubmissionId(bulkSubmission.getId())
+                .officeAccountNumber(officeCode)
+                .submissionPeriod("FEB-2025")
+                .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+                .status(SubmissionStatus.CREATED)
+                .providerUserId(bulkSubmission.getCreatedByUserId())
+                .createdByUserId(API_USER_ID)
+                .numberOfClaims(count)
+                .createdOn(CREATED_ON)
+                .build());
+
+    List<UUID> ids = new ArrayList<>();
+
+    for (int i = 1; i <= count; i++) {
+      Claim claim =
+          Claim.builder()
+              .id(Uuid7.timeBasedUuid())
+              .submission(submission)
+              .caseReferenceNumber(officeCode + "-CRN-" + i)
+              .uniqueFileNumber("UFN-" + i)
+              .matterTypeCode("TEST-MTC")
+              .lineNumber(i)
+              .status(ClaimStatus.READY_TO_PROCESS)
+              .createdByUserId(API_USER_ID)
+              .createdOn(CREATED_ON.plus(i, ChronoUnit.SECONDS))
+              .build();
+
+      claim = claimRepository.saveAndFlush(claim);
+      ids.add(claim.getId());
+    }
+
+    claimRepository.flush();
+    return ids;
   }
 }

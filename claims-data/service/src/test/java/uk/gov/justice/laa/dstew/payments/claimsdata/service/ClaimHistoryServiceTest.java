@@ -24,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundExcep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimHistoryServiceTest {
@@ -52,12 +53,9 @@ class ClaimHistoryServiceTest {
     ClaimHistoryEventRow row = submissionRow(claimId);
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(claimId, DEFAULT_PAGE_SIZE, 0))
-        .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(row), 1L, 0, DEFAULT_PAGE_SIZE));
+        .thenReturn(new ClaimHistoryPage(List.of(row), 1L, 0, DEFAULT_PAGE_SIZE));
 
-    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
-        claimHistoryService.getTimeline(claimId, Pageable.unpaged());
+    ClaimHistoryPage result = claimHistoryService.getTimeline(claimId, Pageable.unpaged());
 
     assertThat(result.getEvents()).containsExactly(row);
     verify(claimHistoryRepository).findHistory(claimId, DEFAULT_PAGE_SIZE, 0);
@@ -69,12 +67,9 @@ class ClaimHistoryServiceTest {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(0)))
-        .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(), 0L, 0, 10));
+        .thenReturn(new ClaimHistoryPage(List.of(), 0L, 0, 10));
 
-    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
-        claimHistoryService.getTimeline(claimId, PageRequest.of(0, 10));
+    ClaimHistoryPage result = claimHistoryService.getTimeline(claimId, PageRequest.of(0, 10));
 
     assertThat(result.getEvents()).isEmpty();
     verify(claimHistoryRepository).findHistory(claimId, 10, 0);
@@ -86,12 +81,9 @@ class ClaimHistoryServiceTest {
     UUID claimId = UUID.randomUUID();
     when(claimRepository.existsById(claimId)).thenReturn(true);
     when(claimHistoryRepository.findHistory(eq(claimId), eq(10), eq(20)))
-        .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(), 0L, 2, 10));
+        .thenReturn(new ClaimHistoryPage(List.of(), 0L, 2, 10));
 
-    uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage result =
-        claimHistoryService.getTimeline(claimId, PageRequest.of(2, 10));
+    ClaimHistoryPage result = claimHistoryService.getTimeline(claimId, PageRequest.of(2, 10));
 
     assertThat(result.getEvents()).isEmpty();
     verify(claimHistoryRepository).findHistory(claimId, 10, 20);

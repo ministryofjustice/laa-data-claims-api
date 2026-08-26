@@ -34,6 +34,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.JacksonMappingConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -68,8 +69,7 @@ class ClaimHistoryControllerTest {
     UUID sourceId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
         .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(submissionRow(sourceId, "provider-user-id")), 1L, 0, 20));
+            new ClaimHistoryPage(List.of(submissionRow(sourceId, "provider-user-id")), 1L, 0, 20));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId))
@@ -91,9 +91,7 @@ class ClaimHistoryControllerTest {
   void usesLimitOverloadWhenLimitProvided() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(), 0L, 0, 10));
+        .thenReturn(new ClaimHistoryPage(List.of(), 0L, 0, 10));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId).param("size", "10"))
@@ -109,9 +107,7 @@ class ClaimHistoryControllerTest {
   void passesPageAndSizeToService() throws Exception {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
-        .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
-                List.of(), 0L, 2, 10));
+        .thenReturn(new ClaimHistoryPage(List.of(), 0L, 2, 10));
 
     mockMvc
         .perform(get(HISTORY_URI, claimId).param("page", "2").param("size", "10"))
@@ -130,7 +126,7 @@ class ClaimHistoryControllerTest {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
         .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+            new ClaimHistoryPage(
                 List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")), 1L, 0, 20));
 
     mockMvc
@@ -169,7 +165,7 @@ class ClaimHistoryControllerTest {
         new ClaimHistoryController(claimHistoryService, objectMapper);
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
         .thenReturn(
-            new uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage(
+            new ClaimHistoryPage(
                 List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")), 1L, 0, 20));
 
     ResponseEntity<ClaimHistoryResultSet> response =

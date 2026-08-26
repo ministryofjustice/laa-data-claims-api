@@ -82,7 +82,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * Unit tests for the {@code DataClaimsApiProvider} using Pact for consumer-driven contract testing.

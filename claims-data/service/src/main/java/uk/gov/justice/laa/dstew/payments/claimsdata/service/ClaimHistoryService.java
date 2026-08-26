@@ -9,9 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
 
 /**

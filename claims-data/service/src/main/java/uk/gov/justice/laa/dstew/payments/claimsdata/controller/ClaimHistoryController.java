@@ -21,8 +21,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimHistoryApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEventType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 
 /** Controller exposing a claim's unified, chronological history timeline. */
