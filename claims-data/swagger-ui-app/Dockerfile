@@ -1,6 +1,11 @@
 # Build stage
-FROM gradle:8-jdk21 AS builder
+FROM gradle:9-jdk25 AS builder
 
+# Patch base OS packages to pick up security fixes (e.g. CVE-2026-63076 in openssl/libssl3t64)
+# that are not yet baked into the upstream gradle image.
+RUN apt-get update \
+    && apt-get install -y --only-upgrade openssl libssl3t64 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set up working directory for build
 WORKDIR /build
@@ -17,7 +22,7 @@ RUN gradle claims-data:service:spotlessApply build
 RUN find /build -name "*.jar" & false
 
 # Specify java runtime base image
-FROM amazoncorretto:21-alpine
+FROM amazoncorretto:25-alpine
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-data-claims-api/claims-data/

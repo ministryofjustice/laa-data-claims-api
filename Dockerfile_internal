@@ -1,6 +1,12 @@
 # Build stage
 FROM gradle:9-jdk25 AS builder
 
+# Patch base OS packages to pick up security fixes (e.g. CVE-2026-63076 in openssl/libssl3t64)
+# that are not yet baked into the upstream gradle:9-jdk25 image.
+RUN apt-get update \
+    && apt-get install -y --only-upgrade openssl libssl3t64 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set up working directory for build
 WORKDIR /build
 
