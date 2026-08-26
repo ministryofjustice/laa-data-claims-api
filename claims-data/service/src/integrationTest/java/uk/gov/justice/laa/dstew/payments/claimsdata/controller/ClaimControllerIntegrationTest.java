@@ -573,11 +573,15 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         MvcResult result =
             mockMvc
                 .perform(
-                    get(GET_CLAIMS_ENDPOINT).param("office_code", testOffice).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                    get(GET_CLAIMS_ENDPOINT)
+                        .param("office_code", testOffice)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSet.class);
 
         // then: all created claims are returned
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
@@ -603,14 +607,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSet.class);
 
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
         assertThat(claimResultSet.getContent()).hasSize(10);
 
         // verify first page contains line numbers 1..10
         var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
-        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
+        assertThat(returnedIds)
+            .containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
       }
 
       @Test
@@ -632,13 +639,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSet.class);
 
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
         assertThat(claimResultSet.getContent()).hasSize(10);
 
         var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
-        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
+        assertThat(returnedIds)
+            .containsExactlyElementsOf(
+                createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
       }
     }
 
@@ -1511,11 +1522,15 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         MvcResult result =
             mockMvc
                 .perform(
-                    get(GET_CLAIMS_ENDPOINT_V2).param("office_code", testOffice).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                    get(GET_CLAIMS_ENDPOINT_V2)
+                        .param("office_code", testOffice)
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
         assertThat(claimResultSet.getContent()).hasSize(created);
@@ -1540,13 +1555,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
         assertThat(claimResultSet.getContent()).hasSize(10);
 
         var returnedIds = claimResultSet.getContent().stream().map(ClaimResponseV2::getId).toList();
-        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
+        assertThat(returnedIds)
+            .containsExactlyElementsOf(createdIds.stream().map(UUID::toString).limit(10).toList());
       }
 
       @Test
@@ -1568,13 +1586,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        var claimResultSet = OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSetV2.class);
 
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
         assertThat(claimResultSet.getContent()).hasSize(10);
 
         var returnedIds = claimResultSet.getContent().stream().map(ClaimResponseV2::getId).toList();
-        assertThat(returnedIds).containsExactlyElementsOf(createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
+        assertThat(returnedIds)
+            .containsExactlyElementsOf(
+                createdIds.stream().map(UUID::toString).skip(10).limit(10).toList());
       }
     }
 
@@ -1878,7 +1900,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     return created.getId();
   }
 
-  // Helper to create an isolated submission and persist `count` claims with sequential line numbers.
+  // Helper to create an isolated submission and persist `count` claims with sequential line
+  // numbers.
   private List<UUID> createClaimsForOffice(String officeCode, int count) {
     Submission submission =
         submissionRepository.saveAndFlush(
