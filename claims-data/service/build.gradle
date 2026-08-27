@@ -39,42 +39,6 @@ jacocoTestCoverageVerification {
 
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
-// Upgrade to fix Improper Handling of Highly Compressed Data and Allocation of Resources Without Limits
-
-// Upgrade logback to fix Expression Injection (SNYK-JAVA-CHQOSLOGBACK-17675439)
-// Overrides the Spring Boot managed logback.version for logback-core and logback-classic.
-ext['logback.version'] = '1.5.36'
-
-// Upgrade Tomcat to fix Improper Authentication (SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890)
-// and Detection of Error Condition Without Action (SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746),
-// plus related Medium-severity CVEs, present in the BOM-managed 11.0.22.
-ext['tomcat.version'] = '11.0.23'
-
-dependencyManagement {
-    dependencies {
-        dependencySet(group: 'io.sentry', version: versions.sentry) {
-            entry 'sentry-spring-boot-starter'
-            entry 'sentry-logback'
-        }
-
-        imports {
-            // Upgrade to fix vulnerabilities in netty
-            mavenBom('io.netty:netty-bom:4.2.17.Final')
-        }
-
-        // === INSERT YOUR OVERRIDES HERE ===
-        // Force jackson-core 2.x to fix Snyk vulnerability
-        dependency "com.fasterxml.jackson.core:jackson-core:2.21.5"
-        dependency "com.fasterxml.jackson.core:jackson-databind:2.21.5"
-        // Bump Log4j API to resolve Snyk issue (upgrade from 2.25.4 -> 2.25.5)
-        dependency "org.apache.logging.log4j:log4j-api:2.25.5"
-        dependency "org.apache.logging.log4j:log4j-to-slf4j:2.25.5"
-        // Force tools.jackson jackson-core/jackson-databind 3.1.5 to fix Snyk vulnerability
-        dependency "tools.jackson.core:jackson-core:3.1.5"
-        dependency "tools.jackson.core:jackson-databind:3.1.5"
-    }
-}
-
 dependencies {
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.4'

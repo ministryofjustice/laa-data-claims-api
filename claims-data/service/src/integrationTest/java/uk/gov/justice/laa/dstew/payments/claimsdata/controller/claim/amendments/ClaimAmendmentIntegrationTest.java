@@ -4,12 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockserver.verify.VerificationTimes;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
@@ -54,6 +61,144 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
   private static final String AMENDED_FEE_CODE = "FEE99";
   private static final String AMENDED_CLIENT_FORENAME = "Amended-Forename";
   private static final String AMENDED_CLIENT_SURNAME = "Amended-Surname";
+  private static final List<String> STRING_FIELDS =
+      List.of(
+          "id",
+          "submission_id",
+          "schedule_reference",
+          "case_reference_number",
+          "unique_file_number",
+          "case_start_date",
+          "case_concluded_date",
+          "matter_type_code",
+          "crime_matter_type_code",
+          "fee_scheme_code",
+          "fee_code",
+          "procurement_area_code",
+          "access_point_code",
+          "delivery_location",
+          "representation_order_date",
+          "police_station_court_prison_id",
+          "dscc_number",
+          "maat_id",
+          "prison_law_prior_approval_number",
+          "scheme_id",
+          "outreach_location",
+          "referral_source",
+          "client_forename",
+          "client_surname",
+          "client_date_of_birth",
+          "unique_client_number",
+          "client_postcode",
+          "gender_code",
+          "ethnicity_code",
+          "disability_code",
+          "client_type_code",
+          "home_office_client_number",
+          "cla_reference_number",
+          "cla_exemption_code",
+          "client_2_forename",
+          "client_2_surname",
+          "client_2_date_of_birth",
+          "client_2_ucn",
+          "client_2_postcode",
+          "client_2_gender_code",
+          "client_2_ethnicity_code",
+          "client_2_disability_code",
+          "case_id",
+          "unique_case_id",
+          "case_stage_code",
+          "stage_reached_code",
+          "standard_fee_category_code",
+          "outcome_code",
+          "designated_accredited_representative_code",
+          "mental_health_tribunal_reference",
+          "follow_on_work",
+          "transfer_date",
+          "exemption_criteria_satisfied",
+          "exceptional_case_funding_reference",
+          "prior_authority_reference",
+          "meetings_attended_code",
+          "court_location_code",
+          "advice_type_code",
+          "surgery_date",
+          "ait_hearing_centre_code",
+          "local_authority_number",
+          "submission_period",
+          "created_by_user_id",
+          "amendment_requested_by",
+          "amendment_reason_code");
+
+  private static final List<String> INTEGER_FIELDS =
+      List.of(
+          "line_number",
+          "suspects_defendants_count",
+          "police_station_court_attendances_count",
+          "mediation_sessions_count",
+          "mediation_time_minutes",
+          "advice_time",
+          "travel_time",
+          "waiting_time",
+          "adjourned_hearing_fee_amount",
+          "medical_reports_count",
+          "surgery_clients_count",
+          "surgery_matters_count",
+          "cmrh_oral_count",
+          "cmrh_telephone_count",
+          "ho_interview",
+          "total_warnings");
+
+  private static final List<String> BOOLEAN_FIELDS =
+      List.of(
+          "is_duty_solicitor",
+          "is_youth_court",
+          "is_legally_aided",
+          "client_2_is_legally_aided",
+          "is_postal_application_accepted",
+          "is_client_2_postal_application_accepted",
+          "is_nrm_advice",
+          "is_legacy_case",
+          "is_vat_applicable",
+          "is_tolerance_applicable",
+          "is_london_rate",
+          "is_additional_travel_payment",
+          "is_eligible_client",
+          "is_irc_surgery",
+          "is_substantive_hearing",
+          "is_amended",
+          "has_assessment");
+
+  private static final List<String> DECIMAL_FIELDS =
+      List.of(
+          "net_profit_costs_amount",
+          "net_disbursement_amount",
+          "net_counsel_costs_amount",
+          "disbursements_vat_amount",
+          "travel_waiting_costs_amount",
+          "net_waiting_costs_amount",
+          "costs_damages_recovered_amount",
+          "detention_travel_waiting_costs_amount",
+          "jr_form_filling_amount");
+
+  private static final List<String> LONG_FIELDS = List.of("version");
+
+  private static final List<String> UUID_FIELDS = List.of("amendment_user_id");
+
+  private static final List<String> ENUM_FIELDS = List.of("status");
+
+  private static final List<String> DATE_FIELDS =
+      List.of(
+          "case_start_date",
+          "case_concluded_date",
+          "representation_order_date",
+          "client_date_of_birth",
+          "client_2_date_of_birth",
+          "transfer_date",
+          "surgery_date");
+
+  private static final List<String> INVALID_DATES =
+      List.of(
+          "banana", "99/99/9999", "31/02/2025", "2025-01-01", "13-12-2025", "01/13/2025", "%%%%");
 
   @Test
   @DisplayName("a valid amendment commits and updates the claim_amendment, claim and client tables")
@@ -204,5 +349,98 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     // The claim itself is untouched: the amended flag is not set by a no-op.
     Claim afterClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(afterClaim.isAmended()).isFalse();
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("malformedPatchScenarios")
+  @DisplayName("malformed amendment values are handled without returning 500")
+  void malformedAmendmentValuesDoNotReturn500(String scenario, Consumer<ObjectNode> mutator)
+      throws Exception {
+
+    Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    seeded.setStatus(ClaimStatus.VALID);
+    Claim savedClaim = claimRepository.saveAndFlush(seeded);
+
+    ClaimPatch patch = metadataPatch();
+    patch.setVersion(savedClaim.getVersion());
+
+    ObjectNode json = (ObjectNode) PATCH_MAPPER.valueToTree(patch);
+
+    mutator.accept(json);
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, String.valueOf(json));
+
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+
+    assertThat(result.getResponse().getContentAsString()).isNotBlank();
+  }
+
+  private static Stream<Arguments> invalidDateScenarios() {
+
+    return DATE_FIELDS.stream()
+        .flatMap(
+            field ->
+                INVALID_DATES.stream()
+                    .map(
+                        value ->
+                            Arguments.of(
+                                field + "=" + value,
+                                (Consumer<ObjectNode>) json -> json.put(field, value))));
+  }
+
+  private static Stream<Arguments> malformedPatchScenarios() {
+
+    Stream<Arguments> strings =
+        STRING_FIELDS.stream()
+            .map(
+                field -> Arguments.of(field, (Consumer<ObjectNode>) json -> json.putObject(field)));
+
+    Stream<Arguments> integers =
+        INTEGER_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field, (Consumer<ObjectNode>) json -> json.put(field, "not-an-integer")));
+
+    Stream<Arguments> booleans =
+        BOOLEAN_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field, (Consumer<ObjectNode>) json -> json.put(field, "definitely")));
+
+    Stream<Arguments> decimals =
+        DECIMAL_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field, (Consumer<ObjectNode>) json -> json.put(field, "not-a-decimal")));
+
+    Stream<Arguments> longs =
+        LONG_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field, (Consumer<ObjectNode>) json -> json.put(field, "not-a-long")));
+
+    Stream<Arguments> uuids =
+        UUID_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field,
+                        (Consumer<ObjectNode>) json -> json.put(field, "this-is-not-a-uuid")));
+
+    Stream<Arguments> enums =
+        ENUM_FIELDS.stream()
+            .map(
+                field ->
+                    Arguments.of(
+                        field,
+                        (Consumer<ObjectNode>) json -> json.put(field, "TOTALLY_INVALID_ENUM")));
+
+    return Stream.of(
+            strings, integers, booleans, decimals, longs, uuids, enums, invalidDateScenarios())
+        .flatMap(Function.identity());
   }
 }

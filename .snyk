@@ -16,7 +16,34 @@ ignore:
           Base-image (Ubuntu 24.04) glibc CVE-2026-4438. Fixed upstream in
           2.39-0ubuntu8.8; resolved by rebuilding on the updated base image. Not
           present in the shipped Alpine runtime and not fixable from app code.
-        expires: 2026-08-26T00:00:00.000Z
+        expires: 2026-09-25T00:00:00.000Z
+
+  # CVE-2026-63076 / CVE-2026-63072 - openssl/libssl3t64 (Ubuntu 24.04 base-image OS package).
+  # Image is built and scanned by the shared reusable workflow
+  # ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml
+  # (java_distribution: corretto, java_version: 25), NOT from this repo's own Dockerfile /
+  # Dockerfile_internal (those only back local docker-compose dev images and are already
+  # amazoncorretto:*-alpine + patched). That shared workflow's build image resolves to an
+  # Ubuntu 24.04-based Corretto tag whose openssl/libssl3t64/ca-certificates packages have not
+  # yet been rebuilt upstream with the fix (3.0.13-0ubuntu3.15). Not remediable from this repo
+  # (no Dockerfile control over that build); will clear automatically once AWS/Canonical
+  # publish an updated base image and the shared workflow is rebuilt against it.
+  SNYK-UBUNTU2404-OPENSSL-19257622:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) openssl/libssl3t64 CVE-2026-63076, introduced via the
+          shared ecr-publish-image reusable workflow's build image, not this repo's own
+          Dockerfiles. Fixed upstream in 3.0.13-0ubuntu3.15; resolved once that base image
+          is rebuilt. No application-code or local-Dockerfile remediation available.
+        expires: 2026-09-25T00:00:00.000Z
+  SNYK-UBUNTU2404-OPENSSL-19257655:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) openssl/libssl3t64 CVE-2026-63072, introduced via the
+          shared ecr-publish-image reusable workflow's build image, not this repo's own
+          Dockerfiles. Fixed upstream in 3.0.13-0ubuntu3.15; resolved once that base image
+          is rebuilt. No application-code or local-Dockerfile remediation available.
+        expires: 2026-09-25T00:00:00.000Z
 # Example entry format:
 #  SNYK-VULNERABILITY-ID:
 #    - '<package>@<version>':
