@@ -12,6 +12,8 @@ repositories {
 // Upgrade to fix CVE-xxxx-xxxxx
 // ext['dependency-name.version'] = 'x.x.x'
 
+// **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.data:spring-data-commons'
