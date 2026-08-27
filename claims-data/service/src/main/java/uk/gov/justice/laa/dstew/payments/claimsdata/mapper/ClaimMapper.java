@@ -2,6 +2,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.UUID;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Condition;
@@ -13,6 +15,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
@@ -20,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimsDataException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
@@ -231,8 +235,13 @@ public interface ClaimMapper {
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   ClaimAmendmentPayload toAmendmentPayload(ClaimAmendmentPatch claimPatch);
 
-  /** Date pattern used across the claim API for {@code String} date fields (e.g. "5/12/2025"). */
-  DateTimeFormatter CLAIM_DATE_FORMAT = DateTimeFormatter.ofPattern("d/M/yyyy");
+  /**
+   * Date pattern used across the claim API for {@code String} date fields (e.g. "5/12/2025").
+   * Strict resolution ensures calendar-invalid values (e.g. "31/02/2025") are rejected rather than
+   * silently rolled over to a nearby valid date.
+   */
+  DateTimeFormatter CLAIM_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
   /**
    * Tri-state converter: {@code JsonNullable<String>} (d/M/yyyy) to {@code
@@ -245,9 +254,7 @@ public interface ClaimMapper {
     if (value == null || !value.isPresent()) {
       return JsonNullable.undefined();
     }
-    String raw = value.get();
-    return JsonNullable.of(
-        StringUtils.hasText(raw) ? LocalDate.parse(raw, CLAIM_DATE_FORMAT) : null);
+    return JsonNullable.of(parseClaimDate(value.get()));
   }
 
   /**
@@ -289,7 +296,23 @@ public interface ClaimMapper {
     if (value == null || !value.isPresent()) {
       return null;
     }
-    String raw = value.get();
-    return StringUtils.hasText(raw) ? LocalDate.parse(raw, CLAIM_DATE_FORMAT) : null;
+    return parseClaimDate(value.get());
+  }
+
+  /**
+   * Parses a raw {@code d/M/yyyy} date string, translating any malformed value into a {@link
+   * ClaimsDataException} (400 Bad Request) rather than letting {@link DateTimeParseException}
+   * propagate uncaught and surface as a 500 Internal Server Error.
+   */
+  private LocalDate parseClaimDate(String raw) {
+    if (!StringUtils.hasText(raw)) {
+      return null;
+    }
+    try {
+      return LocalDate.parse(raw, CLAIM_DATE_FORMAT);
+    } catch (DateTimeParseException e) {
+      throw new ClaimsDataException(
+          "Invalid date value '" + raw + "': expected format d/M/yyyy", HttpStatus.BAD_REQUEST, e);
+    }
   }
 }

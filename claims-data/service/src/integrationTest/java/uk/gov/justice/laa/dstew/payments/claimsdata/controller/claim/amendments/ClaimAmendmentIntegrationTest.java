@@ -198,7 +198,15 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
 
   private static final List<String> INVALID_DATES =
       List.of(
-          "banana", "99/99/9999", "31/02/2025", "2025-01-01", "13-12-2025", "01/13/2025", "%%%%");
+          "banana",
+          "99/99/9999",
+          "31/02/2025",
+          "2025-01-01",
+          "13-12-2025",
+          "01/13/2025",
+          "%%%%",
+          "01/00/2025",
+          "01/01/10000");
 
   @Test
   @DisplayName("a valid amendment commits and updates the claim_amendment, claim and client tables")
@@ -361,7 +369,7 @@ class ClaimAmendmentIntegrationTest extends AbstractAmendmentPatchIntegrationTes
     seeded.setStatus(ClaimStatus.VALID);
     Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
 
     ObjectNode json = (ObjectNode) PATCH_MAPPER.valueToTree(patch);
