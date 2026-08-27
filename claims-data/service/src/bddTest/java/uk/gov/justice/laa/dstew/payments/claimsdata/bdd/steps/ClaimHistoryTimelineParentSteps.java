@@ -472,7 +472,7 @@ public class ClaimHistoryTimelineParentSteps extends ClaimHistoryTimelineSharedS
           response.fieldNames().forEachRemaining(topLevelKeys::add);
           assertThat(topLevelKeys)
               .as("response envelope keys")
-              .containsExactlyInAnyOrder("claim_id", "events");
+              .containsExactlyInAnyOrder("claim_id", "events", "number", "size", "total_elements", "total_pages");
           // Every event must carry only agreed envelope fields.
           for (JsonNode event : eventList()) {
             Set<String> envelopeKeys = new HashSet<>();
