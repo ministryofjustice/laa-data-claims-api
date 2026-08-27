@@ -1,0 +1,228 @@
+ [
+  {
+    "http_method": "POST",
+    "path": "/api/v1/bulk-submissions",
+    "operationId": "createBulkSubmission",
+    "tables": [
+      {
+        "name": "bulk_submission",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/BulkSubmission.java",
+        "notes": "Inserted via bulkSubmissionRepository.save(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/BulkSubmissionService.java",
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/repository/BulkSubmissionRepository.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": null
+  },
+  {
+    "http_method": "PATCH",
+    "path": "/api/v1/bulk-submissions/{id}",
+    "operationId": "updateBulkSubmission",
+    "tables": [
+      {
+        "name": "bulk_submission",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/BulkSubmission.java",
+        "notes": "Updated via @Modifying JPQL in BulkSubmissionRepository.updateBulkSubmission(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/repository/BulkSubmissionRepository.java",
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/BulkSubmissionService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": "JPQL update may set updated_by/updated_on — test that created_* are preserved"
+  },
+  {
+    "http_method": "POST",
+    "path": "/api/v1/submissions",
+    "operationId": "createSubmission",
+    "tables": [
+      {
+        "name": "submission",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Submission.java",
+        "notes": "Inserted via submissionRepository.save(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/SubmissionService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": null
+  },
+  {
+    "http_method": "PATCH",
+    "path": "/api/v1/submissions/{id}",
+    "operationId": "updateSubmission",
+    "tables": [
+      {
+        "name": "submission",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Submission.java",
+        "notes": "Updated via submissionRepository.save(...) after mapping patch"
+      },
+      {
+        "name": "validation_message_log",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ValidationMessageLog.java",
+        "notes": "Inserted for each validation message in patch (optional)"
+      },
+      {
+        "name": "claim",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java",
+        "notes": "May be bulk-updated via ClaimService.updateAllClaimsStatusForSubmission(...) (JPQL @Modifying)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/SubmissionService.java",
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/ClaimService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": "validation_message_log inserted only when validation messages present; claim table updated only when status change path executed"
+  },
+  {
+    "http_method": "POST",
+    "path": "/api/v1/submissions/{id}/claims",
+    "operationId": "createClaim",
+    "tables": [
+      {
+        "name": "claim",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java",
+        "notes": "Inserted via claimRepository.save(...)"
+      },
+      {
+        "name": "claim_summary_fee",
+        "schema": "claims",
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ClaimSummaryFee.java",
+        "notes": "Inserted via claimSummaryFeeRepository.save(...)"
+      },
+      {
+        "name": "claim_case",
+        "schema": "claims",
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ClaimCase.java",
+        "notes": "Inserted via claimCaseRepository.save(...)"
+      },
+      {
+        "name": "client",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Client.java",
+        "notes": "Conditionally inserted via clientRepository.save(...) if client data present"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/ClaimService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": "client table only when client data provided in request"
+  },
+  {
+    "http_method": "PATCH",
+    "path": "/api/v1/submissions/{submission-id}/claims/{claim-id}",
+    "operationId": "updateClaim",
+    "tables": [
+      {
+        "flow": "non-amendment",
+        "writes": [
+          {"name": "validation_message_log", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ValidationMessageLog.java"},
+          {"name": "claim", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java"},
+          {"name": "calculated_fee_detail", "schema": "claims", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/CalculatedFeeDetail.java"}
+        ]
+      },
+      {
+        "flow": "amendment_commit",
+        "writes": [
+          {"name": "claim", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java"},
+          {"name": "claim_amendment", "schema": "claims", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ClaimAmendment.java"},
+          {"name": "client", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Client.java"},
+          {"name": "claim_case", "schema": "claims", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ClaimCase.java"},
+          {"name": "claim_summary_fee", "schema": "claims", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/ClaimSummaryFee.java"},
+          {"name": "calculated_fee_detail", "schema": "claims", "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/CalculatedFeeDetail.java"}
+        ],
+        "evidence_files": [
+          "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/amendment/persistence/ClaimAmendmentPersistenceService.java",
+          "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/amendment/persistence/AmendmentEntitiesWriter.java"
+        ]
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/ClaimService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": "Multiple flows — test both non-amendment and amendment commit paths; fee detail insert conditional on FSP response"
+  },
+  {
+    "http_method": "POST",
+    "path": "/api/v1/submissions/{id}/matter-starts",
+    "operationId": "createMatterStart",
+    "tables": [
+      {
+        "name": "matter_start",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/MatterStart.java",
+        "notes": "Inserted via matterStartRepository.save(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/MatterStartService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on"],
+    "conditionality": null
+  },
+  {
+    "http_method": "POST",
+    "path": "/api/v1/claims/{claim-id}/void",
+    "operationId": "voidClaim",
+    "tables": [
+      {
+        "name": "claim",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java",
+        "notes": "Updated (status -> VOID) via claim.voidClaim(...) and saved"
+      },
+      {
+        "name": "assessment",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Assessment.java",
+        "notes": "Inserted via assessmentRepository.save(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/ClaimService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": null
+  },
+  {
+    "http_method": "POST",
+    "path": "/api/v1/claims/{claimId}/assessments",
+    "operationId": "createAssessment",
+    "tables": [
+      {
+        "name": "assessment",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Assessment.java",
+        "notes": "Inserted via assessmentRepository.save(...)"
+      },
+      {
+        "name": "claim",
+        "schema": null,
+        "entity_file": "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/entity/Claim.java",
+        "notes": "Updated (hasAssessment flag and updated_by/updated_on) via advanceClaimForAssessment(...)"
+      }
+    ],
+    "evidence_files": [
+      "/Users/ben.hobden/GitRepos/laa-data-claims-api/claims-data/service/src/main/java/uk/gov/justice/laa/dstew/payments/claimsdata/service/AssessmentService.java"
+    ],
+    "metadata_fields": ["created_by_user_id","created_on","updated_by_user_id","updated_on"],
+    "conditionality": null
+  }
+]
+
+

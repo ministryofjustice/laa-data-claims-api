@@ -1071,7 +1071,6 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
-
     assertThat(
             listAppender.list.stream()
                 .filter(

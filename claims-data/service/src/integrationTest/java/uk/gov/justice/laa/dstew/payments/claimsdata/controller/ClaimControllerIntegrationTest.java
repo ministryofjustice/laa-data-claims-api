@@ -305,6 +305,11 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("PATCH submissions/{id}/claims/{id} - updates an existing claim")
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
+    // capture the pre-update state to assert created metadata is preserved
+    Claim beforeClaim =
+        claimRepository
+            .findById(CLAIM_1_ID)
+            .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setFeeCode(FEE_CODE);

@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.ASSESSMENT_2_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
@@ -38,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -220,7 +222,6 @@ public abstract class AbstractIntegrationTest {
             .createdOn(CREATED_ON)
             .providerUserId(bulkSubmission.getCreatedByUserId())
             .numberOfClaims(0)
-            .createdOn(CREATED_ON)
             .build();
     submissionRepository.save(submission);
   }
@@ -239,6 +240,7 @@ public abstract class AbstractIntegrationTest {
             .numberOfClaims(0)
             .createdOn(CREATED_ON)
             .build();
+
     submission2 =
         Submission.builder()
             .id(SUBMISSION_2_ID)
@@ -1062,5 +1064,98 @@ public abstract class AbstractIntegrationTest {
             .createdOn(createdOn.toInstant())
             .createdByUserId(USER_ID)
             .build());
+  }
+
+  // --- Audit assertion helpers to reduce duplication in integration tests ---
+
+  protected void assertClaimCreatedPreserved(Claim before, Claim after) {
+    // created metadata must not be overwritten by subsequent updates
+    assertThat(after.getCreatedByUserId()).isEqualTo(before.getCreatedByUserId());
+    assertThat(after.getCreatedOn()).isEqualTo(before.getCreatedOn());
+  }
+
+  protected void assertClaimUpdatedByAndTimestamp(Claim claim, String expectedUpdatedBy) {
+    assertThat(claim.getUpdatedByUserId()).isEqualTo(expectedUpdatedBy);
+    assertThat(claim.getUpdatedOn()).isNotNull();
+  }
+
+  protected void assertSubmissionCreatedPreserved(Submission before, Submission after) {
+    assertThat(after.getCreatedByUserId()).isEqualTo(before.getCreatedByUserId());
+    assertThat(after.getCreatedOn()).isEqualTo(before.getCreatedOn());
+  }
+
+  protected void assertSubmissionUpdatedByAndTimestamp(
+      Submission submission, String expectedUpdatedBy) {
+    assertThat(submission.getUpdatedByUserId()).isEqualTo(expectedUpdatedBy);
+    assertThat(submission.getUpdatedOn()).isNotNull();
+  }
+
+  protected void assertBulkSubmissionCreatedPreserved(BulkSubmission before, BulkSubmission after) {
+    assertThat(after.getCreatedByUserId()).isEqualTo(before.getCreatedByUserId());
+    assertThat(after.getCreatedOn()).isEqualTo(before.getCreatedOn());
+  }
+
+  protected void assertBulkSubmissionUpdatedByAndTimestamp(
+      BulkSubmission bulkSubmission, String expectedUpdatedBy) {
+    assertThat(bulkSubmission.getUpdatedByUserId()).isEqualTo(expectedUpdatedBy);
+    assertThat(bulkSubmission.getUpdatedOn()).isNotNull();
+  }
+
+  /**
+   * Generic assertion helper for created metadata fields. Tests should pass suppliers that fetch
+   * the createdBy and createdOn values from the freshly-loaded entity.
+   */
+  protected void assertCreatedMetadata(
+      String entityName,
+      String expectedCreatedByUserId,
+      Instant preCallTime,
+      Supplier<String> createdBySupplier,
+      Supplier<Instant> createdOnSupplier) {
+    String createdBy = createdBySupplier.get();
+    Instant createdOn = createdOnSupplier.get();
+
+    assertThat(createdBy).as(entityName + " createdByUserId").isEqualTo(expectedCreatedByUserId);
+    assertThat(createdOn)
+        .as(entityName + " createdOn (should be present and on/after preCallTime)")
+        .isNotNull()
+        .isAfterOrEqualTo(preCallTime.minusSeconds(1));
+  }
+
+  /**
+   * Generic assertion helper for updated metadata fields. Tests should pass suppliers that fetch
+   * the updatedBy and updatedOn values from the freshly-loaded entity.
+   */
+  protected void assertUpdatedMetadata(
+      String entityName,
+      String expectedUpdatedByUserId,
+      Instant preUpdateTime,
+      Supplier<String> updatedBySupplier,
+      Supplier<Instant> updatedOnSupplier) {
+    String updatedBy = updatedBySupplier.get();
+    Instant updatedOn = updatedOnSupplier.get();
+
+    assertThat(updatedBy).as(entityName + " updatedByUserId").isEqualTo(expectedUpdatedByUserId);
+    assertThat(updatedOn)
+        .as(entityName + " updatedOn (should be present and on/after preUpdateTime)")
+        .isNotNull()
+        .isAfterOrEqualTo(preUpdateTime.minusSeconds(1));
+  }
+
+  /**
+   * Generic assertion helper that verifies created metadata was preserved between before/after
+   * snapshots.
+   */
+  protected void assertCreatedPreserved(
+      String entityName,
+      String originalCreatedBy,
+      Instant originalCreatedOn,
+      Supplier<String> createdBySupplier,
+      Supplier<Instant> createdOnSupplier) {
+    assertThat(createdBySupplier.get())
+        .as(entityName + " createdByUserId preserved")
+        .isEqualTo(originalCreatedBy);
+    assertThat(createdOnSupplier.get())
+        .as(entityName + " createdOn preserved")
+        .isEqualTo(originalCreatedOn);
   }
 }
