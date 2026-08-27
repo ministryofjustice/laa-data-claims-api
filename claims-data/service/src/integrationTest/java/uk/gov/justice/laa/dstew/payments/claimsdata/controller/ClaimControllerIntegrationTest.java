@@ -589,6 +589,38 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       }
 
       @Test
+      @DisplayName("GET v1/claims - no pageable values returns all claims")
+      void noPageableWithSortValuesReturnsAllClaimsV1() throws Exception {
+        String testOffice = "PAG-V1-OFC-" + Uuid7.timeBasedUuid();
+        final int created = 25;
+        var createdIds = createClaimsForOffice(testOffice, created);
+
+        // when: call without page/size but with a sort param
+        MvcResult result =
+            mockMvc
+                .perform(
+                    get(GET_CLAIMS_ENDPOINT)
+                        .param("office_code", testOffice)
+                        .param("sort", "id,desc")
+                        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var claimResultSet =
+            OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+
+        // then: all created claims are returned
+        assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
+        assertThat(claimResultSet.getContent()).hasSize(created);
+
+        // and: the returned list respects the requested sort (id,desc)
+        var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
+        var expectedDesc =
+            createdIds.stream().map(UUID::toString).sorted(java.util.Comparator.reverseOrder()).toList();
+        assertThat(returnedIds).containsExactlyElementsOf(expectedDesc);
+      }
+
+      @Test
       @DisplayName("GET v1/claims - page size limits results to requested size")
       void pageSizeLimitsResultsV1() throws Exception {
         String testOffice = "PAG-V1-OFC-" + Uuid7.timeBasedUuid();
