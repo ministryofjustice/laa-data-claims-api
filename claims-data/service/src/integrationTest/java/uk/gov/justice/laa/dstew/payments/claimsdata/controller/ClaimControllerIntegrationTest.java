@@ -607,7 +607,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .andReturn();
 
         var claimResultSet =
-            OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+            OBJECT_MAPPER.readValue(
+                result.getResponse().getContentAsString(), ClaimResultSet.class);
 
         // then: all created claims are returned
         assertThat(claimResultSet.getTotalElements()).isEqualTo(created);
@@ -616,7 +617,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         // and: the returned list respects the requested sort (id,desc)
         var returnedIds = claimResultSet.getContent().stream().map(ClaimResponse::getId).toList();
         var expectedDesc =
-            createdIds.stream().map(UUID::toString).sorted(java.util.Comparator.reverseOrder()).toList();
+            createdIds.stream()
+                .map(UUID::toString)
+                .sorted(java.util.Comparator.reverseOrder())
+                .toList();
         assertThat(returnedIds).containsExactlyElementsOf(expectedDesc);
       }
 
