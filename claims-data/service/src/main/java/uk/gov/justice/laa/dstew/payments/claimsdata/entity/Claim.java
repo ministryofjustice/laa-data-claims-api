@@ -59,7 +59,7 @@ public class Claim {
   private List<ClaimSummaryFee> claimSummaryFee;
 
   @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
-  @OrderBy("createdOn DESC, id DESC") // Matches the DB index for latest selection
+  @OrderBy("createdOn DESC, id DESC")
   @Builder.Default
   private List<CalculatedFeeDetail> calculatedFeeDetails = new ArrayList<>();
 
