@@ -453,8 +453,14 @@ paths:
           description: |
             Sort results by a field and direction, e.g. `status,asc` or `derived_claim_status,desc`.
 
-            Supported fields include the plain claim columns exposed by the endpoint plus the
+            Supported fields include the plain claim columns exposed by the endpoint and the
             computed fields `total_warnings`, `submission_period` and `derived_claim_status`.
+
+            `effective_total_value` is also supported. Although its value is derived from the
+            `vw_claim_effective_value` view, it is backed by an entity property and therefore
+            sorts natively like a plain column - it is not subject to the computed-sort caveat
+            below and may be combined with other plain columns in a multi-field sort.
+
             An unsupported field returns a 400 Problem Details response.
 
             `derived_claim_status` sorts by the canonical business ordering
@@ -1014,9 +1020,10 @@ paths:
 
         **Call pattern (one-response):** history is retrieved with a single request by claim id.
         There are no split summary/detail endpoints, expansion flags or event-type/date-range
-        filters; a consumer populates its history page from this one response, optionally bounding
-        the page size with `limit`. Pagination is not offered yet (a future keyset/cursor overload
-        may be added without reshaping this contract).
+        filters; a consumer populates its history page from this one response. Pagination is
+        supported via standard `page` and `size` query parameters (zero-based page index and
+        page size respectively). A future keyset/cursor overload may be added without reshaping
+        this contract.
 
         **Default ordering:** `event_timestamp` descending (newest first), with the UUIDv7
         `source_id` descending as the deterministic same-timestamp tie-break. `event_type` never
@@ -1030,6 +1037,7 @@ paths:
         contract without reshaping it.
 
         **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
+      x-spring-paginated: true
       parameters:
         - name: claimId
           in: path
@@ -1038,15 +1046,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: limit
-          in: query
-          required: false
-          description: Maximum number of timeline events to return (page size).
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 50
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
           description: Claim history timeline retrieved successfully
@@ -1746,6 +1747,15 @@ components:
               description: Number of validation warnings for this claim.
             fee_calculation_response:
               $ref: './schemas/claim-patch.yml#/fee_calculation_patch'
+            effective_total_value:
+              type: number
+              nullable: true
+              description: >-
+                The claim's effective (most recent priced) value. This is the allowed total
+                (incl. VAT) of the latest assessment when the claim has any assessment (0 for a
+                void assessment); otherwise the latest calculated fee total amount (initial pricing
+                or an amendment reprice); otherwise null when the claim has neither. Sortable via
+                the `sort` query parameter as `effective_total_value`.
             date_submitted:
               type: string
               format: date-time
@@ -2335,6 +2345,8 @@ components:
           type: string
           description: The reason the claim was voided.
     claim_history_result_set:
+      allOf:
+        - $ref: '#/components/schemas/page'
       type: object
       description: A claim's history events in reverse-chronological order.
       properties:

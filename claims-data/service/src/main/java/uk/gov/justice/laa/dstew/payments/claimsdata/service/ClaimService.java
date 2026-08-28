@@ -104,7 +104,10 @@ public class ClaimService
           "validationMessages",
           "feeCalculationResponse",
           "version",
-          "createdByUserId");
+          "createdByUserId",
+          // Read-only field computed from the vw_claim_effective_value view; must not count as a
+          // provider-requested change that triggers the amendment path.
+          "effectiveTotalValue");
 
   private static final Set<String> COMPUTED_SORT_PATHS =
       Set.of(
@@ -569,11 +572,17 @@ public class ClaimService
     Pageable sanitizedPageable = removeComputedSorts(mappedPageable);
 
     // Deterministic ordering:
-    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
-    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
-    //    unsorted so Spring Data does not override that ordering.
-    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
-    if (!hasComputedSort(mappedPageable)) {
+    //  - A computed sort (totalWarnings, submissionPeriod, derivedClaimStatus, latest calculated
+    //    fee) applies its own id tie-break inside the ordering Specification. When every requested
+    //    sort is computed the sanitized Pageable is left unsorted, so Spring Data does not override
+    //    that Specification ordering and we must not append a tie-break here.
+    //  - Any plain-column sort that survives sanitisation is applied by Spring Data and would
+    //    override the Specification ordering, so it needs the id tie-break appended here. This also
+    //    covers requests that mix a plain-column sort with a computed sort (e.g.
+    //    sort=effective_total_value,asc&sort=total_warnings,asc): stripping the computed order must
+    //    not leave the surviving plain sort without a deterministic tie-break.
+    //  - The unsorted default likewise gets the id tie-break appended.
+    if (sanitizedPageable.getSort().isSorted() || !hasComputedSort(mappedPageable)) {
       sanitizedPageable = appendIdTieBreak(sanitizedPageable);
     }
 
@@ -630,10 +639,12 @@ public class ClaimService
       return pageable;
     }
 
-    Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+    List<Sort.Order> mappedOrders = originalSort.stream().map(this::mapOrder).toList();
+    Sort mappedSort = Sort.by(mappedOrders);
 
-    // A sort-only request (no page/size) resolves to an Unpaged pageable, which does not support
-    // getPageNumber()/getPageSize(); carry the mapped sort on an unpaged instance in that case.
+    // An unpaged request still carries a sort, but exposes no page number/size; building a
+    // PageRequest from it would throw. Return an unpaged pageable that keeps the mapped sort so all
+    // rows come back ordered, mirroring the unsorted-unpaged path handled above.
     if (pageable.isUnpaged()) {
       return Pageable.unpaged(mappedSort);
     }

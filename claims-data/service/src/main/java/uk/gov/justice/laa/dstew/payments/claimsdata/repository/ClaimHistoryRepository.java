@@ -1,8 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
-import java.util.List;
 import java.util.UUID;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * Read-model repository that assembles a single claim's complete history as a unified,
@@ -16,11 +15,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimH
 public interface ClaimHistoryRepository {
 
   /**
-   * Retrieves the most recent slice of a claim's history timeline.
+   * Retrieves a slice of a claim's history timeline.
+   *
+   * <p>This method supports offset-based pagination by accepting an explicit {@code limit} and
+   * {@code offset}. Implementations must return events ordered newest-first by {@code
+   * event_timestamp DESC, source_id DESC}.
    *
    * @param claimId the claim whose history should be retrieved
    * @param limit the maximum number of events to return (page size)
+   * @param offset the number of rows to skip (zero-based)
    * @return events ordered newest-first by {@code event_timestamp DESC, source_id DESC}
    */
-  List<ClaimHistoryEventRow> findHistory(UUID claimId, int limit);
+  ClaimHistoryPage findHistory(UUID claimId, int limit, int offset);
 }

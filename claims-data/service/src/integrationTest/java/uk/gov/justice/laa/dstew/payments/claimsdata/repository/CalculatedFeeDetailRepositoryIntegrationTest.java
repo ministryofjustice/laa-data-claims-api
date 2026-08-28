@@ -30,7 +30,8 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
   }
 
   @Test
-  void findByClaimId_returnsCalculatedFeeDetail() {
+  @DisplayName("findByClaimId returns CalculatedFeeDetail")
+  void findByClaimIdReturnsCalculatedFeeDetail() {
     var result =
         calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID);
 
@@ -43,7 +44,8 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
   }
 
   @Test
-  void findByClaimId_whenUnknown_returnsEmpty() {
+  @DisplayName("findByClaimId when unknown returns empty")
+  void findByClaimIdWhenUnknownReturnsEmpty() {
     UUID unknownClaimId = Uuid7.timeBasedUuid();
     var result =
         calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(unknownClaimId);

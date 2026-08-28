@@ -44,7 +44,12 @@ public enum ClaimSortField {
   // ClaimSpecification.orderByDerivedClaimStatus using a SQL CASE expression whose ordinals come
   // from the DerivedClaimStatus enum. Treated like the other computed markers (totalWarnings,
   // submission.submissionPeriod) and stripped from the Pageable before the query executes.
-  DERIVED_CLAIM_STATUS("derived_claim_status", "derivedClaimStatus");
+  DERIVED_CLAIM_STATUS("derived_claim_status", "derivedClaimStatus"),
+
+  // Effective total value is exposed on the Claim entity as an @Formula-derived property (backed by
+  // the vw_claim_effective_value view), so it maps to a real entity property and sorts natively
+  // across the whole result set (before pagination), with an id tie-breaker applied by the service.
+  EFFECTIVE_TOTAL_VALUE("effective_total_value", "effectiveTotalValue");
 
   private final String apiName;
   private final String entityPath;

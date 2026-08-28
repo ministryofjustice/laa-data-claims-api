@@ -1,5 +1,11 @@
 plugins {
-    id 'org.openapi.generator' version '7.23.0'
+    id 'org.openapi.generator' version '7.13.0'
+    // NOTE: The generated API previously started receiving a @PageableDefault
+    // annotation on pageable controller parameters when using newer
+    // openapi-generator versions. That change alters runtime behaviour for
+    // "size-only" requests and breaks downstream expectations in this
+    // repository. To preserve compatibility, we have removed the generated
+    // pinned it to 7.13.0, which is the last version that did not emit the annotation.
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
 }
 
@@ -58,7 +64,8 @@ openApiGenerate {
             serializableModel   : "true",
             skipDefaultInterface: "true",
             useJakartaEe        : "true",
-            useSpringBoot4      : "true",
+            //useSpringBoot4      : "true", // Uncomment this line if you want to use Spring Boot 4 features
+            useSpringBoot3      : "true",
             useTags             : "true",
             openApiNullable     : "false"
     ]
@@ -88,26 +95,15 @@ tasks.register('openApiGenerateSwaggerOnly', GenerateTask) {
 // -----------------------------------------------------------------------------
 tasks.register('openApiGenerateAmendment', GenerateTask) {
     generatorName = "spring"
-    inputSpec.set(
-        layout.projectDirectory.file(
-            "amendment-open-api-specification.yml"
-        )
-    )
-    outputDir.set(
-        layout.projectDirectory.dir(
-            "generated-amendment"
-        )
-    )
+
+    inputSpec = "$projectDir/amendment-open-api-specification.yml"
+    outputDir = "$projectDir/generated-amendment"
     apiPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.api"
     invokerPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.invoker"
     modelPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.model"
 
     // Only write ClaimAmendmentPatch.java; shared classes come from openApiGenerate.
-    ignoreFileOverride.set(
-        layout.projectDirectory.file(
-            "openapi-generator-ignore-amendment"
-        )
-    )
+    ignoreFileOverride = "$projectDir/openapi-generator-ignore-amendment"
 
     typeMappings = [
             "number+bigDecimal": "BigDecimal"
@@ -123,7 +119,8 @@ tasks.register('openApiGenerateAmendment', GenerateTask) {
             serializableModel   : "true",
             skipDefaultInterface: "true",
             useJakartaEe        : "true",
-            useSpringBoot4      : "true",
+            //useSpringBoot4      : "true", // Uncomment this line if you want to use Spring Boot 4 features
+            useSpringBoot3      : "true",
             useTags             : "true",
             openApiNullable     : "true"
     ]

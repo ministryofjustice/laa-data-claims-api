@@ -23,4 +23,9 @@ import java.util.UUID;
  *     jsonb_build_object}
  */
 public record ClaimHistoryEventRow(
-    String eventType, Instant eventTimestamp, String actorId, UUID sourceId, JsonNode metadata) {}
+    String eventType,
+    Instant eventTimestamp,
+    String actorId,
+    UUID sourceId,
+    JsonNode metadata,
+    long totalCount) {}

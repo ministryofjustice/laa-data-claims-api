@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.ClaimHistoryApi;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEventType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 
 /** Controller exposing a claim's unified, chronological history timeline. */
@@ -36,16 +38,29 @@ public class ClaimHistoryController implements ClaimHistoryApi {
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
-  public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Integer limit) {
-    List<ClaimHistoryEventRow> rows =
-        limit == null
-            ? claimHistoryService.getTimeline(claimId)
-            : claimHistoryService.getTimeline(claimId, limit);
+  public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Pageable pageable) {
+    // Pageable parameters are validated by a registered HandlerMethodArgumentResolver which will
+    // throw an InvalidPageableParameterException for invalid client input.
 
+    ClaimHistoryPage page = claimHistoryService.getTimeline(claimId, pageable);
+
+    List<ClaimHistoryEventRow> rows = page.getEvents() == null ? List.of() : page.getEvents();
     List<ClaimHistoryEvent> events = rows.stream().map(this::toModel).toList();
 
+    long totalElements = page.getTotalElements();
+    int pageSize = page.getPageSize();
+    int pageNumber = page.getPageNumber();
+    int totalPages = page.getTotalPages();
+
     ClaimHistoryResultSet result =
-        ClaimHistoryResultSet.builder().claimId(claimId).events(events).build();
+        ClaimHistoryResultSet.builder()
+            .claimId(claimId)
+            .events(events)
+            .totalElements((int) totalElements)
+            .totalPages(totalPages)
+            .number(pageNumber)
+            .size(pageSize)
+            .build();
 
     return ResponseEntity.ok(result);
   }

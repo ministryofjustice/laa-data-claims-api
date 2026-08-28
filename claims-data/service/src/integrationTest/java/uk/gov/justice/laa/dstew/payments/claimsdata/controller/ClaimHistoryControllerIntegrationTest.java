@@ -14,17 +14,22 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -165,6 +170,118 @@ public class ClaimHistoryControllerIntegrationTest extends AbstractIntegrationTe
     // The crux: the 'after' key is PRESENT and null, not omitted.
     assertThat(change.has("after")).isTrue();
     assertThat(change.get("after").isNull()).isTrue();
+  }
+
+  @Test
+  @DisplayName("GET v1/claims/{claimId}/history - page size limits results to requested size")
+  void pageSizeLimitsResultsV1History() throws Exception {
+    // create deterministic additional history events for the seeded claim
+    var created = createManyHistoryEvents(CLAIM_1_ID, 25);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(HISTORY_URI, CLAIM_1_ID)
+                    .param("size", "10")
+                    .param("page", "0")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimHistoryResultSet response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimHistoryResultSet.class);
+
+    assertThat(response.getTotalElements()).isGreaterThanOrEqualTo(created.size());
+    assertThat(response.getSize()).isEqualTo(10);
+    assertThat(response.getEvents()).hasSize(10);
+  }
+
+  @Test
+  @DisplayName("GET v1/claims/{claimId}/history - page offset returns correct subset (items 11-20)")
+  void pageOffsetReturnsCorrectSubsetV1History() throws Exception {
+    createManyHistoryEvents(CLAIM_1_ID, 25);
+
+    MvcResult page0 =
+        mockMvc
+            .perform(
+                get(HISTORY_URI, CLAIM_1_ID)
+                    .param("page", "0")
+                    .param("size", "10")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    MvcResult page1 =
+        mockMvc
+            .perform(
+                get(HISTORY_URI, CLAIM_1_ID)
+                    .param("page", "1")
+                    .param("size", "10")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimHistoryResultSet r0 =
+        OBJECT_MAPPER.readValue(
+            page0.getResponse().getContentAsString(), ClaimHistoryResultSet.class);
+    ClaimHistoryResultSet r1 =
+        OBJECT_MAPPER.readValue(
+            page1.getResponse().getContentAsString(), ClaimHistoryResultSet.class);
+
+    assertThat(r0.getEvents()).hasSize(10);
+    assertThat(r1.getEvents()).hasSize(10);
+
+    var ids0 = r0.getEvents().stream().map(ClaimHistoryEvent::getSourceId).toList();
+    var ids1 = r1.getEvents().stream().map(ClaimHistoryEvent::getSourceId).toList();
+    assertThat(ids0).doesNotContainAnyElementsOf(ids1);
+  }
+
+  @Test
+  @DisplayName("No pageable parameters: defaults to page 0 and size 20")
+  void noPageableParametersDefaultsToPageZeroAndSize20History() throws Exception {
+    var created = createManyHistoryEvents(CLAIM_1_ID, 25);
+
+    org.springframework.test.web.servlet.MvcResult result =
+        mockMvc
+            .perform(get(HISTORY_URI, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimHistoryResultSet response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimHistoryResultSet.class);
+
+    // Defaults
+    assertThat(response.getNumber()).isEqualTo(0);
+    assertThat(response.getSize()).isEqualTo(20);
+    assertThat(response.getEvents()).hasSize(20);
+    assertThat(response.getTotalElements()).isGreaterThanOrEqualTo(created.size());
+  }
+
+  private List<UUID> createManyHistoryEvents(UUID claimId, int count) {
+    List<UUID> ids = new ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      java.util.UUID amendmentId = Uuid7.timeBasedUuid();
+      String diffJson = "{\"schema_version\":1,\"changes\":[]}";
+      ClaimAmendment amendment =
+          ClaimAmendment.builder()
+              .id(amendmentId)
+              .claim(claimRepository.getReferenceById(claimId))
+              .requestedByCode("PROVIDER")
+              .amendmentReasonCode("PROVIDER_ERROR")
+              .beforeState("{}")
+              .requestPayload("{}")
+              .diff(diffJson)
+              .createdByUserId(USER_ID)
+              .createdOn(java.time.Instant.now().plusSeconds(i))
+              .build();
+
+      new TransactionTemplate(transactionManager)
+          .executeWithoutResult(tx -> claimAmendmentRepository.save(amendment));
+      ids.add(amendmentId);
+    }
+    return ids;
   }
 
   private void persistAssessment(AssessmentType type, AssessmentOutcome outcome, String reason) {
