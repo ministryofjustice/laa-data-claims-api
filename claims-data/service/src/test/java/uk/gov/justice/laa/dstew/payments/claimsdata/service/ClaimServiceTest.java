@@ -758,6 +758,31 @@ class ClaimServiceTest {
   }
 
   @Test
+  void getClaimResultSetV2_plainPrimaryWithComputedSecondary_stillAppendsIdTieBreak() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // Repeated sort params: plain-column primary sort followed by a computed secondary sort.
+    Sort mixedSort =
+        Sort.by(Sort.Direction.ASC, "effective_total_value")
+            .and(Sort.by(Sort.Direction.ASC, "total_warnings"));
+
+    claimService.getClaimResultSetV2(validV2SearchRequest(), PageRequest.of(0, 10, mixedSort));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    Sort appliedSort = pageableCaptor.getValue().getSort();
+    // The computed key is stripped, but the surviving plain sort must keep a deterministic id
+    // tie-break so pagination stays stable for tied effective values.
+    assertThat(appliedSort.stream().map(Sort.Order::getProperty))
+        .containsExactly("effectiveTotalValue", "id");
+    assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
+  }
+
+  @Test
   void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl<>(Collections.emptyList()));
