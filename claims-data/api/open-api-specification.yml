@@ -470,11 +470,13 @@ paths:
           description: |
             Sort results by a field and direction, e.g. `status,asc` or `derived_claim_status,desc`.
 
-            Supported fields include the plain claim columns exposed by the endpoint, the
-            computed fields `total_warnings`, `submission_period` and `derived_claim_status`, and
-            `effective_total_value`. The latter is backed by an entity property (derived from the
-            `vw_claim_effective_value` view) and therefore sorts natively like a plain column,
-            not subject to the computed-sort caveat below.
+            Supported fields include the plain claim columns exposed by the endpoint and the
+            computed fields `total_warnings`, `submission_period` and `derived_claim_status`.
+
+            `effective_total_value` is also supported. Although its value is derived from the
+            `vw_claim_effective_value` view, it is backed by an entity property and therefore
+            sorts natively like a plain column - it is not subject to the computed-sort caveat
+            below and may be combined with other plain columns in a multi-field sort.
 
             An unsupported field returns a 400 Problem Details response.
 
