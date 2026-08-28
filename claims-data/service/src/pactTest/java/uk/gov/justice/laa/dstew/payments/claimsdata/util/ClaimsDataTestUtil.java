@@ -639,7 +639,7 @@ public class ClaimsDataTestUtil {
     metadata.put("office_account_number", OFFICE_ACCOUNT_NUMBER);
     metadata.put("area_of_law", AREA_OF_LAW.getValue());
     return new ClaimHistoryEventRow(
-        "SUBMISSION", SUBMITTED_DATE.toInstant(), PROVIDER_USER_ID, CLAIM_1_ID, metadata);
+        "SUBMISSION", SUBMITTED_DATE.toInstant(), PROVIDER_USER_ID, CLAIM_1_ID, metadata, 1L);
   }
 
   /** A single ASSESSMENT history event mirroring the unified claim-history read model. */
@@ -653,7 +653,8 @@ public class ClaimsDataTestUtil {
         SUBMITTED_DATE.plusHours(1).toInstant(),
         PROVIDER_USER_ID,
         Uuid7.timeBasedUuid(),
-        metadata);
+        metadata,
+        1L);
   }
 
   /**
@@ -669,7 +670,8 @@ public class ClaimsDataTestUtil {
         SUBMITTED_DATE.plusHours(2).toInstant(),
         PROVIDER_USER_ID,
         Uuid7.timeBasedUuid(),
-        metadata);
+        metadata,
+        1L);
   }
 
   /**
@@ -717,6 +719,7 @@ public class ClaimsDataTestUtil {
         SUBMITTED_DATE.plusHours(3).toInstant(),
         PROVIDER_USER_ID,
         Uuid7.timeBasedUuid(),
-        metadata);
+        metadata,
+        1L);
   }
 }
