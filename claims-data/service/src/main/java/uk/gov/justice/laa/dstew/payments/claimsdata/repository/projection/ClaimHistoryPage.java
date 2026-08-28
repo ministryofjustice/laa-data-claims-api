@@ -12,6 +12,7 @@ public class ClaimHistoryPage {
   private final long totalElements;
   private final int pageNumber;
   private final int pageSize;
+  private final int totalPages;
 
   /**
    * Create a new ClaimHistoryPage.
@@ -27,6 +28,14 @@ public class ClaimHistoryPage {
     this.totalElements = totalElements;
     this.pageNumber = pageNumber;
     this.pageSize = pageSize;
+    if (pageSize <= 0) {
+      // Defensive behaviour: treat non-positive page size as no-pagination => zero pages.
+      // This avoids throwing in constructors and keeps callers resilient to unexpected
+      // inputs coming from other parts of the system.
+      this.totalPages = 0;
+    } else {
+      this.totalPages = (int) ((totalElements + pageSize - 1) / pageSize);
+    }
   }
 
   @Override

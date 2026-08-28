@@ -91,4 +91,34 @@ class ClaimHistoryPageTest {
     assertThat(page.equals(null)).isFalse();
     assertThat(page.equals("some-string")).isFalse();
   }
+
+  @Test
+  @DisplayName("totalPages: exact division, remainder, single and zero cases")
+  void totalPagesCalculationCases() {
+    // exact division
+    ClaimHistoryPage exact = new ClaimHistoryPage(List.of(), 20L, 0, 10);
+    assertThat(exact.getTotalPages()).isEqualTo(2);
+
+    // remainder
+    ClaimHistoryPage rem = new ClaimHistoryPage(List.of(), 21L, 0, 10);
+    assertThat(rem.getTotalPages()).isEqualTo(3);
+
+    // single element
+    ClaimHistoryPage single = new ClaimHistoryPage(List.of(), 1L, 0, 10);
+    assertThat(single.getTotalPages()).isEqualTo(1);
+
+    // zero elements
+    ClaimHistoryPage zero = new ClaimHistoryPage(List.of(), 0L, 0, 10);
+    assertThat(zero.getTotalPages()).isZero();
+  }
+
+  @Test
+  @DisplayName("non-positive pageSize yields zero totalPages")
+  void nonPositivePageSizeYieldsZero() {
+    ClaimHistoryPage zeroSize = new ClaimHistoryPage(List.of(), 10L, 0, 0);
+    assertThat(zeroSize.getTotalPages()).isZero();
+
+    ClaimHistoryPage negativeSize = new ClaimHistoryPage(List.of(), 10L, 0, -5);
+    assertThat(negativeSize.getTotalPages()).isZero();
+  }
 }

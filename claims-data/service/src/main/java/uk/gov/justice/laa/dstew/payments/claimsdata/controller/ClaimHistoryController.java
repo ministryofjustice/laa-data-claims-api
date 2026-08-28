@@ -50,10 +50,7 @@ public class ClaimHistoryController implements ClaimHistoryApi {
     long totalElements = page.getTotalElements();
     int pageSize = page.getPageSize();
     int pageNumber = page.getPageNumber();
-    int totalPages = 0;
-    if (pageSize > 0) {
-      totalPages = (int) Math.ceil((double) totalElements / pageSize);
-    }
+    int totalPages = page.getTotalPages();
 
     ClaimHistoryResultSet result =
         ClaimHistoryResultSet.builder()
