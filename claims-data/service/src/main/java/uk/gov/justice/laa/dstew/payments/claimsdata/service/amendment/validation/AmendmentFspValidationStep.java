@@ -15,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeCalculationMetadataResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
@@ -67,6 +68,7 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
   private final FeeSchemePlatformRestClient fspClient;
   private final AmendmentDiffAssembler diffAssembler;
   private final ClaimStateSnapshotMapper claimStateSnapshotMapper;
+  private final FeeCalculationMetadataResolver feeCalculationMetadataResolver;
 
   /**
    * Executes the trigger verification and processes the remote FSP recalculation sequence.
@@ -135,7 +137,8 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       CalculatedFeeDetailSnapshot beforeFeeSnapshot =
           state.getBeforeState().getCalculatedFeeDetail();
       CalculatedFeeDetailSnapshot afterFeeSnapshot =
-          claimStateSnapshotMapper.toSnapshot(fspResponse);
+          enrichAfterFeeSnapshot(
+              claimStateSnapshotMapper.toSnapshot(fspResponse), state, fspResponse);
 
       state.setBeforeFee(beforeFeeSnapshot);
       state.setAfterFee(afterFeeSnapshot);
@@ -164,6 +167,55 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
     }
 
     return List.of();
+  }
+
+  private CalculatedFeeDetailSnapshot enrichAfterFeeSnapshot(
+      CalculatedFeeDetailSnapshot baseSnapshot,
+      ClaimAmendmentState state,
+      FeeCalculationResponse fspResponse) {
+    if (baseSnapshot == null) {
+      return null;
+    }
+
+    String feeCode = fspResponse == null ? null : fspResponse.getFeeCode();
+
+    return CalculatedFeeDetailSnapshot.builder()
+        .feeCode(baseSnapshot.getFeeCode())
+        .feeType(feeCalculationMetadataResolver.resolveFeeType(state, feeCode))
+        .feeCodeDescription(
+            feeCalculationMetadataResolver.resolveFeeCodeDescription(state, feeCode))
+        .categoryOfLaw(feeCalculationMetadataResolver.resolveCategoryOfLaw(state, feeCode))
+        .totalAmount(baseSnapshot.getTotalAmount())
+        .vatIndicator(baseSnapshot.getVatIndicator())
+        .vatRateApplied(baseSnapshot.getVatRateApplied())
+        .calculatedVatAmount(baseSnapshot.getCalculatedVatAmount())
+        .disbursementAmount(baseSnapshot.getDisbursementAmount())
+        .requestedNetDisbursementAmount(baseSnapshot.getRequestedNetDisbursementAmount())
+        .disbursementVatAmount(baseSnapshot.getDisbursementVatAmount())
+        .hourlyTotalAmount(baseSnapshot.getHourlyTotalAmount())
+        .fixedFeeAmount(baseSnapshot.getFixedFeeAmount())
+        .netProfitCostsAmount(baseSnapshot.getNetProfitCostsAmount())
+        .requestedNetProfitCostsAmount(baseSnapshot.getRequestedNetProfitCostsAmount())
+        .netCostOfCounselAmount(baseSnapshot.getNetCostOfCounselAmount())
+        .netTravelCostsAmount(baseSnapshot.getNetTravelCostsAmount())
+        .netWaitingCostsAmount(baseSnapshot.getNetWaitingCostsAmount())
+        .detentionTravelAndWaitingCostsAmount(
+            baseSnapshot.getDetentionTravelAndWaitingCostsAmount())
+        .jrFormFillingAmount(baseSnapshot.getJrFormFillingAmount())
+        .travelAndWaitingCostsAmount(baseSnapshot.getTravelAndWaitingCostsAmount())
+        .boltOnTotalFeeAmount(baseSnapshot.getBoltOnTotalFeeAmount())
+        .boltOnAdjournedHearingCount(baseSnapshot.getBoltOnAdjournedHearingCount())
+        .boltOnAdjournedHearingFee(baseSnapshot.getBoltOnAdjournedHearingFee())
+        .boltOnCmrhTelephoneCount(baseSnapshot.getBoltOnCmrhTelephoneCount())
+        .boltOnCmrhTelephoneFee(baseSnapshot.getBoltOnCmrhTelephoneFee())
+        .boltOnCmrhOralCount(baseSnapshot.getBoltOnCmrhOralCount())
+        .boltOnCmrhOralFee(baseSnapshot.getBoltOnCmrhOralFee())
+        .boltOnHomeOfficeInterviewCount(baseSnapshot.getBoltOnHomeOfficeInterviewCount())
+        .boltOnHomeOfficeInterviewFee(baseSnapshot.getBoltOnHomeOfficeInterviewFee())
+        .boltOnSubstantiveHearingFee(baseSnapshot.getBoltOnSubstantiveHearingFee())
+        .escapeCaseFlag(baseSnapshot.getEscapeCaseFlag())
+        .schemeId(baseSnapshot.getSchemeId())
+        .build();
   }
 
   private boolean hasPricingImpactingChanges(
