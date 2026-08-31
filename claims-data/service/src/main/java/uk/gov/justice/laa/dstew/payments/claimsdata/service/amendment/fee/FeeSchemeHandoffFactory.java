@@ -14,6 +14,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -26,6 +29,9 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 @RequiredArgsConstructor
 @Slf4j
 public class FeeSchemeHandoffFactory {
+
+  private final ClaimMapper claimMapper;
+  private final FeeCalculationMetadataResolver feeCalculationMetadataResolver;
 
   /**
    * Translates a successful OpenAPI platform response into a storable CalculatedFeeDetail entity.
@@ -52,30 +58,17 @@ public class FeeSchemeHandoffFactory {
             || previousFeeState.getTotalAmount() == null
             || responseTotal == null
             || previousFeeState.getTotalAmount().compareTo(responseTotal) != 0;
-    // Build the database entity row structure
-    CalculatedFeeDetail newFeeDetail = new CalculatedFeeDetail();
+    // Reuse the legacy claim-mapper shape so amendment repricing persists the same
+    // CalculatedFeeDetail
+    // fields as the standard claim journey.
+    CalculatedFeeDetail newFeeDetail =
+        claimMapper.toCalculatedFeeDetail(toFeeCalculationPatch(state, feeCalculationResponse));
     newFeeDetail.setId(Uuid7.timeBasedUuid());
     newFeeDetail.setClaim(claim);
     newFeeDetail.setClaimAmendment(claimAmendment); // 1595-F: Establish tracking link
     newFeeDetail.setIsPriceChanged(priceChanged);
     newFeeDetail.setTotalAmount(responseTotal);
     newFeeDetail.setCreatedOn(Instant.now());
-
-    // --- ADDED: Map missing required FSP fields ---
-    newFeeDetail.setFeeCode(feeCalculationResponse.getFeeCode());
-    newFeeDetail.setSchemeId(feeCalculationResponse.getSchemeId());
-
-    if (feeCalculationResponse.getEscapeCaseFlag() != null) {
-      newFeeDetail.setEscapeCaseFlag(feeCalculationResponse.getEscapeCaseFlag());
-    }
-
-    if (calc.getNetProfitCostsAmount() != null) {
-      newFeeDetail.setNetProfitCostsAmount(BigDecimal.valueOf(calc.getNetProfitCostsAmount()));
-    }
-
-    if (calc.getVatIndicator() != null) {
-      newFeeDetail.setVatIndicator(calc.getVatIndicator());
-    }
 
     // --- ADDED: Map required audit & relational fields ---
     // Inherit the user ID from the amendment request
@@ -99,5 +92,111 @@ public class FeeSchemeHandoffFactory {
     }
     newFeeDetail.setClaimSummaryFee(latestSummaryFee);
     return newFeeDetail;
+  }
+
+  private FeeCalculationPatch toFeeCalculationPatch(
+      ClaimAmendmentState state, FeeCalculationResponse feeCalculationResponse) {
+    FeeCalculation calc = feeCalculationResponse.getFeeCalculation();
+    BoltOnPatch boltOnPatch = toBoltOnPatch(feeCalculationResponse, calc);
+
+    FeeCalculationPatch patch =
+        new FeeCalculationPatch()
+            .feeCode(feeCalculationResponse.getFeeCode())
+            .feeType(
+                feeCalculationMetadataResolver.resolveFeeType(
+                    state, feeCalculationResponse.getFeeCode()))
+            .feeCodeDescription(
+                feeCalculationMetadataResolver.resolveFeeCodeDescription(
+                    state, feeCalculationResponse.getFeeCode()))
+            .categoryOfLaw(
+                feeCalculationMetadataResolver.resolveCategoryOfLaw(
+                    state, feeCalculationResponse.getFeeCode()))
+            .totalAmount(toBigDecimal(feeCalculationResponse.getFeeCalculation().getTotalAmount()))
+            .vatIndicator(feeCalculationResponse.getFeeCalculation().getVatIndicator())
+            .vatRateApplied(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getVatRateApplied()))
+            .calculatedVatAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getCalculatedVatAmount()))
+            .disbursementAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getDisbursementAmount()))
+            .requestedNetDisbursementAmount(
+                toBigDecimal(
+                    feeCalculationResponse.getFeeCalculation().getRequestedNetDisbursementAmount()))
+            .disbursementVatAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getDisbursementVatAmount()))
+            .hourlyTotalAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getHourlyTotalAmount()))
+            .fixedFeeAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getFixedFeeAmount()))
+            .netProfitCostsAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetProfitCostsAmount()))
+            .requestedNetProfitCostsAmount(
+                toBigDecimal(
+                    feeCalculationResponse.getFeeCalculation().getRequestedNetProfitCostsAmount()))
+            .netCostOfCounselAmount(
+                toBigDecimal(
+                    feeCalculationResponse.getFeeCalculation().getNetCostOfCounselAmount()))
+            .netTravelCostsAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetTravelCostsAmount()))
+            .netWaitingCostsAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetWaitingCostsAmount()))
+            .detentionTravelAndWaitingCostsAmount(
+                toBigDecimal(
+                    feeCalculationResponse
+                        .getFeeCalculation()
+                        .getDetentionTravelAndWaitingCostsAmount()))
+            .jrFormFillingAmount(
+                toBigDecimal(feeCalculationResponse.getFeeCalculation().getJrFormFillingAmount()))
+            .travelAndWaitingCostsAmount(
+                toBigDecimal(
+                    feeCalculationResponse.getFeeCalculation().getTravelAndWaitingCostAmount()));
+
+    if (boltOnPatch != null) {
+      patch.setBoltOnDetails(boltOnPatch);
+    }
+
+    return patch;
+  }
+
+  private BoltOnPatch toBoltOnPatch(
+      FeeCalculationResponse feeCalculationResponse, FeeCalculation calc) {
+    BoltOnPatch boltOnPatch = new BoltOnPatch();
+    boolean hasBoltOnFields = false;
+
+    if (calc.getBoltOnFeeDetails() != null) {
+      boltOnPatch
+          .boltOnTotalFeeAmount(toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnTotalFeeAmount()))
+          .boltOnAdjournedHearingCount(calc.getBoltOnFeeDetails().getBoltOnAdjournedHearingCount())
+          .boltOnAdjournedHearingFee(
+              toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnAdjournedHearingFee()))
+          .boltOnCmrhTelephoneCount(calc.getBoltOnFeeDetails().getBoltOnCmrhTelephoneCount())
+          .boltOnCmrhTelephoneFee(
+              toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnCmrhTelephoneFee()))
+          .boltOnCmrhOralCount(calc.getBoltOnFeeDetails().getBoltOnCmrhOralCount())
+          .boltOnCmrhOralFee(toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnCmrhOralFee()))
+          .boltOnHomeOfficeInterviewCount(
+              calc.getBoltOnFeeDetails().getBoltOnHomeOfficeInterviewCount())
+          .boltOnHomeOfficeInterviewFee(
+              toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnHomeOfficeInterviewFee()))
+          .boltOnSubstantiveHearingFee(
+              toBigDecimal(calc.getBoltOnFeeDetails().getBoltOnSubstantiveHearingFee()));
+      hasBoltOnFields = true;
+    }
+
+    if (feeCalculationResponse.getEscapeCaseFlag() != null) {
+      boltOnPatch.escapeCaseFlag(feeCalculationResponse.getEscapeCaseFlag());
+      hasBoltOnFields = true;
+    }
+
+    if (feeCalculationResponse.getSchemeId() != null) {
+      boltOnPatch.schemeId(feeCalculationResponse.getSchemeId());
+      hasBoltOnFields = true;
+    }
+
+    return hasBoltOnFields ? boltOnPatch : null;
+  }
+
+  private BigDecimal toBigDecimal(Double value) {
+    return value == null ? null : BigDecimal.valueOf(value);
   }
 }
