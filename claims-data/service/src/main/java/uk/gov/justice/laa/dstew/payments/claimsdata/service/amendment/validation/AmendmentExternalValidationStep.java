@@ -4,11 +4,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Claim;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.FeeSchemeProvider;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
@@ -59,6 +61,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AmendmentExternalValidationStep implements ClaimAmendmentValidationStep {
 
   private static final ClaimValidatorCode PDA_VALIDATION_STEP =
@@ -69,6 +72,7 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
   private final ValidationService validationService;
   private final AmendmentDiffAssembler diffAssembler;
   private final ValidationClaimMapper validationClaimMapper;
+  private final FeeSchemeProvider feeSchemeProvider;
 
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
@@ -97,10 +101,40 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
       return List.of();
     }
 
-    return validationResult.getIssues().stream()
-        .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR)
-        .map(ClaimAmendmentValidationError::from)
-        .toList();
+    List<ClaimAmendmentValidationError> errors =
+        validationResult.getIssues().stream()
+            .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR)
+            .map(ClaimAmendmentValidationError::from)
+            .toList();
+
+    if (errors.isEmpty()) {
+      cacheFeeSchemeEnrichment(state, validationResult);
+    }
+
+    return errors;
+  }
+
+  private void cacheFeeSchemeEnrichment(
+      ClaimAmendmentState state, ClaimValidationResult validationResult) {
+    if (state == null || validationResult == null) {
+      return;
+    }
+
+    state.setResolvedClaimDataContext(validationResult.getResolvedData());
+
+    String feeCode =
+        state.getPostAmendmentState() == null ? null : state.getPostAmendmentState().getFeeCode();
+    if (feeCode == null || feeCode.isBlank()) {
+      state.setFeeSchemeDetailsContext(null);
+      return;
+    }
+
+    try {
+      state.setFeeSchemeDetailsContext(feeSchemeProvider.getFeeDetails(feeCode).orElse(null));
+    } catch (Exception ex) {
+      log.warn("Unable to cache fee details enrichment for fee code {}", feeCode, ex);
+      state.setFeeSchemeDetailsContext(null);
+    }
   }
 
   /**

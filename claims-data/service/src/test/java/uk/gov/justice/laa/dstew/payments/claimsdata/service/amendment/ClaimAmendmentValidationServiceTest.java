@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.FeeSchemeProvider;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
@@ -64,6 +65,7 @@ class ClaimAmendmentValidationServiceTest {
   @Mock private ValidationService validationService;
   @Mock private AmendmentDiffAssembler diffAssembler;
   @Mock private ValidationClaimMapper validationClaimMapper;
+  @Mock private FeeSchemeProvider feeSchemeProvider;
 
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
@@ -146,7 +148,7 @@ class ClaimAmendmentValidationServiceTest {
                 new AmendmentUserIdValidationStep(),
                 new AmendmentReferenceValidationStep(amendmentReferenceDataProvider),
                 new AmendmentExternalValidationStep(
-                    validationService, diffAssembler, validationClaimMapper),
+                    validationService, diffAssembler, validationClaimMapper, feeSchemeProvider),
                 amendmentFspValidationStep));
 
     assertThatCode(() -> service.validateAmendmentRequest(anyState())).doesNotThrowAnyException();

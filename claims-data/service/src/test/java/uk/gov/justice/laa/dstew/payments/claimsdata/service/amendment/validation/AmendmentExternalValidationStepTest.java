@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validatio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValid
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.FeeSchemeProvider;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
@@ -33,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
+import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 
 /**
  * Unit tests for {@link AmendmentExternalValidationStep}.
@@ -55,6 +58,7 @@ class AmendmentExternalValidationStepTest {
   @Mock private ValidationService validationService;
   @Mock private AmendmentDiffAssembler diffAssembler;
   @Mock private ValidationClaimMapper validationClaimMapper;
+  @Mock private FeeSchemeProvider feeSchemeProvider;
 
   @InjectMocks private AmendmentExternalValidationStep step;
 
@@ -280,6 +284,13 @@ class AmendmentExternalValidationStepTest {
                   .issues(List.of())
                   .resolvedData(new ResolvedClaimData(null, resolvedAreaOfLaw, null))
                   .build());
+      lenient()
+          .when(feeSchemeProvider.getFeeDetails(any()))
+          .thenReturn(
+              java.util.Optional.of(
+                  new FeeDetailsResponseV2()
+                      .feeCodeDescription("desc")
+                      .categoryOfLawCodes(List.of("CAT"))));
     }
 
     @Test

@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
+import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 
 /**
  * In-memory aggregate describing a claim amendment in progress, passed from the retrieval/build
@@ -37,6 +39,19 @@ public class ClaimAmendmentState {
   private ClaimStateSnapshot beforeState;
 
   private ClaimStateSnapshot postAmendmentState;
+
+  /**
+   * Reusable fee-scheme metadata resolved during external validation (for example fee type or
+   * authorised category of law code). This keeps amendment repricing aligned with the legacy claim
+   * processing path without repeating validation work.
+   */
+  private ResolvedClaimData resolvedClaimDataContext;
+
+  /**
+   * Cached fee-details lookup context for the current fee code, reused by downstream amendment
+   * repricing/snapshot mapping to populate fee metadata such as description.
+   */
+  private FeeDetailsResponseV2 feeSchemeDetailsContext;
 
   private FeeCalculationResponse fspResponseContext;
 
