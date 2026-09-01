@@ -67,7 +67,7 @@ class AmendmentReferenceMapperTest {
               .id(Uuid7.timeBasedUuid())
               .requestedByCode("PROVIDER")
               .code("PROVIDER_ERROR")
-              .displayLabel("Provider Error")
+              .displayLabel("Provider error")
               .isActive(true)
               .displayOrder(10)
               .createdByUserId("actor")
@@ -77,7 +77,7 @@ class AmendmentReferenceMapperTest {
       var model = mapper.toReasonModel(entity);
 
       assertThat(model.getCode()).isEqualTo("PROVIDER_ERROR");
-      assertThat(model.getDisplayLabel()).isEqualTo("Provider Error");
+      assertThat(model.getDisplayLabel()).isEqualTo("Provider error");
       assertThat(model.getDisplayOrder()).isEqualTo(10);
     }
   }
