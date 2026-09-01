@@ -5,7 +5,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
 
 /**
@@ -14,6 +17,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
  * <p>Boots the full Spring Boot application on a random port so step definitions can exercise the
  * real HTTP stack via {@code RestTemplate} — unlike integration tests, BDD tests must NOT use
  * {@code MockMvc}.
+ *
+ * <p>The two {@link MockitoBean} declarations replace the external HTTP-facing beans on the
+ * amendment flow with Mockito mocks so BDD scenarios can drive the amendment pipeline end-to-end
+ * without requiring a real Fee Scheme Platform or Provider Details API endpoint. Default answers
+ * are applied per-scenario by {@code BddAmendmentResetHook}. See DSTEW-2301 for background.
  */
 @CucumberContextConfiguration
 @ActiveProfiles("test")
@@ -27,4 +35,8 @@ public class CucumberSpringConfiguration {
   static {
     postgresContainer.start();
   }
+
+  @MockitoBean private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
+
+  @MockitoBean private ValidationService validationService;
 }
