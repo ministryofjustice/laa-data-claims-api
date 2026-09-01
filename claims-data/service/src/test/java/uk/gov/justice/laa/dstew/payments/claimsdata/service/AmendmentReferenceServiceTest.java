@@ -132,7 +132,7 @@ class AmendmentReferenceServiceTest {
               new ClaimAmendmentReferenceData(
                   List.of(
                       requestedBy("PROVIDER", "Provider", 10, true),
-                      requestedBy("LEGACY_PARTY", "Legacy Party", 20, false)),
+                      requestedBy("LEGACY_PARTY", "Legacy party", 20, false)),
                   List.of(
                       reason("PROVIDER", "PROVIDER_ERROR", "Provider error", 10, true),
                       reason("PROVIDER", "OLD_REASON", "Old reason", 20, false))));

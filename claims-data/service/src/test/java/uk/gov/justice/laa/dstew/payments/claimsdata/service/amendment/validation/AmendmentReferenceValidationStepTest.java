@@ -69,7 +69,7 @@ class AmendmentReferenceValidationStepTest {
                 List.of(
                     requestedBy("PROVIDER", "Provider", true),
                     requestedBy("ASSURANCE", "Assurance", true),
-                    requestedBy("LEGACY_PARTY", "Legacy Party", false)),
+                    requestedBy("LEGACY_PARTY", "Legacy party", false)),
                 List.of(
                     reason("PROVIDER", "PROVIDER_ERROR", "Provider error", true),
                     reason(
