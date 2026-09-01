@@ -38,7 +38,7 @@ Feature: Amendment request contract — claim_version JSON integer validation
     Then the endpoint response status is 400
     And the response uses the existing request-validation error format
     And the response does not contain a "CLAIM_VERSION_CONFLICT" code
-    And no claim retrieval was attempted for this request
+    And no persisted claim state changed as a result of this request
     And no outbound PDA call was made
     And no outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
@@ -64,7 +64,7 @@ Feature: Amendment request contract — claim_version JSON integer validation
     Given an original claim exists at version 7
     When I submit an amendment with a raw JSON body where claim_version is bare unquoted 5F
     Then the endpoint response status is 400
-    And no claim retrieval was attempted for this request
+    And no persisted claim state changed as a result of this request
     And no outbound PDA call was made
     And no outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt

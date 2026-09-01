@@ -6,6 +6,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -84,6 +86,8 @@ public class AmendmentsRequestContractSteps {
 
   private static final String BDD_USER = "bdd-1751-user";
   private static final String BDD_USER_UUID = "0190b6a0-9b7e-7c8a-9e2d-1751000000aa";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static final String PATCH_CLAIM_PATH =
       API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
@@ -185,11 +189,21 @@ public class AmendmentsRequestContractSteps {
   @Then("the endpoint response status is not 400")
   public void theEndpointResponseStatusIsNot400() {
     step(
-        "Asserting the last HTTP status is NOT 400 (body=" + safeBodyPreview() + ")",
-        () ->
-            assertThat(lastStatusCode)
-                .as("last response status; body=%s", safeBodyPreview())
-                .isNotEqualTo(400));
+        "Asserting the last HTTP status is NOT 400 AND is not a server error (5xx) — a 5xx would "
+            + "silently mask a regression in the boundary-value scenarios (body="
+            + safeBodyPreview()
+            + ")",
+        () -> {
+          assertThat(lastStatusCode)
+              .as("last response status; body=%s", safeBodyPreview())
+              .isNotEqualTo(400);
+          assertThat(lastStatusCode)
+              .as(
+                  "last response status must not be a server error (5xx) — a 5xx would hide a"
+                      + " regression at the boundary; body=%s",
+                  safeBodyPreview())
+              .isLessThan(500);
+        });
   }
 
   @Then("the response is not an {string} request-validation error")
@@ -224,18 +238,22 @@ public class AmendmentsRequestContractSteps {
   public void theResponseUsesTheExistingRequestValidationErrorFormat() {
     step(
         "Asserting the 400 response body is Spring's standard ProblemDetail (RFC 9457) shape — "
-            + "carries a numeric status and either a title or a detail field",
+            + "parses as JSON, carries status == 400, and exposes at least one standard field "
+            + "(title/detail/type/instance). Parsing avoids the false-positive risk of a naive "
+            + "substring check for '400' matching an unrelated field value.",
         () -> {
           assertThat(lastResponseBody).as("response body").isNotNull().isNotBlank();
-          // The existing request-validation shape used across the API is Spring's default
-          // ProblemDetail: application/problem+json with fields "type", "title", "status",
-          // "detail", "instance". We assert on the two most stable ones (status + one of
-          // title/detail) so the assertion survives minor Spring upgrades without being brittle.
-          String bodyLower = lastResponseBody.toLowerCase(Locale.ROOT);
-          assertThat(bodyLower).as("body must contain the numeric status 400").contains("400");
-          assertThat(bodyLower)
-              .as("body must contain at least one of the standard ProblemDetail fields")
-              .containsAnyOf("\"title\"", "\"detail\"", "\"type\"", "\"instance\"");
+          JsonNode body = OBJECT_MAPPER.readTree(lastResponseBody);
+          assertThat(body.path("status").asInt(-1))
+              .as("ProblemDetail 'status' field must be 400")
+              .isEqualTo(400);
+          assertThat(
+                  body.hasNonNull("title")
+                      || body.hasNonNull("detail")
+                      || body.hasNonNull("type")
+                      || body.hasNonNull("instance"))
+              .as("ProblemDetail body must expose at least one standard field (body=%s)", body)
+              .isTrue();
         });
   }
 
@@ -260,11 +278,14 @@ public class AmendmentsRequestContractSteps {
   // Thens — "no downstream work happened" assertions (proven via observable side-effects).
   // ---------------------------------------------------------------------------
 
-  @Then("no claim retrieval was attempted for this request")
-  public void noClaimRetrievalWasAttemptedForThisRequest() {
+  @Then("no persisted claim state changed as a result of this request")
+  public void noPersistedClaimStateChangedAsAResultOfThisRequest() {
     step(
-        "Asserting no downstream retrieval / write happened — proven by claim.version unchanged "
-            + "and no claim_amendment row present for this claim",
+        "Asserting no observable persisted change: claim.version is unchanged AND no "
+            + "claim_amendment row was inserted for this claim. NOTE: this step deliberately does "
+            + "NOT claim to prove that claim retrieval was not attempted — that would require a "
+            + "spy/verify on ClaimRepository. What it does prove is the observable side-effect: "
+            + "the request produced no state mutation.",
         () -> {
           assertVersionUnchanged();
           assertNoClaimAmendmentRow();
