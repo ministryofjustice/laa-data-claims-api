@@ -600,8 +600,12 @@ public class AssessmentAdvancesClaimVersionSteps {
                       "uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost"));
           assertThat(
                   createAssessment.isAnnotationPresent(
-                      org.springframework.transaction.annotation.Transactional.class))
-              .as("AssessmentService.createAssessment must be @Transactional")
+                          org.springframework.transaction.annotation.Transactional.class)
+                      || svc.isAnnotationPresent(
+                          org.springframework.transaction.annotation.Transactional.class))
+              .as(
+                  "AssessmentService.createAssessment must be @Transactional (method-level or"
+                      + " class-level)")
               .isTrue();
           // Method name that performs the managed-entity mutation on the claim.
           boolean hasAdvanceMethod =
@@ -739,8 +743,11 @@ public class AssessmentAdvancesClaimVersionSteps {
 
   private void forceClaimVersion(UUID claimId, long version) {
     // Native SQL bypasses @Version so we can set an arbitrary pre-condition without a phantom
-    // dirty-check bump. Also clear the persistence-context cache so the next repository read
-    // sees the row we just rewrote.
+    // dirty-check bump. This method does NOT interact with the JPA persistence context — callers
+    // that need a subsequent repository read to see the rewritten value must either operate on a
+    // fresh transaction/session boundary or evict the entity themselves. The BDD scenarios in this
+    // class only read via {@code claimRepository.findById(...)} in later transactional steps, so
+    // no explicit eviction is required here.
     int updated =
         jdbcClient
             .sql("UPDATE claims.claim SET version = :v WHERE id = :id")
