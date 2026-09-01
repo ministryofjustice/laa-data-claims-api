@@ -1,0 +1,34 @@
+meta {
+  name: calculate fee
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{FEE_SCHEME_PLATFORM_API_URL}}api/v1/fee-calculation
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: {{FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "feeCode": "AGFS_FEE_1",
+    "claimId": "test-claim-id",
+    "netProfitCosts": 100.0,
+    "netDisbursementAmount": 10.0,
+    "disbursementVatAmount": 2.0,
+    "vatIndicator": true,
+    "londonRate": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
