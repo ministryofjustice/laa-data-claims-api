@@ -103,7 +103,6 @@ public class StageDisbursementAssessmentSteps {
   // Scenario-scoped state. Cucumber-spring makes a fresh instance per scenario.
   private final Map<String, UUID> claimByLabel = new HashMap<>();
   private final Map<String, UUID> summaryFeeByLabel = new HashMap<>();
-  private UUID currentSubmissionId;
   private UUID lastAssessmentIdFromResponse;
   private int lastStatusCode;
   private String lastResponseBody;
@@ -515,7 +514,8 @@ public class StageDisbursementAssessmentSteps {
   public void theUnderlyingAssessmentRowSurvivesARepositoryReadWith(DataTable table) {
     step(
         "Asserting the persisted assessment row carries the expected column value(s) — proves "
-            + "the V38 CHECK constraint was widened to accept STAGE_DISBURSEMENT_ASSESSMENT",
+            + "the chk_assessment_type CHECK constraint (introduced in V34, widened in V38) accepts"
+            + " STAGE_DISBURSEMENT_ASSESSMENT",
         () -> {
           Map<String, String> expected =
               table.asMaps().stream()
@@ -648,7 +648,6 @@ public class StageDisbursementAssessmentSteps {
             .createdOn(Instant.now())
             .build();
     submissionRepository.saveAndFlush(submission);
-    currentSubmissionId = submission.getId();
 
     Claim claim = new Claim();
     claim.setId(Uuid7.timeBasedUuid());
@@ -841,19 +840,25 @@ public class StageDisbursementAssessmentSteps {
     for (Map.Entry<String, String> e : fields.entrySet()) {
       String key = e.getKey();
       String raw = e.getValue();
+      // Normalise every key to snake_case so the loop honours the documented contract of
+      // buildAssessmentJson (snake_case OR camelCase keys accepted). Without this normalisation,
+      // scenarios using snake_case for `assessment_type` / `assessment_reason` would skip the
+      // sentinel-aware handling below and be emitted as raw untrimmed numeric fields.
       String snake = camelToSnake(key);
 
-      // Trim table-cell padding but keep intentional blank tokens.
+      // Trim table-cell padding but keep intentional blank tokens (BLANK_SPACES, EMPTY_STRING).
       String value = raw == null ? null : raw.trim();
 
-      if ("assessmentType".equals(key)) {
+      if ("assessment_type".equals(snake)) {
         typeHandled = true;
         appendSentinelAwareField(sb, "assessment_type", value, /* isJsonString */ true);
         continue;
       }
-      if ("assessmentReason".equals(key)) {
+      if ("assessment_reason".equals(snake)) {
         reasonHandled = true;
-        appendSentinelAwareField(sb, "assessment_reason", raw, /* isJsonString */ true);
+        // Use the trimmed `value` so padded sentinel tokens (e.g. " __EMPTY__ ") match the
+        // sentinel-aware branch instead of being treated as literal padded strings.
+        appendSentinelAwareField(sb, "assessment_reason", value, /* isJsonString */ true);
         continue;
       }
       // Monetary / numeric overrides — emit as JSON numbers.

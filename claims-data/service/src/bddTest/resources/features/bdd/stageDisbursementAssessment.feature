@@ -15,7 +15,11 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
   #     defaults a missing assessmentType, never derives assessmentReason.
   #   - Data Stewardship does NOT re-validate fee-code ↔ assessmentType
   #     eligibility (owned by AaBC per this story).
-  #   - Rollout: behind a feature flag.
+  #   - Rollout: DSTEW-1520 did NOT deliver a runtime feature flag — the new
+  #     type is accepted unconditionally on the endpoint. The Background step
+  #     "the stage-disbursement-assessment feature flag is enabled" is a no-op
+  #     placeholder kept in the Gherkin so the scenarios read cleanly and so
+  #     the phrase is ready if a runtime flag is retro-fitted.
   #
   # Eligible Stage Disbursement fee codes (business-owned list):
   #   MHLDIS, EDUDIS, ICASD, ICISD, ICSSD, ILHSD.
