@@ -98,12 +98,12 @@ public class AmendmentMetadataValidationSteps {
   // Hooks — reference-data restoration around every scenario in this class.
   // ---------------------------------------------------------------------------
 
-  @Before(value = "@dstew-1765", order = 5)
+  @Before(value = "@dstew-1765 or @dstew-1764", order = 5)
   public void restoreReferenceDataBeforeScenario() {
     resetReferenceDataToFlywaySeed();
   }
 
-  @After("@dstew-1765")
+  @After("@dstew-1765 or @dstew-1764")
   public void restoreReferenceDataAfterScenario() {
     resetReferenceDataToFlywaySeed();
   }
