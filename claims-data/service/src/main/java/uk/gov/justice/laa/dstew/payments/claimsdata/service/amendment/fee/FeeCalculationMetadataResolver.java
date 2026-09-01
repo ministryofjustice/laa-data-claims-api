@@ -87,9 +87,11 @@ public class FeeCalculationMetadataResolver {
       return null;
     }
     List<String> categoryOfLawCodes = feeDetails.getCategoryOfLawCodes();
-    return categoryOfLawCodes == null || categoryOfLawCodes.isEmpty()
-        ? null
-        : firstNonBlank(categoryOfLawCodes.getFirst());
+    if (categoryOfLawCodes == null || categoryOfLawCodes.isEmpty()) {
+      return null;
+    }
+    String firstCode = categoryOfLawCodes.getFirst();
+    return firstCode == null || firstCode.isBlank() ? null : firstCode;
   }
 
   private FeeCalculationType parseFeeType(String rawFeeType) {

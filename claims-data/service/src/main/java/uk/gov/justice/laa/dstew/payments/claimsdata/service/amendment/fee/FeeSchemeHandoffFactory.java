@@ -111,45 +111,24 @@ public class FeeSchemeHandoffFactory {
             .categoryOfLaw(
                 feeCalculationMetadataResolver.resolveCategoryOfLaw(
                     state, feeCalculationResponse.getFeeCode()))
-            .totalAmount(toBigDecimal(feeCalculationResponse.getFeeCalculation().getTotalAmount()))
-            .vatIndicator(feeCalculationResponse.getFeeCalculation().getVatIndicator())
-            .vatRateApplied(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getVatRateApplied()))
-            .calculatedVatAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getCalculatedVatAmount()))
-            .disbursementAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getDisbursementAmount()))
-            .requestedNetDisbursementAmount(
-                toBigDecimal(
-                    feeCalculationResponse.getFeeCalculation().getRequestedNetDisbursementAmount()))
-            .disbursementVatAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getDisbursementVatAmount()))
-            .hourlyTotalAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getHourlyTotalAmount()))
-            .fixedFeeAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getFixedFeeAmount()))
-            .netProfitCostsAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetProfitCostsAmount()))
-            .requestedNetProfitCostsAmount(
-                toBigDecimal(
-                    feeCalculationResponse.getFeeCalculation().getRequestedNetProfitCostsAmount()))
-            .netCostOfCounselAmount(
-                toBigDecimal(
-                    feeCalculationResponse.getFeeCalculation().getNetCostOfCounselAmount()))
-            .netTravelCostsAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetTravelCostsAmount()))
-            .netWaitingCostsAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getNetWaitingCostsAmount()))
+            .totalAmount(toBigDecimal(calc.getTotalAmount()))
+            .vatIndicator(calc.getVatIndicator())
+            .vatRateApplied(toBigDecimal(calc.getVatRateApplied()))
+            .calculatedVatAmount(toBigDecimal(calc.getCalculatedVatAmount()))
+            .disbursementAmount(toBigDecimal(calc.getDisbursementAmount()))
+            .requestedNetDisbursementAmount(toBigDecimal(calc.getRequestedNetDisbursementAmount()))
+            .disbursementVatAmount(toBigDecimal(calc.getDisbursementVatAmount()))
+            .hourlyTotalAmount(toBigDecimal(calc.getHourlyTotalAmount()))
+            .fixedFeeAmount(toBigDecimal(calc.getFixedFeeAmount()))
+            .netProfitCostsAmount(toBigDecimal(calc.getNetProfitCostsAmount()))
+            .requestedNetProfitCostsAmount(toBigDecimal(calc.getRequestedNetProfitCostsAmount()))
+            .netCostOfCounselAmount(toBigDecimal(calc.getNetCostOfCounselAmount()))
+            .netTravelCostsAmount(toBigDecimal(calc.getNetTravelCostsAmount()))
+            .netWaitingCostsAmount(toBigDecimal(calc.getNetWaitingCostsAmount()))
             .detentionTravelAndWaitingCostsAmount(
-                toBigDecimal(
-                    feeCalculationResponse
-                        .getFeeCalculation()
-                        .getDetentionTravelAndWaitingCostsAmount()))
-            .jrFormFillingAmount(
-                toBigDecimal(feeCalculationResponse.getFeeCalculation().getJrFormFillingAmount()))
-            .travelAndWaitingCostsAmount(
-                toBigDecimal(
-                    feeCalculationResponse.getFeeCalculation().getTravelAndWaitingCostAmount()));
+                toBigDecimal(calc.getDetentionTravelAndWaitingCostsAmount()))
+            .jrFormFillingAmount(toBigDecimal(calc.getJrFormFillingAmount()))
+            .travelAndWaitingCostsAmount(toBigDecimal(calc.getTravelAndWaitingCostAmount()));
 
     if (boltOnPatch != null) {
       patch.setBoltOnDetails(boltOnPatch);

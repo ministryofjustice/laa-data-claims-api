@@ -179,42 +179,13 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
 
     String feeCode = fspResponse == null ? null : fspResponse.getFeeCode();
 
-    return CalculatedFeeDetailSnapshot.builder()
-        .feeCode(baseSnapshot.getFeeCode())
+    // Only enrich the fee-metadata fields; numeric/bolt-on fields are carried across unchanged
+    // via toBuilder() to avoid drift with the snapshot schema.
+    return baseSnapshot.toBuilder()
         .feeType(feeCalculationMetadataResolver.resolveFeeType(state, feeCode))
         .feeCodeDescription(
             feeCalculationMetadataResolver.resolveFeeCodeDescription(state, feeCode))
         .categoryOfLaw(feeCalculationMetadataResolver.resolveCategoryOfLaw(state, feeCode))
-        .totalAmount(baseSnapshot.getTotalAmount())
-        .vatIndicator(baseSnapshot.getVatIndicator())
-        .vatRateApplied(baseSnapshot.getVatRateApplied())
-        .calculatedVatAmount(baseSnapshot.getCalculatedVatAmount())
-        .disbursementAmount(baseSnapshot.getDisbursementAmount())
-        .requestedNetDisbursementAmount(baseSnapshot.getRequestedNetDisbursementAmount())
-        .disbursementVatAmount(baseSnapshot.getDisbursementVatAmount())
-        .hourlyTotalAmount(baseSnapshot.getHourlyTotalAmount())
-        .fixedFeeAmount(baseSnapshot.getFixedFeeAmount())
-        .netProfitCostsAmount(baseSnapshot.getNetProfitCostsAmount())
-        .requestedNetProfitCostsAmount(baseSnapshot.getRequestedNetProfitCostsAmount())
-        .netCostOfCounselAmount(baseSnapshot.getNetCostOfCounselAmount())
-        .netTravelCostsAmount(baseSnapshot.getNetTravelCostsAmount())
-        .netWaitingCostsAmount(baseSnapshot.getNetWaitingCostsAmount())
-        .detentionTravelAndWaitingCostsAmount(
-            baseSnapshot.getDetentionTravelAndWaitingCostsAmount())
-        .jrFormFillingAmount(baseSnapshot.getJrFormFillingAmount())
-        .travelAndWaitingCostsAmount(baseSnapshot.getTravelAndWaitingCostsAmount())
-        .boltOnTotalFeeAmount(baseSnapshot.getBoltOnTotalFeeAmount())
-        .boltOnAdjournedHearingCount(baseSnapshot.getBoltOnAdjournedHearingCount())
-        .boltOnAdjournedHearingFee(baseSnapshot.getBoltOnAdjournedHearingFee())
-        .boltOnCmrhTelephoneCount(baseSnapshot.getBoltOnCmrhTelephoneCount())
-        .boltOnCmrhTelephoneFee(baseSnapshot.getBoltOnCmrhTelephoneFee())
-        .boltOnCmrhOralCount(baseSnapshot.getBoltOnCmrhOralCount())
-        .boltOnCmrhOralFee(baseSnapshot.getBoltOnCmrhOralFee())
-        .boltOnHomeOfficeInterviewCount(baseSnapshot.getBoltOnHomeOfficeInterviewCount())
-        .boltOnHomeOfficeInterviewFee(baseSnapshot.getBoltOnHomeOfficeInterviewFee())
-        .boltOnSubstantiveHearingFee(baseSnapshot.getBoltOnSubstantiveHearingFee())
-        .escapeCaseFlag(baseSnapshot.getEscapeCaseFlag())
-        .schemeId(baseSnapshot.getSchemeId())
         .build();
   }
 
