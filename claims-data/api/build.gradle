@@ -20,6 +20,20 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'org.projectlombok:lombok:1.18.38'
+
+    constraints {
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
+            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
+        }
+        implementation('tools.jackson.core:jackson-databind:3.1.6') {
+            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
+        }
+    }
+
+    implementation platform('com.fasterxml.jackson:jackson-bom:2.21.6')
+    implementation platform('tools.jackson:jackson-bom:3.1.6')
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.6'
+    implementation 'tools.jackson.core:jackson-databind:3.1.6'
 }
 
 sourceSets.main.java.srcDirs += ['generated/src/main/java']
