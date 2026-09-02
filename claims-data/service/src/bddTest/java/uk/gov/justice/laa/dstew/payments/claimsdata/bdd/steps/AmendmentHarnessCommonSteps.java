@@ -95,10 +95,23 @@ public class AmendmentHarnessCommonSteps {
     step(
         "arm PDA mock to respond \"" + outcome + "\"",
         () -> {
-          // Default (empty ClaimValidationResult with valid=true, no issues) is already applied by
-          // BddAmendmentResetHook — that IS an "authorised" outcome. Non-"authorised" arming lands
-          // when DSTEW-1774 delivers PDA-specific scenarios; leave a spec-guard log for now.
-          log.info("[DSTEW-2301] PDA mock outcome expected: {} (defaults already applied)", outcome);
+          // Only the happy-path "authorised" outcome is implemented today. Non-"authorised" arming
+          // (rejected / timeout) lands with DSTEW-1774. Failing fast here means a scenario that
+          // asks for a non-happy outcome cannot silently pass against the default happy-path stub
+          // and produce a false-positive green — it will error with a clear message that points
+          // the reader at the follow-up ticket.
+          if (!"authorised".equalsIgnoreCase(outcome)) {
+            throw new UnsupportedOperationException(
+                "PDA outcome \""
+                    + outcome
+                    + "\" is not yet armed by the harness — only \"authorised\" is implemented"
+                    + " (default). Non-\"authorised\" variants land with DSTEW-1774. Failing fast"
+                    + " to avoid a false-positive green against the happy-path default stub.");
+          }
+          // No further stubbing required: BddAmendmentResetHook already primed
+          // ValidationService.validateClaim(...) with a valid=true / no-issues result, which IS
+          // the "authorised" outcome.
+          log.info("[DSTEW-2301] PDA mock outcome confirmed: authorised (defaults already applied)");
         });
   }
 
@@ -242,10 +255,10 @@ public class AmendmentHarnessCommonSteps {
   @Then("no outbound PDA call was made")
   public void noOutboundPdaCallWasMade() {
     step(
-        "verify the mocked ValidationService was NOT invoked with the PDA validator",
-        () ->
-            verify(validationService, never())
-                .validateClaim(any(), any(), any()));
+        "verify the mocked ValidationService.validateClaim(Claim, Set) was NOT invoked — this is"
+            + " the exact 2-arg overload used by AmendmentExternalValidationStep on the amendment"
+            + " path (see AmendmentExternalValidationStep.java line 85)",
+        () -> verify(validationService, never()).validateClaim(any(), any()));
   }
 
   @Then("no outbound FSP call was made")
@@ -265,8 +278,10 @@ public class AmendmentHarnessCommonSteps {
   @Then("exactly {int} outbound PDA call was made")
   public void exactlyNOutboundPdaCallsWereMade(int expected) {
     step(
-        "verify PDA-scoped validateClaim was invoked exactly " + expected + " times",
-        () -> verify(validationService, times(expected)).validateClaim(any(), any(), any()));
+        "verify the amendment-path ValidationService.validateClaim(Claim, Set) was invoked exactly "
+            + expected
+            + " times",
+        () -> verify(validationService, times(expected)).validateClaim(any(), any()));
   }
 
   // ---------------------------------------------------------------------------

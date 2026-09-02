@@ -65,7 +65,9 @@ public class AmendableClaimFixture {
   private static final String SEED_ACTOR = "bdd-DSTEW-2301";
   private static final String DEFAULT_OFFICE = "0U099L";
   private static final String DEFAULT_FEE_CODE = "CAPA";
-  private static final String DEFAULT_UCN = "14091962/T/PERS";
+  // NOTE: UCN is intentionally NOT stored here. The Claim entity does not carry a UCN field —
+  // UCNs live on the linked Client entity. When DSTEW-1769 needs UCN-based duplicate scenarios
+  // it will add UCN handling via Client seeding, not via a shared constant on this class.
   private static final String DEFAULT_UFN = "010725/001";
   private static final String DEFAULT_CASE_REF = "CRN-2301";
 
@@ -260,3 +262,4 @@ public class AmendableClaimFixture {
   /** Result of {@link Builder#seed()}. Records the IDs the caller needs to drive the PATCH call. */
   public record Seeded(UUID submissionId, UUID claimId, Long baselineVersion) {}
 }
+

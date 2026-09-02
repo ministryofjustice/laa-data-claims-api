@@ -18,7 +18,7 @@ baseline `calculated_fee_detail` row, and every external call hit unresolvable U
 | Fixture builder | `bdd.support.AmendableClaimFixture` | Seeds a fresh `Submission` + `Claim` + `ClaimSummaryFee` + baseline `CalculatedFeeDetail` in one transaction so amendment validation reaches the "amendable" branch. |
 | Mocked FSP client | `@MockitoBean FeeSchemePlatformRestClient` on `bdd.CucumberSpringConfiguration` | Replaces the real Fee-Scheme-Platform HTTP client so amendment repricing can be armed / verified without a live upstream. |
 | Mocked PDA validator | `@MockitoBean ValidationService` | Replaces the Provider-Details-API `ValidationService` bean so PDA outcomes can be armed / verified. |
-| Per-scenario reset | `bdd.hooks.BddAmendmentResetHook` | `@Before(order = 0)` — resets both mocks, re-applies "happy" defaults, and restores the boot-time value of `laa.claims.api.amendments.enabled` so scenario state cannot bleed. |
+| Per-scenario reset | `bdd.hooks.BddAmendmentResetHook` | `@Before(order = -1)` — resets both mocks and re-applies "happy" defaults. Runs **before** `BddHooks` (order = 0) so mock defaults are in place before any repository truncation and so downstream `Given the FSP service will …` arming steps overwrite our defaults rather than the other way round. **Note**: the amendments feature flag (`laa.claims.api.amendments.enabled`) reset lives in `BddHooks`, not here — see `BddHooks.resetScenarioContextAndData()` line 63. |
 | Shared step glue | `bdd.steps.AmendmentHarnessCommonSteps` | The Gherkin phrases downstream stories reuse (see below). |
 | Canary scenario | `resources/features/bdd/amendmentHarnessCanary.feature` | One scenario tagged `@dstew-harness-canary` — if this ever goes red on `main`, the harness itself has regressed. |
 
@@ -36,10 +36,12 @@ class itself, not `@Import`ed `@Configuration` classes. That is why both mocks l
 
 Default answers cannot be applied from `@PostConstruct` because the mock beans are
 injected **after** the `@Configuration` lifecycle fires. `BddAmendmentResetHook` fires at
-`@Before(order = 0)` so:
+`@Before(order = -1)` so:
 
 1. mocks exist,
-2. defaults land **before** any `Given the FSP service will …` step overrides them.
+2. defaults land **before** any `Given the FSP service will …` step overrides them,
+3. defaults land **before** the shared `BddHooks` (order = 0) truncates repositories,
+   so a data-clean-up path can never call into an un-stubbed mock.
 
 **Default answers** applied every scenario:
 
@@ -108,7 +110,11 @@ Owned by `AmendmentHarnessCommonSteps` (see class for exact phrasing):
 
 `AmendmentPdaTriggerSteps#noOutboundPdaCallWasMade` was a log-only spec-guard prior to
 DSTEW-2301 — it has been removed and ownership moved to the harness so the phrase now
-performs a real `verify(pdaValidationService, never()).validate(any())`.
+performs a real `verify(validationService, never()).validateClaim(any(), any())`. That
+2-arg overload is the one the amendment path calls
+(`AmendmentExternalValidationStep.java` line 85: `validationService.validateClaim(claim,
+validationCodes)`); asserting on the 3-arg overload would silently pass even when a
+real PDA call happened, so the harness fixes on the exact overload production uses.
 
 ---
 
