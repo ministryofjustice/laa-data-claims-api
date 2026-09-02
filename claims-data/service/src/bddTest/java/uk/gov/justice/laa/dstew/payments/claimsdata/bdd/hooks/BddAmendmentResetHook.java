@@ -20,15 +20,34 @@ import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
  * FeeSchemePlatformRestClient} and {@link ValidationService}) and reapplies safe defaults before
  * every scenario.
  *
- * <p>Runs at {@code order = 0} — the earliest slot — so scenario-specific arming steps (in {@code
- * AmendmentHarnessCommonSteps}, T4) layer on top of a known baseline.
+ * <p><b>Ordering</b>: this hook runs at {@code order = -1} so it fires <em>before</em>
+ * {@link BddHooks#resetScenarioContextAndData()} (which is {@code order = 0}). That matters for two
+ * reasons:
  *
- * <p><b>Why this exists</b>: {@link
- * org.springframework.test.context.bean.override.mockito.MockitoBean} fields declared in {@link
- * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddAmendmentHarnessConfiguration} are injected
- * AFTER the {@code @Configuration}'s own lifecycle hooks fire, so defaults cannot be applied via
- * {@code @PostConstruct} in that class. This glue class runs when cucumber invokes it, by which
- * time the mock beans are guaranteed to be present.
+ * <ul>
+ *   <li>The Mockito reset + default answers must land before any repository-truncation logic that
+ *       could indirectly trigger a mocked service call.
+ *   <li>Any downstream {@code Given the FSP service will …} arming step must overwrite our
+ *       defaults, not the other way round; a strictly lower order guarantees that.
+ * </ul>
+ *
+ * <p><b>Feature-flag reset is NOT owned here.</b> {@link BddHooks} already resets
+ * {@code laa.claims.api.amendments.enabled} to {@code null} at {@code order = 0}. Duplicating that
+ * work would just race and confuse ownership.
+ *
+ * <p><b>Mock beans</b>: {@link FeeSchemePlatformRestClient} and {@link ValidationService} are
+ * declared as {@code @MockitoBean} directly on
+ * {@link uk.gov.justice.laa.dstew.payments.claimsdata.bdd.CucumberSpringConfiguration} because
+ * Spring's bean-override machinery only picks up mock annotations from the test class that carries
+ * {@code @CucumberContextConfiguration}. Defaults cannot be applied via {@code @PostConstruct} on
+ * that configuration because the mock beans are wired later; this Cucumber hook is the first
+ * guaranteed-safe touch-point.
+ *
+ * <p><b>Reference-data reset</b>: intentionally a no-op. The T2 fixture ({@code
+ * AmendableClaimFixture}) only writes into the transactional submission/claim/summary-fee/CFD graph;
+ * it does not mutate ref-data (fee_scheme, area_of_law, matter_type). Downstream stories that DO
+ * mutate ref-data must extend this hook with an explicit reset — do not silently pile ref-data
+ * clean-up in here as it will slow every non-amendment scenario.
  *
  * <p>Ticket: DSTEW-2301.
  */
@@ -40,12 +59,10 @@ public class BddAmendmentResetHook {
   private final ValidationService validationService;
 
   /**
-   * Resets both mocks and reapplies default answers. Runs before every cucumber scenario.
-   *
-   * <p>Order zero — the harness reset must precede any scenario arming ({@code Given the FSP
-   * service will …}) so those steps overwrite our defaults rather than being overwritten by them.
+   * Resets both mocks and reapplies default answers. Runs before every cucumber scenario, ahead of
+   * {@link BddHooks} (see class-level Javadoc for the ordering rationale).
    */
-  @Before(order = 0)
+  @Before(order = -1)
   public void resetAmendmentHarnessMocks() {
     reset(feeSchemePlatformRestClient, validationService);
     applyDefaults();
@@ -89,4 +106,3 @@ public class BddAmendmentResetHook {
     return result;
   }
 }
-
