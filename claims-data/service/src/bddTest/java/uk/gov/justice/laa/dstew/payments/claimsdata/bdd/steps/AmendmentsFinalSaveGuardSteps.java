@@ -339,23 +339,25 @@ public class AmendmentsFinalSaveGuardSteps {
   @Then("the captured WARN log contains {string}")
   public void theCapturedWarnLogContains(String needle) {
     step(
-        "assert at least one captured WARN entry contains \"" + needle + "\"",
+        "assert at least one captured WARN entry individually contains \"" + needle + "\" —"
+            + " avoids false positives from tokens spread across separate log lines",
         () ->
-            assertThat(allWarnFormatted())
-                .as("concatenated WARN log entries on ClaimAmendmentCommitService")
-                .contains(needle));
+            assertThat(warnMessages())
+                .as("captured WARN entries on ClaimAmendmentCommitService")
+                .anyMatch(msg -> msg.contains(needle)));
   }
 
   @Then("the captured WARN log contains the current claim id")
   public void theCapturedWarnLogContainsTheCurrentClaimId() {
     step(
-        "assert at least one captured WARN entry references the current claimId",
+        "assert at least one captured WARN entry individually references the current claimId",
         () -> {
           UUID claimId = sharedPatchContext.getClaimId();
           assertThat(claimId).as("current claim id").isNotNull();
-          assertThat(allWarnFormatted())
-              .as("concatenated WARN log entries on ClaimAmendmentCommitService")
-              .contains("claimId=" + claimId);
+          String token = "claimId=" + claimId;
+          assertThat(warnMessages())
+              .as("captured WARN entries on ClaimAmendmentCommitService")
+              .anyMatch(msg -> msg.contains(token));
         });
   }
 
@@ -381,7 +383,7 @@ public class AmendmentsFinalSaveGuardSteps {
               .doesNotContain("PROVIDER_ERROR");
           assertThat(warnBody)
               .as("WARN log must not carry the amendment_requested_by payload literal")
-              .doesNotContain("PROVIDER\"");
+              .doesNotContain("PROVIDER");
         });
   }
 
@@ -403,6 +405,10 @@ public class AmendmentsFinalSaveGuardSteps {
         .toList();
   }
 
+  private List<String> warnMessages() {
+    return warnEntries().stream().map(ILoggingEvent::getFormattedMessage).toList();
+  }
+
   private String allWarnFormatted() {
     StringBuilder sb = new StringBuilder();
     for (ILoggingEvent e : warnEntries()) {
@@ -422,4 +428,7 @@ public class AmendmentsFinalSaveGuardSteps {
     return errors.findValuesAsText("code");
   }
 }
+
+
+
 
