@@ -4,6 +4,8 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specificat
 
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -308,8 +310,121 @@ public class ClaimService
       candidateValue = jsonNullable.isPresent() ? jsonNullable.get() : null;
     }
 
-    return candidateValue != null
-        && !Objects.equals(candidateValue, readClaimField(claim, patchField.getName()));
+    if (candidateValue == null) {
+      return false;
+    }
+
+    // Resolve the entity field name for mapped booleans (isX -> x) or other simple mappings.
+    String patchFieldName = patchField.getName();
+    Field claimField = ReflectionUtils.findField(claim.getClass(), patchFieldName);
+    if (claimField == null) {
+      String mappedName = mapPatchFieldNameToEntityField(patchFieldName);
+      if (!mappedName.equals(patchFieldName)) {
+        claimField = ReflectionUtils.findField(claim.getClass(), mappedName);
+      }
+    }
+
+    if (claimField == null) {
+      // No matching entity field found: preserve previous behaviour (present non-null -> amendment)
+      return !Objects.equals(candidateValue, null);
+    }
+
+    ReflectionUtils.makeAccessible(claimField);
+    Object persistedValue = ReflectionUtils.getField(claimField, claim);
+
+    Object normalisedCandidate = convertCandidateToFieldType(candidateValue, claimField.getType());
+
+    return !Objects.equals(normalisedCandidate, persistedValue);
+  }
+
+  private String mapPatchFieldNameToEntityField(String patchFieldName) {
+    // Simple MapStruct-style boolean mapping: isDutySolicitor -> dutySolicitor
+    if (patchFieldName != null && patchFieldName.length() > 2 && patchFieldName.startsWith("is")
+        && Character.isUpperCase(patchFieldName.charAt(2))) {
+      String withoutIs = patchFieldName.substring(2);
+      return Character.toLowerCase(withoutIs.charAt(0)) + withoutIs.substring(1);
+    }
+    return patchFieldName;
+  }
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  private Object convertCandidateToFieldType(Object candidateValue, Class<?> targetType) {
+    if (candidateValue == null || targetType == null) {
+      return candidateValue;
+    }
+
+    // Already correct type
+    if (targetType.isInstance(candidateValue)) {
+      return candidateValue;
+    }
+
+    try {
+      // String -> LocalDate
+      if (candidateValue instanceof String s) {
+        if (LocalDate.class.equals(targetType)) {
+          try {
+            return LocalDate.parse(s, ClaimMapper.CLAIM_DATE_FORMAT);
+          } catch (Exception ex1) {
+            try {
+              // Fallback: accept ISO yyyy-MM-dd commonly emitted by LocalDate.toString()
+              return LocalDate.parse(s);
+            } catch (Exception ex2) {
+              // fall through to leave as raw string (will be considered a change)
+              return candidateValue;
+            }
+          }
+        }
+        if (BigDecimal.class.equals(targetType)) {
+          try {
+            return new BigDecimal(s);
+          } catch (Exception e) {
+            return candidateValue;
+          }
+        }
+        if (Boolean.class.equals(targetType) || boolean.class.equals(targetType)) {
+          return Boolean.valueOf(s);
+        }
+        if (Integer.class.equals(targetType) || int.class.equals(targetType)) {
+          try {
+            return Integer.valueOf(s);
+          } catch (Exception e) {
+            return candidateValue;
+          }
+        }
+        if (Long.class.equals(targetType) || long.class.equals(targetType)) {
+          try {
+            return Long.valueOf(s);
+          } catch (Exception e) {
+            return candidateValue;
+          }
+        }
+        if (targetType.isEnum()) {
+          Object[] constants = targetType.getEnumConstants();
+          for (Object c : constants) {
+            if (c.toString().equalsIgnoreCase(s) || ((Enum) c).name().equalsIgnoreCase(s)) {
+              return c;
+            }
+          }
+          return candidateValue;
+        }
+      }
+
+      // Number -> BigDecimal
+      if (candidateValue instanceof Number n && BigDecimal.class.equals(targetType)) {
+        return BigDecimal.valueOf(n.doubleValue());
+      }
+
+      // LocalDate -> String (format)
+      if (candidateValue instanceof LocalDate ld && String.class.equals(targetType)) {
+        return ld.format(ClaimMapper.CLAIM_DATE_FORMAT);
+      }
+    } catch (Exception e) {
+      // Conversion failed - fall back to original candidateValue
+      return candidateValue;
+    }
+
+    // Fallback: return original candidateValue
+    return candidateValue;
   }
 
   /**
