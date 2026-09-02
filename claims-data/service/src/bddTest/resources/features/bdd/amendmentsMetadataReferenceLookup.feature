@@ -103,9 +103,9 @@ Feature: Amendment metadata — reference-data lookup & governance
   @DS1594_7
   Scenario: Editing a display label does not change the underlying code
     Given the amendment metadata reference data has been seeded with the BC-574 defaults
-    And the display label for Requested By code "PROVIDER" is updated to "Provider (Legal Aid)"
+    And the display label for Requested By code "PROVIDER" is updated to "Provider (legal aid)"
     When I request the amendment metadata reference lookup
-    Then the Requested By value with code "PROVIDER" has display label "Provider (Legal Aid)"
+    Then the Requested By value with code "PROVIDER" has display label "Provider (legal aid)"
     And the Requested By code "PROVIDER" is unchanged
     And every Amendment Reason previously scoped to Requested By "PROVIDER" is still scoped to "PROVIDER"
 
@@ -177,7 +177,7 @@ Feature: Amendment metadata — reference-data lookup & governance
   Scenario: Historical amendment stability — code pairing survives label change
     Given the amendment metadata reference data has been seeded with the BC-574 defaults
     And an amendment record persists the codes requested_by_code "PROVIDER" and amendment_reason_code "PROVIDER_ERROR"
-    When the display label for Requested By "PROVIDER" is updated to "Provider (Legal Aid)"
+    When the display label for Requested By "PROVIDER" is updated to "Provider (legal aid)"
     And the display label for Amendment Reason "PROVIDER_ERROR" under Requested By "PROVIDER" is updated to "Provider error (rev)"
     Then the amendment record still references requested_by_code "PROVIDER"
     And the amendment record still references amendment_reason_code "PROVIDER_ERROR"
