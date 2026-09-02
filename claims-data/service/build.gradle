@@ -40,6 +40,16 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 dependencies {
+
+    constraints {
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
+            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
+        }
+        implementation('tools.jackson.core:jackson-databind:3.1.6') {
+            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
+        }
+    }
+
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.4'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
@@ -126,18 +136,6 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
-}
-
-// Enforce safe jackson-databind versions to mitigate Snyk findings
-dependencies {
-    constraints {
-        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
-            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
-        }
-        implementation('tools.jackson.core:jackson-databind:3.1.6') {
-            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
-        }
-    }
 }
 
 bootRun {
