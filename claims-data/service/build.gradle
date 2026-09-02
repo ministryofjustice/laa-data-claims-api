@@ -239,7 +239,7 @@ tasks.register('pactTest', Test) {
     // Publish if both username and password environment variables are provided
     def canPublish =
             providers.environmentVariable('PACT_BROKER_USERNAME').isPresent() &&
-            providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
+                    providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
 
     if (canPublish) {
         systemProperty 'pact.verifier.publishResults', 'true'
