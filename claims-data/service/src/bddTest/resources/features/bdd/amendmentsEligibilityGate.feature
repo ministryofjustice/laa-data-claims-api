@@ -5,7 +5,7 @@
 Feature: Amendment eligibility gate — claim.status must be VALID
 
   # Jira: DSTEW-1764 (parent: DSTEW-1593 → DSTEW-1999)
-  # Endpoint: POST /api/v1/claims/{claimId}/amendments  (DSTEW-1593)
+  # Endpoint: PATCH /api/v1/submissions/{submissionId}/claims/{claimId}
   #
   # Gate ordering: retrieval (DSTEW-1763) → eligibility (this ticket) →
   #                metadata / duplicate / PDA / FSP / persistence.
@@ -19,11 +19,13 @@ Feature: Amendment eligibility gate — claim.status must be VALID
   #               amendmentsFinalSaveGuard.feature;
   #               Field/metadata/duplicate/PDA/FSP → their own tickets.
   #
-  # Coverage review (2026-08-11): no existing eligibility implementation
-  # or tests found (DSTEW-1593 endpoint not yet built). Sibling
-  # `amendmentsPdaParentIntegration.feature @DS1646_1` asserts the ordering
-  # guarantee at a higher level (early rejection short-circuits PDA) but
-  # doesn't cover the void-vs-other-status distinction or the error codes.
+  # Coverage review (2026-08-11): the eligibility implementation
+  # (`ClaimStatusValidationStep`) already exists in production code; the gap
+  # DSTEW-1764 fills is the missing BDD coverage of the gate + its error
+  # codes. Sibling `amendmentsPdaParentIntegration.feature @DS1646_1` asserts
+  # the ordering guarantee at a higher level (early rejection short-circuits
+  # PDA) but doesn't cover the void-vs-other-status distinction or the error
+  # codes.
 
   Background:
     Given the amendments feature flag is enabled

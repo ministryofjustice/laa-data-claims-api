@@ -317,14 +317,28 @@ public class AmendmentsEligibilityGateSteps {
   public void theResponseDoesNotContainAnyMetadataValidationErrorCode() {
     step(
         "Asserting the response body does not carry any metadata-validation error code — proves "
-            + "the eligibility gate short-circuited BEFORE the metadata step ran",
+            + "the eligibility gate short-circuited BEFORE the metadata step ran. The three real"
+            + " metadata-code families are INVALID_REQUESTED_BY_*, INVALID_AMENDMENT_REASON_*, and"
+            + " INVALID_USER_IDENTIFIER_* (see ClaimAmendmentValidationCode).",
         () -> {
+          // Full enumeration of the real metadata codes, taken from
+          // ClaimAmendmentValidationCode so this list cannot silently drift from production.
           for (String code :
               List.of(
-                  "INVALID_AMENDMENT_REASON_CODE",
-                  "INVALID_AMENDMENT_REQUESTED_BY",
-                  "INVALID_AMENDMENT_USER_ID",
-                  "METADATA_VALIDATION_FAILED")) {
+                  // INVALID_REQUESTED_BY_*
+                  "INVALID_REQUESTED_BY_MISSING",
+                  "INVALID_REQUESTED_BY_UNKNOWN",
+                  "INVALID_REQUESTED_BY_INACTIVE",
+                  "INVALID_REQUESTED_BY_NOT_A_CODE",
+                  // INVALID_AMENDMENT_REASON_*
+                  "INVALID_AMENDMENT_REASON_MISSING",
+                  "INVALID_AMENDMENT_REASON_UNKNOWN",
+                  "INVALID_AMENDMENT_REASON_INACTIVE",
+                  "INVALID_AMENDMENT_REASON_NOT_A_CODE",
+                  "INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY",
+                  // INVALID_USER_IDENTIFIER_*
+                  "INVALID_USER_IDENTIFIER_MISSING",
+                  "INVALID_USER_IDENTIFIER_FORMAT")) {
             assertResponseDoesNotContainCode(code);
           }
         });
@@ -334,16 +348,15 @@ public class AmendmentsEligibilityGateSteps {
   public void theResponseDoesNotContainAnyDuplicateCheckErrorCode() {
     step(
         "Asserting the response body does not carry any duplicate-check error code — proves the "
-            + "eligibility gate short-circuited BEFORE the duplicate step ran",
+            + "eligibility gate short-circuited BEFORE the duplicate step ran. The real amendment"
+            + " duplicate codes are INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION and"
+            + " INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION (see"
+            + " ClaimAmendmentDuplicateValidationIntegrationTest + ClaimValidationError).",
         () -> {
           for (String code :
               List.of(
-                  "DUPLICATE_CLAIM",
-                  "DUPLICATE_UCN",
-                  "DUPLICATE_UFN",
-                  "DUPLICATE_AMENDMENT",
-                  "DUPLICATE_CASE_ID",
-                  "DUPLICATE_MATTER_TYPE_COMBINATION")) {
+                  "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION",
+                  "INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION")) {
             assertResponseDoesNotContainCode(code);
           }
         });
