@@ -40,6 +40,16 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 dependencies {
+
+    constraints {
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
+            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
+        }
+        implementation('tools.jackson.core:jackson-databind:3.1.6') {
+            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
+        }
+    }
+
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.4'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
@@ -77,17 +87,19 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
     implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
-    implementation platform('com.fasterxml.jackson:jackson-bom:2.19.2')
+    implementation platform('com.fasterxml.jackson:jackson-bom:2.21.6')
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.6'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
     implementation 'software.amazon.awssdk:sts'
     implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-    implementation(platform("tools.jackson:jackson-bom:3.1.4"))
+    implementation(platform("tools.jackson:jackson-bom:3.1.6"))
+    implementation 'tools.jackson.core:jackson-databind:3.1.6'
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")
@@ -227,7 +239,7 @@ tasks.register('pactTest', Test) {
     // Publish if both username and password environment variables are provided
     def canPublish =
             providers.environmentVariable('PACT_BROKER_USERNAME').isPresent() &&
-            providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
+                    providers.environmentVariable('PACT_BROKER_PASSWORD').isPresent()
 
     if (canPublish) {
         systemProperty 'pact.verifier.publishResults', 'true'
