@@ -63,7 +63,7 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
     And claim.is_amended is false
     And claim.version equals 1
 
-  @DS1753_4
+  @DS1753_3
   Scenario: Structured WARN log — final-save guard emits event=CLAIM_VERSION_CONFLICT with safe fields and conflictPoint=final_save
     Given a fresh amendable claim on a legal-help submission at version 0
     And a concurrent writer will advance claim.version by 1 during external validation
@@ -104,4 +104,5 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
     And claim.has_assessment is true
     And claim.version equals 1
     And no claim_amendment record was inserted for this claim by this attempt
+
 
