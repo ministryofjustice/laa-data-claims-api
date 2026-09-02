@@ -40,6 +40,16 @@ jacocoTestCoverageVerification {
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
 dependencies {
+
+    constraints {
+        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
+            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
+        }
+        implementation('tools.jackson.core:jackson-databind:3.1.6') {
+            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
+        }
+    }
+
     implementation project(':claims-data:api')
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.4'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
@@ -126,18 +136,31 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testRuntimeOnly "org.flywaydb:flyway-database-postgresql"
-}
 
-// Enforce safe jackson-databind versions to mitigate Snyk findings
-dependencies {
-    constraints {
-        implementation('com.fasterxml.jackson.core:jackson-databind:2.21.6') {
-            because 'Security: upgrade jackson-databind to 2.21.6 to fix SNYK-JAVA-COMFASTERXMLJACKSONCORE-19477042'
-        }
-        implementation('tools.jackson.core:jackson-databind:3.1.6') {
-            because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
-        }
-    }
+    // PACT dependencies are defined in the pactTest source set below
+    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
+    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.1'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    pactTestImplementation 'org.springframework.boot:spring-boot-autoconfigure'
+    pactTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    pactTestImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
+
+    // BDD dependencies are defined in the bddTest source set below
+    // Cucumber BDD scaffolding (end-to-end tests against the running application)
+    bddTestImplementation 'io.cucumber:cucumber-java:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-junit-platform-engine:7.22.1'
+    bddTestImplementation 'io.cucumber:cucumber-spring:7.22.1'
+    bddTestImplementation 'org.junit.platform:junit-platform-suite'
+    bddTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    bddTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    bddTestImplementation "org.testcontainers:testcontainers-junit-jupiter"
+    bddTestImplementation "org.testcontainers:testcontainers-postgresql"
+    bddTestImplementation "org.testcontainers:testcontainers-localstack"
+    bddTestImplementation "software.amazon.awssdk:sqs"
+    bddTestImplementation 'org.projectlombok:lombok:1.18.44'
+    bddTestAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
+    bddTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    bddTestRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 }
 
 bootRun {
@@ -168,24 +191,6 @@ configurations {
     bddTestRuntimeOnly.extendsFrom(testRuntimeOnly, integrationTestRuntimeOnly)
     bddTestCompileOnly.extendsFrom(testCompileOnly)
     bddTestAnnotationProcessor.extendsFrom(testAnnotationProcessor)
-}
-
-dependencies {
-    // Cucumber BDD scaffolding (end-to-end tests against the running application)
-    bddTestImplementation 'io.cucumber:cucumber-java:7.22.1'
-    bddTestImplementation 'io.cucumber:cucumber-junit-platform-engine:7.22.1'
-    bddTestImplementation 'io.cucumber:cucumber-spring:7.22.1'
-    bddTestImplementation 'org.junit.platform:junit-platform-suite'
-    bddTestImplementation 'org.springframework.boot:spring-boot-starter-test'
-    bddTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    bddTestImplementation "org.testcontainers:testcontainers-junit-jupiter"
-    bddTestImplementation "org.testcontainers:testcontainers-postgresql"
-    bddTestImplementation "org.testcontainers:testcontainers-localstack"
-    bddTestImplementation "software.amazon.awssdk:sqs"
-    bddTestImplementation 'org.projectlombok:lombok:1.18.44'
-    bddTestAnnotationProcessor 'org.projectlombok:lombok:1.18.44'
-    bddTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    bddTestRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 }
 
 tasks.register('bddTest', Test) {
@@ -219,15 +224,6 @@ configurations.all {
             because 'Prefer the current org.hibernate.orm:hibernate-core coordinates over the legacy org.hibernate:hibernate-core'
         }
     }
-}
-
-dependencies {
-    // Source: https://mvnrepository.com/artifact/au.com.dius.pact.provider/spring7
-    pactTestImplementation 'au.com.dius.pact.provider:spring7:4.7.1'
-    pactTestImplementation 'org.springframework.boot:spring-boot-starter-test'
-    pactTestImplementation 'org.springframework.boot:spring-boot-autoconfigure'
-    pactTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    pactTestImplementation 'org.apache.httpcomponents:httpclient:4.5.13'
 }
 
 tasks.register('pactTest', Test) {
