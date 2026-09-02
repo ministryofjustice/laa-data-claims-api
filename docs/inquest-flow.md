@@ -1,27 +1,33 @@
 # Inquest submission validation flow
 
+> **Capture model:** all data — inquest *and* non-inquest — arrives in a single bulk file upload and
+> undergoes INITIAL validation. Valid submissions are then held in `READY_FOR_FINAL_VALIDATION` as a
+> **review-before-submit** window until the provider submits (FINAL validation) or discards. There is
+> **no** separate per-claim inquest data-entry step or To-Do list: the data is already present in the
+> file. (A previous iteration collected inquest data per claim after upload; that sub-flow has been
+> removed.)
+>
+> **Feature flag `INQUESTS_ENABLED`:** inquest-field handling is gated. While **disabled**, any
+> populated inquest field fails INITIAL validation, so providers cannot believe the data is being
+> accepted yet. While **enabled**, inquest fields are validated per the inquest validation rules.
+
 ```mermaid
 flowchart TD
     A[Upload and parse\n Submission: CREATED -> READY_FOR_INITIAL_VALIDATION] --> B[INITIAL validation\n Submission: INITIAL_VALIDATION_IN_PROGRESS]
-    B --> C{Validation ERROR?}
+    B --> FF{"INQUESTS_ENABLED\n feature flag?"}
+    FF -->|Disabled| FDIS["Inquest rule: ANY populated inquest field => Validation ERROR<br/>(inquest data is not accepted yet -<br/>providers must not think it is being captured)"]
+    FF -->|Enabled| FEN["Inquest rule: validate inquest fields<br/>per the inquest INITIAL validation rules"]
+    FDIS --> C
+    FEN --> C
+    C{"Validation ERROR?<br/>(inquest + non-inquest)"}
     C -->|Validation ERROR| D["Submission: INITIAL_VALIDATION_FAILED<br/>Claims: INVALID<br/>Provider must correct the source<br/>and create a new submission"]
     C -->|No Validation errors| E["Submission: READY_FOR_FINAL_VALIDATION<br/>Claims: READY_FOR_FINAL_VALIDATION, not yet VALID"]
-    E --> E1["FSP identifies Inquest Claims which are marked as \ninquest_data_required = true and shown on the ToDo list in the front end
-                (The rest of the claims have inquest_data_required = null)"]
-    E1 --> E2{"Are there \nInquest claims in the\n To Do List?"}            
-    E2 --> |Yes|F[Provider inputs inquest data for a claim in the To Do list]
-    E2 --> |No|G
-    F --> F1{"Front end (or API?)\n check for Inquest-fields\n validation errors"}
-    F1 --> |Errors Found|F
-    F1 --> |No Errors|F2[mark claim as inquest_data_required=false]
-    F2 --> F3{Any more To Do items?}
-    F3 -->|Yes, next item| F
-    F3 -->|No, all complete| G["Submission held in READY_FOR_FINAL_VALIDATION (previously DRAFT) status"]
+    E --> G["Submission held in READY_FOR_FINAL_VALIDATION (previously DRAFT) status.<br/>All data (incl. inquest) was supplied in the uploaded file;<br/>this is a review-before-submit window, not a data-collection step."]
     G --> G1{Submission\n waiting for Provider\n action}
     G1 --> |Provider selects the\n Submit option|H1[FINAL validation]
     G1 --> |Provider selects the\n Discard option|H2["Submission and all claims set to DISCARDED"]
     G1 --> |No provider action, wait period elapsed|H3["Notification/reminder sent?\n Submission and all claims set to ABANDONED? Or Submitted?"]
-    H1 --> I{"Validation ERROR?\n (Any claims with \ninquest_data_required=true cause a \Validation error now)."}
+    H1 --> I{"Validation ERROR?<br/>(When INQUESTS_ENABLED, inquest fields are<br/>validated per the inquest FINAL rules;<br/>when disabled, any populated inquest field is an ERROR.)"}
 
     I -->|Any Validation errors| J["Submission: VALIDATION_FAILED<br/>Claims: INVALID<br/>Final submission cannot return to Draft<br/>Correction requires a new submission"]
 

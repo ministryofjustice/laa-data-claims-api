@@ -72,16 +72,24 @@ later (add an `authority_code` FK, backfill matched names) **without changing th
   design keeps the door open to govern it later without a claim-level migration.
 
 ### 2.6 How the data flows (for completeness)
-- **Bulk XML → API:** `event-service` `BulkSubmissionMapper` reads inquest fields from the parsed
-  outcome and populates `ClaimInquestDataWrite` (scalars + `interested_department_codes` +
-  `interested_public_authorities`) on the claim POST.
+- **Bulk file → API (primary capture):** all inquest data arrives **in the uploaded bulk file** with
+  the rest of the claim. `event-service` `BulkSubmissionMapper` reads the inquest fields from the
+  parsed outcome and populates `ClaimInquestDataWrite` (scalars + `interested_department_codes` +
+  `interested_public_authorities`) on the claim POST. (A prior iteration captured inquest data
+  separately, per claim, after upload; that approach has been dropped — see ADR-0001.)
+- **Feature flag `INQUESTS_ENABLED`:** inquest handling is gated. While the flag is **off**, populated
+  inquest fields are **rejected at initial validation** and no inquest rows are persisted; while
+  **on**, the mapping above runs and inquest rows are stored. This gate lives in the validation layer
+  (ADR-0001) and does **not** change the storage model in this ADR.
 - **API contract:** `claim_inquest_data_write` / `claim_inquest_data` schemas expose the flat shape;
-  `POST`/`PUT`/`GET` under the claim. `PUT` (`replace`) deletes and re-inserts the child rows
-  atomically. Department codes are validated against `department_reference` on write.
+  `POST`/`PUT`/`GET` under the claim. These now serve **corrections/edits and retrieval**, not the
+  primary capture path. `PUT` (`replace`) deletes and re-inserts the child rows atomically. Department
+  codes are validated against `department_reference` on write.
 - **Completeness:** `InquestCompletenessDefinition` is a single config-driven policy
   (`inquest.mandatory-fields`) that treats each scalar and each repeating group (≥1 department,
-  ≥1 authority) as independently mandatory-or-not. This is orthogonal to the storage model.
-- **UI:** `laa-submit-a-bulk-claim` captures/edits the same fields during draft review.
+  ≥1 authority) as independently mandatory-or-not. It is applied as a **validation rule** at
+  initial/final validation (ADR-0001), not as a gate on a separate submission step, and is orthogonal
+  to the storage model.
 
 ### 2.7 Technical observations PoC Developers want PDS to be aware of
 - **Department FK identity is a live design question (see §2.8).** The PoC FKs the business `code`,

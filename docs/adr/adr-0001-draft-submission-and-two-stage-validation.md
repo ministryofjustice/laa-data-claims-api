@@ -3,12 +3,12 @@
 - **Status:** Proposed (spike outcome — recommendation for review)
 - **Date:** 2026-08-14
 - **Deciders:** Submit a Bulk Claim / Data Claims team
-- **Related:** [`inquest-flow.md`](./inquest-flow.md), [`derived-claim-status.md`](./derived-claim-status.md),
+- **Related:** [`inquest-flow.md`](../inquest-flow.md), [`derived-claim-status.md`](../derived-claim-status.md),
   state-transition diagrams:
-  [claim](./state-transition-claim.md),
-  [submission](./state-transition-submission.md),
-  [bulk-submission](./state-transition-bulk-submission.md);
-  [validation-rule catalogue](./validation-rule-catalogue.md)
+  [claim](../state-transition-claim.md),
+  [submission](../state-transition-submission.md),
+  [bulk-submission](../state-transition-bulk-submission.md);
+  [validation-rule catalogue](../validation-rule-catalogue.md)
 
 ---
 
@@ -17,14 +17,31 @@
 The Submit a Bulk Claim service currently allows a provider to upload a bulk claim file. The file is
 parsed asynchronously, split into individual claims, and each claim is validated in a **single pass**.
 
-We want to introduce a **draft submission** capability: a provider uploads a file, then provides or
-amends additional information (the first concrete case is missing *inquest* details) before
-completing the submission. Validation therefore splits into **two stages**:
+We want to introduce a **draft submission** capability: a provider uploads a file, then **reviews** it
+before completing the submission. Validation therefore splits into **two stages**:
 
 1. **Initial validation** — everything that can be checked against the uploaded file immediately
    after upload/parse.
-2. **Full validation** — validation of the complete claim, including additional information supplied
-   after upload, run when the provider submits.
+2. **Full validation** — validation of the complete claim, run when the provider submits.
+
+> **Capture-model note (change in direction, 2026-08).** An earlier iteration assumed *inquest* data
+> would be supplied **separately after upload**, one claim at a time, via a new "post inquest data"
+> endpoint driven by a To-Do list, before completing the submission. That is **no longer the case**:
+> **all** data — inquest and non-inquest — now arrives in the **single bulk file upload** and undergoes
+> initial validation together. The draft-hold (`READY_FOR_FINAL_VALIDATION`) is therefore a
+> **review-before-submit** window, **not** a data-collection step. This *simplifies* the model: the
+> two-stage validation, the draft-hold and the terminal draft states below all still stand, but the
+> per-claim inquest data-entry sub-flow (To-Do list, per-claim endpoint, and the flag that gated it)
+> is removed. See [`inquest-flow.md`](../inquest-flow.md) for the updated flowchart.
+
+> **Feature flag `INQUESTS_ENABLED` (new requirement).** Inquest-field functionality is gated behind a
+> feature flag:
+> - **Disabled (initial state):** any populated inquest field **fails initial validation** (a blocking
+>   ERROR), so providers are not misled into thinking inquest data is being captured yet.
+> - **Enabled:** inquest fields are validated per the inquest validation rules (see §7 below).
+>
+> The flag governs *validation behaviour*, not storage: inquest columns/tables may exist while the flag
+> is off; they are simply rejected on input until it is on.
 
 ### As-built today (established during the spike)
 
@@ -83,7 +100,7 @@ Key facts that constrain this decision:
 
 ### Option 1 — Expand the claim/submission status enums *(SELECTED)*
 
-Add lifecycle stages directly to the status enums, as in [`inquest-flow.md`](./inquest-flow.md), e.g.
+Add lifecycle stages directly to the status enums, as in [`inquest-flow.md`](../inquest-flow.md), e.g.
 submission `CREATED → READY_FOR_INITIAL_VALIDATION → INITIAL_VALIDATION_IN_PROGRESS →
 INITIAL_VALIDATION_FAILED / READY_FOR_FINAL_VALIDATION → VALIDATION_IN_PROGRESS →
 VALIDATION_FAILED / VALIDATION_SUCCEEDED`, with `DISCARDED` / `ABANDONED` terminal draft states.
@@ -91,10 +108,11 @@ VALIDATION_FAILED / VALIDATION_SUCCEEDED`, with `DISCARDED` / `ABANDONED` termin
 - **Pros:** single field to read; explicit; easy to query "what stage is this in"; matches the agreed
   flowchart.
 - **Cons (and mitigations):** risks conflating *lifecycle* with *validation result* — **mitigated**
-  by keeping `inquest_data_required` as a separate flag and leaving terminal `VALID`/`INVALID`
-  semantics unchanged; every new value must be added to **two** DBs' CHECK constraints (and,
-  deliberately, kept **out** of the reporting materialized views) — accepted as a one-off migration
-  cost; `DerivedClaimStatus` derivation must be extended for the new non-terminal states.
+  by keeping inquest handling as a separate feature-flagged validation rule (not a status) and leaving
+  terminal `VALID`/`INVALID` semantics unchanged; every new value must be added to **two** DBs' CHECK
+  constraints (and, deliberately, kept **out** of the reporting materialized views) — accepted as a
+  one-off migration cost; `DerivedClaimStatus` derivation must be extended for the new non-terminal
+  states.
 
 ### Option 2 — Keep `VALID`/`INVALID` as the validation *result* and model draft/stage separately *(not selected)*
 
@@ -114,9 +132,9 @@ derived status, exactly as `DerivedClaimStatus` already does.
 ## Decision (recommended)
 
 **Adopt Option 1 — explicit per-stage lifecycle statuses — aligned to the agreed
-[`inquest-flow.md`](./inquest-flow.md).** The initial-validation lifecycle, the draft-hold and the
+[`inquest-flow.md`](../inquest-flow.md).** The initial-validation lifecycle, the draft-hold and the
 terminal draft states are represented directly as `SubmissionStatus` / `ClaimStatus` values.
-"Additional information required" remains a **flag** (not a status), validation messages are
+Inquest handling is a **feature-flagged validation rule** (not a status), validation messages are
 **stage-tagged**, and a friendly value is exposed to the UI via the existing derived-status
 mechanism. Option 2's concerns (reporting-whitelist churn, `DerivedClaimStatus` derivation) are
 **mitigated** by: keeping the terminal `VALID`/`INVALID` result semantics unchanged; leaving the new
@@ -129,9 +147,9 @@ Proposed values: `READY_TO_PROCESS, READY_FOR_FINAL_VALIDATION, VALID, INVALID, 
 ABANDONED`.
 
 - `READY_TO_PROCESS` — created by parsing; awaiting initial validation (unchanged meaning).
-- `READY_FOR_FINAL_VALIDATION` — **new.** Passed initial validation, part of a draft; may still be
-  awaiting inquest data. This is the draft-holding state (previously discussed as `READY_FOR_SUBMISSION`
-  / "DRAFT").
+- `READY_FOR_FINAL_VALIDATION` — **new.** Passed initial validation; held as a draft pending provider
+  **review and submit**. (No longer "awaiting inquest data" — all data arrived in the file.) This is
+  the draft-holding state (previously discussed as `READY_FOR_SUBMISSION` / "DRAFT").
 - `VALID` / `INVALID` — **result of final validation** (unchanged terminal meaning). `INVALID` is also
   the result of an initial-validation error that forces a new submission.
 - `VOID` — unchanged.
@@ -139,18 +157,32 @@ ABANDONED`.
 - `ABANDONED` — **new.** Draft expired without provider action (subject to the wait-period open
   question below).
 
-### 2. "Inquest data required" is a flag, not a status
+### 2. Inquest handling: a feature-flagged validation rule, not a data-collection flag
 
-Add a boolean **`inquest_data_required`** (true / false / null) to `claim`. Per the flowchart it is
-set by the **Fee Scheme Platform (FSP)**, which identifies inquest claims during the initial stage;
-it drives the front-end To-Do list and is **orthogonal** to `claim_status`. It is cleared when the
-provider supplies valid inquest data. If it is still `true` when the provider submits, it causes a
-**validation ERROR at the final stage**. Keeping it a flag avoids a combinatorial explosion of
-statuses and reuses the raw-vs-flag pattern that already feeds `DerivedClaimStatus`.
+Because inquest data now arrives **in the uploaded file** (not entered per claim afterwards), the
+former `inquest_data_required` To-Do mechanism is **no longer needed as a data-collection driver**.
+Inquest completeness/correctness becomes an ordinary **validation rule**, gated by the
+**`INQUESTS_ENABLED`** feature flag:
 
-> Generalisation: if the capability extends beyond inquest, replace this with a generic
-> `requires_additional_information` boolean plus an `additional_information_type` discriminator. The
-> flowchart is currently inquest-specific; see follow-ups.
+- **Flag disabled (initial rollout):** if a claim carries **any** populated inquest field, raise a
+  **blocking ERROR at INITIAL validation**. This prevents providers from believing inquest data is
+  being accepted before the feature is live. The submission cannot progress until the source file is
+  corrected (inquest fields removed) and re-uploaded.
+- **Flag enabled:** inquest fields are validated per the inquest rules. The **Fee Scheme Platform
+  (FSP)** still *identifies* inquest claims (by fee code); that identification now feeds
+  **"inquest fields are mandatory for this claim → validate them"** rather than populating a To-Do
+  list. Missing/invalid inquest data on an identified inquest claim is a validation error (severity
+  and stage per §4 and §7).
+
+Whether a persisted `inquest_data_required` (or generic `requires_additional_information`) column is
+still worth keeping is now an **open question** (see follow-ups): with capture up-front it may reduce
+to a derived/validation concept rather than a stored flag. If retained, it is set from FSP
+identification and is **orthogonal** to `claim_status`.
+
+> Generalisation: if a genuine *post-upload additional-information* case appears later, the removed
+> per-claim collection sub-flow (and a stored `requires_additional_information` +
+> `additional_information_type`) can be reintroduced additively. It is not required for the
+> file-carried inquest case.
 
 ### 3. Submission status (`SubmissionStatus`)
 
@@ -166,8 +198,10 @@ migration notes).
 
 Add an explicit **`stage`** value (`INITIAL` | `FINAL`) to `validation_message_log` (or a controlled
 `source` convention). This answers *"how are validation errors associated with each stage"*
-unambiguously and lets the inquest concern be non-blocking at INITIAL and a **blocking ERROR at
-FINAL** without losing its provenance.
+unambiguously and lets inquest validation carry the right severity at each stage without losing its
+provenance — e.g. when `INQUESTS_ENABLED` is **off**, any populated inquest field is a **blocking
+ERROR at INITIAL**; when **on**, inquest rules run with their configured INITIAL/FINAL severity (see
+§2 and the open questions).
 
 ### 5. UI label via derived status
 
@@ -189,25 +223,32 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 ### API (`laa-data-claims-api`)
 - OpenAPI enum additions (`ClaimStatus`, `SubmissionStatus`) → regenerate models; treat as an
   additive, backwards-compatible schema change and version accordingly.
-- New Flyway migrations to widen `chk_claim_status` and `chk_submission_status`; add
-  `inquest_data_required` (or generic `requires_additional_information` + `additional_information_type`)
-  to `claim`; add `stage` to `validation_message_log`.
+- New Flyway migrations to widen `chk_claim_status` and `chk_submission_status`; add `stage` to
+  `validation_message_log`. A persisted inquest/`requires_additional_information` column is now
+  **optional** (see open questions) — only add it if retained.
 - New service transitions: parse → `READY_FOR_INITIAL_VALIDATION`; initial-validation completion →
   `READY_FOR_FINAL_VALIDATION`; submit → final validation; discard → `DISCARDED`; timeout →
   `ABANDONED`.
+- **`INQUESTS_ENABLED` feature flag** wired into the validation layer (config-driven, per-environment).
+  Off by default. Must be resolvable wherever inquest validation runs.
 
 ### Event service (`laa-data-claims-event-service`)
 - Split validators into **INITIAL** vs **FINAL** rule sets and tag emitted messages with `stage`.
-- Integrate FSP inquest **identification** at the initial stage (sets `inquest_data_required`), and
-  escalate a still-set flag to a blocking ERROR at FINAL.
+- **Inquest validation gated by `INQUESTS_ENABLED`:**
+  - **Off:** any populated inquest field → **blocking ERROR at INITIAL** ("inquest data not accepted
+    yet"). No inquest data is persisted onward from such a submission.
+  - **On:** validate inquest fields per the inquest rules; FSP **identification** (by fee code) marks a
+    claim as an inquest claim so its inquest fields are mandatory. (The old "set a flag then escalate a
+    still-set flag to ERROR at FINAL" mechanic is **removed**.)
 - Update duplicate strategy for the new statuses (include `READY_FOR_FINAL_VALIDATION`, exclude
   `DISCARDED`/`ABANDONED`).
 - **New capability required:** a timeout/scheduler to move stale drafts to `ABANDONED` — none exists
   today (all flows are SQS-driven). Decide mechanism, period and idempotency.
 
 ### Frontend (`laa-submit-a-bulk-claim`)
-- New screens/flows: To-Do list (driven by `inquest_data_required`), inquest-data entry,
-  Submit and Discard actions.
+- **Removed:** the To-Do list and per-claim inquest-data-entry screens (data now arrives in the file).
+- **Retained/new:** a **review** view of the held draft submission, plus **Submit** and **Discard**
+  actions. Any inquest *edit/correction* UI is optional and secondary, not the primary capture path.
 - New status→label mappings and i18n; render draft/discarded/abandoned/submitted via derived status,
   not raw enums.
 - Polling (meta-refresh) now spans two async windows (initial and final validation).
@@ -235,8 +276,8 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 
 ## Open questions / follow-ups (candidate stories)
 
-1. Confirm generalisation beyond inquest (keep `inquest_data_required`, or adopt a generic
-   `requires_additional_information` + type?).
+1. Confirm whether a **stored** inquest/`requires_additional_information` column is still needed at all
+   now that inquest data is captured up-front, or whether it reduces to a pure validation concept.
 2. Define the exact **INITIAL vs FINAL** rule split (which existing validators run when), and confirm
    FSP inquest identification runs at INITIAL (one FSP call vs a separate lighter call).
 3. Resolve the **wait-period expiry** behaviour posed by the flowchart: `ABANDONED`, a
@@ -247,9 +288,13 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
    `version`, `claim_amendment`) and optimistic-locking behaviour on concurrent edits.
 6. Per-report impact sign-off for REP000/012/013/014 and the reporting ingestion pipeline.
 7. New/changed events (initial-validation-complete, submitted, discarded, abandoned) and endpoints
-   (submit, discard).
-8. Decide ownership of inline inquest field validation (front-end vs API — the flowchart leaves this
-   open).
+   (submit, discard). **Note:** the previously-planned per-claim "post inquest data" endpoint is **no
+   longer required**.
+8. **`INQUESTS_ENABLED` feature flag:** confirm scope/mechanism (env config vs runtime toggle),
+   ownership, and the exact **disabled-state** behaviour — this ADR assumes *any populated inquest
+   field ⇒ blocking ERROR at INITIAL*. Confirm the **enabled-state** inquest validation rules
+   (mandatory fields, INITIAL vs FINAL severity) and where they run (API vs event service). Front-end
+   inline inquest entry is no longer in scope, so field validation is API/file-side.
 9. Decide the fate of the existing `READY_FOR_VALIDATION` submission status.
 10. Terminology alignment: "initial file validation" (requirement) == `INITIAL`; "full validation"
     (requirement) == `FINAL` (flowchart/this ADR).
@@ -258,11 +303,13 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 
 ## Recommendation summary
 
-Adopt **explicit per-stage lifecycle statuses** (Option 1) as in [`inquest-flow.md`]:
+Adopt **explicit per-stage lifecycle statuses** (Option 1) as in [`inquest-flow.md`](../inquest-flow.md):
 initial-stage statuses (`READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
 `INITIAL_VALIDATION_FAILED`), a draft-hold (`READY_FOR_FINAL_VALIDATION`), and terminal draft states
 (`DISCARDED`, `ABANDONED`) — while keeping terminal `VALID`/`INVALID`/`VALIDATION_SUCCEEDED`
-semantics unchanged, modelling `inquest_data_required` as an orthogonal flag, tagging messages with
-`stage`, and exposing one friendly value to the UI via derived status. This keeps result semantics
-stable for the reporting whitelist and provides enough definition to write implementation stories
-without re-designing the model during delivery.
+semantics unchanged, treating inquest handling as a **feature-flagged (`INQUESTS_ENABLED`) validation
+rule** rather than a data-collection flag, tagging messages with `stage`, and exposing one friendly
+value to the UI via derived status. All inquest and non-inquest data is captured in the single file
+upload, so the draft-hold is a review-before-submit window and no per-claim inquest data-entry sub-flow
+is required. This keeps result semantics stable for the reporting whitelist and provides enough
+definition to write implementation stories without re-designing the model during delivery.
