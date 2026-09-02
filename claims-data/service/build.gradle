@@ -81,6 +81,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    // Upgrade to remediate vulnerability flagged in 2.21.5.
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.6'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
     implementation platform("software.amazon.awssdk:bom:2.32.22")
@@ -88,6 +90,8 @@ dependencies {
     implementation "software.amazon.awssdk:sns"
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     implementation(platform("tools.jackson:jackson-bom:3.1.4"))
+    // Upgrade to remediate vulnerability flagged in 3.1.5.
+    implementation 'tools.jackson.core:jackson-databind:3.1.6'
 
     // Sentry
     implementation platform("io.sentry:sentry-bom:$versions.sentry")

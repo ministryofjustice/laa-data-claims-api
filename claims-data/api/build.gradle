@@ -19,6 +19,8 @@ dependencies {
     implementation 'org.springframework.data:spring-data-commons'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    // Upgrade to remediate vulnerability flagged in 2.21.5.
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.6'
     implementation 'org.projectlombok:lombok:1.18.38'
 }
 
@@ -33,17 +35,17 @@ openApiGenerate {
     apiPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.api"
     invokerPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.invoker"
     modelPackage = "uk.gov.justice.laa.dstew.payments.claimsdata.model"
-    
+
     // Handle custom format: bigDecimal by mapping it to BigDecimal
     // This prevents the "Unknown format" warnings
     typeMappings = [
             "number+bigDecimal": "BigDecimal"
     ]
-    
+
     importMappings = [
             "BigDecimal": "java.math.BigDecimal"
     ]
-    
+
     configOptions = [
             generateBuilders    : "true",
             interfaceOnly       : "true", // This will only generate interfaces, not implementations
