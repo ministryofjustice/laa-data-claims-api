@@ -566,7 +566,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                     .id(UUID.fromString("00000000-0000-0000-0000-0000000000b1"))
                     .requestedByCode("PROVIDER")
                     .code("PROVIDER_ERROR")
-                    .displayLabel("Provider Error")
+                    .displayLabel("Provider error")
                     .isActive(true)
                     .displayOrder(10)
                     .createdByUserId("pact-test")
