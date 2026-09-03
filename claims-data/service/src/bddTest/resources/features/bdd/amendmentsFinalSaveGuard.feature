@@ -105,4 +105,37 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
     And claim.version equals 1
     And no claim_amendment record was inserted for this claim by this attempt
 
+  # ---------------------------------------------------------------------------
+  # @DS1753_8 — real two-thread race.
+  #
+  # Scenarios 1–7 above simulate a mid-flight version bump deterministically
+  # (SQL bump inside the mocked ValidationService before Phase 3). That proves
+  # the guard's CODE PATH — the 409 wire contract, the WARN log, the rollback.
+  # It does NOT exercise Hibernate's @Version under real JVM thread contention.
+  #
+  # This scenario answers "does @Version behave under real contention?": two
+  # independent HTTP PATCHes against the SAME claimId, dispatched on two
+  # executor threads, block on a shared CyclicBarrier(2) inside the mocked
+  # validateClaim() so both threads release together and race into Phase 3's
+  # merge/flush. Exactly one thread's versioned UPDATE lands first; the other
+  # hits Hibernate's OptimisticLockException on WHERE version = 0 matching
+  # zero rows, and is bounced by the same final-save guard as scenarios 1–7.
+  #
+  # Tagged @race so tight dev loops can exclude it (e.g. `-Dcucumber.filter.
+  # tags=not @race`). Full regression MUST include it.
+  # ---------------------------------------------------------------------------
+  @DS1753_8 @race
+  Scenario: Two racing amendments against the same claim — exactly one wins, exactly one is rejected with 409 CLAIM_VERSION_CONFLICT
+    Given a fresh amendable claim on a legal-help submission at version 0
+    And the PDA service will respond "authorised" within the amendment-path timeout
+    And the FSP service will return a valid fee calculation for the amendment
+    And two threads will submit a well-formed non-pricing amendment simultaneously
+    When both amendments are dispatched and rendezvous at the final-save boundary
+    Then exactly one racing amendment returned HTTP 2xx
+    And exactly one racing amendment was rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
+    And claim.version equals 1
+    And claim.is_amended is true
+    And exactly one claim_amendment row was inserted for this claim
+
+
 
