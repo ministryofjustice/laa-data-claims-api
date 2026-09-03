@@ -116,7 +116,6 @@ public class StageDisbursementAssessmentSteps {
   // local redefinition previously carried here has been removed.
   // ---------------------------------------------------------------------------
 
-
   @Given("the stage-disbursement-assessment feature flag is enabled")
   public void theStageDisbursementAssessmentFeatureFlagIsEnabled() {
     // Type 1 note (see class Javadoc): DSTEW-1520 did NOT deliver a runtime feature flag for the
