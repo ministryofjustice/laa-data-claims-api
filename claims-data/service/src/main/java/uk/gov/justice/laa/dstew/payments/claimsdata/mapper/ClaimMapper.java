@@ -98,24 +98,6 @@ public interface ClaimMapper {
   @Mapping(target = "claimId", source = "id")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
-  /**
-   * Update an existing {@link Claim} from a {@link ClaimAmendmentPatch}.
-   *
-   * <p>The patch fields are {@link JsonNullable}: MapStruct (with {@code
-   * NullValuePropertyMappingStrategy.IGNORE}) skips omitted fields, applies present values and
-   * clears the target when an explicit null is supplied.
-   */
-  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
-  @Mapping(target = "submission", ignore = true)
-  @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
-  @Mapping(target = "youthCourt", source = "isYouthCourt")
-  // Effective total value is a read-only @Formula field on the entity (derived from the
-  // vw_claim_effective_value view); an amendment patch must never write it. Kept as an explicit
-  // guard even though claim_patch no longer exposes the field.
-  @Mapping(target = "effectiveTotalValue", ignore = true)
-  void updateSubmissionClaimFromPatch(ClaimAmendmentPatch patch, @MappingTarget Claim entity);
-
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "submissionId", source = "claim.submission.id")

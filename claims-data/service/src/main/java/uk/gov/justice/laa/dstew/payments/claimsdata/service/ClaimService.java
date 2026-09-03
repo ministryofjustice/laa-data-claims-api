@@ -365,9 +365,15 @@ public class ClaimService
    */
   private void updateClaimStatus(Claim claim, ClaimAmendmentPatch claimPatch) {
     claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
-    // claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
     claim.setStatus(claimPatch.getStatus());
-    claim.setUpdatedByUserId(claimPatch.getCreatedByUserId().orElse(null));
+    // Only update the audit updatedByUserId when the patch explicitly provides a non-null
+    // createdByUserId.
+    // TODO: check with BAs whether we should return a 4xx when createdByUserId is omitted for
+    // legacy status updates (i.e. require an acting user id) rather than silently preserving it.
+    var createdByOpt = claimPatch.getCreatedByUserId();
+    if (createdByOpt != null && createdByOpt.isPresent() && createdByOpt.get() != null) {
+      claim.setUpdatedByUserId(createdByOpt.get());
+    }
     claimRepository.save(claim);
   }
 
@@ -424,7 +430,13 @@ public class ClaimService
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId().orElse(null));
+      // Only set createdByUserId on the calculated fee detail when the patch explicitly
+      // provides a non-null createdByUserId. Preserve existing behaviour of leaving it null
+      // when omitted by the client.
+      var cfdCreatedBy = claimPatch.getCreatedByUserId();
+      if (cfdCreatedBy != null && cfdCreatedBy.isPresent()) {
+        calculatedFeeDetail.setCreatedByUserId(cfdCreatedBy.get());
+      }
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
   }
