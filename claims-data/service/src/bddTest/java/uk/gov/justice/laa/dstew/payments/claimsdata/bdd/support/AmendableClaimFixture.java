@@ -262,4 +262,3 @@ public class AmendableClaimFixture {
   /** Result of {@link Builder#seed()}. Records the IDs the caller needs to drive the PATCH call. */
   public record Seeded(UUID submissionId, UUID claimId, Long baselineVersion) {}
 }
-
