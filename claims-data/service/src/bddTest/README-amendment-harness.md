@@ -127,9 +127,19 @@ real PDA call happened, so the harness fixes on the exact overload production us
 # Full BDD (194 scenarios today, ~55s locally)
 ./gradlew :claims-data:service:bddTest
 
-# UAT mode (real event-service on localhost:8080, real HTTP fidelity)
+# UAT mode — real event-service on localhost:8080 (see note below)
 ./gradlew :claims-data:service:bddTest -Dbdd.mode=uat
 ```
+
+> **Note on `bdd.mode=uat`.** UAT mode currently changes only the
+> event-service target: BDD scenarios hit a real event-service on
+> `localhost:8080` instead of the local application's in-process handler.
+> **The `FeeSchemePlatformRestClient` and `ValidationService` `@MockitoBean`
+> declarations on `CucumberSpringConfiguration` remain active** — FSP and
+> the aggregate validation facade are still mocked in UAT mode. Making
+> those transports real in UAT mode is out of scope; tracked under the
+> follow-up story that scopes the `ValidationService` mock (see
+> `~/IdeaProjects/jira_drafts/DSTEW-XXXX_scope_validationservice_mock.md`).
 
 The CI pipeline (`.github/workflows/deploy-main.yml → :claims-data:service:bddTest`)
 runs in local mode by default. The harness therefore covers CI **and** local runs.
