@@ -7,7 +7,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -75,6 +76,21 @@ public class AmendableClaimFixture {
   private final ClaimRepository claimRepository;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  private final PlatformTransactionManager transactionManager;
+
+  /**
+   * Executes the seed body atomically. {@code Builder} instances are created with {@code new} and
+   * are NOT Spring-managed proxies, so a {@code @Transactional} annotation on {@code
+   * Builder#seed()} would be a silent no-op (each repository call would commit independently and a
+   * mid-seed failure would leave a partial graph). This template — created from the Spring-managed
+   * {@link PlatformTransactionManager} injected above — is used explicitly to wrap the seed body so
+   * all repository writes join a single transaction.
+   */
+  private TransactionTemplate seedTemplate() {
+    TransactionTemplate template = new TransactionTemplate(transactionManager);
+    template.setName("AmendableClaimFixture.seed");
+    return template;
+  }
 
   /**
    * Seeds a fresh submission + claim + summary-fee + baseline CalculatedFeeDetail using default
@@ -151,27 +167,35 @@ public class AmendableClaimFixture {
       return this;
     }
 
-    /** Executes the seed. */
-    @Transactional
+    /**
+     * Executes the seed atomically. All repository writes are wrapped in a single {@link
+     * TransactionTemplate} obtained from the enclosing Spring-managed fixture, so a mid-seed
+     * failure rolls back cleanly rather than leaving a partial graph. See {@link
+     * AmendableClaimFixture#seedTemplate()} for the rationale.
+     */
     public Seeded seed() {
-      Submission submission = seedSubmission(areaOfLaw);
-      Claim claim = seedClaim(submission, feeCode, status, assessment, ufn);
-      seedClaimSummaryFeeAndBaselineCfd(claim, feeCode);
+      return seedTemplate()
+          .execute(
+              txStatus -> {
+                Submission submission = seedSubmission(areaOfLaw);
+                Claim claim = seedClaim(submission, feeCode, status, assessment, ufn);
+                seedClaimSummaryFeeAndBaselineCfd(claim, feeCode);
 
-      if (targetVersion > 0) {
-        claim = advanceClaimVersion(claim, targetVersion);
-      }
+                if (targetVersion > 0) {
+                  claim = advanceClaimVersion(claim, targetVersion);
+                }
 
-      if (duplicateSiblingUfn != null) {
-        seedClaim(submission, feeCode, ClaimStatus.VALID, false, duplicateSiblingUfn);
-      }
+                if (duplicateSiblingUfn != null) {
+                  seedClaim(submission, feeCode, ClaimStatus.VALID, false, duplicateSiblingUfn);
+                }
 
-      log.info(
-          "[DSTEW-2301] Seeded amendable claim {} on submission {} at version {}",
-          claim.getId(),
-          submission.getId(),
-          claim.getVersion());
-      return new Seeded(submission.getId(), claim.getId(), claim.getVersion());
+                log.info(
+                    "[DSTEW-2301] Seeded amendable claim {} on submission {} at version {}",
+                    claim.getId(),
+                    submission.getId(),
+                    claim.getVersion());
+                return new Seeded(submission.getId(), claim.getId(), claim.getVersion());
+              });
     }
   }
 

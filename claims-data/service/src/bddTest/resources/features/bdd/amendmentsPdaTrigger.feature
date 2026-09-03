@@ -92,66 +92,70 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
   # pda_relevant = false
   # ============================================================================
   #
-  # TYPE-1 COMMENT-OUT (DSTEW-2301 review of PR #455, 2026-09-02)
+  # DSTEW-2301 REVIEW ROUND 2 (2026-09-03): scenarios re-enabled.
   # -----------------------------------------------------------------------------
-  # The four `PDA skip` scenarios below (@DS1772_6 .. @DS1772_9) assert
-  # `no outbound PDA call was made` when the amendment isn't PDA-relevant.
-  # Prior to DSTEW-2301 that assertion was a log-only spec-guard step, so all
-  # four scenarios were silently green regardless of production behaviour.
+  # These four scenarios (@DS1772_6 .. @DS1772_9) were Type-1 commented out in
+  # round 1 because "no outbound PDA call was made" was verifying the WRONG
+  # boundary — a count-based assertion on ValidationService.validateClaim(Claim,
+  # Set), which production always invokes exactly once per amendment PATCH.
   #
-  # DSTEW-2301 gave that step a real Mockito `verify(validationService, never())
-  # .validateClaim(any(), any())` against the exact 2-arg overload the amendment
-  # path uses (AmendmentExternalValidationStep.java:85). That real verify shows
-  # that production actually calls `validateClaim(claim, validationCodes)` on
-  # every amendment PATCH — the "PDA skip → suppress call" logic these scenarios
-  # depend on is not shipped yet. It is scheduled under DSTEW-1773 (which the
-  # old log-only guard's own comment already named as the follow-up owner).
+  # Copilot review pointed out (correctly) that PDA suppression is expressed in
+  # the SHAPE of the Set argument, not in the call count. AmendmentExternal
+  # ValidationStep.java lines 78-81:
   #
-  # Type-1 rule: comment out, do NOT silently descope. Re-enable and prove the
-  # skip when DSTEW-1773 lands the suppression logic. Do not adjust the scenario
-  # bodies here — they document the intended DSTEW-1773 behaviour.
+  #     Set<ClaimValidatorCode> validationCodes = new LinkedHashSet<>(...);
+  #     if (!requiresPda(differences, state.getPostAmendmentState())) {
+  #         validationCodes.remove(PDA_VALIDATION_STEP);           // <-- PDA skip
+  #     }
+  #     ...
+  #     validationService.validateClaim(claim, validationCodes);
+  #
+  # The step "no outbound PDA call was made" now uses an ArgumentCaptor on the
+  # Set argument and asserts that CLAIM_CATEGORY_OF_LAW_VALIDATOR is NOT a
+  # member — the exact boundary at which production suppresses the outbound PDA
+  # call. See AmendmentHarnessCommonSteps#assertValidatorSetPdaMembership.
 
-  # @DS1772_6
-  # Scenario: PDA skip — amendment on a non-PDA-relevant field only
-  #   Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
-  #   And an amendment updates only the clientSurname to "Smith"
-  #   When I submit the amendment and wait for the event service to complete amendment validation
-  #   Then the classifier output has pda_relevant "false"
-  #   And the classifier source-rule reference is "NO_PDA_RELEVANT_CHANGE"
-  #   And no outbound PDA call was made
-  #   And the prior PDA-driven validation outcome is retained
+  @DS1772_6
+  Scenario: PDA skip — amendment on a non-PDA-relevant field only
+    Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
+    And an amendment updates only the clientSurname to "Smith"
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the classifier output has pda_relevant "false"
+    And the classifier source-rule reference is "NO_PDA_RELEVANT_CHANGE"
+    And no outbound PDA call was made
+    And the prior PDA-driven validation outcome is retained
 
-  # @DS1772_7
-  # Scenario: PDA skip — non-PROD fallback no-op (earlier field still wins the resolved date)
-  #   Given an original claim exists with officeCode "OFC-001", feeCode "NONPROD-1" and non-PROD date fields
-  #     | caseStartDate | representationOrderDate | ufn        |
-  #     | 2026-04-01    | 2026-03-01              | 010426/001 |
-  #   And the resolved effectiveDate before amendment is "2026-04-01"
-  #   And an amendment updates the representationOrderDate to "2026-03-15"
-  #   When I submit the amendment and wait for the event service to complete amendment validation
-  #   Then the resolved effectiveDate after amendment is still "2026-04-01"
-  #   And the classifier output has pda_relevant "false"
-  #   And the classifier source-rule reference is "NO_PDA_RELEVANT_CHANGE"
-  #   And no outbound PDA call was made
+  @DS1772_7
+  Scenario: PDA skip — non-PROD fallback no-op (earlier field still wins the resolved date)
+    Given an original claim exists with officeCode "OFC-001", feeCode "NONPROD-1" and non-PROD date fields
+      | caseStartDate | representationOrderDate | ufn        |
+      | 2026-04-01    | 2026-03-01              | 010426/001 |
+    And the resolved effectiveDate before amendment is "2026-04-01"
+    And an amendment updates the representationOrderDate to "2026-03-15"
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the resolved effectiveDate after amendment is still "2026-04-01"
+    And the classifier output has pda_relevant "false"
+    And the classifier source-rule reference is "NO_PDA_RELEVANT_CHANGE"
+    And no outbound PDA call was made
 
-  # @DS1772_8
-  # Scenario: PDA skip — payload echoes a PDA-relevant field with the same value
-  #   Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
-  #   And an amendment payload includes officeCode "OFC-001" and feeCode "FEE-A" unchanged and updates only the clientForename to "Ada"
-  #   When I submit the amendment and wait for the event service to complete amendment validation
-  #   Then the classifier output has pda_relevant "false"
-  #   And no outbound PDA call was made
-  #   And the prior PDA-driven validation outcome is retained
+  @DS1772_8
+  Scenario: PDA skip — payload echoes a PDA-relevant field with the same value
+    Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
+    And an amendment payload includes officeCode "OFC-001" and feeCode "FEE-A" unchanged and updates only the clientForename to "Ada"
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the classifier output has pda_relevant "false"
+    And no outbound PDA call was made
+    And the prior PDA-driven validation outcome is retained
 
-  # @DS1772_9
-  # Scenario: PDA skip — all three PDA inputs unchanged even when PDA-side schedule changed post-creation
-  #   Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
-  #   And the PDA-side contract schedule for "OFC-001" at "2026-04-01" has changed since claim creation
-  #   And an amendment updates a non-PDA-relevant field
-  #   When I submit the amendment and wait for the event service to complete amendment validation
-  #   Then the classifier output has pda_relevant "false"
-  #   And no outbound PDA call was made
-  #   And the prior PDA-driven validation outcome is retained
+  @DS1772_9
+  Scenario: PDA skip — all three PDA inputs unchanged even when PDA-side schedule changed post-creation
+    Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
+    And the PDA-side contract schedule for "OFC-001" at "2026-04-01" has changed since claim creation
+    And an amendment updates a non-PDA-relevant field
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the classifier output has pda_relevant "false"
+    And no outbound PDA call was made
+    And the prior PDA-driven validation outcome is retained
 
   @DS1772_10
   Scenario Outline: PDA trigger — explicit null vs omitted vs same-value vs new-value semantics on a PDA-relevant input

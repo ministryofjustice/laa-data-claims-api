@@ -13,12 +13,15 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
@@ -250,15 +253,29 @@ public class AmendmentHarnessCommonSteps {
 
   // ---------------------------------------------------------------------------
   // Then — outbound-call verification against the mocks
+  //
+  // PDA suppression semantics (see AmendmentExternalValidationStep lines 78-81):
+  //   * validateClaim(Claim, Set<ClaimValidatorCode>) is ALWAYS invoked exactly
+  //     once per amendment PATCH — even when the amendment does not trigger a
+  //     PDA call.
+  //   * PDA suppression is expressed by REMOVING
+  //     ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR from the validator-set
+  //     argument before the call; retaining it means the PDA call is dispatched.
+  //
+  // We therefore verify the CONTENTS of the captured Set argument, not the call
+  // count. Asserting on the call count is a false-boundary check (production
+  // makes the call in both branches), which is what the earlier round of these
+  // steps did and which is what caused the DSTEW-1772 @DS1772_6..9 scenarios to
+  // false-fail-then-Type-1-out.
   // ---------------------------------------------------------------------------
 
   @Then("no outbound PDA call was made")
   public void noOutboundPdaCallWasMade() {
     step(
-        "verify the mocked ValidationService.validateClaim(Claim, Set) was NOT invoked — this is"
-            + " the exact 2-arg overload used by AmendmentExternalValidationStep on the amendment"
-            + " path (see AmendmentExternalValidationStep.java line 85)",
-        () -> verify(validationService, never()).validateClaim(any(), any()));
+        "verify the mocked ValidationService.validateClaim(Claim, Set) was invoked with a"
+            + " validator-set that does NOT contain CLAIM_CATEGORY_OF_LAW_VALIDATOR — this is how"
+            + " AmendmentExternalValidationStep suppresses the outbound PDA call",
+        () -> assertValidatorSetPdaMembership(false));
   }
 
   @Then("no outbound FSP call was made")
@@ -278,10 +295,45 @@ public class AmendmentHarnessCommonSteps {
   @Then("exactly {int} outbound PDA call was made")
   public void exactlyNOutboundPdaCallsWereMade(int expected) {
     step(
-        "verify the amendment-path ValidationService.validateClaim(Claim, Set) was invoked exactly "
-            + expected
-            + " times",
-        () -> verify(validationService, times(expected)).validateClaim(any(), any()));
+        "verify the amendment path invoked validateClaim with a validator-set that "
+            + (expected == 0 ? "does NOT" : "DOES")
+            + " contain CLAIM_CATEGORY_OF_LAW_VALIDATOR — the PDA dispatch is expressed as"
+            + " Set membership, not call count, because validateClaim itself is always called"
+            + " exactly once per amendment PATCH",
+        () -> {
+          if (expected != 0 && expected != 1) {
+            throw new IllegalArgumentException(
+                "The amendment path invokes ValidationService.validateClaim exactly once per"
+                    + " PATCH; PDA dispatch is Set-membership, not call count. Expected value"
+                    + " must be 0 (suppressed) or 1 (dispatched); got: "
+                    + expected);
+          }
+          assertValidatorSetPdaMembership(expected == 1);
+        });
+  }
+
+  /**
+   * Captures the {@code Set<ClaimValidatorCode>} argument passed to the single {@code
+   * validateClaim(Claim, Set)} invocation on the amendment path and asserts on whether {@link
+   * ClaimValidatorCode#CLAIM_CATEGORY_OF_LAW_VALIDATOR} is (or is not) a member. This is the exact
+   * boundary at which {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep}
+   * expresses PDA suppression — it always calls {@code validateClaim}, and toggles PDA by removing
+   * this specific validator code from the request.
+   */
+  @SuppressWarnings("unchecked")
+  private void assertValidatorSetPdaMembership(boolean pdaExpectedInSet) {
+    ArgumentCaptor<Set<ClaimValidatorCode>> captor = ArgumentCaptor.forClass((Class) Set.class);
+    verify(validationService).validateClaim(any(), captor.capture());
+    if (pdaExpectedInSet) {
+      assertThat(captor.getValue())
+          .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
+          .contains(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
+    } else {
+      assertThat(captor.getValue())
+          .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
+          .doesNotContain(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
+    }
   }
 
   // ---------------------------------------------------------------------------
