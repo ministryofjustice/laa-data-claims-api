@@ -1,6 +1,6 @@
 # ADR 0002 — Storage model for Inquest MI data
 
-- **Status:** Proposed — awaiting Payments Data Stewardship (PDS) decision
+- **Status:** Accepted — PDS decision recorded in §8 (2026-09-03)
 - **Date:** 2026-08-24
 - **Deciders:** Payments Data Stewardship (PDS).
 - **Affected services:** `laa-data-claims-api` (owns the schema), `laa-data-claims-event-service` (maps bulk XML → API), `laa-submit-a-bulk-claim` (capture/review UI)
@@ -9,17 +9,19 @@
 
 > This ADR is written to double as the **briefing document for PDS**. Sections 1–3 describe what the
 > PoC built and why (the briefing). Sections 4–7 lay out the options, a recommendation, and the
-> follow-up needed. The final decision on how inquest
-> MI data is modelled is PDS's to make and to record here before this ADR moves to *Accepted*.
+> follow-up needed. The final decision on how inquest MI data is modelled rested with PDS; it is
+> **recorded in §8** and this ADR is now **Accepted**.
 
 ---
 
 ## 1. Context
 
 Inquest ("Article 2 / inquest") claims capture a small set of additional facts that ordinary claims
-do not: who the deceased was, key dates, the coroner's inquest reference, and which public bodies are
-"interested" in the inquest. During the PoC this data was added to `laa-data-claims-api` under
-migration `V46__create_inquest_claim_data.sql` as **four tables**.
+do not: who the deceased was, key dates, the coroner's inquest reference, and which government
+departments are "interested" in the inquest. During the PoC this data was added to
+`laa-data-claims-api` under migration `V46__create_inquest_claim_data.sql` as **four tables**. Two of
+those PoC choices — the deceased's **date of birth** and the free-text **public-authorities** table —
+have since been **descoped by the business** and are **not** part of the target model (see §2.1, §2.4).
 
 Crucially, **this shape was decided inside the PoC, by PoC Developers, without PDS input**. There is no
 known problem with it today, but MI/reporting data modelling is PDS's responsibility, and the PoC
@@ -35,13 +37,18 @@ model PDS chooses, so it should not be actioned before this decision is recorded
 
 ## 2. Current PoC data model (the briefing)
 
-Four tables, all keyed to `claim(id)`:
+The PoC built **four tables**, all keyed to `claim(id)`. Following business decisions since the PoC,
+the deceased's **date of birth** (§2.1) and the **public-authorities** table (§2.4) are **descoped**,
+so the **target model is three tables**:
 
 ### 2.1 `inquest_detail` — 1:1 scalar row per claim
 One optional row per claim holding the scalar facts:
-`deceased_forename`, `deceased_surname`, `deceased_date_of_birth`, `deceased_date_of_death`,
+`deceased_forename`, `deceased_surname`, `deceased_date_of_death`,
 `coroners_inquest_reference`, plus standard audit columns. Enforced 1:1 by
 `claim_id UUID NOT NULL UNIQUE REFERENCES claim(id)`.
+
+> **Descoped:** the PoC column `deceased_date_of_birth` has been **dropped** per business decision —
+> the deceased's date of birth is not captured. The target migration omits it.
 
 ### 2.2 `department_reference` — governed lookup of UK government departments
 A **governed reference list** of central-government departments. Columns of note:
@@ -57,26 +64,32 @@ departments clean and aggregatable — but note that this benefit comes from hav
 FK at all*, **not** from which column it points at. Whether that FK should be the `code` or the
 surrogate `id` is a distinct decision with real trade-offs; see §2.8.
 
-### 2.4 `claim_interested_public_authority` — free-text, ordered (many per claim)
-One row per interested public authority, stored as **free text** (`authority_name`) with a
-`display_order` and `UNIQUE (claim_id, display_order)`. **Deliberately ungoverned.** A migration
-comment records the intent that a governed `public_authority_reference` could be added *additively*
-later (add an `authority_code` FK, backfill matched names) **without changing the claim-level model**.
+### 2.4 `claim_interested_public_authority` — **descoped (not in the target model)**
+The PoC built a free-text, ordered table (`authority_name`, `display_order`,
+`UNIQUE (claim_id, display_order)`) to capture interested public authorities. **The business has since
+decided not to capture public authorities at all**, so this table is **descoped**: it is **not** part
+of the target model, and neither the capture UI, the API contract, nor MI carry public authorities. It
+is retained here only for traceability of what the PoC contained. Interested parties are therefore
+modelled solely as governed **departments** (§2.3).
 
-### 2.5 The deliberate governed vs. free-text distinction
+### 2.5 Governed reference data for departments
 - **Government departments = governed.** The set is small, stable, centrally defined, and known up
   front — so it is modelled as a reference list with FK-enforced membership. This gives reliable MI.
-- **Public authorities = free text.** The universe of "public authorities" is large, open-ended and
-  not centrally enumerated, so up-front governance was judged premature. Free text avoids blocking
-  data capture on an incomplete list, at the cost of MI quality (spelling variants, duplicates). The
-  design keeps the door open to govern it later without a claim-level migration.
+- **Public authorities = not captured.** An earlier PoC design captured interested public authorities
+  as free text (trading capture-flexibility against MI quality). That capture has since been
+  **descoped** (§2.4), so there is no public-authority dimension in the target model to govern.
 
 ### 2.6 How the data flows (for completeness)
 - **Bulk file → API (primary capture):** all inquest data arrives **in the uploaded bulk file** with
   the rest of the claim. `event-service` `BulkSubmissionMapper` reads the inquest fields from the
-  parsed outcome and populates `ClaimInquestDataWrite` (scalars + `interested_department_codes` +
-  `interested_public_authorities`) on the claim POST. (A prior iteration captured inquest data
+  parsed outcome and populates `ClaimInquestDataWrite` (scalars + `interested_department_codes`)
+  on the claim POST. (A prior iteration captured inquest data
   separately, per claim, after upload; that approach has been dropped — see ADR-0001.)
+- **Claim-type identification (FSP):** the **Fee Scheme Platform (FSP)** identifies inquest claims by
+  fee code; that identification sets a claim-level **`is_inquest`** boolean
+  (`claim.is_inquest`, `BOOLEAN NOT NULL DEFAULT FALSE`). This flag is the only inquest fact that
+  originates from **FSP rather than the file**, and it **drives whether the inquest fields are
+  mandatory** (ADR-0001 §2). It is orthogonal to `claim_status`.
 - **Feature flag `INQUESTS_ENABLED`:** inquest handling is gated. While the flag is **off**, populated
   inquest fields are **rejected at initial validation** and no inquest rows are persisted; while
   **on**, the mapping above runs and inquest rows are stored. This gate lives in the validation layer
@@ -86,8 +99,8 @@ later (add an `authority_code` FK, backfill matched names) **without changing th
   primary capture path. `PUT` (`replace`) deletes and re-inserts the child rows atomically. Department
   codes are validated against `department_reference` on write.
 - **Completeness:** `InquestCompletenessDefinition` is a single config-driven policy
-  (`inquest.mandatory-fields`) that treats each scalar and each repeating group (≥1 department,
-  ≥1 authority) as independently mandatory-or-not. It is applied as a **validation rule** at
+  (`inquest.mandatory-fields`) that treats each scalar and the repeating department group
+  (≥1 department) as independently mandatory-or-not. It is applied as a **validation rule** at
   initial/final validation (ADR-0001), not as a gate on a separate submission step, and is orthogonal
   to the storage model.
 
@@ -99,12 +112,14 @@ later (add an `authority_code` FK, backfill matched names) **without changing th
   without orphaning history. The model already carries `is_active` for exactly this. **This directly
   affects the DSIT "24 → 23" change** (see §6), and holds regardless of whether the FK is on `code`
   or the surrogate `id`.
-- **`display_order UNIQUE` on public authorities** is slightly brittle: any future reordering/edit
-  path must delete-then-insert (as `replace()` already does) or risk a transient unique-constraint
-  clash. Not a blocker, but worth noting for the target schema.
-- **No claim-type gate.** Nothing enforces that inquest rows only attach to inquest-type claims; the
-  1:1 `UNIQUE` on `inquest_detail.claim_id` is the only structural guard. PDS may wish to comment on
-  whether MI needs a stronger link to claim/matter type.
+- **`display_order UNIQUE`** on ordered child rows is slightly brittle: any future reordering/edit path
+  must delete-then-insert (as `replace()` already does) or risk a transient unique-constraint clash.
+  Not a blocker, but worth noting for the target schema.
+- **Claim-type indicator, not a hard gate.** A claim-level **`is_inquest`** flag (set by FSP, §2.6)
+  marks which claims are inquest claims and drives validation, but nothing *structurally* enforces
+  that inquest rows only attach to `is_inquest = true` claims; the 1:1 `UNIQUE` on
+  `inquest_detail.claim_id` is the only structural guard. PDS may wish to comment on whether MI needs a
+  stronger (FK/constraint) link between the inquest rows and claim/matter type.
 
 ### 2.8 Department identity: UUID key + optional code, not code-as-key
 The PoC makes the **business code** (`MOJ`, `HO`, …) the foreign key from
@@ -154,13 +169,16 @@ one that also cheaply restores self-describing rows under Options 2/3.
 
 **PoC Developers' recommendation: Option 2** — surrogate UUID as the identity/FK, with `code` kept as a
 mutable convenience/interchange attribute. This removes the drift risk while preserving the readability
-benefits the code was really providing. Final call rests with PDS (see §8).
+benefits the code was really providing.
+
+> **Decided (§8):** PDS chose **Option 2**, and **no** as-at-time label/code snapshot — historical
+> claims display the current department label/code.
 
 ## 3. Decision drivers
 
 - **PDS ownership & governance:** the model must be one PDS endorses and can steward via GLAD.
 - **MI/reporting quality:** ability to aggregate, filter and trend reliably — especially over
-  interested departments and (potentially) public authorities.
+  interested departments.
 - **Governance of reference data:** which lists are controlled, and how they evolve (add/rename/merge)
   without breaking historical records.
 - **Reference-data identity vs. attributes:** keys should be stable and free of business meaning, so
@@ -175,31 +193,20 @@ benefits the code was really providing. Final call rests with PDS (see §8).
 
 ## 4. Options considered
 
-### Option A — Adopt the current PoC model (normalised, mixed governed/free-text), with the DSIT fix
-Keep the four tables as-is. Govern departments via the reference list; keep public authorities free
-text; correct the DSIT entry via **deactivation** (not deletion).
+### Option A — Adopt the (descoped) PoC model — governed departments, with the DSIT fix
+Keep the department-related tables (`inquest_detail`, `department_reference`,
+`claim_interested_department`); **drop** `deceased_date_of_birth` and the descoped public-authorities
+table (§2.1, §2.4). Govern departments via the reference list; correct the DSIT entry via
+**deactivation** (not deletion).
 
 - **Pros:** Already built, tested and exercised end-to-end across all three services; classic,
   well-understood relational shape; strong MI over the governed department dimension; child rows and
-  audit columns give per-selection lineage; leaves a clean additive path to govern public authorities
-  later; deactivation preserves historical accuracy.
-- **Cons:** Public-authority MI is weak until governed (free-text variance); more tables/joins than a
-  denormalised design; not yet PDS-endorsed; `display_order UNIQUE` brittleness noted above.
+  audit columns give per-selection lineage; deactivation preserves historical accuracy.
+- **Cons:** More tables/joins than a denormalised design; not yet PDS-endorsed.
 
-### Option B — Fully governed both dimensions (add `public_authority_reference` now)
-Option A **plus** a governed `public_authority_reference` list and an `authority_code` FK on the
-interested-authority table, replacing free text.
-
-- **Pros:** Best possible MI on *both* interested dimensions; consistent governance story; the PoC was
-  explicitly designed to allow this additively.
-- **Cons:** Requires PDS to source/own/curate a canonical public-authority list — potentially large,
-  open-ended and slow to agree; risks blocking data capture when a needed authority isn't yet listed
-  (needs an "Other"/pending-governance escape hatch); more up-front stewardship effort. Value depends
-  entirely on whether MI genuinely needs to aggregate over public authorities.
-
-### Option C — Denormalised single table (scalars + arrays/JSONB for the repeating groups)
-Collapse to one `inquest_detail` row per claim, storing interested departments/authorities as
-Postgres arrays or a `JSONB` column instead of child tables.
+### Option B — Denormalised single table (scalars + arrays/JSONB for the repeating group)
+Collapse to one `inquest_detail` row per claim, storing interested departments as
+Postgres arrays or a `JSONB` column instead of a child table.
 
 - **Pros:** Fewest tables/joins; whole inquest record read/written in one row; flexible for evolving
   fields.
@@ -208,7 +215,7 @@ Postgres arrays or a `JSONB` column instead of child tables.
   — this actively undermines the primary MI driver; loses per-selection audit/lineage. Poor fit for a
   *reporting/stewardship*-owned dataset.
 
-### Option D — Generic EAV / attribute bag
+### Option C — Generic EAV / attribute bag
 Store inquest facts as key/value attribute rows against the claim.
 
 - **Pros:** Maximally flexible; no schema change to add fields.
@@ -217,78 +224,81 @@ Store inquest facts as key/value attribute rows against the claim.
 
 ## 5. Recommendation (PoC Developers)
 
-**Recommend Option A now, with a pre-agreed, additive path to Option B if and when PDS confirms
-public-authority MI is required.**
+**Recommend Option A** — the governed, normalised department model (with `deceased_date_of_birth` and
+the public-authorities table descoped).
 
 Rationale: Option A is the best fit for the decision drivers *today*. It already delivers strong,
-governed MI on the department dimension — the part that is well-defined — while the deliberate
-free-text choice on public authorities avoids committing PDS to curating a large, open-ended list
-before there is a proven reporting need. It is built and proven end-to-end, so the residual work is
-governance/sign-off and promoting the migration through GLAD rather than new PoC Developers. Crucially,
-the PoC was **designed** so that moving to Option B later is additive (add `public_authority_reference`
-+ `authority_code`, backfill matched names) with **no change to the claim-level model** — so choosing
-A now does not foreclose B.
+governed MI on the department dimension — the part that is well-defined — and public-authority capture
+has been descoped, so there is no open-ended reference list to curate. It is built and proven
+end-to-end, so the residual work is governance/sign-off and promoting the migration through GLAD
+(minus the descoped `deceased_date_of_birth` column and public-authorities table) rather than new
+build.
 
-Options C and D are not recommended: both trade away the referential integrity and clean joins that
+Options B and C are not recommended: both trade away the referential integrity and clean joins that
 make this dataset useful for MI, which runs against the primary reason PDS owns it.
 
 Within Option A, PoC Developers further recommend the **§2.8 department-identity refinement** —
 surrogate UUID as the FK with `code` retained as a mutable attribute — rather than the PoC's
-code-as-FK, to remove the code/label drift risk at no MI cost.
-
-**The one substantive thing PoC Developers asks PDS to rule on** is the governance policy for interested
-**public authorities**: (a) leave free text for now (Option A), or (b) govern immediately (Option B).
-Everything else in Option A is a sound default pending that call.
+code-as-FK, to remove the code/label drift risk at no MI cost. **PDS adopted this (§8).**
 
 ## 6. Consequences
 
 - **DSIT "24 → 23":** implement as a **deactivation** (`is_active = FALSE`), **not a delete**, because
-  historical claims may reference DSIT and the governed FK must remain resolvable. This holds whether
-  the FK is on `code` or the surrogate `id` (see §2.8). Under the recommended UUID-identity option the
-  DSIT *code* itself can additionally be corrected if the merge makes it nonsensical; under the
-  current code-as-FK PoC it cannot. This keeps historical claims valid and their labels resolvable.
-  The `display_order` gap left behind is cosmetic; renumbering is optional and, if done, must respect
-  the `UNIQUE` constraint. PDS to confirm the intended target label/mapping (e.g. where DSIT
-  responsibilities now sit) so the reference data reflects the merge correctly.
+  historical claims may reference DSIT and the governed FK must remain resolvable. Under the chosen
+  UUID-identity option (§2.8, §8) the DSIT *code* itself can additionally be corrected if the merge
+  makes it nonsensical. This keeps historical claims valid and their labels resolvable. The
+  `display_order` gap left behind is cosmetic; renumbering is optional and, if done, must respect the
+  `UNIQUE` constraint. **PDS decision (§8): deactivate only, no successor mapping.**
 - **Reference data is governed data:** future department add/rename/merge follows the same
   deactivate-and-add discipline and goes through GLAD.
-- **Public authorities:** remain free text under Option A; MI consumers must expect variance until/
-  unless Option B is adopted. If Option B is later chosen, plan a backfill of matched `authority_name`
-  values and an "Other/pending" handling rule.
+- **Public authorities:** **not captured** (descoped, §2.4). No public-authority table, API field or MI
+  dimension exists in the target model; the PoC's free-text table is dropped.
+- **Deceased date of birth:** **dropped** (descoped, §2.1); the target migration omits
+  `deceased_date_of_birth`.
 - **Promotion out of the PoC:** the `V46` migration (and the DSIT correction) must be re-issued/owned
   as governed migrations through GLAD and the normal deployment pipeline, independent of PoC branches.
-- **Minor hardening to consider for the target schema:** revisit the `display_order UNIQUE` on public
-  authorities (e.g. keep insertion order without a hard unique constraint, or always delete-then-
-  insert), and decide whether a claim/matter-type guard on `inquest_detail` is warranted for MI.
+  The re-issued shape excludes the descoped `deceased_date_of_birth` column and the public-authorities
+  table.
+- **Claim-type guard:** **not added** (§8) — inquest-claim integrity is enforced in the validation
+  layer (ADR-0001), so no DB-level guard tying `inquest_detail` to `is_inquest = true` claims is
+  introduced.
 
 ## 7. Definition of Done — status & follow-up tickets
 
 | DoD item | Status |
 |---|---|
-| Current PoC model documented as a PDS briefing (4 tables, relationships, governed/free-text distinction) | ✅ Done — §2 of this ADR |
-| Briefing presented to PDS for their input/decision | ⬜ To do — share this ADR with PDS |
-| PDS's decision and rationale recorded as an ADR | ⬜ To do — PDS to complete §8 and set Status = Accepted |
+| Current model documented as a PDS briefing (3 target tables — public authorities descoped; relationships, governed departments) | ✅ Done — §2 of this ADR |
+| Briefing presented to PDS for their input/decision | ✅ Done — decisions taken and recorded in §8 |
+| PDS's decision and rationale recorded as an ADR | ✅ Done — §8; Status = Accepted |
 | Ticket(s) raised for the schema changes (via GLAD / normal deployment) even if identical to the PoC | ⬜ To do — see below |
 
-Suggested follow-up tickets (raise once PDS decides):
+Follow-up tickets (raise now decisions are recorded):
 1. **GLAD migration for the agreed inquest schema** — promote the `V46` shape (as ratified) through
-   GLAD/normal deployment, out of the PoC branch.
-2. **DSIT reference-data correction (24 → 23)** — deactivate DSIT (and set any agreed successor
-   mapping); ship as a governed migration.
-3. **Department identity refinement (if PDS chooses §2.8 Option 2/3)** — re-point
-   `claim_interested_department` from `department_code` to a surrogate `id` FK; retain or drop `code`
-   per the decision; migrate existing rows.
-4. *(Only if PDS chooses Option B)* **Introduce `public_authority_reference` + `authority_code`** and
-   backfill matched `authority_name` values.
-5. **Schema hardening** — `display_order` constraint review on public authorities; optional
-   claim/matter-type guard on `inquest_detail`.
+   GLAD/normal deployment, out of the PoC branch, **excluding** the descoped `deceased_date_of_birth`
+   column and the public-authorities table.
+2. **DSIT reference-data correction (24 → 23)** — deactivate DSIT (`is_active = FALSE`), **no successor
+   mapping** (§8); ship as a governed migration.
+3. **Department identity refinement (§2.8 Option 2, confirmed)** — re-point
+   `claim_interested_department` from `department_code` to a surrogate `id` FK, retaining `code` as a
+   mutable attribute; migrate existing rows.
 
-## 8. PDS decision (to be completed by PDS)
+## 8. PDS decision (recorded)
 
-- **Chosen option:** _____
-- **Department identity (§2.8):** code-as-FK (1) / UUID key + retain `code` (2, recommended) / UUID key, drop `code` (3) / _____
-- **Snapshot department code/label onto claim rows for as-at-time MI?** yes / no / _____
-- **Public-authority governance:** free text (A) / governed now (B) / _____
-- **DSIT handling & successor mapping:** _____
-- **Rationale:** _____
-- **Decided by / date:** _____
+- **Chosen option:** **Option A** — governed, normalised department model (public authorities and
+  `deceased_date_of_birth` descoped).
+- **Department identity (§2.8):** **Option 2** — surrogate `id` (UUID) as the FK, with `code` retained
+  as a mutable, non-key attribute.
+- **Snapshot department code/label onto claim rows for as-at-time MI?** **No** — historical claims
+  display the current department label/code; no as-at-time snapshot is stored.
+- **DSIT handling & successor mapping:** **Deactivate only** (`is_active = FALSE`), **no successor
+  mapping**.
+- **Claim-type guard on `inquest_detail` (is_inquest = true):** **No** — enforced in the validation
+  layer (ADR-0001) only; no additional DB-level structural guard.
+- **Rationale:** Option A gives the strongest governed MI on the (well-defined) department dimension
+  and is already built and proven end-to-end; with public authorities and the deceased's date of birth
+  descoped, there is no open-ended reference list to curate. UUID identity (Option 2) removes the
+  code/label drift risk while keeping a readable `code` for seeds, logs, fixtures and the API contract.
+  No as-at-time MI requirement was identified, so current-label display is sufficient. DSIT is
+  deactivated with no successor. Inquest-claim integrity is adequately enforced by validation, so no
+  extra DB-level guard is warranted.
+- **Decided by / date:** PDS — 2026-09-03.
