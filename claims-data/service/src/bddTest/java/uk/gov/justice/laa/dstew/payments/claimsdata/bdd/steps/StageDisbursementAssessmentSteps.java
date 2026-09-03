@@ -109,18 +109,13 @@ public class StageDisbursementAssessmentSteps {
 
   // ---------------------------------------------------------------------------
   // Background.
+  //
+  // "the assessment endpoint is available" is owned by
+  // AssessmentAdvancesClaimVersionSteps (DSTEW-2051), merged into main via
+  // PR #449 on 2026-09-03. This branch is now rebased onto that main so the
+  // local redefinition previously carried here has been removed.
   // ---------------------------------------------------------------------------
 
-  // NOTE: "the assessment endpoint is available" is defined by
-  // AssessmentAdvancesClaimVersionSteps (DSTEW-2051) once that ships to main. Redefining here on
-  // DSTEW-1520-bdd because that branch is not yet merged.
-  @Given("the assessment endpoint is available")
-  public void theAssessmentEndpointIsAvailable() {
-    step(
-        "Confirming the running BDD server exposes an application base URL for POST "
-            + POST_ASSESSMENT_PATH,
-        () -> assertThat(serverInfo.baseUrl()).as("server base URL").isNotBlank());
-  }
 
   @Given("the stage-disbursement-assessment feature flag is enabled")
   public void theStageDisbursementAssessmentFeatureFlagIsEnabled() {
@@ -254,10 +249,20 @@ public class StageDisbursementAssessmentSteps {
 
   // ---------------------------------------------------------------------------
   // Thens — response status.
+  //
+  // Response-status assertions read from THIS class's private lastStatusCode /
+  // lastResponseBody, which are populated by AaBC POSTs an assessment for
+  // claim {string} with (this class's @When). We deliberately do NOT reuse
+  // AssessmentAdvancesClaimVersionSteps' "the response is 201 Created" step
+  // because that would read its OWN private state (populated by DSTEW-2051's
+  // @When, not ours). Post-rebase onto main (which now owns DSTEW-2051 via
+  // PR #449) the shared phrase belongs to DSTEW-2051; DSTEW-1520 uses the
+  // "stage-disbursement assessment response is ..." form below so the two
+  // classes coexist without a DuplicateStepDefinitionException.
   // ---------------------------------------------------------------------------
 
-  @Then("the response is 201 Created")
-  public void theResponseIs201Created() {
+  @Then("the stage-disbursement assessment response is 201 Created")
+  public void theStageDisbursementAssessmentResponseIs201Created() {
     step(
         "Asserting last HTTP status is 201 Created (body=" + safeBodyPreview() + ")",
         () ->
@@ -334,8 +339,14 @@ public class StageDisbursementAssessmentSteps {
         () -> assertNoAssessmentRow(requireClaim(label)));
   }
 
-  @Then("claim {string} hasAssessment is unchanged")
-  public void claimHasAssessmentIsUnchanged(String label) {
+  // "claim {string} hasAssessment is unchanged" is owned by
+  // AssessmentAdvancesClaimVersionSteps (DSTEW-2051 on main via PR #449).
+  // DSTEW-1520 uses the distinct phrase below so both classes coexist without
+  // a DuplicateStepDefinitionException (this class's @Then reads its own
+  // claimByLabel populated by our @Given, not DSTEW-2051's).
+
+  @Then("claim {string} stage-disbursement hasAssessment is unchanged")
+  public void claimStageDisbursementHasAssessmentIsUnchanged(String label) {
     step(
         "Asserting claim '" + label + "' has_assessment is still false after the rejected POST",
         () ->

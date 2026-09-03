@@ -72,7 +72,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     When AaBC POSTs an assessment for claim "SD" with
       | assessmentType   | STAGE_DISBURSEMENT_ASSESSMENT       |
       | assessmentReason | Stage Disbursement Assessment       |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And the persisted assessment has assessmentType "STAGE_DISBURSEMENT_ASSESSMENT"
     And the persisted assessment has assessmentReason "Stage Disbursement Assessment"
     And claim "SD" hasAssessment is true
@@ -91,7 +91,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     When AaBC POSTs an assessment for claim "SD" with
       | assessmentType   | STAGE_DISBURSEMENT_ASSESSMENT       |
       | assessmentReason | Stage Disbursement Assessment       |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And the persisted assessmentReason is exactly "Stage Disbursement Assessment"
     And no server-side derivation or normalisation of the reason value occurred
 
@@ -100,7 +100,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     When AaBC POSTs an assessment for claim "SD" with
       | assessmentType   | STAGE_DISBURSEMENT_ASSESSMENT                     |
       | assessmentReason | Stage Disbursement Assessment (Contingency)       |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And the persisted assessmentReason is exactly "Stage Disbursement Assessment (Contingency)"
     And the parenthesised suffix and casing are preserved byte-for-byte
 
@@ -111,7 +111,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
       | assessmentReason           | Stage Disbursement Assessment |
       | assessed_total_incl_vat    | 875.50                        |
       | allowed_total_incl_vat     | 875.50                        |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And GET on the assessment round-trips assessmentType "STAGE_DISBURSEMENT_ASSESSMENT"
     And GET on the assessment round-trips assessmentReason "Stage Disbursement Assessment"
     And GET on the assessment round-trips assessed_total_incl_vat 875.50 and allowed_total_incl_vat 875.50
@@ -124,7 +124,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     Then the response is 400 Bad Request
     And the error message is exactly "assessmentType must be provided"
     And no assessment row is written for claim "SD"
-    And claim "SD" hasAssessment is unchanged
+    And claim "SD" stage-disbursement hasAssessment is unchanged
 
     Examples:
       | supplied_type |
@@ -168,7 +168,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     When AaBC POSTs an assessment for claim "NSD" with
       | assessmentType   | STAGE_DISBURSEMENT_ASSESSMENT |
       | assessmentReason | Stage Disbursement Assessment |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And the persisted assessmentType is "STAGE_DISBURSEMENT_ASSESSMENT"
     And Data Stewardship did NOT emit any fee-code-vs-assessmentType validation error
 
@@ -178,7 +178,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     When AaBC POSTs an assessment for claim "EC" with
       | assessmentType   | ESCAPE_CASE_ASSESSMENT   |
       | assessmentReason | Escape case reason text  |
-    Then the response is 201 Created
+    Then the stage-disbursement assessment response is 201 Created
     And the persisted assessment has assessmentType "ESCAPE_CASE_ASSESSMENT"
     And the persisted assessmentReason is exactly "Escape case reason text"
     And no wording in the response or contract classifies this as a Stage Disbursement assessment
