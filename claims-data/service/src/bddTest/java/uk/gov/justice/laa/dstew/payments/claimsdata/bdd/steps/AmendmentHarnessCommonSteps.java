@@ -40,9 +40,9 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
  * observable outcomes (accepted / rejected / no side effects / row counts). All step bodies are
  * wrapped in {@code BddStepFailures.step(...)} per the standing rule.
  *
- * <p><b>Scenario-scoped state</b>: seeded IDs and the baseline CFD count are recorded in
- * {@link SharedAmendmentPatchContext} so the reused {@code When I submit the amendment ...} step
- * (owned by {@code AmendmentMetadataValidationSteps}) can pick them up transparently.
+ * <p><b>Scenario-scoped state</b>: seeded IDs and the baseline CFD count are recorded in {@link
+ * SharedAmendmentPatchContext} so the reused {@code When I submit the amendment ...} step (owned by
+ * {@code AmendmentMetadataValidationSteps}) can pick them up transparently.
  *
  * <p>Ticket: DSTEW-2301.
  */
@@ -75,7 +75,8 @@ public class AmendmentHarnessCommonSteps {
     step(
         "seed a fresh amendable Legal Help claim at version " + version,
         () -> {
-          AmendableClaimFixture.Seeded seeded = fixture.legalHelpValid().withVersion(version).seed();
+          AmendableClaimFixture.Seeded seeded =
+              fixture.legalHelpValid().withVersion(version).seed();
           sharedPatchContext.setSubmissionId(seeded.submissionId());
           sharedPatchContext.setClaimId(seeded.claimId());
           sharedPatchContext.setPatchJson(buildNonPricingPatch(seeded.baselineVersion()));
@@ -111,7 +112,8 @@ public class AmendmentHarnessCommonSteps {
           // No further stubbing required: BddAmendmentResetHook already primed
           // ValidationService.validateClaim(...) with a valid=true / no-issues result, which IS
           // the "authorised" outcome.
-          log.info("[DSTEW-2301] PDA mock outcome confirmed: authorised (defaults already applied)");
+          log.info(
+              "[DSTEW-2301] PDA mock outcome confirmed: authorised (defaults already applied)");
         });
   }
 
@@ -186,9 +188,7 @@ public class AmendmentHarnessCommonSteps {
         "assert claim.version = " + expected,
         () -> {
           Claim claim = requireClaim();
-          assertThat(claim.getVersion())
-              .as("claim.version after amendment")
-              .isEqualTo(expected);
+          assertThat(claim.getVersion()).as("claim.version after amendment").isEqualTo(expected);
         });
   }
 
@@ -292,8 +292,7 @@ public class AmendmentHarnessCommonSteps {
     UUID claimId = sharedPatchContext.getClaimId();
     return claimRepository
         .findById(claimId)
-        .orElseThrow(
-            () -> new AssertionError("Claim missing after PATCH: " + claimId));
+        .orElseThrow(() -> new AssertionError("Claim missing after PATCH: " + claimId));
   }
 
   private long countCfd(UUID claimId) {
@@ -310,13 +309,13 @@ public class AmendmentHarnessCommonSteps {
   }
 
   private String buildNonPricingPatch(long submittedVersion) {
-    return "{\"version\":" + submittedVersion
+    return "{\"version\":"
+        + submittedVersion
         + ",\"amendment_requested_by\":\"PROVIDER\""
         + ",\"amendment_reason_code\":\"PROVIDER_ERROR\""
-        + ",\"amendment_user_id\":\"" + AMENDMENT_USER_ID + "\""
+        + ",\"amendment_user_id\":\""
+        + AMENDMENT_USER_ID
+        + "\""
         + ",\"client_forename\":\"Harness-Canary\"}";
   }
 }
-
-
-
