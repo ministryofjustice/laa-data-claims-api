@@ -9,6 +9,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -48,7 +49,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * {@code @BeforeEach}; a shared seeding hook there would double-seed and clash. Keeping it here
  * scopes the amendment-flag toggle and seeding to just the PATCH-driven PDA suites.
  */
-abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrationTest {
+public abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrationTest {
 
   /** Governed amendment-metadata reference codes seeded by Flyway migration V41. */
   protected static final String REQUESTED_BY_PROVIDER = "PROVIDER";
@@ -185,7 +186,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
 
   /** Thin assertion helper to assert the response body contains the given fragment. */
   protected void assertResponseContains(MvcResult result, String expectedFragment)
-      throws java.io.UnsupportedEncodingException {
+      throws UnsupportedEncodingException {
     String body = result.getResponse().getContentAsString();
     assertThat(body).contains(expectedFragment);
   }
@@ -257,13 +258,7 @@ abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrati
    */
   protected MvcResult performAmendmentPatch(
       UUID submissionId, UUID claimId, ClaimAmendmentPatch amendmentPatch) throws Exception {
-    return mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, submissionId, claimId)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_MAPPER.writeValueAsString(amendmentPatch)))
-        .andReturn();
+    return performPatch(submissionId, claimId, PATCH_MAPPER.writeValueAsString(amendmentPatch));
   }
 
   /**

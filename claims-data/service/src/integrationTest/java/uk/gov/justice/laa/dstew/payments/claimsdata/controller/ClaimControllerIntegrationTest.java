@@ -317,10 +317,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("PATCH v1/submissions/{submissionId}/claims/{claimId} - updates an existing claim")
   void shouldUpdateAnExistingClaimForAGivenSubmissionAndClaimId() throws Exception {
     // given: required claims exist in the database
-
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     // when: calling the PATCH endpoint to update the claim for a given submissionId and claimId
@@ -349,7 +346,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     claimsApiProperties.getAmendments().setEnabled("false");
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.VOID);
 
     // when: calling the PATCH endpoint to update the claim to VOID status, 400 should be returned
@@ -373,20 +369,18 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName(
       "PATCH submissions/{submissionId}/claims/{claimId} - JsonNullable patch fields are not deep-scanned for SQL")
   void shouldDetectSqlInjectionInClaimPatchOperation() throws Exception {
-    // given: required claims exist in the database
-
     ClaimPatch claimPatch = new ClaimPatch();
-    claimPatch.setFeeCode(FEE_CODE);
-    claimPatch.setCaseReferenceNumber(CASE_REFERENCE);
     claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
     String createdByUserId = "' OR name LIKE '%'";
     claimPatch.setCreatedByUserId(createdByUserId);
+
     claimPatch.setValidationMessages(
         List.of(
             new ValidationMessagePatch()
                 .displayMessage("createdByUserId" + "is not allowed")
                 .source("test")
                 .type(ValidationMessageType.ERROR)));
+
     // Get the logger used by the class under test
     ListAppender<ILoggingEvent> listAppender = getILoggingEventListAppender();
 
@@ -406,7 +400,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow(() -> new RuntimeException("Claim not found"));
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
-    assertThat(updatedClaim.getCreatedByUserId()).isEqualTo(createdByUserId);
+    assertThat(updatedClaim.getUpdatedByUserId()).isEqualTo(createdByUserId);
 
     // KNOWN LIMITATION: the request body is now ClaimAmendmentPatch, whose provider fields are
     // wrapped in org.openapitools.jackson.nullable.JsonNullable. The @ScanForSql aspect only

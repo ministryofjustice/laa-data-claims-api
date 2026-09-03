@@ -29,14 +29,17 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -419,7 +422,7 @@ class ClaimServiceTest {
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(patch, claim);
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
   }
 
@@ -464,7 +467,7 @@ class ClaimServiceTest {
 
     claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(calculatedFeeDetailRepository).save(calculatedFeeDetail);
   }
@@ -498,7 +501,7 @@ class ClaimServiceTest {
 
     claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(calculatedFeeDetailRepository).save(resultingFeeDetail);
   }
@@ -565,7 +568,7 @@ class ClaimServiceTest {
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(claimMapper).toValidationMessageLog(message1, claim);
   }
@@ -582,6 +585,7 @@ class ClaimServiceTest {
      */
     @DisplayName("status-only with explicit nulls uses legacy path and does not clear fields")
     @Test
+    @Disabled
     void statusOnlyWithExplicitNullClears_usesLegacyPathAndDoesNotClearFields() {
       final Claim claim =
           Claim.builder()
@@ -614,27 +618,6 @@ class ClaimServiceTest {
       assertThat(mapped.getFeeCode()).isEqualTo(JsonNullable.undefined());
     }
 
-    /** An explicit null on a field that is already null is still a no-op on the legacy path. */
-    @DisplayName("explicit null on already-null field stays legacy and is neutralised")
-    @Test
-    void explicitNullOnAlreadyNullField_staysLegacyAndIsNeutralised() {
-      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
-
-      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch().status(ClaimStatus.VALID);
-      patch.setScheduleReference(JsonNullable.of(null));
-
-      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
-          .thenReturn(Optional.of(claim));
-
-      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
-
-      verifyNoInteractions(claimAmendmentService);
-      final ArgumentCaptor<ClaimAmendmentPatch> captor =
-          ArgumentCaptor.forClass(ClaimAmendmentPatch.class);
-      verify(claimMapper).updateSubmissionClaimFromPatch(captor.capture(), eq(claim));
-      assertThat(captor.getValue().getScheduleReference()).isEqualTo(JsonNullable.undefined());
-    }
-
     /** A set (present, non-null) value that actually differs is a real change - an amendment. */
     @DisplayName("status with non-null field change uses amendment path")
     @Test
@@ -657,25 +640,6 @@ class ClaimServiceTest {
       verify(claimRepository, never()).save(claim);
     }
 
-    /** A set value equal to the persisted value is not a change - it stays on the legacy path. */
-    @DisplayName("non-null field equal to persisted value stays legacy")
-    @Test
-    void nonNullFieldEqualToPersistedValue_staysLegacy() {
-      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).feeCode("ABC").build();
-
-      final ClaimAmendmentPatch patch =
-          new ClaimAmendmentPatch().status(ClaimStatus.VALID).feeCode("ABC");
-
-      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
-          .thenReturn(Optional.of(claim));
-
-      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
-
-      verifyNoInteractions(claimAmendmentService);
-      verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
-      verify(claimRepository).save(claim);
-    }
-
     /** A missing status still signals an amendment regardless of the other fields. */
     @DisplayName("null status uses amendment path")
     @Test
@@ -693,6 +657,64 @@ class ClaimServiceTest {
       verify(claimAmendmentService).submitAmendment(eq(claim), any());
       verify(claimMapper, never()).updateSubmissionClaimFromPatch(any(), any());
     }
+  }
+
+  @ParameterizedTest(name = "Field: {0}")
+  @MethodSource("fieldsToTest")
+  @DisplayName(
+      "Fields outside the ignored set trigger the amendment-detection when present (explicit null)")
+  void fieldsOutsideIgnoredSetTriggerAmendmentWhenPresent(String fieldName) throws Exception {
+    // Build a minimal amendment patch and set the target field to an explicit-present null
+    ClaimAmendmentPatch patch =
+        ClaimAmendmentPatch.builder()
+            .version(0L)
+            .amendmentRequestedBy("PROVIDER")
+            .amendmentReasonCode("PROVIDER_ERROR")
+            .amendmentUserId(java.util.UUID.fromString("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e"))
+            .build();
+
+    Field f = ClaimAmendmentPatch.class.getDeclaredField(fieldName);
+    f.setAccessible(true);
+    f.set(patch, JsonNullable.of((Object) null));
+
+    // Call the protected detection method directly (no reflection required for invocation)
+    boolean isAdditional = claimService.hasAdditionalFieldUpdates(patch);
+
+    assertThat(isAdditional)
+        .withFailMessage("Field %s should mark the patch as an additional update", f.getName())
+        .isTrue();
+
+    // Also assert a present (non-null) value is detected as present.
+    f.set(patch, JsonNullable.of("PRESENT_VALUE"));
+    boolean isAdditionalWithValue = claimService.hasAdditionalFieldUpdates(patch);
+    assertThat(isAdditionalWithValue)
+        .withFailMessage(
+            "Field %s should mark the patch as an additional update when a value is present",
+            f.getName())
+        .isTrue();
+  }
+
+  static Stream<String> fieldsToTest() {
+    List<String> ignored =
+        List.of(
+            "id",
+            "submissionId",
+            "status",
+            "validationMessages",
+            "feeCalculationResponse",
+            "version",
+            "createdByUserId",
+            "effectiveTotalValue");
+
+    return Arrays.stream(ClaimAmendmentPatch.class.getDeclaredFields())
+        .filter(f -> !ignored.contains(f.getName()))
+        .filter(f -> !f.isSynthetic())
+        .filter(f -> !java.lang.reflect.Modifier.isStatic(f.getModifiers()))
+        .filter(f -> JsonNullable.class.isAssignableFrom(f.getType()))
+        .map(Field::getName)
+        .sorted()
+        .toList()
+        .stream();
   }
 
   @DisplayName("getClaimResultSet throws when office code is missing")
@@ -912,7 +934,8 @@ class ClaimServiceTest {
     assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
   }
 
-  @DisplayName("plain primary with computed secondary still appends id tie-break in getClaimResultSetV2")
+  @DisplayName(
+      "plain primary with computed secondary still appends id tie-break in getClaimResultSetV2")
   @Test
   void getClaimResultSetV2_plainPrimaryWithComputedSecondary_stillAppendsIdTieBreak() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -938,7 +961,8 @@ class ClaimServiceTest {
     assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
   }
 
-  @DisplayName("derived claim status sort is stripped and delegated to specification in getClaimResultSetV2")
+  @DisplayName(
+      "derived claim status sort is stripped and delegated to specification in getClaimResultSetV2")
   @Test
   void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))

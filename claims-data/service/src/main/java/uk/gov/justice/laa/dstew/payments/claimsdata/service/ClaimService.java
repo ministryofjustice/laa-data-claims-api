@@ -4,14 +4,12 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specificat
 
 import java.lang.reflect.Field;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -238,6 +236,13 @@ public class ClaimService
   /**
    * Update a claim for a submission.
    *
+   * <p>This transactional entry point decides whether the supplied {@link ClaimAmendmentPatch}
+   * should be treated as an amendment or as a legacy status+fee update. The decision is made by
+   * {@link #isAnAmendment(ClaimAmendmentPatch)}. If the patch is considered an amendment the
+   * request is forwarded to {@link #amendClaim(Claim, ClaimAmendmentPatch)}; otherwise the older
+   * status-and-fee update flow is executed via {@link #updateClaimStatusAndFeeDetails(Claim,
+   * ClaimAmendmentPatch)}.
+   *
    * @param submissionId submission identifier
    * @param claimId claim identifier
    * @param claimPatch patch payload
@@ -246,18 +251,29 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
-    if (isAnAmendment(claimPatch, claim)) {
+    if (isAnAmendment(claimPatch)) {
       amendClaim(claim, claimPatch);
     } else {
       updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
   }
 
-  private boolean isAnAmendment(ClaimAmendmentPatch claimPatch, Claim claim) {
+  /**
+   * Determine whether the incoming patch should be handled as an amendment.
+   *
+   * <p>The current heuristic treats a patch with a {@code null} status as an amendment. If a status
+   * is present the method delegates to {@link #hasAdditionalFieldUpdates(ClaimAmendmentPatch)}
+   * which inspects other JsonNullable-wrapped fields for presence.
+   *
+   * @param claimPatch the incoming patch to inspect
+   * @return {@code true} when the patch should be processed as an amendment, {@code false} when it
+   *     may follow the legacy status+fee update path
+   */
+  private boolean isAnAmendment(ClaimAmendmentPatch claimPatch) {
     if (claimPatch.getStatus() == null) {
       return true;
     }
-    return hasAdditionalFieldUpdates(claimPatch, claim);
+    return hasAdditionalFieldUpdates(claimPatch);
   }
 
   /**
@@ -273,208 +289,99 @@ public class ClaimService
    * the legacy status/fee path an explicit null is a no-op, mirroring the pre-amendment contract
    * where an absent and an explicitly-null field were indistinguishable.
    */
-  private boolean hasAdditionalFieldUpdates(ClaimAmendmentPatch patch, Claim claim) {
+  protected boolean hasAdditionalFieldUpdates(ClaimAmendmentPatch patch) {
     if (patch == null) {
       return false;
     }
-
-    AtomicBoolean hasUpdates = new AtomicBoolean(false);
-
-    ReflectionUtils.doWithFields(
-        patch.getClass(),
-        patchField -> {
-          if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
-            return;
-          }
-          if (fieldRepresentsChange(patchField, patch, claim)) {
-            hasUpdates.set(true);
-          }
-        },
-        ReflectionUtils.COPYABLE_FIELDS);
-
-    return hasUpdates.get();
+    return Arrays.stream(patch.getClass().getDeclaredFields())
+        .filter(field -> !IGNORED_FIELDS.contains(field.getName()))
+        .anyMatch(field -> isPresent(field, patch));
   }
 
   /**
-   * Determines whether a single patch field carries a real, persistable change relative to the
-   * claim. Omitted fields and explicit-null "clears" never count - only a present, non-null value
-   * that differs from the persisted claim does.
+   * Returns true when the given field on the target object is a {@link JsonNullable}, is present
+   * and the wrapped value is non-null.
+   *
+   * <p>This method uses {@link ReflectionUtils} to access the field value reflectively. It treats
+   * an explicitly-present null (JsonNullable.of(null)) as "not present" for amendment-detection
+   * purposes. That allows legacy status-only patches that accidentally carry explicit nulls to
+   * remain on the legacy status+fee path instead of being classified as amendments.
+   *
+   * @param field the declared field to inspect
+   * @param target the target instance containing the field
+   * @return {@code true} when the field is a JsonNullable that is present and the wrapped value is
+   *     non-null, {@code false} otherwise
    */
-  private boolean fieldRepresentsChange(Field patchField, ClaimAmendmentPatch patch, Claim claim) {
-    ReflectionUtils.makeAccessible(patchField);
-    Object rawValue = ReflectionUtils.getField(patchField, patch);
-
-    // Tri-state fields: omitted or explicit null -> skip; present non-null -> consider.
-    Object candidateValue = rawValue;
-    if (rawValue instanceof JsonNullable<?> jsonNullable) {
-      candidateValue = jsonNullable.isPresent() ? jsonNullable.get() : null;
-    }
-
-    if (candidateValue == null) {
+  protected boolean isPresent(Field field, Object target) {
+    ReflectionUtils.makeAccessible(field);
+    Object value = ReflectionUtils.getField(field, target);
+    if (!(value instanceof JsonNullable<?> jsonNullable) || !jsonNullable.isPresent()) {
       return false;
     }
-
-    // Resolve the entity field name for mapped booleans (isX -> x) or other simple mappings.
-    String patchFieldName = patchField.getName();
-    Field claimField = ReflectionUtils.findField(claim.getClass(), patchFieldName);
-    if (claimField == null) {
-      String mappedName = mapPatchFieldNameToEntityField(patchFieldName);
-      if (!mappedName.equals(patchFieldName)) {
-        claimField = ReflectionUtils.findField(claim.getClass(), mappedName);
-      }
-    }
-
-    if (claimField == null) {
-      // No matching entity field found: preserve previous behaviour (present non-null -> amendment)
-      return !Objects.equals(candidateValue, null);
-    }
-
-    ReflectionUtils.makeAccessible(claimField);
-    Object persistedValue = ReflectionUtils.getField(claimField, claim);
-
-    Object normalisedCandidate = convertCandidateToFieldType(candidateValue, claimField.getType());
-
-    return !Objects.equals(normalisedCandidate, persistedValue);
-  }
-
-  private String mapPatchFieldNameToEntityField(String patchFieldName) {
-    // Simple MapStruct-style boolean mapping: isDutySolicitor -> dutySolicitor
-    if (patchFieldName != null && patchFieldName.length() > 2 && patchFieldName.startsWith("is")
-        && Character.isUpperCase(patchFieldName.charAt(2))) {
-      String withoutIs = patchFieldName.substring(2);
-      return Character.toLowerCase(withoutIs.charAt(0)) + withoutIs.substring(1);
-    }
-    return patchFieldName;
-  }
-
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  private Object convertCandidateToFieldType(Object candidateValue, Class<?> targetType) {
-    if (candidateValue == null || targetType == null) {
-      return candidateValue;
-    }
-
-    // Already correct type
-    if (targetType.isInstance(candidateValue)) {
-      return candidateValue;
-    }
-
-    try {
-      // String -> LocalDate
-      if (candidateValue instanceof String s) {
-        if (LocalDate.class.equals(targetType)) {
-          try {
-            return LocalDate.parse(s, ClaimMapper.CLAIM_DATE_FORMAT);
-          } catch (Exception ex1) {
-            try {
-              // Fallback: accept ISO yyyy-MM-dd commonly emitted by LocalDate.toString()
-              return LocalDate.parse(s);
-            } catch (Exception ex2) {
-              // fall through to leave as raw string (will be considered a change)
-              return candidateValue;
-            }
-          }
-        }
-        if (BigDecimal.class.equals(targetType)) {
-          try {
-            return new BigDecimal(s);
-          } catch (Exception e) {
-            return candidateValue;
-          }
-        }
-        if (Boolean.class.equals(targetType) || boolean.class.equals(targetType)) {
-          return Boolean.valueOf(s);
-        }
-        if (Integer.class.equals(targetType) || int.class.equals(targetType)) {
-          try {
-            return Integer.valueOf(s);
-          } catch (Exception e) {
-            return candidateValue;
-          }
-        }
-        if (Long.class.equals(targetType) || long.class.equals(targetType)) {
-          try {
-            return Long.valueOf(s);
-          } catch (Exception e) {
-            return candidateValue;
-          }
-        }
-        if (targetType.isEnum()) {
-          Object[] constants = targetType.getEnumConstants();
-          for (Object c : constants) {
-            if (c.toString().equalsIgnoreCase(s) || ((Enum) c).name().equalsIgnoreCase(s)) {
-              return c;
-            }
-          }
-          return candidateValue;
-        }
-      }
-
-      // Number -> BigDecimal
-      if (candidateValue instanceof Number n && BigDecimal.class.equals(targetType)) {
-        return BigDecimal.valueOf(n.doubleValue());
-      }
-
-      // LocalDate -> String (format)
-      if (candidateValue instanceof LocalDate ld && String.class.equals(targetType)) {
-        return ld.format(ClaimMapper.CLAIM_DATE_FORMAT);
-      }
-    } catch (Exception e) {
-      // Conversion failed - fall back to original candidateValue
-      return candidateValue;
-    }
-
-    // Fallback: return original candidateValue
-    return candidateValue;
+    // Treat an explicitly-present null as not signalling an amendment.
+    return jsonNullable.get() != null;
   }
 
   /**
-   * Neutralises explicit-null "clears" on the legacy status/fee update path.
+   * Execute the legacy status-and-fee update flow.
    *
-   * <p>Setting a persisted field back to {@code null} is an amendment-only feature. On the legacy
-   * path an explicit JSON null must behave exactly like an omitted field - a no-op - matching the
-   * pre-amendment contract. Converting any present-null {@link JsonNullable} back to {@link
-   * JsonNullable#undefined()} makes the MapStruct mapper skip it instead of writing {@code null}
-   * over the existing value.
-   */
-  private void stripExplicitNullClears(ClaimAmendmentPatch patch) {
-    if (patch == null) {
-      return;
-    }
-
-    ReflectionUtils.doWithFields(
-        patch.getClass(),
-        patchField -> {
-          ReflectionUtils.makeAccessible(patchField);
-          if (ReflectionUtils.getField(patchField, patch) instanceof JsonNullable<?> jsonNullable
-              && jsonNullable.isPresent()
-              && jsonNullable.get() == null) {
-            ReflectionUtils.setField(patchField, patch, JsonNullable.undefined());
-          }
-        },
-        ReflectionUtils.COPYABLE_FIELDS);
-  }
-
-  private Object readClaimField(Claim claim, String fieldName) {
-    Field claimField = ReflectionUtils.findField(claim.getClass(), fieldName);
-    if (claimField == null) {
-      return null;
-    }
-    ReflectionUtils.makeAccessible(claimField);
-    return ReflectionUtils.getField(claimField, claim);
-  }
-
-  /**
-   * This method is called to allow legacy updates to still work.
+   * <p>For backward compatibility this method performs the older non-amendment update sequence:
    *
-   * @param claim claim
-   * @param claimPatch claim patch
+   * <ol>
+   *   <li>Update the claim status and persist the claim (see {@link #updateClaimStatus}).
+   *   <li>Persist any validation messages included on the patch (see {@link
+   *       #updateValidationMessages}).
+   *   <li>Persist any calculated fee details supplied by an FSP as part of the patch (see {@link
+   *       #updateFeeDetails}).
+   * </ol>
+   *
+   * <p>This method exists to preserve the historical status+fee behaviour for clients that do not
+   * use the amendment path.
+   *
+   * @param claim the persistent claim to update
+   * @param claimPatch the incoming patch containing status/fee and optional validation messages
    */
   private void updateClaimStatusAndFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
+    // Update the claim status and save it to the database.
+    updateClaimStatus(claim, claimPatch);
 
-    // Field clearing is amendment-only: on the legacy path an explicit null must not overwrite an
-    // existing value, so strip explicit-null "clears" before mapping onto the entity.
-    stripExplicitNullClears(claimPatch);
+    // Update any validation messages that have been sent as part of this patch.
+    updateValidationMessages(claim, claimPatch);
 
+    // Update any fee details that have been sent as part of this patch.
+    updateFeeDetails(claim, claimPatch);
+  }
+
+  /**
+   * Update the claim's status from the supplied patch and persist the change.
+   *
+   * <p>This method validates the requested status is not {@code VOID} (delegating to {@link
+   * #claimValidationService}) and then updates the claim's status and the {@code updatedByUserId}
+   * using the value from the patch (if present). The updated claim is then saved via the {@link
+   * #claimRepository}.
+   *
+   * @param claim the persistent claim to update
+   * @param claimPatch the incoming amendment patch carrying the status and optional user id
+   */
+  private void updateClaimStatus(Claim claim, ClaimAmendmentPatch claimPatch) {
+    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
+    // claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
+    claim.setStatus(claimPatch.getStatus());
+    claim.setUpdatedByUserId(claimPatch.getCreatedByUserId().orElse(null));
+    claimRepository.save(claim);
+  }
+
+  /**
+   * Persist any validation messages contained in the patch.
+   *
+   * <p>If the incoming patch contains validation messages these are converted to {@link
+   * ValidationMessageLog} entities via the {@link #claimMapper} and saved to the {@link
+   * #validationMessageLogRepository}.
+   *
+   * @param claim the claim the messages belong to
+   * @param claimPatch the amendment patch that may contain validation messages
+   */
+  private void updateValidationMessages(Claim claim, ClaimAmendmentPatch claimPatch) {
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
       claimPatch
@@ -485,11 +392,24 @@ public class ClaimService
                 validationMessageLogRepository.save(log);
               });
     }
+  }
 
-    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
-    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
-    claimRepository.save(claim);
-
+  /**
+   * Save calculated fee details provided by the FSP as part of a legacy status+fee update.
+   *
+   * <p>If the incoming {@link ClaimAmendmentPatch} carries a {@code feeCalculationResponse} the
+   * response is mapped to a {@link CalculatedFeeDetail} entity and persisted. The created on
+   * timestamp is set here.
+   *
+   * <p>NOTE: legacy behaviour is to reuse the latest {@code calculated_fee_detail} ID when a
+   * status+fee update is performed. That results in updating the existing row (preserving a single
+   * 'current' calculated fee row) rather than inserting another historical row. Integration tests
+   * therefore must assert the existing row may be overwritten by the legacy flow.
+   *
+   * @param claim the claim the calculated fee detail relates to
+   * @param claimPatch the incoming patch that may carry a feeCalculationResponse
+   */
+  private void updateFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
     // If we have calculated fee details from the FSP as part of this patch, save them.
     if (claimPatch.getFeeCalculationResponse() != null) {
       CalculatedFeeDetail calculatedFeeDetail =
@@ -510,21 +430,7 @@ public class ClaimService
   }
 
   private void amendClaim(Claim claim, ClaimAmendmentPatch claimPatch) {
-
-    if (claimPatch.getValidationMessages() != null
-        && !claimPatch.getValidationMessages().isEmpty()) {
-      claimPatch
-          .getValidationMessages()
-          .forEach(
-              message -> {
-                ValidationMessageLog validationLog =
-                    claimMapper.toValidationMessageLog(message, claim);
-                validationMessageLogRepository.save(validationLog);
-              });
-    }
-
     ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
-
     ClaimAmendmentResult result = claimAmendmentService.submitAmendment(claim, payload);
 
     if (result.errors() != null && !result.errors().isEmpty()) {
