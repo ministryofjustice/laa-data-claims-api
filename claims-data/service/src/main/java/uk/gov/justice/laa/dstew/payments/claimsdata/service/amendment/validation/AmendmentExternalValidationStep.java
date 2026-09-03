@@ -130,6 +130,11 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
     }
 
     try {
+      // validation-core exposes feeCodeDescription and categoryOfLawCodes on ResolvedClaimData.
+      // Today we double-fetch because those fields are not on the ClaimValidationResult surface;
+      // the resolver only needs them as a metadata fallback so the call is intentionally
+      // best-effort - any failure is logged and leaves feeSchemeDetailsContext=null (the resolver
+      // tolerates null and falls back to the previous fee snapshot when the fee code is unchanged).
       state.setFeeSchemeDetailsContext(feeSchemeProvider.getFeeDetails(feeCode).orElse(null));
     } catch (Exception ex) {
       log.warn("Unable to cache fee details enrichment for fee code {}", feeCode, ex);

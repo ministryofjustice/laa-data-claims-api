@@ -179,13 +179,14 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
 
     String feeCode = fspResponse == null ? null : fspResponse.getFeeCode();
 
-    // Only enrich the fee-metadata fields; numeric/bolt-on fields are carried across unchanged
+    // Only enrich the fee-metadata fields
     // via toBuilder() to avoid drift with the snapshot schema.
+    var resolvedMetadata = feeCalculationMetadataResolver.resolve(state, feeCode);
+
     return baseSnapshot.toBuilder()
-        .feeType(feeCalculationMetadataResolver.resolveFeeType(state, feeCode))
-        .feeCodeDescription(
-            feeCalculationMetadataResolver.resolveFeeCodeDescription(state, feeCode))
-        .categoryOfLaw(feeCalculationMetadataResolver.resolveCategoryOfLaw(state, feeCode))
+        .feeType(resolvedMetadata.feeType())
+        .feeCodeDescription(resolvedMetadata.feeCodeDescription())
+        .categoryOfLaw(resolvedMetadata.categoryOfLaw())
         .build();
   }
 

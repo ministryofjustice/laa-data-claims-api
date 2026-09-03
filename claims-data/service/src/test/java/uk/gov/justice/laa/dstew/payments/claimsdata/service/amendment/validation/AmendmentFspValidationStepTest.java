@@ -32,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeCalculationMetadataResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -140,11 +141,9 @@ class AmendmentFspValidationStepTest {
 
     when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
     when(claimStateSnapshotMapper.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
-    when(feeCalculationMetadataResolver.resolveFeeType(state, "FEE02"))
-        .thenReturn(FeeCalculationType.HOURLY);
-    when(feeCalculationMetadataResolver.resolveFeeCodeDescription(state, "FEE02"))
-        .thenReturn("Test fee description");
-    when(feeCalculationMetadataResolver.resolveCategoryOfLaw(state, "FEE02")).thenReturn("CAT-A");
+    when(feeCalculationMetadataResolver.resolve(state, "FEE02"))
+        .thenReturn(
+            new ResolvedFeeMetadata(FeeCalculationType.HOURLY, "Test fee description", "CAT-A"));
     AmendmentDiff pricingImpactingDiff =
         AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
     when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);

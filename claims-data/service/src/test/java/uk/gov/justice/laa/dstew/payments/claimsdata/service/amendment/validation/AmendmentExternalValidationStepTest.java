@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -287,7 +288,7 @@ class AmendmentExternalValidationStepTest {
       lenient()
           .when(feeSchemeProvider.getFeeDetails(any()))
           .thenReturn(
-              java.util.Optional.of(
+              Optional.of(
                   new FeeDetailsResponseV2()
                       .feeCodeDescription("desc")
                       .categoryOfLawCodes(List.of("CAT"))));

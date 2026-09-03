@@ -16,13 +16,28 @@ import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 public class FeeCalculationMetadataResolver {
 
   /**
+   * Resolve all fee metadata fields needed by amendment repricing in a single call so callers can
+   * pass a single {@link ResolvedFeeMetadata} to the mapper.
+   *
+   * @param state amendment state carrying cached enrichment context
+   * @param feeCode the repriced fee code
+   * @return the resolved metadata (fields may be {@code null} when no source supplies a value)
+   */
+  public ResolvedFeeMetadata resolve(ClaimAmendmentState state, String feeCode) {
+    return new ResolvedFeeMetadata(
+        resolveFeeType(state, feeCode),
+        resolveFeeCodeDescription(state, feeCode),
+        resolveCategoryOfLaw(state, feeCode));
+  }
+
+  /**
    * Resolve the calculated fee type for the amendment repricing result.
    *
    * @param state amendment state carrying cached enrichment context
    * @param feeCode the repriced fee code
    * @return the resolved fee type, or {@code null} when no supported value is available
    */
-  public FeeCalculationType resolveFeeType(ClaimAmendmentState state, String feeCode) {
+  private FeeCalculationType resolveFeeType(ClaimAmendmentState state, String feeCode) {
     return parseFeeType(
         firstNonBlank(
             resolvedClaimData(state) == null ? null : resolvedClaimData(state).feeCalculationType(),
@@ -39,7 +54,7 @@ public class FeeCalculationMetadataResolver {
    * @param feeCode the repriced fee code
    * @return the resolved description, or {@code null} when none is available
    */
-  public String resolveFeeCodeDescription(ClaimAmendmentState state, String feeCode) {
+  private String resolveFeeCodeDescription(ClaimAmendmentState state, String feeCode) {
     return firstNonBlank(
         feeSchemeDetails(state) == null ? null : feeSchemeDetails(state).getFeeCodeDescription(),
         canReusePreviousMetadata(state, feeCode)
@@ -52,15 +67,19 @@ public class FeeCalculationMetadataResolver {
    *
    * @param state amendment state carrying cached enrichment context
    * @param feeCode the repriced fee code
-   * @return the resolved category of law code, or {@code null} when none is available
+   * @return the resolved category of law code, preferring the validated claim value, then any
+   *     unchanged persisted value, and finally the fee-scheme category list when no prior value is
+   *     available
    */
-  public String resolveCategoryOfLaw(ClaimAmendmentState state, String feeCode) {
+  private String resolveCategoryOfLaw(ClaimAmendmentState state, String feeCode) {
+    String previousCategoryOfLaw =
+        canReusePreviousMetadata(state, feeCode) ? previousFee(state).getCategoryOfLaw() : null;
     return firstNonBlank(
         resolvedClaimData(state) == null
             ? null
             : resolvedClaimData(state).authorisedCategoryOfLawCode(),
-        firstCategoryOfLawCode(feeSchemeDetails(state)),
-        canReusePreviousMetadata(state, feeCode) ? previousFee(state).getCategoryOfLaw() : null);
+        previousCategoryOfLaw,
+        firstCategoryOfLawCode(feeSchemeDetails(state)));
   }
 
   private ResolvedClaimData resolvedClaimData(ClaimAmendmentState state) {

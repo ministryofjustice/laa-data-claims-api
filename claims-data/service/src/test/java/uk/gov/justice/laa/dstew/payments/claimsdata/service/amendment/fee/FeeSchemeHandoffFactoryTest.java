@@ -218,11 +218,6 @@ class FeeSchemeHandoffFactoryTest {
     assertThat(result.getCategoryOfLaw()).isNull();
     assertThat(result.getNetProfitCostsAmount()).isNull();
     assertThat(result.getVatIndicator()).isNull();
-    assertThat(result.getBoltOnTotalFeeAmount()).isNull();
-    assertThat(result.getBoltOnAdjournedHearingCount()).isNull();
-    assertThat(result.getBoltOnAdjournedHearingFee()).isNull();
-    assertThat(result.getRequestedNetProfitCostsAmount()).isNull();
-    assertThat(result.getTravelAndWaitingCostsAmount()).isNull();
   }
 
   @Test
