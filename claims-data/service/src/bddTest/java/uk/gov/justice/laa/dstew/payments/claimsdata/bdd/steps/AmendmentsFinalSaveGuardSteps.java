@@ -68,8 +68,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmend
  *
  * <ol>
  *   <li>Prepare — read the {@link Claim} at version N (Phase 1).
- *   <li>Validate — includes {@link ValidationService#validateClaim} (Phase 2). The
- *       DSTEW-2301 harness mocks this bean.
+ *   <li>Validate — includes {@link ValidationService#validateClaim} (Phase 2). The DSTEW-2301
+ *       harness mocks this bean.
  *   <li>Commit — {@code merge + flush} inside REQUIRES_NEW (Phase 3).
  * </ol>
  *
@@ -77,8 +77,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmend
  * <em>before</em> Phase 3's flush. Threading is fragile in a BDD run, so instead this class hooks
  * the mocked {@code validateClaim} with a {@link org.mockito.stubbing.Answer} that executes a
  * native SQL bump of {@code claim.version} as its side effect. Prepare has already loaded the
- * detached claim at version N; the bump lands mid-Phase-2; the commit's versioned UPDATE ...
- * WHERE version = N then matches zero rows and Hibernate throws.
+ * detached claim at version N; the bump lands mid-Phase-2; the commit's versioned UPDATE ... WHERE
+ * version = N then matches zero rows and Hibernate throws.
  *
  * <p>The initial-check gate ({@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.ClaimVersionValidationStep})
@@ -88,12 +88,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmend
  *
  * <h2>WARN log capture</h2>
  *
- * A logback {@link ListAppender} is attached to {@link ClaimAmendmentCommitService}'s logger in
- * the tag-scoped {@code @Before} hook and detached in {@code @After}. Scenarios assert on the
- * captured events without needing to alter production logging config.
+ * A logback {@link ListAppender} is attached to {@link ClaimAmendmentCommitService}'s logger in the
+ * tag-scoped {@code @Before} hook and detached in {@code @After}. Scenarios assert on the captured
+ * events without needing to alter production logging config.
  *
- * <p>Every step body is wrapped in
- * {@link uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures#step}.
+ * <p>Every step body is wrapped in {@link
+ * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures#step}.
  */
 @Slf4j
 public class AmendmentsFinalSaveGuardSteps {
@@ -186,15 +186,9 @@ public class AmendmentsFinalSaveGuardSteps {
               int updated =
                   txTemplate.execute(
                       status ->
-                          jdbcClient
-                              .sql(sql)
-                              .param("delta", delta)
-                              .param("id", claimId)
-                              .update());
+                          jdbcClient.sql(sql).param("delta", delta).param("id", claimId).update());
               assertThat(updated)
-                  .as(
-                      "concurrent-writer SQL must update exactly one row for claim %s",
-                      claimId)
+                  .as("concurrent-writer SQL must update exactly one row for claim %s", claimId)
                   .isEqualTo(1);
               log.info(
                   "[DSTEW-1753] Concurrent writer fired: bumped version by {} (has_assessment"
@@ -245,8 +239,7 @@ public class AmendmentsFinalSaveGuardSteps {
   // Then — HTTP + envelope assertions.
   // ---------------------------------------------------------------------------
 
-  @Then(
-      "the amendment is rejected with HTTP {int} and amendment error code {string}")
+  @Then("the amendment is rejected with HTTP {int} and amendment error code {string}")
   public void theAmendmentIsRejectedWithHttpAndAmendmentErrorCode(int status, String code) {
     step(
         "assert HTTP status == "
@@ -263,9 +256,7 @@ public class AmendmentsFinalSaveGuardSteps {
                       : scenarioContext.getLastResponseBody().toString())
               .isEqualTo(status);
           List<String> codes = extractErrorCodes(scenarioContext.getLastResponseBody());
-          assertThat(codes)
-              .as("errors[*].code in response body")
-              .contains(code);
+          assertThat(codes).as("errors[*].code in response body").contains(code);
         });
   }
 
@@ -289,8 +280,7 @@ public class AmendmentsFinalSaveGuardSteps {
         });
   }
 
-  @Then(
-      "the response body's errors array carries exactly one entry with code {string}")
+  @Then("the response body's errors array carries exactly one entry with code {string}")
   public void theResponseBodyErrorsArrayCarriesExactlyOneEntryWithCode(String code) {
     step(
         "assert the response body's errors[] array has exactly one entry whose code equals \""
@@ -303,12 +293,8 @@ public class AmendmentsFinalSaveGuardSteps {
           assertThat(errors.isArray())
               .as("response body must carry an 'errors' array (body=%s)", body)
               .isTrue();
-          assertThat(errors)
-              .as("response body's 'errors' array size")
-              .hasSize(1);
-          assertThat(errors.get(0).path("code").asText())
-              .as("errors[0].code")
-              .isEqualTo(code);
+          assertThat(errors).as("response body's 'errors' array size").hasSize(1);
+          assertThat(errors.get(0).path("code").asText()).as("errors[0].code").isEqualTo(code);
         });
   }
 
@@ -327,20 +313,14 @@ public class AmendmentsFinalSaveGuardSteps {
   public void claimVersionEquals(long expected) {
     step(
         "assert claim.version = " + expected,
-        () ->
-            assertThat(requireClaim().getVersion())
-                .as("claim.version")
-                .isEqualTo(expected));
+        () -> assertThat(requireClaim().getVersion()).as("claim.version").isEqualTo(expected));
   }
 
   @Then("claim.has_assessment is true")
   public void claimHasAssessmentIsTrue() {
     step(
         "assert claim.has_assessment = true",
-        () ->
-            assertThat(requireClaim().isHasAssessment())
-                .as("claim.has_assessment")
-                .isTrue());
+        () -> assertThat(requireClaim().isHasAssessment()).as("claim.has_assessment").isTrue());
   }
 
   // ---------------------------------------------------------------------------
@@ -362,7 +342,9 @@ public class AmendmentsFinalSaveGuardSteps {
   @Then("the captured WARN log contains {string}")
   public void theCapturedWarnLogContains(String needle) {
     step(
-        "assert at least one captured WARN entry individually contains \"" + needle + "\" —"
+        "assert at least one captured WARN entry individually contains \""
+            + needle
+            + "\" —"
             + " avoids false positives from tokens spread across separate log lines",
         () ->
             assertThat(warnMessages())
@@ -423,9 +405,7 @@ public class AmendmentsFinalSaveGuardSteps {
   }
 
   private List<ILoggingEvent> warnEntries() {
-    return commitLogAppender.list.stream()
-        .filter(e -> e.getLevel() == Level.WARN)
-        .toList();
+    return commitLogAppender.list.stream().filter(e -> e.getLevel() == Level.WARN).toList();
   }
 
   private List<String> warnMessages() {
@@ -537,8 +517,7 @@ public class AmendmentsFinalSaveGuardSteps {
           assertThat(raceOutcomes)
               .as("both racing dispatches must have completed with a captured outcome")
               .hasSize(2);
-          log.info(
-              "[DSTEW-1753] Race complete for claim {} — outcomes: {}", claimId, raceOutcomes);
+          log.info("[DSTEW-1753] Race complete for claim {} — outcomes: {}", claimId, raceOutcomes);
         });
   }
 
@@ -569,9 +548,7 @@ public class AmendmentsFinalSaveGuardSteps {
               .as("race outcomes with HTTP " + status + " (all=%s)", raceOutcomes)
               .hasSize(1);
           List<String> codes = extractErrorCodes(rejected.get(0).body());
-          assertThat(codes)
-              .as("errors[*].code on the rejected race outcome")
-              .contains(code);
+          assertThat(codes).as("errors[*].code on the rejected race outcome").contains(code);
         });
   }
 
@@ -625,10 +602,3 @@ public class AmendmentsFinalSaveGuardSteps {
     }
   }
 }
-
-
-
-
-
-
-
