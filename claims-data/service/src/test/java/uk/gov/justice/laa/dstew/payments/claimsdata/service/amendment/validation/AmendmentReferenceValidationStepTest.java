@@ -69,13 +69,13 @@ class AmendmentReferenceValidationStepTest {
                 List.of(
                     requestedBy("PROVIDER", "Provider", true),
                     requestedBy("ASSURANCE", "Assurance", true),
-                    requestedBy("LEGACY_PARTY", "Legacy Party", false)),
+                    requestedBy("LEGACY_PARTY", "Legacy party", false)),
                 List.of(
-                    reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", true),
+                    reason("PROVIDER", "PROVIDER_ERROR", "Provider error", true),
                     reason(
                         "ASSURANCE",
                         "INCORRECT_MEANS_ASSESSMENT",
-                        "Incorrect Means Assessment",
+                        "Incorrect means assessment",
                         true),
                     reason("ASSURANCE", "OLD_REASON", "Old reason", false))));
   }
@@ -209,7 +209,7 @@ class AmendmentReferenceValidationStepTest {
     @DisplayName("display label rather than code -> INVALID_AMENDMENT_REASON_NOT_A_CODE")
     void displayLabelNotCode() {
       stubReferenceData();
-      ClaimAmendmentState state = stateWith("PROVIDER", "Provider Error", VALID_UUID);
+      ClaimAmendmentState state = stateWith("PROVIDER", "Provider error", VALID_UUID);
 
       ClaimAmendmentValidationError error = onlyError(step.validate(state));
 
@@ -312,7 +312,7 @@ class AmendmentReferenceValidationStepTest {
           .thenReturn(
               new ClaimAmendmentReferenceData(
                   List.of(),
-                  List.of(reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", true))));
+                  List.of(reason("PROVIDER", "PROVIDER_ERROR", "Provider error", true))));
       ClaimAmendmentState state = stateWith("PROVIDER", "PROVIDER_ERROR", VALID_UUID);
 
       assertThat(step.validate(state))

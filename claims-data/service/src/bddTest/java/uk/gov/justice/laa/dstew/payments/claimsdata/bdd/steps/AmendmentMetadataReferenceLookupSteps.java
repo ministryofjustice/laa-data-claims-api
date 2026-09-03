@@ -58,12 +58,12 @@ public class AmendmentMetadataReferenceLookupSteps {
   private static final List<SeedRequestedBy> FLYWAY_REQUESTED_BY =
       List.of(
           new SeedRequestedBy("PROVIDER", "Provider", 10),
-          new SeedRequestedBy("CONTRACT_MANAGEMENT", "Contract Management", 20),
+          new SeedRequestedBy("CONTRACT_MANAGEMENT", "Contract management", 20),
           new SeedRequestedBy("ASSURANCE", "Assurance", 30));
 
   private static final List<SeedReason> FLYWAY_REASONS =
       List.of(
-          new SeedReason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10),
+          new SeedReason("PROVIDER", "PROVIDER_ERROR", "Provider error", 10),
           new SeedReason(
               "PROVIDER",
               "CASE_REOPENED_REBILLED",
@@ -77,11 +77,11 @@ public class AmendmentMetadataReferenceLookupSteps {
           new SeedReason(
               "CONTRACT_MANAGEMENT",
               "INCORRECT_MEANS_ASSESSMENT",
-              "Incorrect Means Assessment",
+              "Incorrect means assessment",
               10),
           new SeedReason("CONTRACT_MANAGEMENT", "OTHER", "Other", 20),
           new SeedReason(
-              "ASSURANCE", "INCORRECT_MEANS_ASSESSMENT", "Incorrect Means Assessment", 10),
+              "ASSURANCE", "INCORRECT_MEANS_ASSESSMENT", "Incorrect means assessment", 10),
           new SeedReason("ASSURANCE", "OTHER", "Other", 20));
 
   @Autowired private BddApiStepSupport api;

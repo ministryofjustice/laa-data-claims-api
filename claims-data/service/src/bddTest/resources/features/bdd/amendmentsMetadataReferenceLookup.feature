@@ -18,14 +18,14 @@ Feature: Amendment metadata — reference-data lookup & governance
   #
   # BC-574 seed fixture:
   #   PROVIDER              (10)  Provider
-  #     PROVIDER_ERROR                     (10) Provider Error
+  #     PROVIDER_ERROR                     (10) Provider error
   #     CASE_REOPENED_REBILLED             (20) Case re-opened and being billed again later
   #     RECOVERY_FROM_CLIENT_OR_OTHER_SIDE (30) Money recovered from client and/or other side (inc. stat charge)
-  #   CONTRACT_MANAGEMENT   (20)  Contract Management
-  #     INCORRECT_MEANS_ASSESSMENT (10) Incorrect Means Assessment
+  #   CONTRACT_MANAGEMENT   (20)  Contract management
+  #     INCORRECT_MEANS_ASSESSMENT (10) Incorrect means assessment
   #     OTHER                      (20) Other
   #   ASSURANCE             (30)  Assurance
-  #     INCORRECT_MEANS_ASSESSMENT (10) Incorrect Means Assessment
+  #     INCORRECT_MEANS_ASSESSMENT (10) Incorrect means assessment
   #     OTHER                      (20) Other
   #
   # OUT OF SCOPE: Submit-time metadata validation → amendmentsMetadataValidation.feature.
@@ -37,7 +37,7 @@ Feature: Amendment metadata — reference-data lookup & governance
     Then the lookup response lists the following Requested By values in order
       | code                | display_label       | display_order |
       | PROVIDER            | Provider            | 10            |
-      | CONTRACT_MANAGEMENT | Contract Management | 20            |
+      | CONTRACT_MANAGEMENT | Contract management | 20            |
       | ASSURANCE           | Assurance           | 30            |
 
   @DS1594_2
@@ -46,16 +46,16 @@ Feature: Amendment metadata — reference-data lookup & governance
     When I request the amendment metadata reference lookup
     Then the Requested By value "PROVIDER" carries the following reasons in order
       | code                               | display_label                                                    | display_order |
-      | PROVIDER_ERROR                     | Provider Error                                                   | 10            |
+      | PROVIDER_ERROR                     | Provider error                                                   | 10            |
       | CASE_REOPENED_REBILLED             | Case re-opened and being billed again later                      | 20            |
       | RECOVERY_FROM_CLIENT_OR_OTHER_SIDE | Money recovered from client and/or other side (inc. stat charge) | 30            |
     And the Requested By value "CONTRACT_MANAGEMENT" carries the following reasons in order
       | code                       | display_label              | display_order |
-      | INCORRECT_MEANS_ASSESSMENT | Incorrect Means Assessment | 10            |
+      | INCORRECT_MEANS_ASSESSMENT | Incorrect means assessment | 10            |
       | OTHER                      | Other                      | 20            |
     And the Requested By value "ASSURANCE" carries the following reasons in order
       | code                       | display_label              | display_order |
-      | INCORRECT_MEANS_ASSESSMENT | Incorrect Means Assessment | 10            |
+      | INCORRECT_MEANS_ASSESSMENT | Incorrect means assessment | 10            |
       | OTHER                      | Other                      | 20            |
     And the reason "PROVIDER_ERROR" is not listed under Requested By "ASSURANCE"
     And the reason "PROVIDER_ERROR" is not listed under Requested By "CONTRACT_MANAGEMENT"
@@ -77,7 +77,7 @@ Feature: Amendment metadata — reference-data lookup & governance
     When I request the amendment metadata reference lookup
     Then the Requested By value "CONTRACT_MANAGEMENT" carries the following reasons in order
       | code                       | display_label              | display_order |
-      | INCORRECT_MEANS_ASSESSMENT | Incorrect Means Assessment | 10            |
+      | INCORRECT_MEANS_ASSESSMENT | Incorrect means assessment | 10            |
     And the Requested By value "ASSURANCE" still contains the reason "OTHER"
 
   @DS1594_5
@@ -95,7 +95,7 @@ Feature: Amendment metadata — reference-data lookup & governance
     When I request the amendment metadata reference lookup
     Then the Requested By value "PROVIDER" carries the following reasons in order
       | code                               | display_label                                                    | display_order |
-      | PROVIDER_ERROR                     | Provider Error                                                   | 10            |
+      | PROVIDER_ERROR                     | Provider error                                                   | 10            |
       | CASE_REOPENED_REBILLED             | Case re-opened and being billed again later                      | 20            |
       | RECOVERY_FROM_CLIENT_OR_OTHER_SIDE | Money recovered from client and/or other side (inc. stat charge) | 30            |
       | OTHER                              | Other                                                            | 40            |
@@ -103,9 +103,9 @@ Feature: Amendment metadata — reference-data lookup & governance
   @DS1594_7
   Scenario: Editing a display label does not change the underlying code
     Given the amendment metadata reference data has been seeded with the BC-574 defaults
-    And the display label for Requested By code "PROVIDER" is updated to "Provider (Legal Aid)"
+    And the display label for Requested By code "PROVIDER" is updated to "Provider (legal aid)"
     When I request the amendment metadata reference lookup
-    Then the Requested By value with code "PROVIDER" has display label "Provider (Legal Aid)"
+    Then the Requested By value with code "PROVIDER" has display label "Provider (legal aid)"
     And the Requested By code "PROVIDER" is unchanged
     And every Amendment Reason previously scoped to Requested By "PROVIDER" is still scoped to "PROVIDER"
 
@@ -177,8 +177,8 @@ Feature: Amendment metadata — reference-data lookup & governance
   Scenario: Historical amendment stability — code pairing survives label change
     Given the amendment metadata reference data has been seeded with the BC-574 defaults
     And an amendment record persists the codes requested_by_code "PROVIDER" and amendment_reason_code "PROVIDER_ERROR"
-    When the display label for Requested By "PROVIDER" is updated to "Provider (Legal Aid)"
-    And the display label for Amendment Reason "PROVIDER_ERROR" under Requested By "PROVIDER" is updated to "Provider Error (rev)"
+    When the display label for Requested By "PROVIDER" is updated to "Provider (legal aid)"
+    And the display label for Amendment Reason "PROVIDER_ERROR" under Requested By "PROVIDER" is updated to "Provider error (rev)"
     Then the amendment record still references requested_by_code "PROVIDER"
     And the amendment record still references amendment_reason_code "PROVIDER_ERROR"
     And the amendment metadata reference lookup returns those codes paired together
