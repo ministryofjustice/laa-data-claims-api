@@ -3,30 +3,50 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_CLAIM_AMENDMENT_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.step;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddBeansConfiguration.BddServerInfo;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
@@ -87,6 +107,9 @@ public class AmendmentsFinalSaveGuardSteps {
   @Autowired private SharedAmendmentPatchContext sharedPatchContext;
   @Autowired private ValidationService validationService;
   @Autowired private PlatformTransactionManager transactionManager;
+  @Autowired private RestTemplate restTemplate;
+  @Autowired private BddServerInfo serverInfo;
+  @Autowired private ObjectMapper objectMapper;
 
   private ListAppender<ILoggingEvent> commitLogAppender;
   private Logger commitServiceLogger;
@@ -427,7 +450,184 @@ public class AmendmentsFinalSaveGuardSteps {
     }
     return errors.findValuesAsText("code");
   }
+
+  // ===========================================================================
+  // DSTEW-1753 @DS1753_8 — real two-thread race.
+  //
+  // Complements the deterministic single-thread simulation in scenarios 1–7 by
+  // dispatching two independent HTTP PATCH amendments against the SAME claimId
+  // on two executor threads. Both threads rendezvous inside the mocked
+  // ValidationService.validateClaim(...) on a CyclicBarrier(2) so they release
+  // together and race into Phase 3's merge+flush. Hibernate's versioned UPDATE
+  // guarantees exactly one commit wins and exactly one hits
+  // OptimisticLockException.
+  // ===========================================================================
+
+  /** Timeout for both the rendezvous barrier and the whole race dispatch. */
+  private static final int RACE_RENDEZVOUS_TIMEOUT_SECONDS = 10;
+
+  private static final int RACE_DISPATCH_TIMEOUT_SECONDS = 60;
+
+  /** Populated by the @When race step; drained by the @Then race assertions. */
+  private final List<RaceOutcome> raceOutcomes = Collections.synchronizedList(new ArrayList<>());
+
+  @Given("two threads will submit a well-formed non-pricing amendment simultaneously")
+  public void twoThreadsWillSubmitAWellFormedNonPricingAmendmentSimultaneously() {
+    step(
+        "arm a CyclicBarrier(2) inside the mocked ValidationService.validateClaim(...) so both"
+            + " racing threads park there and release together, guaranteeing they both enter"
+            + " Phase 3 (merge+flush) with the same detached claim.version = N",
+        () -> {
+          UUID claimId = sharedPatchContext.getClaimId();
+          assertThat(claimId)
+              .as("claimId must be seeded before arming the race barrier")
+              .isNotNull();
+
+          CyclicBarrier barrier = new CyclicBarrier(2);
+          doAnswer(
+                  invocation -> {
+                    try {
+                      barrier.await(RACE_RENDEZVOUS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    } catch (Exception ex) {
+                      throw new IllegalStateException(
+                          "race rendezvous barrier failed for claim " + claimId, ex);
+                    }
+                    return happyClaimResult();
+                  })
+              .when(validationService)
+              .validateClaim(any(), any());
+          log.info(
+              "[DSTEW-1753] Race barrier armed on ValidationService.validateClaim for claim {}",
+              claimId);
+        });
+  }
+
+  @When("both amendments are dispatched and rendezvous at the final-save boundary")
+  public void bothAmendmentsAreDispatchedAndRendezvousAtTheFinalSaveBoundary() {
+    step(
+        "dispatch 2× PATCH amendment against the same submissionId/claimId on 2 executor threads;"
+            + " both threads block inside the mocked validate() on the shared CyclicBarrier, are"
+            + " released together, then race into ClaimAmendmentCommitService.commit() —"
+            + " Hibernate's versioned UPDATE serialises them, one wins, one throws"
+            + " OptimisticLockException",
+        () -> {
+          assertThat(sharedPatchContext.isPopulated())
+              .as("shared patch context must be populated before racing")
+              .isTrue();
+          UUID submissionId = sharedPatchContext.getSubmissionId();
+          UUID claimId = sharedPatchContext.getClaimId();
+          String payload = sharedPatchContext.getPatchJson();
+
+          raceOutcomes.clear();
+          ExecutorService pool = Executors.newFixedThreadPool(2);
+          try {
+            List<Callable<RaceOutcome>> tasks =
+                List.of(
+                    () -> dispatchRaceRequest(submissionId, claimId, payload, "race-A"),
+                    () -> dispatchRaceRequest(submissionId, claimId, payload, "race-B"));
+            List<Future<RaceOutcome>> futures =
+                pool.invokeAll(tasks, RACE_DISPATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            for (Future<RaceOutcome> f : futures) {
+              raceOutcomes.add(f.get());
+            }
+          } finally {
+            pool.shutdownNow();
+          }
+
+          assertThat(raceOutcomes)
+              .as("both racing dispatches must have completed with a captured outcome")
+              .hasSize(2);
+          log.info(
+              "[DSTEW-1753] Race complete for claim {} — outcomes: {}", claimId, raceOutcomes);
+        });
+  }
+
+  @Then("exactly one racing amendment returned HTTP 2xx")
+  public void exactlyOneRacingAmendmentReturned2xx() {
+    step(
+        "assert exactly one of the two race outcomes has a 2xx status — the winning writer",
+        () ->
+            assertThat(raceOutcomes.stream().filter(o -> o.status() / 100 == 2).toList())
+                .as("2xx race outcomes (all=%s)", raceOutcomes)
+                .hasSize(1));
+  }
+
+  @Then(
+      "exactly one racing amendment was rejected with HTTP {int} and amendment error code {string}")
+  public void exactlyOneRacingAmendmentWasRejectedWithHttpAndAmendmentErrorCode(
+      int status, String code) {
+    step(
+        "assert exactly one race outcome has HTTP "
+            + status
+            + " AND its response body's errors[*].code contains \""
+            + code
+            + "\" — the losing writer bounced by the final-save guard",
+        () -> {
+          List<RaceOutcome> rejected =
+              raceOutcomes.stream().filter(o -> o.status() == status).toList();
+          assertThat(rejected)
+              .as("race outcomes with HTTP " + status + " (all=%s)", raceOutcomes)
+              .hasSize(1);
+          List<String> codes = extractErrorCodes(rejected.get(0).body());
+          assertThat(codes)
+              .as("errors[*].code on the rejected race outcome")
+              .contains(code);
+        });
+  }
+
+  /**
+   * Race-safe PATCH dispatch — does NOT stash into the shared {@link BddScenarioContext} because
+   * two threads would clobber each other; instead returns the (status, body) tuple so the
+   * scenario's @Then steps can assert on both outcomes.
+   */
+  private RaceOutcome dispatchRaceRequest(
+      UUID submissionId, UUID claimId, String payload, String label) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + PATCH_CLAIM_AMENDMENT_PATH,
+              HttpMethod.PATCH,
+              new HttpEntity<>(payload, headers),
+              String.class,
+              submissionId,
+              claimId);
+      int status = response.getStatusCode().value();
+      JsonNode body = parseBodyOrNull(response.getBody());
+      log.info("[DSTEW-1753] Race outcome {}: HTTP {} body={}", label, status, body);
+      return new RaceOutcome(label, status, body);
+    } catch (HttpStatusCodeException ex) {
+      int status = ex.getStatusCode().value();
+      JsonNode body = parseBodyOrNull(ex.getResponseBodyAsString());
+      log.info("[DSTEW-1753] Race outcome {}: HTTP {} body={}", label, status, body);
+      return new RaceOutcome(label, status, body);
+    }
+  }
+
+  private JsonNode parseBodyOrNull(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    try {
+      return objectMapper.readTree(raw);
+    } catch (Exception ex) {
+      return null;
+    }
+  }
+
+  /** Immutable tuple carrying one race participant's HTTP outcome. */
+  private record RaceOutcome(String label, int status, JsonNode body) {
+    @Override
+    public String toString() {
+      return label + "->HTTP " + status;
+    }
+  }
 }
+
+
+
 
 
 
