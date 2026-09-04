@@ -93,7 +93,7 @@ class AmendmentReferenceServiceTest {
               new ClaimAmendmentReferenceData(
                   List.of(requestedBy("PROVIDER", "Provider", 10)),
                   List.of(
-                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10),
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider error", 10),
                       reason("PROVIDER", "CASE_REOPENED_REBILLED", "Case re-opened", 20))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
@@ -132,9 +132,9 @@ class AmendmentReferenceServiceTest {
               new ClaimAmendmentReferenceData(
                   List.of(
                       requestedBy("PROVIDER", "Provider", 10, true),
-                      requestedBy("LEGACY_PARTY", "Legacy Party", 20, false)),
+                      requestedBy("LEGACY_PARTY", "Legacy party", 20, false)),
                   List.of(
-                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10, true),
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider error", 10, true),
                       reason("PROVIDER", "OLD_REASON", "Old reason", 20, false))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
@@ -165,10 +165,10 @@ class AmendmentReferenceServiceTest {
                       reason(
                           "ASSURANCE",
                           "INCORRECT_MEANS_ASSESSMENT",
-                          "Incorrect Means Assessment",
+                          "Incorrect means assessment",
                           10),
                       reason("ASSURANCE", "OTHER", "Other", 20),
-                      reason("PROVIDER", "PROVIDER_ERROR", "Provider Error", 10))));
+                      reason("PROVIDER", "PROVIDER_ERROR", "Provider error", 10))));
 
       AmendmentRequestedByReferenceList result = service.getAmendmentRequestedByReferences();
 

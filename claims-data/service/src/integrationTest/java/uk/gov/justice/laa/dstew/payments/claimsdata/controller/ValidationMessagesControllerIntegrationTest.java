@@ -1,11 +1,14 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
@@ -177,5 +180,143 @@ public class ValidationMessagesControllerIntegrationTest extends AbstractIntegra
     assertThat(msg.getSource()).isEqualTo("SYSTEM");
     assertThat(msg.getMessageCode()).isNull();
     validationMessageLogRepository.deleteAll();
+  }
+
+  @Test
+  @DisplayName("GET v1/validation-messages - page size limits results to requested size")
+  void pageSizeLimitsResultsV1() throws Exception {
+    // ensure a clean store for deterministic assertions
+    validationMessageLogRepository.deleteAll();
+
+    var fixtures = saveManyValidationMessages(submission1.getId(), 25);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .param("size", "10")
+                    .param("page", "0")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ValidationMessagesResponse response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ValidationMessagesResponse.class);
+
+    assertThat(response.getTotalElements()).isEqualTo(fixtures.size());
+    assertThat(response.getSize()).isEqualTo(10);
+    assertThat(response.getContent()).hasSize(10);
+
+    validationMessageLogRepository.deleteAll(fixtures);
+  }
+
+  @Test
+  @DisplayName("GET v1/validation-messages - page offset returns correct subset (items 11-20)")
+  void pageOffsetReturnsCorrectSubsetV1() throws Exception {
+    validationMessageLogRepository.deleteAll();
+    var fixtures = saveManyValidationMessages(submission1.getId(), 25);
+
+    MvcResult page0 =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .param("page", "0")
+                    .param("size", "10")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    MvcResult page1 =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .param("page", "1")
+                    .param("size", "10")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ValidationMessagesResponse r0 =
+        OBJECT_MAPPER.readValue(
+            page0.getResponse().getContentAsString(), ValidationMessagesResponse.class);
+    ValidationMessagesResponse r1 =
+        OBJECT_MAPPER.readValue(
+            page1.getResponse().getContentAsString(), ValidationMessagesResponse.class);
+
+    assertThat(r0.getContent()).hasSize(10);
+    assertThat(r1.getContent()).hasSize(10);
+    // ensure there's no overlap between pages
+    var ids0 = r0.getContent().stream().map(ValidationMessageBase::getId).toList();
+    var ids1 = r1.getContent().stream().map(ValidationMessageBase::getId).toList();
+    assertThat(ids0).doesNotContainAnyElementsOf(ids1);
+
+    validationMessageLogRepository.deleteAll(fixtures);
+  }
+
+  @Test
+  @DisplayName("No pageable parameters: defaults to page 0 and size 20")
+  void noPageableParametersDefaultsToPageZeroAndSize20ValidationMessages() throws Exception {
+    validationMessageLogRepository.deleteAll();
+    var fixtures = saveManyValidationMessages(submission1.getId(), 25);
+
+    org.springframework.test.web.servlet.MvcResult result =
+        mockMvc
+            .perform(
+                get(API_URI_PREFIX + "/validation-messages")
+                    .param("submission-id", submission1.getId().toString())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(),
+            uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagesResponse.class);
+
+    // metadata defaults
+    assertThat(response.getNumber()).isEqualTo(0);
+    assertThat(response.getSize()).isEqualTo(20);
+    assertThat(response.getTotalElements()).isEqualTo(fixtures.size());
+
+    // content truncated to default page size
+    assertThat(response.getContent()).hasSize(20);
+
+    // deterministic ordering: default ordering is by id (UUIDv7 ascending) when no sort param
+    // provided
+    var expectedIds =
+        fixtures.stream()
+            .map(ValidationMessageLog::getId)
+            .sorted() // UUID natural order; Uuid7 is time-based so this is monotonic
+            .limit(20)
+            .toList();
+    var returnedIds =
+        response.getContent().stream()
+            .map(uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageBase::getId)
+            .toList();
+
+    // Expect the page to contain the first 20 ids by id ascending
+    assertThat(returnedIds).containsExactlyElementsOf(expectedIds);
+
+    validationMessageLogRepository.deleteAll(fixtures);
+  }
+
+  private List<ValidationMessageLog> saveManyValidationMessages(UUID submissionId, int count) {
+    List<ValidationMessageLog> list = new ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      ValidationMessageLog log = new ValidationMessageLog();
+      log.setId(Uuid7.timeBasedUuid());
+      log.setSubmissionId(submissionId);
+      log.setType(ValidationMessageType.ERROR);
+      log.setSource("SRC" + i);
+      log.setDisplayMessage("MSG" + i);
+      log.setCreatedOn(java.time.Instant.now().plusSeconds(i));
+      list.add(log);
+    }
+    validationMessageLogRepository.saveAll(list);
+    return list;
   }
 }

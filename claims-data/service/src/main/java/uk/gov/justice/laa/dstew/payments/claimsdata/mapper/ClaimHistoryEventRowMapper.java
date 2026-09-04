@@ -32,12 +32,24 @@ public class ClaimHistoryEventRowMapper implements RowMapper<ClaimHistoryEventRo
     OffsetDateTime timestamp = rs.getObject("event_timestamp", OffsetDateTime.class);
     UUID sourceId = rs.getObject("source_id", UUID.class);
 
+    long totalCount = 0L;
+    try {
+      totalCount = rs.getLong("total_count");
+      if (rs.wasNull()) {
+        totalCount = 0L;
+      }
+    } catch (SQLException ex) {
+      // If the result set does not include total_count (older SQL), default to 0
+      totalCount = 0L;
+    }
+
     return new ClaimHistoryEventRow(
         rs.getString("event_type"),
         timestamp == null ? null : timestamp.toInstant(),
         rs.getString("actor_id"),
         sourceId,
-        readJson(rs.getString("metadata")));
+        readJson(rs.getString("metadata")),
+        totalCount);
   }
 
   private JsonNode readJson(String json) throws SQLException {

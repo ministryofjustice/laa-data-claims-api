@@ -51,7 +51,7 @@ class AmendmentReferenceDataProviderTest {
             .id(Uuid7.timeBasedUuid())
             .requestedByCode("PROVIDER")
             .code("PROVIDER_ERROR")
-            .displayLabel("Provider Error")
+            .displayLabel("Provider error")
             .isActive(true)
             .displayOrder(10)
             .createdByUserId("test")

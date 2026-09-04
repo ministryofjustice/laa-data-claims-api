@@ -4,16 +4,17 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specificat
 
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,7 +44,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -103,7 +104,10 @@ public class ClaimService
           "validationMessages",
           "feeCalculationResponse",
           "version",
-          "createdByUserId");
+          "createdByUserId",
+          // Read-only field computed from the vw_claim_effective_value view; must not count as a
+          // provider-requested change that triggers the amendment path.
+          "effectiveTotalValue");
 
   private static final Set<String> COMPUTED_SORT_PATHS =
       Set.of(
@@ -232,76 +236,158 @@ public class ClaimService
   /**
    * Update a claim for a submission.
    *
+   * <p>This transactional entry point decides whether the supplied {@link ClaimAmendmentPatch}
+   * should be treated as an amendment or as a legacy status+fee update. The decision is made by
+   * {@link #isAnAmendment(ClaimAmendmentPatch)}. If the patch is considered an amendment the
+   * request is forwarded to {@link #amendClaim(Claim, ClaimAmendmentPatch)}; otherwise the older
+   * status-and-fee update flow is executed via {@link #updateClaimStatusAndFeeDetails(Claim,
+   * ClaimAmendmentPatch)}.
+   *
    * @param submissionId submission identifier
    * @param claimId claim identifier
    * @param claimPatch patch payload
    */
   @Transactional
-  public void updateClaim(UUID submissionId, UUID claimId, ClaimPatch claimPatch) {
+  public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
-    if (isAnAmendment(claimPatch, claim)) {
+    if (isAnAmendment(claimPatch)) {
       amendClaim(claim, claimPatch);
     } else {
       updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
   }
 
-  private boolean isAnAmendment(ClaimPatch claimPatch, Claim claim) {
+  /**
+   * Determine whether the incoming patch should be handled as an amendment.
+   *
+   * <p>The current heuristic treats a patch with a {@code null} status as an amendment. If a status
+   * is present the method delegates to {@link #hasAdditionalFieldUpdates(ClaimAmendmentPatch)}
+   * which inspects other JsonNullable-wrapped fields for presence.
+   *
+   * @param claimPatch the incoming patch to inspect
+   * @return {@code true} when the patch should be processed as an amendment, {@code false} when it
+   *     may follow the legacy status+fee update path
+   */
+  private boolean isAnAmendment(ClaimAmendmentPatch claimPatch) {
     if (claimPatch.getStatus() == null) {
       return true;
     }
-    return hasAdditionalFieldUpdates(claimPatch, claim);
+    return hasAdditionalFieldUpdates(claimPatch);
   }
 
   /**
    * Checks if the patch contains any fields outside of the standard status/fee update flow.
    * Leverages short-circuit evaluation for maximum performance.
+   *
+   * <p>Amendment fields are wrapped in {@link JsonNullable}: an omitted field ({@code
+   * JsonNullable.undefined()}) is skipped. A present, <strong>non-null</strong> value that differs
+   * from the persisted claim counts as an update (and therefore an amendment).
+   *
+   * <p>An explicit null (a "clear") is deliberately <strong>not</strong> treated as an amendment
+   * trigger here. Clearing a persisted field back to {@code null} is an amendment-only feature; on
+   * the legacy status/fee path an explicit null is a no-op, mirroring the pre-amendment contract
+   * where an absent and an explicitly-null field were indistinguishable.
    */
-  private boolean hasAdditionalFieldUpdates(ClaimPatch patch, Claim claim) {
+  protected boolean hasAdditionalFieldUpdates(ClaimAmendmentPatch patch) {
     if (patch == null) {
       return false;
     }
-
-    AtomicBoolean hasUpdates = new AtomicBoolean(false);
-
-    ReflectionUtils.doWithFields(
-        patch.getClass(),
-        patchField -> {
-          if (hasUpdates.get() || IGNORED_FIELDS.contains(patchField.getName())) {
-            return;
-          }
-
-          ReflectionUtils.makeAccessible(patchField);
-          Object patchValue = patchField.get(patch);
-
-          if (patchValue != null) {
-            Field claimField = ReflectionUtils.findField(claim.getClass(), patchField.getName());
-
-            if (claimField != null) {
-              ReflectionUtils.makeAccessible(claimField);
-              Object claimValue = claimField.get(claim);
-
-              if (Objects.equals(patchValue, claimValue)) {
-                return;
-              }
-            }
-            hasUpdates.set(true);
-          }
-        },
-        ReflectionUtils.COPYABLE_FIELDS);
-
-    return hasUpdates.get();
+    return Arrays.stream(patch.getClass().getDeclaredFields())
+        .filter(field -> !IGNORED_FIELDS.contains(field.getName()))
+        .anyMatch(field -> isPresent(field, patch));
   }
 
   /**
-   * This method is called to allow legacy updates to still work.
+   * Returns true when the given field on the target object is a {@link JsonNullable}, is present
+   * and the wrapped value is non-null.
    *
-   * @param claim claim
-   * @param claimPatch claim patch
+   * <p>This method uses {@link ReflectionUtils} to access the field value reflectively. It treats
+   * an explicitly-present null (JsonNullable.of(null)) as "not present" for amendment-detection
+   * purposes. That allows legacy status-only patches that accidentally carry explicit nulls to
+   * remain on the legacy status+fee path instead of being classified as amendments.
+   *
+   * @param field the declared field to inspect
+   * @param target the target instance containing the field
+   * @return {@code true} when the field is a JsonNullable that is present and the wrapped value is
+   *     non-null, {@code false} otherwise
    */
-  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimPatch claimPatch) {
+  protected boolean isPresent(Field field, Object target) {
+    ReflectionUtils.makeAccessible(field);
+    Object value = ReflectionUtils.getField(field, target);
+    if (!(value instanceof JsonNullable<?> jsonNullable) || !jsonNullable.isPresent()) {
+      return false;
+    }
+    // Treat an explicitly-present null as not signalling an amendment.
+    return jsonNullable.get() != null;
+  }
 
+  /**
+   * Execute the legacy status-and-fee update flow.
+   *
+   * <p>For backward compatibility this method performs the older non-amendment update sequence:
+   *
+   * <ol>
+   *   <li>Update the claim status and persist the claim (see {@link #updateClaimStatus}).
+   *   <li>Persist any validation messages included on the patch (see {@link
+   *       #updateValidationMessages}).
+   *   <li>Persist any calculated fee details supplied by an FSP as part of the patch (see {@link
+   *       #updateFeeDetails}).
+   * </ol>
+   *
+   * <p>This method exists to preserve the historical status+fee behaviour for clients that do not
+   * use the amendment path.
+   *
+   * @param claim the persistent claim to update
+   * @param claimPatch the incoming patch containing status/fee and optional validation messages
+   */
+  private void updateClaimStatusAndFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
+    // Update the claim status and save it to the database.
+    updateClaimStatus(claim, claimPatch);
+
+    // Update any validation messages that have been sent as part of this patch.
+    updateValidationMessages(claim, claimPatch);
+
+    // Update any fee details that have been sent as part of this patch.
+    updateFeeDetails(claim, claimPatch);
+  }
+
+  /**
+   * Update the claim's status from the supplied patch and persist the change.
+   *
+   * <p>This method validates the requested status is not {@code VOID} (delegating to {@link
+   * #claimValidationService}) and then updates the claim's status and the {@code updatedByUserId}
+   * using the value from the patch (if present). The updated claim is then saved via the {@link
+   * #claimRepository}.
+   *
+   * @param claim the persistent claim to update
+   * @param claimPatch the incoming amendment patch carrying the status and optional user id
+   */
+  private void updateClaimStatus(Claim claim, ClaimAmendmentPatch claimPatch) {
+    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
+    claim.setStatus(claimPatch.getStatus());
+    // Only update the audit updatedByUserId when the patch explicitly provides a non-null
+    // createdByUserId.
+    // TODO: check with BAs whether we should return a 4xx when createdByUserId is omitted for
+    // legacy status updates (i.e. require an acting user id) rather than silently preserving it.
+    var createdByOpt = claimPatch.getCreatedByUserId();
+    if (createdByOpt != null && createdByOpt.isPresent() && createdByOpt.get() != null) {
+      claim.setUpdatedByUserId(createdByOpt.get());
+    }
+    claimRepository.save(claim);
+  }
+
+  /**
+   * Persist any validation messages contained in the patch.
+   *
+   * <p>If the incoming patch contains validation messages these are converted to {@link
+   * ValidationMessageLog} entities via the {@link #claimMapper} and saved to the {@link
+   * #validationMessageLogRepository}.
+   *
+   * @param claim the claim the messages belong to
+   * @param claimPatch the amendment patch that may contain validation messages
+   */
+  private void updateValidationMessages(Claim claim, ClaimAmendmentPatch claimPatch) {
     if (claimPatch.getValidationMessages() != null
         && !claimPatch.getValidationMessages().isEmpty()) {
       claimPatch
@@ -312,11 +398,24 @@ public class ClaimService
                 validationMessageLogRepository.save(log);
               });
     }
+  }
 
-    claimValidationService.ensureStatusIsNotVoid(claimPatch.getStatus());
-    claimMapper.updateSubmissionClaimFromPatch(claimPatch, claim);
-    claimRepository.save(claim);
-
+  /**
+   * Save calculated fee details provided by the FSP as part of a legacy status+fee update.
+   *
+   * <p>If the incoming {@link ClaimAmendmentPatch} carries a {@code feeCalculationResponse} the
+   * response is mapped to a {@link CalculatedFeeDetail} entity and persisted. The created on
+   * timestamp is set here.
+   *
+   * <p>NOTE: legacy behaviour is to reuse the latest {@code calculated_fee_detail} ID when a
+   * status+fee update is performed. That results in updating the existing row (preserving a single
+   * 'current' calculated fee row) rather than inserting another historical row. Integration tests
+   * therefore must assert the existing row may be overwritten by the legacy flow.
+   *
+   * @param claim the claim the calculated fee detail relates to
+   * @param claimPatch the incoming patch that may carry a feeCalculationResponse
+   */
+  private void updateFeeDetails(Claim claim, ClaimAmendmentPatch claimPatch) {
     // If we have calculated fee details from the FSP as part of this patch, save them.
     if (claimPatch.getFeeCalculationResponse() != null) {
       CalculatedFeeDetail calculatedFeeDetail =
@@ -331,27 +430,19 @@ public class ClaimService
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
-      calculatedFeeDetail.setCreatedByUserId(claimPatch.getCreatedByUserId());
+      // Only set createdByUserId on the calculated fee detail when the patch explicitly
+      // provides a non-null createdByUserId. Preserve existing behaviour of leaving it null
+      // when omitted by the client.
+      var cfdCreatedBy = claimPatch.getCreatedByUserId();
+      if (cfdCreatedBy != null && cfdCreatedBy.isPresent()) {
+        calculatedFeeDetail.setCreatedByUserId(cfdCreatedBy.get());
+      }
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
   }
 
-  private void amendClaim(Claim claim, ClaimPatch claimPatch) {
-
-    if (claimPatch.getValidationMessages() != null
-        && !claimPatch.getValidationMessages().isEmpty()) {
-      claimPatch
-          .getValidationMessages()
-          .forEach(
-              message -> {
-                ValidationMessageLog validationLog =
-                    claimMapper.toValidationMessageLog(message, claim);
-                validationMessageLogRepository.save(validationLog);
-              });
-    }
-
+  private void amendClaim(Claim claim, ClaimAmendmentPatch claimPatch) {
     ClaimAmendmentPayload payload = claimMapper.toAmendmentPayload(claimPatch);
-
     ClaimAmendmentResult result = claimAmendmentService.submitAmendment(claim, payload);
 
     if (result.errors() != null && !result.errors().isEmpty()) {
@@ -514,11 +605,17 @@ public class ClaimService
     Pageable sanitizedPageable = removeComputedSorts(mappedPageable);
 
     // Deterministic ordering:
-    //  - Computed sorts (totalWarnings, submissionPeriod, derivedClaimStatus) apply their own
-    //    id tie-break inside the ordering Specification, and the sanitized Pageable is left
-    //    unsorted so Spring Data does not override that ordering.
-    //  - Plain-column sorts (and the unsorted default) get the id tie-break appended here.
-    if (!hasComputedSort(mappedPageable)) {
+    //  - A computed sort (totalWarnings, submissionPeriod, derivedClaimStatus, latest calculated
+    //    fee) applies its own id tie-break inside the ordering Specification. When every requested
+    //    sort is computed the sanitized Pageable is left unsorted, so Spring Data does not override
+    //    that Specification ordering and we must not append a tie-break here.
+    //  - Any plain-column sort that survives sanitisation is applied by Spring Data and would
+    //    override the Specification ordering, so it needs the id tie-break appended here. This also
+    //    covers requests that mix a plain-column sort with a computed sort (e.g.
+    //    sort=effective_total_value,asc&sort=total_warnings,asc): stripping the computed order must
+    //    not leave the surviving plain sort without a deterministic tie-break.
+    //  - The unsorted default likewise gets the id tie-break appended.
+    if (sanitizedPageable.getSort().isSorted() || !hasComputedSort(mappedPageable)) {
       sanitizedPageable = appendIdTieBreak(sanitizedPageable);
     }
 
@@ -575,10 +672,12 @@ public class ClaimService
       return pageable;
     }
 
-    Sort mappedSort = Sort.by(originalSort.stream().map(this::mapOrder).toList());
+    List<Sort.Order> mappedOrders = originalSort.stream().map(this::mapOrder).toList();
+    Sort mappedSort = Sort.by(mappedOrders);
 
-    // A sort-only request (no page/size) resolves to an Unpaged pageable, which does not support
-    // getPageNumber()/getPageSize(); carry the mapped sort on an unpaged instance in that case.
+    // An unpaged request still carries a sort, but exposes no page number/size; building a
+    // PageRequest from it would throw. Return an unpaged pageable that keeps the mapped sort so all
+    // rows come back ordered, mirroring the unsorted-unpaged path handled above.
     if (pageable.isUnpaged()) {
       return Pageable.unpaged(mappedSort);
     }

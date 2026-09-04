@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventRowMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * PostgreSQL implementation of {@link ClaimHistoryRepository}.
@@ -63,7 +64,7 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
    */
   private static final String HISTORY_SQL =
       """
-      SELECT event_type, event_timestamp, actor_id, source_id, metadata
+      SELECT event_type, event_timestamp, actor_id, source_id, metadata, COUNT(*) OVER() AS total_count
       FROM (
           -- ---------- SUBMISSION (source: claim) ----------
           SELECT
@@ -130,9 +131,10 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
               END                                AS metadata
           FROM claims.assessment asmt
           WHERE asmt.claim_id = :claimId
-      ) AS claim_history
-      ORDER BY event_timestamp DESC, source_id DESC
-      LIMIT :limit
+       ) AS claim_history
+        ORDER BY event_timestamp DESC, source_id DESC
+        LIMIT :limit
+        OFFSET :offset
       """;
 
   private final JdbcClient jdbcClient;
@@ -144,12 +146,26 @@ public class JdbcClaimHistoryRepository implements ClaimHistoryRepository {
   }
 
   @Override
-  public List<ClaimHistoryEventRow> findHistory(UUID claimId, int limit) {
-    return jdbcClient
-        .sql(HISTORY_SQL)
-        .param("claimId", claimId)
-        .param("limit", limit)
-        .query(rowMapper)
-        .list();
+  public ClaimHistoryPage findHistory(UUID claimId, int limit, int offset) {
+    List<ClaimHistoryEventRow> rows =
+        jdbcClient
+            .sql(HISTORY_SQL)
+            .param("claimId", claimId)
+            .param("limit", limit)
+            .param("offset", offset)
+            .query(rowMapper)
+            .list();
+
+    long totalElements = 0L;
+    if (rows != null && !rows.isEmpty()) {
+      totalElements = rows.getFirst().totalCount();
+    }
+
+    int pageNumber = 0;
+    if (limit > 0) {
+      pageNumber = offset / limit;
+    }
+
+    return new ClaimHistoryPage(rows, totalElements, pageNumber, limit);
   }
 }

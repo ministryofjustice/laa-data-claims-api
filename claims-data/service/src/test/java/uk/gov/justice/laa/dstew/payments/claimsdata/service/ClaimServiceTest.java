@@ -29,9 +29,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_CLIENT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +55,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -60,6 +63,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -77,7 +81,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -128,6 +132,7 @@ class ClaimServiceTest {
 
   @InjectMocks private ClaimService claimService;
 
+  @DisplayName("create claim and client when client data provided (parameterized)")
   @ParameterizedTest
   @MethodSource("getClientTestingArguments")
   void shouldCreateClaimAndClient(Client client) {
@@ -173,6 +178,7 @@ class ClaimServiceTest {
         Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
   }
 
+  @DisplayName("create claim without client when no client data")
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -196,6 +202,7 @@ class ClaimServiceTest {
     verify(clientRepository, never()).save(emptyClient);
   }
 
+  @DisplayName("throw SubmissionNotFoundException when submission not found on create")
   @Test
   void shouldThrowWhenSubmissionNotFoundOnCreate() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -208,6 +215,7 @@ class ClaimServiceTest {
         .hasMessageContaining(submissionId.toString());
   }
 
+  @DisplayName("throw DuplicateClaimException when claim line number already exists in submission")
   @Test
   void shouldThrowConflictWhenClaimLineNumberAlreadyExistsInSubmission() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -226,6 +234,7 @@ class ClaimServiceTest {
     verify(claimRepository, never()).save(any());
   }
 
+  @DisplayName("get a claim with associated data")
   @Test
   void shouldGetClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -255,6 +264,7 @@ class ClaimServiceTest {
     verify(claimMapper).updateClaimResponseFromClaimCase(claimCase, fields);
   }
 
+  @DisplayName("get a claim without client data")
   @Test
   void shouldGetClaimWithoutClient() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -277,6 +287,7 @@ class ClaimServiceTest {
     verify(clientMapper, never()).updateClaimResponseFromClient(any(), eq(fields));
   }
 
+  @DisplayName("get a claim without claim summary fee")
   @Test
   void shouldGetClaimWithoutClaimSummaryFee() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -300,6 +311,7 @@ class ClaimServiceTest {
     verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
   }
 
+  @DisplayName("get a claim without calculated fee detail")
   @Test
   void shouldGetClaimWithoutCalculatedFeeDetail() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -323,6 +335,7 @@ class ClaimServiceTest {
     verify(claimMapper, never()).updateClaimResponseFromCalculatedFeeDetail(any(), eq(fields));
   }
 
+  @DisplayName("get a claim without claim case")
   @Test
   void shouldGetClaimWithoutClaimCase() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -347,6 +360,7 @@ class ClaimServiceTest {
     verify(claimMapper).updateClaimResponseFromCalculatedFeeDetail(calculatedFeeDetail, fields);
   }
 
+  @DisplayName("throw ClaimNotFoundException when claim not found")
   @Test
   void shouldThrowWhenClaimNotFound() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -361,6 +375,7 @@ class ClaimServiceTest {
         .hasMessageContaining(submissionId.toString());
   }
 
+  @DisplayName("get claim v2 response")
   @Test
   void shouldGetClaimV2() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -377,6 +392,7 @@ class ClaimServiceTest {
     assertThat(result).isSameAs(fields);
   }
 
+  @DisplayName("throw ClaimNotFoundException when claim v2 not found")
   @Test
   void shouldThrowWhenClaimV2NotFound() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -391,12 +407,13 @@ class ClaimServiceTest {
         .hasMessageContaining(submissionId.toString());
   }
 
+  @DisplayName("update a claim")
   @Test
   void shouldUpdateClaim() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
     final Claim claim = Claim.builder().id(claimId).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
@@ -404,16 +421,47 @@ class ClaimServiceTest {
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(patch, claim);
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
   }
 
+  @DisplayName(
+      "status-only patch that omits createdByUserId does not clear existing updatedByUserId")
+  @Test
+  void shouldNotClearUpdatedByWhenCreatedByOmitted() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final UUID claimId = Uuid7.timeBasedUuid();
+    final String existingUpdater = "existing-user";
+
+    final Claim claim =
+        Claim.builder()
+            .id(claimId)
+            .version(1L)
+            .submission(Submission.builder().id(submissionId).build())
+            .updatedByUserId(existingUpdater)
+            .build();
+
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    // Intentionally do NOT set createdByUserId - should be treated as omitted
+
+    when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
+        .thenReturn(Optional.of(claim));
+
+    claimService.updateClaim(submissionId, claimId, patch);
+
+    // Ensure we saved the claim and did not clear the existing updatedByUserId
+    verify(claimRepository).save(claim);
+    assertThat(claim.getUpdatedByUserId()).isEqualTo(existingUpdater);
+  }
+
+  @DisplayName("throw ClaimNotFoundException when updating a non-existent claim")
   @Test
   void shouldThrowWhenClaimNotFoundOnUpdate() {
     final UUID submissionId = Uuid7.timeBasedUuid();
     final UUID claimId = Uuid7.timeBasedUuid();
-    final ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L);
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    patch.setVersion(JsonNullable.of(1L));
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.empty());
@@ -424,13 +472,14 @@ class ClaimServiceTest {
         .hasMessageContaining(submissionId.toString());
   }
 
+  @DisplayName("create calculated fee details on update")
   @Test
   void shouldCreateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -447,18 +496,19 @@ class ClaimServiceTest {
 
     claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(calculatedFeeDetailRepository).save(calculatedFeeDetail);
   }
 
+  @DisplayName("update calculated fee details on update")
   @Test
   void shouldUpdateCalculatedFeeDetails() {
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
     final Claim claim =
         ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
     patch.setFeeCalculationResponse(feeCalculationPatch);
@@ -480,14 +530,15 @@ class ClaimServiceTest {
 
     claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(calculatedFeeDetailRepository).save(resultingFeeDetail);
   }
 
+  @DisplayName("throw ClaimSummaryFeeNotFoundException when summary fee missing on update")
   @Test
   void shouldThrowWhenClaimSummaryFeeNotFoundOnUpdate() {
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final Submission submission = ClaimsDataTestUtil.getSubmission();
     // Added version to mock Claim
@@ -508,6 +559,7 @@ class ClaimServiceTest {
         .hasMessageContaining(CLAIM_1_ID.toString());
   }
 
+  @DisplayName("get claims for a submission")
   @Test
   void shouldGetClaimsForSubmission() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -522,6 +574,7 @@ class ClaimServiceTest {
     assertThat(result).containsExactly(inner);
   }
 
+  @DisplayName("update claim and log validation errors")
   @Test
   void shouldUpdateClaimAndLogValidationErrors() {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -532,7 +585,7 @@ class ClaimServiceTest {
             .version(1L) // Added version to mock Claim
             .submission(Submission.builder().id(submissionId).build())
             .build();
-    final ClaimPatch patch = new ClaimPatch();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
     patch.setStatus(ClaimStatus.READY_TO_PROCESS);
     final ValidationMessagePatch message1 = new ValidationMessagePatch();
     patch.setValidationMessages(List.of(message1));
@@ -544,11 +597,110 @@ class ClaimServiceTest {
 
     claimService.updateClaim(submissionId, claimId, patch);
 
-    verify(claimMapper).updateSubmissionClaimFromPatch(any(), eq(claim));
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
     verify(claimMapper).toValidationMessageLog(message1, claim);
   }
 
+  @Nested
+  @DisplayName("updateClaim - status/amendment routing and null-clear handling")
+  class UpdateClaimRoutingAndNullHandling {
+
+    /** A set (present, non-null) value that actually differs is a real change - an amendment. */
+    @DisplayName("status with non-null field change uses amendment path")
+    @Test
+    void statusWithNonNullFieldChange_usesAmendmentPath() {
+      final Claim claim =
+          Claim.builder().id(CLAIM_1_ID).version(1L).scheduleReference("OLD_SCH").build();
+
+      final ClaimAmendmentPatch patch =
+          new ClaimAmendmentPatch().status(ClaimStatus.VALID).scheduleReference("NEW_SCH");
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimRepository, never()).save(claim);
+    }
+
+    /** A missing status still signals an amendment regardless of the other fields. */
+    @DisplayName("null status uses amendment path")
+    @Test
+    void nullStatus_usesAmendmentPath() {
+      final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+      final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+
+      when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+          .thenReturn(Optional.of(claim));
+      when(claimAmendmentService.submitAmendment(eq(claim), any()))
+          .thenReturn(ClaimAmendmentResult.success(null));
+
+      claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+      verify(claimAmendmentService).submitAmendment(eq(claim), any());
+      verify(claimRepository, never()).save(claim);
+    }
+  }
+
+  @ParameterizedTest(name = "Field: {0}")
+  @MethodSource("fieldsToTest")
+  @DisplayName(
+      "Fields outside the ignored set trigger the amendment-detection when present (non-null); explicit-null is neutral")
+  void fieldsOutsideIgnoredSetTriggerAmendmentWhenPresent(String fieldName) throws Exception {
+    // Build a neutral base patch that omits amendment metadata so the test outcome depends
+    // only on the single field under test. Version is safe because it's in the ignored set.
+    ClaimAmendmentPatch patch = ClaimAmendmentPatch.builder().version(0L).build();
+
+    Field f = ClaimAmendmentPatch.class.getDeclaredField(fieldName);
+    f.setAccessible(true);
+
+    // An explicit-present null should be neutral for amendment detection under the new rules.
+    f.set(patch, JsonNullable.of((Object) null));
+    boolean isAdditionalWhenNull = claimService.hasAdditionalFieldUpdates(patch);
+    assertThat(isAdditionalWhenNull)
+        .withFailMessage(
+            "Field %s should NOT mark the patch as an additional update when explicitly-null",
+            f.getName())
+        .isFalse();
+
+    // A present non-null value must trigger the amendment detection.
+    f.set(patch, JsonNullable.of("PRESENT_VALUE"));
+    boolean isAdditionalWithValue = claimService.hasAdditionalFieldUpdates(patch);
+    assertThat(isAdditionalWithValue)
+        .withFailMessage(
+            "Field %s should mark the patch as an additional update when a value is present",
+            f.getName())
+        .isTrue();
+  }
+
+  static Stream<String> fieldsToTest() {
+    List<String> ignored =
+        List.of(
+            "id",
+            "submissionId",
+            "status",
+            "validationMessages",
+            "feeCalculationResponse",
+            "version",
+            "createdByUserId",
+            "effectiveTotalValue");
+
+    return Arrays.stream(ClaimAmendmentPatch.class.getDeclaredFields())
+        .filter(f -> !ignored.contains(f.getName()))
+        .filter(f -> !f.isSynthetic())
+        .filter(f -> !java.lang.reflect.Modifier.isStatic(f.getModifiers()))
+        .filter(f -> JsonNullable.class.isAssignableFrom(f.getType()))
+        .map(Field::getName)
+        .sorted()
+        .toList()
+        .stream();
+  }
+
+  @DisplayName("getClaimResultSet throws when office code is missing")
   @Test
   void getClaimResultSet_whenOfficeCodeIsMissing_shouldThrowClaimBadRequestException() {
     assertThrows(
@@ -568,6 +720,7 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
+  @DisplayName("getClaimResultSet throws when office code is empty string")
   @Test
   void getClaimResultSet_whenOfficeCodeIsEmptyString_shouldThrowClaimBadRequestException() {
     assertThrows(
@@ -587,6 +740,7 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
+  @DisplayName("getClaimResultSet returns non-empty result set when filters match data")
   @ParameterizedTest
   @EnumSource(ClaimStatus.class)
   void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet(
@@ -617,6 +771,7 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).hasSize(1);
   }
 
+  @DisplayName("getClaimResultSet returns empty result set when filters match no data")
   @ParameterizedTest
   @EnumSource(ClaimStatus.class)
   void getClaimResultSet_whenFiltersMatchNoData_shouldReturnEmptyResultSet(
@@ -646,6 +801,7 @@ class ClaimServiceTest {
     assertThat(actualResultSet.getContent()).isEmpty();
   }
 
+  @DisplayName("getClaimResultSetV2 throws when office code is missing")
   @Test
   void getClaimResultSet_v2_whenOfficeCodeIsMissing_shouldThrowClaimBadRequestException() {
     assertThrows(
@@ -667,6 +823,7 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
+  @DisplayName("getClaimResultSetV2 throws when office code is empty string")
   @Test
   void getClaimResultSet_v2_whenOfficeCodeIsEmptyString_shouldThrowClaimBadRequestException() {
     assertThrows(
@@ -688,6 +845,7 @@ class ClaimServiceTest {
                 Pageable.unpaged()));
   }
 
+  @DisplayName("getClaimResultSetV2 returns non-empty result set when filters match data")
   @Test
   void getClaimResultSet_v2_whenFiltersMatchData_shouldReturnNonEmptyResultSet() {
     Claim claim = Claim.builder().id(Uuid7.timeBasedUuid()).build();
@@ -727,6 +885,7 @@ class ClaimServiceTest {
     return ClaimSearchRequest.builder().officeCode(OFFICE_ACCOUNT_NUMBER).build();
   }
 
+  @DisplayName("getClaimResultSetV2 throws for unsupported sort field")
   @Test
   void getClaimResultSetV2_unsupportedSortField_throwsClaimBadRequestException() {
     assertThatThrownBy(
@@ -737,6 +896,7 @@ class ClaimServiceTest {
         .hasMessageContaining("Unsupported sort field: not_a_real_field");
   }
 
+  @DisplayName("plain sort appends deterministic id tie-break in getClaimResultSetV2")
   @Test
   void getClaimResultSetV2_plainSort_appendsDeterministicIdTieBreak() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -757,6 +917,35 @@ class ClaimServiceTest {
     assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
   }
 
+  @DisplayName(
+      "plain primary with computed secondary still appends id tie-break in getClaimResultSetV2")
+  @Test
+  void getClaimResultSetV2_plainPrimaryWithComputedSecondary_stillAppendsIdTieBreak() {
+    when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Collections.emptyList()));
+    when(claimResultSetMapper.toClaimResultSetV2(any(Page.class)))
+        .thenReturn(new ClaimResultSetV2());
+
+    // Repeated sort params: plain-column primary sort followed by a computed secondary sort.
+    Sort mixedSort =
+        Sort.by(Sort.Direction.ASC, "effective_total_value")
+            .and(Sort.by(Sort.Direction.ASC, "total_warnings"));
+
+    claimService.getClaimResultSetV2(validV2SearchRequest(), PageRequest.of(0, 10, mixedSort));
+
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    verify(claimRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+    Sort appliedSort = pageableCaptor.getValue().getSort();
+    // The computed key is stripped, but the surviving plain sort must keep a deterministic id
+    // tie-break so pagination stays stable for tied effective values.
+    assertThat(appliedSort.stream().map(Sort.Order::getProperty))
+        .containsExactly("effectiveTotalValue", "id");
+    assertThat(appliedSort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.ASC);
+  }
+
+  @DisplayName(
+      "derived claim status sort is stripped and delegated to specification in getClaimResultSetV2")
   @Test
   void getClaimResultSetV2_derivedClaimStatusSort_isStrippedAndDelegatedToSpecification() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -776,6 +965,7 @@ class ClaimServiceTest {
     assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
   }
 
+  @DisplayName("getClaimResultSetV2 is unpaged-safe when sort provided without paging")
   @Test
   void getClaimResultSetV2_sortWithoutPaging_isUnpagedSafe() {
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -869,6 +1059,7 @@ class ClaimServiceTest {
         Arguments.of(OFFICE_ACCOUNT_NUMBER, null, false, null));
   }
 
+  @DisplayName("getClaimResultSetV2 returns empty result set when filters match no data")
   @Test
   void getClaimResultSet_v2_whenFiltersMatchNoData_shouldReturnEmptyResultSet() {
     Page<Claim> resultPage = new PageImpl<>(Collections.emptyList());
@@ -902,6 +1093,7 @@ class ClaimServiceTest {
   @DisplayName("Void Claim Service Tests")
   class VoidClaimTests {
 
+    @DisplayName("void claim and create assessment")
     @Test
     void shouldVoidClaimAndCreateAssessment() {
       UUID claimId = Uuid7.timeBasedUuid();
@@ -950,6 +1142,7 @@ class ClaimServiceTest {
           .doesNotContainNull();
     }
 
+    @DisplayName("validate void claim parameters before processing")
     @Test
     void shouldValidateVoidClaimParametersBeforeProcessing() {
       UUID claimId = Uuid7.timeBasedUuid();
@@ -971,6 +1164,7 @@ class ClaimServiceTest {
       verify(claimValidationService).validateVoidClaimParameters(claimId, userId, reason);
     }
 
+    @DisplayName("throw when void reason is blank")
     @Test
     void shouldThrowExceptionWhenReasonIsBlank() {
 
@@ -989,6 +1183,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentRepository);
     }
 
+    @DisplayName("do not save assessment when factory fails")
     @Test
     void shouldNotSaveAssessmentWhenFactoryFails() {
 
@@ -1011,6 +1206,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentRepository);
     }
 
+    @DisplayName("do not void claim when already void")
     @Test
     void shouldNotVoidClaimWhenAlreadyVoid() {
 
@@ -1030,6 +1226,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentRepository);
     }
 
+    @DisplayName("void claim when claim already has assessment")
     @Test
     void shouldVoidClaimWhenClaimAlreadyHasAssessment() {
 
@@ -1053,6 +1250,7 @@ class ClaimServiceTest {
       assertThat(claim.isHasAssessment()).isTrue();
     }
 
+    @DisplayName("throw ClaimNotFoundException when voiding a non-existent claim")
     @Test
     void shouldThrowExceptionWhenClaimNotFound() {
       UUID claimId = Uuid7.timeBasedUuid();
@@ -1070,6 +1268,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentService);
     }
 
+    @DisplayName("throw when claim status is not valid for voiding")
     @Test
     void shouldThrowExceptionWhenClaimStatusIsNotValid() {
       UUID claimId = Uuid7.timeBasedUuid();
@@ -1089,6 +1288,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentService);
     }
 
+    @DisplayName("throw when claim summary fee not found during voiding")
     @Test
     void shouldThrowExceptionWhenClaimSummaryFeeNotFound() {
       UUID claimId = Uuid7.timeBasedUuid();
@@ -1110,6 +1310,7 @@ class ClaimServiceTest {
       verifyNoInteractions(assessmentService);
     }
 
+    @DisplayName("propagate exception when saving assessment fails")
     @Test
     void shouldPropagateExceptionWhenSavingAssessmentFails() {
 

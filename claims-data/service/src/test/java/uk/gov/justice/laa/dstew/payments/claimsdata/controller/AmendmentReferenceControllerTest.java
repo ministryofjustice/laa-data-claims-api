@@ -54,7 +54,7 @@ class AmendmentReferenceControllerTest {
                               List.of(
                                   new AmendmentReasonReference()
                                       .code("PROVIDER_ERROR")
-                                      .displayLabel("Provider Error")
+                                      .displayLabel("Provider error")
                                       .displayOrder(10)))));
 
       when(amendmentReferenceService.getAmendmentRequestedByReferences()).thenReturn(payload);
