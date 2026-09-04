@@ -54,9 +54,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * client2Surname: null} returns 204, leaves the field unchanged and records an empty diff. The
  * null-in-history presence semantics (DSTEW-1814) are therefore proven where they are expressible:
  * {@code JdbcClaimHistoryRepositoryIntegrationTest.retainsClearedClient2SurnameAsExplicitNull}.
- * TODO(DSTEW write-side): once the amendment PATCH contract carries an explicit null (e.g. {@code
- * JsonNullable} fields on {@code ClaimPatch} or raw-body presence detection), add an end-to-end
- * cleared-field scenario here.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -136,8 +133,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
                 .withBody(fspResponse));
 
     // --- Act 1: submit the amendment through the public PATCH endpoint ---
-    org.springframework.test.web.servlet.MvcResult patchResult =
-        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
     assertResponseStatus(patchResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // The amendment is committed; grab its id so we can assert the event's source_id.
@@ -298,8 +294,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     ClaimAmendmentPatch setPatch = basePatch(currentVersion);
     setPatch.deliveryLocation(deliveryReference);
 
-    org.springframework.test.web.servlet.MvcResult setPatchResult =
-        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, setPatch);
+    MvcResult setPatchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, setPatch);
     assertResponseStatus(setPatchResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // The set PATCH increments the claim version in DB; read it back so our explicit-null
@@ -395,8 +390,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(fspResponse));
 
-    org.springframework.test.web.servlet.MvcResult mvcResult =
-        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    MvcResult mvcResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
     assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     List<ClaimAmendment> amendments =
@@ -432,8 +426,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     ClaimAmendmentPatch patch = basePatch(1L);
     patch.clientForename(amendedForename);
 
-    org.springframework.test.web.servlet.MvcResult nonPricingResult =
-        performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    MvcResult nonPricingResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
     assertResponseStatus(nonPricingResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     String body =
