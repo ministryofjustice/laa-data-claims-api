@@ -40,13 +40,14 @@ Feature: Amendment eligibility gate — claim.status must be VALID
     And no eligibility error code is present in the response
 
   @DS1764_2
-  Scenario: Voided — rejected with INVALID_VOIDED_CLAIM_NOT_AMENDABLE
+  Scenario: Voided — rejected with INVALID_VOIDED_CLAIM_NOT_AMENDABLE (and NOT with the generic not-amendable code)
     Given an original claim exists with claim.status "VOIDED"
     And a well-formed amendment payload for that claim
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with the following eligibility errors
       | Error Code                          |
       | INVALID_VOIDED_CLAIM_NOT_AMENDABLE  |
+    And the response does not contain error code "INVALID_CLAIM_STATE_NOT_AMENDABLE"
     And no outbound PDA call was made
     And no outbound FSP call was made
     And no eligibility amendment state was committed
@@ -70,14 +71,6 @@ Feature: Amendment eligibility gate — claim.status must be VALID
       | INVALID           |
 
   @DS1764_4
-  Scenario: Void error code is distinct from the generic not-amendable error code
-    Given an original claim exists with claim.status "VOIDED"
-    And a well-formed amendment payload for that claim
-    When I submit the amendment and wait for the event service to complete amendment validation
-    Then the response contains error code "INVALID_VOIDED_CLAIM_NOT_AMENDABLE"
-    And the response does not contain error code "INVALID_CLAIM_STATE_NOT_AMENDABLE"
-
-  @DS1764_5
   Scenario: Eligibility gate short-circuits before metadata, duplicate, PDA and FSP steps
     Given an original claim exists with claim.status "VOIDED"
     And an amendment payload that would also fail metadata validation and duplicate checks
@@ -91,7 +84,7 @@ Feature: Amendment eligibility gate — claim.status must be VALID
     And no outbound FSP call was made
     And no eligibility amendment state was committed
 
-  @DS1764_6
+  @DS1764_5
   Scenario: Retrieval failure precedes eligibility — a non-existent claim id does not surface an eligibility error
     Given no amendable claim exists for claim id "00000000-0000-0000-0000-000000000000"
     And a well-formed amendment payload for that claim id
