@@ -84,4 +84,4 @@ runs:
           --set aws.region="${ECR_REGION}" \
           --values ${VALUES_FILE} \
           --install \
-          --wait --timeout=10m
+          --wait --timeout=15m
