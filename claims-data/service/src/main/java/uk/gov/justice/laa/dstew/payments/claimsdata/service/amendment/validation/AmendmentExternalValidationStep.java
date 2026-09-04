@@ -10,7 +10,6 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Claim;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
-import uk.gov.justice.laa.dstew.payments.claims.validation.core.provider.FeeSchemeProvider;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
@@ -72,7 +71,6 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
   private final ValidationService validationService;
   private final AmendmentDiffAssembler diffAssembler;
   private final ValidationClaimMapper validationClaimMapper;
-  private final FeeSchemeProvider feeSchemeProvider;
 
   @Override
   public List<ClaimAmendmentValidationError> validate(ClaimAmendmentState state) {
@@ -114,32 +112,19 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
     return errors;
   }
 
+  /**
+   * Cache the {@link ResolvedClaimData} produced by validation-core so downstream amendment steps
+   * (notably {@code FeeCalculationMetadataResolver}) can read {@code feeCalculationType}, {@code
+   * authorisedCategoryOfLawCode} and {@code feeCodeDescription} without a second FSP call. Since
+   * validation-core 1.4.9, all three fields are surfaced on {@code ResolvedClaimData}; the previous
+   * best-effort {@code feeSchemeProvider.getFeeDetails(feeCode)} lookup is no longer needed.
+   */
   private void cacheFeeSchemeEnrichment(
       ClaimAmendmentState state, ClaimValidationResult validationResult) {
     if (state == null || validationResult == null) {
       return;
     }
-
     state.setResolvedClaimDataContext(validationResult.getResolvedData());
-
-    String feeCode =
-        state.getPostAmendmentState() == null ? null : state.getPostAmendmentState().getFeeCode();
-    if (feeCode == null || feeCode.isBlank()) {
-      state.setFeeSchemeDetailsContext(null);
-      return;
-    }
-
-    try {
-      // validation-core exposes feeCodeDescription and categoryOfLawCodes on ResolvedClaimData.
-      // Today we double-fetch because those fields are not on the ClaimValidationResult surface;
-      // the resolver only needs them as a metadata fallback so the call is intentionally
-      // best-effort - any failure is logged and leaves feeSchemeDetailsContext=null (the resolver
-      // tolerates null and falls back to the previous fee snapshot when the fee code is unchanged).
-      state.setFeeSchemeDetailsContext(feeSchemeProvider.getFeeDetails(feeCode).orElse(null));
-    } catch (Exception ex) {
-      log.warn("Unable to cache fee details enrichment for fee code {}", feeCode, ex);
-      state.setFeeSchemeDetailsContext(null);
-    }
   }
 
   /**

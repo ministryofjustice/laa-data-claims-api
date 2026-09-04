@@ -40,7 +40,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
-import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 
 /**
  * Unit coverage for {@link FeeSchemeHandoffFactory} - the single component that maps a successful
@@ -105,12 +104,8 @@ class FeeSchemeHandoffFactoryTest {
     Claim claim = claimWithSummaryFee(Instant.now());
     ClaimAmendment amendment = amendment();
     ClaimAmendmentState state = state(snapshot(BigDecimal.valueOf(100.00)));
-    state.setResolvedClaimDataContext(new ResolvedClaimData("HOURLY", "AREA-A", "CATEGORY-A"));
-    state.setFeeSchemeDetailsContext(
-        new FeeDetailsResponseV2()
-            .feeCodeDescription("Hourly work fee")
-            .feeType("HOURLY")
-            .categoryOfLawCodes(List.of("CATEGORY-A")));
+    state.setResolvedClaimDataContext(
+        new ResolvedClaimData("HOURLY", "AREA-A", "CATEGORY-A", "Hourly work fee"));
 
     FeeCalculationResponse response =
         new FeeCalculationResponse()
@@ -255,12 +250,8 @@ class FeeSchemeHandoffFactoryTest {
     Claim claim = claimWithSummaryFee(Instant.now());
     ClaimAmendment amendment = amendment();
     ClaimAmendmentState state = state(snapshot(BigDecimal.valueOf(100.00)));
-    state.setResolvedClaimDataContext(new ResolvedClaimData("DISB_ONLY", "AREA-B", "CATEGORY-B"));
-    state.setFeeSchemeDetailsContext(
-        new FeeDetailsResponseV2()
-            .feeCodeDescription("Legacy parity description")
-            .feeType("DISB_ONLY")
-            .categoryOfLawCodes(List.of("CATEGORY-B")));
+    state.setResolvedClaimDataContext(
+        new ResolvedClaimData("DISB_ONLY", "AREA-B", "CATEGORY-B", "Legacy parity description"));
 
     FeeCalculationResponse response =
         new FeeCalculationResponse()

@@ -182,10 +182,10 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     // This repricing amendment produces exactly one REQUESTED change and the FSP fee consequences.
     // FSP-sourced fields written by FeeSchemeHandoffFactory (DSTEW-2079 parity):
     //   fee.totalAmount, fee.netProfitCostsAmount, fee.vatIndicator, fee.schemeId,
-    //   fee.feeType, fee.feeCodeDescription, fee.categoryOfLaw.
-    assertThat(changes).hasSize(8);
+    //   fee.feeType, fee.feeCodeDescription.
+    assertThat(changes).hasSize(7);
     assertThat(countByChangeSource(changes, "REQUESTED")).isEqualTo(1);
-    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(7);
+    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(6);
 
     // --- REQUESTED change: the provider's edit, with its actual before/after values ---
     // Seeded claimSummaryFee net profit costs (250) -> the amended value (9999.00).
@@ -219,9 +219,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(fspSchemeId.get("before").isNull()).isTrue();
     assertThat(fspSchemeId.get("after").asText()).isEqualTo("SCHEME-TEST");
 
-    // Fee metadata resolved from the /fee-details lookup (DSTEW-2079 parity):
-    // feeType, feeCodeDescription and categoryOfLaw are populated by
-    // FeeCalculationMetadataResolver from the cached FeeDetailsResponseV2.
+    // Fee metadata resolved from validation-core ResolvedClaimData (DSTEW-2079 parity):
+    // feeType and feeCodeDescription are populated by FeeCalculationMetadataResolver.
     JsonNode fspFeeType = changeByField(changes, "fee.feeType");
     assertThat(fspFeeType.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspFeeType.get("before").isNull()).isTrue();
@@ -231,11 +230,6 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(fspFeeCodeDescription.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspFeeCodeDescription.get("before").isNull()).isTrue();
     assertThat(fspFeeCodeDescription.get("after").asText()).isEqualTo("test description");
-
-    JsonNode fspCategoryOfLaw = changeByField(changes, "fee.categoryOfLaw");
-    assertThat(fspCategoryOfLaw.get("change_source").asText()).isEqualTo("FSP");
-    assertThat(fspCategoryOfLaw.get("before").isNull()).isTrue();
-    assertThat(fspCategoryOfLaw.get("after").asText()).isEqualTo("string");
 
     // --- Assert: FSP consequence FLAGS (DSTEW-1762) ---
     // These derive from the calculated_fee_detail row that the commit pipeline links to this
