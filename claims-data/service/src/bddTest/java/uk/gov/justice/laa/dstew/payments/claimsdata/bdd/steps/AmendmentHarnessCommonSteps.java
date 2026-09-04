@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -278,7 +279,12 @@ public class AmendmentHarnessCommonSteps {
         () -> assertValidatorSetPdaMembership(false));
   }
 
-  @Then("no outbound FSP call was made")
+  // Renamed from "no outbound FSP call was made" to avoid DuplicateStepDefinitionException
+  // with AmendmentsEligibilityGateSteps (DSTEW-1764, merged via PR #452). Both classes need a
+  // no-FSP-call assertion but ours is a real Mockito verify on the mocked FSP client, while
+  // the eligibility-gate one is a pure symbolic spec-guard. The "(harness-verified)" qualifier
+  // makes the difference explicit at the feature-file level.
+  @Then("no outbound FSP call was made from the amendment harness")
   public void noOutboundFspCallWasMade() {
     step(
         "verify the mocked FSP client's calculateFee was NOT invoked",
@@ -324,16 +330,30 @@ public class AmendmentHarnessCommonSteps {
   @SuppressWarnings("unchecked")
   private void assertValidatorSetPdaMembership(boolean pdaExpectedInSet) {
     ArgumentCaptor<Set<ClaimValidatorCode>> captor = ArgumentCaptor.forClass((Class) Set.class);
-    verify(validationService).validateClaim(any(), captor.capture());
     if (pdaExpectedInSet) {
+      // Strict: validateClaim MUST have been invoked AND the captured Set MUST contain PDA.
+      verify(validationService).validateClaim(any(), captor.capture());
       assertThat(captor.getValue())
           .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
           .contains(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
-    } else {
-      assertThat(captor.getValue())
-          .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
-          .doesNotContain(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
+      return;
     }
+    // Lenient (no-PDA case): the amendment flow either short-circuited before validateClaim
+    // (eligibility / retrieval / request-contract gates) OR reached it with a Set that omits
+    // CLAIM_CATEGORY_OF_LAW_VALIDATOR. Both express the same observable contract: no PDA
+    // dispatch. The eligibility-gate scenarios (DSTEW-1764) hit the first branch; the DSTEW-1772
+    // PDA-suppression scenarios hit the second.
+    long invocations =
+        Mockito.mockingDetails(validationService).getInvocations().stream()
+            .filter(i -> "validateClaim".equals(i.getMethod().getName()))
+            .count();
+    if (invocations == 0L) {
+      return;
+    }
+    verify(validationService).validateClaim(any(), captor.capture());
+    assertThat(captor.getValue())
+        .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
+        .doesNotContain(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
   }
 
   // ---------------------------------------------------------------------------
