@@ -298,8 +298,14 @@ public class AmendmentsRequestContractSteps {
   // "no persistence was attempted for this claim" (defined below) already cover the observable
   // side-effect this scenario cares about.
 
-  @Then("no outbound FSP call was made")
-  public void noOutboundFspCallWasMade() {
+  // Renamed from "no outbound FSP call was made" to avoid DuplicateStepDefinitionException
+  // with AmendmentsEligibilityGateSteps (DSTEW-1764 landed on main after this branch was cut).
+  // Both classes need a request-scoped assertion but each reads its own feature-local state, so
+  // we keep two distinct phrases rather than trying to share one impl. The eligibility-gate
+  // version is a pure symbolic guard; this one asserts the observable side-effect (version
+  // unchanged + no claim_amendment row) specific to the request-contract layer.
+  @Then("no outbound FSP call was made from the request-contract path")
+  public void noOutboundFspCallWasMadeFromTheRequestContractPath() {
     step(
         "Asserting no outbound FSP call was made — inferred from the same transactional invariant "
             + "as the PDA assertion",
