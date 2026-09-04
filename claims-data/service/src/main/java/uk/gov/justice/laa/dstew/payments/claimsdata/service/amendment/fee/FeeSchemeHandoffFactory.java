@@ -15,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
@@ -66,7 +67,7 @@ public class FeeSchemeHandoffFactory {
     CalculatedFeeDetail newFeeDetail =
         claimMapper.toCalculatedFeeDetail(feeCalculationResponse, metadata);
 
-    // Relational + audit fields MapStruct cannot infer from the FSP response.
+    newFeeDetail.setId(Uuid7.timeBasedUuid());
     newFeeDetail.setClaim(claim);
     newFeeDetail.setClaimAmendment(claimAmendment); // 1595-F: Establish tracking link
     newFeeDetail.setIsPriceChanged(priceChanged);

@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.UUID;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Condition;
 import org.mapstruct.InheritConfiguration;
@@ -34,6 +35,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
+import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /** MapStruct mapper for converting between claim models and entities. */
@@ -159,7 +162,7 @@ public interface ClaimMapper {
    * <p>The {@code metadata} argument carries the three fields that are not on the FSP response
    * (feeType, feeCodeDescription, categoryOfLaw) and are resolved from cached validation context.
    */
-  @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
+  @Mapping(target = "id", ignore = true)
   @Mapping(target = "claim", ignore = true)
   @Mapping(target = "claimAmendment", ignore = true)
   @Mapping(target = "claimSummaryFee", ignore = true)
@@ -169,75 +172,47 @@ public interface ClaimMapper {
   @Mapping(target = "feeCode", source = "response.feeCode")
   @Mapping(target = "schemeId", source = "response.schemeId")
   @Mapping(target = "escapeCaseFlag", source = "response.escapeCaseFlag")
-  // Nested feeCalculation.* monetary fields (Double -> BigDecimal via doubleToBigDecimal)
-  @Mapping(target = "totalAmount", source = "response.feeCalculation.totalAmount")
-  @Mapping(target = "vatIndicator", source = "response.feeCalculation.vatIndicator")
-  @Mapping(target = "vatRateApplied", source = "response.feeCalculation.vatRateApplied")
-  @Mapping(target = "calculatedVatAmount", source = "response.feeCalculation.calculatedVatAmount")
-  @Mapping(target = "disbursementAmount", source = "response.feeCalculation.disbursementAmount")
-  @Mapping(
-      target = "requestedNetDisbursementAmount",
-      source = "response.feeCalculation.requestedNetDisbursementAmount")
-  @Mapping(
-      target = "disbursementVatAmount",
-      source = "response.feeCalculation.disbursementVatAmount")
-  @Mapping(target = "hourlyTotalAmount", source = "response.feeCalculation.hourlyTotalAmount")
-  @Mapping(target = "fixedFeeAmount", source = "response.feeCalculation.fixedFeeAmount")
-  @Mapping(target = "netProfitCostsAmount", source = "response.feeCalculation.netProfitCostsAmount")
-  @Mapping(
-      target = "requestedNetProfitCostsAmount",
-      source = "response.feeCalculation.requestedNetProfitCostsAmount")
-  @Mapping(
-      target = "netCostOfCounselAmount",
-      source = "response.feeCalculation.netCostOfCounselAmount")
-  @Mapping(target = "netTravelCostsAmount", source = "response.feeCalculation.netTravelCostsAmount")
-  @Mapping(
-      target = "netWaitingCostsAmount",
-      source = "response.feeCalculation.netWaitingCostsAmount")
-  @Mapping(
-      target = "detentionTravelAndWaitingCostsAmount",
-      source = "response.feeCalculation.detentionTravelAndWaitingCostsAmount")
-  @Mapping(target = "jrFormFillingAmount", source = "response.feeCalculation.jrFormFillingAmount")
-  @Mapping(
-      target = "travelAndWaitingCostsAmount",
-      source = "response.feeCalculation.travelAndWaitingCostAmount")
-  // Nested feeCalculation.boltOnFeeDetails.* fields
-  @Mapping(
-      target = "boltOnTotalFeeAmount",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnTotalFeeAmount")
-  @Mapping(
-      target = "boltOnAdjournedHearingCount",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnAdjournedHearingCount")
-  @Mapping(
-      target = "boltOnAdjournedHearingFee",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnAdjournedHearingFee")
-  @Mapping(
-      target = "boltOnCmrhTelephoneCount",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnCmrhTelephoneCount")
-  @Mapping(
-      target = "boltOnCmrhTelephoneFee",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnCmrhTelephoneFee")
-  @Mapping(
-      target = "boltOnCmrhOralCount",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnCmrhOralCount")
-  @Mapping(
-      target = "boltOnCmrhOralFee",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnCmrhOralFee")
-  @Mapping(
-      target = "boltOnHomeOfficeInterviewCount",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnHomeOfficeInterviewCount")
-  @Mapping(
-      target = "boltOnHomeOfficeInterviewFee",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnHomeOfficeInterviewFee")
-  @Mapping(
-      target = "boltOnSubstantiveHearingFee",
-      source = "response.feeCalculation.boltOnFeeDetails.boltOnSubstantiveHearingFee")
   // Resolver-supplied metadata (not present on FSP response)
   @Mapping(target = "feeType", source = "metadata.feeType")
   @Mapping(target = "feeCodeDescription", source = "metadata.feeCodeDescription")
   @Mapping(target = "categoryOfLaw", source = "metadata.categoryOfLaw")
   CalculatedFeeDetail toCalculatedFeeDetail(
       FeeCalculationResponse response, ResolvedFeeMetadata metadata);
+
+  /**
+   * Applies the nested {@code feeCalculation} and {@code feeCalculation.boltOnFeeDetails} sections
+   * of the FSP response onto the mapped entity. Kept as an {@code @AfterMapping} hook so the parent
+   * mapping method stays focused on top-level FSP fields and resolver-supplied metadata.
+   */
+  @AfterMapping
+  default void applyNestedFspSections(
+      FeeCalculationResponse response, @MappingTarget CalculatedFeeDetail target) {
+    if (response == null || response.getFeeCalculation() == null) {
+      return;
+    }
+    FeeCalculation feeCalculation = response.getFeeCalculation();
+    updateFromFeeCalculation(feeCalculation, target);
+    if (feeCalculation.getBoltOnFeeDetails() != null) {
+      updateFromBoltOnFeeDetails(feeCalculation.getBoltOnFeeDetails(), target);
+    }
+  }
+
+  /**
+   * Projects the FSP {@link FeeCalculation} monetary fields onto the entity. Fields not listed here
+   * are name-matched by MapStruct against {@link CalculatedFeeDetail}. Only the {@code
+   * travelAndWaitingCostAmount} -> {@code travelAndWaitingCostsAmount} mismatch needs an explicit
+   * rule.
+   */
+  @Mapping(target = "travelAndWaitingCostsAmount", source = "travelAndWaitingCostAmount")
+  void updateFromFeeCalculation(
+      FeeCalculation feeCalculation, @MappingTarget CalculatedFeeDetail target);
+
+  /**
+   * Projects the FSP {@link BoltOnFeeDetails} bolt-on fields onto the entity. All bolt-on source
+   * field names match the entity 1:1, so no explicit rules are required here.
+   */
+  void updateFromBoltOnFeeDetails(
+      BoltOnFeeDetails boltOnFeeDetails, @MappingTarget CalculatedFeeDetail target);
 
   /** Convert an FSP {@link Double} monetary value into a {@link BigDecimal}. */
   default BigDecimal doubleToBigDecimal(Double value) {
