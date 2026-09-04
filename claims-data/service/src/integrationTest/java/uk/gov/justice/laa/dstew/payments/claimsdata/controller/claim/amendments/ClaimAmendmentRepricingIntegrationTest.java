@@ -328,6 +328,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     // bolt-on numeric field into the newly-created CalculatedFeeDetail (via BoltOnPatch ->
     // ClaimMapper.updateBoltOnFields) so the row matches what the legacy claim journey persists.
     ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setVersion(1L);
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
     // Fully populated boltOnFeeDetails, plus non-null escapeCaseFlag/schemeId so the same test
@@ -351,23 +352,18 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
             + "}}}";
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(mockResponseBody));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patchPayload))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, HttpStatus.NO_CONTENT);
 
     // Guard: FSP must have been called exactly once for this pricing-impacting amendment.
-    mockServerClient.verify(request().withPath(FEE_CALCULATION_PATH), VerificationTimes.once());
+    mockServerClient.verify(request().withPath(FEE_CALCULATION), VerificationTimes.once());
 
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =

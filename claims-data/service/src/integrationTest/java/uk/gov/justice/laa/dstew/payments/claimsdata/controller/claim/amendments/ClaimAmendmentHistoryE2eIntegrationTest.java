@@ -309,8 +309,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     // DSTEW-2079 parity: when FSP returns a nested feeCalculation.boltOnFeeDetails block, the
     // amendment diff must surface each populated bolt-on field as an FSP-sourced change entry
     // (before=null on the baseline row, after=FSP value) on the AMENDMENT history event.
-    ClaimPatch patch = basePatch();
-    patch.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.setNetProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(9999.00)));
 
     String fspResponse =
         "{\"feeCode\":\"FEE-BOLTON\",\"schemeId\":\"SCHEME-BOLTON\","
@@ -331,20 +331,15 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
             + "}}}";
 
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(fspResponse));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, HttpStatus.NO_CONTENT);
 
     String body =
         mockMvc
