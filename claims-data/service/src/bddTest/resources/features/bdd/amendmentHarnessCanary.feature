@@ -25,5 +25,5 @@ Feature: Amendment BDD harness canary
     And exactly one claim_amendment row was inserted for this claim
     And claim.version is now 1
     And claim.is_amended is true
-    And no outbound FSP call was made
+    And no outbound FSP call was made from the amendment harness
 
