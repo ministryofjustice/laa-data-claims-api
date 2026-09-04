@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Claim;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
@@ -59,6 +60,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AmendmentExternalValidationStep implements ClaimAmendmentValidationStep {
 
   private static final ClaimValidatorCode PDA_VALIDATION_STEP =
@@ -97,10 +99,32 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
       return List.of();
     }
 
-    return validationResult.getIssues().stream()
-        .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR)
-        .map(ClaimAmendmentValidationError::from)
-        .toList();
+    List<ClaimAmendmentValidationError> errors =
+        validationResult.getIssues().stream()
+            .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR)
+            .map(ClaimAmendmentValidationError::from)
+            .toList();
+
+    if (errors.isEmpty()) {
+      cacheFeeSchemeEnrichment(state, validationResult);
+    }
+
+    return errors;
+  }
+
+  /**
+   * Cache the {@link ResolvedClaimData} produced by validation-core so downstream amendment steps
+   * (notably {@code FeeCalculationMetadataResolver}) can read {@code feeCalculationType}, {@code
+   * authorisedCategoryOfLawCode} and {@code feeCodeDescription} without a second FSP call. Since
+   * validation-core 1.4.9, all three fields are surfaced on {@code ResolvedClaimData}; the previous
+   * best-effort {@code feeSchemeProvider.getFeeDetails(feeCode)} lookup is no longer needed.
+   */
+  private void cacheFeeSchemeEnrichment(
+      ClaimAmendmentState state, ClaimValidationResult validationResult) {
+    if (state == null || validationResult == null) {
+      return;
+    }
+    state.setResolvedClaimDataContext(validationResult.getResolvedData());
   }
 
   /**

@@ -15,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendment
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnapshot;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeCalculationMetadataResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
@@ -67,6 +68,7 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
   private final FeeSchemePlatformRestClient fspClient;
   private final AmendmentDiffAssembler diffAssembler;
   private final ClaimStateSnapshotMapper claimStateSnapshotMapper;
+  private final FeeCalculationMetadataResolver feeCalculationMetadataResolver;
 
   /**
    * Executes the trigger verification and processes the remote FSP recalculation sequence.
@@ -135,7 +137,8 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       CalculatedFeeDetailSnapshot beforeFeeSnapshot =
           state.getBeforeState().getCalculatedFeeDetail();
       CalculatedFeeDetailSnapshot afterFeeSnapshot =
-          claimStateSnapshotMapper.toSnapshot(fspResponse);
+          enrichAfterFeeSnapshot(
+              claimStateSnapshotMapper.toSnapshot(fspResponse), state, fspResponse);
 
       state.setBeforeFee(beforeFeeSnapshot);
       state.setAfterFee(afterFeeSnapshot);
@@ -164,6 +167,27 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
     }
 
     return List.of();
+  }
+
+  private CalculatedFeeDetailSnapshot enrichAfterFeeSnapshot(
+      CalculatedFeeDetailSnapshot baseSnapshot,
+      ClaimAmendmentState state,
+      FeeCalculationResponse fspResponse) {
+    if (baseSnapshot == null) {
+      return null;
+    }
+
+    String feeCode = fspResponse == null ? null : fspResponse.getFeeCode();
+
+    // Only enrich the fee-metadata fields
+    // via toBuilder() to avoid drift with the snapshot schema.
+    var resolvedMetadata = feeCalculationMetadataResolver.resolve(state, feeCode);
+
+    return baseSnapshot.toBuilder()
+        .feeType(resolvedMetadata.feeType())
+        .feeCodeDescription(resolvedMetadata.feeCodeDescription())
+        .categoryOfLaw(resolvedMetadata.categoryOfLaw())
+        .build();
   }
 
   private boolean hasPricingImpactingChanges(

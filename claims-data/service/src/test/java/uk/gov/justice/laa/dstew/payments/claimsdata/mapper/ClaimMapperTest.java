@@ -41,8 +41,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimMapper tests")
@@ -1235,6 +1239,188 @@ class ClaimMapperTest {
   @Test
   void toCalculatedFeeDetail_nullPatch_noChanges() {
     assertNull(mapper.toCalculatedFeeDetail(null));
+  }
+
+  // ---------------------------------------------------------------------------
+  // toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) - amendment path
+  // ---------------------------------------------------------------------------
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) maps every FSP field + metadata")
+  void toCalculatedFeeDetail_fromFeeCalculationResponse_mapsAllFieldsAndMetadata() {
+    FeeCalculationResponse response = buildFullFeeCalculationResponse();
+    ResolvedFeeMetadata metadata =
+        new ResolvedFeeMetadata(FeeCalculationType.HOURLY, "Full description", "CATEGORY-A");
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // Persistence + relational fields are NOT owned by the mapper (assigned by the caller).
+    assertNull(result.getId());
+    assertNull(result.getClaim());
+    assertNull(result.getClaimAmendment());
+    assertNull(result.getClaimSummaryFee());
+    assertNull(result.getIsPriceChanged());
+
+    // Top-level FSP fields
+    assertThat(result.getFeeCode()).isEqualTo("FEE-123");
+    assertThat(result.getSchemeId()).isEqualTo("SCHEME-TEST");
+    assertThat(result.getEscapeCaseFlag()).isTrue();
+
+    // Resolver-supplied metadata (not on the FSP response)
+    assertThat(result.getFeeType()).isEqualTo(FeeCalculationType.HOURLY);
+    assertThat(result.getFeeCodeDescription()).isEqualTo("Full description");
+    assertThat(result.getCategoryOfLaw()).isEqualTo("CATEGORY-A");
+
+    // Nested feeCalculation.* (Double -> BigDecimal via doubleToBigDecimal)
+    assertThat(result.getTotalAmount()).isEqualByComparingTo("650.00");
+    assertThat(result.getVatIndicator()).isTrue();
+    assertThat(result.getVatRateApplied()).isEqualByComparingTo("20.0");
+    assertThat(result.getCalculatedVatAmount()).isEqualByComparingTo("108.33");
+    assertThat(result.getDisbursementAmount()).isEqualByComparingTo("50.25");
+    assertThat(result.getRequestedNetDisbursementAmount()).isEqualByComparingTo("45.15");
+    assertThat(result.getDisbursementVatAmount()).isEqualByComparingTo("10.05");
+    assertThat(result.getHourlyTotalAmount()).isEqualByComparingTo("250.10");
+    assertThat(result.getFixedFeeAmount()).isEqualByComparingTo("75.35");
+    assertThat(result.getNetProfitCostsAmount()).isEqualByComparingTo("450.00");
+    assertThat(result.getRequestedNetProfitCostsAmount()).isEqualByComparingTo("400.40");
+    assertThat(result.getNetCostOfCounselAmount()).isEqualByComparingTo("35.99");
+    assertThat(result.getNetTravelCostsAmount()).isEqualByComparingTo("12.10");
+    assertThat(result.getNetWaitingCostsAmount()).isEqualByComparingTo("8.80");
+    assertThat(result.getDetentionTravelAndWaitingCostsAmount()).isEqualByComparingTo("5.70");
+    assertThat(result.getJrFormFillingAmount()).isEqualByComparingTo("18.75");
+    // Note the singular -> plural rename between FSP (travelAndWaitingCostAmount) and entity
+    // (travelAndWaitingCostsAmount). Explicitly asserted here to guard against reintroducing the
+    // typo in future refactors.
+    assertThat(result.getTravelAndWaitingCostsAmount()).isEqualByComparingTo("20.90");
+
+    // Nested feeCalculation.boltOnFeeDetails.*
+    assertThat(result.getBoltOnTotalFeeAmount()).isEqualByComparingTo("33.45");
+    assertThat(result.getBoltOnAdjournedHearingCount()).isEqualTo(1);
+    assertThat(result.getBoltOnAdjournedHearingFee()).isEqualByComparingTo("11.11");
+    assertThat(result.getBoltOnCmrhTelephoneCount()).isEqualTo(2);
+    assertThat(result.getBoltOnCmrhTelephoneFee()).isEqualByComparingTo("12.12");
+    assertThat(result.getBoltOnCmrhOralCount()).isEqualTo(3);
+    assertThat(result.getBoltOnCmrhOralFee()).isEqualByComparingTo("13.13");
+    assertThat(result.getBoltOnHomeOfficeInterviewCount()).isEqualTo(4);
+    assertThat(result.getBoltOnHomeOfficeInterviewFee()).isEqualByComparingTo("14.14");
+    assertThat(result.getBoltOnSubstantiveHearingFee()).isEqualByComparingTo("15.15");
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) leaves nested fields null when feeCalculation is null")
+  void
+      toCalculatedFeeDetail_fromFeeCalculationResponse_nullFeeCalculation_leavesNestedFieldsNull() {
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE-123")
+            .schemeId("SCHEME-TEST")
+            .escapeCaseFlag(false);
+    ResolvedFeeMetadata metadata =
+        new ResolvedFeeMetadata(FeeCalculationType.FIXED, "Fixed fee", "CATEGORY-X");
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // Top-level + metadata are still mapped.
+    assertThat(result.getFeeCode()).isEqualTo("FEE-123");
+    assertThat(result.getSchemeId()).isEqualTo("SCHEME-TEST");
+    assertThat(result.getEscapeCaseFlag()).isFalse();
+    assertThat(result.getFeeType()).isEqualTo(FeeCalculationType.FIXED);
+    assertThat(result.getFeeCodeDescription()).isEqualTo("Fixed fee");
+    assertThat(result.getCategoryOfLaw()).isEqualTo("CATEGORY-X");
+
+    // Every nested FSP field should be null when the feeCalculation block is absent.
+    assertNull(result.getTotalAmount());
+    assertNull(result.getVatIndicator());
+    assertNull(result.getNetProfitCostsAmount());
+    assertNull(result.getTravelAndWaitingCostsAmount());
+    assertNull(result.getBoltOnTotalFeeAmount());
+    assertNull(result.getBoltOnAdjournedHearingCount());
+    assertNull(result.getBoltOnSubstantiveHearingFee());
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) leaves bolt-on fields null when boltOnFeeDetails is null")
+  void
+      toCalculatedFeeDetail_fromFeeCalculationResponse_nullBoltOnFeeDetails_leavesBoltOnFieldsNull() {
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE-456")
+            .schemeId("SCHEME-02")
+            .escapeCaseFlag(false)
+            .feeCalculation(new FeeCalculation().totalAmount(510.25).netProfitCostsAmount(190.19));
+    ResolvedFeeMetadata metadata = new ResolvedFeeMetadata(null, null, null);
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // feeCalculation.* still projected.
+    assertThat(result.getTotalAmount()).isEqualByComparingTo("510.25");
+    assertThat(result.getNetProfitCostsAmount()).isEqualByComparingTo("190.19");
+    // metadata resolver returned all nulls -> mapper writes them through unchanged.
+    assertNull(result.getFeeType());
+    assertNull(result.getFeeCodeDescription());
+    assertNull(result.getCategoryOfLaw());
+    // Bolt-on fields must remain unset.
+    assertNull(result.getBoltOnTotalFeeAmount());
+    assertNull(result.getBoltOnAdjournedHearingCount());
+    assertNull(result.getBoltOnAdjournedHearingFee());
+    assertNull(result.getBoltOnCmrhTelephoneCount());
+    assertNull(result.getBoltOnCmrhTelephoneFee());
+    assertNull(result.getBoltOnCmrhOralCount());
+    assertNull(result.getBoltOnCmrhOralFee());
+    assertNull(result.getBoltOnHomeOfficeInterviewCount());
+    assertNull(result.getBoltOnHomeOfficeInterviewFee());
+    assertNull(result.getBoltOnSubstantiveHearingFee());
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) returns null when the response is null")
+  void toCalculatedFeeDetail_fromFeeCalculationResponse_nullResponse_returnsNull() {
+    assertNull(mapper.toCalculatedFeeDetail((FeeCalculationResponse) null, null));
+  }
+
+  private static FeeCalculationResponse buildFullFeeCalculationResponse() {
+    return new FeeCalculationResponse()
+        .feeCode("FEE-123")
+        .schemeId("SCHEME-TEST")
+        .escapeCaseFlag(true)
+        .feeCalculation(
+            new FeeCalculation()
+                .totalAmount(650.00)
+                .vatIndicator(true)
+                .vatRateApplied(20.00)
+                .calculatedVatAmount(108.33)
+                .disbursementAmount(50.25)
+                .requestedNetDisbursementAmount(45.15)
+                .disbursementVatAmount(10.05)
+                .hourlyTotalAmount(250.10)
+                .fixedFeeAmount(75.35)
+                .netProfitCostsAmount(450.00)
+                .requestedNetProfitCostsAmount(400.40)
+                .netCostOfCounselAmount(35.99)
+                .netTravelCostsAmount(12.10)
+                .netWaitingCostsAmount(8.80)
+                .detentionTravelAndWaitingCostsAmount(5.70)
+                .jrFormFillingAmount(18.75)
+                .travelAndWaitingCostAmount(20.90)
+                .boltOnFeeDetails(
+                    new BoltOnFeeDetails()
+                        .boltOnTotalFeeAmount(33.45)
+                        .boltOnAdjournedHearingCount(1)
+                        .boltOnAdjournedHearingFee(11.11)
+                        .boltOnCmrhTelephoneCount(2)
+                        .boltOnCmrhTelephoneFee(12.12)
+                        .boltOnCmrhOralCount(3)
+                        .boltOnCmrhOralFee(13.13)
+                        .boltOnHomeOfficeInterviewCount(4)
+                        .boltOnHomeOfficeInterviewFee(14.14)
+                        .boltOnSubstantiveHearingFee(15.15)));
   }
 
   @Test

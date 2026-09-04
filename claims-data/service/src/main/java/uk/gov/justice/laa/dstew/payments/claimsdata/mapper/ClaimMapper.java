@@ -1,10 +1,12 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.UUID;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Condition;
 import org.mapstruct.InheritConfiguration;
@@ -32,6 +34,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
+import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /** MapStruct mapper for converting between claim models and entities. */
 @Mapper(
@@ -147,6 +153,71 @@ public interface ClaimMapper {
   @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
   @Mapping(target = "schemeId", source = "response.boltOnDetails.schemeId")
   CalculatedFeeDetail toCalculatedFeeDetail(FeeCalculationPatch response);
+
+  /**
+   * Map an FSP {@link FeeCalculationResponse} + {@link ResolvedFeeMetadata} directly to a {@link
+   * CalculatedFeeDetail}. Used by the amendment repricing pipeline so the same MapStruct
+   * transformation drives both the legacy and amendment paths.
+   *
+   * <p>The {@code metadata} argument carries the three fields that are not on the FSP response
+   * (feeType, feeCodeDescription, categoryOfLaw) and are resolved from cached validation context.
+   */
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "claim", ignore = true)
+  @Mapping(target = "claimAmendment", ignore = true)
+  @Mapping(target = "claimSummaryFee", ignore = true)
+  @Mapping(target = "isPriceChanged", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFields")
+  // Top-level FSP response fields
+  @Mapping(target = "feeCode", source = "response.feeCode")
+  @Mapping(target = "schemeId", source = "response.schemeId")
+  @Mapping(target = "escapeCaseFlag", source = "response.escapeCaseFlag")
+  // Resolver-supplied metadata (not present on FSP response)
+  @Mapping(target = "feeType", source = "metadata.feeType")
+  @Mapping(target = "feeCodeDescription", source = "metadata.feeCodeDescription")
+  @Mapping(target = "categoryOfLaw", source = "metadata.categoryOfLaw")
+  CalculatedFeeDetail toCalculatedFeeDetail(
+      FeeCalculationResponse response, ResolvedFeeMetadata metadata);
+
+  /**
+   * Applies the nested {@code feeCalculation} and {@code feeCalculation.boltOnFeeDetails} sections
+   * of the FSP response onto the mapped entity. Kept as an {@code @AfterMapping} hook so the parent
+   * mapping method stays focused on top-level FSP fields and resolver-supplied metadata.
+   */
+  @AfterMapping
+  default void applyNestedFspSections(
+      FeeCalculationResponse response, @MappingTarget CalculatedFeeDetail target) {
+    if (response == null || response.getFeeCalculation() == null) {
+      return;
+    }
+    FeeCalculation feeCalculation = response.getFeeCalculation();
+    updateFromFeeCalculation(feeCalculation, target);
+    if (feeCalculation.getBoltOnFeeDetails() != null) {
+      updateFromBoltOnFeeDetails(feeCalculation.getBoltOnFeeDetails(), target);
+    }
+  }
+
+  /**
+   * Projects the FSP {@link FeeCalculation} monetary fields onto the entity. Fields not listed here
+   * are name-matched by MapStruct against {@link CalculatedFeeDetail}. Only the {@code
+   * travelAndWaitingCostAmount} -> {@code travelAndWaitingCostsAmount} mismatch needs an explicit
+   * rule.
+   */
+  @Mapping(target = "travelAndWaitingCostsAmount", source = "travelAndWaitingCostAmount")
+  void updateFromFeeCalculation(
+      FeeCalculation feeCalculation, @MappingTarget CalculatedFeeDetail target);
+
+  /**
+   * Projects the FSP {@link BoltOnFeeDetails} bolt-on fields onto the entity. All bolt-on source
+   * field names match the entity 1:1, so no explicit rules are required here.
+   */
+  void updateFromBoltOnFeeDetails(
+      BoltOnFeeDetails boltOnFeeDetails, @MappingTarget CalculatedFeeDetail target);
+
+  /** Convert an FSP {@link Double} monetary value into a {@link BigDecimal}. */
+  default BigDecimal doubleToBigDecimal(Double value) {
+    return value == null ? null : BigDecimal.valueOf(value);
+  }
 
   @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

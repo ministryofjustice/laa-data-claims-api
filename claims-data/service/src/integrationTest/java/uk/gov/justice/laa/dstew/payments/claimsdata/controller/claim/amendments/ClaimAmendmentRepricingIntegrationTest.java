@@ -318,6 +318,81 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertThat(reloaded.isAmended()).isFalse();
   }
 
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - persists every bolt-on numeric field when FSP "
+          + "returns a populated boltOnFeeDetails block")
+  void shouldPersistBoltOnDetailsWhenFspReturnsThem() throws Exception {
+    // DSTEW-2079 parity: FSP repricing can return an Immigration-shaped feeCalculation with a
+    // nested boltOnFeeDetails object. The amendment repricing pipeline must round-trip every
+    // bolt-on numeric field into the newly-created CalculatedFeeDetail (via BoltOnPatch ->
+    // ClaimMapper.updateBoltOnFields) so the row matches what the legacy claim journey persists.
+    ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+
+    // Fully populated boltOnFeeDetails, plus non-null escapeCaseFlag/schemeId so the same test
+    // also proves the mixed-branch path (bolt-on block + supplementary fields) is retained.
+    String mockResponseBody =
+        "{\"feeCode\":\"FEE-BOLTON\",\"schemeId\":\"SCHEME-BOLTON\","
+            + "\"escapeCaseFlag\":false,"
+            + "\"feeCalculation\":{"
+            + "\"totalAmount\":1200.00,\"netProfitCostsAmount\":600.00,\"vatIndicator\":true,"
+            + "\"boltOnFeeDetails\":{"
+            + "\"boltOnTotalFeeAmount\":300.00,"
+            + "\"boltOnAdjournedHearingCount\":2,"
+            + "\"boltOnAdjournedHearingFee\":40.00,"
+            + "\"boltOnCmrhTelephoneCount\":1,"
+            + "\"boltOnCmrhTelephoneFee\":20.00,"
+            + "\"boltOnCmrhOralCount\":1,"
+            + "\"boltOnCmrhOralFee\":30.00,"
+            + "\"boltOnHomeOfficeInterviewCount\":1,"
+            + "\"boltOnHomeOfficeInterviewFee\":60.00,"
+            + "\"boltOnSubstantiveHearingFee\":150.00"
+            + "}}}";
+
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(mockResponseBody));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, HttpStatus.NO_CONTENT);
+
+    // Guard: FSP must have been called exactly once for this pricing-impacting amendment.
+    mockServerClient.verify(request().withPath(FEE_CALCULATION), VerificationTimes.once());
+
+    calculatedFeeDetailRepository.flush();
+    List<CalculatedFeeDetail> savedFees =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
+            .toList();
+
+    assertThat(savedFees).isNotEmpty();
+    CalculatedFeeDetail latestFee = savedFees.get(0);
+
+    // Top-level fee fields still land as usual...
+    assertThat(latestFee.getTotalAmount()).isEqualByComparingTo("1200.00");
+    assertThat(latestFee.getEscapeCaseFlag()).isFalse();
+    assertThat(latestFee.getSchemeId()).isEqualTo("SCHEME-BOLTON");
+
+    // ...and every bolt-on field from the FSP response is persisted verbatim.
+    assertThat(latestFee.getBoltOnTotalFeeAmount()).isEqualByComparingTo("300.00");
+    assertThat(latestFee.getBoltOnAdjournedHearingCount()).isEqualTo(2);
+    assertThat(latestFee.getBoltOnAdjournedHearingFee()).isEqualByComparingTo("40.00");
+    assertThat(latestFee.getBoltOnCmrhTelephoneCount()).isEqualTo(1);
+    assertThat(latestFee.getBoltOnCmrhTelephoneFee()).isEqualByComparingTo("20.00");
+    assertThat(latestFee.getBoltOnCmrhOralCount()).isEqualTo(1);
+    assertThat(latestFee.getBoltOnCmrhOralFee()).isEqualByComparingTo("30.00");
+    assertThat(latestFee.getBoltOnHomeOfficeInterviewCount()).isEqualTo(1);
+    assertThat(latestFee.getBoltOnHomeOfficeInterviewFee()).isEqualByComparingTo("60.00");
+    assertThat(latestFee.getBoltOnSubstantiveHearingFee()).isEqualByComparingTo("150.00");
+  }
+
   /**
    * Reads {@code calculated_fee_detail.claim_amendment_id} for the given row directly from the
    * database (test-only), returning {@code null} when the row is unlinked. Avoids initialising the
