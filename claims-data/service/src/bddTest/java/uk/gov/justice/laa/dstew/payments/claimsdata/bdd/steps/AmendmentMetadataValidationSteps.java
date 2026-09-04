@@ -98,6 +98,10 @@ public class AmendmentMetadataValidationSteps {
   // Hooks — reference-data restoration around every scenario in this class.
   // ---------------------------------------------------------------------------
 
+  // order = 5 — runs AFTER BddHooks.resetScenarioContextAndData() (order 0)
+  // and BddAmendmentResetHook (order -1, DSTEW-2301 harness) so the mock/context
+  // resets have already landed; runs BEFORE default-ordered hooks (10000) so any
+  // tag-scoped hook that follows sees a Flyway-fresh reference-data baseline.
   @Before(value = "@dstew-1765 or @dstew-1764", order = 5)
   public void restoreReferenceDataBeforeScenario() {
     resetReferenceDataToFlywaySeed();
