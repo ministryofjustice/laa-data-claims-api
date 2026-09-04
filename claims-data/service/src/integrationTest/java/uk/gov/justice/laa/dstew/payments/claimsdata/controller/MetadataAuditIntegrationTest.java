@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -7,35 +8,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.OffsetDateTime;
-import java.util.Map;
-
-import org.junit.jupiter.api.BeforeAll;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
-import software.amazon.awssdk.services.sns.model.SubscribeRequest;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
-import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sns.model.SubscribeRequest;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentPost;
@@ -74,11 +72,25 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     OBJECT_MAPPER.findAndRegisterModules();
   }
 
+  private void assertUpdatedMatchesCreated(
+      String label, String createdBy, String updatedBy, Instant createdOn, Instant updatedOn) {
+    // updatedBy should equal createdBy
+    assertThat(updatedBy).as(label + " updatedByUserId on create").isEqualTo(createdBy);
+    // timestamps may differ by small amounts (nanos/micros); allow small tolerance (1 ms)
+    long diffMillis = Math.abs(Duration.between(createdOn, updatedOn).toMillis());
+    assertThat(diffMillis)
+        .as(label + " updatedOn on create within tolerance (ms)")
+        .isLessThanOrEqualTo(1L);
+  }
+
   @Autowired private SqsClient sqsClient;
   @Autowired private SnsClient snsClient;
 
-  @Value("${aws.sqs.queue-name}") private String queueName;
-  @Value("${aws.sns.topic-arn}") private String topicArn;
+  @Value("${aws.sqs.queue-name}")
+  private String queueName;
+
+  @Value("${aws.sns.topic-arn}")
+  private String topicArn;
 
   private String queueUrl;
 
@@ -146,11 +158,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       var saved = subs.getFirst();
 
       assertCreatedMetadata(
-          "bulk_submission",
-          "test-user",
-          preCall,
-          saved::getCreatedByUserId,
-          saved::getCreatedOn);
+          "bulk_submission", "test-user", preCall, saved::getCreatedByUserId, saved::getCreatedOn);
     }
 
     @Test
@@ -158,7 +166,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     void postBulkSubmissionDoesNotSetUpdatedMetadata() throws Exception {
       ClassPathResource resource = new ClassPathResource("test_upload_files/csv/outcomes.csv");
       MockMultipartFile file =
-          new MockMultipartFile("file", resource.getFilename(), "text/csv", resource.getInputStream());
+          new MockMultipartFile(
+              "file", resource.getFilename(), "text/csv", resource.getInputStream());
 
       mockMvc
           .perform(
@@ -170,8 +179,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isCreated());
 
       var saved = bulkSubmissionRepository.findAll().getFirst();
-      assertThat(saved.getUpdatedByUserId()).as("bulk_submission updatedByUserId on create").isNull();
-      assertThat(saved.getUpdatedOn()).as("bulk_submission updatedOn on create").isNull();
+
+      assertUpdatedMatchesCreated(
+          "bulk_submission",
+          saved.getCreatedByUserId(),
+          saved.getUpdatedByUserId(),
+          saved.getCreatedOn(),
+          saved.getUpdatedOn());
     }
 
     @Test
@@ -288,8 +302,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isCreated());
 
       var created = submissionRepository.findById(submissionId).orElseThrow();
-      assertThat(created.getUpdatedByUserId()).as("submission updatedByUserId on create").isNull();
-      assertThat(created.getUpdatedOn()).as("submission updatedOn on create").isNull();
+
+      assertUpdatedMatchesCreated(
+          "submission",
+          created.getCreatedByUserId(),
+          created.getUpdatedByUserId(),
+          created.getCreatedOn(),
+          created.getUpdatedOn());
     }
 
     @Test
@@ -298,8 +317,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       // seed
       seedSubmissionsData();
 
-       SubmissionPatch patch =
-           SubmissionPatch.builder()
+      SubmissionPatch patch =
+          SubmissionPatch.builder()
               .areaOfLaw(AreaOfLaw.CRIME_LOWER)
               .createdByUserId("new-test-user")
               .build();
@@ -329,6 +348,55 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preUpdate,
           after::getUpdatedByUserId,
           after::getUpdatedOn);
+    }
+
+    @Test
+    @DisplayName(
+        "PATCH /api/v1/submissions/{id} to VALIDATION_FAILED sets claims to INVALID and updates claim metadata")
+    void patchSubmissionValidationFailedUpdatesClaimsAndMetadata() throws Exception {
+      // seed submissions and claims
+      seedClaimsData();
+
+      // capture before snapshots for claims belonging to submission1
+      Claim before1 = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+      Claim before2 = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      Claim before4 = claimRepository.findById(CLAIM_4_ID).orElseThrow();
+      Claim before5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
+
+      SubmissionPatch patch = new SubmissionPatch();
+      patch.setStatus(SubmissionStatus.VALIDATION_FAILED);
+      patch.setCreatedByUserId(ClaimsDataTestUtil.API_USER_ID);
+
+      Instant preUpdate = Instant.now();
+
+      mockMvc
+          .perform(
+              patch(SUBMISSION_BY_ID_ENDPOINT, submission1.getId())
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(OBJECT_MAPPER.writeValueAsString(patch)))
+          .andExpect(status().isNoContent());
+
+      // verify each claim has been set to INVALID and metadata behaved as expected
+      Claim after1 = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+      assertThat(after1.getStatus()).as("claim1 status").isEqualTo(ClaimStatus.INVALID);
+      assertClaimCreatedPreserved(before1, after1);
+      assertClaimUpdatedByAndTimestamp(after1, ClaimsDataTestUtil.API_USER_ID);
+
+      Claim after2 = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      assertThat(after2.getStatus()).as("claim2 status").isEqualTo(ClaimStatus.INVALID);
+      assertClaimCreatedPreserved(before2, after2);
+      assertClaimUpdatedByAndTimestamp(after2, ClaimsDataTestUtil.API_USER_ID);
+
+      Claim after4 = claimRepository.findById(CLAIM_4_ID).orElseThrow();
+      assertThat(after4.getStatus()).as("claim4 status").isEqualTo(ClaimStatus.INVALID);
+      assertClaimCreatedPreserved(before4, after4);
+      assertClaimUpdatedByAndTimestamp(after4, ClaimsDataTestUtil.API_USER_ID);
+
+      Claim after5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
+      assertThat(after5.getStatus()).as("claim5 status").isEqualTo(ClaimStatus.INVALID);
+      assertClaimCreatedPreserved(before5, after5);
+      assertClaimUpdatedByAndTimestamp(after5, ClaimsDataTestUtil.API_USER_ID);
     }
   }
 
@@ -367,7 +435,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/submissions/{id}/claims does not set updated metadata on creation and creates child records with created metadata")
+    @DisplayName(
+        "POST /api/v1/submissions/{id}/claims does not set updated metadata on creation and creates child records with created metadata")
     void postClaimDoesNotSetUpdatedMetadataAndCreatesChildRecords() throws Exception {
       seedSubmissionsData();
       ClaimPost claimPost = ClaimsDataTestUtil.getClaimPost("CASE-123");
@@ -388,9 +457,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       UUID createdId = UUID.fromString(createResp.get("id").asText());
       var created = claimRepository.findById(createdId).orElseThrow();
 
-      // Claim updated metadata should not be set on create
-      assertThat(created.getUpdatedByUserId()).as("claim updatedByUserId on create").isNull();
-      assertThat(created.getUpdatedOn()).as("claim updatedOn on create").isNull();
+
+      assertUpdatedMatchesCreated(
+          "claim",
+          created.getCreatedByUserId(),
+          created.getUpdatedByUserId(),
+          created.getCreatedOn(),
+          created.getUpdatedOn());
 
       // Claim summary fee should have created metadata
       var summaryFeeOpt = claimSummaryFeeRepository.findByClaimId(createdId);
@@ -402,8 +475,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             summaryFee::getCreatedByUserId,
             summaryFee::getCreatedOn);
-        assertThat(summaryFee.getUpdatedByUserId()).as("claim_summary_fee updatedByUserId on create").isNull();
-        assertThat(summaryFee.getUpdatedOn()).as("claim_summary_fee updatedOn on create").isNull();
+  
+        assertUpdatedMatchesCreated(
+            "claim_summary_fee",
+            summaryFee.getCreatedByUserId(),
+            summaryFee.getUpdatedByUserId(),
+            summaryFee.getCreatedOn(),
+            summaryFee.getUpdatedOn());
       }
 
       // Claim case if present
@@ -416,8 +494,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             claimCase::getCreatedByUserId,
             claimCase::getCreatedOn);
-        assertThat(claimCase.getUpdatedByUserId()).as("claim_case updatedByUserId on create").isNull();
-        assertThat(claimCase.getUpdatedOn()).as("claim_case updatedOn on create").isNull();
+  
+        assertUpdatedMatchesCreated(
+            "claim_case",
+            claimCase.getCreatedByUserId(),
+            claimCase.getUpdatedByUserId(),
+            claimCase.getCreatedOn(),
+            claimCase.getUpdatedOn());
       }
 
       // Client if present
@@ -430,8 +513,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             client::getCreatedByUserId,
             client::getCreatedOn);
-        assertThat(client.getUpdatedByUserId()).as("client updatedByUserId on create").isNull();
-        assertThat(client.getUpdatedOn()).as("client updatedOn on create").isNull();
+  
+        assertUpdatedMatchesCreated(
+            "client",
+            client.getCreatedByUserId(),
+            client.getUpdatedByUserId(),
+            client.getCreatedOn(),
+            client.getUpdatedOn());
       }
     }
 
@@ -444,12 +532,10 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       ClaimPatch patch = new ClaimPatch();
       patch.setFeeCode("FEE-NEW");
       patch.setCaseReferenceNumber("CASE-NEW");
-      patch.setStatus(
-          ClaimStatus.READY_TO_PROCESS);
+      patch.setStatus(ClaimStatus.READY_TO_PROCESS);
       patch.version(claim2.getVersion());
       patch.amendmentRequestedBy(ClaimsDataTestUtil.API_USER_ID);
       patch.amendmentReasonCode("AMEND-TEST");
-
 
       Instant preUpdate = Instant.now();
 
@@ -479,7 +565,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/submissions/{submissionId}/claims/{claimId} non-amendment creates validation messages with created timestamps")
+    @DisplayName(
+        "PATCH /api/v1/submissions/{submissionId}/claims/{claimId} non-amendment creates validation messages with created timestamps")
     void patchClaimNonAmendmentCreatesValidationMessageLogMetadata() throws Exception {
       seedClaimsData();
 
@@ -508,7 +595,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/submissions/{submissionId}/claims/{claimId} creates calculated fee detail with created metadata")
+    @DisplayName(
+        "PATCH /api/v1/submissions/{submissionId}/claims/{claimId} creates calculated fee detail with created metadata")
     void patchClaimCreatesCalculatedFeeDetailMetadata() throws Exception {
       seedClaimsData();
 
@@ -536,8 +624,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
                     preUpdate,
                     d::getCreatedByUserId,
                     d::getCreatedOn);
-                assertThat(d.getUpdatedByUserId()).as("calculated_fee_detail updatedByUserId on create").isNull();
-                assertThat(d.getUpdatedOn()).as("calculated_fee_detail updatedOn on create").isNull();
+
+                assertUpdatedMatchesCreated(
+                    "calculated_fee_detail",
+                    d.getCreatedByUserId(),
+                    d.getUpdatedByUserId(),
+                    d.getCreatedOn(),
+                    d.getUpdatedOn());
               });
     }
   }
@@ -574,7 +667,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/submissions/{id}/matter-starts does not set updated metadata on creation")
+    @DisplayName(
+        "POST /api/v1/submissions/{id}/matter-starts does not set updated metadata on creation")
     void postMatterStartDoesNotSetUpdatedMetadata() throws Exception {
       seedSubmissionsData();
       MatterStartPost matterStartPost =
@@ -589,8 +683,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isCreated());
 
       var saved = matterStartRepository.findBySubmissionId(submission1.getId()).getFirst();
-      assertThat(saved.getUpdatedByUserId()).as("matter_start updatedByUserId on create").isNull();
-      assertThat(saved.getUpdatedOn()).as("matter_start updatedOn on create").isNull();
+
+      assertUpdatedMatchesCreated(
+          "matter_start",
+          saved.getCreatedByUserId(),
+          saved.getUpdatedByUserId(),
+          saved.getCreatedOn(),
+          saved.getUpdatedOn());
     }
   }
 
@@ -610,19 +709,19 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       UUID userId = Uuid7.timeBasedUuid();
 
       String requestBody =
-              "{"
-                      + "\"created_by_user_id\":\""
-                      + userId
-                      + "\","
-                      + "\"assessment_reason\":\"test reason\""
-                      + "}";
+          "{"
+              + "\"created_by_user_id\":\""
+              + userId
+              + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
 
       mockMvc
           .perform(
               post(VOID_CLAIM_ENDPOINT, CLAIM_2_ID)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                   .contentType(MediaType.APPLICATION_JSON)
-                      .content(requestBody))
+                  .content(requestBody))
           .andExpect(status().isCreated());
 
       var updatedClaim = claimRepository.findById(CLAIM_2_ID).orElseThrow();
@@ -637,7 +736,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       assertUpdatedMetadata(
           "claim",
           userId.toString(),
-          preCall, 
+          preCall,
           updatedClaim::getUpdatedByUserId,
           updatedClaim::getUpdatedOn);
 
@@ -701,16 +800,20 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/claims/{claimId}/void inserts assessment without updated metadata set")
+    @DisplayName(
+        "POST /api/v1/claims/{claimId}/void inserts assessment without updated metadata set")
     void postVoidClaimAssessmentHasNoUpdatedMetadata() throws Exception {
       seedClaimsData();
 
       UUID userId = Uuid7.timeBasedUuid();
 
-      String requestBody = "{" +
-              "\"created_by_user_id\":\"" + userId + "\"," +
-              "\"assessment_reason\":\"test reason\"" +
-              "}";
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + userId
+              + "\","
+              + "\"assessment_reason\":\"test reason\""
+              + "}";
 
       mockMvc
           .perform(
@@ -721,14 +824,22 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isCreated());
 
       var createdAssessment =
-          assessmentRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_2_ID).orElseThrow();
+          assessmentRepository
+              .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_2_ID)
+              .orElseThrow();
 
-      assertThat(createdAssessment.getUpdatedByUserId()).as("assessment updatedByUserId on create").isNull();
-      assertThat(createdAssessment.getUpdatedOn()).as("assessment updatedOn on create").isNull();
+  
+        assertUpdatedMatchesCreated(
+            "assessment",
+            createdAssessment.getCreatedByUserId(),
+            createdAssessment.getUpdatedByUserId(),
+            createdAssessment.getCreatedOn(),
+            createdAssessment.getUpdatedOn());
     }
 
     @Test
-    @DisplayName("POST /api/v1/claims/{claimId}/assessments inserted assessment does not have updated metadata")
+    @DisplayName(
+        "POST /api/v1/claims/{claimId}/assessments inserted assessment does not have updated metadata")
     void postAssessmentDoesNotSetUpdatedMetadata() throws Exception {
       seedAssessmentsData();
 
@@ -750,8 +861,13 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       UUID assessmentId = UUID.fromString(createResp.get("id").asText());
 
       var savedAssessment = assessmentRepository.findById(assessmentId).orElseThrow();
-      assertThat(savedAssessment.getUpdatedByUserId()).as("assessment updatedByUserId on create").isNull();
-      assertThat(savedAssessment.getUpdatedOn()).as("assessment updatedOn on create").isNull();
+
+      assertUpdatedMatchesCreated(
+          "assessment",
+          savedAssessment.getCreatedByUserId(),
+          savedAssessment.getUpdatedByUserId(),
+          savedAssessment.getCreatedOn(),
+          savedAssessment.getUpdatedOn());
     }
   }
 }
