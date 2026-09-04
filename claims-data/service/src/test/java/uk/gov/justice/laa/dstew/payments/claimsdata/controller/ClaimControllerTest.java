@@ -40,7 +40,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -161,7 +161,8 @@ class ClaimControllerTest {
                   .content(body))
           .andExpect(status().isNoContent());
 
-      verify(claimService).updateClaim(eq(submissionId), eq(claimId), any(ClaimPatch.class));
+      verify(claimService)
+          .updateClaim(eq(submissionId), eq(claimId), any(ClaimAmendmentPatch.class));
     }
 
     @Test
@@ -442,68 +443,68 @@ class ClaimControllerTest {
           .andExpect(status().isOk())
           .andExpect(content().json(jsonContent));
     }
+  }
 
-    @Nested
-    @DisplayName("pagination")
-    class V2PaginationTests {
+  @Nested
+  @DisplayName("pagination")
+  class V2PaginationTests {
 
-      @Test
-      @DisplayName("Get claims v2 with page=0 size=5 forwards pageable to service")
-      void getClaimsV2WithPage0Size5PassesPageableToService() throws Exception {
-        var claimResponse = new ClaimResponseV2();
-        var expected = new ClaimResultSetV2().content(List.of(claimResponse));
+    @Test
+    @DisplayName("Get claims v2 with page=0 size=5 forwards pageable to service")
+    void getClaimsV2WithPage0Size5PassesPageableToService() throws Exception {
+      var claimResponse = new ClaimResponseV2();
+      var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
-        when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
-            .thenReturn(expected);
+      when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+          .thenReturn(expected);
 
-        clearInvocations(claimService);
+      clearInvocations(claimService);
 
-        mockMvc
-            .perform(
-                get("/api/v2/claims")
-                    .queryParam("office_code", "office_123")
-                    .queryParam("page", "0")
-                    .queryParam("size", "5"))
-            .andExpect(status().isOk())
-            .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
+      mockMvc
+          .perform(
+              get("/api/v2/claims")
+                  .queryParam("office_code", "office_123")
+                  .queryParam("page", "0")
+                  .queryParam("size", "5"))
+          .andExpect(status().isOk())
+          .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(claimService)
-            .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
-        Pageable captured = pageableCaptor.getValue();
-        assertThat(captured.isUnpaged()).isFalse();
-        assertThat(captured.getPageNumber()).isZero();
-        assertThat(captured.getPageSize()).isEqualTo(5);
-      }
+      ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+      verify(claimService)
+          .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
+      Pageable captured = pageableCaptor.getValue();
+      assertThat(captured.isUnpaged()).isFalse();
+      assertThat(captured.getPageNumber()).isZero();
+      assertThat(captured.getPageSize()).isEqualTo(5);
+    }
 
-      @Test
-      @DisplayName("Get claims v2 with page=2 size=5 forwards pageable to service")
-      void getClaimsV2WithPage2Size5PassesPageableToService() throws Exception {
-        var claimResponse = new ClaimResponseV2();
-        var expected = new ClaimResultSetV2().content(List.of(claimResponse));
+    @Test
+    @DisplayName("Get claims v2 with page=2 size=5 forwards pageable to service")
+    void getClaimsV2WithPage2Size5PassesPageableToService() throws Exception {
+      var claimResponse = new ClaimResponseV2();
+      var expected = new ClaimResultSetV2().content(List.of(claimResponse));
 
-        when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
-            .thenReturn(expected);
+      when(claimService.getClaimResultSetV2(any(ClaimSearchRequest.class), any(Pageable.class)))
+          .thenReturn(expected);
 
-        clearInvocations(claimService);
+      clearInvocations(claimService);
 
-        mockMvc
-            .perform(
-                get("/api/v2/claims")
-                    .queryParam("office_code", "office_123")
-                    .queryParam("page", "2")
-                    .queryParam("size", "5"))
-            .andExpect(status().isOk())
-            .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
+      mockMvc
+          .perform(
+              get("/api/v2/claims")
+                  .queryParam("office_code", "office_123")
+                  .queryParam("page", "2")
+                  .queryParam("size", "5"))
+          .andExpect(status().isOk())
+          .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expected)));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(claimService)
-            .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
-        Pageable captured = pageableCaptor.getValue();
-        assertThat(captured.isUnpaged()).isFalse();
-        assertThat(captured.getPageNumber()).isEqualTo(2);
-        assertThat(captured.getPageSize()).isEqualTo(5);
-      }
+      ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+      verify(claimService)
+          .getClaimResultSetV2(any(ClaimSearchRequest.class), pageableCaptor.capture());
+      Pageable captured = pageableCaptor.getValue();
+      assertThat(captured.isUnpaged()).isFalse();
+      assertThat(captured.getPageNumber()).isEqualTo(2);
+      assertThat(captured.getPageSize()).isEqualTo(5);
     }
   }
 }
