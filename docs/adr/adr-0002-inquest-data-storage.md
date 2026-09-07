@@ -43,7 +43,7 @@ so the **target model is three tables**:
 
 ### 2.1 `inquest_detail` — 1:1 scalar row per claim
 One optional row per claim holding the scalar facts:
-`deceased_forename`, `deceased_surname`, `deceased_date_of_death`,
+`deceased_person_name`, `deceased_date_of_death`,
 `coroners_inquest_reference`, plus standard audit columns. Enforced 1:1 by
 `claim_id UUID NOT NULL UNIQUE REFERENCES claim(id)`.
 
