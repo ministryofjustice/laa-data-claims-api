@@ -1,0 +1,125 @@
+meta {
+  name: SETUP: Create bulk submission with fee calculation
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0P322F
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  userId: test
+  offices: 0P322F
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(test-assets/EV-CLM-053.1_outcome_code_crime_valid_code_scenario_it_tests.xml) @contentType(text/xml)
+}
+
+script:post-response {
+  // One-click bootstrap for amendment-repricing tests:
+  //   1. Confirms the bulk-submission POST returned 201 and captures ids.
+  //   2. Reads the submission to grab the first claim id.
+  //   3. Polls the claim until fee_calculation_response is populated
+  //      (event-service pricing is asynchronous).
+  //   4. Publishes baseline snapshot env vars used by the amendment-repricing pack.
+
+  if (res.status !== 201) {
+    throw new Error(`Expected 201 from bulk-submissions POST, got ${res.status}.`);
+  }
+
+  const body = res.getBody();
+  const submissionId = body && body.submission_ids && body.submission_ids[0];
+  const bulkSubmissionId = body && body.bulk_submission_id;
+  if (!submissionId) {
+    throw new Error("Bulk-submissions response did not include a submission_ids[0].");
+  }
+  bru.setEnvVar("SUBMISSION_ID", submissionId);
+  bru.setEnvVar("BULKSUBMISSION_ID", bulkSubmissionId || "");
+
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  if (!host || !auth) {
+    throw new Error('HOST/AUTH_TOKEN must be set in the environment.');
+  }
+
+  const submissionUrl = `http://${host}/api/v1/submissions/${submissionId}`;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Bruno's QuickJS axios does not reliably honour `validateStatus`, so we treat
+  // any thrown error (including 404s during warm-up) as "not ready yet" and
+  // fall through to the next polling attempt.
+  const safeGet = async (url) => {
+    try {
+      const resp = await axios.get(url, { headers: { Authorization: auth } });
+      return { status: resp.status, data: resp.data };
+    } catch (err) {
+      const status = err && err.response && err.response.status;
+      const data = err && err.response && err.response.data;
+      return { status: status || 0, data: data || null, error: err };
+    }
+  };
+
+  // Poll the submission for a claim id — the event-service creates claims asynchronously.
+  let claimId = null;
+  let lastSubmissionStatus = null;
+  for (let attempt = 0; attempt < 30 && !claimId; attempt++) {
+    const resp = await safeGet(submissionUrl);
+    lastSubmissionStatus = resp.status;
+    if (resp.status === 200 && resp.data && Array.isArray(resp.data.claims) && resp.data.claims.length > 0) {
+      claimId = resp.data.claims[0].claim_id;
+      break;
+    }
+    await sleep(1000);
+  }
+  if (!claimId) {
+    throw new Error(
+      `Timed out waiting for a claim to appear on submission ${submissionId} ` +
+      `(last GET status=${lastSubmissionStatus}).`
+    );
+  }
+  bru.setEnvVar("CLAIM_ID", claimId);
+
+  // Poll the claim until fee_calculation_response is populated by the pricing flow.
+  const claimUrl = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  let fee = null;
+  let lastClaimStatus = null;
+  for (let attempt = 0; attempt < 60 && !fee; attempt++) {
+    const resp = await safeGet(claimUrl);
+    lastClaimStatus = resp.status;
+    if (resp.status === 200 && resp.data && resp.data.fee_calculation_response) {
+      fee = resp.data.fee_calculation_response;
+      break;
+    }
+    await sleep(1000);
+  }
+  if (!fee) {
+    throw new Error(
+      `Timed out waiting for fee_calculation_response on claim ${claimId} ` +
+      `(last GET status=${lastClaimStatus}). ` +
+      `Check that the event-service is running and connected to the fee-scheme platform.`
+    );
+  }
+
+  bru.setEnvVar("SUMMARY_FEE_ID", String(fee.claim_summary_fee_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
+
+  console.log(`Ready: SUBMISSION_ID=${submissionId} CLAIM_ID=${claimId} CFD=${fee.calculated_fee_detail_id}`);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+
+

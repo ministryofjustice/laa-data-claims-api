@@ -14,6 +14,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -21,15 +22,20 @@ import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 /**
  * Prepares the physical database entity row data for successful FSP repricing to be handed off to
  * the atomic commit write transaction (1595-F).
+ *
+ * <p>All field-level projection from the FSP response to the entity happens in {@link
+ * ClaimMapper#toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata)}; this class only
+ * orchestrates resolver + mapper + the relational / audit fields that MapStruct cannot infer.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class FeeSchemeHandoffFactory {
 
-  /**
-   * Translates a successful OpenAPI platform response into a storable CalculatedFeeDetail entity.
-   */
+  private final ClaimMapper claimMapper;
+  private final FeeCalculationMetadataResolver feeCalculationMetadataResolver;
+
+  /** Translates a successful FSP platform response into a storable {@link CalculatedFeeDetail}. */
   public CalculatedFeeDetail prepareCalculatedFeeDetail(
       Claim claim,
       ClaimAmendmentState state,
@@ -52,32 +58,20 @@ public class FeeSchemeHandoffFactory {
             || previousFeeState.getTotalAmount() == null
             || responseTotal == null
             || previousFeeState.getTotalAmount().compareTo(responseTotal) != 0;
-    // Build the database entity row structure
-    CalculatedFeeDetail newFeeDetail = new CalculatedFeeDetail();
+
+    // Delegate the field-by-field projection to MapStruct. The resolver supplies the three
+    // metadata fields (feeType / feeCodeDescription / categoryOfLaw) that are not on the FSP
+    // response but are required for parity with the legacy claim pricing flow.
+    ResolvedFeeMetadata metadata =
+        feeCalculationMetadataResolver.resolve(state, feeCalculationResponse.getFeeCode());
+    CalculatedFeeDetail newFeeDetail =
+        claimMapper.toCalculatedFeeDetail(feeCalculationResponse, metadata);
+
     newFeeDetail.setId(Uuid7.timeBasedUuid());
     newFeeDetail.setClaim(claim);
     newFeeDetail.setClaimAmendment(claimAmendment); // 1595-F: Establish tracking link
     newFeeDetail.setIsPriceChanged(priceChanged);
-    newFeeDetail.setTotalAmount(responseTotal);
     newFeeDetail.setCreatedOn(Instant.now());
-
-    // --- ADDED: Map missing required FSP fields ---
-    newFeeDetail.setFeeCode(feeCalculationResponse.getFeeCode());
-    newFeeDetail.setSchemeId(feeCalculationResponse.getSchemeId());
-
-    if (feeCalculationResponse.getEscapeCaseFlag() != null) {
-      newFeeDetail.setEscapeCaseFlag(feeCalculationResponse.getEscapeCaseFlag());
-    }
-
-    if (calc.getNetProfitCostsAmount() != null) {
-      newFeeDetail.setNetProfitCostsAmount(BigDecimal.valueOf(calc.getNetProfitCostsAmount()));
-    }
-
-    if (calc.getVatIndicator() != null) {
-      newFeeDetail.setVatIndicator(calc.getVatIndicator());
-    }
-
-    // --- ADDED: Map required audit & relational fields ---
     // Inherit the user ID from the amendment request
     newFeeDetail.setCreatedByUserId(claimAmendment.getCreatedByUserId());
 
@@ -95,7 +89,7 @@ public class FeeSchemeHandoffFactory {
           String.format(
               "Cannot persist CalculatedFeeDetail: No summary fee for claim %s", claim.getId());
       log.error(errorMessage);
-      throw new ClaimSummaryFeeNotFoundException(String.format(errorMessage));
+      throw new ClaimSummaryFeeNotFoundException(errorMessage);
     }
     newFeeDetail.setClaimSummaryFee(latestSummaryFee);
     return newFeeDetail;

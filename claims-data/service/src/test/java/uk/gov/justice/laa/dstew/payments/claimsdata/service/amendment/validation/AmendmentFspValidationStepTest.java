@@ -29,7 +29,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimStateSnap
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.DiffEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimStateSnapshotMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeCalculationMetadataResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
@@ -41,6 +44,7 @@ class AmendmentFspValidationStepTest {
   @Mock private FeeSchemePlatformRestClient fspClient;
   @Mock private ClaimStateSnapshotMapper claimStateSnapshotMapper;
   @Mock private AmendmentDiffAssembler diffAssembler;
+  @Mock private FeeCalculationMetadataResolver feeCalculationMetadataResolver;
   @InjectMocks private AmendmentFspValidationStep validationStep;
 
   private ClaimAmendmentState.ClaimAmendmentStateBuilder stateBuilder;
@@ -137,6 +141,9 @@ class AmendmentFspValidationStepTest {
 
     when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(mockFspResponse));
     when(claimStateSnapshotMapper.toSnapshot(mockFspResponse)).thenReturn(mockAfterSnapshot);
+    when(feeCalculationMetadataResolver.resolve(state, "FEE02"))
+        .thenReturn(
+            new ResolvedFeeMetadata(FeeCalculationType.HOURLY, "Test fee description", "CAT-A"));
     AmendmentDiff pricingImpactingDiff =
         AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "FEE02")));
     when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingImpactingDiff);
@@ -147,7 +154,10 @@ class AmendmentFspValidationStepTest {
     assertThat(errors).isEmpty();
     assertThat(state.getFspResponseContext()).isEqualTo(mockFspResponse);
     assertThat(state.getBeforeFee()).isEqualTo(beforeStateBuilder.build().getCalculatedFeeDetail());
-    assertThat(state.getAfterFee()).isEqualTo(mockAfterSnapshot);
+    assertThat(state.getAfterFee().getTotalAmount()).isEqualByComparingTo("150.00");
+    assertThat(state.getAfterFee().getFeeType()).isEqualTo(FeeCalculationType.HOURLY);
+    assertThat(state.getAfterFee().getFeeCodeDescription()).isEqualTo("Test fee description");
+    assertThat(state.getAfterFee().getCategoryOfLaw()).isEqualTo("CAT-A");
   }
 
   @Test
