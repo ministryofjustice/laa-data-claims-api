@@ -115,9 +115,7 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
   /**
    * Cache the {@link ResolvedClaimData} produced by validation-core so downstream amendment steps
    * (notably {@code FeeCalculationMetadataResolver}) can read {@code feeCalculationType}, {@code
-   * authorisedCategoryOfLawCode} and {@code feeCodeDescription} without a second FSP call. Since
-   * validation-core 1.4.9, all three fields are surfaced on {@code ResolvedClaimData}; the previous
-   * best-effort {@code feeSchemeProvider.getFeeDetails(feeCode)} lookup is no longer needed.
+   * authorisedCategoryOfLawCode} and {@code feeCodeDescription} without a second FSP call.
    */
   private void cacheFeeSchemeEnrichment(
       ClaimAmendmentState state, ClaimValidationResult validationResult) {
