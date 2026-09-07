@@ -207,14 +207,17 @@ submission is rejected if it duplicates the period + office code + area of law o
   exclusions), and swap the retired `READY_FOR_VALIDATION` for the new gate states from ADR-0001. Update
   `DuplicateClaimValidationTest` and the integration tests
   (`DuplicateClaimsTest`, `SubmissionValidationServiceIntegrationTest`).
-- New/extended event type for the FINAL trigger; `SubmissionListener`'s
-  `processMessageByType` handles it.
+- **Reuse the existing `VALIDATE_SUBMISSION` message for the FINAL trigger — no new event type.** The
+  same message (payload: `submissionId` only) triggers both stages; `SubmissionListener`'s
+  `processMessageByType` handles it unchanged, and the stage is derived from the submission's **status**
+  (as above), not from the message. This keeps INITIAL and FINAL on one code path (aligned with ADR-0001,
+  which likewise reuses `VALIDATE_SUBMISSION` and does not tag messages with a stage).
 
 ### API (`laa-data-claims-api`)
 - Prefer an explicit **confirm** transition over accepting a bare `VALIDATION_SUCCEEDED` patch from the
   UI, so the API — not the frontend — owns the "confirm ⇒ run FINAL validation" rule. `SubmissionService`
-  should publish the FINAL validation event on the confirm transition instead of treating the patch as
-  terminal success.
+  should publish the **`VALIDATE_SUBMISSION`** event (the same message used at INITIAL) on the confirm
+  transition instead of treating the patch as terminal success.
 
 ### Frontend (`laa-submit-a-bulk-claim`)
 - Confirmation becomes **eventually consistent**: show a "checking / being validated" state and poll

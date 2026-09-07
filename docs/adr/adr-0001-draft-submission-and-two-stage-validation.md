@@ -235,8 +235,12 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   `ABANDONED`.
 - **Validation-trigger rework (grounded in the code).** Today `SubmissionService.updateSubmission`
   publishes the validation event **only** when a patch sets `READY_FOR_VALIDATION`. Retiring that value
-  means this trigger must branch: parse-completion → publish **INITIAL** validation; provider submit →
-  publish **FINAL** validation. Keep the "publish after commit" behaviour.
+  means this trigger must branch on the transition, but **both branches publish the same
+  `VALIDATE_SUBMISSION` message** (payload is just the `submissionId`): parse-completion (→
+  `INITIAL_VALIDATION_IN_PROGRESS`) publishes it, and provider submit (→ the FINAL in-progress state)
+  publishes it. **The stage is not tagged on the message** — the event service derives INITIAL vs FINAL
+  from the submission's status when it loads it (see the event-service section and ADR-0003). No new
+  event type is introduced for FINAL. Keep the "publish after commit" behaviour.
 - **NIL submissions bypass the whole staged flow — no draft-hold, no final submission.** Per business
   decision, a NIL submission does **not** enter the draft-hold (`READY_FOR_FINAL_VALIDATION`, i.e. the
   "ready for submission" state) and does **not** require a final submission. The frontend creates NIL
@@ -257,6 +261,12 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   execute in the event service via the existing SQS-driven flow; neither stage runs synchronously in
   the API. (The NIL synchronous validate-and-complete path in the API is a separate special case that
   bypasses staged validation entirely — see the API section.)
+- **One trigger message for both stages.** Both stages are triggered by the **same `VALIDATE_SUBMISSION`
+  message** (payload: `submissionId` only); the message is **not** tagged with the stage. `SubmissionListener`
+  / `SubmissionValidationService` derive INITIAL vs FINAL from the submission's **status** at the point of
+  processing (`READY_FOR_INITIAL_VALIDATION`/`INITIAL_VALIDATION_IN_PROGRESS` vs
+  `READY_FOR_FINAL_VALIDATION`/`VALIDATION_IN_PROGRESS`). This keeps INITIAL and FINAL on one code path and
+  avoids a forked, stage-tagged message that could drift (see ADR-0003).
 - Run the **same full validation at both stages** over the complete claim. INITIAL and FINAL differ
   only in **when** they run (after parse vs at submit), not in which rules execute — there is no
   per-stage rule subset. This includes the external **Fee Scheme Platform (FSP)** call, which is made
@@ -339,13 +349,16 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
    tables are added** (e.g. the new `is_inquest` column, or inquest-data tables): they must be added to
    the publication and the replica schema to replicate.
 3. New/changed events and endpoints. Because **both validation stages are asynchronous in the event
-   service**, the new **events** cover an **INITIAL-validation trigger** (on parse completion), an
-   **INITIAL-validation-complete** event, and a **FINAL-validation trigger** (on submit) — extending the
-   existing SNS/SQS set (`PARSE_BULK_SUBMISSION`, `VALIDATE_SUBMISSION`,
-   `SUBMISSION_VALIDATION_SUCCEEDED`) and aligning with the validation-trigger rework in the API
-   consequences. New **endpoints**: **submit** (triggers async FINAL validation) and **discard**.
-   **`DISCARDED`/`ABANDONED` need no SQS/SNS.** They are set **synchronously** by a transactional status
-   write that cascades claims — the same pattern `updateSubmission` already uses for
+   service**, **FINAL reuses the existing `VALIDATE_SUBMISSION` message** rather than adding a new event
+   type — the same message triggers both the INITIAL pass (on parse completion) and the FINAL pass (on
+   submit), with the event service distinguishing the stage from the submission's **status**, not from a
+   message tag (see ADR-0003). No `VALIDATE_FINAL_SUBMISSION`-style event is introduced. The existing
+   SNS/SQS set (`PARSE_BULK_SUBMISSION`, `VALIDATE_SUBMISSION`, `SUBMISSION_VALIDATION_SUCCEEDED`) is
+   therefore unchanged in shape; the only rework is **where `VALIDATE_SUBMISSION` is published from** (the
+   validation-trigger rework in the API consequences) and the new **endpoints**: **submit** (triggers the
+   async FINAL validation by publishing `VALIDATE_SUBMISSION` after the submit transition) and
+   **discard**. **`DISCARDED`/`ABANDONED` need no SQS/SNS.** They are set **synchronously** by a
+   transactional status write that cascades claims — the same pattern `updateSubmission` already uses for
    `VALIDATION_FAILED → claims INVALID` (via `updateAllClaimsStatusForSubmission`): `DISCARDED` on the
    provider's discard call, `ABANDONED` from the timeout/scheduler mechanism (whose trigger, and any
    reminder/notification side-effect, is parked under the wait-period open question above). **Note:**
