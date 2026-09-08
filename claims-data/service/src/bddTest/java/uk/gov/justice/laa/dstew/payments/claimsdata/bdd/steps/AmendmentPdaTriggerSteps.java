@@ -339,11 +339,6 @@ public class AmendmentPdaTriggerSteps {
         effectiveDate);
   }
 
-  // "no outbound PDA call was made" is owned by AmendmentHarnessCommonSteps (DSTEW-2301) and
-  // performs a real Mockito verify against the mocked ValidationService bean. The old spec-guard
-  // that lived here was a log-only placeholder ("verification owned by DSTEW-1773") — DSTEW-2301
-  // delivered the verification, so the placeholder is retired.
-
   @Then("the prior PDA-driven validation outcome is retained")
   public void priorPdaDrivenValidationOutcomeRetained() {
     log.info(
