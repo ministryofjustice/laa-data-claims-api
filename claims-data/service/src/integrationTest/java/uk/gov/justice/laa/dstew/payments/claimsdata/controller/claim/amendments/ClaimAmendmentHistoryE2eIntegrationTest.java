@@ -180,9 +180,12 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     }
 
     // This repricing amendment produces exactly one REQUESTED change and the FSP fee consequences.
-    assertThat(changes).hasSize(5);
+    // FSP-sourced fields written by FeeSchemeHandoffFactory (DSTEW-2079 parity):
+    //   fee.totalAmount, fee.netProfitCostsAmount, fee.vatIndicator, fee.schemeId,
+    //   fee.feeType, fee.feeCodeDescription.
+    assertThat(changes).hasSize(7);
     assertThat(countByChangeSource(changes, "REQUESTED")).isEqualTo(1);
-    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(4);
+    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(6);
 
     // --- REQUESTED change: the provider's edit, with its actual before/after values ---
     // Seeded claimSummaryFee net profit costs (250) -> the amended value (9999.00).
@@ -215,6 +218,18 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(fspSchemeId.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspSchemeId.get("before").isNull()).isTrue();
     assertThat(fspSchemeId.get("after").asText()).isEqualTo("SCHEME-TEST");
+
+    // Fee metadata resolved from validation-core ResolvedClaimData (DSTEW-2079 parity):
+    // feeType and feeCodeDescription are populated by FeeCalculationMetadataResolver.
+    JsonNode fspFeeType = changeByField(changes, "fee.feeType");
+    assertThat(fspFeeType.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(fspFeeType.get("before").isNull()).isTrue();
+    assertThat(fspFeeType.get("after").asText()).isEqualTo("HOURLY");
+
+    JsonNode fspFeeCodeDescription = changeByField(changes, "fee.feeCodeDescription");
+    assertThat(fspFeeCodeDescription.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(fspFeeCodeDescription.get("before").isNull()).isTrue();
+    assertThat(fspFeeCodeDescription.get("after").asText()).isEqualTo("test description");
 
     // --- Assert: FSP consequence FLAGS (DSTEW-1762) ---
     // These derive from the calculated_fee_detail row that the commit pipeline links to this
@@ -279,6 +294,83 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isTrue();
     assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isTrue();
     assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "A repricing amendment with bolt-on FSP details surfaces every bolt-on field as an FSP-sourced change")
+  void repricingAmendmentSurfacesBoltOnChangesInHistory() throws Exception {
+    // DSTEW-2079 parity: when FSP returns a nested feeCalculation.boltOnFeeDetails block, the
+    // amendment diff must surface each populated bolt-on field as an FSP-sourced change entry
+    // (before=null on the baseline row, after=FSP value) on the AMENDMENT history event.
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.setNetProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(9999.00)));
+
+    String fspResponse =
+        "{\"feeCode\":\"FEE-BOLTON\",\"schemeId\":\"SCHEME-BOLTON\","
+            + "\"escapeCaseFlag\":false,"
+            + "\"feeCalculation\":{"
+            + "\"totalAmount\":1200.00,\"netProfitCostsAmount\":600.00,\"vatIndicator\":true,"
+            + "\"boltOnFeeDetails\":{"
+            + "\"boltOnTotalFeeAmount\":300.00,"
+            + "\"boltOnAdjournedHearingCount\":2,"
+            + "\"boltOnAdjournedHearingFee\":40.00,"
+            + "\"boltOnCmrhTelephoneCount\":1,"
+            + "\"boltOnCmrhTelephoneFee\":20.00,"
+            + "\"boltOnCmrhOralCount\":1,"
+            + "\"boltOnCmrhOralFee\":30.00,"
+            + "\"boltOnHomeOfficeInterviewCount\":1,"
+            + "\"boltOnHomeOfficeInterviewFee\":60.00,"
+            + "\"boltOnSubstantiveHearingFee\":150.00"
+            + "}}}";
+
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(fspResponse));
+
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, HttpStatus.NO_CONTENT);
+
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    assertThat(amendmentEvent).as("an AMENDMENT event is present in the timeline").isNotNull();
+
+    JsonNode changes = amendmentEvent.get("metadata").get("changes");
+    assertThat(changes).isNotNull();
+
+    // Each bolt-on field is surfaced as an FSP-sourced change with before=null (baseline row does
+    // not populate bolt-on fields) and after = the FSP-returned value.
+    assertBoltOnFspChange(changes, "fee.boltOnTotalFeeAmount", "300.00");
+    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingCount", 2);
+    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingFee", "40.00");
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneFee", "20.00");
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralFee", "30.00");
+    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewFee", "60.00");
+    assertBoltOnFspChange(changes, "fee.boltOnSubstantiveHearingFee", "150.00");
+
+    // Sanity: repricing was invoked and produced a price-changed FSP consequence.
+    JsonNode metadata = amendmentEvent.get("metadata");
+    assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isTrue();
+    // No baseline escape flag transition: escapeCaseFlag stayed false, so no history change entry
+    // for fee.escapeCaseFlag and the derived escape_case_logged flag stays false.
+    assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
   }
 
   @Test
@@ -542,5 +634,27 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
       }
     }
     return count;
+  }
+
+  /**
+   * Asserts that {@code changes} carries an FSP-sourced entry for {@code fieldIdentifier} whose
+   * {@code before} is null and whose {@code after} numerically equals {@code expectedAfter} (parsed
+   * as BigDecimal to tolerate JSON scale differences like {@code 300} vs {@code 300.00}).
+   */
+  private static void assertBoltOnFspChange(
+      JsonNode changes, String fieldIdentifier, String expectedAfter) {
+    JsonNode change = changeByField(changes, fieldIdentifier);
+    assertThat(change.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(change.get("before").isNull()).isTrue();
+    assertThat(change.get("after").decimalValue()).isEqualByComparingTo(expectedAfter);
+  }
+
+  /** Integer-valued overload of {@link #assertBoltOnFspChange(JsonNode, String, String)}. */
+  private static void assertBoltOnFspChange(
+      JsonNode changes, String fieldIdentifier, int expectedAfter) {
+    JsonNode change = changeByField(changes, fieldIdentifier);
+    assertThat(change.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(change.get("before").isNull()).isTrue();
+    assertThat(change.get("after").asInt()).isEqualTo(expectedAfter);
   }
 }

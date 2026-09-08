@@ -1,0 +1,311 @@
+meta {
+  name: SETUP: Create bolt-on submission (Immigration) with fee calculation
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://{{HOST}}/api/v1/bulk-submissions?userId=test&offices=0P322F
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  userId: test
+  offices: 0P322F
+}
+
+headers {
+  Authorization: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  file: @file(test-assets/EV-BOLT-ONS-IMM_immigration_bolt_ons_scenario.xml) @contentType(text/xml)
+}
+
+script:post-response {
+  // One-click bootstrap for bolt-on verification against the amendment-repricing
+  // flow. Same shape as "SETUP: Create bulk submission with fee calculation"
+  // but uploads an Immigration & Asylum XML where the fee scheme is expected
+  // to return populated bolt_on_details on the priced claim.
+
+  if (res.status !== 201) {
+    throw new Error(`Expected 201 from bulk-submissions POST, got ${res.status}.`);
+  }
+
+  const body = res.getBody();
+  const submissionId = body && body.submission_ids && body.submission_ids[0];
+  const bulkSubmissionId = body && body.bulk_submission_id;
+  if (!submissionId) {
+    throw new Error("Bulk-submissions response did not include a submission_ids[0].");
+  }
+  bru.setEnvVar("SUBMISSION_ID", submissionId);
+  bru.setEnvVar("BULKSUBMISSION_ID", bulkSubmissionId || "");
+
+  const axios = require('axios');
+  const host = bru.getEnvVar('HOST');
+  const auth = bru.getEnvVar('AUTH_TOKEN');
+  if (!host || !auth) {
+    throw new Error('HOST/AUTH_TOKEN must be set in the environment.');
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const safeGet = async (url) => {
+    try {
+      const resp = await axios.get(url, { headers: { Authorization: auth } });
+      return { status: resp.status, data: resp.data };
+    } catch (err) {
+      const status = err && err.response && err.response.status;
+      const data = err && err.response && err.response.data;
+      return { status: status || 0, data: data || null, error: err };
+    }
+  };
+
+  // Poll the submission for a claim id.
+  const submissionUrl = `http://${host}/api/v1/submissions/${submissionId}`;
+  let claimId = null;
+  let lastSubmissionStatus = null;
+  for (let attempt = 0; attempt < 90 && !claimId; attempt++) {
+    const resp = await safeGet(submissionUrl);
+    lastSubmissionStatus = resp.status;
+    if (resp.status === 200 && resp.data && Array.isArray(resp.data.claims) && resp.data.claims.length > 0) {
+      claimId = resp.data.claims[0].claim_id;
+      break;
+    }
+    await sleep(1000);
+  }
+  if (!claimId) {
+    // Rich diagnostic: fetch the bulk submission + validation-messages so we know
+    // whether the submission entry was ever created and why event-service stopped.
+    let bulkDiag = {};
+    try {
+      const bsId = bru.getEnvVar('BULKSUBMISSION_ID');
+      if (bsId) {
+        const bsResp = await axios.get(`http://${host}/api/v1/bulk-submissions/${bsId}`,
+          { headers: { Authorization: auth } });
+        if (bsResp.status === 200) bulkDiag = bsResp.data || {};
+      }
+    } catch (_) { /* swallow */ }
+
+    let validationMessages = [];
+    try {
+      const vmResp = await axios.get(
+        `http://${host}/api/v1/validation-messages?submission-id=${submissionId}&size=200`,
+        { headers: { Authorization: auth } });
+      if (vmResp.status === 200 && vmResp.data) {
+        validationMessages = vmResp.data.content || vmResp.data || [];
+      }
+    } catch (_) { /* swallow */ }
+
+    console.log('=== Bolt-on setup diagnostic (submission not queryable) ===');
+    console.log(`submission_id=${submissionId}`);
+    console.log(`bulk_submission_id=${bru.getEnvVar('BULKSUBMISSION_ID')}`);
+    console.log(`last GET status=${lastSubmissionStatus}`);
+    console.log(`bulk_status=${bulkDiag.status}`);
+    console.log(`bulk_error_code=${bulkDiag.error_code}`);
+    console.log(`bulk_error_description=${bulkDiag.error_description}`);
+    console.log(`validation_messages_count=${validationMessages.length}`);
+    console.log('validation_messages_raw:');
+    console.log(JSON.stringify(validationMessages, null, 2));
+
+    throw new Error(
+      `Submission ${submissionId} never surfaced a claim.\n` +
+      `  last HTTP status=${lastSubmissionStatus}\n` +
+      `  bulk_status=${bulkDiag.status}\n` +
+      `  bulk_error_code=${bulkDiag.error_code}\n` +
+      `  bulk_error_description=${bulkDiag.error_description}\n` +
+      `  validation_messages=${validationMessages.length}\n` +
+      `See the Bruno console for the full validation-messages JSON.`
+    );
+  }
+  bru.setEnvVar("CLAIM_ID", claimId);
+
+  // Poll the claim until fee_calculation_response is populated.
+  const claimUrl = `http://${host}/api/v1/submissions/${submissionId}/claims/${claimId}`;
+  let claimData = null;
+  let lastClaimStatus = null;
+  let lastClaimBody = null;
+  for (let attempt = 0; attempt < 60 && !claimData; attempt++) {
+    const resp = await safeGet(claimUrl);
+    lastClaimStatus = resp.status;
+    lastClaimBody = resp.data;
+    if (resp.status === 200 && resp.data && resp.data.fee_calculation_response) {
+      claimData = resp.data;
+      break;
+    }
+    // If the claim reached a terminal non-priced state, stop polling early.
+    if (resp.status === 200 && resp.data && resp.data.status
+        && ['INVALID', 'REJECTED', 'READY_TO_PROCESS_FAILED'].includes(resp.data.status)) {
+      break;
+    }
+    await sleep(1000);
+  }
+  if (!claimData) {
+    const diag = lastClaimBody || {};
+    const validationErrors =
+      (diag.claim_validation_errors && diag.claim_validation_errors.length)
+        ? diag.claim_validation_errors.map(e => `${e.type}:${e.source}:${e.display_message || e.error_code}`).join(' | ')
+        : '(none reported)';
+
+    // Fetch submission-level context to surface errors that live on the
+    // submission rather than the claim (e.g. fee-scheme resolution failures).
+    let submissionDiag = {};
+    let submissionErrors = '(unavailable)';
+    try {
+      const subResp = await axios.get(submissionUrl, { headers: { Authorization: auth } });
+      if (subResp.status === 200) {
+        submissionDiag = subResp.data || {};
+        const errs = submissionDiag.submission_validation_errors || submissionDiag.validation_errors || [];
+        submissionErrors = errs.length
+          ? errs.map(e => `${e.type || ''}:${e.source || ''}:${e.display_message || e.error_code}`).join(' | ')
+          : '(none reported)';
+      }
+    } catch (_) { /* swallow — diagnostic only */ }
+
+    // Fetch the bulk-submission root — it holds error_code / error_description
+    // when submission-level validation fails without per-claim errors.
+    let bulkDiag = {};
+    try {
+      const bsId = bru.getEnvVar('BULKSUBMISSION_ID');
+      if (bsId) {
+        const bsResp = await axios.get(`http://${host}/api/v1/bulk-submissions/${bsId}`,
+          { headers: { Authorization: auth } });
+        if (bsResp.status === 200) bulkDiag = bsResp.data || {};
+      }
+    } catch (_) { /* swallow */ }
+
+    // Fetch the dedicated validation-messages endpoint — this is where per-claim
+    // and per-source validation errors are actually persisted.
+    let validationMessages = [];
+    let validationMessagesSummary = '(unavailable)';
+    try {
+      const vmUrl = `http://${host}/api/v1/validation-messages?submission-id=${submissionId}&size=200`;
+      const vmResp = await axios.get(vmUrl, { headers: { Authorization: auth } });
+      if (vmResp.status === 200 && vmResp.data) {
+        validationMessages = vmResp.data.content || vmResp.data || [];
+        validationMessagesSummary = validationMessages.length
+          ? validationMessages
+              .map(m => `${m.type || ''}:${m.source || ''}:${m.message_code || ''}:${m.display_message || m.technical_message || ''}`)
+              .join('\n  | ')
+          : '(none)';
+      }
+    } catch (_) { /* swallow */ }
+
+    // Probe FSP directly for the claim's fee code so we know whether the
+    // scheme couldn't resolve it. FSP creds are already in env vars.
+    let fspProbe = 'skipped';
+    const fspBase = bru.getEnvVar('FEE_SCHEME_PLATFORM_API_URL');
+    const fspToken = bru.getEnvVar('FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN');
+    if (fspBase && fspToken && diag.fee_code) {
+      const feeDetailsUrl = `${fspBase.replace(/\/+$/, '')}/api/v2/fee-details/${diag.fee_code}`;
+      try {
+        const fspResp = await axios.get(feeDetailsUrl, { headers: { Authorization: fspToken } });
+        fspProbe = `HTTP ${fspResp.status} feeType=${fspResp.data && fspResp.data.feeType} areaOfLaw=${fspResp.data && fspResp.data.areaOfLaw} categoryOfLawCodes=${JSON.stringify(fspResp.data && fspResp.data.categoryOfLawCodes)}`;
+      } catch (err) {
+        const status = err.response && err.response.status;
+        fspProbe = `HTTP ${status || 'ERR'} (FSP does not recognise fee_code=${diag.fee_code})`;
+      }
+    }
+
+    // Log everything to the Bruno console (banner truncates multi-line).
+    console.log('=== Bolt-on setup diagnostic ===');
+    console.log(`claim_id=${claimId}`);
+    console.log(`status=${diag.status}`);
+    console.log(`fee_code=${diag.fee_code}`);
+    console.log(`matter_type_code=${diag.matter_type_code}`);
+    console.log(`scheme_id=${diag.scheme_id}`);
+    console.log(`stage_reached_code=${diag.stage_reached_code}`);
+    console.log(`submission_period=${diag.submission_period}`);
+    console.log(`last HTTP status=${lastClaimStatus}`);
+    console.log(`submission_status=${submissionDiag.status}`);
+    console.log(`submission_area_of_law=${submissionDiag.area_of_law}`);
+    console.log(`submission_scheme_id=${submissionDiag.scheme_id}`);
+    console.log(`submission_error_messages=${submissionDiag.error_messages}`);
+    console.log(`submission_errors=${submissionErrors}`);
+    console.log(`bulk_status=${bulkDiag.status}`);
+    console.log(`bulk_error_code=${bulkDiag.error_code}`);
+    console.log(`bulk_error_description=${bulkDiag.error_description}`);
+    console.log(`fsp_fee_details_probe=${fspProbe}`);
+    console.log(`validation_messages_count=${validationMessages.length}`);
+    console.log(`validation_messages_summary:\n  | ${validationMessagesSummary}`);
+    console.log('validation_messages_raw:');
+    console.log(JSON.stringify(validationMessages, null, 2));
+    console.log('claim_validation_errors:');
+    console.log(JSON.stringify(diag.claim_validation_errors || [], null, 2));
+    console.log('submission_validation_errors:');
+    console.log(JSON.stringify(submissionDiag.submission_validation_errors || submissionDiag.validation_errors || [], null, 2));
+
+    throw new Error(
+      `Pricing did not produce a fee_calculation_response.\n` +
+      `  claim_id=${claimId}\n` +
+      `  claim status=${diag.status}\n` +
+      `  fee_code=${diag.fee_code}\n` +
+      `  matter_type_code=${diag.matter_type_code}\n` +
+      `  scheme_id=${diag.scheme_id}\n` +
+      `  stage_reached_code=${diag.stage_reached_code}\n` +
+      `  submission_period=${diag.submission_period}\n` +
+      `  submission_status=${submissionDiag.status}\n` +
+      `  submission_area_of_law=${submissionDiag.area_of_law}\n` +
+      `  submission_errors=${submissionErrors}\n` +
+      `  fsp_fee_details_probe=${fspProbe}\n` +
+      `See the Bruno console for the full claim/submission bodies.`
+    );
+  }
+
+  const fee = claimData.fee_calculation_response;
+  bru.setEnvVar("SUMMARY_FEE_ID", String(fee.claim_summary_fee_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_CFD_ID", String(fee.calculated_fee_detail_id ?? ""));
+  bru.setEnvVar("AR_BASELINE_TOTAL_AMOUNT", String(fee.total_amount ?? ""));
+
+  // Surface bolt-on values in the Bruno console for quick eyeball verification.
+  const bolt = fee.bolt_on_details || {};
+  const boltReport = {
+    scheme_id: bolt.scheme_id,
+    escape_case_flag: bolt.escape_case_flag,
+    bolt_on_total_fee_amount: bolt.bolt_on_total_fee_amount,
+    bolt_on_adjourned_hearing_count: bolt.bolt_on_adjourned_hearing_count,
+    bolt_on_adjourned_hearing_fee: bolt.bolt_on_adjourned_hearing_fee,
+    bolt_on_cmrh_oral_count: bolt.bolt_on_cmrh_oral_count,
+    bolt_on_cmrh_oral_fee: bolt.bolt_on_cmrh_oral_fee,
+    bolt_on_cmrh_telephone_count: bolt.bolt_on_cmrh_telephone_count,
+    bolt_on_cmrh_telephone_fee: bolt.bolt_on_cmrh_telephone_fee,
+    bolt_on_home_office_interview_count: bolt.bolt_on_home_office_interview_count,
+    bolt_on_home_office_interview_fee: bolt.bolt_on_home_office_interview_fee,
+    bolt_on_substantive_hearing_fee: bolt.bolt_on_substantive_hearing_fee,
+  };
+  console.log(`Priced fee_code=${fee.fee_code} fee_type=${fee.fee_type} category_of_law=${fee.category_of_law}`);
+  console.log(`Bolt-on details: ${JSON.stringify(boltReport)}`);
+
+  // Soft assertion: at least one bolt-on numeric field should be non-null when
+  // FSP correctly returned bolt-on pricing. Do not throw — this makes the setup
+  // still succeed against fee schemes that decline to price bolt-ons for the
+  // given fee code, so downstream amendment scenarios can still run.
+  const anyBoltOnPopulated = [
+    bolt.bolt_on_total_fee_amount,
+    bolt.bolt_on_adjourned_hearing_fee,
+    bolt.bolt_on_cmrh_oral_fee,
+    bolt.bolt_on_cmrh_telephone_fee,
+    bolt.bolt_on_home_office_interview_fee,
+    bolt.bolt_on_substantive_hearing_fee,
+  ].some((v) => v !== null && v !== undefined);
+  if (!anyBoltOnPopulated) {
+    console.warn(
+      `No bolt-on numeric fields populated for fee_code=${fee.fee_code}. ` +
+      `Try a different fee code that supports bolt-ons in this fee scheme.`
+    );
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+
+
+
+
+
+
+
+
