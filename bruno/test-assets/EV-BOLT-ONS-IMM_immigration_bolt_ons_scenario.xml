@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+  Bolt-on scenario submission for amendment-repricing testing.
+  Modeled on integrationTest reference:
+    claims-data/service/src/integrationTest/resources/test_upload_files/xml/
+      outcomes_with_matter_starts_immigrationclr.xml
+  FEE_CODE=IMCB (confirmed known to FSP: LEGAL_HELP / IMMAS category).
+  Sanitised: PII-free synthetic values only.
+-->
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV3.xsd"
+    xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <office account="0P322F">
+    <schedule submissionPeriod="NOV-2025" areaOfLaw="LEGAL HELP" scheduleNum="0P322F/BOLTIMM">
+      <outcome matterType="IALB:IFRA">
+        <outcomeItem name="FEE_CODE">IACD</outcomeItem>
+        <outcomeItem name="CASE_REF_NUMBER">EV-BOLT-IMM-01</outcomeItem>
+        <outcomeItem name="CASE_START_DATE">08/11/2025</outcomeItem>
+        <outcomeItem name="CASE_ID">001</outcomeItem>
+        <outcomeItem name="UFN">081125/001</outcomeItem>
+        <outcomeItem name="PROCUREMENT_AREA">PA00136</outcomeItem>
+        <outcomeItem name="ACCESS_POINT">AP00137</outcomeItem>
+        <outcomeItem name="CLIENT_FORENAME">Test</outcomeItem>
+        <outcomeItem name="CLIENT_SURNAME">Person 900</outcomeItem>
+        <outcomeItem name="CLIENT_DATE_OF_BIRTH">14/09/1962</outcomeItem>
+        <outcomeItem name="CLIENT_LEGALLY_AIDED">Y</outcomeItem>
+        <outcomeItem name="DUTY_SOLICITOR">Y</outcomeItem>
+        <outcomeItem name="IRC_SURGERY">Y</outcomeItem>
+        <outcomeItem name="YOUTH_COURT">Y</outcomeItem>
+        <outcomeItem name="CLIENT2_POSTAL_APPL_ACCP">Y</outcomeItem>
+        <outcomeItem name="CLIENT2_LEGALLY_AIDED">Y</outcomeItem>
+        <outcomeItem name="ELIGIBLE_CLIENT_INDICATOR">Y</outcomeItem>
+        <outcomeItem name="NATIONAL_REF_MECHANISM_ADVICE">Y</outcomeItem>
+        <outcomeItem name="UCN">14091962/T/PERS</outcomeItem>
+        <outcomeItem name="HO_UCN">A9999900</outcomeItem>
+        <outcomeItem name="GENDER">M</outcomeItem>
+        <outcomeItem name="ETHNICITY">99</outcomeItem>
+        <outcomeItem name="DISABILITY">UKN</outcomeItem>
+        <outcomeItem name="CLIENT_POST_CODE">SW1H 9EA</outcomeItem>
+        <outcomeItem name="WORK_CONCLUDED_DATE">30/11/2025</outcomeItem>
+        <outcomeItem name="ADVICE_TIME">0</outcomeItem>
+        <outcomeItem name="TRAVEL_TIME">0</outcomeItem>
+        <outcomeItem name="WAITING_TIME">0</outcomeItem>
+        <outcomeItem name="PROFIT_COST">228.00</outcomeItem>
+        <outcomeItem name="DISBURSEMENTS_AMOUNT">0.00</outcomeItem>
+        <outcomeItem name="COUNSEL_COST">0.00</outcomeItem>
+        <outcomeItem name="DISBURSEMENTS_VAT">0.00</outcomeItem>
+        <outcomeItem name="TRAVEL_WAITING_COSTS">0.00</outcomeItem>
+        <outcomeItem name="VAT_INDICATOR">N</outcomeItem>
+        <outcomeItem name="LEGACY_CASE">N</outcomeItem>
+        <outcomeItem name="CLAIM_TYPE">CM</outcomeItem>
+        <outcomeItem name="TRAVEL_COSTS">99</outcomeItem>
+        <outcomeItem name="ADJOURNED_HEARING_FEE">1</outcomeItem>
+        <outcomeItem name="CMRH_ORAL">1</outcomeItem>
+        <outcomeItem name="CMRH_TELEPHONE">1</outcomeItem>
+        <outcomeItem name="HO_INTERVIEW">1</outcomeItem>
+        <outcomeItem name="SUBSTANTIVE_HEARING">Y</outcomeItem>
+        <outcomeItem name="AIT_HEARING_CENTRE">16</outcomeItem>
+        <outcomeItem name="OUTCOME_CODE">IX</outcomeItem>
+        <outcomeItem name="POSTAL_APPL_ACCP">Y</outcomeItem>
+        <outcomeItem name="DETENTION_TRAVEL_WAITING_COSTS">0.00</outcomeItem>
+        <outcomeItem name="SCHEDULE_REF">0P322F/2025/BOLTIMM</outcomeItem>
+      </outcome>
+      <newMatterStarts>
+        <matterStart code="SCHEDULE_REF">0P322F/2025/BOLTIMM</matterStart>
+        <matterStart code="PROCUREMENT_AREA">PA00136</matterStart>
+        <matterStart code="ACCESS_POINT">AP00137</matterStart>
+        <matterStart code="DELIVERY_LOCATION">LONDON</matterStart>
+        <matterStart code="PI">15</matterStart>
+      </newMatterStarts>
+      <newMatterStarts>
+        <matterStart code="SCHEDULE_REF">0P322F/2025/BOLTIMM</matterStart>
+        <matterStart code="PROCUREMENT_AREA">PA00136</matterStart>
+        <matterStart code="ACCESS_POINT">AP00137</matterStart>
+        <matterStart code="DELIVERY_LOCATION">LONDON</matterStart>
+        <matterStart code="PUB">16</matterStart>
+      </newMatterStarts>
+      <immigrationCLR>
+        <immCLRData code="SUB_ASY_GRANT_PROV">0</immCLRData>
+        <immCLRData code="SUB_ASY_GRANT_IFA">1</immCLRData>
+        <immCLRData code="SUB_ASY_REF">2</immCLRData>
+      </immigrationCLR>
+      <immigrationCLR>
+        <immCLRData code="SUB_ASY_WITH">3</immCLRData>
+        <immCLRData code="SUB_NONASY_GRANT_PROV">4</immCLRData>
+        <immCLRData code="SUB_NONASY_GRANT_IFA">5</immCLRData>
+      </immigrationCLR>
+    </schedule>
+  </office>
+</submission>
+
+

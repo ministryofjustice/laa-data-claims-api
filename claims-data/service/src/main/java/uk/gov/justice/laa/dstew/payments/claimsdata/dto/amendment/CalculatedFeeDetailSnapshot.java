@@ -11,7 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
  * calculated state. Not provider-amendable.
  */
 @Value
-@Builder
+@Builder(toBuilder = true)
 public class CalculatedFeeDetailSnapshot {
 
   String feeCode;

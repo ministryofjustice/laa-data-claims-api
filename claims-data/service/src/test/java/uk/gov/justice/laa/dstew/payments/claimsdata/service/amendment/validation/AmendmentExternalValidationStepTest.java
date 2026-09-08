@@ -278,7 +278,7 @@ class AmendmentExternalValidationStepTest {
               ClaimValidationResult.builder()
                   .isValid(true)
                   .issues(List.of())
-                  .resolvedData(new ResolvedClaimData(null, resolvedAreaOfLaw, null))
+                  .resolvedData(new ResolvedClaimData(null, resolvedAreaOfLaw, null, null))
                   .build());
     }
 
@@ -361,7 +361,7 @@ class AmendmentExternalValidationStepTest {
                               "TECHNICAL_ERROR_FEE_SCHEME_API",
                               "technical failure",
                               ValidationSeverity.ERROR)))
-                  .resolvedData(new ResolvedClaimData(null, null, null))
+                  .resolvedData(new ResolvedClaimData(null, null, null, null))
                   .build());
 
       assertThat(step.validate(feeCodeChangeState(AreaOfLaw.CRIME_LOWER, "NEWCODE")))

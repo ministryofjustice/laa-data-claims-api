@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
@@ -37,6 +38,14 @@ public class ClaimAmendmentState {
   private ClaimStateSnapshot beforeState;
 
   private ClaimStateSnapshot postAmendmentState;
+
+  /**
+   * Reusable fee-scheme metadata resolved during external validation (fee calculation type,
+   * authorised category of law code, fee code description). Populated by {@code
+   * AmendmentExternalValidationStep} from the validation-core {@code
+   * ClaimValidationResult#getResolvedData()}; consumed by {@code FeeCalculationMetadataResolver}.
+   */
+  private ResolvedClaimData resolvedClaimDataContext;
 
   private FeeCalculationResponse fspResponseContext;
 
