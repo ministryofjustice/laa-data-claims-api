@@ -339,13 +339,6 @@ public class AmendmentPdaTriggerSteps {
         effectiveDate);
   }
 
-  @Then("no outbound PDA call was made")
-  public void noOutboundPdaCallWasMade() {
-    log.info(
-        "[spec-guard] No outbound PDA call expected — trigger inputs unchanged (verification owned"
-            + " by DSTEW-1773)");
-  }
-
   @Then("the prior PDA-driven validation outcome is retained")
   public void priorPdaDrivenValidationOutcomeRetained() {
     log.info(
