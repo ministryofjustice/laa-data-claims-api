@@ -6,19 +6,14 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -27,16 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.MediaType;
-import org.springframework.beans.factory.annotation.Autowired;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
-import uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
  * End-to-end coverage for the claim-history AMENDMENT event (DSTEW-1813 / DSTEW-1814).
@@ -61,17 +54,23 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * client2Surname: null} returns 204, leaves the field unchanged and records an empty diff. The
  * null-in-history presence semantics (DSTEW-1814) are therefore proven where they are expressible:
  * {@code JdbcClaimHistoryRepositoryIntegrationTest.retainsClearedClient2SurnameAsExplicitNull}.
- * TODO(DSTEW write-side): once the amendment PATCH contract carries an explicit null (e.g. {@code
- * JsonNullable} fields on {@code ClaimPatch} or raw-body presence detection), add an end-to-end
- * cleared-field scenario here.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @DisplayName("Claim Amendment History E2E (DSTEW-1813 / DSTEW-1814) Integration Test")
-class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest {
+class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchIntegrationTest {
 
-  private static final String PATCH_A_CLAIM_ENDPOINT =
-      API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
+  // Use the canonical PATCH_MAPPER from AbstractAmendmentPatchIntegrationTest (omits nulls).
+
+  // For tests that would like to send an explicit JSON null (presence + null), use an
+  // ObjectMapper that DOES include nulls in the serialized body. These tests are currently
+  // disabled because the current PATCH contract collapses null -> undefined; keep the
+  // bodies here as a documented, runnable intention for when the write-side supports it.
+  private static final ObjectMapper EXPLICIT_NULL_PATCH_MAPPER =
+      new ObjectMapper()
+          .setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS)
+          .registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
+
   private static final String HISTORY_ENDPOINT = API_URI_PREFIX + "/claims/{claimId}/history";
 
   private static final String AMENDMENT_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -83,20 +82,15 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   private static final String FLAG_PRICE_CHANGED = "price_changed";
   private static final String FLAG_ESCAPE_CASE_LOGGED = "escape_case_logged";
 
-  @SuppressWarnings("java:S1075")
-  private static final String FEE_CALCULATION_PATH = "/api/v1/fee-calculation";
-
-  @Autowired private ClaimsApiProperties claimsApiProperties;
-
-  private boolean originalAmendmentFlag;
-
   @BeforeEach
   void setUp() throws Exception {
-    originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
-    claimsApiProperties.getAmendments().setEnabled("true");
 
-    seedClaimsData();
+    // Ensure PATCH_MAPPER can serialize JsonNullable fields the same way the previous
+    // SPARSE_PATCH_MAPPER did.
+    PATCH_MAPPER.registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
 
+    // Seeding is done in
+    // AbstractAmendmentPatchIntegrationTest.enableAmendmentsSeedAndStubFeeScheme()
     // Let the genuine AmendmentExternalValidationStep run against controlled external responses.
     stubExternalValidationEndpoints();
     // CLAIM_1 belongs to a LEGAL_HELP submission; keep the fee-code Area-of-Law gate happy.
@@ -111,12 +105,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     createBaselineCalculatedFeeDetail(claim1);
 
     // Each test controls (and asserts on) the fee-calculation stub itself.
-    mockServerClient.clear(request().withPath(FEE_CALCULATION_PATH), ClearType.EXPECTATIONS);
-  }
-
-  @AfterEach
-  void tearDown() {
-    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentFlag));
+    mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
   }
 
   @Test
@@ -125,8 +114,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   void repricingAmendmentSurfacesAmendmentHistoryEvent() throws Exception {
     // A pricing-impacting requested change: it produces a REQUESTED diff entry AND triggers the FSP
     // recalculation whose fee delta is recorded as FSP-sourced diff entries.
-    ClaimPatch patch = basePatch();
-    patch.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.setNetProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(9999.00)));
 
     // FSP returns a total that differs from the baseline (100.00), so the recalculation is a
     // genuine
@@ -136,7 +125,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
             + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,"
             + "\"vatIndicator\":true}}";
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
@@ -144,13 +133,8 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
                 .withBody(fspResponse));
 
     // --- Act 1: submit the amendment through the public PATCH endpoint ---
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     // The amendment is committed; grab its id so we can assert the event's source_id.
     List<ClaimAmendment> amendments =
@@ -196,9 +180,12 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     }
 
     // This repricing amendment produces exactly one REQUESTED change and the FSP fee consequences.
-    assertThat(changes).hasSize(5);
+    // FSP-sourced fields written by FeeSchemeHandoffFactory (DSTEW-2079 parity):
+    //   fee.totalAmount, fee.netProfitCostsAmount, fee.vatIndicator, fee.schemeId,
+    //   fee.feeType, fee.feeCodeDescription.
+    assertThat(changes).hasSize(7);
     assertThat(countByChangeSource(changes, "REQUESTED")).isEqualTo(1);
-    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(4);
+    assertThat(countByChangeSource(changes, "FSP")).isEqualTo(6);
 
     // --- REQUESTED change: the provider's edit, with its actual before/after values ---
     // Seeded claimSummaryFee net profit costs (250) -> the amended value (9999.00).
@@ -232,6 +219,18 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     assertThat(fspSchemeId.get("before").isNull()).isTrue();
     assertThat(fspSchemeId.get("after").asText()).isEqualTo("SCHEME-TEST");
 
+    // Fee metadata resolved from validation-core ResolvedClaimData (DSTEW-2079 parity):
+    // feeType and feeCodeDescription are populated by FeeCalculationMetadataResolver.
+    JsonNode fspFeeType = changeByField(changes, "fee.feeType");
+    assertThat(fspFeeType.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(fspFeeType.get("before").isNull()).isTrue();
+    assertThat(fspFeeType.get("after").asText()).isEqualTo("HOURLY");
+
+    JsonNode fspFeeCodeDescription = changeByField(changes, "fee.feeCodeDescription");
+    assertThat(fspFeeCodeDescription.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(fspFeeCodeDescription.get("before").isNull()).isTrue();
+    assertThat(fspFeeCodeDescription.get("after").asText()).isEqualTo("test description");
+
     // --- Assert: FSP consequence FLAGS (DSTEW-1762) ---
     // These derive from the calculated_fee_detail row that the commit pipeline links to this
     // amendment (calculated_fee_detail.claim_amendment_id = am.id). A pricing amendment therefore
@@ -251,28 +250,25 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     // escapeCaseFlag=true,
     // so the diff carries an FSP-sourced fee.escapeCaseFlag change (false -> true) and the history
     // SQL derives escape_case_logged=true.
-    ClaimPatch patch = basePatch();
-    patch.setNetProfitCostsAmount(BigDecimal.valueOf(15000.00));
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(1L);
+    patch.netProfitCostsAmount(BigDecimal.valueOf(15000.00));
 
     String fspResponse =
         "{\"feeCode\":\"FEE-ESCAPE\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":true,"
             + "\"feeCalculation\":{\"totalAmount\":15000.00,\"netProfitCostsAmount\":15000.00,"
             + "\"vatIndicator\":true}}";
     mockServerClient
-        .when(request().withMethod("POST").withPath(FEE_CALCULATION_PATH))
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.APPLICATION_JSON)
                 .withBody(fspResponse));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isNoContent());
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    // A successful amendment returns 204 No Content.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
 
     String body =
         mockMvc
@@ -302,21 +298,228 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
 
   @Test
   @DisplayName(
-      "A non-pricing amendment surfaces an AMENDMENT event whose changes are all REQUESTED (no FSP)")
-  void nonPricingAmendmentSurfacesRequestedOnlyChanges() throws Exception {
-    // A non-pricing requested change must not trigger FSP, so every diff entry is
-    // REQUESTED-sourced.
-    String amendedForename = "NewForename";
-    ClaimPatch patch = basePatch();
-    patch.setClientForename(amendedForename);
+      "A repricing amendment with bolt-on FSP details surfaces every bolt-on field as an FSP-sourced change")
+  void repricingAmendmentSurfacesBoltOnChangesInHistory() throws Exception {
+    // DSTEW-2079 parity: when FSP returns a nested feeCalculation.boltOnFeeDetails block, the
+    // amendment diff must surface each populated bolt-on field as an FSP-sourced change entry
+    // (before=null on the baseline row, after=FSP value) on the AMENDMENT history event.
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.setNetProfitCostsAmount(JsonNullable.of(BigDecimal.valueOf(9999.00)));
+
+    String fspResponse =
+        "{\"feeCode\":\"FEE-BOLTON\",\"schemeId\":\"SCHEME-BOLTON\","
+            + "\"escapeCaseFlag\":false,"
+            + "\"feeCalculation\":{"
+            + "\"totalAmount\":1200.00,\"netProfitCostsAmount\":600.00,\"vatIndicator\":true,"
+            + "\"boltOnFeeDetails\":{"
+            + "\"boltOnTotalFeeAmount\":300.00,"
+            + "\"boltOnAdjournedHearingCount\":2,"
+            + "\"boltOnAdjournedHearingFee\":40.00,"
+            + "\"boltOnCmrhTelephoneCount\":1,"
+            + "\"boltOnCmrhTelephoneFee\":20.00,"
+            + "\"boltOnCmrhOralCount\":1,"
+            + "\"boltOnCmrhOralFee\":30.00,"
+            + "\"boltOnHomeOfficeInterviewCount\":1,"
+            + "\"boltOnHomeOfficeInterviewFee\":60.00,"
+            + "\"boltOnSubstantiveHearingFee\":150.00"
+            + "}}}";
+
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(fspResponse));
+
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, HttpStatus.NO_CONTENT);
+
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    assertThat(amendmentEvent).as("an AMENDMENT event is present in the timeline").isNotNull();
+
+    JsonNode changes = amendmentEvent.get("metadata").get("changes");
+    assertThat(changes).isNotNull();
+
+    // Each bolt-on field is surfaced as an FSP-sourced change with before=null (baseline row does
+    // not populate bolt-on fields) and after = the FSP-returned value.
+    assertBoltOnFspChange(changes, "fee.boltOnTotalFeeAmount", "300.00");
+    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingCount", 2);
+    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingFee", "40.00");
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneFee", "20.00");
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralFee", "30.00");
+    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewCount", 1);
+    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewFee", "60.00");
+    assertBoltOnFspChange(changes, "fee.boltOnSubstantiveHearingFee", "150.00");
+
+    // Sanity: repricing was invoked and produced a price-changed FSP consequence.
+    JsonNode metadata = amendmentEvent.get("metadata");
+    assertThat(metadata.get(FLAG_PRICING_RECALCULATED).asBoolean()).isTrue();
+    assertThat(metadata.get(FLAG_PRICE_CHANGED).asBoolean()).isTrue();
+    // No baseline escape flag transition: escapeCaseFlag stayed false, so no history change entry
+    // for fee.escapeCaseFlag and the derived escape_case_logged flag stays false.
+    assertThat(metadata.get(FLAG_ESCAPE_CASE_LOGGED).asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "A cleared-field amendment (explicit null) surfaces an AMENDMENT change with after=null in history (end-to-end)")
+  void clearedFieldAmendmentEndToEnd() throws Exception {
+
+    // --- Act 1: submit a non-null change to the claim so we can later clear it (explicit null) ---
+    Claim current = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    Long currentVersion = current.getVersion();
+
+    String deliveryReference = "AB12345";
+    ClaimAmendmentPatch setPatch = basePatch(currentVersion);
+    setPatch.deliveryLocation(deliveryReference);
+
+    MvcResult setPatchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, setPatch);
+    assertResponseStatus(setPatchResult, org.springframework.http.HttpStatus.NO_CONTENT);
+
+    // The set PATCH increments the claim version in DB; read it back so our explicit-null
+    // amendment carries the current version and avoids a CLAIM_VERSION_CONFLICT.
+    current = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    currentVersion = current.getVersion();
+
+    // --- Act 2: submit an explicit-null amendment to clear the field (deliveryLocation) ---
+    ClaimAmendmentPatch explicitPatch = basePatch(currentVersion);
+    explicitPatch.setDeliveryLocation(JsonNullable.of((String) null));
+
+    String explicitNullPatchJson = EXPLICIT_NULL_PATCH_MAPPER.writeValueAsString(explicitPatch);
 
     mockMvc
         .perform(
             patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
+                .content(explicitNullPatchJson)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
+
+    List<ClaimAmendment> amendments =
+        claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
+    assertThat(amendments).hasSize(2);
+    UUID amendmentId = amendments.getFirst().getId();
+
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    JsonNode changes = amendmentEvent.get("metadata").get("changes");
+    String sourceId = amendmentEvent.get("source_id").asText();
+
+    JsonNode cleared = changeByField(changes, "claim.deliveryLocation");
+    assertThat(cleared.get("change_source").asText()).isEqualTo("REQUESTED");
+    assertThat(cleared.get("before").asText()).isEqualTo(deliveryReference);
+    // Must be an explicit JSON null present in the change object (key exists and is null)
+    assertThat(cleared.has("after")).isTrue();
+    assertThat(cleared.get("after").isNull()).isTrue();
+    assertThat(sourceId).isEqualTo(amendmentId.toString());
+
+    // --- DB-level assertions: verify the claimed field was persisted as NULL ---
+    Claim claimAfter = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(claimAfter.getDeliveryLocation()).isNull();
+
+    // --- Amendment request_payload assertion: ensure the explicit null was recorded in the saved
+    // payload ---
+    ClaimAmendment persistedAmendment =
+        claimAmendmentRepository.findById(amendmentId).orElseThrow();
+    JsonNode requestPayload = OBJECT_MAPPER.readTree(persistedAmendment.getRequestPayload());
+    assertThat(requestPayload.get("deliveryLocation").isNull()).isTrue();
+
+    // --- Consumer-visible assertion: GET the claim and ensure the public API exposes the explicit
+    // null ---
+    String claimGetBody =
+        mockMvc
+            .perform(
+                get(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode claimJson = OBJECT_MAPPER.readTree(claimGetBody);
+    assertThat(claimJson.get("delivery_location").isNull()).isTrue();
+  }
+
+  @Test
+  // @Disabled("FSP consequence flags are asserted once AmendmentCalculatedFeeWriter.attach() links
+  // CFD rows to amendments (DSTEW-1762). Re-enable after linking is implemented.")
+  @DisplayName(
+      "FSP consequence flags (pricing_recalculated, price_changed, escape_case_logged) appear on AMENDMENT metadata when repricing ran")
+  void fspConsequenceFlagsAreSetWhenRepricingRuns() throws Exception {
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.netProfitCostsAmount(BigDecimal.valueOf(9999.00));
+
+    String fspResponse =
+        "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
+            + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,\"vatIndicator\":true}}";
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(fspResponse));
+
+    MvcResult mvcResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(mvcResult, org.springframework.http.HttpStatus.NO_CONTENT);
+
+    List<ClaimAmendment> amendments =
+        claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
+    assertThat(amendments).hasSize(1);
+
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    JsonNode metadata = amendmentEvent.get("metadata");
+
+    // Intended assertions once CFD linking is implemented.
+    assertThat(metadata.get("pricing_recalculated").asBoolean()).isTrue();
+    assertThat(metadata.get("price_changed").asBoolean()).isTrue();
+    assertThat(metadata.get("escape_case_logged").asBoolean()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "A non-pricing amendment surfaces an AMENDMENT event whose changes are all REQUESTED (no FSP)")
+  void nonPricingAmendmentSurfacesRequestedOnlyChanges() throws Exception {
+    // A non-pricing requested change must not trigger FSP, so every diff entry is
+    // REQUESTED-sourced.
+    String amendedForename = "NewForename";
+    ClaimAmendmentPatch patch = basePatch(1L);
+    patch.clientForename(amendedForename);
+
+    MvcResult nonPricingResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(nonPricingResult, org.springframework.http.HttpStatus.NO_CONTENT);
 
     String body =
         mockMvc
@@ -351,8 +554,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
 
     // FSP must never be called for a non-pricing amendment.
     mockServerClient.verify(
-        request().withPath(FEE_CALCULATION_PATH),
-        org.mockserver.verify.VerificationTimes.exactly(0));
+        request().withPath(FEE_CALCULATION), org.mockserver.verify.VerificationTimes.exactly(0));
   }
 
   @Test
@@ -364,17 +566,14 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
     // not business history, so the timeline must contain no AMENDMENT event for it. This is the
     // write-to-read counterpart to the write-side rollback suites (which prove no claim_amendment
     // row is written); here we additionally prove the failure never surfaces on the read side.
-    ClaimPatch patch = basePatch();
-    patch.setVersion(999L); // stale - does not match the claim's current version
-    patch.setNetProfitCostsAmount(BigDecimal.valueOf(9999.00));
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(1L);
+    patch.version(999L); // stale - does not match the claim's current version
+    patch.netProfitCostsAmount(BigDecimal.valueOf(9999.00));
 
-    mockMvc
-        .perform(
-            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .content(OBJECT_MAPPER.writeValueAsString(patch))
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON))
-        .andExpect(status().isConflict());
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    // A failed amendment returns 409 Conflict.
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
 
     // Write side: the failed attempt persisted no claim_amendment row.
     assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
@@ -399,38 +598,13 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private ClaimPatch basePatch() {
-    ClaimPatch patch = new ClaimPatch();
-    patch.setVersion(1L);
-    patch.setAmendmentUserId(UUID.fromString(AMENDMENT_USER_ID));
-    patch.setAmendmentRequestedBy(REQUESTED_BY_PROVIDER);
-    patch.setAmendmentReasonCode(REASON_PROVIDER_ERROR);
-    return patch;
-  }
-
-  private void createBaselineCalculatedFeeDetail(Claim claim) {
-    ClaimSummaryFee summaryFee =
-        claimSummaryFeeRepository
-            .findByClaimId(claim.getId())
-            .orElseGet(
-                () ->
-                    claimSummaryFeeRepository.saveAndFlush(
-                        ClaimSummaryFee.builder()
-                            .id(Uuid7.timeBasedUuid())
-                            .claim(claim)
-                            .createdByUserId("Test")
-                            .build()));
-
-    CalculatedFeeDetail cfd = new CalculatedFeeDetail();
-    cfd.setId(Uuid7.timeBasedUuid());
-    cfd.setClaim(claim);
-    cfd.setClaimSummaryFee(summaryFee);
-    cfd.setEscapeCaseFlag(false);
-    cfd.setFeeCode("FEE-123");
-    cfd.setTotalAmount(BigDecimal.valueOf(100.00));
-    cfd.setCreatedByUserId("Test");
-    cfd.setCreatedOn(Instant.now().minus(1, ChronoUnit.DAYS));
-    calculatedFeeDetailRepository.saveAndFlush(cfd);
+  private ClaimAmendmentPatch basePatch(long currentVersion) {
+    return ClaimAmendmentPatch.builder()
+        .version(currentVersion)
+        .amendmentUserId(UUID.fromString(AMENDMENT_USER_ID))
+        .amendmentRequestedBy(REQUESTED_BY_PROVIDER)
+        .amendmentReasonCode(REASON_PROVIDER_ERROR)
+        .build();
   }
 
   private static JsonNode firstEventOfType(JsonNode events, String eventType) {
@@ -460,5 +634,27 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends MockServerIntegrationTest 
       }
     }
     return count;
+  }
+
+  /**
+   * Asserts that {@code changes} carries an FSP-sourced entry for {@code fieldIdentifier} whose
+   * {@code before} is null and whose {@code after} numerically equals {@code expectedAfter} (parsed
+   * as BigDecimal to tolerate JSON scale differences like {@code 300} vs {@code 300.00}).
+   */
+  private static void assertBoltOnFspChange(
+      JsonNode changes, String fieldIdentifier, String expectedAfter) {
+    JsonNode change = changeByField(changes, fieldIdentifier);
+    assertThat(change.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(change.get("before").isNull()).isTrue();
+    assertThat(change.get("after").decimalValue()).isEqualByComparingTo(expectedAfter);
+  }
+
+  /** Integer-valued overload of {@link #assertBoltOnFspChange(JsonNode, String, String)}. */
+  private static void assertBoltOnFspChange(
+      JsonNode changes, String fieldIdentifier, int expectedAfter) {
+    JsonNode change = changeByField(changes, fieldIdentifier);
+    assertThat(change.get("change_source").asText()).isEqualTo("FSP");
+    assertThat(change.get("before").isNull()).isTrue();
+    assertThat(change.get("after").asInt()).isEqualTo(expectedAfter);
   }
 }

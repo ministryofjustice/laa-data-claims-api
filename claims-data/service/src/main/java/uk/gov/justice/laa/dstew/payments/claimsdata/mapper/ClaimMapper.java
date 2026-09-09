@@ -2,7 +2,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.UUID;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
+import org.mapstruct.Condition;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -11,20 +17,27 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimsDataException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
+import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /** MapStruct mapper for converting between claim models and entities. */
 @Mapper(
@@ -91,18 +104,6 @@ public interface ClaimMapper {
   @Mapping(target = "claimId", source = "id")
   SubmissionClaim toSubmissionClaim(Claim entity);
 
-  /** Update an existing {@link Claim} from a {@link ClaimPatch}. */
-  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @InheritConfiguration(name = "ignoreAuditFieldsAndId")
-  @Mapping(target = "submission", ignore = true)
-  @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
-  @Mapping(target = "youthCourt", source = "isYouthCourt")
-  // Effective total value is a read-only @Formula field on the entity (derived from the
-  // vw_claim_effective_value view); an amendment patch must never write it. Kept as an explicit
-  // guard even though claim_patch no longer exposes the field.
-  @Mapping(target = "effectiveTotalValue", ignore = true)
-  void updateSubmissionClaimFromPatch(ClaimPatch patch, @MappingTarget Claim entity);
-
   /** Map a validation error string to a ValidationErrorLog. */
   @Mapping(target = "id", expression = "java(Generators.timeBasedEpochGenerator().generate())")
   @Mapping(target = "submissionId", source = "claim.submission.id")
@@ -152,6 +153,71 @@ public interface ClaimMapper {
   @Mapping(target = "escapeCaseFlag", source = "response.boltOnDetails.escapeCaseFlag")
   @Mapping(target = "schemeId", source = "response.boltOnDetails.schemeId")
   CalculatedFeeDetail toCalculatedFeeDetail(FeeCalculationPatch response);
+
+  /**
+   * Map an FSP {@link FeeCalculationResponse} + {@link ResolvedFeeMetadata} directly to a {@link
+   * CalculatedFeeDetail}. Used by the amendment repricing pipeline so the same MapStruct
+   * transformation drives both the legacy and amendment paths.
+   *
+   * <p>The {@code metadata} argument carries the three fields that are not on the FSP response
+   * (feeType, feeCodeDescription, categoryOfLaw) and are resolved from cached validation context.
+   */
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "claim", ignore = true)
+  @Mapping(target = "claimAmendment", ignore = true)
+  @Mapping(target = "claimSummaryFee", ignore = true)
+  @Mapping(target = "isPriceChanged", ignore = true)
+  @InheritConfiguration(name = "ignoreAuditFields")
+  // Top-level FSP response fields
+  @Mapping(target = "feeCode", source = "response.feeCode")
+  @Mapping(target = "schemeId", source = "response.schemeId")
+  @Mapping(target = "escapeCaseFlag", source = "response.escapeCaseFlag")
+  // Resolver-supplied metadata (not present on FSP response)
+  @Mapping(target = "feeType", source = "metadata.feeType")
+  @Mapping(target = "feeCodeDescription", source = "metadata.feeCodeDescription")
+  @Mapping(target = "categoryOfLaw", source = "metadata.categoryOfLaw")
+  CalculatedFeeDetail toCalculatedFeeDetail(
+      FeeCalculationResponse response, ResolvedFeeMetadata metadata);
+
+  /**
+   * Applies the nested {@code feeCalculation} and {@code feeCalculation.boltOnFeeDetails} sections
+   * of the FSP response onto the mapped entity. Kept as an {@code @AfterMapping} hook so the parent
+   * mapping method stays focused on top-level FSP fields and resolver-supplied metadata.
+   */
+  @AfterMapping
+  default void applyNestedFspSections(
+      FeeCalculationResponse response, @MappingTarget CalculatedFeeDetail target) {
+    if (response == null || response.getFeeCalculation() == null) {
+      return;
+    }
+    FeeCalculation feeCalculation = response.getFeeCalculation();
+    updateFromFeeCalculation(feeCalculation, target);
+    if (feeCalculation.getBoltOnFeeDetails() != null) {
+      updateFromBoltOnFeeDetails(feeCalculation.getBoltOnFeeDetails(), target);
+    }
+  }
+
+  /**
+   * Projects the FSP {@link FeeCalculation} monetary fields onto the entity. Fields not listed here
+   * are name-matched by MapStruct against {@link CalculatedFeeDetail}. Only the {@code
+   * travelAndWaitingCostAmount} -> {@code travelAndWaitingCostsAmount} mismatch needs an explicit
+   * rule.
+   */
+  @Mapping(target = "travelAndWaitingCostsAmount", source = "travelAndWaitingCostAmount")
+  void updateFromFeeCalculation(
+      FeeCalculation feeCalculation, @MappingTarget CalculatedFeeDetail target);
+
+  /**
+   * Projects the FSP {@link BoltOnFeeDetails} bolt-on fields onto the entity. All bolt-on source
+   * field names match the entity 1:1, so no explicit rules are required here.
+   */
+  void updateFromBoltOnFeeDetails(
+      BoltOnFeeDetails boltOnFeeDetails, @MappingTarget CalculatedFeeDetail target);
+
+  /** Convert an FSP {@link Double} monetary value into a {@link BigDecimal}. */
+  default BigDecimal doubleToBigDecimal(Double value) {
+    return value == null ? null : BigDecimal.valueOf(value);
+  }
 
   @Mapping(target = "id", ignore = true)
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -224,30 +290,86 @@ public interface ClaimMapper {
   }
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  ClaimAmendmentPayload toAmendmentPayload(ClaimPatch claimPatch);
+  ClaimAmendmentPayload toAmendmentPayload(ClaimAmendmentPatch claimPatch);
 
-  // Explicit OpenAPI JsonNullable wrappers for MapStruct
-  default JsonNullable<String> map(String value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /**
+   * Date pattern used across the claim API for {@code String} date fields (e.g. "5/12/2025").
+   * Strict resolution ensures calendar-invalid values (e.g. "31/02/2025") are rejected rather than
+   * silently rolled over to a nearby valid date.
+   */
+  DateTimeFormatter CLAIM_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
+
+  /**
+   * Tri-state converter: {@code JsonNullable<String>} (d/M/yyyy) to {@code
+   * JsonNullable<LocalDate>}.
+   *
+   * <p>Preserves the amendment tri-state: omitted stays undefined, an explicit null stays a present
+   * null (a requested clear), and a value is parsed into a {@link LocalDate}.
+   */
+  default JsonNullable<LocalDate> mapDate(JsonNullable<String> value) {
+    if (value == null || !value.isPresent()) {
+      return JsonNullable.undefined();
+    }
+    return JsonNullable.of(parseClaimDate(value.get()));
   }
 
-  default JsonNullable<Integer> map(Integer value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /**
+   * Tri-state converter: {@code JsonNullable<UUID>} to {@code JsonNullable<String>}, preserving the
+   * omitted / explicit-null / value distinction.
+   */
+  default JsonNullable<String> mapUuid(JsonNullable<UUID> value) {
+    if (value == null || !value.isPresent()) {
+      return JsonNullable.undefined();
+    }
+    UUID raw = value.get();
+    return JsonNullable.of(raw != null ? raw.toString() : null);
   }
 
-  default JsonNullable<Long> map(Long value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  // ---------------------------------------------------------------------------
+  // Unwrapping helpers for JsonNullable -> plain entity fields.
+  //
+  // The @Condition presence check ensures MapStruct only writes a target field when the source
+  // JsonNullable is PRESENT. Combined with the unwrap converters below this yields true PATCH
+  // semantics when updating an entity:
+  //   * omitted (undefined)     -> condition false -> entity field left unchanged;
+  //   * explicit null (of null) -> condition true, unwrap null -> entity field cleared;
+  //   * value (of value)        -> condition true, unwrap value -> entity field set.
+  // ---------------------------------------------------------------------------
+
+  /** Presence check used by MapStruct to skip omitted (undefined) JsonNullable source fields. */
+  @Condition
+  default <T> boolean isPresent(JsonNullable<T> value) {
+    return value != null && value.isPresent();
   }
 
-  default JsonNullable<Boolean> map(Boolean value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /** Unwrap a present {@code JsonNullable<T>} to its value (which may be null). */
+  default <T> T unwrap(JsonNullable<T> value) {
+    return value == null ? null : value.orElse(null);
   }
 
-  default JsonNullable<BigDecimal> map(BigDecimal value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /** Unwrap a present {@code JsonNullable<String>} (d/M/yyyy) to a {@link LocalDate}. */
+  default LocalDate unwrapDate(JsonNullable<String> value) {
+    if (value == null || !value.isPresent()) {
+      return null;
+    }
+    return parseClaimDate(value.get());
   }
 
-  default JsonNullable<LocalDate> map(LocalDate value) {
-    return value == null ? JsonNullable.undefined() : JsonNullable.of(value);
+  /**
+   * Parses a raw {@code d/M/yyyy} date string, translating any malformed value into a {@link
+   * ClaimsDataException} (400 Bad Request) rather than letting {@link DateTimeParseException}
+   * propagate uncaught and surface as a 500 Internal Server Error.
+   */
+  private LocalDate parseClaimDate(String raw) {
+    if (!StringUtils.hasText(raw)) {
+      return null;
+    }
+    try {
+      return LocalDate.parse(raw, CLAIM_DATE_FORMAT);
+    } catch (DateTimeParseException e) {
+      throw new ClaimsDataException(
+          "Invalid date value '" + raw + "': expected format d/M/yyyy", HttpStatus.BAD_REQUEST, e);
+    }
   }
 }

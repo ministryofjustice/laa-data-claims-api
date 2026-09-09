@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
@@ -29,7 +30,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BoltOnPatch;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -40,8 +41,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.ResolvedFeeMetadata;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.fee.scheme.model.BoltOnFeeDetails;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculation;
+import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ClaimMapper tests")
@@ -342,35 +347,479 @@ class ClaimMapperTest {
   }
 
   @Test
-  void updateSubmissionClaimFromPatch_nullPatch_noChanges() {
-    final Claim entity = Claim.builder().dutySolicitor(true).build();
-    mapper.updateSubmissionClaimFromPatch(null, entity);
-    assertTrue(entity.getDutySolicitor());
+  void toAmendmentPayload_nullInput_returnsNull() {
+    assertNull(mapper.toAmendmentPayload(null));
   }
 
   @Test
-  void updateSubmissionClaimFromPatch_updatesOnlyNonNullFields() {
-    final Claim entity =
-        Claim.builder()
-            .dutySolicitor(false)
-            .youthCourt(false)
-            .status(ClaimStatus.INVALID)
-            .scheduleReference("OLD_SCH")
-            .build();
+  void toAmendmentPayload_mapsDatesUuidAndTriState() {
+    final java.util.UUID userUuid = UUID.fromString("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e");
 
-    final ClaimPatch patch =
-        new ClaimPatch()
-            .isDutySolicitor(true)
-            .isYouthCourt(true)
-            .status(ClaimStatus.READY_TO_PROCESS)
-            .scheduleReference("NEW_SCH");
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    // present value strings -> should parse into LocalDate in payload
+    patch.setCaseStartDate(org.openapitools.jackson.nullable.JsonNullable.of("5/12/2026"));
+    // present UUID -> should map to String
+    patch.setAmendmentUserId(org.openapitools.jackson.nullable.JsonNullable.of(userUuid));
+    // omitted field stays undefined
+    // explicit null preserved
+    patch.setScheduleReference(org.openapitools.jackson.nullable.JsonNullable.of((String) null));
 
-    mapper.updateSubmissionClaimFromPatch(patch, entity);
+    final uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload payload =
+        mapper.toAmendmentPayload(patch);
 
-    assertTrue(entity.getDutySolicitor());
-    assertTrue(entity.getYouthCourt());
-    assertEquals(ClaimStatus.READY_TO_PROCESS, entity.getStatus());
-    assertEquals("NEW_SCH", entity.getScheduleReference());
+    // parsed date
+    assertTrue(payload.getCaseStartDate().isPresent());
+    assertEquals(LocalDate.of(2026, 12, 5), payload.getCaseStartDate().get());
+
+    // uuid -> string
+    assertTrue(payload.getAmendmentUserId().isPresent());
+    assertEquals(userUuid.toString(), payload.getAmendmentUserId().get());
+
+    // explicit-null preserved
+    assertTrue(payload.getScheduleReference().isPresent());
+    assertNull(payload.getScheduleReference().get());
+
+    // omitted fields remain undefined (e.g. feeCode)
+    assertTrue(!payload.getFeeCode().isPresent());
+  }
+
+  @Test
+  void toAmendmentPayload_mapsAllPresentFields() {
+    final UUID userUuid = UUID.fromString("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e");
+
+    final ClaimAmendmentPatch patch =
+        new ClaimAmendmentPatch()
+            .scheduleReference("SCH-ALL")
+            .lineNumber(7)
+            .caseReferenceNumber("CR-ALL")
+            .uniqueFileNumber("UFN-ALL")
+            .caseStartDate("5/12/2026")
+            .caseConcludedDate("6/12/2026")
+            .matterTypeCode("MTC-ALL")
+            .crimeMatterTypeCode("CMTC-ALL")
+            .feeSchemeCode("FSC-ALL")
+            .feeCode("FC-ALL")
+            .procurementAreaCode("PAC-ALL")
+            .accessPointCode("APC-ALL")
+            .deliveryLocation("DL-ALL")
+            .version(11L)
+            .representationOrderDate("1/1/2025")
+            .suspectsDefendantsCount(2)
+            .policeStationCourtAttendancesCount(3)
+            .policeStationCourtPrisonId("PS-PR-1")
+            .dsccNumber("DSCC-ALL")
+            .maatId("MAAT-ALL")
+            .prisonLawPriorApprovalNumber("PR-APP")
+            .isDutySolicitor(Boolean.TRUE)
+            .isYouthCourt(Boolean.FALSE)
+            .schemeId("SCHMID")
+            .mediationSessionsCount(1)
+            .mediationTimeMinutes(30)
+            .outreachLocation("OUT-ALL")
+            .referralSource("REF-ALL")
+            .clientForename("John")
+            .clientSurname("Smith")
+            .clientDateOfBirth("5/12/1990")
+            .uniqueClientNumber("UCN-1")
+            .clientPostcode("PC1")
+            .genderCode("M")
+            .ethnicityCode("ETH")
+            .disabilityCode("DIS")
+            .isLegallyAided(Boolean.TRUE)
+            .clientTypeCode("CTC")
+            .homeOfficeClientNumber("HOCN")
+            .claReferenceNumber("CLA-1")
+            .claExemptionCode("EX-1")
+            .client2Forename("Jane")
+            .client2Surname("Doe")
+            .client2DateOfBirth("6/6/1992")
+            .client2Ucn("UCN-2")
+            .client2Postcode("PC2")
+            .client2GenderCode("F")
+            .client2EthnicityCode("ETH2")
+            .client2DisabilityCode("DIS2")
+            .client2IsLegallyAided(Boolean.FALSE)
+            .caseId("CASE-1")
+            .uniqueCaseId("UCASE-1")
+            .caseStageCode("STAGE1")
+            .stageReachedCode("REACHED1")
+            .standardFeeCategoryCode("SFC")
+            .outcomeCode("OUTC")
+            .designatedAccreditedRepresentativeCode("DAR")
+            .isPostalApplicationAccepted(Boolean.TRUE)
+            .isClient2PostalApplicationAccepted(Boolean.FALSE)
+            .mentalHealthTribunalReference("MHTR")
+            .isNrmAdvice(Boolean.TRUE)
+            .followOnWork("FOLLOW")
+            .transferDate("2/2/2024")
+            .exemptionCriteriaSatisfied("EXC")
+            .exceptionalCaseFundingReference("EXCF")
+            .isLegacyCase(Boolean.FALSE)
+            .adviceTime(5)
+            .travelTime(6)
+            .waitingTime(7)
+            .netProfitCostsAmount(new BigDecimal("1.11"))
+            .netDisbursementAmount(new BigDecimal("2.22"))
+            .netCounselCostsAmount(new BigDecimal("3.33"))
+            .disbursementsVatAmount(new BigDecimal("4.44"))
+            .travelWaitingCostsAmount(new BigDecimal("5.55"))
+            .netWaitingCostsAmount(new BigDecimal("6.66"))
+            .isVatApplicable(Boolean.TRUE)
+            .isToleranceApplicable(Boolean.FALSE)
+            .priorAuthorityReference("PAR-1")
+            .isLondonRate(Boolean.TRUE)
+            .adjournedHearingFeeAmount(1)
+            .isAdditionalTravelPayment(Boolean.FALSE)
+            .costsDamagesRecoveredAmount(new BigDecimal("7.77"))
+            .meetingsAttendedCode("MEET1")
+            .detentionTravelWaitingCostsAmount(new BigDecimal("8.88"))
+            .jrFormFillingAmount(new BigDecimal("9.99"))
+            .isEligibleClient(Boolean.TRUE)
+            .courtLocationCode("CL01")
+            .adviceTypeCode("ATC")
+            .medicalReportsCount(2)
+            .isIrcSurgery(Boolean.FALSE)
+            .surgeryDate("3/3/2023")
+            .surgeryClientsCount(1)
+            .surgeryMattersCount(2)
+            .cmrhOralCount(0)
+            .cmrhTelephoneCount(1)
+            .aitHearingCentreCode("AITHC")
+            .isSubstantiveHearing(Boolean.TRUE)
+            .hoInterview(4)
+            .localAuthorityNumber("LAN1")
+            .amendmentRequestedBy("PROVIDER")
+            .amendmentUserId(userUuid)
+            .amendmentReasonCode("REASON1");
+
+    final ClaimAmendmentPayload payload = mapper.toAmendmentPayload(patch);
+
+    // Assert every mapped field is present and equals the expected value
+    // --- Claim fields ---
+    assertTrue(payload.getScheduleReference().isPresent());
+    assertEquals("SCH-ALL", payload.getScheduleReference().get());
+
+    assertTrue(payload.getLineNumber().isPresent());
+    assertEquals(7, payload.getLineNumber().get());
+
+    assertTrue(payload.getCaseReferenceNumber().isPresent());
+    assertEquals("CR-ALL", payload.getCaseReferenceNumber().get());
+
+    assertTrue(payload.getUniqueFileNumber().isPresent());
+    assertEquals("UFN-ALL", payload.getUniqueFileNumber().get());
+
+    assertTrue(payload.getCaseStartDate().isPresent());
+    assertEquals(LocalDate.of(2026, 12, 5), payload.getCaseStartDate().get());
+
+    assertTrue(payload.getCaseConcludedDate().isPresent());
+    assertEquals(LocalDate.of(2026, 12, 6), payload.getCaseConcludedDate().get());
+
+    assertTrue(payload.getMatterTypeCode().isPresent());
+    assertEquals("MTC-ALL", payload.getMatterTypeCode().get());
+
+    assertTrue(payload.getCrimeMatterTypeCode().isPresent());
+    assertEquals("CMTC-ALL", payload.getCrimeMatterTypeCode().get());
+
+    assertTrue(payload.getFeeSchemeCode().isPresent());
+    assertEquals("FSC-ALL", payload.getFeeSchemeCode().get());
+
+    assertTrue(payload.getFeeCode().isPresent());
+    assertEquals("FC-ALL", payload.getFeeCode().get());
+
+    assertTrue(payload.getProcurementAreaCode().isPresent());
+    assertEquals("PAC-ALL", payload.getProcurementAreaCode().get());
+
+    assertTrue(payload.getAccessPointCode().isPresent());
+    assertEquals("APC-ALL", payload.getAccessPointCode().get());
+
+    assertTrue(payload.getDeliveryLocation().isPresent());
+    assertEquals("DL-ALL", payload.getDeliveryLocation().get());
+
+    assertTrue(payload.getVersion().isPresent());
+    assertEquals(11L, payload.getVersion().get());
+
+    assertTrue(payload.getRepresentationOrderDate().isPresent());
+    assertEquals(LocalDate.of(2025, 1, 1), payload.getRepresentationOrderDate().get());
+
+    assertTrue(payload.getSuspectsDefendantsCount().isPresent());
+    assertEquals(2, payload.getSuspectsDefendantsCount().get());
+
+    assertTrue(payload.getPoliceStationCourtAttendancesCount().isPresent());
+    assertEquals(3, payload.getPoliceStationCourtAttendancesCount().get());
+
+    assertTrue(payload.getPoliceStationCourtPrisonId().isPresent());
+    assertEquals("PS-PR-1", payload.getPoliceStationCourtPrisonId().get());
+
+    assertTrue(payload.getDsccNumber().isPresent());
+    assertEquals("DSCC-ALL", payload.getDsccNumber().get());
+
+    assertTrue(payload.getMaatId().isPresent());
+    assertEquals("MAAT-ALL", payload.getMaatId().get());
+
+    assertTrue(payload.getPrisonLawPriorApprovalNumber().isPresent());
+    assertEquals("PR-APP", payload.getPrisonLawPriorApprovalNumber().get());
+
+    assertTrue(payload.getIsDutySolicitor().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsDutySolicitor().get());
+
+    assertTrue(payload.getIsYouthCourt().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsYouthCourt().get());
+
+    assertTrue(payload.getSchemeId().isPresent());
+    assertEquals("SCHMID", payload.getSchemeId().get());
+
+    assertTrue(payload.getMediationSessionsCount().isPresent());
+    assertEquals(1, payload.getMediationSessionsCount().get());
+
+    assertTrue(payload.getMediationTimeMinutes().isPresent());
+    assertEquals(30, payload.getMediationTimeMinutes().get());
+
+    assertTrue(payload.getOutreachLocation().isPresent());
+    assertEquals("OUT-ALL", payload.getOutreachLocation().get());
+
+    assertTrue(payload.getReferralSource().isPresent());
+    assertEquals("REF-ALL", payload.getReferralSource().get());
+
+    // --- Client fields ---
+    assertTrue(payload.getClientForename().isPresent());
+    assertEquals("John", payload.getClientForename().get());
+
+    assertTrue(payload.getClientSurname().isPresent());
+    assertEquals("Smith", payload.getClientSurname().get());
+
+    assertTrue(payload.getClientDateOfBirth().isPresent());
+    assertEquals(LocalDate.of(1990, 12, 5), payload.getClientDateOfBirth().get());
+
+    assertTrue(payload.getUniqueClientNumber().isPresent());
+    assertEquals("UCN-1", payload.getUniqueClientNumber().get());
+
+    assertTrue(payload.getClientPostcode().isPresent());
+    assertEquals("PC1", payload.getClientPostcode().get());
+
+    assertTrue(payload.getGenderCode().isPresent());
+    assertEquals("M", payload.getGenderCode().get());
+
+    assertTrue(payload.getEthnicityCode().isPresent());
+    assertEquals("ETH", payload.getEthnicityCode().get());
+
+    assertTrue(payload.getDisabilityCode().isPresent());
+    assertEquals("DIS", payload.getDisabilityCode().get());
+
+    assertTrue(payload.getIsLegallyAided().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsLegallyAided().get());
+
+    assertTrue(payload.getClientTypeCode().isPresent());
+    assertEquals("CTC", payload.getClientTypeCode().get());
+
+    assertTrue(payload.getHomeOfficeClientNumber().isPresent());
+    assertEquals("HOCN", payload.getHomeOfficeClientNumber().get());
+
+    assertTrue(payload.getClaReferenceNumber().isPresent());
+    assertEquals("CLA-1", payload.getClaReferenceNumber().get());
+
+    assertTrue(payload.getClaExemptionCode().isPresent());
+    assertEquals("EX-1", payload.getClaExemptionCode().get());
+
+    assertTrue(payload.getClient2Forename().isPresent());
+    assertEquals("Jane", payload.getClient2Forename().get());
+
+    assertTrue(payload.getClient2Surname().isPresent());
+    assertEquals("Doe", payload.getClient2Surname().get());
+
+    assertTrue(payload.getClient2DateOfBirth().isPresent());
+    assertEquals(LocalDate.of(1992, 6, 6), payload.getClient2DateOfBirth().get());
+
+    assertTrue(payload.getClient2Ucn().isPresent());
+    assertEquals("UCN-2", payload.getClient2Ucn().get());
+
+    assertTrue(payload.getClient2Postcode().isPresent());
+    assertEquals("PC2", payload.getClient2Postcode().get());
+
+    assertTrue(payload.getClient2GenderCode().isPresent());
+    assertEquals("F", payload.getClient2GenderCode().get());
+
+    assertTrue(payload.getClient2EthnicityCode().isPresent());
+    assertEquals("ETH2", payload.getClient2EthnicityCode().get());
+
+    assertTrue(payload.getClient2DisabilityCode().isPresent());
+    assertEquals("DIS2", payload.getClient2DisabilityCode().get());
+
+    assertTrue(payload.getClient2IsLegallyAided().isPresent());
+    assertEquals(Boolean.FALSE, payload.getClient2IsLegallyAided().get());
+
+    // --- Claim-case fields ---
+    assertTrue(payload.getCaseId().isPresent());
+    assertEquals("CASE-1", payload.getCaseId().get());
+
+    assertTrue(payload.getUniqueCaseId().isPresent());
+    assertEquals("UCASE-1", payload.getUniqueCaseId().get());
+
+    assertTrue(payload.getCaseStageCode().isPresent());
+    assertEquals("STAGE1", payload.getCaseStageCode().get());
+
+    assertTrue(payload.getStageReachedCode().isPresent());
+    assertEquals("REACHED1", payload.getStageReachedCode().get());
+
+    assertTrue(payload.getStandardFeeCategoryCode().isPresent());
+    assertEquals("SFC", payload.getStandardFeeCategoryCode().get());
+
+    assertTrue(payload.getOutcomeCode().isPresent());
+    assertEquals("OUTC", payload.getOutcomeCode().get());
+
+    assertTrue(payload.getDesignatedAccreditedRepresentativeCode().isPresent());
+    assertEquals("DAR", payload.getDesignatedAccreditedRepresentativeCode().get());
+
+    assertTrue(payload.getIsPostalApplicationAccepted().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsPostalApplicationAccepted().get());
+
+    assertTrue(payload.getIsClient2PostalApplicationAccepted().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsClient2PostalApplicationAccepted().get());
+
+    assertTrue(payload.getMentalHealthTribunalReference().isPresent());
+    assertEquals("MHTR", payload.getMentalHealthTribunalReference().get());
+
+    assertTrue(payload.getIsNrmAdvice().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsNrmAdvice().get());
+
+    assertTrue(payload.getFollowOnWork().isPresent());
+    assertEquals("FOLLOW", payload.getFollowOnWork().get());
+
+    assertTrue(payload.getTransferDate().isPresent());
+    assertEquals(LocalDate.of(2024, 2, 2), payload.getTransferDate().get());
+
+    assertTrue(payload.getExemptionCriteriaSatisfied().isPresent());
+    assertEquals("EXC", payload.getExemptionCriteriaSatisfied().get());
+
+    assertTrue(payload.getExceptionalCaseFundingReference().isPresent());
+    assertEquals("EXCF", payload.getExceptionalCaseFundingReference().get());
+
+    assertTrue(payload.getIsLegacyCase().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsLegacyCase().get());
+
+    // --- Claim-summary-fee fields ---
+    assertTrue(payload.getAdviceTime().isPresent());
+    assertEquals(5, payload.getAdviceTime().get());
+
+    assertTrue(payload.getTravelTime().isPresent());
+    assertEquals(6, payload.getTravelTime().get());
+
+    assertTrue(payload.getWaitingTime().isPresent());
+    assertEquals(7, payload.getWaitingTime().get());
+
+    assertTrue(payload.getNetProfitCostsAmount().isPresent());
+    assertEquals(new BigDecimal("1.11"), payload.getNetProfitCostsAmount().get());
+
+    assertTrue(payload.getNetDisbursementAmount().isPresent());
+    assertEquals(new BigDecimal("2.22"), payload.getNetDisbursementAmount().get());
+
+    assertTrue(payload.getNetCounselCostsAmount().isPresent());
+    assertEquals(new BigDecimal("3.33"), payload.getNetCounselCostsAmount().get());
+
+    assertTrue(payload.getDisbursementsVatAmount().isPresent());
+    assertEquals(new BigDecimal("4.44"), payload.getDisbursementsVatAmount().get());
+
+    assertTrue(payload.getTravelWaitingCostsAmount().isPresent());
+    assertEquals(new BigDecimal("5.55"), payload.getTravelWaitingCostsAmount().get());
+
+    assertTrue(payload.getNetWaitingCostsAmount().isPresent());
+    assertEquals(new BigDecimal("6.66"), payload.getNetWaitingCostsAmount().get());
+
+    assertTrue(payload.getIsVatApplicable().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsVatApplicable().get());
+
+    assertTrue(payload.getIsToleranceApplicable().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsToleranceApplicable().get());
+
+    assertTrue(payload.getPriorAuthorityReference().isPresent());
+    assertEquals("PAR-1", payload.getPriorAuthorityReference().get());
+
+    assertTrue(payload.getIsLondonRate().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsLondonRate().get());
+
+    assertTrue(payload.getAdjournedHearingFeeAmount().isPresent());
+    assertEquals(1, payload.getAdjournedHearingFeeAmount().get());
+
+    assertTrue(payload.getIsAdditionalTravelPayment().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsAdditionalTravelPayment().get());
+
+    assertTrue(payload.getCostsDamagesRecoveredAmount().isPresent());
+    assertEquals(new BigDecimal("7.77"), payload.getCostsDamagesRecoveredAmount().get());
+
+    assertTrue(payload.getMeetingsAttendedCode().isPresent());
+    assertEquals("MEET1", payload.getMeetingsAttendedCode().get());
+
+    assertTrue(payload.getDetentionTravelWaitingCostsAmount().isPresent());
+    assertEquals(new BigDecimal("8.88"), payload.getDetentionTravelWaitingCostsAmount().get());
+
+    assertTrue(payload.getJrFormFillingAmount().isPresent());
+    assertEquals(new BigDecimal("9.99"), payload.getJrFormFillingAmount().get());
+
+    assertTrue(payload.getIsEligibleClient().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsEligibleClient().get());
+
+    assertTrue(payload.getCourtLocationCode().isPresent());
+    assertEquals("CL01", payload.getCourtLocationCode().get());
+
+    assertTrue(payload.getAdviceTypeCode().isPresent());
+    assertEquals("ATC", payload.getAdviceTypeCode().get());
+
+    assertTrue(payload.getMedicalReportsCount().isPresent());
+    assertEquals(2, payload.getMedicalReportsCount().get());
+
+    assertTrue(payload.getIsIrcSurgery().isPresent());
+    assertEquals(Boolean.FALSE, payload.getIsIrcSurgery().get());
+
+    assertTrue(payload.getSurgeryDate().isPresent());
+    assertEquals(LocalDate.of(2023, 3, 3), payload.getSurgeryDate().get());
+
+    assertTrue(payload.getSurgeryClientsCount().isPresent());
+    assertEquals(1, payload.getSurgeryClientsCount().get());
+
+    assertTrue(payload.getSurgeryMattersCount().isPresent());
+    assertEquals(2, payload.getSurgeryMattersCount().get());
+
+    assertTrue(payload.getCmrhOralCount().isPresent());
+    assertEquals(0, payload.getCmrhOralCount().get());
+
+    assertTrue(payload.getCmrhTelephoneCount().isPresent());
+    assertEquals(1, payload.getCmrhTelephoneCount().get());
+
+    assertTrue(payload.getAitHearingCentreCode().isPresent());
+    assertEquals("AITHC", payload.getAitHearingCentreCode().get());
+
+    assertTrue(payload.getIsSubstantiveHearing().isPresent());
+    assertEquals(Boolean.TRUE, payload.getIsSubstantiveHearing().get());
+
+    assertTrue(payload.getHoInterview().isPresent());
+    assertEquals(4, payload.getHoInterview().get());
+
+    assertTrue(payload.getLocalAuthorityNumber().isPresent());
+    assertEquals("LAN1", payload.getLocalAuthorityNumber().get());
+
+    // --- Amendment metadata ---
+    assertTrue(payload.getAmendmentRequestedBy().isPresent());
+    assertEquals("PROVIDER", payload.getAmendmentRequestedBy().get());
+
+    assertTrue(payload.getAmendmentUserId().isPresent());
+    assertEquals(userUuid.toString(), payload.getAmendmentUserId().get());
+
+    assertTrue(payload.getAmendmentReasonCode().isPresent());
+    assertEquals("REASON1", payload.getAmendmentReasonCode().get());
+  }
+
+  @Test
+  void toAmendmentPayload_omittedFields_areNotPresent() {
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+
+    final ClaimAmendmentPayload payload = mapper.toAmendmentPayload(patch);
+
+    // When no fields are set on the patch, the payload should contain no present values
+    assertNotNull(payload);
+    // pick a few representative fields that had "isPresent" checks in the mapper
+    assertTrue(!payload.getScheduleReference().isPresent());
+    assertTrue(!payload.getCaseStartDate().isPresent());
+    assertTrue(!payload.getClientForename().isPresent());
+    assertTrue(!payload.getAmendmentUserId().isPresent());
   }
 
   @Test
@@ -790,6 +1239,188 @@ class ClaimMapperTest {
   @Test
   void toCalculatedFeeDetail_nullPatch_noChanges() {
     assertNull(mapper.toCalculatedFeeDetail(null));
+  }
+
+  // ---------------------------------------------------------------------------
+  // toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) - amendment path
+  // ---------------------------------------------------------------------------
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) maps every FSP field + metadata")
+  void toCalculatedFeeDetail_fromFeeCalculationResponse_mapsAllFieldsAndMetadata() {
+    FeeCalculationResponse response = buildFullFeeCalculationResponse();
+    ResolvedFeeMetadata metadata =
+        new ResolvedFeeMetadata(FeeCalculationType.HOURLY, "Full description", "CATEGORY-A");
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // Persistence + relational fields are NOT owned by the mapper (assigned by the caller).
+    assertNull(result.getId());
+    assertNull(result.getClaim());
+    assertNull(result.getClaimAmendment());
+    assertNull(result.getClaimSummaryFee());
+    assertNull(result.getIsPriceChanged());
+
+    // Top-level FSP fields
+    assertThat(result.getFeeCode()).isEqualTo("FEE-123");
+    assertThat(result.getSchemeId()).isEqualTo("SCHEME-TEST");
+    assertThat(result.getEscapeCaseFlag()).isTrue();
+
+    // Resolver-supplied metadata (not on the FSP response)
+    assertThat(result.getFeeType()).isEqualTo(FeeCalculationType.HOURLY);
+    assertThat(result.getFeeCodeDescription()).isEqualTo("Full description");
+    assertThat(result.getCategoryOfLaw()).isEqualTo("CATEGORY-A");
+
+    // Nested feeCalculation.* (Double -> BigDecimal via doubleToBigDecimal)
+    assertThat(result.getTotalAmount()).isEqualByComparingTo("650.00");
+    assertThat(result.getVatIndicator()).isTrue();
+    assertThat(result.getVatRateApplied()).isEqualByComparingTo("20.0");
+    assertThat(result.getCalculatedVatAmount()).isEqualByComparingTo("108.33");
+    assertThat(result.getDisbursementAmount()).isEqualByComparingTo("50.25");
+    assertThat(result.getRequestedNetDisbursementAmount()).isEqualByComparingTo("45.15");
+    assertThat(result.getDisbursementVatAmount()).isEqualByComparingTo("10.05");
+    assertThat(result.getHourlyTotalAmount()).isEqualByComparingTo("250.10");
+    assertThat(result.getFixedFeeAmount()).isEqualByComparingTo("75.35");
+    assertThat(result.getNetProfitCostsAmount()).isEqualByComparingTo("450.00");
+    assertThat(result.getRequestedNetProfitCostsAmount()).isEqualByComparingTo("400.40");
+    assertThat(result.getNetCostOfCounselAmount()).isEqualByComparingTo("35.99");
+    assertThat(result.getNetTravelCostsAmount()).isEqualByComparingTo("12.10");
+    assertThat(result.getNetWaitingCostsAmount()).isEqualByComparingTo("8.80");
+    assertThat(result.getDetentionTravelAndWaitingCostsAmount()).isEqualByComparingTo("5.70");
+    assertThat(result.getJrFormFillingAmount()).isEqualByComparingTo("18.75");
+    // Note the singular -> plural rename between FSP (travelAndWaitingCostAmount) and entity
+    // (travelAndWaitingCostsAmount). Explicitly asserted here to guard against reintroducing the
+    // typo in future refactors.
+    assertThat(result.getTravelAndWaitingCostsAmount()).isEqualByComparingTo("20.90");
+
+    // Nested feeCalculation.boltOnFeeDetails.*
+    assertThat(result.getBoltOnTotalFeeAmount()).isEqualByComparingTo("33.45");
+    assertThat(result.getBoltOnAdjournedHearingCount()).isEqualTo(1);
+    assertThat(result.getBoltOnAdjournedHearingFee()).isEqualByComparingTo("11.11");
+    assertThat(result.getBoltOnCmrhTelephoneCount()).isEqualTo(2);
+    assertThat(result.getBoltOnCmrhTelephoneFee()).isEqualByComparingTo("12.12");
+    assertThat(result.getBoltOnCmrhOralCount()).isEqualTo(3);
+    assertThat(result.getBoltOnCmrhOralFee()).isEqualByComparingTo("13.13");
+    assertThat(result.getBoltOnHomeOfficeInterviewCount()).isEqualTo(4);
+    assertThat(result.getBoltOnHomeOfficeInterviewFee()).isEqualByComparingTo("14.14");
+    assertThat(result.getBoltOnSubstantiveHearingFee()).isEqualByComparingTo("15.15");
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) leaves nested fields null when feeCalculation is null")
+  void
+      toCalculatedFeeDetail_fromFeeCalculationResponse_nullFeeCalculation_leavesNestedFieldsNull() {
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE-123")
+            .schemeId("SCHEME-TEST")
+            .escapeCaseFlag(false);
+    ResolvedFeeMetadata metadata =
+        new ResolvedFeeMetadata(FeeCalculationType.FIXED, "Fixed fee", "CATEGORY-X");
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // Top-level + metadata are still mapped.
+    assertThat(result.getFeeCode()).isEqualTo("FEE-123");
+    assertThat(result.getSchemeId()).isEqualTo("SCHEME-TEST");
+    assertThat(result.getEscapeCaseFlag()).isFalse();
+    assertThat(result.getFeeType()).isEqualTo(FeeCalculationType.FIXED);
+    assertThat(result.getFeeCodeDescription()).isEqualTo("Fixed fee");
+    assertThat(result.getCategoryOfLaw()).isEqualTo("CATEGORY-X");
+
+    // Every nested FSP field should be null when the feeCalculation block is absent.
+    assertNull(result.getTotalAmount());
+    assertNull(result.getVatIndicator());
+    assertNull(result.getNetProfitCostsAmount());
+    assertNull(result.getTravelAndWaitingCostsAmount());
+    assertNull(result.getBoltOnTotalFeeAmount());
+    assertNull(result.getBoltOnAdjournedHearingCount());
+    assertNull(result.getBoltOnSubstantiveHearingFee());
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) leaves bolt-on fields null when boltOnFeeDetails is null")
+  void
+      toCalculatedFeeDetail_fromFeeCalculationResponse_nullBoltOnFeeDetails_leavesBoltOnFieldsNull() {
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE-456")
+            .schemeId("SCHEME-02")
+            .escapeCaseFlag(false)
+            .feeCalculation(new FeeCalculation().totalAmount(510.25).netProfitCostsAmount(190.19));
+    ResolvedFeeMetadata metadata = new ResolvedFeeMetadata(null, null, null);
+
+    CalculatedFeeDetail result = mapper.toCalculatedFeeDetail(response, metadata);
+
+    assertNotNull(result);
+    // feeCalculation.* still projected.
+    assertThat(result.getTotalAmount()).isEqualByComparingTo("510.25");
+    assertThat(result.getNetProfitCostsAmount()).isEqualByComparingTo("190.19");
+    // metadata resolver returned all nulls -> mapper writes them through unchanged.
+    assertNull(result.getFeeType());
+    assertNull(result.getFeeCodeDescription());
+    assertNull(result.getCategoryOfLaw());
+    // Bolt-on fields must remain unset.
+    assertNull(result.getBoltOnTotalFeeAmount());
+    assertNull(result.getBoltOnAdjournedHearingCount());
+    assertNull(result.getBoltOnAdjournedHearingFee());
+    assertNull(result.getBoltOnCmrhTelephoneCount());
+    assertNull(result.getBoltOnCmrhTelephoneFee());
+    assertNull(result.getBoltOnCmrhOralCount());
+    assertNull(result.getBoltOnCmrhOralFee());
+    assertNull(result.getBoltOnHomeOfficeInterviewCount());
+    assertNull(result.getBoltOnHomeOfficeInterviewFee());
+    assertNull(result.getBoltOnSubstantiveHearingFee());
+  }
+
+  @Test
+  @DisplayName(
+      "toCalculatedFeeDetail(FeeCalculationResponse, ResolvedFeeMetadata) returns null when the response is null")
+  void toCalculatedFeeDetail_fromFeeCalculationResponse_nullResponse_returnsNull() {
+    assertNull(mapper.toCalculatedFeeDetail((FeeCalculationResponse) null, null));
+  }
+
+  private static FeeCalculationResponse buildFullFeeCalculationResponse() {
+    return new FeeCalculationResponse()
+        .feeCode("FEE-123")
+        .schemeId("SCHEME-TEST")
+        .escapeCaseFlag(true)
+        .feeCalculation(
+            new FeeCalculation()
+                .totalAmount(650.00)
+                .vatIndicator(true)
+                .vatRateApplied(20.00)
+                .calculatedVatAmount(108.33)
+                .disbursementAmount(50.25)
+                .requestedNetDisbursementAmount(45.15)
+                .disbursementVatAmount(10.05)
+                .hourlyTotalAmount(250.10)
+                .fixedFeeAmount(75.35)
+                .netProfitCostsAmount(450.00)
+                .requestedNetProfitCostsAmount(400.40)
+                .netCostOfCounselAmount(35.99)
+                .netTravelCostsAmount(12.10)
+                .netWaitingCostsAmount(8.80)
+                .detentionTravelAndWaitingCostsAmount(5.70)
+                .jrFormFillingAmount(18.75)
+                .travelAndWaitingCostAmount(20.90)
+                .boltOnFeeDetails(
+                    new BoltOnFeeDetails()
+                        .boltOnTotalFeeAmount(33.45)
+                        .boltOnAdjournedHearingCount(1)
+                        .boltOnAdjournedHearingFee(11.11)
+                        .boltOnCmrhTelephoneCount(2)
+                        .boltOnCmrhTelephoneFee(12.12)
+                        .boltOnCmrhOralCount(3)
+                        .boltOnCmrhOralFee(13.13)
+                        .boltOnHomeOfficeInterviewCount(4)
+                        .boltOnHomeOfficeInterviewFee(14.14)
+                        .boltOnSubstantiveHearingFee(15.15)));
   }
 
   @Test

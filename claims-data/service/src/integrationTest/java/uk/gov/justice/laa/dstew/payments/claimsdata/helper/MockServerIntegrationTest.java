@@ -49,13 +49,15 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
 
   // Validation-core external endpoints (see MockServerIntegrationTest for base-URL wiring). The
   // genuine AmendmentExternalValidationStep delegates to claims-validation-core, which calls these.
-  private static final String FEE_DETAILS = "/api/v2/fee-details/";
-  private static final String FEE_CALCULATION = "/api/v1/fee-calculation";
-  private static final String PROVIDER_OFFICES = "/api/v1/provider-offices/";
-  private static final String SCHEDULES_ENDPOINT = "/schedules";
+  // Exposed as protected so subclasses can reference the canonical paths rather than re-declaring
+  // identical literals in individual test classes.
+  protected static final String FEE_DETAILS = "/api/v2/fee-details/";
+  protected static final String FEE_CALCULATION = "/api/v1/fee-calculation";
+  protected static final String PROVIDER_OFFICES = "/api/v1/provider-offices/";
+  protected static final String SCHEDULES_ENDPOINT = "/schedules";
 
   /** Matches the PDA {@code getProviderFirmSchedules} path for any office code. */
-  private static final String SCHEDULES_PATH_REGEX = PROVIDER_OFFICES + ".*" + SCHEDULES_ENDPOINT;
+  protected static final String SCHEDULES_PATH_REGEX = PROVIDER_OFFICES + ".*" + SCHEDULES_ENDPOINT;
 
   private static final DockerImageName MOCKSERVER_IMAGE =
       DockerImageName.parse("mockserver/mockserver:5.15.0");

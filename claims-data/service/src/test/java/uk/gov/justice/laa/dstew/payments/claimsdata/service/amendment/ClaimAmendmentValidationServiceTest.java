@@ -29,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ValidationClaimMapper
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.provider.AmendmentReferenceDataProvider;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeCalculationMetadataResolver;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestBuilder;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentChangeDetector;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
@@ -68,6 +69,7 @@ class ClaimAmendmentValidationServiceTest {
   @Mock private FeeSchemeRequestBuilder requestBuilder;
   @Mock private FeeSchemePlatformRestClient fspClient;
   @Mock private ClaimStateSnapshotMapper claimStateSnapshotMapper;
+  @Mock private FeeCalculationMetadataResolver feeCalculationMetadataResolver;
   @InjectMocks private AmendmentFspValidationStep amendmentFspValidationStep;
 
   private static ClaimAmendmentValidationService orchestratorWith(

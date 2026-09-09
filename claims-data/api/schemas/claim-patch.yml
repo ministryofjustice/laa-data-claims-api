@@ -1,0 +1,173 @@
+# =============================================================================
+# Shared claim_patch schema definitions.
+#
+# SINGLE SOURCE OF TRUTH for the claim PATCH shape and its supporting schemas.
+#
+# This file is referenced by BOTH specifications, with NO reverse dependency
+# between them, so there is no circular cross-file reference for OpenAPI
+# Generator 7.23.0 to trip over:
+#
+#   open-api-specification.yml            --.
+#                                           |--> ./schemas/claim-patch.yml --> ./claim-base.yml
+#   amendment-open-api-specification.yml --'
+#
+# * open-api-specification.yml (openApiNullable = false) -> plain Java fields
+#   (ClaimPatch, FeeCalculationPatch, BoltOnPatch, FeeCalculationType,
+#    ValidationMessagePatch, ValidationMessageType).
+# * amendment-open-api-specification.yml (openApiNullable = true) -> the same
+#   shape, but every `nullable: true` field becomes a JsonNullable<T>
+#   (ClaimAmendmentPatch), giving true PATCH tri-state semantics.
+#
+# claim_patch composes ./claim-base.yml#/claim_base directly (flattened) so this
+# file NEVER needs to reference back into open-api-specification.yml. The JSON
+# wire format is identical to the previous nested claim_response + claim_patch
+# composition because the Spring generator flattens allOf either way.
+# =============================================================================
+claim_patch:
+  allOf:
+    - $ref: './claim-base.yml#/claim_base'
+    - type: object
+      properties:
+        total_warnings:
+          type: integer
+          description: Number of validation warnings for this claim.
+        fee_calculation_response:
+          $ref: '#/fee_calculation_patch'
+        amendment_requested_by:
+          type: string
+          description: "Requesting party code for an amendment (governed reference). Use values from GET /api/v1/system/references/amendment-requested-by"
+          nullable: true
+        amendment_user_id:
+          type: string
+          format: uuid
+          description: "UUID of the user who requested the amendment (provider/Entra user id)."
+          nullable: true
+        amendment_reason_code:
+          type: string
+          description: "Amendment reason code valid for the requesting party (see amendment_requested_by reference reasons)."
+          nullable: true
+        validation_messages:
+          type: array
+          items:
+            $ref: '#/validation_message_patch'
+
+fee_calculation_patch:
+  type: object
+  description: Fee calculation response from the Fee Scheme Platform
+  properties:
+    calculated_fee_detail_id:
+      type: string
+    claim_summary_fee_id:
+      type: string
+      format: uuid
+    claim_id:
+      type: string
+      format: uuid
+    fee_code:
+      type: string
+    fee_code_description:
+      type: string
+    fee_type:
+      $ref: '#/fee_calculation_type'
+    category_of_law:
+      type: string
+    total_amount:
+      type: number
+    vat_indicator:
+      type: boolean
+    vat_rate_applied:
+      type: number
+    calculated_vat_amount:
+      type: number
+    disbursement_amount:
+      type: number
+    requested_net_disbursement_amount:
+      type: number
+    disbursement_vat_amount:
+      type: number
+    hourly_total_amount:
+      type: number
+    fixed_fee_amount:
+      type: number
+    net_profit_costs_amount:
+      type: number
+    requested_net_profit_costs_amount:
+      type: number
+    net_cost_of_counsel_amount:
+      type: number
+    net_travel_costs_amount:
+      type: number
+    net_waiting_costs_amount:
+      type: number
+    detention_travel_and_waiting_costs_amount:
+      type: number
+    jr_form_filling_amount:
+      type: number
+    travel_and_waiting_costs_amount:
+      type: number
+    bolt_on_details:
+      $ref: '#/bolt_on_patch'
+
+bolt_on_patch:
+  type: object
+  description: Bolt on details
+  properties:
+    bolt_on_total_fee_amount:
+      type: number
+    bolt_on_adjourned_hearing_count:
+      type: integer
+    bolt_on_adjourned_hearing_fee:
+      type: number
+    bolt_on_cmrh_telephone_count:
+      type: integer
+    bolt_on_cmrh_telephone_fee:
+      type: number
+    bolt_on_cmrh_oral_count:
+      type: integer
+    bolt_on_cmrh_oral_fee:
+      type: number
+    bolt_on_home_office_interview_count:
+      type: integer
+    bolt_on_home_office_interview_fee:
+      type: number
+    bolt_on_substantive_hearing_fee:
+      type: number
+    escape_case_flag:
+      type: boolean
+    scheme_id:
+      type: string
+
+fee_calculation_type:
+  type: string
+  enum:
+    - HOURLY
+    - FIXED
+    - DISB_ONLY
+  description: |
+    The type of the fee, indicating the nature of the calculated fee returned by Fee Scheme Platform.
+
+validation_message_patch:
+  type: object
+  description: Validation message
+  properties:
+    type:
+      $ref: '#/validation_message_type'
+    source:
+      type: string
+    display_message:
+      type: string
+    technical_message:
+      type: string
+    message_code:
+      type: string
+      maxLength: 20
+      description: Message code from FSP payload (e.g. WARFAM1, ERRALL1).
+
+validation_message_type:
+  type: string
+  enum:
+    - ERROR
+    - WARNING
+  description: |
+    The type of validation message, indicating its severity or nature.
+

@@ -80,7 +80,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -91,7 +91,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     // UCN is non-PDA: duplicate checking must run without any Provider Details call.
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -107,7 +107,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode("NEWFEE").uniqueFileNumber(UNIQUE_FILE_NUMBER), SEEDED_UNIQUE_CLIENT_NUMBER);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -117,7 +117,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     verifyProviderSchedulesCalled(VerificationTimes.atLeast(1));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -132,7 +132,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode(FEE_CODE).uniqueFileNumber("020225/002"), SEEDED_UNIQUE_CLIENT_NUMBER);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -141,7 +141,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     assertRejectedAsDuplicate(result, DUPLICATE_IN_ANOTHER_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -164,7 +164,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
             b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER));
     seedClient(siblingId, OTHER_UCN, "Dup", "Licate");
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -174,7 +174,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
     assertRejectedAsDuplicate(result, DUPLICATE_IN_SAME_SUBMISSION);
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -189,7 +189,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaim(
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(originalVersion);
     patch.setUniqueClientNumber(OTHER_UCN);
     // Additionally supply an unknown amendment-reason code so the metadata reference step collects
@@ -203,7 +203,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     assertThat(result.getResponse().getContentAsString())
         .contains(DUPLICATE_IN_ANOTHER_SUBMISSION)
         .contains("INVALID_AMENDMENT_REASON_UNKNOWN");
-    assertNothingPersisted(originalVersion);
+    assertNoAmendmentWritten(CLAIM_1_ID, originalVersion);
   }
 
   // ===========================================================================
@@ -219,7 +219,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     // No comparison claim seeded: the only row matching CLAIM_1's keys is its own persisted row, so
     // a correct self-exclusion must let this neutral (non-key) amendment commit.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -228,7 +228,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -241,7 +241,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     seedPriorDuplicateClaimWithStatus(
         ClaimStatus.VOID, b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -249,7 +249,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -265,7 +265,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
         b -> b.feeCode(FEE_CODE).uniqueFileNumber(UNIQUE_FILE_NUMBER),
         OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -273,7 +273,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   @Test
@@ -285,7 +285,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     // match.
     seedPriorDuplicateClaim(b -> b.feeCode(FEE_CODE).uniqueFileNumber("999999/999"), OTHER_UCN);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     // Stamp the current claim version so the amendment clears the optimistic-lock gate,
     // leaving the duplicate check (not the version gate) as the behaviour under test.
     patch.setVersion(originalVersion);
@@ -293,7 +293,7 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
-    assertCommitted(result, originalVersion);
+    assertAmendmentCommittedVersioned(result, CLAIM_1_ID, originalVersion);
   }
 
   // ---------------------------------------------------------------------------
@@ -382,24 +382,5 @@ class ClaimAmendmentDuplicateValidationIntegrationTest
     assertThat(result.getResponse().getContentAsString())
         .as("amendment response should contain %s", expectedCode)
         .contains(expectedCode);
-  }
-
-  /** Asserts the rejected amendment left no trace: no audit row, flag/version unchanged. */
-  private void assertNothingPersisted(Long originalVersion) {
-    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
-    Claim after = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    assertThat(after.isAmended()).isFalse();
-    assertThat(after.getVersion()).isEqualTo(originalVersion);
-  }
-
-  /** Asserts a committed (204) amendment: an audit row exists and the claim is marked amended. */
-  private void assertCommitted(MvcResult result, Long originalVersion) {
-    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.NO_CONTENT.value());
-    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).hasSize(1);
-    Claim after = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    assertThat(after.isAmended()).isTrue();
-    // A single committed amendment performs exactly one @Version-guarded claim update, so the
-    // optimistic-lock version advances by precisely one.
-    assertThat(after.getVersion()).isEqualTo(originalVersion + 1);
   }
 }

@@ -99,9 +99,9 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     Claim secondClaim =
         createAmendableClaim(submissionId, b -> b.feeCode("FEE1").caseStartDate(sharedStartDate));
 
-    ClaimPatch firstPatch = metadataPatch();
+    ClaimPatch firstPatch = createBasePatch();
     firstPatch.setFeeCode("FEE2");
-    ClaimPatch secondPatch = metadataPatch();
+    ClaimPatch secondPatch = createBasePatch();
     secondPatch.setFeeCode("FEE2");
 
     performPatch(submissionId, firstClaim.getId(), firstPatch); // cache miss -> one outbound call
@@ -120,7 +120,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     UUID submissionId = createSubmissionWithUniqueOffice();
     Claim claim = createAmendableClaim(submissionId, field.claimState);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     field.patchMutator.accept(patch);
 
     performPatch(submissionId, claim.getId(), patch);
@@ -145,7 +145,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
                     .matterTypeCode("MTC1"));
 
     // matterTypeCode is not a PDA-impacting field, so Step 10 receives pda_relevant = false.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setMatterTypeCode("MTC2");
 
     performPatch(submissionId, claim.getId(), patch);
@@ -170,7 +170,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
             submissionId,
             b -> b.feeCode("FEE1").caseStartDate(LocalDate.of(2097, Month.JANUARY, 1)));
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setFeeCode("FEE2");
 
     long startNanos = System.nanoTime();

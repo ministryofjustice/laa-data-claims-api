@@ -76,7 +76,7 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
   }
 
   private ClaimPatch feeCodePatch(Long version, String feeCode) {
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(version);
     patch.setFeeCode(feeCode);
     return patch;
@@ -98,7 +98,7 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
     String amendedFeeCode = uniqueFeeCode();
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(amendedFeeCode);
 
@@ -126,7 +126,7 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     String originalFeeCode = seeded.getFeeCode();
     Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(uniqueFeeCode());
 
@@ -159,7 +159,7 @@ class ClaimAmendmentFeeCodeAreaOfLawIntegrationTest extends AbstractAmendmentPat
     String originalFeeCode = seeded.getFeeCode();
     Claim savedClaim = claimRepository.saveAndFlush(seeded);
 
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(savedClaim.getVersion());
     patch.setFeeCode(uniqueFeeCode());
 

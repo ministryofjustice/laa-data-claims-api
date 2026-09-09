@@ -1,0 +1,362 @@
+# Shared claim schema definitions.
+#
+# SINGLE SOURCE OF TRUTH for claim fields.
+#
+# This file is referenced by BOTH:
+#   - open-api-specification.yml           (openApiNullable = false -> plain Java fields)
+#   - amendment-open-api-specification.yml (openApiNullable = true  -> JsonNullable<T> fields)
+#
+# Every claim_base property is intentionally marked `nullable: true`.
+# * Under the standard generation (openApiNullable = false) the nullable flag is
+#   ignored and plain fields (e.g. `private String feeCode;`) are produced, so the
+#   existing ClaimPatch / ClaimResponse / ClaimBase output is unchanged.
+# * Under the amendment generation (openApiNullable = true) the nullable flag causes
+#   true PATCH tri-state fields (e.g. `private JsonNullable<String> feeCode = JsonNullable.undefined();`).
+claim_status:
+  type: string
+  enum:
+    - READY_TO_PROCESS
+    - VALID
+    - INVALID
+    - VOID
+  description: |
+    System-maintained processing status indicator that tracks the validation lifecycle of a
+    claim record from initial submission through to final approval or rejection.
+
+claim_base:
+  type: object
+  description: Claim details
+  properties:
+    id:
+      type: string
+      nullable: true
+    submission_id:
+      type: string
+      nullable: true
+    status:
+      $ref: '#/claim_status'
+    schedule_reference:
+      type: string
+      nullable: true
+    line_number:
+      type: integer
+      nullable: true
+    case_reference_number:
+      type: string
+      nullable: true
+    unique_file_number:
+      type: string
+      nullable: true
+    case_start_date:
+      type: string
+      description: Date the case was started (format DD/MM/YYYY)
+      nullable: true
+    case_concluded_date:
+      type: string
+      description: Date the case was concluded (format DD/MM/YYYY)
+      nullable: true
+    matter_type_code:
+      type: string
+      nullable: true
+    crime_matter_type_code:
+      type: string
+      nullable: true
+    fee_scheme_code:
+      type: string
+      nullable: true
+    fee_code:
+      type: string
+      nullable: true
+    procurement_area_code:
+      type: string
+      nullable: true
+    access_point_code:
+      type: string
+      nullable: true
+    delivery_location:
+      type: string
+      nullable: true
+    representation_order_date:
+      type: string
+      description: Date the rep order was created (format DD/MM/YYYY)
+      nullable: true
+    suspects_defendants_count:
+      type: integer
+      nullable: true
+    police_station_court_attendances_count:
+      type: integer
+      nullable: true
+    police_station_court_prison_id:
+      type: string
+      nullable: true
+    dscc_number:
+      type: string
+      nullable: true
+    maat_id:
+      type: string
+      nullable: true
+    prison_law_prior_approval_number:
+      type: string
+      nullable: true
+    is_duty_solicitor:
+      type: boolean
+      nullable: true
+    is_youth_court:
+      type: boolean
+      nullable: true
+    scheme_id:
+      type: string
+      nullable: true
+    mediation_sessions_count:
+      type: integer
+      nullable: true
+    mediation_time_minutes:
+      type: integer
+      nullable: true
+    outreach_location:
+      type: string
+      nullable: true
+    referral_source:
+      type: string
+      nullable: true
+    client_forename:
+      type: string
+      nullable: true
+    client_surname:
+      type: string
+      nullable: true
+    client_date_of_birth:
+      type: string
+      description: Client's date of birth (format DD/MM/YYYY)
+      nullable: true
+    unique_client_number:
+      type: string
+      nullable: true
+    client_postcode:
+      type: string
+      nullable: true
+    gender_code:
+      type: string
+      nullable: true
+    ethnicity_code:
+      type: string
+      nullable: true
+    disability_code:
+      type: string
+      nullable: true
+    is_legally_aided:
+      type: boolean
+      nullable: true
+    client_type_code:
+      type: string
+      nullable: true
+    home_office_client_number:
+      type: string
+      nullable: true
+    cla_reference_number:
+      type: string
+      nullable: true
+    cla_exemption_code:
+      type: string
+      nullable: true
+    client_2_forename:
+      type: string
+      nullable: true
+    client_2_surname:
+      type: string
+      nullable: true
+    client_2_date_of_birth:
+      type: string
+      description: Client 2's date of birth (format DD/MM/YYYY)
+      nullable: true
+    client_2_ucn:
+      type: string
+      nullable: true
+    client_2_postcode:
+      type: string
+      nullable: true
+    client_2_gender_code:
+      type: string
+      nullable: true
+    client_2_ethnicity_code:
+      type: string
+      nullable: true
+    client_2_disability_code:
+      type: string
+      nullable: true
+    client_2_is_legally_aided:
+      type: boolean
+      nullable: true
+    case_id:
+      type: string
+      nullable: true
+    unique_case_id:
+      type: string
+      nullable: true
+    case_stage_code:
+      type: string
+      nullable: true
+    stage_reached_code:
+      type: string
+      nullable: true
+    standard_fee_category_code:
+      type: string
+      nullable: true
+    outcome_code:
+      type: string
+      nullable: true
+    designated_accredited_representative_code:
+      type: string
+      nullable: true
+    is_postal_application_accepted:
+      type: boolean
+      nullable: true
+    is_client_2_postal_application_accepted:
+      type: boolean
+      nullable: true
+    mental_health_tribunal_reference:
+      type: string
+      nullable: true
+    is_nrm_advice:
+      type: boolean
+      nullable: true
+    follow_on_work:
+      type: string
+      nullable: true
+    transfer_date:
+      type: string
+      description: Transfer Date (format DD/MM/YYYY)
+      nullable: true
+    exemption_criteria_satisfied:
+      type: string
+      nullable: true
+    exceptional_case_funding_reference:
+      type: string
+      nullable: true
+    is_legacy_case:
+      type: boolean
+      nullable: true
+    advice_time:
+      type: integer
+      nullable: true
+    travel_time:
+      type: integer
+      nullable: true
+    waiting_time:
+      type: integer
+      nullable: true
+    net_profit_costs_amount:
+      type: number
+      nullable: true
+    net_disbursement_amount:
+      type: number
+      nullable: true
+    net_counsel_costs_amount:
+      type: number
+      nullable: true
+    disbursements_vat_amount:
+      type: number
+      nullable: true
+    travel_waiting_costs_amount:
+      type: number
+      nullable: true
+    net_waiting_costs_amount:
+      type: number
+      nullable: true
+    is_vat_applicable:
+      type: boolean
+      nullable: true
+    is_tolerance_applicable:
+      type: boolean
+      nullable: true
+    prior_authority_reference:
+      type: string
+      nullable: true
+    is_london_rate:
+      type: boolean
+      nullable: true
+    adjourned_hearing_fee_amount:
+      type: integer
+      description: "Note: actually stores the number of times the hearing was adjourned"
+      nullable: true
+    is_additional_travel_payment:
+      type: boolean
+      nullable: true
+    costs_damages_recovered_amount:
+      type: number
+      nullable: true
+    meetings_attended_code:
+      type: string
+      nullable: true
+    detention_travel_waiting_costs_amount:
+      type: number
+      nullable: true
+    jr_form_filling_amount:
+      type: number
+      nullable: true
+    is_eligible_client:
+      type: boolean
+      nullable: true
+    court_location_code:
+      type: string
+      nullable: true
+    advice_type_code:
+      type: string
+      nullable: true
+    medical_reports_count:
+      type: integer
+      nullable: true
+    is_irc_surgery:
+      type: boolean
+      nullable: true
+    surgery_date:
+      type: string
+      description: Surgery Date (format DD/MM/YYYY)
+      nullable: true
+    surgery_clients_count:
+      type: integer
+      nullable: true
+    surgery_matters_count:
+      type: integer
+      nullable: true
+    cmrh_oral_count:
+      type: integer
+      nullable: true
+    cmrh_telephone_count:
+      type: integer
+      nullable: true
+    ait_hearing_centre_code:
+      type: string
+      nullable: true
+    is_substantive_hearing:
+      type: boolean
+      nullable: true
+    ho_interview:
+      type: integer
+      description: "Number of Home Office Interviews"
+      nullable: true
+    local_authority_number:
+      type: string
+      nullable: true
+    submission_period:
+      type: string
+      description: Submission period (e.g., "JUL-2025").
+      nullable: true
+    created_by_user_id:
+      type: string
+      description: The id of the user who created the claim.
+      nullable: true
+    is_amended:
+      type: boolean
+      description: Indicates if the claim has been amended.
+      nullable: true
+    has_assessment:
+      type: boolean
+      description: Indicates if the claim has an associated assessment.
+      nullable: true
+    version:
+      type: integer
+      format: int64
+      description: Used for optimistic locking
+      nullable: true
+

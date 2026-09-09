@@ -93,7 +93,7 @@ class AmendmentVersusAssessmentOccIntegrationTest extends AbstractAmendmentPatch
     // (4) The amendment is submitted with the pre-assessment version the screen loaded. Use a
     // non-pricing field change (client name) so the assessed-claim pricing guard is not the reason
     // for rejection - the rejection must come from the stale version alone.
-    ClaimPatch patch = metadataPatch();
+    ClaimPatch patch = createBasePatch();
     patch.setVersion(versionLoadedByAmendScreen);
     patch.setClientForename("Race-Amended-Forename");
 

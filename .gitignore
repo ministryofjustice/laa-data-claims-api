@@ -9,6 +9,7 @@ bin/
 .DS_Store
 
 claims-data/api/generated
+claims-data/api/generated-amendment
 claims-data/api/bin
 
 ### IntelliJ IDEA ###
