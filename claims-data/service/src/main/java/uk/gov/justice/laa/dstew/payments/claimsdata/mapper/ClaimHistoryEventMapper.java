@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryChangeEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEventType;
@@ -29,9 +30,7 @@ public class ClaimHistoryEventMapper {
 
   private final ObjectMapper objectMapper;
 
-  /**
-   * Map a query projection row to the API model, applying presentation filtering rules.
-   */
+  /** Map a query projection row to the API model, applying presentation filtering rules. */
   public ClaimHistoryEvent toModel(ClaimHistoryEventRow row) {
     JsonNode metadataNode = row.metadata();
     Map<String, Object> metadata = toMetadataMap(metadataNode);
@@ -40,24 +39,35 @@ public class ClaimHistoryEventMapper {
     // claim fee code (claim.feeCode with change_source REQUESTED) and a derived FSP repricing
     // change to the calculated fee (fee.feeCode with change_source FSP), suppress the latter
     // in the API response to avoid confusing users. This does not modify persisted data.
-    if (Objects.equals(row.eventType(), "AMENDMENT") && metadataNode != null && metadataNode.has("changes")) {
+    if (Objects.equals(row.eventType(), "AMENDMENT")
+        && metadataNode != null
+        && metadataNode.has("changes")) {
       JsonNode changesNode = metadataNode.get("changes");
       if (changesNode != null && changesNode.isArray()) {
         List<ClaimHistoryChangeEntry> changes =
-            objectMapper.convertValue(changesNode, new TypeReference<List<ClaimHistoryChangeEntry>>() {});
+            objectMapper.convertValue(
+                changesNode, new TypeReference<List<ClaimHistoryChangeEntry>>() {});
 
-        boolean hasRequestedClaimFeeCode = changes.stream()
-            .anyMatch(
-                c -> "claim.feeCode".equals(c.getFieldIdentifier())
-                    && ClaimHistoryChangeEntry.ChangeSourceEnum.REQUESTED.equals(c.getChangeSource()));
+        boolean hasRequestedClaimFeeCode =
+            changes.stream()
+                .anyMatch(
+                    c ->
+                        AmendmentFieldIdentifiers.ClaimFields.FEE_CODE.equals(
+                                c.getFieldIdentifier())
+                            && ClaimHistoryChangeEntry.ChangeSourceEnum.REQUESTED.equals(
+                                c.getChangeSource()));
 
         List<ClaimHistoryChangeEntry> resultList = changes;
         if (hasRequestedClaimFeeCode) {
-          resultList = changes.stream()
-              .filter(
-                  c -> !("fee.feeCode".equals(c.getFieldIdentifier())
-                      && ClaimHistoryChangeEntry.ChangeSourceEnum.FSP.equals(c.getChangeSource())))
-              .collect(Collectors.toList());
+          resultList =
+              changes.stream()
+                  .filter(
+                      c ->
+                          !(AmendmentFieldIdentifiers.FeeFields.FEE_CODE.equals(
+                                  c.getFieldIdentifier())
+                              && ClaimHistoryChangeEntry.ChangeSourceEnum.FSP.equals(
+                                  c.getChangeSource())))
+                  .collect(Collectors.toList());
         }
 
         // Put the typed list back into metadata so the API model carries typed entries
@@ -67,7 +77,10 @@ public class ClaimHistoryEventMapper {
 
     return ClaimHistoryEvent.builder()
         .eventType(ClaimHistoryEventType.fromValue(row.eventType()))
-        .eventTimestamp(row.eventTimestamp() == null ? null : OffsetDateTime.ofInstant(row.eventTimestamp(), ZoneOffset.UTC))
+        .eventTimestamp(
+            row.eventTimestamp() == null
+                ? null
+                : OffsetDateTime.ofInstant(row.eventTimestamp(), ZoneOffset.UTC))
         .actorId(row.actorId())
         .sourceId(row.sourceId())
         .metadata(metadata)
@@ -81,4 +94,3 @@ public class ClaimHistoryEventMapper {
     return objectMapper.convertValue(metadata, METADATA_TYPE);
   }
 }
-

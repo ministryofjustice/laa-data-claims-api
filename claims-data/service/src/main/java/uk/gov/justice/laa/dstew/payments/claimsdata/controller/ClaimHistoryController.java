@@ -2,13 +2,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

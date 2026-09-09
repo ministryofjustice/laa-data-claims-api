@@ -25,7 +25,8 @@ class ClaimHistoryEventMapperTest {
 
   @Test
   void removesDerivedFeeFeeCode_whenClaimFeeCodeRequestedPresent() throws Exception {
-    String json = """
+    String json =
+        """
         {
           "changes": [
             {
@@ -65,7 +66,8 @@ class ClaimHistoryEventMapperTest {
 
   @Test
   void retainsFeeFeeCode_whenNoClaimFeeCodeRequested() throws Exception {
-    String json = """
+    String json =
+        """
         {
           "changes": [
             {
@@ -97,4 +99,3 @@ class ClaimHistoryEventMapperTest {
     assertEquals("fee.feeCode", list.get(0).getFieldIdentifier());
   }
 }
-
