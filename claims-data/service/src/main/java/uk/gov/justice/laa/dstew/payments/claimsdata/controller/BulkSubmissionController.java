@@ -45,7 +45,6 @@ public class BulkSubmissionController implements BulkSubmissionsApi {
     bulkSubmissionFileValidator.validate(file);
 
     // Submit bulk submission
-
     CreateBulkSubmission201Response bulkSubmissionResponse =
         bulkSubmissionService.submitBulkSubmissionFile(
             userId, file, Optional.ofNullable(offices).orElse(Collections.emptyList()));
