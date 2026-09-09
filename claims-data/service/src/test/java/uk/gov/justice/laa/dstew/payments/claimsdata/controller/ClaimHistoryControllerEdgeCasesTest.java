@@ -26,6 +26,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.JacksonMappingConfig;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
@@ -78,7 +79,10 @@ class ClaimHistoryControllerEdgeCasesTest {
         new ClaimHistoryEventRow("SUBMISSION", null, "SYSTEM", sourceId, null, 1L);
 
     ClaimHistoryController controller =
-        new ClaimHistoryController(claimHistoryService, objectMapper);
+        new ClaimHistoryController(
+            claimHistoryService,
+            objectMapper,
+            new ClaimHistoryEventMapper(objectMapper));
     when(claimHistoryService.getTimeline(eq(claimId), isNull()))
         .thenReturn(new ClaimHistoryPage(List.of(row), 1L, 0, 20));
 

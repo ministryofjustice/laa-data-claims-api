@@ -29,22 +29,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 @Slf4j
 public class ClaimHistoryController implements ClaimHistoryApi {
 
-  private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
-
   private final ClaimHistoryService claimHistoryService;
   private final ObjectMapper objectMapper;
-  private final ClaimHistoryEventMapper eventPresenter;
+  private final ClaimHistoryEventMapper eventMapper;
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<ClaimHistoryResultSet> getClaimHistory(UUID claimId, Pageable pageable) {
-    // Pageable parameters are validated by a registered HandlerMethodArgumentResolver which will
-    // throw an InvalidPageableParameterException for invalid client input.
 
     ClaimHistoryPage page = claimHistoryService.getTimeline(claimId, pageable);
 
     List<ClaimHistoryEventRow> rows = page.getEvents() == null ? List.of() : page.getEvents();
-    List<ClaimHistoryEvent> events = rows.stream().map(eventPresenter::toModel).toList();
+    List<ClaimHistoryEvent> events = rows.stream().map(eventMapper::toModel).toList();
 
     long totalElements = page.getTotalElements();
     int pageSize = page.getPageSize();

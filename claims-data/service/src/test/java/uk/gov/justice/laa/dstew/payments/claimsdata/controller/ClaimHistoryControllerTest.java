@@ -162,7 +162,7 @@ class ClaimHistoryControllerTest {
     // forwards a null Pageable so service-side unpaged behaviour can be applied.
     UUID claimId = Uuid7.timeBasedUuid();
     ClaimHistoryController controller =
-        new ClaimHistoryController(claimHistoryService, objectMapper);
+        new ClaimHistoryController(claimHistoryService, objectMapper, new uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventMapper(objectMapper));
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
         .thenReturn(
             new ClaimHistoryPage(
