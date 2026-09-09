@@ -197,6 +197,22 @@ class ClaimHistoryControllerTest {
   }
 
   @Test
+  @DisplayName("Returns empty events array when service returns null events")
+  void returnsEmptyEventsWhenServiceReturnsNullEvents() throws Exception {
+    UUID claimId = Uuid7.timeBasedUuid();
+    when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
+        .thenReturn(new ClaimHistoryPage(null, 0L, 0, 10));
+
+    mockMvc
+        .perform(get(HISTORY_URI, claimId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.events").isArray())
+        .andExpect(jsonPath("$.events").isEmpty());
+
+    verify(claimHistoryService).getTimeline(eq(claimId), ArgumentMatchers.any());
+  }
+
+  @Test
   @DisplayName("Returns 400 Bad Request for invalid claim id")
   void returnsBadRequestForInvalidClaimId() throws Exception {
     mockMvc.perform(get(HISTORY_URI, "not-a-uuid")).andExpect(status().isBadRequest());

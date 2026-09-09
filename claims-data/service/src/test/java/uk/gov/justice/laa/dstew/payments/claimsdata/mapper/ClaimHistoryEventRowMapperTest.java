@@ -12,16 +12,19 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 
+@DisplayName("ClaimHistoryEventRowMapper maps ResultSet rows to ClaimHistoryEventRow")
 class ClaimHistoryEventRowMapperTest {
 
   private final ClaimHistoryEventRowMapper mapper =
       new ClaimHistoryEventRowMapper(new ObjectMapper());
 
   @Test
-  void mapsAllColumns_andParsesMetadataJson() throws SQLException {
+  @DisplayName("maps all columns and parses metadata JSON")
+  void mapsAllColumnsAndParsesMetadataJson() throws SQLException {
     UUID sourceId = UUID.randomUUID();
     OffsetDateTime timestamp = OffsetDateTime.parse("2026-04-22T11:26:00Z");
     ResultSet rs = mock(ResultSet.class);
@@ -41,7 +44,8 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
-  void mapsAssessmentEvent_withFullMetadata() throws SQLException {
+  @DisplayName("maps assessment event with full metadata")
+  void mapsAssessmentEventWithFullMetadata() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class))
         .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
@@ -64,6 +68,7 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
+  @DisplayName("maps amendment event with requester, reason and changes")
   void mapsAmendmentEventWithRequesterReasonAndChanges() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class))
@@ -101,7 +106,8 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
-  void mapsVoidEvent_withoutOutcome() throws SQLException {
+  @DisplayName("maps void event without outcome")
+  void mapsVoidEventWithoutOutcome() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class))
         .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
@@ -120,7 +126,8 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
-  void mapsNullTimestamp_toNullInstant() throws SQLException {
+  @DisplayName("maps null timestamp to null Instant")
+  void mapsNullTimestampToNullInstant() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class)).thenReturn(null);
     when(rs.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
@@ -134,7 +141,8 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
-  void mapsNullMetadata_toJsonNullNode() throws SQLException {
+  @DisplayName("maps null metadata to Json NullNode")
+  void mapsNullMetadataToJsonNullNode() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class))
         .thenReturn(Instant.now().atOffset(ZoneOffset.UTC));
@@ -149,7 +157,8 @@ class ClaimHistoryEventRowMapperTest {
   }
 
   @Test
-  void throwsSqlException_whenMetadataIsInvalidJson() throws SQLException {
+  @DisplayName("throws SQLException when metadata is invalid JSON")
+  void throwsSqlExceptionWhenMetadataIsInvalidJson() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getObject("event_timestamp", OffsetDateTime.class))
         .thenReturn(Instant.now().atOffset(ZoneOffset.UTC));
@@ -161,5 +170,56 @@ class ClaimHistoryEventRowMapperTest {
     assertThatThrownBy(() -> mapper.mapRow(rs, 0))
         .isInstanceOf(SQLException.class)
         .hasMessageContaining("claim history metadata");
+  }
+
+  @Test
+  @DisplayName("reads total count when present and not null")
+  void readsTotalCountWhenPresentAndNotNull() throws SQLException {
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getObject("event_timestamp", OffsetDateTime.class))
+        .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
+    when(rs.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
+    when(rs.getString("event_type")).thenReturn("SUBMISSION");
+    when(rs.getString("actor_id")).thenReturn("SYSTEM");
+    when(rs.getString("metadata")).thenReturn("{}");
+
+    when(rs.getLong("total_count")).thenReturn(42L);
+    when(rs.wasNull()).thenReturn(false);
+
+    ClaimHistoryEventRow row = mapper.mapRow(rs, 0);
+    assertThat(row.totalCount()).isEqualTo(42L);
+  }
+
+  @Test
+  @DisplayName("handles totalCount wasNull and SQLException cases")
+  void handlesTotalCountWasNullAndSQLException() throws SQLException {
+    // Case A: wasNull true after getLong
+    ResultSet rs1 = mock(ResultSet.class);
+    when(rs1.getObject("event_timestamp", OffsetDateTime.class))
+        .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
+    when(rs1.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
+    when(rs1.getString("event_type")).thenReturn("SUBMISSION");
+    when(rs1.getString("actor_id")).thenReturn("SYSTEM");
+    when(rs1.getString("metadata")).thenReturn("{}");
+
+    when(rs1.getLong("total_count")).thenReturn(0L);
+    when(rs1.wasNull()).thenReturn(true);
+
+    ClaimHistoryEventRow row1 = mapper.mapRow(rs1, 0);
+    assertThat(row1.totalCount()).isZero();
+
+    // Case B: getLong throws SQLException -> totalCount defaults to 0
+    ResultSet rs2 = mock(ResultSet.class);
+    when(rs2.getObject("event_timestamp", OffsetDateTime.class))
+        .thenReturn(OffsetDateTime.parse("2026-04-22T11:26:00Z"));
+    when(rs2.getObject("source_id", UUID.class)).thenReturn(UUID.randomUUID());
+    when(rs2.getString("event_type")).thenReturn("SUBMISSION");
+    when(rs2.getString("actor_id")).thenReturn("SYSTEM");
+    when(rs2.getString("metadata")).thenReturn("{}");
+
+    when(rs2.getLong("total_count")).thenThrow(new SQLException("no such column"));
+
+    ClaimHistoryEventRow row2 = mapper.mapRow(rs2, 0);
+    assertThat(row2.totalCount()).isZero();
   }
 }

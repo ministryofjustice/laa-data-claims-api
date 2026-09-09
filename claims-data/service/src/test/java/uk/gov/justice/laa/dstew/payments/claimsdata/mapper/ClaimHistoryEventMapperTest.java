@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryChangeEntry;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
@@ -24,7 +25,8 @@ class ClaimHistoryEventMapperTest {
   }
 
   @Test
-  void removesDerivedFeeFeeCode_whenClaimFeeCodeRequestedPresent() throws Exception {
+  @DisplayName("Removes derived fee.feeCode when claim.feeCode REQUESTED is present")
+  void removesDerivedFeeFeeCodeWhenClaimFeeCodeRequestedPresent() throws Exception {
     String json =
         """
         {
@@ -55,17 +57,18 @@ class ClaimHistoryEventMapperTest {
 
     Object changes = event.getMetadata().get("changes");
     assertNotNull(changes);
-    assertTrue(changes instanceof List);
+    assertInstanceOf(List.class, changes);
     @SuppressWarnings("unchecked")
     List<ClaimHistoryChangeEntry> list = (List<ClaimHistoryChangeEntry>) changes;
 
     // Expect the derived fee.feeCode FSP entry to be suppressed
     assertEquals(1, list.size());
-    assertEquals("claim.feeCode", list.get(0).getFieldIdentifier());
+    assertEquals("claim.feeCode", list.getFirst().getFieldIdentifier());
   }
 
   @Test
-  void retainsFeeFeeCode_whenNoClaimFeeCodeRequested() throws Exception {
+  @DisplayName("Retains fee.feeCode when no claim.feeCode REQUESTED is present")
+  void retainsFeeFeeCodeWhenNoClaimFeeCodeRequested() throws Exception {
     String json =
         """
         {
@@ -90,12 +93,12 @@ class ClaimHistoryEventMapperTest {
 
     Object changes = event.getMetadata().get("changes");
     assertNotNull(changes);
-    assertTrue(changes instanceof List);
+    assertInstanceOf(List.class, changes);
     @SuppressWarnings("unchecked")
     List<ClaimHistoryChangeEntry> list = (List<ClaimHistoryChangeEntry>) changes;
 
     // Expect the fee.feeCode FSP entry to remain when no claim.feeCode REQUESTED is present
     assertEquals(1, list.size());
-    assertEquals("fee.feeCode", list.get(0).getFieldIdentifier());
+    assertEquals("fee.feeCode", list.getFirst().getFieldIdentifier());
   }
 }
