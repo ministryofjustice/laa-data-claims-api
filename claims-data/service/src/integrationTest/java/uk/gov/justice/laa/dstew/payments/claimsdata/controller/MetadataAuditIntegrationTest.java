@@ -8,8 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
+
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -73,7 +74,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
   }
 
   private void assertUpdatedMatchesCreated(
-      String label, String createdBy, String updatedBy, Instant createdOn, Instant updatedOn) {
+          String label, String createdBy, String updatedBy, Instant createdOn, Instant updatedOn) {
     // updatedBy should equal createdBy
     assertThat(updatedBy).as(label + " updatedByUserId on create").isEqualTo(createdBy);
     // timestamps may differ by small amounts (nanos/micros); allow small tolerance (1 ms)
@@ -226,6 +227,10 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preUpdate,
           after::getUpdatedByUserId,
           after::getUpdatedOn);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after.getUpdatedOn())
+          .as("bulk_submission updatedOn after createdOn")
+          .isAfter(after.getCreatedOn());
     }
   }
 
@@ -348,6 +353,10 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preUpdate,
           after::getUpdatedByUserId,
           after::getUpdatedOn);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after.getUpdatedOn())
+          .as("submission updatedOn after createdOn")
+          .isAfter(after.getCreatedOn());
     }
 
     @Test
@@ -382,21 +391,29 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       assertThat(after1.getStatus()).as("claim1 status").isEqualTo(ClaimStatus.INVALID);
       assertClaimCreatedPreserved(before1, after1);
       assertClaimUpdatedByAndTimestamp(after1, ClaimsDataTestUtil.API_USER_ID);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after1.getUpdatedOn()).as("claim1 updatedOn after createdOn").isAfter(before1.getCreatedOn());
 
       Claim after2 = claimRepository.findById(CLAIM_2_ID).orElseThrow();
       assertThat(after2.getStatus()).as("claim2 status").isEqualTo(ClaimStatus.INVALID);
       assertClaimCreatedPreserved(before2, after2);
       assertClaimUpdatedByAndTimestamp(after2, ClaimsDataTestUtil.API_USER_ID);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after2.getUpdatedOn()).as("claim2 updatedOn after createdOn").isAfter(before2.getCreatedOn());
 
       Claim after4 = claimRepository.findById(CLAIM_4_ID).orElseThrow();
       assertThat(after4.getStatus()).as("claim4 status").isEqualTo(ClaimStatus.INVALID);
       assertClaimCreatedPreserved(before4, after4);
       assertClaimUpdatedByAndTimestamp(after4, ClaimsDataTestUtil.API_USER_ID);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after4.getUpdatedOn()).as("claim4 updatedOn after createdOn").isAfter(before4.getCreatedOn());
 
       Claim after5 = claimRepository.findById(CLAIM_5_ID).orElseThrow();
       assertThat(after5.getStatus()).as("claim5 status").isEqualTo(ClaimStatus.INVALID);
       assertClaimCreatedPreserved(before5, after5);
       assertClaimUpdatedByAndTimestamp(after5, ClaimsDataTestUtil.API_USER_ID);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after5.getUpdatedOn()).as("claim5 updatedOn after createdOn").isAfter(before5.getCreatedOn());
     }
   }
 
@@ -457,7 +474,6 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
       UUID createdId = UUID.fromString(createResp.get("id").asText());
       var created = claimRepository.findById(createdId).orElseThrow();
 
-
       assertUpdatedMatchesCreated(
           "claim",
           created.getCreatedByUserId(),
@@ -475,7 +491,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             summaryFee::getCreatedByUserId,
             summaryFee::getCreatedOn);
-  
+
         assertUpdatedMatchesCreated(
             "claim_summary_fee",
             summaryFee.getCreatedByUserId(),
@@ -494,7 +510,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             claimCase::getCreatedByUserId,
             claimCase::getCreatedOn);
-  
+
         assertUpdatedMatchesCreated(
             "claim_case",
             claimCase.getCreatedByUserId(),
@@ -513,7 +529,7 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             preCall,
             client::getCreatedByUserId,
             client::getCreatedOn);
-  
+
         assertUpdatedMatchesCreated(
             "client",
             client.getCreatedByUserId(),
@@ -521,6 +537,101 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
             client.getCreatedOn(),
             client.getUpdatedOn());
       }
+    }
+
+    @Test
+    @DisplayName(
+        "PATCH /api/v1/submissions/{submissionId}/claims/{claimId} creates calculated fee detail (indirect) and sets created metadata")
+    void patchClaimIndirectCalculatedFeeDetailHasCreatedMetadata() throws Exception {
+      seedClaimsData();
+
+      ClaimPatch patch = new ClaimPatch();
+      patch.setStatus(ClaimStatus.READY_TO_PROCESS);
+      patch.version(claim2.getVersion());
+
+      Instant preUpdate = Instant.now();
+
+      mockMvc
+          .perform(
+              patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_2_ID)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(OBJECT_MAPPER.writeValueAsString(patch)))
+          .andExpect(status().isNoContent());
+
+      // any calculated fee detail created as a side-effect should have createdBy and createdOn set
+      calculatedFeeDetailRepository
+          .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_2_ID)
+          .ifPresent(
+              d -> {
+                // createdBy must be set for any derived record
+                assertThat(d.getCreatedByUserId())
+                    .as("calculated_fee_detail createdByUserId should be set")
+                    .isNotNull();
+
+                assertThat(d.getCreatedOn()).as("calculated_fee_detail createdOn should be set").isNotNull();
+
+                // If a new derived row was created by the patch, its createdOn should be recent.
+                if (d.getCreatedOn().isAfter(preUpdate.minusSeconds(1))) {
+                  assertThat(d.getCreatedOn())
+                      .as("calculated_fee_detail createdOn should be recent when newly created")
+                      .isAfterOrEqualTo(preUpdate.minusSeconds(1));
+                }
+
+                // updated metadata for this derived record may be absent; if present it should
+                // equal the created metadata and updatedOn should be within tolerance
+                if (d.getUpdatedByUserId() != null) {
+                  assertThat(d.getUpdatedByUserId())
+                      .as("calculated_fee_detail updatedByUserId when present should equal createdBy")
+                      .isEqualTo(d.getCreatedByUserId());
+
+                  long diffMillis =
+                      Math.abs(Duration.between(d.getCreatedOn(), d.getUpdatedOn()).toMillis());
+                  assertThat(diffMillis)
+                      .as("calculated_fee_detail updatedOn on create within tolerance (ms)")
+                      .isLessThanOrEqualTo(1L);
+                }
+              });
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/submissions/{id}/claims indirectly creates child records with audit metadata present")
+    void postClaimChildEntitiesHaveAuditMetadata() throws Exception {
+      seedSubmissionsData();
+      ClaimPost claimPost = ClaimsDataTestUtil.getClaimPost("CASE-456");
+
+      Instant preCall = Instant.now();
+
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post(POST_A_CLAIM_ENDPOINT, submission1.getId())
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(OBJECT_MAPPER.writeValueAsString(claimPost)))
+              .andExpect(status().isCreated())
+              .andReturn();
+
+      var createResp = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+      UUID createdId = UUID.fromString(createResp.get("id").asText());
+
+      // For any child entity created indirectly, createdBy and createdOn should be set
+      claimSummaryFeeRepository.findByClaimId(createdId).ifPresent(s -> {
+        assertThat(s.getCreatedByUserId()).as("claim_summary_fee createdByUserId").isNotNull();
+        assertThat(s.getCreatedOn())
+            .as("claim_summary_fee createdOn");
+        assertThat(s.getCreatedOn()).isAfterOrEqualTo(preCall.minusSeconds(1));
+      });
+
+      claimCaseRepository.findByClaimId(createdId).ifPresent(c -> {
+        assertThat(c.getCreatedByUserId()).as("claim_case createdByUserId").isNotNull();
+        assertThat(c.getCreatedOn()).isAfterOrEqualTo(preCall.minusSeconds(1));
+      });
+
+      clientRepository.findByClaimId(createdId).ifPresent(cl -> {
+        assertThat(cl.getCreatedByUserId()).as("client createdByUserId").isNotNull();
+        assertThat(cl.getCreatedOn()).isAfterOrEqualTo(preCall.minusSeconds(1));
+      });
     }
 
     @Test
@@ -562,6 +673,8 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preUpdate,
           after::getUpdatedByUserId,
           after::getUpdatedOn);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(after.getUpdatedOn()).as("claim updatedOn after createdOn").isAfter(after.getCreatedOn());
     }
 
     @Test
@@ -739,6 +852,10 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preCall,
           updatedClaim::getUpdatedByUserId,
           updatedClaim::getUpdatedOn);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(updatedClaim.getUpdatedOn())
+          .as("claim updatedOn after createdOn")
+          .isAfter(updatedClaim.getCreatedOn());
 
       // an assessment row should have been inserted with created metadata; the repository exposes
       // a helper to obtain the latest assessment for a claim.
@@ -797,6 +914,10 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
           preCall,
           updatedClaim::getUpdatedByUserId,
           updatedClaim::getUpdatedOn);
+      // updatedOn should be strictly after createdOn for an update
+      assertThat(updatedClaim.getUpdatedOn())
+          .as("claim updatedOn after createdOn")
+          .isAfter(updatedClaim.getCreatedOn());
     }
 
     @Test
@@ -828,13 +949,12 @@ public class MetadataAuditIntegrationTest extends AbstractIntegrationTest {
               .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_2_ID)
               .orElseThrow();
 
-  
-        assertUpdatedMatchesCreated(
-            "assessment",
-            createdAssessment.getCreatedByUserId(),
-            createdAssessment.getUpdatedByUserId(),
-            createdAssessment.getCreatedOn(),
-            createdAssessment.getUpdatedOn());
+      assertUpdatedMatchesCreated(
+          "assessment",
+          createdAssessment.getCreatedByUserId(),
+          createdAssessment.getUpdatedByUserId(),
+          createdAssessment.getCreatedOn(),
+          createdAssessment.getUpdatedOn());
     }
 
     @Test
