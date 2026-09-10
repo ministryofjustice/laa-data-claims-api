@@ -226,8 +226,7 @@ class ClaimHistoryControllerTest {
     // forwards a null Pageable so service-side unpaged behaviour can be applied.
     UUID claimId = Uuid7.timeBasedUuid();
     ClaimHistoryController controller =
-        new ClaimHistoryController(
-            claimHistoryService, objectMapper, new ClaimHistoryEventMapper(objectMapper));
+        new ClaimHistoryController(claimHistoryService, new ClaimHistoryEventMapper(objectMapper));
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
         .thenReturn(
             new ClaimHistoryPage(
@@ -272,8 +271,7 @@ class ClaimHistoryControllerTest {
         new ClaimHistoryEventRow("SUBMISSION", null, "SYSTEM", sourceId, null, 1L);
 
     ClaimHistoryController controller =
-        new ClaimHistoryController(
-            claimHistoryService, objectMapper, new ClaimHistoryEventMapper(objectMapper));
+        new ClaimHistoryController(claimHistoryService, new ClaimHistoryEventMapper(objectMapper));
     when(claimHistoryService.getTimeline(eq(claimId), isNull()))
         .thenReturn(new ClaimHistoryPage(List.of(row), 1L, 0, 20));
 

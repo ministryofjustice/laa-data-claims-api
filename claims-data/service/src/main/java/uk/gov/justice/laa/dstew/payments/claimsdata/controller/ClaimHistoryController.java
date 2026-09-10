@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.RateLimitUtils.get429Response;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import java.util.List;
@@ -27,7 +26,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimHistoryService;
 public class ClaimHistoryController implements ClaimHistoryApi {
 
   private final ClaimHistoryService claimHistoryService;
-  private final ObjectMapper objectMapper;
   private final ClaimHistoryEventMapper eventMapper;
 
   @Override

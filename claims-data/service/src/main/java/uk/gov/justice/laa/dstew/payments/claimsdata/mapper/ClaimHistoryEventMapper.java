@@ -55,10 +55,10 @@ public class ClaimHistoryEventMapper {
    * following differences:
    *
    * <ul>
-   *   <li>When the projection {@code metadata} contains a {@code changes} array, the array is
-   *       converted into a typed {@code List<ClaimHistoryChangeEntry>} and placed back into the
-   *       returned metadata map so API consumers receive typed entries instead of untyped JSON
-   *       maps.
+   *   <li>When the projection {@code metadata} contains a {@code changes} array and the event is an
+   *       AMENDMENT, the array is converted into a typed {@code List<ClaimHistoryChangeEntry>} and
+   *       placed back into the returned metadata map so API consumers receive typed entries instead
+   *       of untyped JSON maps.
    *   <li>If the event is an AMENDMENT and the changes list contains a provider-requested change to
    *       {@code claim.feeCode}, any derived {@code fee.feeCode} change with source {@code FSP}
    *       will be removed from the list before returning.
