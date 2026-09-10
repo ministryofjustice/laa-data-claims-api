@@ -38,6 +38,7 @@ public class ClaimAmendmentValidationError {
   String message;
   ValidationSeverity severity;
   HttpStatus httpStatus;
+  String fieldName;
   boolean isFatal;
 
   /**
@@ -55,6 +56,7 @@ public class ClaimAmendmentValidationError {
         code.getMessageTemplate().formatted(messageArgs),
         code.getSeverity(),
         code.getHttpStatus(),
+        code.getFieldName(),
         code.isFatal());
   }
 
@@ -77,6 +79,7 @@ public class ClaimAmendmentValidationError {
         validationIssue.getMessage(),
         ValidationSeverity.ERROR,
         HttpStatus.BAD_REQUEST,
+        validationIssue.getPath(),
         false);
   }
 }
