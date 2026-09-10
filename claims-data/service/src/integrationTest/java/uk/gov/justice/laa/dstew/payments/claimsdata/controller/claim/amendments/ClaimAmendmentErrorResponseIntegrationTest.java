@@ -69,7 +69,7 @@ class ClaimAmendmentErrorResponseIntegrationTest extends AbstractAmendmentPatchI
     assertThat(first.path("message").asText()).isNotBlank();
     assertThat(first.path("severity").asText()).isEqualTo("FATAL");
     assertThat(first.path("httpStatus").asText()).isEqualTo("409 CONFLICT");
-    assertThat(!first.has("fieldName") || first.path("fieldName").isNull()).isTrue();
+    assertThat(first.path("fieldName").asText()).isEqualTo("version");
     assertThat(first.path("fatal").asBoolean()).isTrue();
 
     // Ensure nothing was persisted for this failing amendment
@@ -187,6 +187,108 @@ class ClaimAmendmentErrorResponseIntegrationTest extends AbstractAmendmentPatchI
     // Nothing persisted for this failing amendment
     assertNoAmendmentWritten(CLAIM_1_ID, saved.getVersion());
   }
+
+  @Test
+  @DisplayName("validator module returns field-level validation for reason code and error object contains all fields")
+  void validatorReturnsFieldLevelValidationForReasonCode() throws Exception {
+    // Arrange
+    stubExternalValidationEndpoints();
+
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(ClaimStatus.VALID);
+    Claim saved = claimRepository.saveAndFlush(claim);
+
+    // Build patch with an invalid reason code to provoke validation-core issue
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(saved.getVersion());
+    patch.setClientForename("TestChange");
+    patch.setAmendmentReasonCode("TEST_REASON");
+
+    // Act
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // Assert a Bad Request with structured errors
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
+    JsonNode errors = body.path("errors");
+    assertThat(errors.isArray()).isTrue();
+    assertThat(errors.size()).isGreaterThanOrEqualTo(1);
+
+    // Find an error that references the requestor field
+    JsonNode matching = null;
+    Iterator<JsonNode> it = errors.elements();
+    while (it.hasNext()) {
+      JsonNode e = it.next();
+      String fieldName = e.path("fieldName").asText(null);
+      if (fieldName != null && fieldName.toLowerCase().contains("amendment_reason_code")) {
+        matching = e;
+        break;
+      }
+    }
+
+    // The validation-core should surface a field-level error for the amendment_reason_code; assert error object fields
+    assertThat(matching).isNotNull();
+    assertThat(matching.path("code").asText()).isNotBlank();
+    assertThat(matching.path("message").asText()).isNotBlank();
+    assertThat(matching.path("severity").asText()).isEqualTo("ERROR");
+    assertThat(matching.path("httpStatus").asText()).isEqualTo("400 BAD_REQUEST");
+    assertThat(matching.path("fieldName").asText()).isEqualTo("amendment_reason_code");
+    assertThat(matching.path("fatal").asBoolean()).isFalse();
+
+    // Nothing persisted for this failing amendment
+    assertNoAmendmentWritten(CLAIM_1_ID, saved.getVersion());
+  }
+
+  @Test
+  @DisplayName("validator module returns field-level validation for requestor and error object contains all fields")
+  void validatorReturnsFieldLevelValidationForRequestor() throws Exception {
+    // Arrange
+    stubExternalValidationEndpoints();
+
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    claim.setStatus(ClaimStatus.VALID);
+    Claim saved = claimRepository.saveAndFlush(claim);
+
+    // Build patch with an invalid reason code to provoke validation-core issue
+    ClaimPatch patch = createBasePatch();
+    patch.setVersion(saved.getVersion());
+    patch.setClientForename("TestChange");
+    patch.setAmendmentRequestedBy("TEST_REQUESTOR");
+
+    // Act
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+
+    // Assert a Bad Request with structured errors
+    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode body = mapper.readTree(result.getResponse().getContentAsString());
+    JsonNode errors = body.path("errors");
+    assertThat(errors.isArray()).isTrue();
+    assertThat(errors.size()).isGreaterThanOrEqualTo(1);
+
+    // Find an error that references the requestor field
+    JsonNode matching = null;
+    Iterator<JsonNode> it = errors.elements();
+    while (it.hasNext()) {
+      JsonNode e = it.next();
+      String fieldName = e.path("fieldName").asText(null);
+      if (fieldName != null && fieldName.toLowerCase().contains("amendment_requested_by")) {
+        matching = e;
+        break;
+      }
+    }
+
+    // The validation-core should surface a field-level error for the amendment_requested_by; assert error object fields
+    assertThat(matching).isNotNull();
+    assertThat(matching.path("code").asText()).isNotBlank();
+    assertThat(matching.path("message").asText()).isNotBlank();
+    assertThat(matching.path("severity").asText()).isEqualTo("ERROR");
+    assertThat(matching.path("httpStatus").asText()).isEqualTo("400 BAD_REQUEST");
+    assertThat(matching.path("fieldName").asText()).isEqualTo("amendment_requested_by");
+    assertThat(matching.path("fatal").asBoolean()).isFalse();
+
+    // Nothing persisted for this failing amendment
+    assertNoAmendmentWritten(CLAIM_1_ID, saved.getVersion());
+  }
 }
-
-

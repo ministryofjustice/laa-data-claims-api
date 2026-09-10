@@ -47,7 +47,7 @@ public enum ClaimAmendmentValidationCode {
 
   /** The claim has a null version number so cannot be amended. */
   INVALID_NULL_VERSION(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null, null),
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null, "version"),
 
   /**
    * The claim has a stale version number so cannot be amended. This stable, machine-readable code
@@ -59,11 +59,11 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.CONFLICT,
       "The claim has changed since it was loaded. Review the latest claim details and try again.",
       null,
-      null),
+      "version"),
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null, null),
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null, "status"),
 
   /**
    * The claim is in a non-amendable state - any {@code claim.status} other than {@code VALID} that
@@ -74,7 +74,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Claim status %s is not amendable; only claims with status %s can be amended.",
       null,
-      null),
+      "status"),
 
   /**
    * The claim already has an assessment; provider-requested changes to pricing-related fields are
@@ -95,7 +95,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Requested By is required",
       "Requested By code is absent",
-      null),
+      "amendment_requested_by"),
 
   /** Requested By code is not present in the reference-data lookup. */
   INVALID_REQUESTED_BY_UNKNOWN(
@@ -103,7 +103,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Requested By '%s' is not a recognised value",
       "Requested By code is not present in the Reference Data lookup",
-      null),
+      "amendment_requested_by"),
 
   /** Requested By code exists in the lookup but is currently inactive. */
   INVALID_REQUESTED_BY_INACTIVE(
@@ -111,7 +111,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Requested By '%s' is no longer in use",
       "Requested By code is present in the lookup but currently inactive",
-      null),
+      "amendment_requested_by"),
 
   /** Requested By value is a display label rather than a stable code. */
   INVALID_REQUESTED_BY_NOT_A_CODE(
@@ -119,7 +119,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Requested By must be supplied as a code, not a display label",
       "Requested By value is a display label rather than a code",
-      null),
+      "amendment_requested_by"),
 
   // ----- Amendment metadata: Amendment Reason (DSTEW-1765) -----
 
@@ -129,7 +129,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Amendment Reason is required",
       "Amendment Reason code is absent",
-      null),
+      "amendment_reason_code"),
 
   /** Amendment Reason code is not present in the reference-data lookup. */
   INVALID_AMENDMENT_REASON_UNKNOWN(
@@ -137,7 +137,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is not a recognised value",
       "Amendment Reason code is not present in the Reference Data lookup",
-      null),
+      "amendment_reason_code"),
 
   /** Amendment Reason code exists in the lookup but is currently inactive. */
   INVALID_AMENDMENT_REASON_INACTIVE(
@@ -145,7 +145,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is no longer in use",
       "Amendment Reason code is present in the lookup but currently inactive",
-      null),
+      "amendment_reason_code"),
 
   /** Amendment Reason value is a display label rather than a stable code. */
   INVALID_AMENDMENT_REASON_NOT_A_CODE(
@@ -153,7 +153,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Amendment Reason must be supplied as a code, not a display label",
       "Amendment Reason value is a display label rather than a code",
-      null),
+      "amendment_reason_code"),
 
   /** Amendment Reason code exists but is not valid for the submitted Requested By code. */
   INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY(
@@ -161,7 +161,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is not valid for Requested By '%s'",
       "Amendment Reason code exists but is not valid for the submitted Requested By code",
-      null),
+      "amendment_reason_code"),
 
   // ----- Amendment metadata: submitting user (DSTEW-1765) -----
 
@@ -171,7 +171,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "The user identifier is required",
       "Submitting user's Entra UUID is absent",
-      null),
+      "amendment_user_id"),
 
   /** The submitting user's Entra identifier is not a structurally valid UUID. */
   INVALID_USER_IDENTIFIER_FORMAT(
@@ -179,7 +179,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "The user identifier must be a valid UUID",
       "Submitting user's Entra UUID is not a structurally valid UUID",
-      null),
+      "amendment_user_id"),
 
   // ----- Field amendability gate (DSTEW-1593) -----
 
@@ -216,7 +216,7 @@ public enum ClaimAmendmentValidationCode {
       "Fee code cannot be changed to '%s' because it belongs to a different Area of Law (%s); "
           + "the claim's Area of Law is %s.",
       "Fee code change targets a fee code in a different Area of Law",
-      null),
+      "fee_code"),
 
   /**
    * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
@@ -237,7 +237,7 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Claim status %s is not amendable; Calculated Fee Details missing.",
       null,
-      null),
+      "status"),
 
   /** The Fee Scheme Platform rejected the calculation request due to business rule validation. */
   INVALID_FSP_VALIDATION_FAILURE(
