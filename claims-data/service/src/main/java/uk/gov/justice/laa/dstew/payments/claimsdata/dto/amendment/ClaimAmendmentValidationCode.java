@@ -63,7 +63,11 @@ public enum ClaimAmendmentValidationCode {
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null, "status"),
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "A voided claim cannot be amended.",
+      null,
+      "status"),
 
   /**
    * The claim is in a non-amendable state - any {@code claim.status} other than {@code VALID} that
