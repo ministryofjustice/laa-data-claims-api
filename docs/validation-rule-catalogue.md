@@ -31,7 +31,7 @@ recommended change is to tag every emitted message with an explicit **`stage`**
 
 | Rule / validator | What it checks | External dep? | Stage | Severity | Source |
 |------------------|----------------|---------------|-------|----------|--------|
-| `SubmissionStatusValidator` (prio 1) | Submission is in a state that may be validated; drives `READY_FOR_FINAL_VALIDATION → VALIDATION_IN_PROGRESS` (and the initial-stage gate) | No | **Both** (gate) | ERROR (`INCORRECT_SUBMISSION_STATUS_FOR_VALIDATION`, `SUBMISSION_STATUS_IS_NULL`) | EVENT_SERVICE |
+| `SubmissionStatusValidator` (prio 1) | Submission is in a state that may be validated; drives `READY_FOR_SUBMISSION → VALIDATION_IN_PROGRESS` (and the initial-stage gate) | No | **Both** (gate) | ERROR (`INCORRECT_SUBMISSION_STATUS_FOR_VALIDATION`, `SUBMISSION_STATUS_IS_NULL`) | EVENT_SERVICE |
 | `SubmissionSchemaValidator` (prio 10) | Submission JSON schema | No | **INITIAL** | ERROR | EVENT_SERVICE |
 | `SubmissionPeriodValidator` (prio 10) | Period present; `MMM-YYYY` format; not current/future month; ≥ minimum period | No | **INITIAL** | ERROR (`SUBMISSION_PERIOD_MISSING`, `_INVALID_FORMAT`, `_SAME_MONTH`, `_FUTURE_MONTH`, `SUBMISSION_VALIDATION_MINIMUM_PERIOD`) | EVENT_SERVICE |
 | `NilSubmissionValidator` (prio 10) | Nil submission has no claims / non-nil has ≥1 claim | No | **INITIAL** | ERROR (`INVALID_NIL_SUBMISSION_CONTAINS_CLAIMS`, `NON_NIL_SUBMISSION_CONTAINS_NO_CLAIMS`) | EVENT_SERVICE |
@@ -67,7 +67,7 @@ recommended change is to tag every emitted message with an explicit **`stage`**
 | `DuplicateClaimValidator` (+ area-of-law strategies) | Duplicates within this submission and across other/previous submissions | Cross-submission lookups | ERROR (`INVALID_CLAIM_HAS_DUPLICATE_IN_EXISTING_SUBMISSION`, `_IN_ANOTHER_SUBMISSION`) | EVENT_SERVICE |
 | Fee calculation (`FeeCalculationService`) | Fee Scheme Platform calculation + its own messages | Fee Scheme Platform API | ERROR **or** WARNING (FSP-driven), plus `INVALID_FEE_CALCULATION_VALIDATION_FAILED`, `TECHNICAL_ERROR_FEE_CALCULATION_SERVICE` | FEE_SERVICE |
 
-> `DuplicateClaimValidator` must be updated for the new statuses (consider `READY_FOR_FINAL_VALIDATION`,
+> `DuplicateClaimValidator` must be updated for the new statuses (consider `READY_FOR_SUBMISSION`,
 > exclude `DISCARDED`/`ABANDONED`) — see ADR §Decision.6.
 > **Note:** the flowchart implies FSP is also consulted at the **initial** stage to *identify* inquest
 > claims (distinct from the full fee calculation above). Confirm whether one FSP call serves both, or
@@ -79,7 +79,7 @@ recommended change is to tag every emitted message with an explicit **`stage`**
 
 | Rule | Stage behaviour | Severity | Notes |
 |------|-----------------|----------|-------|
-| **Inquest identification (FSP)** | Runs at **INITIAL**, after file validation passes | Flag, not a message | FSP identifies inquest claims and sets `inquest_data_required = true`; claim held as `READY_FOR_FINAL_VALIDATION` and shown on the To-Do list. Non-blocking, so the claim can enter draft. |
+| **Inquest identification (FSP)** | Runs at **INITIAL**, after file validation passes | Flag, not a message | FSP identifies inquest claims and sets `inquest_data_required = true`; claim held as `READY_FOR_SUBMISSION` and shown on the To-Do list. Non-blocking, so the claim can enter draft. |
 | **Inquest data still required (escalation)** | Re-checked at **FINAL** | **ERROR (blocking)** at FINAL | If `inquest_data_required` is still true at submit, it becomes a validation ERROR → claim `INVALID`, submission `VALIDATION_FAILED`. |
 | **Inline inquest field validation** | On each To-Do save (front-end or API — TBD) | ERROR (inline) | Field-level validation of the inquest data the provider enters. On pass, sets `inquest_data_required = false`. Ownership (front-end vs API) is an open question in the flowchart. |
 
@@ -95,8 +95,8 @@ recommended change is to tag every emitted message with an explicit **`stage`**
 | After parse | `READY_TO_PROCESS` | `CREATED` → `READY_FOR_INITIAL_VALIDATION` | — |
 | INITIAL running | `READY_TO_PROCESS` | `INITIAL_VALIDATION_IN_PROGRESS` | — |
 | INITIAL validation ERROR | `INVALID` | `INITIAL_VALIDATION_FAILED` | `INITIAL` |
-| INITIAL passes (FSP flags inquest) | `READY_FOR_FINAL_VALIDATION` | `READY_FOR_FINAL_VALIDATION` | `INITIAL` |
-| Provider submits | `READY_FOR_FINAL_VALIDATION` → validating | `VALIDATION_IN_PROGRESS` | — |
+| INITIAL passes (FSP flags inquest) | `READY_FOR_SUBMISSION` | `READY_FOR_SUBMISSION` | `INITIAL` |
+| Provider submits | `READY_FOR_SUBMISSION` → validating | `VALIDATION_IN_PROGRESS` | — |
 | FINAL validation ERROR | `INVALID` | `VALIDATION_FAILED` | `FINAL` |
 | FINAL passes | `VALID` | `VALIDATION_SUCCEEDED` | `FINAL` |
 | Provider discards | `DISCARDED` | `DISCARDED` | — |

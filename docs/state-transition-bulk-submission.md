@@ -53,7 +53,7 @@ stateDiagram-v2
 
 - **No new bulk statuses are proposed.** The initial-stage (`READY_FOR_INITIAL_VALIDATION`,
   `INITIAL_VALIDATION_IN_PROGRESS`, `INITIAL_VALIDATION_FAILED`), draft-hold
-  (`READY_FOR_FINAL_VALIDATION`) and terminal draft states (`DISCARDED`, `ABANDONED`) live on the
+  (`READY_FOR_SUBMISSION`) and terminal draft states (`DISCARDED`, `ABANDONED`) live on the
   **submission** and **claim**, keeping bulk-layer enum/constraint churn to zero.
 - **Open question:** should the bulk record distinguish an initial-stage failure (e.g. a dedicated
   status) or continue to collapse both initial and final failures into `VALIDATION_FAILED`? The

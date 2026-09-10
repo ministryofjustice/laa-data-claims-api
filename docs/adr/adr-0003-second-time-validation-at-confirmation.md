@@ -15,7 +15,7 @@
 ## Relationship to ADR-0001 (BC-744) — why this is a separate decision
 
 ADR-0001 decides **what states exist** (the two-stage INITIAL/FINAL validation lifecycle, the
-`READY_FOR_FINAL_VALIDATION` draft-hold, terminal `VALID`/`INVALID`). It also decides that **both
+`READY_FOR_SUBMISSION` draft-hold, terminal `VALID`/`INVALID`). It also decides that **both
 stages run the same full validation asynchronously in the event service** — FINAL re-runs the identical
 pass, differing from INITIAL only in *when* it runs. What it leaves to follow-up work is the **runtime
 mechanics** of the FINAL pass: the "submit" endpoint/events and the abandonment timeout (its open
@@ -43,7 +43,7 @@ A draft submission is validated once, asynchronously, at upload time by
    lookups**, and **duplicate-claim** checks;
 3. patches submission/bulk-submission status to `VALIDATION_SUCCEEDED` / `VALIDATION_FAILED`.
 
-Between upload and confirmation a draft can sit for some time (in `READY_FOR_FINAL_VALIDATION`). The
+Between upload and confirmation a draft can sit for some time (in `READY_FOR_SUBMISSION`). The
 claim data itself cannot change while it is held (the draft-hold is review-only), but the **reference
 data** it was validated against at INITIAL can: **FSP fee schemes, or PDA (Provider Details API) data,
 may change in the interim.** That is the only way a claim that passed INITIAL can fail FINAL. A later
@@ -65,7 +65,7 @@ because the draft's own contents are considered when duplicate-checking any late
 - **Drafts are excluded from duplicate detection.** `DuplicateClaimValidation` considers previous
   claims only where `SubmissionStatus ∈ {CREATED, VALIDATION_IN_PROGRESS, READY_FOR_VALIDATION,
   VALIDATION_SUCCEEDED}` and `ClaimStatus ∈ {READY_TO_PROCESS, VALID}`. Draft-hold
-  (`READY_FOR_FINAL_VALIDATION`) claims would therefore be **invisible** to the duplicate check — a
+  (`READY_FOR_SUBMISSION`) claims would therefore be **invisible** to the duplicate check — a
   later submission for the same period/office/area of law would not be checked against an outstanding
   draft, so both could be accepted.
 - **Validation is FSP-heavy.** The per-claim pass calls the FSP for fee details
@@ -87,7 +87,7 @@ Specifically, weigh:
    inside the confirmation request.
 2. The same, but **asynchronously**.
 3. Whether **extending the duplicate-submission check** (period + office code + area of law) to include
-   drafts in `READY_FOR_FINAL_VALIDATION` is needed so later submissions are checked against outstanding
+   drafts in `READY_FOR_SUBMISSION` is needed so later submissions are checked against outstanding
    drafts.
 4. Whether a **combination** is the right shape.
 
@@ -127,11 +127,11 @@ service) and only transitions the submission if they pass.
 
 ### Option B — Asynchronous revalidation reusing the upload-time pipeline *(selected, as the revalidation mechanism)*
 
-Confirmation moves the submission into a **final-validation** state (`READY_FOR_FINAL_VALIDATION` →
+Confirmation moves the submission into a **final-validation** state (`READY_FOR_SUBMISSION` →
 `VALIDATION_IN_PROGRESS` per ADR-0001) and enqueues the FINAL validation event.
 `SubmissionListener` / `SubmissionValidationService` run the **same** validators as at upload; on
 completion they patch the submission to `VALIDATION_SUCCEEDED` / `VALIDATION_FAILED`. The FINAL stage is
-identified by the submission's **status** (`READY_FOR_FINAL_VALIDATION`), not by a message tag — ADR-0001
+identified by the submission's **status** (`READY_FOR_SUBMISSION`), not by a message tag — ADR-0001
 does not tag messages or rules with a stage. The frontend already polls draft state, so it
 observes the outcome and shows the existing confirmation-error view on failure (a failed FINAL pass
 returns the submission to the draft-hold rather than confirming it).
@@ -143,9 +143,9 @@ returns the submission to the draft-hold rather than confirming it).
   instant yes/no; requires the "submit" endpoint/event and the FINAL transitions from ADR-0001; incurs
   the full FSP cost of a complete re-validation each time (accepted — correctness first).
 
-### Option C — Extend the duplicate check to include `READY_FOR_FINAL_VALIDATION` drafts *(selected, as a complement — not a replacement)*
+### Option C — Extend the duplicate check to include `READY_FOR_SUBMISSION` drafts *(selected, as a complement — not a replacement)*
 
-Add `READY_FOR_FINAL_VALIDATION` (draft-hold) to the submission/claim statuses considered by
+Add `READY_FOR_SUBMISSION` (draft-hold) to the submission/claim statuses considered by
 `DuplicateClaimValidation` (both the in-submission and previous-submission queries), so that a **later**
 submission is rejected if it duplicates the period + office code + area of law of an outstanding draft
 (rather than both being accepted).
@@ -176,7 +176,7 @@ submission is rejected if it duplicates the period + office code + area of law o
    submission cannot turn this draft into a duplicate — the draft is itself considered when
    duplicate-checking later submissions, so those are rejected instead.
 
-2. **Extend duplicate detection to drafts (Option C).** Include `READY_FOR_FINAL_VALIDATION` in the
+2. **Extend duplicate detection to drafts (Option C).** Include `READY_FOR_SUBMISSION` in the
    statuses `DuplicateClaimValidation` considers (excluding the claim's own draft and its siblings, and
    `DISCARDED` / `ABANDONED`). This ensures a **later** submission is duplicate-checked against an
    outstanding draft — so the later submission is rejected, protecting the earlier draft — and is worth
@@ -199,11 +199,11 @@ submission is rejected if it duplicates the period + office code + area of law o
 ## Consequences
 
 ### Event service (`laa-data-claims-event-service`)
-- Distinguish the FINAL run by the submission's **status** (`READY_FOR_FINAL_VALIDATION`), not by tagging
+- Distinguish the FINAL run by the submission's **status** (`READY_FOR_SUBMISSION`), not by tagging
   messages or rules with a stage (ADR-0001 does not tag messages with stage).
   `SubmissionValidationService` / `ClaimValidationService` run the **same** validators in full at both
   stages.
-- Update `DuplicateClaimValidation` to include `READY_FOR_FINAL_VALIDATION` (self/sibling/terminal-draft
+- Update `DuplicateClaimValidation` to include `READY_FOR_SUBMISSION` (self/sibling/terminal-draft
   exclusions), and swap the retired `READY_FOR_VALIDATION` for the new gate states from ADR-0001. Update
   `DuplicateClaimValidationTest` and the integration tests
   (`DuplicateClaimsTest`, `SubmissionValidationServiceIntegrationTest`).
@@ -221,7 +221,7 @@ submission is rejected if it duplicates the period + office code + area of law o
 
 ### Frontend (`laa-submit-a-bulk-claim`)
 - Confirmation becomes **eventually consistent**: show a "checking / being validated" state and poll
-  (the draft/`READY_FOR_FINAL_VALIDATION` polling already exists), then render success or the existing
+  (the draft/`READY_FOR_SUBMISSION` polling already exists), then render success or the existing
   `ConfirmationProblem` errors. Remove the direct-to-`VALIDATION_SUCCEEDED` shortcut in
   `DraftSubmissionService`.
 
@@ -242,7 +242,7 @@ submission is rejected if it duplicates the period + office code + area of law o
 1. **Confirm endpoint vs patch:** decide whether the API gains a dedicated confirm endpoint (recommended)
    or continues to key off a status patch; update `DraftSubmissionService` accordingly.
 2. **Duplicate-scope safety:** finalise the status set for `DuplicateClaimValidation` (include
-   `READY_FOR_FINAL_VALIDATION`; exclude `DISCARDED`/`ABANDONED`; exclude self and sibling drafts within
+   `READY_FOR_SUBMISSION`; exclude `DISCARDED`/`ABANDONED`; exclude self and sibling drafts within
    the same submission).
 3. **Concurrency/idempotency:** guard against double-confirm and against a stale draft being confirmed
    while a competing submission commits (optimistic locking / re-check on the FINAL pass).
@@ -257,7 +257,7 @@ submission is rejected if it duplicates the period + office code + area of law o
 
 Second-time validation should be **asynchronous, reusing the existing upload-time validators** on the
 proven SQS pipeline (Option B), **complemented by extending duplicate detection to
-`READY_FOR_FINAL_VALIDATION` drafts** (Option C). The FINAL pass **re-runs the same full validation as
+`READY_FOR_SUBMISSION` drafts** (Option C). The FINAL pass **re-runs the same full validation as
 INITIAL** (per ADR-0001 — no per-stage subset), distinguished only by the submission's status;
 correctness is prioritised over trimming FSP cost. Synchronous in-request revalidation (Option A) is
 rejected because it would block the provider on an FSP-heavy, paginated loop with unbounded latency.

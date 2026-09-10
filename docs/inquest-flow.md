@@ -1,7 +1,7 @@
 # Inquest submission validation flow
 
 > **Capture model:** all data — inquest *and* non-inquest — arrives in a single bulk file upload and
-> undergoes INITIAL validation. Valid submissions are then held in `READY_FOR_FINAL_VALIDATION` as a
+> undergoes INITIAL validation. Valid submissions are then held in `READY_FOR_SUBMISSION` as a
 > **review-before-submit** window until the provider submits (FINAL validation) or discards. There is
 > **no** separate per-claim inquest data-entry step or To-Do list: the data is already present in the
 > file. (A previous iteration collected inquest data per claim after upload; that sub-flow has been
@@ -21,8 +21,8 @@ flowchart TD
     FEN --> C
     C{"Validation ERROR?<br/>(inquest + non-inquest)"}
     C -->|Validation ERROR| D["Submission: INITIAL_VALIDATION_FAILED<br/>Claims: INVALID<br/>Provider must correct the source<br/>and create a new submission"]
-    C -->|No Validation errors| E["Submission: READY_FOR_FINAL_VALIDATION<br/>Claims: READY_FOR_FINAL_VALIDATION, not yet VALID"]
-    E --> G["Submission held in READY_FOR_FINAL_VALIDATION (previously DRAFT) status.<br/>All data (incl. inquest) was supplied in the uploaded file;<br/>this is a review-before-submit window, not a data-collection step."]
+    C -->|No Validation errors| E["Submission: READY_FOR_SUBMISSION<br/>Claims: READY_FOR_SUBMISSION, not yet VALID"]
+    E --> G["Submission held in READY_FOR_SUBMISSION (previously DRAFT) status.<br/>All data (incl. inquest) was supplied in the uploaded file;<br/>this is a review-before-submit window, not a data-collection step."]
     G --> G1{Submission\n waiting for Provider\n action}
     G1 --> |Provider selects the\n Submit option|H1[FINAL validation]
     G1 --> |Provider selects the\n Discard option|H2["Submission and all claims set to DISCARDED"]
@@ -34,7 +34,7 @@ flowchart TD
     I -->|No Validation errors| K["Submission: VALIDATION_SUCCEEDED<br/>Claims: VALID<br/>Publish SUBMISSION_VALIDATION_SUCCEEDED<br/>Notify, reporting and<br/>downstream processing"]
 
     %% Legend box placed next to H1 (dashed link nudges position)
-    L["Duplication Rules<br/>Claims and submissions in the new status of  READY_FOR_FINAL_VALIDATION are considered when checking duplicates.
+    L["Duplication Rules<br/>Claims and submissions in the new status of  READY_FOR_SUBMISSION are considered when checking duplicates.
       Claims and submissions in these new statuses are not considered: DISCARDED, ABANDONED
        "]
     L -.-> H1
