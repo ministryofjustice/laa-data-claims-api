@@ -7,8 +7,8 @@ represented directly on the submission rather than only at the bulk-submission l
 
 - New **initial-stage** statuses: `READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
   `INITIAL_VALIDATION_FAILED`.
-- `READY_FOR_FINAL_VALIDATION` is the **draft-hold** state (previously called "DRAFT"; supersedes the
-  earlier working name `READY_FOR_SUBMISSION`).
+- `READY_FOR_SUBMISSION` is the **draft-hold** state (previously called "DRAFT"; earlier ADR drafts
+  named it `READY_FOR_FINAL_VALIDATION`, now aligned to `READY_FOR_SUBMISSION` per the requirement).
 - `VALIDATION_IN_PROGRESS`, `VALIDATION_SUCCEEDED`, `VALIDATION_FAILED` are reused for the **FINAL**
   validation stage.
 - `DISCARDED`, `ABANDONED` are new terminal draft states.
@@ -21,11 +21,11 @@ stateDiagram-v2
     READY_FOR_INITIAL_VALIDATION --> INITIAL_VALIDATION_IN_PROGRESS : INITIAL validation starts
 
     INITIAL_VALIDATION_IN_PROGRESS --> INITIAL_VALIDATION_FAILED : validation ERROR<br/>(all claims -> INVALID)
-    INITIAL_VALIDATION_IN_PROGRESS --> READY_FOR_FINAL_VALIDATION : no validation errors<br/>(draft; FSP flags inquest claims)
+    INITIAL_VALIDATION_IN_PROGRESS --> READY_FOR_SUBMISSION : no validation errors<br/>(draft; FSP flags inquest claims)
 
-    READY_FOR_FINAL_VALIDATION --> VALIDATION_IN_PROGRESS : provider selects Submit<br/>=> FINAL validation
-    READY_FOR_FINAL_VALIDATION --> DISCARDED : provider selects Discard
-    READY_FOR_FINAL_VALIDATION --> ABANDONED : wait period elapsed<br/>(reminder sent? see open questions)
+    READY_FOR_SUBMISSION --> VALIDATION_IN_PROGRESS : provider selects Submit<br/>=> FINAL validation
+    READY_FOR_SUBMISSION --> DISCARDED : provider selects Discard
+    READY_FOR_SUBMISSION --> ABANDONED : wait period elapsed<br/>(reminder sent? see open questions)
 
     VALIDATION_IN_PROGRESS --> VALIDATION_SUCCEEDED : no validation errors<br/>(publish SUBMISSION_VALIDATION_SUCCEEDED)
     VALIDATION_IN_PROGRESS --> VALIDATION_FAILED : any validation ERROR<br/>(all claims -> INVALID)
@@ -53,7 +53,7 @@ stateDiagram-v2
 | `READY_FOR_INITIAL_VALIDATION` | **new** | Parsed; queued for initial (file) validation | No |
 | `INITIAL_VALIDATION_IN_PROGRESS` | **new** | Initial validation running | No |
 | `INITIAL_VALIDATION_FAILED` | **new** | Initial validation error; provider must re-upload | No |
-| `READY_FOR_FINAL_VALIDATION` | **new** | Passed initial validation; draft awaiting provider action (previously "DRAFT") | No |
+| `READY_FOR_SUBMISSION` | **new** | Passed initial validation; draft awaiting provider action (previously "DRAFT") | No |
 | `VALIDATION_IN_PROGRESS` | existing (scoped to FINAL) | Final validation running | No |
 | `VALIDATION_SUCCEEDED` | existing | Final validation passed; downstream/reporting | **Yes** |
 | `VALIDATION_FAILED` | existing | Final validation error | No |
@@ -64,8 +64,8 @@ stateDiagram-v2
 ## Notes
 
 - The existing `READY_FOR_VALIDATION` is effectively split into `READY_FOR_INITIAL_VALIDATION` and
-  `READY_FOR_FINAL_VALIDATION`. Decide whether to retire `READY_FOR_VALIDATION` or map it to
-  `READY_FOR_FINAL_VALIDATION` (see ADR migration notes).
+  `READY_FOR_SUBMISSION`. Decide whether to retire `READY_FOR_VALIDATION` or map it to
+  `READY_FOR_SUBMISSION` (see ADR migration notes).
 - Reporting materialized views whitelist `submission_status = 'VALIDATION_SUCCEEDED'`, so the new
   initial/draft states are excluded by default — **verify per report** and add the new values to the
   reporting DB `CHECK` constraints so ingestion does not fail.

@@ -39,7 +39,7 @@ names **`INITIAL`** and **`FINAL`**. The requirement's "initial file validation"
 > would be supplied **separately after upload**, one claim at a time, via a new "post inquest data"
 > endpoint driven by a To-Do list, before completing the submission. That is **no longer the case**:
 > **all** data — inquest and non-inquest — now arrives in the **single bulk file upload** and undergoes
-> initial validation together. The draft-hold (`READY_FOR_FINAL_VALIDATION`) is therefore a
+> initial validation together. The draft-hold (`READY_FOR_SUBMISSION`) is therefore a
 > **review-before-submit** window, **not** a data-collection step. This *simplifies* the model: the
 > two-stage validation, the draft-hold and the terminal draft states below all still stand, but the
 > per-claim inquest data-entry sub-flow (To-Do list, per-claim endpoint, and the flag that gated it)
@@ -115,7 +115,7 @@ Key facts that constrain this decision:
 
 Add lifecycle stages directly to the status enums, as in [`inquest-flow.md`](../inquest-flow.md), e.g.
 submission `CREATED → READY_FOR_INITIAL_VALIDATION → INITIAL_VALIDATION_IN_PROGRESS →
-INITIAL_VALIDATION_FAILED / READY_FOR_FINAL_VALIDATION → VALIDATION_IN_PROGRESS →
+INITIAL_VALIDATION_FAILED / READY_FOR_SUBMISSION → VALIDATION_IN_PROGRESS →
 VALIDATION_FAILED / VALIDATION_SUCCEEDED`, with `DISCARDED` / `ABANDONED` terminal draft states.
 
 - **Pros:** single field to read; explicit; easy to query "what stage is this in"; matches the agreed
@@ -156,13 +156,14 @@ overloading the raw status.
 
 ### 1. Claim status (`ClaimStatus`)
 
-Proposed values: `READY_TO_PROCESS, READY_FOR_FINAL_VALIDATION, VALID, INVALID, VOID, DISCARDED,
+Proposed values: `READY_TO_PROCESS, READY_FOR_SUBMISSION, VALID, INVALID, VOID, DISCARDED,
 ABANDONED`.
 
 - `READY_TO_PROCESS` — created by parsing; awaiting INITIAL validation (unchanged meaning).
-- `READY_FOR_FINAL_VALIDATION` — **new.** Passed INITIAL validation; held as a draft pending provider
+- `READY_FOR_SUBMISSION` — **new.** Passed INITIAL validation; held as a draft pending provider
   **review and submit**. (No longer "awaiting inquest data" — all data arrived in the file.) This is
-  the draft-holding state (previously discussed as `READY_FOR_SUBMISSION` / "DRAFT").
+  the draft-holding state (previously discussed as "DRAFT"; earlier ADR drafts named it
+  `READY_FOR_FINAL_VALIDATION`, now aligned to `READY_FOR_SUBMISSION` per the requirement).
 - `VALID` / `INVALID` — **result of FINAL validation** (unchanged terminal meaning). `INVALID` is also
   the result of an INITIAL-validation error that forces a new submission.
 - `VOID` — unchanged.
@@ -201,11 +202,11 @@ and it **drives inquest validation**: when `true`, the claim's inquest fields ar
 ### 3. Submission status (`SubmissionStatus`)
 
 Proposed additions: `READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
-`INITIAL_VALIDATION_FAILED`, `READY_FOR_FINAL_VALIDATION` (draft-hold), `DISCARDED`, `ABANDONED`.
+`INITIAL_VALIDATION_FAILED`, `READY_FOR_SUBMISSION` (draft-hold), `DISCARDED`, `ABANDONED`.
 Existing `CREATED, VALIDATION_IN_PROGRESS, VALIDATION_SUCCEEDED, VALIDATION_FAILED, REPLACED` are
 retained; `VALIDATION_IN_PROGRESS`/`VALIDATION_SUCCEEDED`/`VALIDATION_FAILED` now scope to the
 **final** stage. The existing `READY_FOR_VALIDATION` is **retired** and **replaced** by the two
-new stage-specific states `READY_FOR_INITIAL_VALIDATION` and `READY_FOR_FINAL_VALIDATION` (see
+new stage-specific states `READY_FOR_INITIAL_VALIDATION` and `READY_FOR_SUBMISSION` (see
 migration notes).
 
 ### 4. UI label via derived status
@@ -217,7 +218,7 @@ raw enums.
 
 ### 5. Duplicate rules
 
-Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplicate checks;
+Claims/submissions in `READY_FOR_SUBMISSION` **are** considered for duplicate checks;
 `DISCARDED` and `ABANDONED` are **not**. Update `DuplicateClaimValidation` (currently
 `List.of(READY_TO_PROCESS, VALID)`) accordingly.
 
@@ -231,7 +232,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 - New Flyway migrations to widen `chk_claim_status` and `chk_submission_status`, and add an
   **`is_inquest` BOOLEAN NOT NULL DEFAULT FALSE** column to `claim` (set from FSP identification).
 - New service transitions: parse → `READY_FOR_INITIAL_VALIDATION`; initial-validation completion →
-  `READY_FOR_FINAL_VALIDATION`; submit → final validation; discard → `DISCARDED`; timeout →
+  `READY_FOR_SUBMISSION`; submit → final validation; discard → `DISCARDED`; timeout →
   `ABANDONED`.
 - **Validation-trigger rework (grounded in the code).** Today `SubmissionService.updateSubmission`
   publishes the validation event **only** when a patch sets `READY_FOR_VALIDATION`. Retiring that value
@@ -242,7 +243,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   from the submission's status when it loads it (see the event-service section and ADR-0003). No new
   event type is introduced for FINAL. Keep the "publish after commit" behaviour.
 - **NIL submissions bypass the whole staged flow — no draft-hold, no final submission.** Per business
-  decision, a NIL submission does **not** enter the draft-hold (`READY_FOR_FINAL_VALIDATION`, i.e. the
+  decision, a NIL submission does **not** enter the draft-hold (`READY_FOR_SUBMISSION`, i.e. the
   "ready for submission" state) and does **not** require a final submission. The frontend creates NIL
   submissions with a non-`CREATED` status, and `SubmissionService.createSubmission` validates them
   **synchronously** and sets `VALIDATION_SUCCEEDED` directly (no event flow, no review window). When
@@ -265,7 +266,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   message** (payload: `submissionId` only); the message is **not** tagged with the stage. `SubmissionListener`
   / `SubmissionValidationService` derive INITIAL vs FINAL from the submission's **status** at the point of
   processing (`READY_FOR_INITIAL_VALIDATION`/`INITIAL_VALIDATION_IN_PROGRESS` vs
-  `READY_FOR_FINAL_VALIDATION`/`VALIDATION_IN_PROGRESS`). This keeps INITIAL and FINAL on one code path and
+  `READY_FOR_SUBMISSION`/`VALIDATION_IN_PROGRESS`). This keeps INITIAL and FINAL on one code path and
   avoids a forked, stage-tagged message that could drift (see ADR-0003).
 - Run the **same full validation at both stages** over the complete claim. INITIAL and FINAL differ
   only in **when** they run (after parse vs at submit), not in which rules execute — there is no
@@ -278,7 +279,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   - **On:** validate inquest fields per the inquest rules; FSP **identification** (by fee code) marks a
     claim as an inquest claim so its inquest fields are mandatory. (The old "set a flag then escalate a
     still-set flag to ERROR at FINAL" mechanic is **removed**.)
-- Update duplicate strategy for the new statuses (include `READY_FOR_FINAL_VALIDATION`, exclude
+- Update duplicate strategy for the new statuses (include `READY_FOR_SUBMISSION`, exclude
   `DISCARDED`/`ABANDONED`). Concretely, `DuplicateClaimValidation` currently queries submissions in
   `CREATED, VALIDATION_IN_PROGRESS, READY_FOR_VALIDATION, VALIDATION_SUCCEEDED`; swap
   `READY_FOR_VALIDATION` for the two new gate states as appropriate.
@@ -286,7 +287,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
   permits validation only from `READY_FOR_VALIDATION`/`VALIDATION_IN_PROGRESS` and does
   `READY_FOR_VALIDATION → VALIDATION_IN_PROGRESS`. Extend it to
   `READY_FOR_INITIAL_VALIDATION → INITIAL_VALIDATION_IN_PROGRESS` **and**
-  `READY_FOR_FINAL_VALIDATION → VALIDATION_IN_PROGRESS`; every other state stays an
+  `READY_FOR_SUBMISSION → VALIDATION_IN_PROGRESS`; every other state stays an
   `INCORRECT_SUBMISSION_STATUS_FOR_VALIDATION` error. Update the `submission-fields.schema.json` enum
   and its error message too.
 - `BulkParsingService` sets the post-parse status; change its final
@@ -324,7 +325,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 - Ship **API DB** `CHECK`-constraint widening **before** any service emits new values. The reporting
   replica needs no constraint change (its status constraints were dropped in `V8`).
 - **Retire `READY_FOR_VALIDATION`**, replacing it with `READY_FOR_INITIAL_VALIDATION` and
-  `READY_FOR_FINAL_VALIDATION`. It exists in the **API DB** `chk_submission_status`, the OpenAPI enum,
+  `READY_FOR_SUBMISSION`. It exists in the **API DB** `chk_submission_status`, the OpenAPI enum,
   the event-service `submission-fields.schema.json`, and numerous fixtures/tests across all four repos.
   (The reporting replica has no status CHECK constraint to update, but the value will linger in
   replicated rows until they age out.) Migrate any
@@ -372,7 +373,7 @@ Claims/submissions in `READY_FOR_FINAL_VALIDATION` **are** considered for duplic
 
 Adopt **explicit per-stage lifecycle statuses** (Option 1) as in [`inquest-flow.md`](../inquest-flow.md):
 initial-stage statuses (`READY_FOR_INITIAL_VALIDATION`, `INITIAL_VALIDATION_IN_PROGRESS`,
-`INITIAL_VALIDATION_FAILED`), a draft-hold (`READY_FOR_FINAL_VALIDATION`), and terminal draft states
+`INITIAL_VALIDATION_FAILED`), a draft-hold (`READY_FOR_SUBMISSION`), and terminal draft states
 (`DISCARDED`, `ABANDONED`) — while keeping terminal `VALID`/`INVALID`/`VALIDATION_SUCCEEDED`
 semantics unchanged, treating inquest handling as a **feature-flagged (`INQUESTS_ENABLED`) validation
 rule** rather than a data-collection flag, and exposing one friendly
