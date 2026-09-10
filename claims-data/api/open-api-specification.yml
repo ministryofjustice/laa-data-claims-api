@@ -912,6 +912,22 @@ paths:
           content: {}
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail'
+        '409':
+          description: Conflict - claim version or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail'
+        '503':
+          description: Service unavailable (downstream service failure)
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail'
         '404':
           description: Submission or claim not found
         '429':
@@ -1380,6 +1396,7 @@ components:
           type: string
           format: uuid
           description: UUID of the created Assessment
+
     amendment_requested_by_reference_list:
       type: object
       description: Top-level wrapper for the amendment Requested By reference lookup.
@@ -1391,6 +1408,7 @@ components:
             and an is_active flag.
           items:
             $ref: '#/components/schemas/amendment_requested_by_reference'
+
     amendment_requested_by_reference:
       type: object
       description: A governed Requested By reference value with its valid Amendment Reasons.
@@ -1416,6 +1434,7 @@ components:
             inactive, each flagged with is_active).
           items:
             $ref: '#/components/schemas/amendment_reason_reference'
+
     amendment_reason_reference:
       type: object
       description: A governed Amendment Reason reference value scoped to a Requested By value.
@@ -1434,6 +1453,7 @@ components:
           description: >
             Whether the reason is currently selectable. Inactive reasons are still returned so
             consumers can resolve display labels for historical amendments.
+
     bulk_submission_patch:
       type: object
       description: bulk submission patch details
