@@ -1,19 +1,22 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,6 +35,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.JacksonMappingConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEvent;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryEventType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimHistoryResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryEventRow;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
@@ -53,6 +59,10 @@ class ClaimHistoryControllerTest {
 
   @MockitoBean private ClaimHistoryService claimHistoryService;
 
+  @MockitoBean
+  private uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimHistoryEventMapper
+      claimHistoryEventMapper;
+
   private static ClaimHistoryEventRow submissionRow(UUID sourceId, String actorId) {
     ObjectNode metadata = JsonNodeFactory.instance.objectNode();
     metadata.put("submission_period", "APR-2026");
@@ -70,6 +80,25 @@ class ClaimHistoryControllerTest {
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
         .thenReturn(
             new ClaimHistoryPage(List.of(submissionRow(sourceId, "provider-user-id")), 1L, 0, 20));
+
+    when(claimHistoryEventMapper.toModel(ArgumentMatchers.any()))
+        .thenAnswer(
+            inv -> {
+              ClaimHistoryEventRow r = inv.getArgument(0);
+              return ClaimHistoryEvent.builder()
+                  .eventType(ClaimHistoryEventType.fromValue(r.eventType()))
+                  .eventTimestamp(
+                      r.eventTimestamp() == null
+                          ? null
+                          : java.time.OffsetDateTime.ofInstant(
+                              r.eventTimestamp(), java.time.ZoneOffset.UTC))
+                  .actorId(r.actorId())
+                  .sourceId(r.sourceId())
+                  .metadata(
+                      objectMapper.convertValue(
+                          r.metadata(), new TypeReference<Map<String, Object>>() {}))
+                  .build();
+            });
 
     mockMvc
         .perform(get(HISTORY_URI, claimId))
@@ -116,8 +145,8 @@ class ClaimHistoryControllerTest {
     ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
     verify(claimHistoryService).getTimeline(eq(claimId), captor.capture());
     Pageable pageable = captor.getValue();
-    Assertions.assertThat(pageable.getPageNumber()).isEqualTo(2);
-    Assertions.assertThat(pageable.getPageSize()).isEqualTo(10);
+    assertThat(pageable.getPageNumber()).isEqualTo(2);
+    assertThat(pageable.getPageSize()).isEqualTo(10);
   }
 
   @Test
@@ -128,6 +157,25 @@ class ClaimHistoryControllerTest {
         .thenReturn(
             new ClaimHistoryPage(
                 List.of(submissionRow(Uuid7.timeBasedUuid(), "SYSTEM")), 1L, 0, 20));
+
+    when(claimHistoryEventMapper.toModel(ArgumentMatchers.any()))
+        .thenAnswer(
+            inv -> {
+              ClaimHistoryEventRow r = inv.getArgument(0);
+              return ClaimHistoryEvent.builder()
+                  .eventType(ClaimHistoryEventType.fromValue(r.eventType()))
+                  .eventTimestamp(
+                      r.eventTimestamp() == null
+                          ? null
+                          : java.time.OffsetDateTime.ofInstant(
+                              r.eventTimestamp(), java.time.ZoneOffset.UTC))
+                  .actorId(r.actorId())
+                  .sourceId(r.sourceId())
+                  .metadata(
+                      objectMapper.convertValue(
+                          r.metadata(), new TypeReference<Map<String, Object>>() {}))
+                  .build();
+            });
 
     mockMvc
         .perform(get(HISTORY_URI, claimId))
@@ -149,6 +197,22 @@ class ClaimHistoryControllerTest {
   }
 
   @Test
+  @DisplayName("Returns empty events array when service returns null events")
+  void returnsEmptyEventsWhenServiceReturnsNullEvents() throws Exception {
+    UUID claimId = Uuid7.timeBasedUuid();
+    when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.any()))
+        .thenReturn(new ClaimHistoryPage(null, 0L, 0, 10));
+
+    mockMvc
+        .perform(get(HISTORY_URI, claimId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.events").isArray())
+        .andExpect(jsonPath("$.events").isEmpty());
+
+    verify(claimHistoryService).getTimeline(eq(claimId), ArgumentMatchers.any());
+  }
+
+  @Test
   @DisplayName("Returns 400 Bad Request for invalid claim id")
   void returnsBadRequestForInvalidClaimId() throws Exception {
     mockMvc.perform(get(HISTORY_URI, "not-a-uuid")).andExpect(status().isBadRequest());
@@ -162,7 +226,7 @@ class ClaimHistoryControllerTest {
     // forwards a null Pageable so service-side unpaged behaviour can be applied.
     UUID claimId = Uuid7.timeBasedUuid();
     ClaimHistoryController controller =
-        new ClaimHistoryController(claimHistoryService, objectMapper);
+        new ClaimHistoryController(claimHistoryService, new ClaimHistoryEventMapper(objectMapper));
     when(claimHistoryService.getTimeline(eq(claimId), ArgumentMatchers.isNull()))
         .thenReturn(
             new ClaimHistoryPage(
@@ -172,7 +236,50 @@ class ClaimHistoryControllerTest {
         controller.getClaimHistory(claimId, (org.springframework.data.domain.Pageable) null);
 
     verify(claimHistoryService).getTimeline(eq(claimId), ArgumentMatchers.isNull());
-    Assertions.assertThat(response.getBody()).isNotNull();
-    Assertions.assertThat(response.getBody().getEvents()).hasSize(1);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getEvents()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("metadata null in row results in empty metadata map in response")
+  void metadataNullResultsInEmptyMap() throws Exception {
+    UUID claimId = UUID.randomUUID();
+    UUID sourceId = UUID.randomUUID();
+
+    // Create a row with null metadata and a valid timestamp
+    ClaimHistoryEventRow row =
+        new ClaimHistoryEventRow(
+            "SUBMISSION", Instant.parse("2026-04-22T11:26:00Z"), "SYSTEM", sourceId, null, 1L);
+
+    when(claimHistoryService.getTimeline(eq(claimId), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(new ClaimHistoryPage(List.of(row), 1L, 0, 20));
+
+    mockMvc
+        .perform(get(HISTORY_URI, claimId))
+        .andExpect(status().isOk())
+        // metadata object must not expose submission_period key (empty map)
+        .andExpect(jsonPath("$.events[0].metadata.submission_period").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("event timestamp null is preserved and returned as null")
+  void eventTimestampNullIsPreserved() {
+    UUID claimId = UUID.randomUUID();
+    UUID sourceId = UUID.randomUUID();
+
+    ClaimHistoryEventRow row =
+        new ClaimHistoryEventRow("SUBMISSION", null, "SYSTEM", sourceId, null, 1L);
+
+    ClaimHistoryController controller =
+        new ClaimHistoryController(claimHistoryService, new ClaimHistoryEventMapper(objectMapper));
+    when(claimHistoryService.getTimeline(eq(claimId), isNull()))
+        .thenReturn(new ClaimHistoryPage(List.of(row), 1L, 0, 20));
+
+    var response =
+        controller.getClaimHistory(claimId, (org.springframework.data.domain.Pageable) null);
+    var body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body.getEvents()).hasSize(1);
+    assertThat(body.getEvents().getFirst().getEventTimestamp()).isNull();
   }
 }

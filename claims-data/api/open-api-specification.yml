@@ -1053,6 +1053,13 @@ paths:
         contract without reshaping it.
 
         **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
+        
+        NOTE: The metadata.changes array is derived from the persisted amendment diff but is subject 
+        to presentation filtering by the service prior to serialization. Derived or presentation-only 
+        entries (for example, entries that were generated solely to drive fee-code calculation) may 
+        be suppressed in the API output. Consumers should not assume that metadata.changes is a 
+        byte-for-byte verbatim copy of the persisted diff; it is a representation intended for 
+        API consumers and may omit implementation-derived entries.
       x-spring-paginated: true
       parameters:
         - name: claimId
