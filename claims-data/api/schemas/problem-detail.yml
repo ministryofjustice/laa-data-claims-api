@@ -1,0 +1,51 @@
+problem_detail:
+  type: object
+  description: RFC-9457 Problem Details envelope with an errors array for amendment validation
+  properties:
+    status:
+      type: integer
+      description: HTTP status code
+    title:
+      type: string
+      description: Short, human-readable summary of the problem
+    type:
+      type: string
+      description: A URI reference that identifies the problem type
+    instance:
+      type: string
+      description: A URI reference that identifies the specific occurrence of the problem
+    detail:
+      type: string
+      description: Detailed human-readable explanation specific to this occurrence
+    message:
+      type: string
+      description: Backward-compatibility message mirroring detail
+    errors:
+      type: array
+      description: Array of field-level or technical amendment validation errors
+      items:
+        $ref: '#/claim_amendment_validation_error'
+
+claim_amendment_validation_error:
+  type: object
+  description: Structured amendment validation error object returned inside ProblemDetail.errors
+  properties:
+    code:
+      type: string
+      description: Stable machine-readable error code
+    message:
+      type: string
+      description: Human-readable, possibly parameterised message
+    severity:
+      type: string
+      description: Logical severity (e.g. ERROR, FATAL)
+    httpStatus:
+      type: string
+      description: Canonical HTTP status text (e.g. "400 BAD_REQUEST")
+    fieldName:
+      type: string
+      description: Optional stable field identifier this error relates to (e.g. client_forename)
+    fatal:
+      type: boolean
+      description: Whether this error is considered fatal for the amendment
+
