@@ -7,7 +7,6 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.UUID;
@@ -102,21 +101,20 @@ class ClaimAmendmentErrorResponseIntegrationTest extends AbstractAmendmentPatchI
   }
 
   @Test
-  @DisplayName("Invalid user id yields structured 400 problem-detail with errors array")
-  void invalidUserIdYieldsStructuredProblemDetail() throws Exception {
+  @DisplayName("Stale claim version yields structured 409 problem-detail with errors array")
+  void staleVersionYieldsStructuredProblemDetail() throws Exception {
     // Arrange: ensure the target claim is in an amendable state
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
     Claim savedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
 
-    // Build a base patch and then inject a structurally-invalid amendment user id
+    // Build a base patch and then set a stale version number to simulate a concurrent update
+    // scenario
     ClaimPatch patch = createBasePatch();
     patch.setVersion(10L);
 
-    ObjectNode json = PATCH_MAPPER.valueToTree(patch);
-
     // Act
-    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, String.valueOf(json));
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
 
     // Assert: top-level ProblemDetail envelope
     assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
