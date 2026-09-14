@@ -26,12 +26,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentP
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -52,6 +56,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AmendmentPdaCallMechanicsSteps {
 
   private static final String SEED_ACTOR = "bdd-DSTEW-1773";
+  private static final String AMENDMENT_USER_ID = "0190b6a0-9b7e-7c8a-9e2d-230100000001";
   private static final int OFFICE_SUFFIX_WIDTH = 4;
   private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
 
@@ -60,6 +65,8 @@ public class AmendmentPdaCallMechanicsSteps {
   @Autowired private SubmissionPeriodHelper periodHelper;
   @Autowired private ClaimRepository claimRepository;
   @Autowired private SubmissionRepository submissionRepository;
+  @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired private BddMockServerSupport mock;
   @Autowired private BddApiStepSupport api;
 
@@ -198,6 +205,9 @@ public class AmendmentPdaCallMechanicsSteps {
     // new value moves the outbound PDA request's effective date.
     ObjectNode root = objectMapper.createObjectNode();
     root.put("client_forename", "Amended");
+    root.put("amendment_requested_by", "PROVIDER");
+    root.put("amendment_reason_code", "PROVIDER_ERROR");
+    root.put("amendment_user_id", AMENDMENT_USER_ID);
     // dd/MM/yyyy is what ClaimPatch expects.
     LocalDate parsed = LocalDate.parse(effectiveDate);
     root.put(
@@ -248,6 +258,9 @@ public class AmendmentPdaCallMechanicsSteps {
       ObjectNode patch = objectMapper.createObjectNode();
       patch.put("client_forename", "Amended");
       patch.put("fee_code", "FEE2");
+      patch.put("amendment_requested_by", "PROVIDER");
+      patch.put("amendment_reason_code", "PROVIDER_ERROR");
+      patch.put("amendment_user_id", AMENDMENT_USER_ID);
       patch.put("version", 0);
       concurrentPatchJsons.add(patch.toString());
     }
@@ -273,7 +286,7 @@ public class AmendmentPdaCallMechanicsSteps {
   // Then — outbound-call assertions (real MockServer verify)
   // ---------------------------------------------------------------------------
 
-  @Then("exactly {int} outbound PDA call was made")
+  @Then("the observed outbound PDA call count is exactly {int}")
   public void exactlyOutboundPdaCallWasMade(int count) {
     int actual = mock.countProviderSchedulesCalls();
     if (count == 0) {
@@ -434,6 +447,9 @@ public class AmendmentPdaCallMechanicsSteps {
     // Default patch: change fee_code so PdaRequestField.FEE_CODE triggers a real PDA call.
     ObjectNode patch = objectMapper.createObjectNode();
     patch.put("client_forename", "Amended");
+    patch.put("amendment_requested_by", "PROVIDER");
+    patch.put("amendment_reason_code", "PROVIDER_ERROR");
+    patch.put("amendment_user_id", AMENDMENT_USER_ID);
     patch.put("fee_code", "FEE2");
     patch.put("version", 0);
     sharedPatchContext.setPatchJson(patch.toString());
@@ -468,20 +484,42 @@ public class AmendmentPdaCallMechanicsSteps {
   }
 
   private Claim seedClaim(Submission submission, String feeCode, LocalDate caseStartDate) {
-    return claimRepository.saveAndFlush(
-        Claim.builder()
+    Claim claim =
+        claimRepository.saveAndFlush(
+            Claim.builder()
+                .id(Uuid7.timeBasedUuid())
+                .submission(submission)
+                .status(ClaimStatus.VALID)
+                .feeCode(feeCode)
+                .lineNumber(1)
+                .matterTypeCode("MAT01")
+                .uniqueFileNumber("010725/001")
+                .caseReferenceNumber("CRN-1773")
+                .caseStartDate(caseStartDate)
+                .caseConcludedDate(caseStartDate.plusMonths(1))
+                .createdByUserId(SEED_ACTOR)
+                .build());
+
+    ClaimSummaryFee summaryFee =
+        claimSummaryFeeRepository.saveAndFlush(
+            ClaimSummaryFee.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claim)
+                .createdByUserId(SEED_ACTOR)
+                .createdOn(java.time.Instant.now())
+                .build());
+
+    calculatedFeeDetailRepository.saveAndFlush(
+        CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
-            .submission(submission)
-            .status(ClaimStatus.VALID)
+            .claim(claim)
+            .claimSummaryFee(summaryFee)
             .feeCode(feeCode)
-            .lineNumber(1)
-            .matterTypeCode("MAT01")
-            .uniqueFileNumber("010725/001")
-            .caseReferenceNumber("CRN-1773")
-            .caseStartDate(caseStartDate)
-            .caseConcludedDate(caseStartDate.plusMonths(1))
             .createdByUserId(SEED_ACTOR)
+            .createdOn(java.time.Instant.now())
             .build());
+
+    return claim;
   }
 
   // Retained for the outline path — unused by the current scenarios but preserves a possible

@@ -47,4 +47,3 @@ Feature: PDA re-validation — parent-level integration (ordering & atomicity)
     Then the endpoint responds with a controlled terminal failure
     And the claim persisted state matches the pre-amendment state
     And no partial amendment fields are visible on subsequent reads
-

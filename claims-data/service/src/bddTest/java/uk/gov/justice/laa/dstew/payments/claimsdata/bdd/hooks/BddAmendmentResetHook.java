@@ -1,10 +1,13 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.hooks;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 
 import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValid
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 
@@ -56,20 +60,24 @@ import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 public class BddAmendmentResetHook {
 
   private final FeeSchemePlatformRestClient feeSchemePlatformRestClient;
+  private final ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
   private final ValidationService validationService;
 
   /**
    * Resets both mocks and reapplies default answers. Runs before every cucumber scenario, ahead of
    * {@link BddHooks} (see class-level Javadoc for the ordering rationale).
    */
-  @Before(order = -1)
+  @Before(order = -2)
   public void resetAmendmentHarnessMocks() {
-    reset(feeSchemePlatformRestClient, validationService);
+    reset(feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
+    clearInvocations(feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
     applyDefaults();
     log.debug("[DSTEW-2301] Amendment harness mocks reset + defaults applied");
   }
 
   private void applyDefaults() {
+    doCallRealMethod().when(claimAmendmentPersistenceService).persistSuccessfulAmendment(any(), any());
+
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any());
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any(), any());
     doReturn(validClaimResult()).when(validationService).validateClaim(any());
@@ -82,6 +90,24 @@ public class BddAmendmentResetHook {
     doReturn(ResponseEntity.ok(new FeeDetailsResponseV2()))
         .when(feeSchemePlatformRestClient)
         .getFeeDetails(any());
+  }
+
+  @Before(order = -1)
+  public void enableRealClaimValidationForPdaStories(Scenario scenario) {
+    boolean isPdaStory =
+        scenario.getSourceTagNames().stream()
+            .anyMatch(
+                tag ->
+                    tag.equals("@dstew-1772")
+                        || tag.equals("@dstew-1773")
+                        || tag.equals("@dstew-1774"));
+    if (!isPdaStory) {
+      return;
+    }
+    doCallRealMethod().when(validationService).validateClaim(any());
+    doCallRealMethod().when(validationService).validateClaim(any(), any());
+    doCallRealMethod().when(validationService).validateClaim(any(), any(), any());
+    log.debug("[DSTEW-2301] PDA amendment stories enabled real ValidationService.claim validation");
   }
 
   /**

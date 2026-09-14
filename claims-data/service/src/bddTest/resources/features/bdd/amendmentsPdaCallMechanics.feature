@@ -37,7 +37,7 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
       | ucn             | ufn        | feeCode | office  | effectiveDate |
       | 14091962/T/PERS | 010725/123 | ASSA    | OFC-004 | 2026-04-01    |
     When I submit it and wait for the event service to complete amendment validation
-    Then exactly 1 outbound PDA call was made
+    Then the observed outbound PDA call count is exactly 1
     And the amendment processing was not aborted by any Claims-API response-time limit
     And PDA monitoring records outcome "success"
 
@@ -52,7 +52,7 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
       | 14091962/T/PERS | 010725/123 | ASSA    | OFC-006 | 2026-04-01    |
       | 14091962/T/PERS | 010725/124 | ASSA    | OFC-006 | 2026-04-01    |
     And I wait for the event service to complete amendment validation for both
-    Then exactly 1 outbound PDA call was made
+    Then the observed outbound PDA call count is exactly 1
     And both submissions received the same PDA outcome
 
   @PDA_7
@@ -79,7 +79,7 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
     And no PDA cache entry exists for officeCode "OFC-NEW" and effectiveDate "2026-04-01"
     And the PDA service will respond successfully within the amendment-path timeout
     When I submit it and wait for the event service to complete amendment validation
-    Then exactly 1 outbound PDA call was made
+    Then the observed outbound PDA call count is exactly 1
     And the outbound PDA request used officeCode "OFC-NEW" and effectiveDate "2026-04-01"
     And no outbound PDA request was made using officeCode "OFC-OLD" or effectiveDate "2025-04-01"
 

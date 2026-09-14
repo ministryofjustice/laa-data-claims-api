@@ -92,17 +92,6 @@ public class AmendmentPdaOutcomeMappingSteps {
     sharedPatchContext.setPatchJson(root.toString());
   }
 
-  @Then("the claim persisted state matches the pre-amendment state")
-  public void claimPersistedStateMatchesPreAmendmentState() {
-    // With any PDA-failure outcome (validation or technical), claims-validation-core surfaces the
-    // failure without allowing the amendment to commit. Assert the persisted claim still shows
-    // the pre-amendment state (the seed values captured at provisioning time).
-    Claim claim = claimRepository.findById(sharedPatchContext.getClaimId()).orElseThrow();
-    assertThat(claim.getFeeCode())
-        .as("Post-amendment: fee_code must remain at the pre-amendment value")
-        .isEqualTo("FEE1");
-  }
-
   // ---------------------------------------------------------------------------
   // Amendment intents unique to DSTEW-1774
   // ---------------------------------------------------------------------------
@@ -326,6 +315,9 @@ public class AmendmentPdaOutcomeMappingSteps {
   private void setPatchFeeCode(String feeCode) {
     ObjectNode root = objectMapper.createObjectNode();
     root.put("client_forename", "Amended");
+    root.put("amendment_requested_by", "PROVIDER");
+    root.put("amendment_reason_code", "PROVIDER_ERROR");
+    root.put("amendment_user_id", "0190b6a0-9b7e-7c8a-9e2d-230100000001");
     root.put("fee_code", feeCode);
     root.put("version", 0);
     sharedPatchContext.setPatchJson(root.toString());
@@ -377,6 +369,9 @@ public class AmendmentPdaOutcomeMappingSteps {
 
     ObjectNode initial = objectMapper.createObjectNode();
     initial.put("client_forename", "Amended");
+    initial.put("amendment_requested_by", "PROVIDER");
+    initial.put("amendment_reason_code", "PROVIDER_ERROR");
+    initial.put("amendment_user_id", "0190b6a0-9b7e-7c8a-9e2d-230100000001");
     initial.put("fee_code", feeCode);
     initial.put("version", 0);
     sharedPatchContext.setPatchJson(initial.toString());
