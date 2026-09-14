@@ -70,13 +70,16 @@ public class BddAmendmentResetHook {
   @Before(order = -2)
   public void resetAmendmentHarnessMocks() {
     reset(feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
-    clearInvocations(feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
+    clearInvocations(
+        feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
     applyDefaults();
     log.debug("[DSTEW-2301] Amendment harness mocks reset + defaults applied");
   }
 
   private void applyDefaults() {
-    doCallRealMethod().when(claimAmendmentPersistenceService).persistSuccessfulAmendment(any(), any());
+    doCallRealMethod()
+        .when(claimAmendmentPersistenceService)
+        .persistSuccessfulAmendment(any(), any());
 
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any());
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any(), any());
