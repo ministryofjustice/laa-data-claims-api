@@ -157,11 +157,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     for (JsonNode change : persistedChanges) {
       String field = change.path("field_identifier").asText();
       String source = change.path("change_source").asText();
-      // Accept either the dotted canonical identifier or the presented snake_case identifier in
-      // the persisted diff; different parts of the pipeline may have migrated to the presentation
-      // form at different times.
-      if ((AmendmentFieldIdentifiers.FeeFields.FEE_CODE.equals(field) || "fee_code".equals(field))
-          && "FSP".equals(source)) {
+      if (AmendmentFieldIdentifiers.FeeFields.FEE_CODE.equals(field) && "FSP".equals(source)) {
         dbHasFspFeeFeeCode = true;
         break;
       }
@@ -194,12 +190,10 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
       // The history API now exposes snake_case identifiers; the requested claim feeCode appears as
       // "fee_code" and any derived FSP fee code would also be presented as "fee_code" (but is
       // suppressed by the presentation mapper). Hard-code the expected presentation identifier.
-      if ((AmendmentFieldIdentifiers.ClaimFields.FEE_CODE.equals(field) || "fee_code".equals(field))
-          && "REQUESTED".equals(source)) {
+      if ("fee_code".equals(field) && "REQUESTED".equals(source)) {
         hasRequestedClaimFeeCode = true;
       }
-      if ((AmendmentFieldIdentifiers.FeeFields.FEE_CODE.equals(field) || "fee_code".equals(field))
-          && "FSP".equals(source)) {
+      if ("fee_code".equals(field) && "FSP".equals(source)) {
         hasFspFeeFeeCode = true;
       }
     }
