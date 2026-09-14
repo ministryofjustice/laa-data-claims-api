@@ -18,6 +18,70 @@ ignore:
           present in the shipped Alpine runtime and not fixable from app code.
         expires: 2026-09-25T00:00:00.000Z
 
+  # Additional recent glibc libc6 CVEs reported by Snyk (introduced via the
+  # Ubuntu 24.04-based build/scanner image). These are transitive OS-package
+  # vulnerabilities (glibc/libc6) that are fixed upstream in 2.39-0ubuntu8.9 and
+  # will be resolved when the shared build image is rebuilt or the base-image is
+  # updated (docker build --pull). No application-code remediation is available
+  # from this repo; time-boxed so CI/maintainers will re-evaluate once the base
+  # image propagates the fix.
+  SNYK-UBUNTU2404-GLIBC-18741477:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-6368 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-18741516:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-6791 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383476:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-19499 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383517:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-19542 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383885:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-77117 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19437583:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-18374 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19437849:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-80489 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+
   # CVE-2026-63076 / CVE-2026-63072 - openssl/libssl3t64 (Ubuntu 24.04 base-image OS package).
   # Image is built and scanned by the shared reusable workflow
   # ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml

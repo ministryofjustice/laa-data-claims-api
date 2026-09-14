@@ -87,7 +87,7 @@ Feature: Claim history timeline — AMENDMENT event metadata
       | created_by_user_id    | entra-user-abc               |
       | requested_by_code     | PROVIDER                     |
       | amendment_reason_code | PROVIDER_ERROR               |
-    And the amendment's stored diff contains a `change_source` "Requested" entry for field "client_surname"
+    And the amendment's stored diff contains a `change_source` "REQUESTED" entry for field "client_surname"
     When I request the claim history timeline
     Then the amendment event contains the following envelope
       | envelopeField    | value                |
