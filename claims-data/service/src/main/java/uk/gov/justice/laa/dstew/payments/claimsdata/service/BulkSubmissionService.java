@@ -51,6 +51,7 @@ public class BulkSubmissionService
   private final BulkSubmissionRepository bulkSubmissionRepository;
   private final BulkSubmissionMapper bulkSubmissionMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
+  private final SubmissionService submissionService;
 
   @Override
   public BulkSubmissionRepository lookup() {
@@ -81,7 +82,7 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetailsSchedule::getAreaOfLaw)
             .orElse(null);
 
-    validateAreaOfLaw(areaOfLaw);
+    AreaOfLaw areaOfLawEnum = validateAndFetchAreaOfLaw(areaOfLaw);
 
     UUID bulkSubmissionId = Uuid7.timeBasedUuid();
 
@@ -92,9 +93,15 @@ public class BulkSubmissionService
             .createdByUserId(userId)
             .authorisedOffices(String.join(",", offices));
 
-    validateOfficeCodeAndAccessPermissions(offices, bulkSubmissionDetails, bulkSubmissionBuilder);
+    String officeCode =
+        validateAndFetchOfficeCodeAndAccessPermissions(
+            offices, bulkSubmissionDetails, bulkSubmissionBuilder);
 
-    validateSubmissionPeriod(bulkSubmissionDetails, bulkSubmissionBuilder);
+    String submissionPeriod =
+        validateAndFetchSubmissionPeriod(bulkSubmissionDetails, bulkSubmissionBuilder);
+
+    validateSubmissionPeriodDoesNotExist(
+        submissionPeriod, areaOfLawEnum, officeCode, bulkSubmissionBuilder);
 
     validateMatterTypeCode(bulkSubmissionDetails, bulkSubmissionBuilder, areaOfLaw);
 
@@ -141,7 +148,18 @@ public class BulkSubmissionService
     failSubmission(errorMessage, bulkSubmissionBuilder);
   }
 
-  private void validateSubmissionPeriod(
+  private void validateSubmissionPeriodDoesNotExist(
+      String submissionPeriod,
+      AreaOfLaw areaOfLaw,
+      String officeCode,
+      BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
+    if (submissionService.hasConflictingLiveSubmission(submissionPeriod, areaOfLaw, officeCode)) {
+      failSubmission(
+          "A submission with the same submission period already exists", bulkSubmissionBuilder);
+    }
+  }
+
+  private String validateAndFetchSubmissionPeriod(
       GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
       BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     Optional<String> submissionPeriod =
@@ -151,12 +169,12 @@ public class BulkSubmissionService
 
     if (submissionPeriod.isEmpty() || submissionPeriod.get().isBlank()) {
       failSubmission("Enter a submission period in the file", bulkSubmissionBuilder);
-
     } else if (!isValidMonthYear(submissionPeriod.get())) {
       failSubmission(
           "Enter the submission period in the format MMM-YYYY (for example, JAN-2025)",
           bulkSubmissionBuilder);
     }
+    return submissionPeriod.orElse(null);
   }
 
   private void failSubmission(String errorMessage, BulkSubmission.BulkSubmissionBuilder builder) {
@@ -176,7 +194,7 @@ public class BulkSubmissionService
     return input != null && input.matches(regex);
   }
 
-  private void validateOfficeCodeAndAccessPermissions(
+  private String validateAndFetchOfficeCodeAndAccessPermissions(
       List<String> offices,
       GetBulkSubmission200ResponseDetails bulkSubmissionDetails,
       BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
@@ -203,6 +221,7 @@ public class BulkSubmissionService
 
       throw new BulkSubmissionOfficeAuthorisationException(error);
     }
+    return officeCode;
   }
 
   /**
@@ -349,19 +368,16 @@ public class BulkSubmissionService
     }
   }
 
-  private void validateAreaOfLaw(String areaOfLawValue) {
+  private AreaOfLaw validateAndFetchAreaOfLaw(String areaOfLawValue) {
     if (areaOfLawValue == null) {
       throw new BulkSubmissionAreaOfLawException();
     }
 
     String trimmedValue = areaOfLawValue.trim();
-    boolean supported =
-        Arrays.stream(AreaOfLaw.values())
-            .map(AreaOfLaw::getValue)
-            .anyMatch(value -> value.equalsIgnoreCase(trimmedValue));
 
-    if (!supported) {
-      throw new BulkSubmissionAreaOfLawException();
-    }
+    return Arrays.stream(AreaOfLaw.values())
+        .filter(value -> value.getValue().equalsIgnoreCase(trimmedValue))
+        .findFirst()
+        .orElseThrow(BulkSubmissionAreaOfLawException::new);
   }
 }
