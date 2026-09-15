@@ -141,8 +141,7 @@ public class BulkSubmissionService
     String errorMessage =
         switch (areaOfLaw) {
           case "CRIME LOWER" -> "Stage Reached is missing for one or more of your claims";
-          case "LEGAL HELP" -> "Matter Type is missing for one or more of your claims";
-          case "MEDIATION" -> "Matter Type is missing for one or more of your claims";
+          case "LEGAL HELP", "MEDIATION" -> "Matter Type is missing for one or more of your claims";
           default -> null;
         };
     failSubmission(errorMessage, bulkSubmissionBuilder);
@@ -153,13 +152,7 @@ public class BulkSubmissionService
       AreaOfLaw areaOfLaw,
       String officeCode,
       BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
-    // Normalize submission period and office code to avoid false-negatives due to
-    // leading/trailing whitespace or case differences in uploaded files. The DB stores
-    // normalized values (e.g. office codes in upper-case), so normalize here to match.
-    String normalizedPeriod = submissionPeriod == null ? null : submissionPeriod.trim().toUpperCase();
-    String normalizedOffice = officeCode == null ? null : officeCode.trim().toUpperCase();
-
-    if (submissionService.hasConflictingLiveSubmission(normalizedOffice, areaOfLaw, normalizedPeriod)) {
+    if (submissionService.hasConflictingLiveSubmission(officeCode, areaOfLaw, submissionPeriod)) {
       failSubmission(
           "A submission with the same submission period already exists", bulkSubmissionBuilder);
     }
@@ -180,9 +173,7 @@ public class BulkSubmissionService
           "Enter the submission period in the format MMM-YYYY (for example, JAN-2025)",
           bulkSubmissionBuilder);
     }
-    // Trim and normalise to upper-case so that inputs like " APR-2021 " are accepted and
-    // consistently compared against persisted values.
-    return submissionPeriod.map(s -> s.trim().toUpperCase()).orElse(null);
+    return submissionPeriod.orElse(null);
   }
 
   private void failSubmission(String errorMessage, BulkSubmission.BulkSubmissionBuilder builder) {
@@ -211,14 +202,8 @@ public class BulkSubmissionService
             .map(GetBulkSubmission200ResponseDetails::getOffice)
             .map(GetBulkSubmission200ResponseDetailsOffice::getAccount)
             .orElse(null);
-    // Normalise office code and validate: accept common case variations and trim whitespace.
-    String normalisedOfficeCode = officeCode == null ? null : officeCode.trim();
 
-    // Validation: check if file's office is in authorised list (case-insensitive match)
-    boolean authorised =
-        normalisedOfficeCode != null && offices.stream().anyMatch(o -> o.equalsIgnoreCase(normalisedOfficeCode));
-
-    if (normalisedOfficeCode == null || !authorised) {
+    if (officeCode == null || !offices.contains(officeCode)) {
       String error =
           "The selected file contains office account %s. You do not have access to this office"
               .formatted(officeCode);
@@ -234,8 +219,7 @@ public class BulkSubmissionService
 
       throw new BulkSubmissionOfficeAuthorisationException(error);
     }
-    // Return a canonicalised office code to be used for downstream duplicate checks
-    return normalisedOfficeCode.toUpperCase();
+    return officeCode;
   }
 
   /**
