@@ -69,7 +69,7 @@ Feature: Claim history timeline — AMENDMENT event field-level change detail
     Given a claim exists with a successful `claim_amendment` row whose stored diff contains
       | field_identifier                   | before_value | after_value | change_source |
       | fee_code                           | FEE-A        | FEE-B       | Requested     |
-      | calculated_fee_detail.total_amount | 100.00       | 125.00      | FSP           |
+      | total_amount                       | 100.00       | 125.00      | FSP           |
     When I request the claim history timeline
     Then the AMENDMENT event metadata `changes` array contains exactly two entries
     And the `changes` array contains an entry with the following values
@@ -77,7 +77,7 @@ Feature: Claim history timeline — AMENDMENT event field-level change detail
       | fee_code         | FEE-A  | FEE-B | REQUESTED     |
     And the `changes` array contains an entry with the following values
       | field_identifier                    | before | after  | change_source |
-      | calculated_fee_detail.total_amount  | 100.00 | 125.00 | FSP           |
+      | total_amount                        | 100.00 | 125.00 | FSP           |
 
   @DS1814_3
   Scenario: Explicit-null `after` (cleared field) is returned as null, distinguishable from missing
