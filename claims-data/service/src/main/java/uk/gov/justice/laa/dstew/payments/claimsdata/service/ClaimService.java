@@ -54,6 +54,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
@@ -706,24 +707,29 @@ public class ClaimService
    * the claim's eligibility for voiding based on input parameters.
    *
    * @param claimId the unique identifier of the claim to be voided
-   * @param createdByUserId the identifier of the user initiating the void operation
-   * @param assessmentReason the reason for the assessment creation during claim voiding
+   * @param request the void claim request containing the user ID and assessment reason
    * @return the unique identifier of the newly created assessment
    */
   @Transactional
-  public UUID voidClaimByIdAndCreateAssessment(
-      UUID claimId, UUID createdByUserId, String assessmentReason) {
+  public UUID voidClaimByIdAndCreateAssessment(UUID claimId, VoidClaimRequest request) {
 
-    claimValidationService.validateVoidClaimParameters(claimId, createdByUserId, assessmentReason);
+    claimValidationService.validateVoidClaimRequest(claimId, request);
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+
+    claimValidationService.validateClaimVersionMatches(claim, request.getVersion());
+
     ClaimSummaryFee claimSummaryFee =
         claimValidationService.getClaimSummaryFeeByClaimIdOrThrow(claimId);
 
-    claim.voidClaim(createdByUserId);
+    // Mark the claim as void and persist the change so audit fields (updatedOn, updatedByUserId)
+    // are recorded and the optimistic-locking version can be incremented by the JPA provider.
+    claim.voidClaim(request.getCreatedByUserId());
+    claimRepository.save(claim);
+
     Assessment assessment =
         assessmentService.createVoidAssessment(
-            assessmentReason, claim, claimSummaryFee, createdByUserId);
+            request.getAssessmentReason(), claim, claimSummaryFee, request.getCreatedByUserId());
     return assessmentRepository.save(assessment).getId();
   }
 

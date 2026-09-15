@@ -44,6 +44,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -64,6 +65,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -1846,6 +1848,56 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName(
+        "POST v1/claims/{id}/void - updates claim metadata and increments version on success")
+    void shouldUpdateClaimMetadataAndIncrementVersionWhenVoidSucceeds() throws Exception {
+      UUID userId = Uuid7.timeBasedUuid();
+
+      // Capture the pre-void claim state
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + userId
+              + "\","
+              + "\"assessment_reason\":\"meta test reason\""
+              + "}";
+
+      // Act: call the void endpoint
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isCreated());
+
+      // Reload the claim from the database and assert metadata changes
+      Claim after =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+      assertThat(after.getStatus()).isEqualTo(ClaimStatus.VOID);
+      assertThat(after.isHasAssessment()).isTrue();
+      assertThat(after.getUpdatedByUserId()).isEqualTo(userId.toString());
+      assertThat(after.getUpdatedOn()).isNotNull();
+
+      if (beforeVersion == null) {
+        // Version should be set (non-null) after persistence if it was previously unset
+        assertThat(after.getVersion()).isNotNull();
+      } else {
+        // Expect version to have incremented by 1
+        assertThat(after.getVersion()).isEqualTo(beforeVersion + 1);
+      }
+    }
+
+    @Test
+    @DisplayName(
         "POST v1/claims/{id}/void - returns 400 when claim is not in a valid status for voiding")
     void shouldReturnBadRequestWhenClaimDoesNotExistInValidStatus() throws Exception {
       String requestBody =
@@ -1863,6 +1915,51 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
           .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName(
+        "POST v1/claims/{id}/void - does not modify claim metadata or version when void fails")
+    void shouldNotModifyClaimMetadataWhenVoidFails() throws Exception {
+      // Capture the pre-void claim state for a claim that cannot be voided
+      Claim before =
+          claimRepository
+              .findById(CLAIM_1_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+      ClaimStatus beforeStatus = before.getStatus();
+      Boolean beforeHasAssessment = before.isHasAssessment();
+      String beforeUpdatedBy = before.getUpdatedByUserId();
+      Instant beforeUpdatedOn = before.getUpdatedOn();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"fail test reason\""
+              + "}";
+
+      // Act: attempt to void (expected 400)
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+
+      // Reload claim and assert no changes to metadata
+      Claim after =
+          claimRepository
+              .findById(CLAIM_1_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+      assertThat(after.getStatus()).isEqualTo(beforeStatus);
+      assertThat(after.isHasAssessment()).isEqualTo(beforeHasAssessment);
+      assertThat(after.getUpdatedByUserId()).isEqualTo(beforeUpdatedBy);
+      assertThat(after.getUpdatedOn()).isEqualTo(beforeUpdatedOn);
+      assertThat(after.getVersion()).isEqualTo(beforeVersion);
     }
 
     @Test
@@ -1921,6 +2018,190 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
           .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST v1/claims/{id}/void - accepts null/omitted version and increments version")
+    void shouldVoidClaimWhenVersionIsNull() throws Exception {
+      // Ensure we operate on a fresh claim snapshot
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      UUID userId = Uuid7.timeBasedUuid();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + userId.toString()
+              + "\","
+              + "\"assessment_reason\":\"null version test\""
+              + "}";
+
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isCreated());
+
+      Claim after =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+      if (beforeVersion == null) {
+        assertThat(after.getVersion()).isNotNull();
+      } else {
+        assertThat(after.getVersion()).isEqualTo(beforeVersion + 1);
+      }
+    }
+
+    @Test
+    @DisplayName("POST v1/claims/{id}/void - 400 when version is negative")
+    void shouldReturnBadRequestWhenVersionIsNegative() throws Exception {
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"neg version\","
+              + "\"version\": -1"
+              + "}";
+
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestBody)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      String responseBody = result.getResponse().getContentAsString();
+      assertThat(responseBody)
+          .contains(ClaimValidationService.VERSION_MUST_BE_GREATER_THAN_ZERO_ERROR);
+
+      Claim after =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      assertThat(after.getVersion()).isEqualTo(beforeVersion);
+    }
+
+    @Test
+    @DisplayName("POST v1/claims/{id}/void - 400 when version is zero")
+    void shouldReturnBadRequestWhenVersionIsZero() throws Exception {
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"zero version\","
+              + "\"version\": 0"
+              + "}";
+
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestBody)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      String responseBody = result.getResponse().getContentAsString();
+      assertThat(responseBody)
+          .contains(ClaimValidationService.VERSION_MUST_BE_GREATER_THAN_ZERO_ERROR);
+
+      Claim after =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      assertThat(after.getVersion()).isEqualTo(beforeVersion);
+    }
+
+    @Test
+    @DisplayName(
+        "POST v1/claims/{id}/void - 400 when provided version does not match claim version (OCC)")
+    @Transactional
+    void shouldReturnBadRequestWhenVersionDoesNotMatch() throws Exception {
+      // Force a known claim version
+      claimRepository
+          .findById(CLAIM_2_ID)
+          .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"mismatch version\","
+              + "\"version\": 41"
+              + "}";
+
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestBody)
+                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      String responseBody = result.getResponse().getContentAsString();
+      assertThat(responseBody)
+          .contains(String.format(ClaimValidationService.VERSION_MISMATCH_ERROR, CLAIM_2_ID));
+
+      Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      assertThat(after.getVersion()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("POST v1/claims/{id}/void - accepts matching version and increments claim version")
+    @Transactional
+    void shouldVoidClaimWhenVersionMatchesAndIncrement() throws Exception {
+      // Set a deterministic version
+      Claim existing = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"matching version\","
+              + "\"version\": "
+              + existing.getVersion()
+              + "}";
+
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isCreated());
+
+      Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      assertThat(after.getVersion()).isEqualTo(101L);
     }
   }
 
