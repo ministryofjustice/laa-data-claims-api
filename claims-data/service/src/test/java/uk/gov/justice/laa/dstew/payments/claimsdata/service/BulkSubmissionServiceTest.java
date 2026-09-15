@@ -63,7 +63,8 @@ class BulkSubmissionServiceTest {
   @Mock BulkSubmissionMapper bulkSubmissionMapper;
 
   @SuppressWarnings("unused") // This is needed by the bulkSubmissionService
-  @Mock SubmissionService submissionService;
+  @Mock
+  SubmissionService submissionService;
 
   @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 

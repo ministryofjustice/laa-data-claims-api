@@ -13,11 +13,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_CREATED_BY_USER_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -25,8 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -43,6 +45,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
@@ -53,17 +56,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
-import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Integration tests for the Bulk Submission Controller. Tests the endpoints for creating,
@@ -86,7 +81,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   private static final String OFFICES_PARAM = "offices";
   // has to match the office in the outcomes.csv file
   private static final String TEST_OFFICE = "0U099L";
-  private static final String SUBMISSIONS_ENDPOINT = API_URI_PREFIX + "/submissions";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String ERROR_DETAIL = "detail";
@@ -108,6 +102,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   void setup() {
     // Configure object mapper to handle Java 8 date/time types used in request/response models
     OBJECT_MAPPER.findAndRegisterModules();
+
     // create the queue if it doesn't exist
     sqsClient.createQueue(builder -> builder.queueName(queueName));
 
@@ -235,36 +230,42 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   // ---------- Duplicate submission validation tests ----------
 
-  private Submission seedExistingSubmission(String officeAccountNumber,
-      String submissionPeriod, AreaOfLaw areaOfLaw, SubmissionStatus status) {
-    Submission submission = Submission.builder()
-        .id(Uuid7.timeBasedUuid())
-        .officeAccountNumber(officeAccountNumber)
-        .submissionPeriod(submissionPeriod)
-        .areaOfLaw(areaOfLaw)
-        .status(status)
-        .createdByUserId(TEST_USER)
-        .providerUserId(TEST_USER)
-        .numberOfClaims(0)
-        .createdOn(Instant.now())
-        .build();
+  private Submission seedExistingSubmission(
+      String officeAccountNumber,
+      String submissionPeriod,
+      AreaOfLaw areaOfLaw,
+      SubmissionStatus status) {
+    Submission submission =
+        Submission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .officeAccountNumber(officeAccountNumber)
+            .submissionPeriod(submissionPeriod)
+            .areaOfLaw(areaOfLaw)
+            .status(status)
+            .createdByUserId(TEST_USER)
+            .providerUserId(TEST_USER)
+            .numberOfClaims(0)
+            .createdOn(Instant.now())
+            .build();
     return submissionRepository.saveAndFlush(submission);
   }
 
   private ResultActions performUploadUsingOutcomesCsv() throws Exception {
     ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
-    MockMultipartFile file = new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
-    return mockMvc.perform(multipart(POST_BULK_SUBMISSION_ENDPOINT)
-        .file(file)
-        .param(USER_ID_PARAM, TEST_USER)
-        .param(OFFICES_PARAM, TEST_OFFICE)
-        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN));
+    MockMultipartFile file =
+        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+    return mockMvc.perform(
+        multipart(POST_BULK_SUBMISSION_ENDPOINT)
+            .file(file)
+            .param(USER_ID_PARAM, TEST_USER)
+            .param(OFFICES_PARAM, TEST_OFFICE)
+            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN));
   }
 
   /**
    * Perform upload using the outcomes.csv resource but replace the office, submissionPeriod and
-   * areaOfLaw values so tests can exercise different key combinations without adding many
-   * physical test files.
+   * areaOfLaw values so tests can exercise different key combinations without adding many physical
+   * test files.
    */
   private ResultActions performUploadWithCsvReplacements(
       String officeAccountNumber, String submissionPeriod, AreaOfLaw areaOfLaw) throws Exception {
@@ -272,13 +273,15 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     String content = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
     // Replace known tokens from the template CSV
     content = content.replaceAll("account=0U099L", "account=" + officeAccountNumber);
-    content = content.replaceAll("submissionPeriod=APR-2021", "submissionPeriod=" + submissionPeriod);
+    content =
+        content.replaceAll("submissionPeriod=APR-2021", "submissionPeriod=" + submissionPeriod);
     // areaOfLaw in the CSV is written with a space (e.g. "LEGAL HELP") so convert enum name
     String aolText = areaOfLaw.name().replace('_', ' ');
     content = content.replaceAll("areaOfLaw=LEGAL HELP", "areaOfLaw=" + aolText);
 
     MockMultipartFile file =
-        new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, content.getBytes(StandardCharsets.UTF_8));
+        new MockMultipartFile(
+            FILE, resource.getFilename(), TEXT_CSV, content.getBytes(StandardCharsets.UTF_8));
 
     return mockMvc.perform(
         multipart(POST_BULK_SUBMISSION_ENDPOINT)
@@ -290,58 +293,72 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   private void assertDuplicateProblemDetail(MvcResult result) throws Exception {
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-    assertThat(json.get(ERROR_DETAIL).asText()).isEqualTo("A submission with the same submission period already exists");
+    assertThat(json.get(ERROR_DETAIL).asText())
+        .isEqualTo("A submission with the same submission period already exists");
     assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
   // Helper record used to describe seeded existing submissions in MethodSource cases
-  private static record Seed(String office, String period, AreaOfLaw aol, SubmissionStatus status) {}
+  private record Seed(String office, String period, AreaOfLaw aol, SubmissionStatus status) {}
 
-  private static Stream<org.junit.jupiter.params.provider.Arguments> duplicateSubmissionCases() {
+  private static Stream<Arguments> duplicateSubmissionCases() {
     return Stream.of(
         // 1: all keys match, existing VALIDATION_FAILED -> allow
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "all keys match - existing VALIDATION_FAILED",
-            List.of(new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.VALIDATION_FAILED)),
+            List.of(
+                new Seed(
+                    TEST_OFFICE,
+                    "APR-2021",
+                    AreaOfLaw.LEGAL_HELP,
+                    SubmissionStatus.VALIDATION_FAILED)),
             TEST_OFFICE,
             "APR-2021",
             AreaOfLaw.LEGAL_HELP,
             true),
         // 2: all keys match, existing REPLACED -> allow
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "all keys match - existing REPLACED",
-            List.of(new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.REPLACED)),
+            List.of(
+                new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.REPLACED)),
             TEST_OFFICE,
             "APR-2021",
             AreaOfLaw.LEGAL_HELP,
             true),
         // 3: all keys match, existing CREATED -> reject
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "all keys match - existing CREATED",
-            List.of(new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED)),
+            List.of(
+                new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED)),
             TEST_OFFICE,
             "APR-2021",
             AreaOfLaw.LEGAL_HELP,
             false),
         // 4: all keys match, existing VALIDATION_SUCCEEDED -> reject
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "all keys match - existing VALIDATION_SUCCEEDED",
-            List.of(new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.VALIDATION_SUCCEEDED)),
+            List.of(
+                new Seed(
+                    TEST_OFFICE,
+                    "APR-2021",
+                    AreaOfLaw.LEGAL_HELP,
+                    SubmissionStatus.VALIDATION_SUCCEEDED)),
             TEST_OFFICE,
             "APR-2021",
             AreaOfLaw.LEGAL_HELP,
             false),
         // 5: two keys match (office+period), area differs -> allow
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "two keys match - office+period match, aol different",
-            List.of(new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED)),
+            List.of(
+                new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED)),
             TEST_OFFICE,
             "APR-2021",
             AreaOfLaw.MEDIATION,
             true),
         // 6: two keys match (period+aol), office differs -> allow
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "two keys match - period+aol match, office different",
             List.of(new Seed("AAA111", "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED)),
             TEST_OFFICE,
@@ -349,7 +366,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             AreaOfLaw.LEGAL_HELP,
             true),
         // 7: multiple existing: one REPLACED + one CREATED -> reject (because CREATED is live)
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "multiple existing - one replaced + one created",
             List.of(
                 new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.REPLACED),
@@ -359,7 +376,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             AreaOfLaw.LEGAL_HELP,
             false),
         // 8: multiple existing: two REPLACED -> allow
-        org.junit.jupiter.params.provider.Arguments.of(
+        Arguments.of(
             "multiple existing - two replaced",
             List.of(
                 new Seed(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.REPLACED),
@@ -371,7 +388,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @ParameterizedTest(name = "{0}")
-  @org.junit.jupiter.params.provider.MethodSource("duplicateSubmissionCases")
+  @MethodSource("duplicateSubmissionCases")
   @DisplayName("Parameterized duplicate submission cases covering keys and statuses")
   void parameterizedDuplicateSubmissionTests(
       String description,
@@ -392,7 +409,10 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // Act: perform upload using CSV with replaced keys
     if (expectAllow) {
-      MvcResult mvcResult = performUploadWithCsvReplacements(newOffice, newPeriod, newAol).andExpect(status().isCreated()).andReturn();
+      MvcResult mvcResult =
+          performUploadWithCsvReplacements(newOffice, newPeriod, newAol)
+              .andExpect(status().isCreated())
+              .andReturn();
       String responseBody = mvcResult.getResponse().getContentAsString();
       assertThat(responseBody).contains("bulk_submission_id");
       assertThat(responseBody).contains("submission_ids");
@@ -402,29 +422,41 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
       BulkSubmission savedBulkSubmission = bulkSubmissions.getFirst();
       verifyIfSqsMessageIsReceived(savedBulkSubmission);
     } else {
-      MvcResult mvcResult = performUploadWithCsvReplacements(newOffice, newPeriod, newAol).andExpect(status().isBadRequest()).andReturn();
+      MvcResult mvcResult =
+          performUploadWithCsvReplacements(newOffice, newPeriod, newAol)
+              .andExpect(status().isBadRequest())
+              .andReturn();
       assertDuplicateProblemDetail(mvcResult);
 
       // Ensure the DB still only contains the seeded matching submissions
-      long matching = submissionRepository.findAll().stream()
-          .filter(s -> newOffice.equals(s.getOfficeAccountNumber())
-              && newPeriod.equals(s.getSubmissionPeriod())
-              && newAol == s.getAreaOfLaw())
-          .count();
+      long matching =
+          submissionRepository.findAll().stream()
+              .filter(
+                  s ->
+                      newOffice.equals(s.getOfficeAccountNumber())
+                          && newPeriod.equals(s.getSubmissionPeriod())
+                          && newAol == s.getAreaOfLaw())
+              .count();
 
       // Count how many of seeded entries match those keys
-      long seededMatching = existingSeeds.stream()
-          .filter(s -> newOffice.equals(s.office) && newPeriod.equals(s.period) && newAol == s.aol)
-          .count();
+      long seededMatching =
+          existingSeeds.stream()
+              .filter(
+                  s -> newOffice.equals(s.office) && newPeriod.equals(s.period) && newAol == s.aol)
+              .count();
 
       assertThat(matching).isEqualTo(seededMatching);
     }
   }
 
   @ParameterizedTest
-  @EnumSource(value = SubmissionStatus.class, names = {"VALIDATION_FAILED", "REPLACED"})
-  @DisplayName("Should allow creation when existing submission status is VALIDATION_FAILED or REPLACED")
-  void shouldCreateSubmissionWhenExistingSubmissionStatusIsAllowed(SubmissionStatus existingStatus) throws Exception {
+  @EnumSource(
+      value = SubmissionStatus.class,
+      names = {"VALIDATION_FAILED", "REPLACED"})
+  @DisplayName(
+      "Should allow creation when existing submission status is VALIDATION_FAILED or REPLACED")
+  void shouldCreateSubmissionWhenExistingSubmissionStatusIsAllowed(SubmissionStatus existingStatus)
+      throws Exception {
     // Arrange: ensure clean DB
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
@@ -436,7 +468,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     seedExistingSubmission(TEST_OFFICE, submissionPeriod, areaOfLaw, existingStatus);
 
     // Act
-    MvcResult mvcResult = performUploadUsingOutcomesCsv().andExpect(status().isCreated()).andReturn();
+    MvcResult mvcResult =
+        performUploadUsingOutcomesCsv().andExpect(status().isCreated()).andReturn();
 
     // Assert: response indicates creation
     String responseBody = mvcResult.getResponse().getContentAsString();
@@ -454,9 +487,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @ParameterizedTest
-  @EnumSource(value = SubmissionStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"VALIDATION_FAILED", "REPLACED"})
+  @EnumSource(
+      value = SubmissionStatus.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = {"VALIDATION_FAILED", "REPLACED"})
   @DisplayName("Should reject creation as duplicate for all other submission statuses")
-  void shouldRejectSubmissionAsDuplicateForDisallowedStatuses(SubmissionStatus existingStatus) throws Exception {
+  void shouldRejectSubmissionAsDuplicateForDisallowedStatuses(SubmissionStatus existingStatus)
+      throws Exception {
     // Arrange: ensure clean DB
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
@@ -467,17 +504,21 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     seedExistingSubmission(TEST_OFFICE, submissionPeriod, areaOfLaw, existingStatus);
 
     // Act
-    MvcResult mvcResult = performUploadUsingOutcomesCsv().andExpect(status().isBadRequest()).andReturn();
+    MvcResult mvcResult =
+        performUploadUsingOutcomesCsv().andExpect(status().isBadRequest()).andReturn();
 
     // Assert: ProblemDetail contains duplicate message
     assertDuplicateProblemDetail(mvcResult);
 
     // DB assertion: only the seeded submission exists
-    long matching = submissionRepository.findAll().stream()
-        .filter(s -> TEST_OFFICE.equals(s.getOfficeAccountNumber())
-            && submissionPeriod.equals(s.getSubmissionPeriod())
-            && areaOfLaw == s.getAreaOfLaw())
-        .count();
+    long matching =
+        submissionRepository.findAll().stream()
+            .filter(
+                s ->
+                    TEST_OFFICE.equals(s.getOfficeAccountNumber())
+                        && submissionPeriod.equals(s.getSubmissionPeriod())
+                        && areaOfLaw == s.getAreaOfLaw())
+            .count();
     assertThat(matching).isEqualTo(1);
   }
 
