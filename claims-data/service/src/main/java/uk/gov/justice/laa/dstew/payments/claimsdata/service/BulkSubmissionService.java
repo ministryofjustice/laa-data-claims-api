@@ -153,7 +153,7 @@ public class BulkSubmissionService
       AreaOfLaw areaOfLaw,
       String officeCode,
       BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
-    if (submissionService.hasConflictingLiveSubmission(submissionPeriod, areaOfLaw, officeCode)) {
+    if (submissionService.hasConflictingLiveSubmission(officeCode, areaOfLaw, submissionPeriod)) {
       failSubmission(
           "A submission with the same submission period already exists", bulkSubmissionBuilder);
     }

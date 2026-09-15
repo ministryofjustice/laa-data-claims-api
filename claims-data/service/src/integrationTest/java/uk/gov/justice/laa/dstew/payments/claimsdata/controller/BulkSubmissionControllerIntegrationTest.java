@@ -25,6 +25,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -32,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
@@ -39,6 +41,7 @@ import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionErrorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionMatterStart;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionOutcome;
@@ -51,6 +54,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatu
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.MediationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 
 /**
  * Integration tests for the Bulk Submission Controller. Tests the endpoints for creating,
@@ -99,6 +104,13 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     GetQueueUrlResponse queueUrlResponse =
         sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
     this.queueUrl = queueUrlResponse.queueUrl();
+
+    // Purge any existing messages from the queue to ensure a clean test run
+    try {
+      sqsClient.purgeQueue(builder -> builder.queueUrl(this.queueUrl));
+    } catch (Exception e) {
+      // Purge may fail if a previous purge is in progress or the queue is empty; ignore in tests
+    }
 
     // get queue arn
     GetQueueAttributesResponse queueAttributes =
@@ -193,6 +205,101 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // then: SQS has received a message
     verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  // ---------- Duplicate submission validation tests ----------
+
+  private Submission seedExistingSubmission(String officeAccountNumber,
+      String submissionPeriod, AreaOfLaw areaOfLaw, SubmissionStatus status) {
+    Submission submission = Submission.builder()
+        .id(Uuid7.timeBasedUuid())
+        .officeAccountNumber(officeAccountNumber)
+        .submissionPeriod(submissionPeriod)
+        .areaOfLaw(areaOfLaw)
+        .status(status)
+        .createdByUserId(TEST_USER)
+        .providerUserId(TEST_USER)
+        .numberOfClaims(0)
+        .createdOn(Instant.now())
+        .build();
+    return submissionRepository.saveAndFlush(submission);
+  }
+
+  private ResultActions performUploadUsingOutcomesCsv() throws Exception {
+    ClassPathResource resource = new ClassPathResource(OUTCOMES_CSV);
+    MockMultipartFile file = new MockMultipartFile(FILE, resource.getFilename(), TEXT_CSV, resource.getInputStream());
+    return mockMvc.perform(multipart(POST_BULK_SUBMISSION_ENDPOINT)
+        .file(file)
+        .param(USER_ID_PARAM, TEST_USER)
+        .param(OFFICES_PARAM, TEST_OFFICE)
+        .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN));
+  }
+
+  private void assertDuplicateProblemDetail(MvcResult result) throws Exception {
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    assertThat(json.get(ERROR_DETAIL).asText()).isEqualTo("A submission with the same submission period already exists");
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = SubmissionStatus.class, names = {"VALIDATION_FAILED", "REPLACED"})
+  @DisplayName("Should allow creation when existing submission status is VALIDATION_FAILED or REPLACED")
+  void shouldCreateSubmissionWhenExistingSubmissionStatusIsAllowed(SubmissionStatus existingStatus) throws Exception {
+    // Arrange: ensure clean DB
+    submissionRepository.deleteAll();
+    bulkSubmissionRepository.deleteAll();
+
+    // The outcomes.csv contains submissionPeriod=APR-2021 and areaOfLaw=LEGAL HELP
+    String submissionPeriod = "APR-2021";
+    AreaOfLaw areaOfLaw = AreaOfLaw.LEGAL_HELP;
+
+    seedExistingSubmission(TEST_OFFICE, submissionPeriod, areaOfLaw, existingStatus);
+
+    // Act
+    MvcResult mvcResult = performUploadUsingOutcomesCsv().andExpect(status().isCreated()).andReturn();
+
+    // Assert: response indicates creation
+    String responseBody = mvcResult.getResponse().getContentAsString();
+    assertThat(responseBody).contains("bulk_submission_id");
+    assertThat(responseBody).contains("submission_ids");
+
+    // The upload path publishes an event containing a new submission id rather than creating the
+    // Submission synchronously. Verify the upload created a BulkSubmission and that the SQS
+    // message for the bulk submission was published.
+    List<BulkSubmission> bulkSubmissions = bulkSubmissionRepository.findAll();
+    assertThat(bulkSubmissions).hasSize(1);
+    BulkSubmission savedBulkSubmission = bulkSubmissions.getFirst();
+    // drain/verify the SQS message published for this upload
+    verifyIfSqsMessageIsReceived(savedBulkSubmission);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = SubmissionStatus.class, mode = EnumSource.Mode.EXCLUDE, names = {"VALIDATION_FAILED", "REPLACED"})
+  @DisplayName("Should reject creation as duplicate for all other submission statuses")
+  void shouldRejectSubmissionAsDuplicateForDisallowedStatuses(SubmissionStatus existingStatus) throws Exception {
+    // Arrange: ensure clean DB
+    submissionRepository.deleteAll();
+    bulkSubmissionRepository.deleteAll();
+
+    String submissionPeriod = "APR-2021";
+    AreaOfLaw areaOfLaw = AreaOfLaw.LEGAL_HELP;
+
+    seedExistingSubmission(TEST_OFFICE, submissionPeriod, areaOfLaw, existingStatus);
+
+    // Act
+    MvcResult mvcResult = performUploadUsingOutcomesCsv().andExpect(status().isBadRequest()).andReturn();
+
+    // Assert: ProblemDetail contains duplicate message
+    assertDuplicateProblemDetail(mvcResult);
+
+    // DB assertion: only the seeded submission exists
+    long matching = submissionRepository.findAll().stream()
+        .filter(s -> TEST_OFFICE.equals(s.getOfficeAccountNumber())
+            && submissionPeriod.equals(s.getSubmissionPeriod())
+            && areaOfLaw == s.getAreaOfLaw())
+        .count();
+    assertThat(matching).isEqualTo(1);
   }
 
   @ParameterizedTest
@@ -528,22 +635,59 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   private void verifyIfSqsMessageIsReceived(BulkSubmission saved) {
-    // then: SQS has received a message
-    ReceiveMessageResponse receiveResp =
-        sqsClient.receiveMessage(
-            ReceiveMessageRequest.builder()
-                .queueUrl(this.queueUrl)
-                .maxNumberOfMessages(1)
-                .waitTimeSeconds(2)
-                .build());
-    assertThat(receiveResp.messages()).hasSize(1);
-    assertThat(receiveResp.messages().getFirst().body()).contains(saved.getId().toString());
-    // Delete the message from the queue.
-    sqsClient.deleteMessage(
-        DeleteMessageRequest.builder()
-            .queueUrl(this.queueUrl)
-            .receiptHandle(receiveResp.messages().getFirst().receiptHandle())
-            .build());
+    // Poll the queue for a message that contains the expected bulk submission id. This avoids
+    // flakiness due to timing differences or leftover messages from other tests.
+    String expectedId = saved.getId().toString();
+    int attempts = 6;
+    int waitSeconds = 2;
+    String lastBody = null;
+    boolean found = false;
+
+    for (int i = 0; i < attempts && !found; i++) {
+      ReceiveMessageResponse receiveResp =
+          sqsClient.receiveMessage(
+              ReceiveMessageRequest.builder()
+                  .queueUrl(this.queueUrl)
+                  .maxNumberOfMessages(5)
+                  .waitTimeSeconds(waitSeconds)
+                  .build());
+
+      if (receiveResp.messages() != null && !receiveResp.messages().isEmpty()) {
+        for (Message m : receiveResp.messages()) {
+          lastBody = m.body();
+          if (lastBody != null && lastBody.contains(expectedId)) {
+            // delete the matched message and return
+            sqsClient.deleteMessage(
+                DeleteMessageRequest.builder()
+                    .queueUrl(this.queueUrl)
+                    .receiptHandle(m.receiptHandle())
+                    .build());
+            found = true;
+            break;
+          } else {
+            // Not the message we're looking for; delete to avoid leaking to later tests
+            sqsClient.deleteMessage(
+                DeleteMessageRequest.builder()
+                    .queueUrl(this.queueUrl)
+                    .receiptHandle(m.receiptHandle())
+                    .build());
+          }
+        }
+      }
+      if (!found) {
+        try {
+          Thread.sleep(500L);
+        } catch (InterruptedException ignored) {
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+
+    assertThat(found)
+        .withFailMessage(
+            "Expected SQS message containing bulkSubmission id %s but last seen body was: %s",
+            expectedId, lastBody)
+        .isTrue();
   }
 
   @Test
