@@ -23,12 +23,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -60,6 +64,8 @@ public class AmendmentPdaTriggerSteps {
   @Autowired private SharedAmendmentPatchContext sharedPatchContext;
   @Autowired private SubmissionPeriodHelper periodHelper;
   @Autowired private ClaimRepository claimRepository;
+  @Autowired private ClaimSummaryFeeRepository claimSummaryFeeRepository;
+  @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired private SubmissionRepository submissionRepository;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -404,6 +410,25 @@ public class AmendmentPdaTriggerSteps {
                 .representationOrderDate(originalRepresentationOrderDate)
                 .createdByUserId(SEED_ACTOR)
                 .build());
+
+    ClaimSummaryFee summaryFee =
+        claimSummaryFeeRepository.saveAndFlush(
+            ClaimSummaryFee.builder()
+                .id(Uuid7.timeBasedUuid())
+                .claim(claim)
+                .createdByUserId(SEED_ACTOR)
+                .createdOn(java.time.Instant.now())
+                .build());
+
+    calculatedFeeDetailRepository.saveAndFlush(
+        CalculatedFeeDetail.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .claimSummaryFee(summaryFee)
+            .feeCode(claim.getFeeCode())
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(java.time.Instant.now())
+            .build());
 
     sharedPatchContext.setSubmissionId(submission.getId());
     sharedPatchContext.setClaimId(claim.getId());

@@ -1,15 +1,23 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd;
 
 import io.cucumber.spring.CucumberContextConfiguration;
+import java.time.Duration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.mockserver.MockServerContainer;
+import org.testcontainers.utility.DockerImageName;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
 
 /**
  * Cucumber Spring boot configuration for BDD end-to-end tests.
@@ -18,25 +26,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
  * real HTTP stack via {@code RestTemplate} — unlike integration tests, BDD tests must NOT use
  * {@code MockMvc}.
  *
- * <p>The two {@link MockitoBean} declarations replace the external HTTP-facing beans on the
- * amendment flow with Mockito mocks so BDD scenarios can drive the amendment pipeline end-to-end
- * without requiring a real Fee Scheme Platform or Provider Details API endpoint. Default answers
- * are applied per-scenario by {@code BddAmendmentResetHook}. See DSTEW-2301 for background.
- *
- * <p><b>SCOPE RISK — global {@link ValidationService} mock.</b> {@code ValidationService} is the
- * aggregate claim/submission validation facade, not only the PDA HTTP transport. Replacing it as a
- * {@link MockitoBean} on this class means the mock is active for <em>every</em> BDD scenario, not
- * just amendment-harness scenarios. Non-amendment scenarios that depend on real {@code
- * ValidationService} behaviour (resolved-data population, area-of-law resolution, other non-PDA
- * validator side-effects) will silently see {@code valid=true} without those side-effects being
- * applied. Today's regression is green, but that green is fragile — any future scenario that reads
- * {@code resolvedData} could false-positive.
- *
- * <p>The correct long-term fix is to mock the PDA-facing HTTP transport instead of the aggregate
- * facade (or to scope this override with a Cucumber-tag-conditional bean). Both options require
- * refactoring the reusable validation-core package and are out of scope for this harness PR.
- * Tracked as <b>follow-up story</b> — see {@code
- * ~/IdeaProjects/jira_drafts/DSTEW-XXXX_scope_validationservice_mock.md} for the draft ticket body.
+ * <p>A single {@link MockServerContainer} is started per JVM and its URL is registered as the base
+ * URL for the claims-validation-core external HTTP calls (Fee Scheme Platform and Provider Details
+ * API). Individual step classes stub / verify against it. The PDA (provider-details) read timeout
+ * is deliberately overridden to a small value so amendment-path PDA timeout scenarios (DSTEW-1773,
+ * DSTEW-1774) can trip a real socket timeout in seconds rather than the production default.
  */
 @CucumberContextConfiguration
 @ActiveProfiles("test")
@@ -44,19 +38,75 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
 @Import({AwsTestConfig.class, BddBeansConfiguration.class})
 public class CucumberSpringConfiguration {
 
+  /**
+   * Small enough to make amendment-path PDA timeout scenarios trip in seconds. Success scenarios
+   * ({@code @PDA_4}) must stay comfortably under this budget.
+   */
+  public static final int PDA_READ_TIMEOUT_MS = 2000;
+
+  /**
+   * Kept distinct from {@link #PDA_READ_TIMEOUT_MS} for scenarios that assert amendment-path
+   * timeout independence from any hypothetical new-submission PDA timeout ({@code @PDA_7}). No
+   * production property currently separates the two, so this is a fixture value the harness reads
+   * back through {@code @Value} for the assertion.
+   */
+  public static final int NEW_SUBMISSION_PDA_READ_TIMEOUT_MS = 30_000;
+
   @ServiceConnection
   static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
+  private static final DockerImageName MOCKSERVER_IMAGE =
+      DockerImageName.parse("mockserver/mockserver:5.15.0");
+
+  /** One MockServer per JVM; started eagerly so {@link DynamicPropertySource} can read its URL. */
+  public static final MockServerContainer MOCK_SERVER =
+      new MockServerContainer(MOCKSERVER_IMAGE)
+          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60)));
+
   static {
     postgresContainer.start();
+    MOCK_SERVER.start();
+  }
+
+  /**
+   * Points the claims-validation-core external URLs at the running MockServer and shortens the
+   * amendment-path PDA read timeout so DSTEW-1773 / DSTEW-1774 timeout scenarios can trip in
+   * seconds.
+   */
+  @DynamicPropertySource
+  static void validatorProperties(DynamicPropertyRegistry registry) {
+    String baseUrl = MOCK_SERVER.getEndpoint();
+
+    registry.add("FEE_SCHEME_PLATFORM_API_URL", () -> baseUrl);
+    registry.add("FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN", () -> "");
+    registry.add("PROVIDER_DETAILS_API_URL", () -> baseUrl);
+    registry.add("PROVIDER_DETAILS_API_ACCESS_TOKEN", () -> "");
+
+    registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.url", () -> baseUrl);
+    registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.accessToken", () -> "");
+    registry.add("laa.dstew.payments.validator.provider-details-api.url", () -> baseUrl);
+    registry.add("laa.dstew.payments.validator.provider-details-api.accessToken", () -> "");
+    registry.add(
+        "laa.dstew.payments.validator.provider-details-api.authHeader", () -> "X-Authorization");
+    registry.add(
+        "laa.dstew.payments.validator.provider-details-api.readTimeoutMs",
+        () -> String.valueOf(PDA_READ_TIMEOUT_MS));
+    // Fixture property the DSTEW-1773 @PDA_7 scenario reads back to assert that the amendment-path
+    // PDA timeout is independent of any (hypothetical) new-submission PDA timeout. There is no
+    // separate production property today; this key is BDD-only and lives under a bdd.* namespace.
+    registry.add(
+        "bdd.pda.newSubmissionReadTimeoutMs",
+        () -> String.valueOf(NEW_SUBMISSION_PDA_READ_TIMEOUT_MS));
   }
 
   @MockitoBean private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
+
+  @MockitoSpyBean private ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
 
   /**
    * WARNING — aggregate-facade mock; see class-level Javadoc for the scope-risk explanation.
    * Replace with a targeted PDA-transport mock in the follow-up story before adding scenarios that
    * depend on real {@code ValidationService} side-effects.
    */
-  @MockitoBean private ValidationService validationService;
+  @MockitoSpyBean private ValidationService validationService;
 }

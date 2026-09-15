@@ -270,11 +270,28 @@ public class AmendableClaimFixture {
    */
   private Claim advanceClaimVersion(Claim claim, long targetVersion) {
     Claim current = claim;
-    while (current.getVersion() == null || current.getVersion() < targetVersion) {
-      current.setUpdatedByUserId(SEED_ACTOR);
-      current = claimRepository.saveAndFlush(current);
+    Long currentVersion = current.getVersion();
+    if (currentVersion != null && currentVersion >= targetVersion) {
+      return current;
     }
-    return current;
+
+    for (int attempt = 0; attempt < 10; attempt++) {
+      current.setUpdatedByUserId(SEED_ACTOR);
+      current.setVersion(targetVersion);
+      current = claimRepository.saveAndFlush(current);
+      if (current.getVersion() != null && current.getVersion() >= targetVersion) {
+        return current;
+      }
+    }
+
+    throw new IllegalStateException(
+        "Claim version could not be advanced to targetVersion="
+            + targetVersion
+            + " for claimId="
+            + current.getId()
+            + " (actualVersion="
+            + current.getVersion()
+            + ")");
   }
 
   private String nextSubmissionPeriod() {

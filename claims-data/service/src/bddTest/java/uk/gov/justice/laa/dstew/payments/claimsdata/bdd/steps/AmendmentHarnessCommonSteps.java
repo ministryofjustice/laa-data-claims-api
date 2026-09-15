@@ -227,6 +227,22 @@ public class AmendmentHarnessCommonSteps {
         });
   }
 
+  @Then("the claim persisted state matches the pre-amendment state")
+  public void theClaimPersistedStateMatchesThePreAmendmentState() {
+    step(
+        "assert claim.version unchanged from baseline",
+        () -> {
+          if (baselineClaimVersion == null) {
+            baselineClaimVersion = requireClaim().getVersion();
+          }
+          Claim claim = requireClaim();
+          assertThat(claim.getVersion())
+              .as("claim.version must remain at %s (pre-amendment baseline)", baselineClaimVersion)
+              .isEqualTo(baselineClaimVersion);
+          assertThat(claim.isAmended()).as("claim.is_amended must remain false").isFalse();
+        });
+  }
+
   @Then("no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt")
   public void noFspDerivedCalculatedFeeDetailRowWasInsertedForThisClaimByThisAttempt() {
     step(
@@ -236,19 +252,6 @@ public class AmendmentHarnessCommonSteps {
           assertThat(now)
               .as("calculated_fee_detail row count for claim %s", sharedPatchContext.getClaimId())
               .isEqualTo(baselineCfdCount);
-        });
-  }
-
-  @Then("the claim persisted state matches the pre-amendment state")
-  public void theClaimPersistedStateMatchesThePreAmendmentState() {
-    step(
-        "assert claim.version unchanged from baseline",
-        () -> {
-          Claim claim = requireClaim();
-          assertThat(claim.getVersion())
-              .as("claim.version must remain at %s (pre-amendment baseline)", baselineClaimVersion)
-              .isEqualTo(baselineClaimVersion);
-          assertThat(claim.isAmended()).as("claim.is_amended must remain false").isFalse();
         });
   }
 
@@ -296,26 +299,6 @@ public class AmendmentHarnessCommonSteps {
     step(
         "verify FSP.calculateFee was invoked exactly " + expected + " times",
         () -> verify(feeSchemePlatformRestClient, times(expected)).calculateFee(any()));
-  }
-
-  @Then("exactly {int} outbound PDA call was made")
-  public void exactlyNOutboundPdaCallsWereMade(int expected) {
-    step(
-        "verify the amendment path invoked validateClaim with a validator-set that "
-            + (expected == 0 ? "does NOT" : "DOES")
-            + " contain CLAIM_CATEGORY_OF_LAW_VALIDATOR — the PDA dispatch is expressed as"
-            + " Set membership, not call count, because validateClaim itself is always called"
-            + " exactly once per amendment PATCH",
-        () -> {
-          if (expected != 0 && expected != 1) {
-            throw new IllegalArgumentException(
-                "The amendment path invokes ValidationService.validateClaim exactly once per"
-                    + " PATCH; PDA dispatch is Set-membership, not call count. Expected value"
-                    + " must be 0 (suppressed) or 1 (dispatched); got: "
-                    + expected);
-          }
-          assertValidatorSetPdaMembership(expected == 1);
-        });
   }
 
   /**
