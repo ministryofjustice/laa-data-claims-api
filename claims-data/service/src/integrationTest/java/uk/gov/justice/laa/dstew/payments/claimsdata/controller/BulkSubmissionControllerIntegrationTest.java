@@ -295,8 +295,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
     assertThat(json.get(ERROR_DETAIL).asText())
         .isEqualTo("A submission with the same submission period already exists");
-    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.CONFLICT.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.CONFLICT.getReasonPhrase());
   }
 
   // Helper record used to describe seeded existing submissions in MethodSource cases
@@ -424,7 +424,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     } else {
       MvcResult mvcResult =
           performUploadWithCsvReplacements(newOffice, newPeriod, newAol)
-              .andExpect(status().isBadRequest())
+              .andExpect(status().isConflict())
               .andReturn();
       assertDuplicateProblemDetail(mvcResult);
 
@@ -505,7 +505,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
     // Act
     MvcResult mvcResult =
-        performUploadUsingOutcomesCsv().andExpect(status().isBadRequest()).andReturn();
+        performUploadUsingOutcomesCsv().andExpect(status().isConflict()).andReturn();
 
     // Assert: ProblemDetail contains duplicate message
     assertDuplicateProblemDetail(mvcResult);

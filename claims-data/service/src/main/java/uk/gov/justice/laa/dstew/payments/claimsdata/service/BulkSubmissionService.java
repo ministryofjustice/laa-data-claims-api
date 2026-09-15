@@ -21,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionOfficeAuthorisationException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionPeriodConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.BulkSubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -153,8 +154,15 @@ public class BulkSubmissionService
       String officeCode,
       BulkSubmission.BulkSubmissionBuilder bulkSubmissionBuilder) {
     if (submissionService.hasConflictingLiveSubmission(officeCode, areaOfLaw, submissionPeriod)) {
+      // Throw a specialised exception that carries the conflicting identifiers as metadata so
+      // the exception handler can include them in the Problem Detail response.
       failSubmission(
-          "A submission with the same submission period already exists", bulkSubmissionBuilder);
+          new BulkSubmissionPeriodConflictException(
+              "A submission with the same submission period already exists",
+              officeCode,
+              areaOfLaw == null ? null : areaOfLaw.getValue(),
+              submissionPeriod),
+          bulkSubmissionBuilder);
     }
   }
 
@@ -177,15 +185,20 @@ public class BulkSubmissionService
   }
 
   private void failSubmission(String errorMessage, BulkSubmission.BulkSubmissionBuilder builder) {
+    failSubmission(new BulkSubmissionValidationException(errorMessage), builder);
+  }
+
+  private void failSubmission(
+      RuntimeException exception, BulkSubmission.BulkSubmissionBuilder builder) {
     BulkSubmission invalid =
         builder
             .status(BulkSubmissionStatus.VALIDATION_FAILED)
             .errorCode(BulkSubmissionErrorCode.V100)
-            .errorDescription(errorMessage)
+            .errorDescription(exception.getMessage())
             .build();
 
     bulkSubmissionRepository.save(invalid);
-    throw new BulkSubmissionValidationException(errorMessage);
+    throw exception;
   }
 
   private static boolean isValidMonthYear(String input) {

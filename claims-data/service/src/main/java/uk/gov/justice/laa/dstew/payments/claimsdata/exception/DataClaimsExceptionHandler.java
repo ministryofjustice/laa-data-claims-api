@@ -331,6 +331,29 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handle {@link BulkSubmissionPeriodConflictException} and expose the office/areaOfLaw/
+   * submissionPeriod metadata as properties on the Problem Detail body so callers can inspect which
+   * submission conflicted.
+   */
+  @ExceptionHandler(BulkSubmissionPeriodConflictException.class)
+  public ResponseEntity<ProblemDetail> handleBulkSubmissionPeriodConflictException(
+      BulkSubmissionPeriodConflictException ex, HttpServletRequest request) {
+    HttpStatus status = HttpStatus.resolve(ex.getHttpStatus().value());
+    if (status == null) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(status, ex.getMessage(), ex.getClass(), request);
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("officeCode", ex.getOfficeCode());
+      problemDetail.setProperty("areaOfLaw", ex.getAreaOfLaw());
+      problemDetail.setProperty("submissionPeriod", ex.getSubmissionPeriod());
+    }
+    return response;
+  }
+
+  /**
    * Build a standardised RFC 9457 Problem Detail response.
    *
    * @param status the HTTP status
