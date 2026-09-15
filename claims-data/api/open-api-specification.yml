@@ -927,7 +927,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: './schemas/problem-detail.yml#/problem_detail_base'
+                $ref: './schemas/problem-detail.yml#/problem_detail_amendment'
         '503':
           description: Service unavailable (downstream service failure)
           content:

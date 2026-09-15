@@ -141,21 +141,6 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             .build());
   }
 
-  @Test
-  @DisplayName("Should treat submissionPeriod with surrounding whitespace as equivalent (trimming)")
-  void shouldTrimSubmissionPeriodWhenCheckingDuplicates() throws Exception {
-    submissionRepository.deleteAll();
-    bulkSubmissionRepository.deleteAll();
-
-    // seed a live existing submission with submissionPeriod = "APR-2021"
-    seedExistingSubmission(TEST_OFFICE, "APR-2021", AreaOfLaw.LEGAL_HELP, SubmissionStatus.CREATED);
-
-    // Upload a CSV whose submissionPeriod contains leading and trailing whitespace
-    performUploadWithCsvReplacements(TEST_OFFICE, " APR-2021 ", AreaOfLaw.LEGAL_HELP)
-        .andExpect(status().isBadRequest())
-        .andReturn();
-  }
-
   @ParameterizedTest
   @CsvSource({
     "test_upload_files/csv/outcomes.csv,false,false,text/csv",

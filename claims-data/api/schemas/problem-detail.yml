@@ -1,6 +1,6 @@
 problem_detail_base:
   type: object
-  description: RFC-9457 Problem Details envelope (base) without field-level errors
+  description: RFC-9457 Problem Details envelope (base)
   properties:
     status:
       type: integer
@@ -57,24 +57,6 @@ claim_amendment_validation_error:
       type: boolean
       description: Whether this error is considered fatal for the amendment
 
-# Structured error object returned for bulk conflict responses
-claim_bulk_conflict_error:
-  type: object
-  description: Structured error object describing a conflicting claim in bulk operations
-  properties:
-    code:
-      type: string
-      description: Stable machine-readable error code
-    message:
-      type: string
-      description: Human-readable explanation of the conflict
-    claimId:
-      type: string
-      description: ID of the claim involved in the conflict
-    submissionId:
-      type: string
-      description: ID of the submission involved in the conflict
-
 # Extended problem detail used when bulk operations produce conflicts
 problem_detail_bulk_conflict:
   allOf:
@@ -82,9 +64,16 @@ problem_detail_bulk_conflict:
     - type: object
       description: Problem detail envelope including bulk conflict details
       properties:
-        errors:
-          type: array
-          description: Array of bulk conflict error objects
-          items:
-            $ref: '#/claim_bulk_conflict_error'
+        code:
+          type: string
+          description: Stable machine-readable error code
+        message:
+          type: string
+          description: Human-readable explanation of the conflict
+        claimId:
+          type: string
+          description: ID of the claim involved in the conflict
+        submissionId:
+          type: string
+          description: ID of the submission involved in the conflict
 
