@@ -126,6 +126,6 @@ Before submitting files:
 2. Validate locally using:
 
 ```bash
-xmllint --noout --schema LSCSMSBulkLoadSchemaV3.xsd your-file.xml
+xmllint --noout --schema LSCSMSBulkLoadSchemaV4.xsd your-file.xml
 
 
