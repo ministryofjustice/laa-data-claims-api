@@ -9,10 +9,10 @@ Providers must ensure their XML files conform to the latest supported schema ver
 
 ## Current Supported Version
 
-| Version | Status     | XSD File                   | Release Date |
-|---------|------------|----------------------------|--------------|
-| v3      | Deprecated | LSCSMSBulkLoadSchemaV3.xsd | 2026-02-18   |
-| v4      | ✅ Current | LSCSMSBulkLoadSchemaV4.xsd | 2026-09-16   |
+| Version | Status                            | XSD File                   | Release Date |
+|---------|-----------------------------------|----------------------------|--------------|
+| v3      | ✅ Planned to be Superseded by V4 | LSCSMSBulkLoadSchemaV3.xsd | 2026-02-18   |
+| v4      | Upcoming                          | LSCSMSBulkLoadSchemaV4.xsd | N/A          |
 
 Only the **Current** version is accepted by the service unless explicitly stated.
 
@@ -20,7 +20,7 @@ Only the **Current** version is accepted by the service unless explicitly stated
 
 ## Version History
 
-### v4 - 2026-09-16 (Current)
+### v4 - 2026-09-16 (Upcoming)
 
 **Summary**
 - Adds additional inquest-related fields
@@ -34,7 +34,7 @@ Only the **Current** version is accepted by the service unless explicitly stated
 Business validation rules (e.g. cross-field validation, date logic, financial calculations)
 are enforced by the application layer and not by the schema.
 
-### v3 – 2026-02-18
+### v3 – 2026-02-18 (Planned to be Superseded by V4)
 
 **Summary**
 

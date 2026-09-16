@@ -12,7 +12,7 @@
             --------------------------------
             Schema Version: V3 (Technical version: 3.0)
             Release Date: 2025-02-18
-            Status: Deprecated - Superseded by V4 (LSCSMSBulkLoadSchemaV4.xsd)
+            Status: Planned to be Superseded by V4 (LSCSMSBulkLoadSchemaV4.xsd)
 
             Summary:
             LAA Data Claims – bulk load submission format.
