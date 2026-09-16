@@ -166,7 +166,7 @@ public class ClaimValidationService {
    * consumers pass version in the request, this validation will be enforced.
    *
    * @param version the version number to validate
-   * @throws ClaimBadRequestException when the provided version is null or negative
+   * @throws ClaimBadRequestException when the provided version is negative
    */
   public void validateVersionNumber(Long version) {
     if (version == null) {
