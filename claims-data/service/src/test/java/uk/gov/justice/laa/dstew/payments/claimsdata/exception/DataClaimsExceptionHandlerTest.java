@@ -138,6 +138,29 @@ class DataClaimsExceptionHandlerTest {
 
   @Test
   @DisplayName(
+      "BulkSubmissionPeriodConflictException exposes officeCode/areaOfLaw/submissionPeriod in ProblemDetail")
+  void handleBulkSubmissionPeriodConflictExceptionIncludesMetadata() {
+    BulkSubmissionPeriodConflictException ex =
+        new BulkSubmissionPeriodConflictException(
+            "A submission with the same submission period already exists",
+            "OFF123",
+            "CRIME LOWER",
+            "JAN-2026");
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleBulkSubmissionPeriodConflictException(ex, mockRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getProperties()).containsEntry("officeCode", "OFF123");
+    assertThat(result.getBody().getProperties()).containsEntry("areaOfLaw", "CRIME LOWER");
+    assertThat(result.getBody().getProperties()).containsEntry("submissionPeriod", "JAN-2026");
+  }
+
+  @Test
+  @DisplayName(
       "handleClaimAmendmentValidationException returns Bad Request with errors property when non-fatal")
   void handleClaimAmendmentValidationExceptionReturnsBadRequestWithErrorsPropertyWhenNonFatal() {
     // Arrange: Create a non-fatal validation error scenario
