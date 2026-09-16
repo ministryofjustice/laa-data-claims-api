@@ -13,7 +13,7 @@ If you use this XSD file, please tell us whether it is useful and share any feed
 
 - Detect issues before submitting to the service
 - Avoid repeated failed uploads
-- Ensure XML files conform to **LSCSMS Bulk Load Schema v3**
+- Ensure XML files conform to **LSCSMS Bulk Load Schema v4**
 - Reduce support delays
 
 ## 🛠 Tools
@@ -43,7 +43,7 @@ Install WSL (Ubuntu recommended), then use the Linux command above.
 
 Run the following command:
 ```bash
-xmllint --noout --schema schemas/LSCSMSBulkLoadSchemaV3.xsd my-file.xml
+xmllint --noout --schema schemas/LSCSMSBulkLoadSchemaV4.xsd my-file.xml
 ```
 
 - `--noout` suppresses normal output
@@ -75,12 +75,12 @@ missing_office.xml fails to validate
 ```
 project/
   ├── schemas/
-  │     └── LSCSMSBulkLoadSchemaV3.xsd
+  │     └── LSCSMSBulkLoadSchemaV4.xsd
   └── xml/
         └── my-file.xml
 ```
 
 Validate with:
 ```bash
-xmllint --noout --schema schemas/LSCSMSBulkLoadSchemaV3.xsd xml/my-file.xml
+xmllint --noout --schema schemas/LSCSMSBulkLoadSchemaV4.xsd xml/my-file.xml
 ```

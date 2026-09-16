@@ -177,7 +177,11 @@
             <xs:enumeration value="GOV_DEPT_1">
                 <xs:annotation>
                     <xs:documentation>
-                        Government department involved in the inquest. Allowed values:
+                        Government department involved in the inquest. This schema doesn't enforce
+                        the value here similar to other fields, but is enforced downstream when
+                        outcomes are submitted to the LAA.
+
+                        Allowed values:
                         Attorney General's Office; Cabinet Office; Department devolved to Wales;
                         Department for Business and Trade; Department for Culture, Media, and
                         Sport; Department for Education; Department for Energy Security and Net
