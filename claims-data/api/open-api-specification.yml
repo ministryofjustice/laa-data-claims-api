@@ -77,7 +77,7 @@ paths:
         '403':
           description: 'Forbidden'
         '409':
-          description: Conflict - submission already exists for this upload.
+          description: Conflict - a successful submission already exists for this office, area of law and period.
           content:
             application/json:
               schema:
