@@ -1022,6 +1022,12 @@ paths:
           description: 'Forbidden'
         '404':
           description: Submission or claim not found
+        '409':
+          description: Conflict - claim version or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
         '429':
           description: 'Too many requests'
         '500':
