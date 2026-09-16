@@ -64,16 +64,13 @@ problem_detail_bulk_conflict:
     - type: object
       description: Problem detail envelope including bulk conflict details
       properties:
-        code:
+        officeCode:
           type: string
-          description: Stable machine-readable error code
-        message:
+          description: The office code involved in the conflict
+        areaOfLaw:
           type: string
-          description: Human-readable explanation of the conflict
-        claimId:
+          description: The area of law involved in the conflict
+        submissionPeriod:
           type: string
-          description: ID of the claim involved in the conflict
-        submissionId:
-          type: string
-          description: ID of the submission involved in the conflict
+          description: The submission period involved in the conflict
 
