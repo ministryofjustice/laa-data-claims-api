@@ -1,6 +1,6 @@
-problem_detail:
+problem_detail_base:
   type: object
-  description: RFC-9457 Problem Details envelope with an errors array for amendment validation
+  description: RFC-9457 Problem Details envelope (base)
   properties:
     status:
       type: integer
@@ -20,11 +20,19 @@ problem_detail:
     message:
       type: string
       description: Backward-compatibility message mirroring detail
-    errors:
-      type: array
-      description: Array of field-level or technical amendment validation errors
-      items:
-        $ref: '#/claim_amendment_validation_error'
+
+# Extended problem detail used when amendment validation produces structured field errors
+problem_detail_amendment:
+  allOf:
+    - $ref: '#/problem_detail_base'
+    - type: object
+      description: Problem detail envelope including amendment validation errors
+      properties:
+        errors:
+          type: array
+          description: Array of field-level or technical amendment validation errors
+          items:
+            $ref: '#/claim_amendment_validation_error'
 
 claim_amendment_validation_error:
   type: object
@@ -48,4 +56,21 @@ claim_amendment_validation_error:
     fatal:
       type: boolean
       description: Whether this error is considered fatal for the amendment
+
+# Extended problem detail used when bulk operations produce conflicts
+problem_detail_bulk_conflict:
+  allOf:
+    - $ref: '#/problem_detail_base'
+    - type: object
+      description: Problem detail envelope including bulk conflict details
+      properties:
+        officeCode:
+          type: string
+          description: The office code involved in the conflict
+        areaOfLaw:
+          type: string
+          description: The area of law involved in the conflict
+        submissionPeriod:
+          type: string
+          description: The submission period involved in the conflict
 
