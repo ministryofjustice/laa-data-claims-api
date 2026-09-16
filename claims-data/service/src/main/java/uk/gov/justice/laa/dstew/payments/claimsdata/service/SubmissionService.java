@@ -136,15 +136,10 @@ public class SubmissionService
       return;
     }
 
-    boolean conflictingLiveSubmissionExists =
-        submissionRepository
-            .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
-                submission.getOfficeAccountNumber(),
-                submission.getAreaOfLaw(),
-                submission.getSubmissionPeriod(),
-                NON_LIVE_STATUSES);
-
-    if (conflictingLiveSubmissionExists) {
+    if (hasConflictingLiveSubmission(
+        submission.getOfficeAccountNumber(),
+        submission.getAreaOfLaw(),
+        submission.getSubmissionPeriod())) {
       throw new DuplicateSubmissionException(
           "A live submission already exists for office %s, area of law %s and period %s"
               .formatted(
@@ -152,6 +147,21 @@ public class SubmissionService
                   submission.getAreaOfLaw(),
                   submission.getSubmissionPeriod()));
     }
+  }
+
+  /**
+   * Checks if a live submission exists for the given office, area of law and period.
+   *
+   * @param officeAccountNumber the office account number
+   * @param areaOfLaw the area of law
+   * @param submissionPeriod the submission period
+   * @return true if a live submission exists, false otherwise
+   */
+  public boolean hasConflictingLiveSubmission(
+      String officeAccountNumber, AreaOfLaw areaOfLaw, String submissionPeriod) {
+    return submissionRepository
+        .existsByOfficeAccountNumberAndAreaOfLawAndSubmissionPeriodAndStatusNotIn(
+            officeAccountNumber, areaOfLaw, submissionPeriod, NON_LIVE_STATUSES);
   }
 
   /**
