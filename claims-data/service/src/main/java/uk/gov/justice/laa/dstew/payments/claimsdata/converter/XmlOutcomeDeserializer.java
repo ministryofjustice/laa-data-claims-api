@@ -9,11 +9,38 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
 
 /** Deserializer which handles deserialization of bulk submission outcomes from XML files. */
+@Slf4j
 public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
+
+  /**
+   * Fields introduced in {@code LSCSMSBulkLoadSchemaV4.xsd} to support inquest claims. These are
+   * not yet captured or processed by the service, so they are ignored (rather than rejected) when
+   * encountered, to avoid failing otherwise-valid submissions.
+   */
+  private static final Set<String> IGNORED_INQUEST_FIELDS =
+      Set.of(
+          "INQ_CLIENT_MEANS_TESTED",
+          "DECEASED_FIRST_NAME",
+          "DECEASED_SURNAME",
+          "DATE_OF_DEATH",
+          "INQUEST_REF",
+          "GOV_DEPT_1",
+          "GOV_DEPT_2",
+          "GOV_DEPT_3",
+          "GOV_DEPT_4",
+          "GOV_DEPT_5",
+          "GOV_DEPT_6",
+          "GOV_DEPT_7",
+          "GOV_DEPT_8",
+          "GOV_DEPT_9",
+          "GOV_DEPT_10");
+
   /**
    * Deserializes the provided content into a {@link XmlOutcome} object.
    *
@@ -261,10 +288,20 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
-        default ->
+        default -> {
+          if (IGNORED_INQUEST_FIELDS.contains(name)) {
+            log.warn(
+                "Ignoring unsupported inquest field {} under matter type {}. Support for this"
+                    + " field is not yet implemented.",
+                name,
+                matterType);
+          } else {
             throw new IllegalStateException(
-                "The file contains an unrecognised field %s. Correct or remove the field and try again."
+                ("The file contains an unrecognised field %s. Correct or remove the field and try"
+                        + " again.")
                     .formatted(name));
+          }
+        }
       }
     }
 

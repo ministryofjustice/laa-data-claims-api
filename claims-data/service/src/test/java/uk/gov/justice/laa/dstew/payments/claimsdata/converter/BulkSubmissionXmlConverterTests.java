@@ -161,6 +161,21 @@ public class BulkSubmissionXmlConverterTests {
       assertEquals(expectedNode, actualNode);
     }
 
+    @Test
+    @DisplayName("Can convert a bulk submission file containing inquest outcome fields")
+    void canConvertOutcomesWithInquestFields() throws IOException {
+      MultipartFile file =
+          getMultipartFile("classpath:test_upload_files/xml/outcomes_with_inquest_fields.xml");
+
+      XmlSubmission bulkSubmission = bulkSubmissionXmlConverter.convert(file);
+
+      // The inquest fields are not yet captured by the service, so we only assert that the file
+      // does not fail to parse and the recognised fields on the outcome are still populated.
+      XmlOutcome outcome = bulkSubmission.office().schedule().outcomes().getFirst();
+      assertThat(outcome.matterType()).isEqualTo("INQ");
+      assertThat(outcome.feeCode()).isEqualTo("INQ");
+    }
+
     private record MissingOutcomeTestData(String inputFile, String convertedFile) {}
 
     private static Stream<MissingOutcomeTestData> missingOutcomeTestData() {
