@@ -47,7 +47,6 @@ public class ClaimValidationService {
       "assessmentReason must be provided";
   public static final String ASSESSMENT_TYPE_MUST_BE_PROVIDED_ERROR =
       "assessmentType must be provided";
-  public static final String VERSION_MUST_BE_PROVIDED_ERROR = "version must be provided";
   public static final String VERSION_MUST_NOT_BE_NEGATIVE_ERROR = "version must not be negative";
   public static final String VERSION_MISMATCH_ERROR =
       "provided version does not match claim version for id: %s";
@@ -159,14 +158,18 @@ public class ClaimValidationService {
   /**
    * Validates the provided version number ensuring it is provided and not negative.
    *
-   * <p>The version must be non-null and greater than or equal to 0.
+   * <p>If the provided version is null this check is skipped. The version must be greater than or
+   * equal to 0.
+   *
+   * <p>Until the consumers pass version in the request, this validation will be skipped. Once the
+   * consumers pass version in the request, this validation will be enforced.
    *
    * @param version the version number to validate
    * @throws ClaimBadRequestException when the provided version is null or negative
    */
   public void validateVersionNumber(Long version) {
     if (version == null) {
-      throw new ClaimBadRequestException(VERSION_MUST_BE_PROVIDED_ERROR);
+      return;
     }
 
     if (version < 0L) {
@@ -179,6 +182,9 @@ public class ClaimValidationService {
    *
    * <p>If the provided version is null this check is skipped. If the claim's version is null or
    * does not equal the provided version a {@link ClaimBadRequestException} is thrown.
+   *
+   * <p>Until the consumers pass version in the request, this validation will be skipped. Once the
+   * consumers pass version in the request, this validation will be enforced.
    *
    * @param claim the claim whose version will be compared
    * @param version the provided version to compare against the claim

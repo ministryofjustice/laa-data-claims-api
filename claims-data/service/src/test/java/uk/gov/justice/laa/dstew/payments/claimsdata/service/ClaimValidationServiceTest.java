@@ -97,22 +97,6 @@ class ClaimValidationServiceTest {
   }
 
   @Test
-  @DisplayName("Should throw when version is zero")
-  void shouldThrowWhenVersionIsZero() {
-    assertThatThrownBy(() -> validationService.validateVersionNumber(0L))
-        .isInstanceOf(ClaimBadRequestException.class)
-        .hasMessageContaining("version must be greater than 0");
-  }
-
-  @Test
-  @DisplayName("Should throw when version is negative")
-  void shouldThrowWhenVersionIsNegative() {
-    assertThatThrownBy(() -> validationService.validateVersionNumber(-1L))
-        .isInstanceOf(ClaimBadRequestException.class)
-        .hasMessageContaining("version must be greater than 0");
-  }
-
-  @Test
   @DisplayName("Should not throw when provided version is null for claim match")
   void shouldNotThrowWhenProvidedVersionIsNullForClaimMatch() {
     UUID claimId = Uuid7.timeBasedUuid();

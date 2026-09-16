@@ -44,7 +44,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -2089,47 +2088,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
               .andReturn();
 
       String responseBody = result.getResponse().getContentAsString();
-      assertThat(responseBody)
-          .contains(ClaimValidationService.VERSION_MUST_BE_GREATER_THAN_ZERO_ERROR);
-
-      Claim after =
-          claimRepository
-              .findById(CLAIM_2_ID)
-              .orElseThrow(() -> new RuntimeException("Claim not found"));
-      assertThat(after.getVersion()).isEqualTo(beforeVersion);
-    }
-
-    @Test
-    @DisplayName("POST v1/claims/{id}/void - 400 when version is zero")
-    void shouldReturnBadRequestWhenVersionIsZero() throws Exception {
-      Claim before =
-          claimRepository
-              .findById(CLAIM_2_ID)
-              .orElseThrow(() -> new RuntimeException("Claim not found"));
-      Long beforeVersion = before.getVersion();
-
-      String requestBody =
-          "{"
-              + "\"created_by_user_id\":\""
-              + API_USER_ID
-              + "\","
-              + "\"assessment_reason\":\"zero version\","
-              + "\"version\": 0"
-              + "}";
-
-      MvcResult result =
-          mockMvc
-              .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(requestBody)
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isBadRequest())
-              .andReturn();
-
-      String responseBody = result.getResponse().getContentAsString();
-      assertThat(responseBody)
-          .contains(ClaimValidationService.VERSION_MUST_BE_GREATER_THAN_ZERO_ERROR);
+      assertThat(responseBody).contains(ClaimValidationService.VERSION_MUST_NOT_BE_NEGATIVE_ERROR);
 
       Claim after =
           claimRepository
@@ -2141,12 +2100,12 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName(
         "POST v1/claims/{id}/void - 400 when provided version does not match claim version (OCC)")
-    @Transactional
     void shouldReturnBadRequestWhenVersionDoesNotMatch() throws Exception {
       // Force a known claim version
-      claimRepository
-          .findById(CLAIM_2_ID)
-          .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Claim existing =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
 
       String requestBody =
           "{"
@@ -2172,12 +2131,11 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .contains(String.format(ClaimValidationService.VERSION_MISMATCH_ERROR, CLAIM_2_ID));
 
       Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
-      assertThat(after.getVersion()).isEqualTo(42L);
+      assertThat(after.getVersion()).isEqualTo(existing.getVersion());
     }
 
     @Test
     @DisplayName("POST v1/claims/{id}/void - accepts matching version and increments claim version")
-    @Transactional
     void shouldVoidClaimWhenVersionMatchesAndIncrement() throws Exception {
       // Set a deterministic version
       Claim existing = claimRepository.findById(CLAIM_2_ID).orElseThrow();
@@ -2201,7 +2159,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           .andExpect(status().isCreated());
 
       Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
-      assertThat(after.getVersion()).isEqualTo(101L);
+      assertThat(after.getVersion()).isEqualTo(existing.getVersion() + 1);
     }
   }
 
