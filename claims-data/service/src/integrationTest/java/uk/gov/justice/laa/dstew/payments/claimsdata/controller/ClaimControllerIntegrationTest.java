@@ -2099,7 +2099,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @DisplayName(
-        "POST v1/claims/{id}/void - 400 when provided version does not match claim version (OCC)")
+        "POST v1/claims/{id}/void - 409 when provided version does not match claim version (OCC)")
     void shouldReturnBadRequestWhenVersionDoesNotMatch() throws Exception {
       // Force a known claim version
       Claim existing =
