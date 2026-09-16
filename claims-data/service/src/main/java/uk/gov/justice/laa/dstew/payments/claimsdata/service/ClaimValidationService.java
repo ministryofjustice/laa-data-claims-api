@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
@@ -197,8 +201,12 @@ public class ClaimValidationService {
 
     Long claimVersion = claim == null ? null : claim.getVersion();
     if (claimVersion == null || !claimVersion.equals(version)) {
-      String claimIdStr = claim == null ? "null" : String.valueOf(claim.getId());
-      throw new ClaimBadRequestException(String.format(VERSION_MISMATCH_ERROR, claimIdStr));
+      // Use the shared amendment validation error for stale-version conflicts so the early
+      // version-gate produces the same 409/CLAIM_VERSION_CONFLICT contract as the DB-level
+      // optimistic-lock handlers. This preserves parity with amendment handling.
+      ClaimAmendmentValidationError conflict =
+          ClaimAmendmentValidationError.of(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT);
+      throw new ClaimAmendmentValidationException(List.of(conflict));
     }
   }
 
