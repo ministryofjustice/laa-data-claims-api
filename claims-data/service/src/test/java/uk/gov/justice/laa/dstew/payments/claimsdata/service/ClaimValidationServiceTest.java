@@ -24,10 +24,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
-import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
@@ -108,14 +107,11 @@ class ClaimValidationServiceTest {
   }
 
   @Test
-  @DisplayName("Should throw ClaimAmendmentValidationException when claim is null but provided version is not")
+  @DisplayName("Should throw when claim is null but provided version is not")
   void shouldThrowWhenClaimIsNullButProvidedIsNot() {
     assertThatThrownBy(() -> validationService.validateClaimVersionMatches(null, 1L))
-        .isInstanceOf(ClaimAmendmentValidationException.class)
-        .satisfies(ex ->
-            assertThat(((ClaimAmendmentValidationException) ex).getErrors().get(0).getCode())
-                .isEqualTo(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name())
-        );
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining("null");
   }
 
   @Test
@@ -128,31 +124,25 @@ class ClaimValidationServiceTest {
   }
 
   @Test
-  @DisplayName("Should throw ClaimAmendmentValidationException when provided version does not match claim version")
+  @DisplayName("Should throw when provided version does not match claim version")
   void shouldThrowWhenProvidedVersionDoesNotMatchClaimVersion() {
     UUID claimId = Uuid7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).version(2L).build();
 
     assertThatThrownBy(() -> validationService.validateClaimVersionMatches(claim, 3L))
-        .isInstanceOf(ClaimAmendmentValidationException.class)
-        .satisfies(ex ->
-            assertThat(((ClaimAmendmentValidationException) ex).getErrors().get(0).getCode())
-                .isEqualTo(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name())
-        );
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining(claimId.toString());
   }
 
   @Test
-  @DisplayName("Should throw ClaimAmendmentValidationException when claim version is null but provided is not")
+  @DisplayName("Should throw when claim version is null but provided is not")
   void shouldThrowWhenClaimVersionIsNullButProvidedIsNot() {
     UUID claimId = Uuid7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).build();
 
     assertThatThrownBy(() -> validationService.validateClaimVersionMatches(claim, 1L))
-        .isInstanceOf(ClaimAmendmentValidationException.class)
-        .satisfies(ex ->
-            assertThat(((ClaimAmendmentValidationException) ex).getErrors().get(0).getCode())
-                .isEqualTo(ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name())
-        );
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining(claimId.toString());
   }
 
   // =====================================================

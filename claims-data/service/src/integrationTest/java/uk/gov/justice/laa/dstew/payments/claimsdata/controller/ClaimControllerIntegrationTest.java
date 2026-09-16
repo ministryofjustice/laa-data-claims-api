@@ -1962,46 +1962,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName(
-        "POST v1/claims/{id}/void - returns 409 with CLAIM_VERSION_CONFLICT when provided version is stale")
-    void shouldReturnConflictWhenProvidedVersionIsStale() throws Exception {
-      // Arrange: pick an existing claim and its current version
-      Claim before =
-          claimRepository
-              .findById(CLAIM_2_ID)
-              .orElseThrow(() -> new RuntimeException("Claim not found"));
-      Long currentVersion = before.getVersion();
-
-      // Provide a deliberately stale version (currentVersion - 1 or a large value if null)
-      long staleVersion = (currentVersion == null) ? 9999L : Math.max(0L, currentVersion - 1);
-
-      UUID userId = Uuid7.timeBasedUuid();
-      String requestBody =
-          "{"
-              + "\"created_by_user_id\":\""
-              + userId
-              + "\",""
-              + "\"assessment_reason\":\"test stale version\",""
-              + "\"version\":"
-              + staleVersion
-              + "}";
-
-      // Act & Assert: expect 409 Conflict and the shared CLAIM_VERSION_CONFLICT code present in body
-      MvcResult result =
-          mockMvc
-              .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(requestBody)
-                      .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isConflict())
-              .andReturn();
-
-      String responseBody = result.getResponse().getContentAsString();
-      assertThat(responseBody).contains("CLAIM_VERSION_CONFLICT");
-    }
-
-    @Test
     @DisplayName("POST v1/claims/{id}/void - returns 404 when claim does not exist")
     void shouldReturnNotFoundWhenClaimDoesNotExistForVoidOperation() throws Exception {
 
@@ -2163,7 +2123,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-              .andExpect(status().isBadRequest())
+              .andExpect(status().isConflict())
               .andReturn();
 
       String responseBody = result.getResponse().getContentAsString();
