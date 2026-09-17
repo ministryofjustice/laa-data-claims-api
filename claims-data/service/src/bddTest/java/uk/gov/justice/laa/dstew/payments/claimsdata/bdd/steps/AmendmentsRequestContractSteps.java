@@ -315,8 +315,13 @@ public class AmendmentsRequestContractSteps {
         });
   }
 
-  @Then("no claim_amendment record was inserted for this claim by this attempt")
-  public void noClaimAmendmentRecordWasInsertedForThisClaimByThisAttempt() {
+  // Distinct phrase from AmendmentHarnessCommonSteps' identically-purposed step to avoid
+  // DuplicateStepDefinitionException on main (DSTEW-2354). The two impls read different claim
+  // state — this one asserts on the request-contract-local currentClaimId, the common one on
+  // sharedPatchContext — so they cannot share a single definition. Same pattern as the
+  // request-contract-path rename of the FSP-call step above.
+  @Then("no claim_amendment record was inserted for the request-contract claim by this attempt")
+  public void noClaimAmendmentRecordWasInsertedForTheRequestContractClaimByThisAttempt() {
     step(
         "Asserting no claim_amendment row exists for the current claim",
         this::assertNoClaimAmendmentRow);
