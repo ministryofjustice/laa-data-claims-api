@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
@@ -70,6 +71,47 @@ public class BddMockServerSupport {
     client
         .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION))
         .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
+  }
+
+  // -------------------------------------------------------------------------
+  // App-client Fee Scheme Platform stubs (the amendment repricing path).
+  //
+  // The app's own FeeSchemePlatformRestClient calls the un-prefixed /v2 and /v1 paths (see main
+  // WebClientConfiguration), distinct from the /api/v2 and /api/v1 paths the claims-validation-core
+  // client uses above. Both resolve their base URL from ${FEE_SCHEME_PLATFORM_API_URL}, which
+  // CucumberSpringConfiguration already points at this MockServer, so removing the former
+  // @MockitoBean FeeSchemePlatformRestClient lets the amendment repricing path exercise real HTTP
+  // here. Seeded as the per-scenario happy default from BddHooks.
+  // -------------------------------------------------------------------------
+
+  private static final String FEE_DETAILS_APP = "/v2/fee-details/";
+  private static final String FEE_CALCULATION_APP = "/v1/fee-calculation";
+
+  /** Happy-path 200 stubs for the app FeeSchemePlatformRestClient fee-details + fee-calculation. */
+  public void stubAmendmentFspOk() throws IOException {
+    client
+        .when(request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS_APP + ".*"))
+        .respond(okJson(readJsonFromFile("fee-scheme/get-fee-details-200.json")));
+    client
+        .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP))
+        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
+  }
+
+  /**
+   * Overrides the app FSP fee-calculation stub to return the supplied HTTP status. Clears the
+   * default expectation first so this becomes the only match, regardless of registration order.
+   */
+  public void stubAmendmentFspCalculationStatus(int statusCode) {
+    HttpRequest feeCalc =
+        request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP);
+    client.clear(feeCalc, ClearType.EXPECTATIONS);
+    client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /** Verifies how many times the app FSP {@code /v1/fee-calculation} endpoint was called. */
+  public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
+    client.verify(
+        request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP), times);
   }
 
   // ---------------------------------------------------------------------------

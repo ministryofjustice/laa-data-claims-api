@@ -10,19 +10,16 @@ import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
-import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
-import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 
 /**
- * Cucumber {@code @Before} glue that resets the amendment-harness mocks ({@link
- * FeeSchemePlatformRestClient} and {@link ValidationService}) and reapplies safe defaults before
- * every scenario.
+ * Cucumber {@code @Before} glue that resets the amendment-harness test doubles ({@link
+ * ValidationService} spy and the {@code ClaimAmendmentPersistenceService} spy) and reapplies safe
+ * defaults before every scenario. The Fee Scheme Platform client is no longer mocked here — it is
+ * exercised as real HTTP against the shared MockServer (see {@code BddMockServerSupport}).
  *
  * <p><b>Ordering</b>: this hook runs at {@code order = -1} so it fires <em>before</em> {@link
  * BddHooks#resetScenarioContextAndData()} (which is {@code order = 0}). That matters for two
@@ -39,12 +36,12 @@ import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
  * laa.claims.api.amendments.enabled} to {@code null} at {@code order = 0}. Duplicating that work
  * would just race and confuse ownership.
  *
- * <p><b>Mock beans</b>: {@link FeeSchemePlatformRestClient} and {@link ValidationService} are
- * declared as {@code @MockitoBean} directly on {@link
+ * <p><b>Spy beans</b>: {@link ValidationService} and {@code ClaimAmendmentPersistenceService} are
+ * declared as {@code @MockitoSpyBean} directly on {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.CucumberSpringConfiguration} because Spring's
- * bean-override machinery only picks up mock annotations from the test class that carries
+ * bean-override machinery only picks up those annotations from the test class that carries
  * {@code @CucumberContextConfiguration}. Defaults cannot be applied via {@code @PostConstruct} on
- * that configuration because the mock beans are wired later; this Cucumber hook is the first
+ * that configuration because the spy beans are wired later; this Cucumber hook is the first
  * guaranteed-safe touch-point.
  *
  * <p><b>Reference-data reset</b>: intentionally a no-op. The T2 fixture ({@code
@@ -59,7 +56,6 @@ import uk.gov.justice.laa.fee.scheme.model.FeeDetailsResponseV2;
 @RequiredArgsConstructor
 public class BddAmendmentResetHook {
 
-  private final FeeSchemePlatformRestClient feeSchemePlatformRestClient;
   private final ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
   private final ValidationService validationService;
 
@@ -69,9 +65,8 @@ public class BddAmendmentResetHook {
    */
   @Before(order = -2)
   public void resetAmendmentHarnessMocks() {
-    reset(feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
-    clearInvocations(
-        feeSchemePlatformRestClient, claimAmendmentPersistenceService, validationService);
+    reset(claimAmendmentPersistenceService, validationService);
+    clearInvocations(claimAmendmentPersistenceService, validationService);
     applyDefaults();
     log.debug("[DSTEW-2301] Amendment harness mocks reset + defaults applied");
   }
@@ -86,13 +81,6 @@ public class BddAmendmentResetHook {
     doReturn(validClaimResult()).when(validationService).validateClaim(any());
     doReturn(validClaimResult()).when(validationService).validateClaim(any(), any());
     doReturn(validClaimResult()).when(validationService).validateClaim(any(), any(), any());
-
-    doReturn(ResponseEntity.ok(new FeeCalculationResponse()))
-        .when(feeSchemePlatformRestClient)
-        .calculateFee(any());
-    doReturn(ResponseEntity.ok(new FeeDetailsResponseV2()))
-        .when(feeSchemePlatformRestClient)
-        .getFeeDetails(any());
   }
 
   @Before(order = -1)

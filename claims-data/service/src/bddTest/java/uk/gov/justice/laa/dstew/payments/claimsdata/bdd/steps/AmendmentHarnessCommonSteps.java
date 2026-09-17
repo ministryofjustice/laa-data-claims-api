@@ -2,10 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.step;
 
@@ -18,23 +14,21 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.AmendableClaimFixture;
-import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
  * Shared cucumber step glue owned by the DSTEW-2301 amendment BDD harness.
@@ -62,7 +56,7 @@ public class AmendmentHarnessCommonSteps {
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
-  @Autowired private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
+  @Autowired private BddMockServerSupport mock;
   @Autowired private ValidationService validationService;
 
   // Scenario-scoped bookkeeping. Instantiated fresh per scenario because cucumber-spring gives us
@@ -124,22 +118,15 @@ public class AmendmentHarnessCommonSteps {
   @Given("the FSP service will return a valid fee calculation for the amendment")
   public void theFspServiceWillReturnAValidFeeCalculation() {
     step(
-        "arm FSP mock to return 200 OK with a baseline FeeCalculationResponse",
-        () ->
-            doReturn(ResponseEntity.ok(new FeeCalculationResponse()))
-                .when(feeSchemePlatformRestClient)
-                .calculateFee(any()));
+        "arm FSP MockServer stub to return 200 OK for fee-details + fee-calculation",
+        () -> mock.stubAmendmentFspOk());
   }
 
   @Given("the FSP service will fail with HTTP {int}")
   public void theFspServiceWillFailWithHttp(int status) {
     step(
-        "arm FSP mock to throw WebClientResponseException with status " + status,
-        () -> {
-          WebClientResponseException ex =
-              WebClientResponseException.create(status, "Simulated FSP failure", null, null, null);
-          doThrow(ex).when(feeSchemePlatformRestClient).calculateFee(any());
-        });
+        "arm FSP MockServer fee-calculation stub to return HTTP " + status,
+        () -> mock.stubAmendmentFspCalculationStatus(status));
   }
 
   // ---------------------------------------------------------------------------
@@ -284,21 +271,21 @@ public class AmendmentHarnessCommonSteps {
 
   // Renamed from "no outbound FSP call was made" to avoid DuplicateStepDefinitionException
   // with AmendmentsEligibilityGateSteps (DSTEW-1764, merged via PR #452). Both classes need a
-  // no-FSP-call assertion but ours is a real Mockito verify on the mocked FSP client, while
-  // the eligibility-gate one is a pure symbolic spec-guard. The "(harness-verified)" qualifier
-  // makes the difference explicit at the feature-file level.
+  // no-FSP-call assertion but ours is a real MockServer request-count check on the FSP
+  // fee-calculation endpoint, while the eligibility-gate one is a pure symbolic spec-guard. The
+  // "(harness-verified)" qualifier makes the difference explicit at the feature-file level.
   @Then("no outbound FSP call was made from the amendment harness")
   public void noOutboundFspCallWasMade() {
     step(
-        "verify the mocked FSP client's calculateFee was NOT invoked",
-        () -> verify(feeSchemePlatformRestClient, never()).calculateFee(any()));
+        "verify no outbound FSP fee-calculation call was recorded by MockServer",
+        () -> mock.verifyAmendmentFspCalculationCalled(VerificationTimes.never()));
   }
 
   @Then("exactly {int} outbound FSP call was made")
   public void exactlyNOutboundFspCallsWereMade(int expected) {
     step(
-        "verify FSP.calculateFee was invoked exactly " + expected + " times",
-        () -> verify(feeSchemePlatformRestClient, times(expected)).calculateFee(any()));
+        "verify FSP fee-calculation was called exactly " + expected + " times",
+        () -> mock.verifyAmendmentFspCalculationCalled(VerificationTimes.exactly(expected)));
   }
 
   /**

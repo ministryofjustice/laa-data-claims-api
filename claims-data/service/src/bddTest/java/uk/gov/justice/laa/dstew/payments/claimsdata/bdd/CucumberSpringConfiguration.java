@@ -8,14 +8,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.mockserver.MockServerContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
 
@@ -98,8 +96,6 @@ public class CucumberSpringConfiguration {
         "bdd.pda.newSubmissionReadTimeoutMs",
         () -> String.valueOf(NEW_SUBMISSION_PDA_READ_TIMEOUT_MS));
   }
-
-  @MockitoBean private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
 
   @MockitoSpyBean private ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
 
