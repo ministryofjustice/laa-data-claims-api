@@ -1,0 +1,19 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<submission xsi:schemaLocation="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/ LSCSMSBulkLoadSchemaV4.xsd"
+	xmlns="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<office account="2P554H">
+		<schedule submissionPeriod="JAN-2010" areaOfLaw="LEGAL HELP" scheduleNum="ABC/20000L/10">
+			<outcome matterType="INQ">
+				<outcomeItem name="FEE_CODE">INQ</outcomeItem>
+				<outcomeItem name="INQ_CLIENT_MEANS_TESTED">N</outcomeItem>
+				<outcomeItem name="DECEASED_FIRST_NAME">John</outcomeItem>
+				<outcomeItem name="DECEASED_SURNAME">Smith</outcomeItem>
+				<outcomeItem name="DATE_OF_DEATH">01/01/2025</outcomeItem>
+				<outcomeItem name="INQUEST_REF">INQ-2025-00123</outcomeItem>
+				<outcomeItem name="GOV_DEPT_1">Home Office</outcomeItem>
+				<outcomeItem name="GOV_DEPT_2">Ministry of Justice</outcomeItem>
+			</outcome>
+		</schedule>
+	</office>
+</submission>
