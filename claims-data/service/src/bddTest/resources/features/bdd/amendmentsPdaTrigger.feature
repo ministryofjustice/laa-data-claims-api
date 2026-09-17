@@ -91,6 +91,29 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
   # ============================================================================
   # pda_relevant = false
   # ============================================================================
+  #
+  # DSTEW-2301 REVIEW ROUND 2 (2026-09-03): scenarios re-enabled.
+  # -----------------------------------------------------------------------------
+  # These four scenarios (@DS1772_6 .. @DS1772_9) were Type-1 commented out in
+  # round 1 because "no outbound PDA call was made" was verifying the WRONG
+  # boundary — a count-based assertion on ValidationService.validateClaim(Claim,
+  # Set), which production always invokes exactly once per amendment PATCH.
+  #
+  # Copilot review pointed out (correctly) that PDA suppression is expressed in
+  # the SHAPE of the Set argument, not in the call count. AmendmentExternal
+  # ValidationStep.java lines 78-81:
+  #
+  #     Set<ClaimValidatorCode> validationCodes = new LinkedHashSet<>(...);
+  #     if (!requiresPda(differences, state.getPostAmendmentState())) {
+  #         validationCodes.remove(PDA_VALIDATION_STEP);           // <-- PDA skip
+  #     }
+  #     ...
+  #     validationService.validateClaim(claim, validationCodes);
+  #
+  # The step "no outbound PDA call was made" now uses an ArgumentCaptor on the
+  # Set argument and asserts that CLAIM_CATEGORY_OF_LAW_VALIDATOR is NOT a
+  # member — the exact boundary at which production suppresses the outbound PDA
+  # call. See AmendmentHarnessCommonSteps#assertValidatorSetPdaMembership.
 
   @DS1772_6
   Scenario: PDA skip — amendment on a non-PDA-relevant field only

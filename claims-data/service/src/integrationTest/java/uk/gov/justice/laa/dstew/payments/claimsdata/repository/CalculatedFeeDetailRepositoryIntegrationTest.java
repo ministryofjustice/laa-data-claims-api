@@ -98,7 +98,10 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
 
     // create two CFDs with the same createdOn but different IDs; second ID generated later should
     // be higher
-    UUID firstId = Uuid7.timeBasedUuid();
+    // Use deterministic UUIDs to avoid flakiness in CI where time-based UUID
+    // generation can occasionally produce values that compare unexpectedly
+    // in the database ordering. Fixed values ensure stable ordering by id.
+    UUID firstId = UUID.fromString("00000000-0000-0000-0000-000000000001");
     CalculatedFeeDetail first = new CalculatedFeeDetail();
     first.setId(firstId);
     first.setClaim(testClaim);
@@ -108,7 +111,7 @@ class CalculatedFeeDetailRepositoryIntegrationTest extends AbstractIntegrationTe
     first.setCreatedByUserId("IT");
     calculatedFeeDetailRepository.saveAndFlush(first);
 
-    UUID secondId = Uuid7.timeBasedUuid();
+    UUID secondId = UUID.fromString("00000000-0000-0000-0000-000000000002");
     CalculatedFeeDetail second = new CalculatedFeeDetail();
     second.setId(secondId);
     second.setClaim(testClaim);

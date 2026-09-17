@@ -76,6 +76,12 @@ paths:
           description: 'Unauthorized'
         '403':
           description: 'Forbidden'
+        '409':
+          description: Conflict - a successful submission already exists for this office, area of law and period.
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_bulk_conflict'
         '415':
           description: 'Unsupported Media Type'
         '429':
@@ -912,6 +918,22 @@ paths:
           content: {}
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_amendment'
+        '409':
+          description: Conflict - claim version or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_amendment'
+        '503':
+          description: Service unavailable (downstream service failure)
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
         '404':
           description: Submission or claim not found
         '429':
@@ -1037,6 +1059,13 @@ paths:
         contract without reshaping it.
 
         **Not found:** an unknown claim id returns `404`, consistent with existing claim reads.
+        
+        NOTE: The metadata.changes array is derived from the persisted amendment diff but is subject 
+        to presentation filtering by the service prior to serialization. Derived or presentation-only 
+        entries (for example, entries that were generated solely to drive fee-code calculation) may 
+        be suppressed in the API output. Consumers should not assume that metadata.changes is a 
+        byte-for-byte verbatim copy of the persisted diff; it is a representation intended for 
+        API consumers and may omit implementation-derived entries.
       x-spring-paginated: true
       parameters:
         - name: claimId
@@ -1380,6 +1409,7 @@ components:
           type: string
           format: uuid
           description: UUID of the created Assessment
+
     amendment_requested_by_reference_list:
       type: object
       description: Top-level wrapper for the amendment Requested By reference lookup.
@@ -1391,6 +1421,7 @@ components:
             and an is_active flag.
           items:
             $ref: '#/components/schemas/amendment_requested_by_reference'
+
     amendment_requested_by_reference:
       type: object
       description: A governed Requested By reference value with its valid Amendment Reasons.
@@ -1416,6 +1447,7 @@ components:
             inactive, each flagged with is_active).
           items:
             $ref: '#/components/schemas/amendment_reason_reference'
+
     amendment_reason_reference:
       type: object
       description: A governed Amendment Reason reference value scoped to a Requested By value.
@@ -1434,6 +1466,7 @@ components:
           description: >
             Whether the reason is currently selectable. Inactive reasons are still returned so
             consumers can resolve display labels for historical amendments.
+
     bulk_submission_patch:
       type: object
       description: bulk submission patch details

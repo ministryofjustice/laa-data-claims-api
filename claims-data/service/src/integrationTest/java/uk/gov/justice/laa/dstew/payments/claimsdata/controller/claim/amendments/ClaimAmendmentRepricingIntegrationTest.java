@@ -85,7 +85,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
                 .withBody(mockResponseBody));
 
     MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
-    assertResponseStatus(result, org.springframework.http.HttpStatus.NO_CONTENT);
+    assertResponseStatus(result, HttpStatus.NO_CONTENT);
 
     calculatedFeeDetailRepository.flush();
     List<CalculatedFeeDetail> savedFees =
@@ -95,7 +95,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
             .toList();
 
     assertThat(savedFees).isNotEmpty();
-    assertThat(savedFees.get(0).getTotalAmount()).isEqualByComparingTo("650.00");
+    assertThat(savedFees.getFirst().getTotalAmount()).isEqualByComparingTo("650.00");
 
     // DSTEW-1762: the freshly-priced row is physically linked to the committed amendment via
     // calculated_fee_detail.claim_amendment_id. Read the FK as a scalar straight from the DB (a
@@ -105,12 +105,12 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
         claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
     assertThat(amendments).hasSize(1);
 
-    CalculatedFeeDetail latestFee = savedFees.get(0);
+    CalculatedFeeDetail latestFee = savedFees.getFirst();
     assertThat(latestFee.getIsPriceChanged()).isTrue();
     assertThat(readLinkedAmendmentId(latestFee.getId())).isEqualTo(amendments.getFirst().getId());
 
     // The pre-existing baseline row remains unlinked (claim_amendment_id stays null).
-    CalculatedFeeDetail baselineFee = savedFees.get(savedFees.size() - 1);
+    CalculatedFeeDetail baselineFee = savedFees.getLast();
     assertThat(readLinkedAmendmentId(baselineFee.getId())).isNull();
   }
 
@@ -258,7 +258,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
             .toList();
 
     assertThat(savedFees).isNotEmpty();
-    CalculatedFeeDetail latestFeeRecord = savedFees.get(0);
+    CalculatedFeeDetail latestFeeRecord = savedFees.getFirst();
     assertThat(latestFeeRecord.getTotalAmount()).isEqualByComparingTo("15000.00");
     assertThat(latestFeeRecord.getEscapeCaseFlag()).isTrue();
   }
@@ -373,7 +373,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
             .toList();
 
     assertThat(savedFees).isNotEmpty();
-    CalculatedFeeDetail latestFee = savedFees.get(0);
+    CalculatedFeeDetail latestFee = savedFees.getFirst();
 
     // Top-level fee fields still land as usual...
     assertThat(latestFee.getTotalAmount()).isEqualByComparingTo("1200.00");

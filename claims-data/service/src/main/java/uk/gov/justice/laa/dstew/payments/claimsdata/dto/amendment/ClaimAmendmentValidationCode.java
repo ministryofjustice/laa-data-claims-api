@@ -24,7 +24,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "Amendments are not currently enabled.",
-      "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled"),
+      "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled",
+      null),
 
   /**
    * The submitted amendment changes nothing (no provider-requested field differs from the stored
@@ -41,11 +42,12 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.NO_CONTENT,
       "No changes were submitted; there is nothing to amend.",
-      "Amendment payload produced no provider-requested field changes (no-op); nothing to persist"),
+      "Amendment payload produced no provider-requested field changes (no-op); nothing to persist",
+      null),
 
   /** The claim has a null version number so cannot be amended. */
   INVALID_NULL_VERSION(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null),
+      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "Claim Version is null", null, "version"),
 
   /**
    * The claim has a stale version number so cannot be amended. This stable, machine-readable code
@@ -56,11 +58,16 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.CONFLICT,
       "The claim has changed since it was loaded. Review the latest claim details and try again.",
-      null),
+      null,
+      "version"),
 
   /** The claim is voided and therefore cannot be amended. */
   INVALID_VOIDED_CLAIM_NOT_AMENDABLE(
-      ValidationSeverity.FATAL, HttpStatus.BAD_REQUEST, "A voided claim cannot be amended.", null),
+      ValidationSeverity.FATAL,
+      HttpStatus.BAD_REQUEST,
+      "A voided claim cannot be amended.",
+      null,
+      "status"),
 
   /**
    * The claim is in a non-amendable state - any {@code claim.status} other than {@code VALID} that
@@ -70,7 +77,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
       "Claim status %s is not amendable; only claims with status %s can be amended.",
-      null),
+      null,
+      "status"),
 
   /**
    * The claim already has an assessment; provider-requested changes to pricing-related fields are
@@ -80,7 +88,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
       "This claim has an assessment; pricing-related fields cannot be amended: %s",
-      "Attempted pricing-related amendment on an assessed claim: %s"),
+      "Attempted pricing-related amendment on an assessed claim: %s",
+      null),
 
   // ----- Amendment metadata: Requested By (DSTEW-1765) -----
 
@@ -89,28 +98,32 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Requested By is required",
-      "Requested By code is absent"),
+      "Requested By code is absent",
+      "amendment_requested_by"),
 
   /** Requested By code is not present in the reference-data lookup. */
   INVALID_REQUESTED_BY_UNKNOWN(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Requested By '%s' is not a recognised value",
-      "Requested By code is not present in the Reference Data lookup"),
+      "Requested By code is not present in the Reference Data lookup",
+      "amendment_requested_by"),
 
   /** Requested By code exists in the lookup but is currently inactive. */
   INVALID_REQUESTED_BY_INACTIVE(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Requested By '%s' is no longer in use",
-      "Requested By code is present in the lookup but currently inactive"),
+      "Requested By code is present in the lookup but currently inactive",
+      "amendment_requested_by"),
 
   /** Requested By value is a display label rather than a stable code. */
   INVALID_REQUESTED_BY_NOT_A_CODE(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Requested By must be supplied as a code, not a display label",
-      "Requested By value is a display label rather than a code"),
+      "Requested By value is a display label rather than a code",
+      "amendment_requested_by"),
 
   // ----- Amendment metadata: Amendment Reason (DSTEW-1765) -----
 
@@ -119,35 +132,40 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Amendment Reason is required",
-      "Amendment Reason code is absent"),
+      "Amendment Reason code is absent",
+      "amendment_reason_code"),
 
   /** Amendment Reason code is not present in the reference-data lookup. */
   INVALID_AMENDMENT_REASON_UNKNOWN(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is not a recognised value",
-      "Amendment Reason code is not present in the Reference Data lookup"),
+      "Amendment Reason code is not present in the Reference Data lookup",
+      "amendment_reason_code"),
 
   /** Amendment Reason code exists in the lookup but is currently inactive. */
   INVALID_AMENDMENT_REASON_INACTIVE(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is no longer in use",
-      "Amendment Reason code is present in the lookup but currently inactive"),
+      "Amendment Reason code is present in the lookup but currently inactive",
+      "amendment_reason_code"),
 
   /** Amendment Reason value is a display label rather than a stable code. */
   INVALID_AMENDMENT_REASON_NOT_A_CODE(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Amendment Reason must be supplied as a code, not a display label",
-      "Amendment Reason value is a display label rather than a code"),
+      "Amendment Reason value is a display label rather than a code",
+      "amendment_reason_code"),
 
   /** Amendment Reason code exists but is not valid for the submitted Requested By code. */
   INVALID_AMENDMENT_REASON_FOR_REQUESTED_BY(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Amendment Reason '%s' is not valid for Requested By '%s'",
-      "Amendment Reason code exists but is not valid for the submitted Requested By code"),
+      "Amendment Reason code exists but is not valid for the submitted Requested By code",
+      "amendment_reason_code"),
 
   // ----- Amendment metadata: submitting user (DSTEW-1765) -----
 
@@ -156,14 +174,16 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "The user identifier is required",
-      "Submitting user's Entra UUID is absent"),
+      "Submitting user's Entra UUID is absent",
+      "amendment_user_id"),
 
   /** The submitting user's Entra identifier is not a structurally valid UUID. */
   INVALID_USER_IDENTIFIER_FORMAT(
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "The user identifier must be a valid UUID",
-      "Submitting user's Entra UUID is not a structurally valid UUID"),
+      "Submitting user's Entra UUID is not a structurally valid UUID",
+      "amendment_user_id"),
 
   // ----- Field amendability gate (DSTEW-1593) -----
 
@@ -175,7 +195,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.ERROR,
       HttpStatus.BAD_REQUEST,
       "Field '%s' is not amendable for area of law '%s'",
-      "Changed field is not in the amendable set for the claim's area of law"),
+      "Changed field is not in the amendable set for the claim's area of law",
+      null),
 
   // ----- Amendment metadata: technical failures (DSTEW-1765) -----
 
@@ -184,7 +205,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Required amendment metadata reference data was unavailable at submit time"),
+      "Required amendment metadata reference data was unavailable at submit time",
+      null),
 
   // ----- Fee code Area of Law gate (DSTEW-1768) -----
 
@@ -197,7 +219,8 @@ public enum ClaimAmendmentValidationCode {
       HttpStatus.BAD_REQUEST,
       "Fee code cannot be changed to '%s' because it belongs to a different Area of Law (%s); "
           + "the claim's Area of Law is %s.",
-      "Fee code change targets a fee code in a different Area of Law"),
+      "Fee code change targets a fee code in a different Area of Law",
+      "fee_code"),
 
   /**
    * The claim before-state snapshot was unexpectedly absent for an existing claim - an internal
@@ -207,7 +230,8 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred, please try again after some time",
-      "Claim before-state snapshot was unexpectedly absent for an existing claim"),
+      "Claim before-state snapshot was unexpectedly absent for an existing claim",
+      null),
 
   // ----- Fee Scheme Platform (FSP) Integration (DSTEW-1595) -----
 
@@ -216,21 +240,27 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
       "Claim status %s is not amendable; Calculated Fee Details missing.",
-      null),
+      null,
+      "status"),
 
   /** The Fee Scheme Platform rejected the calculation request due to business rule validation. */
   INVALID_FSP_VALIDATION_FAILURE(
       ValidationSeverity.FATAL,
       HttpStatus.BAD_REQUEST,
       "The fee calculation failed validation: %s",
-      "The Fee Scheme Platform rejected the calculation request with a semantic validation error"),
+      "The Fee Scheme Platform rejected the calculation request with a semantic validation error",
+      null),
 
   /** A technical issue (timeout, connection drop, or 5xx) occurred during remote repricing. */
   TECHNICAL_ERROR_FSP_REPRICING_FAILURE(
       ValidationSeverity.FATAL,
       HttpStatus.SERVICE_UNAVAILABLE,
       "A technical error occurred while recalculating the fee. Please try again later.",
-      "Failed to communicate with the Fee Scheme Platform API due to a network timeout, connection drop, or server-side failure");
+      "Failed to communicate with the Fee Scheme Platform API due to a network timeout, connection drop, or server-side failure",
+      null);
+
+  /** The optional field name this validation code relates to (null when not applicable). */
+  private final String fieldName;
 
   /** The severity of this error, which determines whether it is fatal. */
   private final ValidationSeverity severity;
@@ -254,11 +284,13 @@ public enum ClaimAmendmentValidationCode {
       ValidationSeverity severity,
       HttpStatus httpStatus,
       String messageTemplate,
-      String technicalMessage) {
+      String technicalMessage,
+      String fieldName) {
     this.severity = Objects.requireNonNull(severity, "severity");
     this.httpStatus = httpStatus;
     this.messageTemplate = messageTemplate;
     this.technicalMessage = technicalMessage;
+    this.fieldName = fieldName;
   }
 
   /**
