@@ -21,3 +21,25 @@ jobs:
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       snyk_token: ${{ secrets.SNYK_TOKEN }}
+
+  slack-notify:
+    name: Notify Slack via webhook
+    needs: security-snyk-check
+    if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "Snyk dependency scan for laa-data-claims-api: ${{ needs.security-snyk-check.result }}",
+              "attachments": [
+                {
+                  "color": "${{ needs.security-snyk-check.result == 'success' && '#36a64f' || '#d63384' }}",
+                  "text": "Workflow: ${{ github.workflow }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
