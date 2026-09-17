@@ -49,6 +49,9 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
   private final ObjectMapper objectMapper;
   private final Supplier<ExternalApiCallContext.Ids> ids;
 
+  /**
+   * Public constructor for the {@code AuditingClientHttpConnector}.
+   */
   public AuditingClientHttpConnector(
       ClientHttpConnector delegate,
       ExternalSystemType systemType,
@@ -75,7 +78,7 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
               .apply(recorder)
               .then(delegate.connect(method, uri, requestCallback))
               .map(capture::wrap)
-              .doOnError(_ -> capture.recordNoResponse());
+              .doOnError(e -> capture.recordNoResponse());
         });
   }
 
@@ -94,7 +97,7 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
       this.callIds = callIds;
     }
 
-    /** Receives the request body as rendered by the recording request, before any connection */
+    /** Receives the request body as rendered by the recording request, before any connection. */
     void appendRequest(byte[] bytes) {
       requestBytes.writeBytes(bytes);
     }
@@ -106,7 +109,7 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
           return super.getBody()
               .doOnNext(b -> copy(b, responseBytes))
               .doOnComplete(() -> recordResponse(response.getStatusCode().value()))
-              .doOnError(_ -> recordNoResponse());
+              .doOnError(e -> recordNoResponse());
         }
       };
     }
