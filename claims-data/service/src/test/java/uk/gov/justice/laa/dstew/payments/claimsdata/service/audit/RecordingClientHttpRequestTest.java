@@ -2,7 +2,6 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.audit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
@@ -44,11 +43,5 @@ public class RecordingClientHttpRequestTest {
         assertThat(captured.size()).isZero();
         assertThat(request.getMethod()).isEqualTo(HttpMethod.GET);
         assertThat(request.getURI()).isEqualTo(URI.create("http://x/y"));
-    }
-
-    private void sink(DataBuffer buffer) {
-        byte[] bytes = new byte[buffer.readableByteCount()];
-        buffer.read();
-        captured.writeBytes(bytes);
     }
 }
