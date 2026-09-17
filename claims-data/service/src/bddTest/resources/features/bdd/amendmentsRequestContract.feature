@@ -41,7 +41,7 @@ Feature: Amendment request contract — claim_version JSON integer validation
     And no persisted claim state changed as a result of this request
     And no outbound PDA call was made
     And no outbound FSP call was made from the request-contract path
-    And no claim_amendment record was inserted for this claim by this attempt
+    And no claim_amendment record was inserted for the request-contract claim by this attempt
     And no amendment before-state was computed for this claim
     And no amendment diff was computed for this claim
     And no persistence was attempted for this claim
@@ -67,5 +67,5 @@ Feature: Amendment request contract — claim_version JSON integer validation
     And no persisted claim state changed as a result of this request
     And no outbound PDA call was made
     And no outbound FSP call was made from the request-contract path
-    And no claim_amendment record was inserted for this claim by this attempt
+    And no claim_amendment record was inserted for the request-contract claim by this attempt
 
