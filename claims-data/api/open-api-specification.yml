@@ -1460,7 +1460,7 @@ components:
         - REPLACED
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
-        - READY_FOR_SUBMISSION
+        - VALIDATED_PENDING_APPROVAL
     bulk_submission_error_code:
       type: string
       enum:
@@ -1496,10 +1496,10 @@ components:
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED
-        - READY_FOR_SUBMISSION
+        - VALIDATED_PENDING_APPROVAL
       description: |
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion.
-        READY_FOR_SUBMISSION indicates the submission passed initial validation and is held for provider review
+        VALIDATED_PENDING_APPROVAL indicates the submission passed initial validation and is held for provider review
         before Final Submit; its claims are not yet accepted (VALID).
     submission_claim:
       type: object
@@ -1653,7 +1653,7 @@ components:
         - VOIDED
         - INVALID
         - READY_TO_PROCESS
-        - READY_FOR_SUBMISSION
+        - VALIDATED_PENDING_APPROVAL
       description: |
         Derived business status of a claim. This is a read-only value computed from the raw
         `claim_status` together with `has_assessment` and `is_amended`. It does NOT replace
@@ -1667,12 +1667,12 @@ components:
           1. claim_status = VOID                 -> VOIDED
           2. claim_status = INVALID              -> INVALID
           3. claim_status = READY_TO_PROCESS     -> READY_TO_PROCESS
-          4. claim_status = READY_FOR_SUBMISSION -> READY_FOR_SUBMISSION
+          4. claim_status = VALIDATED_PENDING_APPROVAL -> VALIDATED_PENDING_APPROVAL
           5. has_assessment = true               -> ASSESSED
           6. is_amended = true                   -> AMENDED
           7. otherwise (claim_status = VALID)    -> ACCEPTED
 
-        A `READY_FOR_SUBMISSION` claim has passed initial validation but is held for the provider's
+        A `VALIDATED_PENDING_APPROVAL` claim has passed initial validation but is held for the provider's
         Final Submit; it is not yet accepted, so it derives its own distinct business status rather
         than `ACCEPTED`.
 

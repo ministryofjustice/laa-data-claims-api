@@ -491,8 +491,8 @@ public final class ClaimSpecification {
             cb.equal(root.get(STATUS), ClaimStatus.READY_TO_PROCESS),
             DerivedClaimStatus.READY_TO_PROCESS.ordinal())
         .when(
-            cb.equal(root.get(STATUS), ClaimStatus.READY_FOR_SUBMISSION),
-            DerivedClaimStatus.READY_FOR_SUBMISSION.ordinal())
+            cb.equal(root.get(STATUS), ClaimStatus.VALIDATED_PENDING_APPROVAL),
+            DerivedClaimStatus.VALIDATED_PENDING_APPROVAL.ordinal())
         .when(cb.isTrue(root.<Boolean>get(HAS_ASSESSMENT)), DerivedClaimStatus.ASSESSED.ordinal())
         .when(cb.isTrue(root.<Boolean>get(IS_AMENDED)), DerivedClaimStatus.AMENDED.ordinal())
         .otherwise(DerivedClaimStatus.ACCEPTED.ordinal());
