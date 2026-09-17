@@ -8,10 +8,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.servlet.HandlerMapping;
 
 /**
- * Auditing of external API calls have the capacity to also audit the associated claims id and/or submission id.
+ * Auditing of external API calls have the capacity to also audit the associated claims id and/or
+ * submission id.
  *
- * <p>The {@code ExternalApiCallContext} class facilitates the capturing of these Ids and in a thread safe manner
- * stores then for when/if they are used in the external API.
+ * <p>The {@code ExternalApiCallContext} class facilitates the capturing of these Ids and in a
+ * thread safe manner stores then for when/if they are used in the external API.
  */
 public final class ExternalApiCallContext implements Supplier<ExternalApiCallContext.Ids> {
   /** Identifiers for the current binding. Both may be {@code null}. */

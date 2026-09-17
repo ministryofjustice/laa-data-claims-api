@@ -49,9 +49,7 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
   private final ObjectMapper objectMapper;
   private final Supplier<ExternalApiCallContext.Ids> ids;
 
-  /**
-   * Public constructor for the {@code AuditingClientHttpConnector}.
-   */
+  /** Public constructor for the {@code AuditingClientHttpConnector}. */
   public AuditingClientHttpConnector(
       ClientHttpConnector delegate,
       ExternalSystemType systemType,
