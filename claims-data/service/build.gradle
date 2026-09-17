@@ -48,13 +48,19 @@ dependencies {
         implementation('tools.jackson.core:jackson-databind:3.1.6') {
             because 'Security: upgrade tools.jackson databind to 3.1.6 to fix SNYK-JAVA-TOOLSJACKSONCORE-19477043'
         }
-        // Upgrade logback-classic to address Directory Traversal vulnerability
-        implementation('ch.qos.logback:logback-classic:1.6.3') {
-            because 'Security: upgrade logback-classic to 1.6.3 to fix SNYK-JAVA-CHQOSLOGBACK-19882330 (Directory Traversal)'
-        }
     }
 
     implementation project(':claims-data:api')
+
+    // Security: upgrade logback-classic to 1.6.3 to fix SNYK-JAVA-CHQOSLOGBACK-19882330
+    // (Directory Traversal). NOTE: a `constraints {}` entry alone is NOT sufficient here -
+    // Spring Boot's platform-imported version (ch.qos.logback:logback-classic:1.5.38) wins
+    // over a plain constraint. Only an explicit `implementation` dependency (as below, same
+    // pattern used for the jackson-databind override above) actually overrides it - verified
+    // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
+    implementation 'ch.qos.logback:logback-classic:1.6.3'
+    implementation 'ch.qos.logback:logback-core:1.6.3'
+
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
