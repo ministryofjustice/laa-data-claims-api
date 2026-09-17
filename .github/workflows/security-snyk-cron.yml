@@ -1,0 +1,23 @@
+name: Security Snyk dependency check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *' # every day at 6 AM
+    - cron: '0 15 * * *' # every day at 3 PM
+
+jobs:
+  security-snyk-check:
+    name: Project security Snyk dependency check
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/snyk-vulnerability-scan.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    permissions:
+      contents: read
+    with:
+      java_version: '25'
+      java_distribution: 'corretto'
+      snyk_organisation: 'legal-aid-agency'
+      snyk_test_exclude: ''
+      snyk_target_reference: ''
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
