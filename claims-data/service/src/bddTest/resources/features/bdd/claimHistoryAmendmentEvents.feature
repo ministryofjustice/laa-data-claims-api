@@ -64,9 +64,9 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   @DS1815_3
   Scenario: FSP-driven field changes appear in the changes array with change_source "FSP"
     Given a claim exists with a successful amendment
-    And the amendment diff contains a change_source "FSP" entry for field "fee.totalAmount" from "100.00" to "125.00"
+    And the amendment diff contains a change_source "FSP" entry for field "total_amount" from "100.00" to "125.00"
     When I request the claim history timeline
-    Then the AMENDMENT event metadata "changes" array contains an entry with field_identifier "fee.totalAmount" and change_source "FSP"
+    Then the AMENDMENT event metadata "changes" array contains an entry with field_identifier "total_amount" and change_source "FSP"
 
   # ============================================================================
   # AC4 — Non-pricing amendment must not fabricate pricing metadata
