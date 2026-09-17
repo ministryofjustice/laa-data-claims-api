@@ -4,20 +4,25 @@
         xmlns:xs="http://www.w3.org/2001/XMLSchema"
         targetNamespace="http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/"
         elementFormDefault="qualified"
-        version="3.0">
+        version="4.0">
 
     <xs:annotation>
         <xs:documentation>
             LSCSMS Bulk Load XML Schema
             --------------------------------
-            Schema Version: V3 (Technical version: 3.0)
-            Release Date: 2025-02-18
-            Status: Planned to be Superseded by V4 (LSCSMSBulkLoadSchemaV4.xsd)
+            Schema Version: V4 (Technical version: 4.0)
+            Release Date: N/A
+            Status: Upcoming
 
             Summary:
             LAA Data Claims – bulk load submission format.
             Validates structure: submission → office → schedule → outcome/newMatterStarts/immigrationCLR.
-            Business rules (e.g. date logic) are enforced by the application.
+            Adds Inquest-specific claim fields (Public Office (Accountability) Bill) to the
+            outcomeItemName enumeration, for means-tested and non-means-tested Inquest Legal
+            Help claims: INQ_CLIENT_MEANS_TESTED, deceased person details, and government
+            departments involved.
+            Business rules (e.g. date logic, conditional mandatoriness of the new Inquest
+            fields, government department value validation) are enforced by the application.
 
             Providers must validate against the latest published version.
         </xs:documentation>
@@ -162,6 +167,42 @@
             <xs:enumeration value="PA_NUMBER"/>
             <xs:enumeration value="EXCESS_TRAVEL_COSTS"/>
             <xs:enumeration value="MED_CONCLUDED_DATE"/>
+
+            <!-- Inquest-specific fields (Public Office (Accountability) Bill) -->
+            <xs:enumeration value="INQ_CLIENT_MEANS_TESTED"/>
+            <xs:enumeration value="DECEASED_FIRST_NAME"/>
+            <xs:enumeration value="DECEASED_SURNAME"/>
+            <xs:enumeration value="DATE_OF_DEATH"/>
+            <xs:enumeration value="INQUEST_REF"/>
+            <xs:enumeration value="GOV_DEPT_1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Government department involved in the inquest. This schema doesn't enforce
+                        the value here similar to other fields, but is enforced downstream when
+                        outcomes are submitted to the LAA.
+
+                        Allowed values:
+                        Attorney General's Office; Cabinet Office; Department devolved to Wales;
+                        Department for Business and Trade; Department for Culture, Media, and
+                        Sport; Department for Education; Department for Energy Security and Net
+                        Zero; Department for Environment, Food and Rural Affairs; Department for
+                        Health and Social Care; Department for Housing, Communities and Local
+                        Government; Department for Science, Innovation and Technology;
+                        Department for Transport; Department for Work and Pensions; Foreign,
+                        Commonwealth and Development Office; HM Treasury; Home Office; Ministry
+                        of Defence; Ministry of Justice.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="GOV_DEPT_2"/>
+            <xs:enumeration value="GOV_DEPT_3"/>
+            <xs:enumeration value="GOV_DEPT_4"/>
+            <xs:enumeration value="GOV_DEPT_5"/>
+            <xs:enumeration value="GOV_DEPT_6"/>
+            <xs:enumeration value="GOV_DEPT_7"/>
+            <xs:enumeration value="GOV_DEPT_8"/>
+            <xs:enumeration value="GOV_DEPT_9"/>
+            <xs:enumeration value="GOV_DEPT_10"/>
         </xs:restriction>
     </xs:simpleType>
 

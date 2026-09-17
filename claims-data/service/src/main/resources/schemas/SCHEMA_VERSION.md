@@ -1,18 +1,18 @@
 # XML Schema Version Guide
 
-This document tracks changes to the LSCSMS Bulk Load XML Schema and provides
-guidance to providers on version compatibility.
+This document tracks changes to the LSCSMS Bulk Load XML Schema and provides guidance to providers
+on version compatibility.
 
-Providers must ensure their XML files conform to the latest supported schema
-version listed below.
+Providers must ensure their XML files conform to the latest supported schema version listed below.
 
 ---
 
 ## Current Supported Version
 
-| Version | Status | XSD File | Release Date |
-|----------|--------|----------|--------------|
-| v3 | ✅ Current | LSCSMSBulkLoadSchemaV3.xsd | 2026-02-18   |
+| Version | Status                            | XSD File                   | Release Date |
+|---------|-----------------------------------|----------------------------|--------------|
+| v3      | ✅ Planned to be Superseded by V4 | LSCSMSBulkLoadSchemaV3.xsd | 2026-02-18   |
+| v4      | Upcoming                          | LSCSMSBulkLoadSchemaV4.xsd | N/A          |
 
 Only the **Current** version is accepted by the service unless explicitly stated.
 
@@ -20,15 +20,29 @@ Only the **Current** version is accepted by the service unless explicitly stated
 
 ## Version History
 
-### v3 – 2026-02-18 (Current)
+### v4 - 2026-09-16 (Upcoming)
 
 **Summary**
+- Adds additional inquest-related fields
+  - Client means tested
+  - Deceased first name
+  - Deceased surname
+  - Date of death
+  - Inquest ref
+  - Government Department 1-10 (includes documentation highlighting allowed values)
+
+Business validation rules (e.g. cross-field validation, date logic, financial calculations)
+are enforced by the application layer and not by the schema.
+
+### v3 – 2026-02-18 (Planned to be Superseded by V4)
+
+**Summary**
+
 - Defines the LAA Data Claims bulk load XML submission structure.
 
 - The schema validates the structural format:
   submission → office → schedule → (outcome | newMatterStarts | immigrationCLR)
 - Business rules (e.g. date logic) are enforced by the application.
-
 
 The schema enforces:
 
@@ -62,9 +76,11 @@ Business validation rules (e.g. cross-field validation, date logic, financial ca
 are enforced by the application layer and not by the schema.
 
 **Breaking Changes**
+
 - N/A - initial version
 
 **Migration Notes**
+
 - Ensure XML root element is `submission`
 - Ensure namespace matches:
   `http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/`
@@ -74,8 +90,8 @@ are enforced by the application layer and not by the schema.
 
 ## Versioning Strategy
 
-Schema versioning follows a structured and predictable approach to ensure
-backward compatibility, provider stability, and clear governance.
+Schema versioning follows a structured and predictable approach to ensure backward compatibility,
+provider stability, and clear governance.
 
 ### Version Format
 
@@ -83,6 +99,7 @@ The schema uses **semantic versioning** internally:
 `MAJOR.MINOR`
 
 Example:
+
 - `3.0` – Initial v3 release
 - `3.1` – Backward-compatible enhancement
 - `4.0` – Breaking change
@@ -95,6 +112,7 @@ File names will continue to use the major version:
 The internal schema attribute will reflect the technical version:
 
 ```xml
+
 <xs:schema version="3.0">
 ```
 
@@ -108,6 +126,6 @@ Before submitting files:
 2. Validate locally using:
 
 ```bash
-xmllint --noout --schema LSCSMSBulkLoadSchemaV3.xsd your-file.xml
+xmllint --noout --schema LSCSMSBulkLoadSchemaV4.xsd your-file.xml
 
 
