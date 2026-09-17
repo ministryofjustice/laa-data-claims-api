@@ -12,10 +12,12 @@ import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
-import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.client.reactive.*;
+import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.ClientHttpRequest;
+import org.springframework.http.client.reactive.ClientHttpResponse;
+import org.springframework.http.client.reactive.ClientHttpResponseDecorator;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -64,10 +66,13 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
     return Mono.defer(
         () -> {
           CallCapture capture = new CallCapture(method, uri, ids.get());
-          return delegate
-              .connect(method, uri, request -> requestCallback.apply(capture.wrap(request)))
-              .map(capture::wrap)
-              .doOnError(_ -> capture.recordNoResponse());
+          RecordingClientHttpRequest recorder = new RecordingClientHttpRequest(method, uri, capture::appendRequest);
+
+          return requestCallback
+                  .apply(recorder)
+                  .then(delegate.connect(method, uri, requestCallback))
+                  .map(capture::wrap)
+                  .doOnError(_ -> capture.recordNoResponse());
         });
   }
 
@@ -86,20 +91,9 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
       this.callIds = callIds;
     }
 
-    ClientHttpRequest wrap(ClientHttpRequest request) {
-      return new ClientHttpRequestDecorator(request) {
-        @Override
-        public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-          return super.writeWith(Flux.from(body).doOnNext(b -> copy(b, requestBytes)));
-        }
-
-        @Override
-        public Mono<Void> writeAndFlushWith(
-            Publisher<? extends Publisher<? extends DataBuffer>> body) {
-          return super.writeAndFlushWith(
-              Flux.from(body).map(p -> Flux.from(p).doOnNext(b -> copy(b, requestBytes))));
-        }
-      };
+    /** Receives the request body as rendered by the recording request, before any connection */
+    void appendRequest(byte[] bytes) {
+      requestBytes.writeBytes(bytes);
     }
 
     ClientHttpResponse wrap(ClientHttpResponse response) {
