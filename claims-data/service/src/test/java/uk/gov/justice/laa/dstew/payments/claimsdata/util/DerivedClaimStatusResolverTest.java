@@ -31,6 +31,11 @@ class DerivedClaimStatusResolverTest {
     "READY_TO_PROCESS, false, true,  READY_TO_PROCESS",
     "READY_TO_PROCESS, true,  false, READY_TO_PROCESS",
     "READY_TO_PROCESS, true,  true,  READY_TO_PROCESS",
+    // READY_FOR_SUBMISSION always -> READY_FOR_SUBMISSION
+    "READY_FOR_SUBMISSION, false, false, READY_FOR_SUBMISSION",
+    "READY_FOR_SUBMISSION, false, true,  READY_FOR_SUBMISSION",
+    "READY_FOR_SUBMISSION, true,  false, READY_FOR_SUBMISSION",
+    "READY_FOR_SUBMISSION, true,  true,  READY_FOR_SUBMISSION",
     // VALID -> depends on the flags, assessment taking precedence over amendment
     "VALID,            false, false, ACCEPTED",
     "VALID,            false, true,  AMENDED",
@@ -74,6 +79,7 @@ class DerivedClaimStatusResolverTest {
             DerivedClaimStatus.ASSESSED,
             DerivedClaimStatus.VOIDED,
             DerivedClaimStatus.INVALID,
-            DerivedClaimStatus.READY_TO_PROCESS);
+            DerivedClaimStatus.READY_TO_PROCESS,
+            DerivedClaimStatus.READY_FOR_SUBMISSION);
   }
 }
