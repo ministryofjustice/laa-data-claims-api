@@ -19,9 +19,12 @@ claim_status:
     - VALID
     - INVALID
     - VOID
+    - READY_FOR_SUBMISSION
   description: |
     System-maintained processing status indicator that tracks the validation lifecycle of a
     claim record from initial submission through to final approval or rejection.
+    READY_FOR_SUBMISSION indicates the claim passed initial validation and is held for provider
+    review before Final Submit; it is not yet accepted (VALID).
 
 claim_base:
   type: object
