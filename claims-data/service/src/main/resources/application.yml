@@ -11,7 +11,8 @@ spring:
     username: user
     password: dev
   flyway:
-    schemas: claims, javers
+    schemas: claims, javers, audit
+    default-schema: claims
     create-schemas: true
     enabled: true
     out-of-order: true
