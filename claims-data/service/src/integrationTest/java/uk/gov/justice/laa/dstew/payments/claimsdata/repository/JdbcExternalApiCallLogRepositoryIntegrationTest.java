@@ -144,7 +144,7 @@ class JdbcExternalApiCallLogRepositoryIntegrationTest extends AbstractIntegratio
 
   @Test
   @DisplayName("Row survives a rolled-back outer transaction (AC5)")
-  void rowSurvivesRolledBackOuterTransaction() throws Exception {
+  void rowSurvivesRolledBackOuterTransaction() {
     UUID id = Uuid7.timeBasedUuid();
     Instant createdOn = Instant.parse("2026-04-22T11:26:00Z");
 
