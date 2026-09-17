@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Claim;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
@@ -97,6 +98,14 @@ public class AmendmentExternalValidationStep implements ClaimAmendmentValidation
 
     if (validationResult == null || validationResult.getIssues() == null) {
       return List.of();
+    }
+
+    List<ValidationIssue> warnings =
+        validationResult.getIssues().stream()
+            .filter(issue -> issue.getSeverity() == ValidationSeverity.WARNING)
+            .toList();
+    if (!warnings.isEmpty()) {
+      state.addWarnings(warnings);
     }
 
     List<ClaimAmendmentValidationError> errors =
