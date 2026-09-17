@@ -18,6 +18,70 @@ ignore:
           present in the shipped Alpine runtime and not fixable from app code.
         expires: 2026-09-25T00:00:00.000Z
 
+  # Additional recent glibc libc6 CVEs reported by Snyk (introduced via the
+  # Ubuntu 24.04-based build/scanner image). These are transitive OS-package
+  # vulnerabilities (glibc/libc6) that are fixed upstream in 2.39-0ubuntu8.9 and
+  # will be resolved when the shared build image is rebuilt or the base-image is
+  # updated (docker build --pull). No application-code remediation is available
+  # from this repo; time-boxed so CI/maintainers will re-evaluate once the base
+  # image propagates the fix.
+  SNYK-UBUNTU2404-GLIBC-18741477:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-6368 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-18741516:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-6791 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383476:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-19499 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383517:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-19542 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19383885:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-77117 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19437583:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-18374 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+  SNYK-UBUNTU2404-GLIBC-19437849:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) glibc CVE-2026-80489 introduced via the
+          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
+          resolved by rebuilding on the updated base image. Not fixable from
+          application code.
+        expires: 2026-10-25T00:00:00.000Z
+
   # CVE-2026-63076 / CVE-2026-63072 - openssl/libssl3t64 (Ubuntu 24.04 base-image OS package).
   # Image is built and scanned by the shared reusable workflow
   # ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml
@@ -44,6 +108,34 @@ ignore:
           Dockerfiles. Fixed upstream in 3.0.13-0ubuntu3.15; resolved once that base image
           is rebuilt. No application-code or local-Dockerfile remediation available.
         expires: 2026-09-25T00:00:00.000Z
+
+  # CVE-2026-85091 - zlib/zlib1g (Ubuntu 24.04 base-image OS package).
+  # Heap buffer overflow in gz_vacate(). No fixed version available upstream for
+  # Ubuntu 24.04 at the time of this ignore. Same pattern as the glibc/openssl entries
+  # above — introduced via the shared ecr-publish-image build image, not this repo's
+  # own Dockerfiles. Time-boxed so CI revisits once Canonical publishes a fix.
+  SNYK-UBUNTU2404-ZLIB-19530295:
+    - '*':
+        reason: >-
+          Base-image (Ubuntu 24.04) zlib/zlib1g CVE-2026-85091 introduced via the
+          shared ecr-publish-image reusable workflow's build image. No fixed version
+          available upstream for Ubuntu 24.04. Not fixable from application code.
+        expires: 2026-10-14T00:00:00.000Z
+
+  # netty-codec-http HTTP Request Smuggling (Medium). Transitive dependency pulled in
+  # via the Spring Boot BOM (reactor-netty → netty-codec-http). Fix available in
+  # 4.2.18.Final / 4.1.138.Final — will be picked up automatically on the next
+  # Spring Boot BOM patch bump. Not remediated here because a Gradle-level forced
+  # override belongs in a platform/dep PR, not in a BDD-test-only PR. Short expiry so
+  # this doesn't linger.
+  SNYK-JAVA-IONETTY-19778369:
+    - '*':
+        reason: >-
+          Transitive io.netty:netty-codec-http@4.2.17.Final vulnerability
+          (SNYK-JAVA-IONETTY-19778369, HTTP Request Smuggling, Medium). Fix
+          available in 4.2.18.Final; will be resolved by next Spring Boot BOM
+          patch bump. Not remediated in this test-only PR.
+        expires: 2026-10-14T00:00:00.000Z
 # Example entry format:
 #  SNYK-VULNERABILITY-ID:
 #    - '<package>@<version>':

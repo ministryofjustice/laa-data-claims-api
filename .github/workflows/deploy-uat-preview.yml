@@ -27,7 +27,7 @@ jobs:
           fetch-tags: true
       - name: Compute version
         id: compute
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
       - name: Compute snapshot version
         id: version
         shell: bash
@@ -49,7 +49,7 @@ jobs:
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -67,7 +67,7 @@ jobs:
 
   pact-test:
     needs: [ build-and-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -151,7 +151,7 @@ jobs:
 
   ecr-publish-image:
     needs: [ build-and-test, compute-snapshot-version, bdd-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
     permissions:
       contents: read
       id-token: write
@@ -177,6 +177,8 @@ jobs:
       - bdd-test
     runs-on: ubuntu-latest
     environment: uat
+    outputs:
+      release-name: ${{ steps.deploy_uat_branch.outputs.release-name }}
     permissions:
       id-token: write
       contents: read
@@ -194,7 +196,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -219,10 +221,44 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@0c06c747af49e3efb703717e6185cf693494d5a4 # v2.4.2
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  # Post the ephemeral preview URL back to the PR as a comment so reviewers can
+  # click straight through. The URL is derived solely from the PR number, so it is
+  # stable for the life of the PR — we post it once (guarded by a hidden marker) and
+  # leave it alone on subsequent pushes rather than re-commenting.
+  comment-preview-url:
+    if: github.event_name == 'pull_request'
+    needs:
+      - deploy-uat-preview
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post preview URL comment (once)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RELEASE_NAME: ${{ needs.deploy-uat-preview.outputs.release-name }}
+        with:
+          script: |
+            const marker = '<!-- uat-preview-url -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number,
+            });
+            if (comments.some((comment) => comment.body && comment.body.includes(marker))) {
+              core.info('Preview URL comment already exists; nothing to do.');
+              return;
+            }
+            const host = `${process.env.RELEASE_NAME}-laa-data-claims-api-uat.cloud-platform.service.justice.gov.uk`;
+            const body = `${marker}\n### UAT preview deployed\n\n`
+              + `**Swagger UI:** https://${host}/swagger-ui/index.html\n`
+              + `**OpenAPI docs:** https://${host}/v3/api-docs\n`;
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });

@@ -8,6 +8,7 @@ import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.BulkSubmissionFileGenerator;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddValidationMessageStepSupport;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 
 /**
  * Spring configuration for Cucumber BDD beans. {@code @Bean} methods cannot live on the
@@ -49,6 +50,11 @@ public class BddBeansConfiguration {
   @Bean
   public BulkSubmissionFileGenerator bulkSubmissionFileGenerator() {
     return new BulkSubmissionFileGenerator();
+  }
+
+  @Bean
+  public BddMockServerSupport bddMockServerSupport() {
+    return new BddMockServerSupport();
   }
 
   /** Resolves the running embedded server's base URL on each call. */

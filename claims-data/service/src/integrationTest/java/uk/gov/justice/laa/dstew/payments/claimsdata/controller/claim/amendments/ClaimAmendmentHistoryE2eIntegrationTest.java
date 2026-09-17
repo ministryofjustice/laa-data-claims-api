@@ -25,6 +25,7 @@ import org.mockserver.model.MediaType;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MvcResult;
+import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentFieldIdentifiers;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
@@ -108,6 +109,99 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
   }
 
+  /**
+   * Verify that when a provider-requested claim-level feeCode change occurs the persisted amendment
+   * diff in the DB still contains the derived FSP-sourced {@code fee.feeCode} entry, but the public
+   * history API suppresses that derived entry. We assert both states to prove presentation-layer
+   * suppression without modifying persisted audit records.
+   */
+  @Test
+  void feeCodeAmendmentSuppressesDerivedFeeFeeCodeInHistory() throws Exception {
+
+    // Override the FEE_CALCULATION response with an FSP-returned feeCode that would otherwise
+    // appear as an FSP-sourced fee.feeCode change.
+    mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
+    String fspResponse =
+        "{\"feeCode\":\"FEE456\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
+            + "\"feeCalculation\":{\"totalAmount\":200.00}}";
+
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(fspResponse));
+
+    // Submit a claim-level feeCode amendment (provider-requested change)
+    ClaimAmendmentPatch patch =
+        basePatch(claimRepository.findById(CLAIM_1_ID).orElseThrow().getVersion());
+    patch.setFeeCode(JsonNullable.of("FEE2"));
+
+    MvcResult patchResult = performAmendmentPatch(SUBMISSION_1_ID, CLAIM_1_ID, patch);
+    assertResponseStatus(patchResult, org.springframework.http.HttpStatus.NO_CONTENT);
+
+    // Sanity: an amendment audit row should have been written for the claim
+    List<ClaimAmendment> amendments =
+        claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID);
+    assertThat(amendments).as("an amendment audit row was written").isNotEmpty();
+
+    // Verify the persisted amendment diff (DB) contains the derived FSP-sourced fee.feeCode
+    // change entry. The presentation mapper should suppress this entry in the API, but the DB
+    // must retain it.
+    JsonNode persistedDiff = OBJECT_MAPPER.readTree(amendments.getFirst().getDiff());
+    JsonNode persistedChanges = persistedDiff.get("changes");
+    assertThat(persistedChanges).as("persisted diff changes array is present").isNotNull();
+
+    boolean dbHasFspFeeFeeCode = false;
+    for (JsonNode change : persistedChanges) {
+      String field = change.path("field_identifier").asText();
+      String source = change.path("change_source").asText();
+      if (AmendmentFieldIdentifiers.FeeFields.FEE_CODE.equals(field) && "FSP".equals(source)) {
+        dbHasFspFeeFeeCode = true;
+        break;
+      }
+    }
+    assertThat(dbHasFspFeeFeeCode).isTrue();
+
+    // Read history and assert the REQUESTED claim.feeCode change exists and the derived
+    // FSP fee.feeCode change is suppressed in the API surface.
+    String body =
+        mockMvc
+            .perform(
+                get(HISTORY_ENDPOINT, CLAIM_1_ID).header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode events = OBJECT_MAPPER.readTree(body).get("events");
+    JsonNode amendmentEvent = firstEventOfType(events, "AMENDMENT");
+    assertThat(amendmentEvent).isNotNull();
+
+    JsonNode changes = amendmentEvent.get("metadata").get("changes");
+    assertThat(changes).isNotNull();
+
+    boolean hasRequestedClaimFeeCode = false;
+    boolean hasFspFeeFeeCode = false;
+    for (JsonNode change : changes) {
+      String field = change.path("field_identifier").asText();
+      String source = change.path("change_source").asText();
+      // The history API now exposes snake_case identifiers; the requested claim feeCode appears as
+      // "fee_code" and any derived FSP fee code would also be presented as "fee_code" (but is
+      // suppressed by the presentation mapper). Hard-code the expected presentation identifier.
+      if ("fee_code".equals(field) && "REQUESTED".equals(source)) {
+        hasRequestedClaimFeeCode = true;
+      }
+      if ("fee_code".equals(field) && "FSP".equals(source)) {
+        hasFspFeeFeeCode = true;
+      }
+    }
+
+    assertThat(hasRequestedClaimFeeCode).isTrue();
+    assertThat(hasFspFeeFeeCode).isFalse();
+  }
+
   @Test
   @DisplayName(
       "A repricing amendment surfaces an AMENDMENT history event with the requested change and FSP consequence")
@@ -189,44 +283,53 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
 
     // --- REQUESTED change: the provider's edit, with its actual before/after values ---
     // Seeded claimSummaryFee net profit costs (250) -> the amended value (9999.00).
-    JsonNode requested = changeByField(changes, "claimSummaryFee.netProfitCostsAmount");
+    JsonNode requested = changeByField(changes, "net_profit_costs_amount");
     assertThat(requested.get("change_source").asText()).isEqualTo("REQUESTED");
     assertThat(requested.get("before").decimalValue()).isEqualByComparingTo("250");
     assertThat(requested.get("after").decimalValue()).isEqualByComparingTo("9999.00");
 
     // --- FSP consequences: the recalculated fee values returned by the stubbed FSP response ---
     // Total fee recalculated from the baseline (100.00) to the FSP-returned total (650.00).
-    JsonNode fspTotal = changeByField(changes, "fee.totalAmount");
+    JsonNode fspTotal = changeByField(changes, "total_amount");
     assertThat(fspTotal.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspTotal.get("before").decimalValue()).isEqualByComparingTo("100.00");
     assertThat(fspTotal.get("after").decimalValue()).isEqualByComparingTo("650.00");
 
     // Fee net profit costs: previously unset on the baseline (explicit null) -> FSP value (450.00).
-    JsonNode fspNetProfitCosts = changeByField(changes, "fee.netProfitCostsAmount");
-    assertThat(fspNetProfitCosts.get("change_source").asText()).isEqualTo("FSP");
+    JsonNode fspNetProfitCosts = null;
+    for (JsonNode change : changes) {
+      if ("net_profit_costs_amount".equals(change.path("field_identifier").asText())
+          && "FSP".equals(change.path("change_source").asText())) {
+        fspNetProfitCosts = change;
+        break;
+      }
+    }
+    assertThat(fspNetProfitCosts)
+        .as("FSP-sourced net_profit_costs_amount change is present")
+        .isNotNull();
     assertThat(fspNetProfitCosts.get("before").isNull()).isTrue();
     assertThat(fspNetProfitCosts.get("after").decimalValue()).isEqualByComparingTo("450.00");
 
     // VAT indicator: previously unset (explicit null) -> FSP value (true).
-    JsonNode fspVatIndicator = changeByField(changes, "fee.vatIndicator");
+    JsonNode fspVatIndicator = changeByField(changes, "vat_indicator");
     assertThat(fspVatIndicator.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspVatIndicator.get("before").isNull()).isTrue();
     assertThat(fspVatIndicator.get("after").asBoolean()).isTrue();
 
     // Scheme id: previously unset (explicit null) -> FSP value ("SCHEME-TEST").
-    JsonNode fspSchemeId = changeByField(changes, "fee.schemeId");
+    JsonNode fspSchemeId = changeByField(changes, "scheme_id");
     assertThat(fspSchemeId.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspSchemeId.get("before").isNull()).isTrue();
     assertThat(fspSchemeId.get("after").asText()).isEqualTo("SCHEME-TEST");
 
     // Fee metadata resolved from validation-core ResolvedClaimData (DSTEW-2079 parity):
     // feeType and feeCodeDescription are populated by FeeCalculationMetadataResolver.
-    JsonNode fspFeeType = changeByField(changes, "fee.feeType");
+    JsonNode fspFeeType = changeByField(changes, "fee_type");
     assertThat(fspFeeType.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspFeeType.get("before").isNull()).isTrue();
     assertThat(fspFeeType.get("after").asText()).isEqualTo("HOURLY");
 
-    JsonNode fspFeeCodeDescription = changeByField(changes, "fee.feeCodeDescription");
+    JsonNode fspFeeCodeDescription = changeByField(changes, "fee_code_description");
     assertThat(fspFeeCodeDescription.get("change_source").asText()).isEqualTo("FSP");
     assertThat(fspFeeCodeDescription.get("before").isNull()).isTrue();
     assertThat(fspFeeCodeDescription.get("after").asText()).isEqualTo("test description");
@@ -286,7 +389,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     JsonNode metadata = amendmentEvent.get("metadata");
 
     // The FSP escapeCaseFlag transition (false -> true) is recorded as an FSP-sourced change entry.
-    JsonNode escapeChange = changeByField(metadata.get("changes"), "fee.escapeCaseFlag");
+    JsonNode escapeChange = changeByField(metadata.get("changes"), "escape_case_flag");
     assertThat(escapeChange.get("change_source").asText()).isEqualTo("FSP");
     assertThat(escapeChange.get("after").asBoolean()).isTrue();
 
@@ -353,16 +456,16 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
 
     // Each bolt-on field is surfaced as an FSP-sourced change with before=null (baseline row does
     // not populate bolt-on fields) and after = the FSP-returned value.
-    assertBoltOnFspChange(changes, "fee.boltOnTotalFeeAmount", "300.00");
-    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingCount", 2);
-    assertBoltOnFspChange(changes, "fee.boltOnAdjournedHearingFee", "40.00");
-    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneCount", 1);
-    assertBoltOnFspChange(changes, "fee.boltOnCmrhTelephoneFee", "20.00");
-    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralCount", 1);
-    assertBoltOnFspChange(changes, "fee.boltOnCmrhOralFee", "30.00");
-    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewCount", 1);
-    assertBoltOnFspChange(changes, "fee.boltOnHomeOfficeInterviewFee", "60.00");
-    assertBoltOnFspChange(changes, "fee.boltOnSubstantiveHearingFee", "150.00");
+    assertBoltOnFspChange(changes, "bolt_on_total_fee_amount", "300.00");
+    assertBoltOnFspChange(changes, "bolt_on_adjourned_hearing_count", 2);
+    assertBoltOnFspChange(changes, "bolt_on_adjourned_hearing_fee", "40.00");
+    assertBoltOnFspChange(changes, "bolt_on_cmrh_telephone_count", 1);
+    assertBoltOnFspChange(changes, "bolt_on_cmrh_telephone_fee", "20.00");
+    assertBoltOnFspChange(changes, "bolt_on_cmrh_oral_count", 1);
+    assertBoltOnFspChange(changes, "bolt_on_cmrh_oral_fee", "30.00");
+    assertBoltOnFspChange(changes, "bolt_on_home_office_interview_count", 1);
+    assertBoltOnFspChange(changes, "bolt_on_home_office_interview_fee", "60.00");
+    assertBoltOnFspChange(changes, "bolt_on_substantive_hearing_fee", "150.00");
 
     // Sanity: repricing was invoked and produced a price-changed FSP consequence.
     JsonNode metadata = amendmentEvent.get("metadata");
@@ -427,7 +530,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     JsonNode changes = amendmentEvent.get("metadata").get("changes");
     String sourceId = amendmentEvent.get("source_id").asText();
 
-    JsonNode cleared = changeByField(changes, "claim.deliveryLocation");
+    JsonNode cleared = changeByField(changes, "delivery_location");
     assertThat(cleared.get("change_source").asText()).isEqualTo("REQUESTED");
     assertThat(cleared.get("before").asText()).isEqualTo(deliveryReference);
     // Must be an explicit JSON null present in the change object (key exists and is null)
@@ -540,7 +643,7 @@ class ClaimAmendmentHistoryE2eIntegrationTest extends AbstractAmendmentPatchInte
     // Exactly the one provider-requested field change, with its actual before/after values, and no
     // FSP consequence (a forename change does not impact pricing). "Alice" is the seeded baseline.
     assertThat(changes).hasSize(1);
-    JsonNode nameChange = changeByField(changes, "client.clientForename");
+    JsonNode nameChange = changeByField(changes, "client_forename");
     assertThat(nameChange.get("change_source").asText()).isEqualTo("REQUESTED");
     assertThat(nameChange.get("before").asText()).isEqualTo(SEEDED_CLIENT_FORENAME);
     assertThat(nameChange.get("after").asText()).isEqualTo(amendedForename);
