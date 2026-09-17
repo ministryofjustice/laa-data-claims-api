@@ -177,6 +177,8 @@ jobs:
       - bdd-test
     runs-on: ubuntu-latest
     environment: uat
+    outputs:
+      release-name: ${{ steps.deploy_uat_branch.outputs.release-name }}
     permissions:
       id-token: write
       contents: read
@@ -226,3 +228,37 @@ jobs:
           pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
           pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+  # Post the ephemeral preview URL back to the PR as a comment so reviewers can
+  # click straight through. The URL is derived solely from the PR number, so it is
+  # stable for the life of the PR — we post it once (guarded by a hidden marker) and
+  # leave it alone on subsequent pushes rather than re-commenting.
+  comment-preview-url:
+    if: github.event_name == 'pull_request'
+    needs:
+      - deploy-uat-preview
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post preview URL comment (once)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RELEASE_NAME: ${{ needs.deploy-uat-preview.outputs.release-name }}
+        with:
+          script: |
+            const marker = '<!-- uat-preview-url -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number,
+            });
+            if (comments.some((comment) => comment.body && comment.body.includes(marker))) {
+              core.info('Preview URL comment already exists; nothing to do.');
+              return;
+            }
+            const host = `${process.env.RELEASE_NAME}-laa-data-claims-api-uat.cloud-platform.service.justice.gov.uk`;
+            const body = `${marker}\n### UAT preview deployed\n\n`
+              + `**Swagger UI:** https://${host}/swagger-ui/index.html\n`
+              + `**OpenAPI docs:** https://${host}/v3/api-docs\n`;
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
