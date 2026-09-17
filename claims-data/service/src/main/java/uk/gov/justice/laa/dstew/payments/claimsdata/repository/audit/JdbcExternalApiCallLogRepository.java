@@ -35,8 +35,7 @@ public class JdbcExternalApiCallLogRepository implements ExternalApiCallLogRepos
             http_status, submission_id, claim_id, created_on)
         VALUES
             (:id, :systemType, :endpoint, :httpMethod, :requestPayload, :responsePayload,
-            :httpStatus, :submissionId, :claimId, :createdOn)
-    """;
+            :httpStatus, :submissionId, :claimId, :createdOn)""";
 
   private final JdbcClient jdbcClient;
 

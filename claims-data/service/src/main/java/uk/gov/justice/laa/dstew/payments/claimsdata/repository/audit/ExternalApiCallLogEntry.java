@@ -5,17 +5,6 @@ import java.util.UUID;
 
 /**
  * One row of {@code audit.external_api_call_log}: a single outbound external API call as made.
- *
- * @param id
- * @param systemType
- * @param endpoint
- * @param httpMethod
- * @param requestPayload
- * @param responsePayload
- * @param httpStatus
- * @param submissionId
- * @param claimId
- * @param createdOn
  */
 public record ExternalApiCallLogEntry(
     UUID id,
