@@ -72,3 +72,6 @@ portForward:
 replicationSummary:
   enabled: true
   schedule: "0 1 * * *"
+
+ingressClientNamespaces:
+    - namespace: laa-info-and-advice-datastore-uat

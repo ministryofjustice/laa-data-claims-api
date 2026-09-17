@@ -15,3 +15,27 @@ spec:
         - namespaceSelector:
             matchLabels:
               component: monitoring
+
+{{- range .Values.ingressClientNamespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .namespace }}-allow-ingress
+  namespace: {{ $.Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "data-claims-api.name" $ }}
+      release: {{ $.Release.Name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .namespace }}
+      ports:
+        - protocol: TCP
+          port: 8080
+{{- end }}
