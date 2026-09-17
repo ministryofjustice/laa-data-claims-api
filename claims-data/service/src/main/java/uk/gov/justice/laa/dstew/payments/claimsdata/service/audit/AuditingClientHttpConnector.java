@@ -28,15 +28,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 /**
  * {@link ClientHttpConnector} decorator that records outbound external API calls (DSTEW-2001)
  *
- * <p>Sits below the {@code WebClient}, so it sees the actual bytes written and read, not the mapped model objects.
- * It only sees calls that make it to the wire. Cache hits cannot get here, retries do.
+ * <p>Sits below the {@code WebClient}, so it sees the actual bytes written and read, not the mapped
+ * model objects. It only sees calls that make it to the wire. Cache hits cannot get here, retries
+ * do.
  *
- * <p>The claim and submission ids come from the supplied {@code ids} resolver, read once at connect time on the calling
- * thread and carried in the per call capture, so the response side may complete on any thread.
- * A retry that re-subscribes on another scheduler would resolve no ids. There are nmo retries on this API.
+ * <p>The claim and submission ids come from the supplied {@code ids} resolver, read once at connect
+ * time on the calling thread and carried in the per call capture, so the response side may complete
+ * on any thread. A retry that re-subscribes on another scheduler would resolve no ids. There are
+ * nmo retries on this API.
  *
- * <p>One row is recorded per call. On body completion with a status and a body, or on error before completion with a
- * null response and status. Recording never throws and never alters the call</p>
+ * <p>One row is recorded per call. On body completion with a status and a body, or on error before
+ * completion with a null response and status. Recording never throws and never alters the call
  */
 @Slf4j
 @NullMarked
@@ -66,13 +68,14 @@ public class AuditingClientHttpConnector implements ClientHttpConnector {
     return Mono.defer(
         () -> {
           CallCapture capture = new CallCapture(method, uri, ids.get());
-          RecordingClientHttpRequest recorder = new RecordingClientHttpRequest(method, uri, capture::appendRequest);
+          RecordingClientHttpRequest recorder =
+              new RecordingClientHttpRequest(method, uri, capture::appendRequest);
 
           return requestCallback
-                  .apply(recorder)
-                  .then(delegate.connect(method, uri, requestCallback))
-                  .map(capture::wrap)
-                  .doOnError(_ -> capture.recordNoResponse());
+              .apply(recorder)
+              .then(delegate.connect(method, uri, requestCallback))
+              .map(capture::wrap)
+              .doOnError(_ -> capture.recordNoResponse());
         });
   }
 

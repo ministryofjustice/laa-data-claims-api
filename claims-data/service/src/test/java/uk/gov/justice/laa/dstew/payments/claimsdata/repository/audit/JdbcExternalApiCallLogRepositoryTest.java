@@ -62,7 +62,8 @@ class JdbcExternalApiCallLogRepositoryTest {
     verify(spec).param("httpStatus", e.httpStatus(), Types.INTEGER);
     verify(spec).param("submissionId", e.submissionId(), Types.OTHER);
     verify(spec).param("claimId", e.claimId(), Types.OTHER);
-    verify(spec).param("createdOn", e.createdOn().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
+    verify(spec)
+        .param("createdOn", e.createdOn().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
   }
 
   private ExternalApiCallLogEntry fullEntry() {
