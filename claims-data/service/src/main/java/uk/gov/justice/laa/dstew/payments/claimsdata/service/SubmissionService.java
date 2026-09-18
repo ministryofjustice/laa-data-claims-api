@@ -67,6 +67,7 @@ public class SubmissionService
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final AssessmentService assessmentService;
@@ -236,7 +237,7 @@ public class SubmissionService
           .forEach(
               message -> {
                 ValidationMessageLog validationLog =
-                    submissionMapper.toValidationMessageLog(message, submission);
+                    validationMessageLogFactory.createForSubmission(message, submission);
                 validationMessageLogRepository.save(validationLog);
               });
     }

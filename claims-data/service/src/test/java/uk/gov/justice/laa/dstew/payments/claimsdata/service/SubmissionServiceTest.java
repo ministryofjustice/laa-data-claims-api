@@ -75,6 +75,7 @@ class SubmissionServiceTest {
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ValidationMessageLogFactory validationMessageLogFactory;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
@@ -484,12 +485,12 @@ class SubmissionServiceTest {
 
     SubmissionPatch patch = new SubmissionPatch().validationMessages(List.of(messagePatch));
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
-    when(submissionMapper.toValidationMessageLog(any(), eq(entity)))
+    when(validationMessageLogFactory.createForSubmission(any(), eq(entity)))
         .thenReturn(new ValidationMessageLog());
 
     submissionService.updateSubmission(id, patch);
 
-    verify(submissionMapper).toValidationMessageLog(any(), eq(entity));
+    verify(validationMessageLogFactory).createForSubmission(any(), eq(entity));
     verify(validationMessageLogRepository).save(any(ValidationMessageLog.class));
   }
 
