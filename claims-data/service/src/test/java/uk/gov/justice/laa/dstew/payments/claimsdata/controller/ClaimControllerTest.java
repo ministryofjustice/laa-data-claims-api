@@ -48,6 +48,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -322,18 +323,20 @@ class ClaimControllerTest {
 
       UUID claimId = Uuid7.timeBasedUuid();
       UUID assessmentId = Uuid7.timeBasedUuid();
-      UUID createdByUserId = UUID.randomUUID();
+      VoidClaimRequest defaultVoidClaimRequest = createDefaultVoidClaimRequest();
+      defaultVoidClaimRequest.setVersion(null);
 
-      when(claimService.voidClaimByIdAndCreateAssessment(
-              eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment")))
+      when(claimService.voidClaimByIdAndCreateAssessment(eq(claimId), eq(defaultVoidClaimRequest)))
           .thenReturn(assessmentId);
 
       String body =
           "{"
               + "\"created_by_user_id\":\""
-              + createdByUserId
+              + defaultVoidClaimRequest.getCreatedByUserId()
               + "\","
-              + "\"assessment_reason\":\"Escape Fee Case Assessment\""
+              + "\"assessment_reason\":\""
+              + defaultVoidClaimRequest.getAssessmentReason()
+              + "\""
               + "}";
 
       mockMvc
@@ -350,8 +353,7 @@ class ClaimControllerTest {
           .andExpect(jsonPath("$.id").value(assessmentId.toString()));
 
       verify(claimService)
-          .voidClaimByIdAndCreateAssessment(
-              eq(claimId), eq(createdByUserId), eq("Escape Fee Case Assessment"));
+          .voidClaimByIdAndCreateAssessment(eq(claimId), eq(defaultVoidClaimRequest));
     }
 
     @Test
@@ -365,7 +367,7 @@ class ClaimControllerTest {
                   .content("{}"))
           .andExpect(status().isBadRequest());
 
-      verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any(), any());
+      verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any());
     }
   }
 
@@ -506,5 +508,18 @@ class ClaimControllerTest {
       assertThat(captured.getPageNumber()).isEqualTo(2);
       assertThat(captured.getPageSize()).isEqualTo(5);
     }
+  }
+
+  /**
+   * Helper method to create a default VoidClaimRequest for testing purposes.
+   *
+   * @return a default VoidClaimRequest
+   */
+  private VoidClaimRequest createDefaultVoidClaimRequest() {
+    return VoidClaimRequest.builder()
+        .createdByUserId(Uuid7.timeBasedUuid())
+        .version(1L)
+        .assessmentReason("VOID CLAIM")
+        .build();
   }
 }

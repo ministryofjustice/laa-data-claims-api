@@ -10,10 +10,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -46,6 +48,9 @@ public class ClaimValidationService {
       "assessmentReason must be provided";
   public static final String ASSESSMENT_TYPE_MUST_BE_PROVIDED_ERROR =
       "assessmentType must be provided";
+  public static final String VERSION_MUST_NOT_BE_NEGATIVE_ERROR = "version must not be negative";
+  public static final String VERSION_MISMATCH_ERROR =
+      "provided version does not match claim version for id: %s";
   public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
       "Claim status VOID cannot be set via %s endpoint. Use POST "
           + ClaimController.VOID_CLAIM_ENDPOINT;
@@ -57,22 +62,39 @@ public class ClaimValidationService {
    * Validates the parameters required to void a claim.
    *
    * @param claimId the unique identifier of the claim
-   * @param createdByUserId the ID of the user attempting to void the claim
-   * @param assessmentReason the reason for the void assessment
+   * @param request the void claim request containing the user ID and assessment reason
    * @throws ClaimBadRequestException if any of the parameters are invalid or missing
    */
-  public void validateVoidClaimParameters(
-      UUID claimId, UUID createdByUserId, String assessmentReason) {
+  public void validateVoidClaimRequest(UUID claimId, VoidClaimRequest request) {
+    validateClaimIdProvided(claimId);
+    validateCreatedByUserIdProvided(request.getCreatedByUserId());
+    validateUserId(request.getCreatedByUserId().toString());
+    validateAssessmentReason(request.getAssessmentReason());
+    validateVersionNumber(request.getVersion());
+  }
+
+  /**
+   * Validates that the provided claim identifier is not null.
+   *
+   * @param claimId the claim id to validate
+   * @throws ClaimBadRequestException when the claim id is null
+   */
+  private static void validateClaimIdProvided(UUID claimId) {
     if (claimId == null) {
       throw new ClaimBadRequestException(CLAIM_ID_MUST_BE_PROVIDED_ERROR);
     }
+  }
 
+  /**
+   * Validates that the provided createdByUserId is not null.
+   *
+   * @param createdByUserId the user id that created the request
+   * @throws ClaimBadRequestException when the createdByUserId is null
+   */
+  private static void validateCreatedByUserIdProvided(UUID createdByUserId) {
     if (createdByUserId == null) {
       throw new ClaimBadRequestException(CREATED_BY_USER_ID_MUST_BE_PROVIDED_ERROR);
     }
-
-    validateUserId(createdByUserId.toString());
-    validateAssessmentReason(assessmentReason);
   }
 
   /**
@@ -131,6 +153,53 @@ public class ClaimValidationService {
     if (assessmentType == AssessmentType.VOID) {
       throw new ClaimBadRequestException(
           INVALID_CLAIM_STATUS_UPDATE_MESSAGE.formatted("create assessment"));
+    }
+  }
+
+  /**
+   * Validates the provided version number ensuring it is provided and not negative.
+   *
+   * <p>If the provided version is null this check is skipped. The version must be greater than or
+   * equal to 0.
+   *
+   * <p>Until the consumers pass version in the request, this validation will be skipped. Once the
+   * consumers pass version in the request, this validation will be enforced.
+   *
+   * @param version the version number to validate
+   * @throws ClaimBadRequestException when the provided version is negative
+   */
+  public void validateVersionNumber(Long version) {
+    if (version == null) {
+      return;
+    }
+
+    if (version < 0L) {
+      throw new ClaimBadRequestException(VERSION_MUST_NOT_BE_NEGATIVE_ERROR);
+    }
+  }
+
+  /**
+   * Validates that when a version is provided it matches the claim's persisted version.
+   *
+   * <p>If the provided version is null this check is skipped. If the claim's version is null or
+   * does not equal the provided version a {@link ClaimBadRequestException} is thrown.
+   *
+   * <p>Until the consumers pass version in the request, this validation will be skipped. Once the
+   * consumers pass version in the request, this validation will be enforced.
+   *
+   * @param claim the claim whose version will be compared
+   * @param version the provided version to compare against the claim
+   * @throws ClaimConflictException when a non-null provided version does not match the claim
+   */
+  public void validateClaimVersionMatches(Claim claim, Long version) {
+    if (version == null) {
+      return;
+    }
+
+    Long claimVersion = claim == null ? null : claim.getVersion();
+    if (claimVersion == null || !claimVersion.equals(version)) {
+      String claimIdStr = claim == null ? "null" : String.valueOf(claim.getId());
+      throw new ClaimConflictException(String.format(VERSION_MISMATCH_ERROR, claimIdStr));
     }
   }
 
