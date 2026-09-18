@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -69,7 +70,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AmendableClaimFixture {
 
   private static final String SEED_ACTOR = "bdd-DSTEW-2301";
-  private static final String DEFAULT_OFFICE = "0U099L";
+  // Every scenario gets a unique 6-char office code so the JVM-wide PDA cache (keyed on office)
+  // cannot false-pass across scenarios. This mirrors the existing PDA harness isolation pattern.
+  private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
   private static final String DEFAULT_FEE_CODE = "CAPA";
   // Reference-data-valid Legal Help matter type. Codes like "MAT01"/"MTC" trip
   // INVALID_MATTER_TYPE_CODE once the real ValidationService facade runs (DSTEW-2317); "MATT:111"
@@ -217,10 +220,11 @@ public class AmendableClaimFixture {
   // ---------------------------------------------------------------------------
 
   Submission seedSubmission(AreaOfLaw areaOfLaw) {
+    String office = String.format("P2%04d", OFFICE_SEQ.incrementAndGet());
     return submissionRepository.saveAndFlush(
         Submission.builder()
             .id(Uuid7.timeBasedUuid())
-            .officeAccountNumber(DEFAULT_OFFICE)
+            .officeAccountNumber(office)
             .submissionPeriod(nextSubmissionPeriod())
             .areaOfLaw(areaOfLaw)
             .status(SubmissionStatus.CREATED)
