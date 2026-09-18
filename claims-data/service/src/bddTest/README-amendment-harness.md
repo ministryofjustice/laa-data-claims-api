@@ -16,7 +16,7 @@ baseline `calculated_fee_detail` row, and every external call hit unresolvable U
 | Piece | Class / File | Purpose |
 | --- | --- | --- |
 | Fixture builder | `bdd.support.AmendableClaimFixture` | Seeds a fresh `Submission` + `Claim` + `ClaimSummaryFee` + baseline `CalculatedFeeDetail` in one transaction so amendment validation reaches the "amendable" branch. |
-| Real FSP client + MockServer | `FeeSchemePlatformRestClient` (real bean) + `bdd.support.BddMockServerSupport` | **DSTEW-2353:** the Fee-Scheme-Platform client is the **real** HTTP client — no longer a `@MockitoBean`. Its base URL (`${FEE_SCHEME_PLATFORM_API_URL}`) is pointed at a shared `MockServerContainer` started by `CucumberSpringConfiguration`. Because the client is annotated `@HttpExchange("/api")`, repricing is armed / verified as real `POST /api/v1/fee-calculation` + `GET /api/v2/fee-details/…` traffic via `BddMockServerSupport` (same `/api/…` paths the claims-validation-core client uses). |
+| Real FSP client + MockServer | `FeeSchemePlatformRestClient` (real bean) + `bdd.support.BddMockServerSupport` | **DSTEW-2353:** the Fee-Scheme-Platform client is the **real** HTTP client — no longer a `@MockitoBean`. Its base URL (`${FEE_SCHEME_PLATFORM_API_URL}`) is pointed at a shared `MockServerContainer` started by `CucumberSpringConfiguration`. Because the client is annotated `@HttpExchange("/api")`, amendment repricing (`AmendmentFspValidationStep`) makes a single real `POST /api/v1/fee-calculation` call, armed / verified via `BddMockServerSupport` on the same `/api/…` path the claims-validation-core client uses. (`stubAmendmentFspOk()` also stubs `GET /api/v2/fee-details/…`, but that endpoint is shared support consumed by the claims-validation-core pipeline — the amendment repricing step does not call it.) |
 | PDA validator spy | `@MockitoSpyBean ValidationService` on `bdd.CucumberSpringConfiguration` | A Mockito **spy** (runs the real facade unless a method is stubbed) so PDA outcomes can be armed / verified; the PDA `/schedules` HTTP is also stubbed on the shared MockServer. |
 | Per-scenario reset | `bdd.hooks.BddAmendmentResetHook` + `BddHooks` | `BddAmendmentResetHook` (`@Before(order = -2)`) resets the `ValidationService` / persistence **spies** and re-applies their "happy" defaults. `BddHooks.resetScenarioContextAndData()` (`order = 0`) resets the MockServer and seeds the FSP happy-path default (`bddMockServerSupport.stubAmendmentFspOk()`), and owns the amendments feature-flag reset. |
 | Shared step glue | `bdd.steps.AmendmentHarnessCommonSteps` | The Gherkin phrases downstream stories reuse (see below). |
@@ -35,9 +35,12 @@ There are **two different mechanisms**, one per transport.
 `FeeSchemePlatformRestClient` is the real bean (no longer a `@MockitoBean`).
 `CucumberSpringConfiguration` starts a shared `MockServerContainer` and points the client's base
 URL (`${FEE_SCHEME_PLATFORM_API_URL}`) at it via `@DynamicPropertySource`, so amendment repricing
-makes **real HTTP** calls that MockServer answers. The client is annotated `@HttpExchange("/api")`,
-so it hits `/api/v2/fee-details/…` and `/api/v1/fee-calculation` — the same `/api/…` paths the
-claims-validation-core client uses. Stub/verify helpers live in `bdd.support.BddMockServerSupport`;
+makes **real HTTP** calls that MockServer answers. The client is annotated `@HttpExchange("/api")`;
+the amendment repricing step (`AmendmentFspValidationStep`) calls only `calculateFee`, i.e. a
+single `POST /api/v1/fee-calculation`, on the same `/api/…` base the claims-validation-core client
+uses. (`stubAmendmentFspOk()` also stubs `GET /api/v2/fee-details/…`, but that endpoint is shared
+support for the validation pipeline, not traffic the amendment flow makes or verifies.)
+Stub/verify helpers live in `bdd.support.BddMockServerSupport`;
 the happy-path default (`stubAmendmentFspOk()`) is seeded every scenario from
 `BddHooks.resetScenarioContextAndData()` (order 0), right after `bddMockServerSupport.reset()`. A
 scenario overrides it with an explicit arming step (e.g. `Given the FSP service will fail with HTTP
