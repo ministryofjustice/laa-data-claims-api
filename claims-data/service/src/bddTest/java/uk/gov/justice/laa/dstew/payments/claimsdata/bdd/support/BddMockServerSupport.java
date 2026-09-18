@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
@@ -70,6 +71,37 @@ public class BddMockServerSupport {
     client
         .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION))
         .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
+  }
+
+  // -------------------------------------------------------------------------
+  // Amendment repricing FSP stubs.
+  //
+  // The app's own FeeSchemePlatformRestClient is annotated @HttpExchange("/api"), so its calls
+  // resolve to the same /api/v2/fee-details and /api/v1/fee-calculation paths the
+  // claims-validation-core client uses above. Both resolve their base URL from
+  // ${FEE_SCHEME_PLATFORM_API_URL}, which CucumberSpringConfiguration points at this MockServer,
+  // so removing the former @MockitoBean FeeSchemePlatformRestClient lets the amendment repricing
+  // path exercise real HTTP here. Seeded as the per-scenario happy default from BddHooks.
+  // -------------------------------------------------------------------------
+
+  /** Happy-path 200 stubs for the amendment FSP fee-details + fee-calculation endpoints. */
+  public void stubAmendmentFspOk() throws IOException {
+    stubFeeSchemeEndpointsOk();
+  }
+
+  /**
+   * Overrides the FSP fee-calculation stub to return the supplied HTTP status. Clears the default
+   * expectation first so this becomes the only match, regardless of registration order.
+   */
+  public void stubAmendmentFspCalculationStatus(int statusCode) {
+    HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
+    client.clear(feeCalc, ClearType.EXPECTATIONS);
+    client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
+  public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
+    client.verify(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);
   }
 
   // ---------------------------------------------------------------------------

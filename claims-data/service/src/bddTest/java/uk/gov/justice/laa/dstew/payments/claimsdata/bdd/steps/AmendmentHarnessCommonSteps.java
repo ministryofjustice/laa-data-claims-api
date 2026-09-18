@@ -1,40 +1,27 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.step;
 
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
-import uk.gov.justice.laa.dstew.payments.claims.validation.core.validator.claim.ClaimValidatorCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddApiStepSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.AmendableClaimFixture;
-import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
-import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
  * Shared cucumber step glue owned by the DSTEW-2301 amendment BDD harness.
@@ -62,8 +49,7 @@ public class AmendmentHarnessCommonSteps {
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
-  @Autowired private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
-  @Autowired private ValidationService validationService;
+  @Autowired private BddMockServerSupport mock;
 
   // Scenario-scoped bookkeeping. Instantiated fresh per scenario because cucumber-spring gives us
   // a new step-class instance per scenario when the class isn't @ScenarioScope.
@@ -98,7 +84,7 @@ public class AmendmentHarnessCommonSteps {
   @Given("the PDA service will respond {string} within the amendment-path timeout")
   public void thePdaServiceWillRespondWithinTimeout(String outcome) {
     step(
-        "arm PDA mock to respond \"" + outcome + "\"",
+        "arm PDA MockServer /schedules stub to respond \"" + outcome + "\"",
         () -> {
           // Only the happy-path "authorised" outcome is implemented today. Non-"authorised" arming
           // (rejected / timeout) lands with DSTEW-1774. Failing fast here means a scenario that
@@ -113,33 +99,27 @@ public class AmendmentHarnessCommonSteps {
                     + " (default). Non-\"authorised\" variants land with DSTEW-1774. Failing fast"
                     + " to avoid a false-positive green against the happy-path default stub.");
           }
-          // No further stubbing required: BddAmendmentResetHook already primed
-          // ValidationService.validateClaim(...) with a valid=true / no-issues result, which IS
-          // the "authorised" outcome.
-          log.info(
-              "[DSTEW-2301] PDA mock outcome confirmed: authorised (defaults already applied)");
+          // Since validateClaim converged onto the real ValidationService facade (DSTEW-2317), a
+          // pricing amendment (PDA-impacting) now dispatches a REAL provider-details /schedules
+          // call. Arm it with a 200 OK so the "authorised" outcome is exercised over real HTTP
+          // rather than assumed via a Mockito stub.
+          mock.stubProviderSchedulesOk();
+          log.info("[DSTEW-2317] PDA /schedules stub armed: authorised (200 OK)");
         });
   }
 
   @Given("the FSP service will return a valid fee calculation for the amendment")
   public void theFspServiceWillReturnAValidFeeCalculation() {
     step(
-        "arm FSP mock to return 200 OK with a baseline FeeCalculationResponse",
-        () ->
-            doReturn(ResponseEntity.ok(new FeeCalculationResponse()))
-                .when(feeSchemePlatformRestClient)
-                .calculateFee(any()));
+        "arm FSP MockServer stub to return 200 OK for fee-details + fee-calculation",
+        () -> mock.stubAmendmentFspOk());
   }
 
   @Given("the FSP service will fail with HTTP {int}")
   public void theFspServiceWillFailWithHttp(int status) {
     step(
-        "arm FSP mock to throw WebClientResponseException with status " + status,
-        () -> {
-          WebClientResponseException ex =
-              WebClientResponseException.create(status, "Simulated FSP failure", null, null, null);
-          doThrow(ex).when(feeSchemePlatformRestClient).calculateFee(any());
-        });
+        "arm FSP MockServer fee-calculation stub to return HTTP " + status,
+        () -> mock.stubAmendmentFspCalculationStatus(status));
   }
 
   // ---------------------------------------------------------------------------
@@ -161,6 +141,32 @@ public class AmendmentHarnessCommonSteps {
               sharedPatchContext.getPatchJson());
           log.info(
               "[DSTEW-2301] PATCH amendment for claim {} → status={} body={}",
+              sharedPatchContext.getClaimId(),
+              scenarioContext.getLastStatusCode(),
+              scenarioContext.getLastResponseBody());
+        });
+  }
+
+  @When("I submit a well-formed pricing amendment")
+  public void iSubmitAWellFormedPricingAmendment() {
+    step(
+        "PATCH the amendment endpoint with a well-formed pricing (case_start_date) payload",
+        () -> {
+          if (!sharedPatchContext.isPopulated()) {
+            throw new IllegalStateException(
+                "No amendable claim seeded — call 'a fresh amendable claim ...' first");
+          }
+          // A pricing-impacting field change (case_start_date is on the FSP fee-calculation
+          // request body — see FeeSchemeRequestField) drives AmendmentFspValidationStep to make
+          // a real calculateFee call. Unlike a fee_code change it does not shift the resolved
+          // area of law, so it isolates the repricing HTTP path from the AoL eligibility gate.
+          sharedPatchContext.setPatchJson(buildPricingPatch(baselineClaimVersion));
+          api.patchClaimAmendment(
+              sharedPatchContext.getSubmissionId(),
+              sharedPatchContext.getClaimId(),
+              sharedPatchContext.getPatchJson());
+          log.info(
+              "[DSTEW-2353] PATCH pricing amendment for claim {} → status={} body={}",
               sharedPatchContext.getClaimId(),
               scenarioContext.getLastStatusCode(),
               scenarioContext.getLastResponseBody());
@@ -256,87 +262,48 @@ public class AmendmentHarnessCommonSteps {
   }
 
   // ---------------------------------------------------------------------------
-  // Then — outbound-call verification against the mocks
+  // Then — outbound-call verification against MockServer
   //
   // PDA suppression semantics (see AmendmentExternalValidationStep lines 78-81):
-  //   * validateClaim(Claim, Set<ClaimValidatorCode>) is ALWAYS invoked exactly
-  //     once per amendment PATCH — even when the amendment does not trigger a
-  //     PDA call.
-  //   * PDA suppression is expressed by REMOVING
-  //     ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR from the validator-set
-  //     argument before the call; retaining it means the PDA call is dispatched.
-  //
-  // We therefore verify the CONTENTS of the captured Set argument, not the call
-  // count. Asserting on the call count is a false-boundary check (production
-  // makes the call in both branches), which is what the earlier round of these
-  // steps did and which is what caused the DSTEW-1772 @DS1772_6..9 scenarios to
-  // false-fail-then-Type-1-out.
+  //   * The amendment external-validation step drops the PDA validator code from
+  //     the validator-set when the amendment does not impact PDA, so the real
+  //     ValidationService facade makes NO outbound provider-details /schedules
+  //     call; retaining it dispatches the call.
+  //   * Now that validateClaim runs over real HTTP (DSTEW-2317) we observe this
+  //     directly on the MockServer request journal — a recorded /schedules GET
+  //     means the PDA read was dispatched, its absence means it was suppressed.
+  //     Positive-path PDA assertions live in AmendmentPdaTriggerSteps /
+  //     AmendmentPdaOutcomeMappingSteps via verifyProviderSchedulesCalled(...).
   // ---------------------------------------------------------------------------
 
   @Then("no outbound PDA call was made")
   public void noOutboundPdaCallWasMade() {
     step(
-        "verify the mocked ValidationService.validateClaim(Claim, Set) was invoked with a"
-            + " validator-set that does NOT contain CLAIM_CATEGORY_OF_LAW_VALIDATOR — this is how"
-            + " AmendmentExternalValidationStep suppresses the outbound PDA call",
-        () -> assertValidatorSetPdaMembership(false));
+        "verify MockServer recorded no outbound PDA /schedules call — the amendment flow either"
+            + " short-circuited before validateClaim (eligibility / retrieval / request-contract"
+            + " gates) or reached the real ValidationService facade with a validator-set that omits"
+            + " CLAIM_CATEGORY_OF_LAW_VALIDATOR; both express the same observable contract over real"
+            + " HTTP now that validateClaim is transport-based (DSTEW-2317)",
+        () -> mock.verifyProviderSchedulesCalled(VerificationTimes.never()));
   }
 
   // Renamed from "no outbound FSP call was made" to avoid DuplicateStepDefinitionException
   // with AmendmentsEligibilityGateSteps (DSTEW-1764, merged via PR #452). Both classes need a
-  // no-FSP-call assertion but ours is a real Mockito verify on the mocked FSP client, while
-  // the eligibility-gate one is a pure symbolic spec-guard. The "(harness-verified)" qualifier
-  // makes the difference explicit at the feature-file level.
+  // no-FSP-call assertion but ours is a real MockServer request-count check on the FSP
+  // fee-calculation endpoint, while the eligibility-gate one is a pure symbolic spec-guard. The
+  // "(harness-verified)" qualifier makes the difference explicit at the feature-file level.
   @Then("no outbound FSP call was made from the amendment harness")
   public void noOutboundFspCallWasMade() {
     step(
-        "verify the mocked FSP client's calculateFee was NOT invoked",
-        () -> verify(feeSchemePlatformRestClient, never()).calculateFee(any()));
+        "verify no outbound FSP fee-calculation call was recorded by MockServer",
+        () -> mock.verifyAmendmentFspCalculationCalled(VerificationTimes.never()));
   }
 
   @Then("exactly {int} outbound FSP call was made")
   public void exactlyNOutboundFspCallsWereMade(int expected) {
     step(
-        "verify FSP.calculateFee was invoked exactly " + expected + " times",
-        () -> verify(feeSchemePlatformRestClient, times(expected)).calculateFee(any()));
-  }
-
-  /**
-   * Captures the {@code Set<ClaimValidatorCode>} argument passed to the single {@code
-   * validateClaim(Claim, Set)} invocation on the amendment path and asserts on whether {@link
-   * ClaimValidatorCode#CLAIM_CATEGORY_OF_LAW_VALIDATOR} is (or is not) a member. This is the exact
-   * boundary at which {@link
-   * uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep}
-   * expresses PDA suppression — it always calls {@code validateClaim}, and toggles PDA by removing
-   * this specific validator code from the request.
-   */
-  @SuppressWarnings("unchecked")
-  private void assertValidatorSetPdaMembership(boolean pdaExpectedInSet) {
-    ArgumentCaptor<Set<ClaimValidatorCode>> captor = ArgumentCaptor.forClass((Class) Set.class);
-    if (pdaExpectedInSet) {
-      // Strict: validateClaim MUST have been invoked AND the captured Set MUST contain PDA.
-      verify(validationService).validateClaim(any(), captor.capture());
-      assertThat(captor.getValue())
-          .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
-          .contains(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
-      return;
-    }
-    // Lenient (no-PDA case): the amendment flow either short-circuited before validateClaim
-    // (eligibility / retrieval / request-contract gates) OR reached it with a Set that omits
-    // CLAIM_CATEGORY_OF_LAW_VALIDATOR. Both express the same observable contract: no PDA
-    // dispatch. The eligibility-gate scenarios (DSTEW-1764) hit the first branch; the DSTEW-1772
-    // PDA-suppression scenarios hit the second.
-    long invocations =
-        Mockito.mockingDetails(validationService).getInvocations().stream()
-            .filter(i -> "validateClaim".equals(i.getMethod().getName()))
-            .count();
-    if (invocations == 0L) {
-      return;
-    }
-    verify(validationService).validateClaim(any(), captor.capture());
-    assertThat(captor.getValue())
-        .as("validator-set passed to ValidationService.validateClaim(Claim, Set)")
-        .doesNotContain(ClaimValidatorCode.CLAIM_CATEGORY_OF_LAW_VALIDATOR);
+        "verify FSP fee-calculation was called exactly " + expected + " times",
+        () -> mock.verifyAmendmentFspCalculationCalled(VerificationTimes.exactly(expected)));
   }
 
   // ---------------------------------------------------------------------------
@@ -372,5 +339,18 @@ public class AmendmentHarnessCommonSteps {
         + AMENDMENT_USER_ID
         + "\""
         + ",\"client_forename\":\"Harness-Canary\"}";
+  }
+
+  private String buildPricingPatch(long submittedVersion) {
+    // case_start_date is a pricing-impacting FSP request-body field; changing it from the
+    // fixture's seeded 01/07/2025 triggers a single FeeSchemePlatformRestClient.calculateFee.
+    return "{\"version\":"
+        + submittedVersion
+        + ",\"amendment_requested_by\":\"PROVIDER\""
+        + ",\"amendment_reason_code\":\"PROVIDER_ERROR\""
+        + ",\"amendment_user_id\":\""
+        + AMENDMENT_USER_ID
+        + "\""
+        + ",\"case_start_date\":\"04/08/2025\"}";
   }
 }

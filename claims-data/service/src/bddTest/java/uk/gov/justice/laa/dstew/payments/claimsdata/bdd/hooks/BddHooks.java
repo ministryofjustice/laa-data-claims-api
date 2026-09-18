@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.hooks;
 
 import io.cucumber.java.Before;
+import java.io.IOException;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,7 +57,7 @@ public class BddHooks {
   private String topicArn;
 
   @Before(order = 0)
-  public void resetScenarioContextAndData() {
+  public void resetScenarioContextAndData() throws IOException {
     context.clear();
     submissionPeriodHelper.reset();
 
@@ -81,6 +82,11 @@ public class BddHooks {
     // Clear MockServer expectations and recorded requests so PDA-driven scenarios
     // (DSTEW-1646 / DSTEW-1773 / DSTEW-1774) start with a clean call log.
     bddMockServerSupport.reset();
+
+    // Seed the app FeeSchemePlatformRestClient happy-path stub. The amendment repricing path
+    // now goes through real HTTP → MockServer instead of a @MockitoBean; failure/override
+    // scenarios replace it via BddMockServerSupport#stubAmendmentFspCalculationStatus.
+    bddMockServerSupport.stubAmendmentFspOk();
   }
 
   @Before(order = 1)
