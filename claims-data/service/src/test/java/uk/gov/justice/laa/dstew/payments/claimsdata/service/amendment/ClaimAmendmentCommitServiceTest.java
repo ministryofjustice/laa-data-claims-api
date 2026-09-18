@@ -35,6 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeHandoffFactory;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentValidationMessagePersistenceService;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 @DisplayName("ClaimAmendmentCommitService commit behaviour")
@@ -48,6 +49,9 @@ class ClaimAmendmentCommitServiceTest {
   @Mock private FeeSchemeHandoffFactory handoffFactory;
 
   @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+
+  @Mock
+  private ClaimAmendmentValidationMessagePersistenceService validationMessagePersistenceService;
 
   @InjectMocks private ClaimAmendmentCommitService commitService;
 
@@ -204,6 +208,7 @@ class ClaimAmendmentCommitServiceTest {
     // Verify the FSP database record was prepared and saved
     verify(handoffFactory).prepareCalculatedFeeDetail(managedClaim, state, fspResponse, amendment);
     verify(calculatedFeeDetailRepository).save(expectedFeeDetail);
+    verify(validationMessagePersistenceService).persistCurrentWarnings(managedClaim, state);
   }
 
   @Test
@@ -226,6 +231,7 @@ class ClaimAmendmentCommitServiceTest {
     // Ensure no factory mappings or database saves occurred for fee detail
     verifyNoInteractions(handoffFactory);
     verifyNoInteractions(calculatedFeeDetailRepository);
+    verifyNoInteractions(validationMessagePersistenceService);
   }
 
   @Test
@@ -245,5 +251,6 @@ class ClaimAmendmentCommitServiceTest {
     verifyNoInteractions(persistenceService);
     verifyNoInteractions(handoffFactory);
     verifyNoInteractions(calculatedFeeDetailRepository);
+    verifyNoInteractions(validationMessagePersistenceService);
   }
 }
