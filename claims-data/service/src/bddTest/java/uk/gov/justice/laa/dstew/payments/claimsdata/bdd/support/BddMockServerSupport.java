@@ -74,44 +74,34 @@ public class BddMockServerSupport {
   }
 
   // -------------------------------------------------------------------------
-  // App-client Fee Scheme Platform stubs (the amendment repricing path).
+  // Amendment repricing FSP stubs.
   //
-  // The app's own FeeSchemePlatformRestClient calls the un-prefixed /v2 and /v1 paths (see main
-  // WebClientConfiguration), distinct from the /api/v2 and /api/v1 paths the claims-validation-core
-  // client uses above. Both resolve their base URL from ${FEE_SCHEME_PLATFORM_API_URL}, which
-  // CucumberSpringConfiguration already points at this MockServer, so removing the former
-  // @MockitoBean FeeSchemePlatformRestClient lets the amendment repricing path exercise real HTTP
-  // here. Seeded as the per-scenario happy default from BddHooks.
+  // The app's own FeeSchemePlatformRestClient is annotated @HttpExchange("/api"), so its calls
+  // resolve to the same /api/v2/fee-details and /api/v1/fee-calculation paths the
+  // claims-validation-core client uses above. Both resolve their base URL from
+  // ${FEE_SCHEME_PLATFORM_API_URL}, which CucumberSpringConfiguration points at this MockServer,
+  // so removing the former @MockitoBean FeeSchemePlatformRestClient lets the amendment repricing
+  // path exercise real HTTP here. Seeded as the per-scenario happy default from BddHooks.
   // -------------------------------------------------------------------------
 
-  private static final String FEE_DETAILS_APP = "/v2/fee-details/";
-  private static final String FEE_CALCULATION_APP = "/v1/fee-calculation";
-
-  /** Happy-path 200 stubs for the app FeeSchemePlatformRestClient fee-details + fee-calculation. */
+  /** Happy-path 200 stubs for the amendment FSP fee-details + fee-calculation endpoints. */
   public void stubAmendmentFspOk() throws IOException {
-    client
-        .when(request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS_APP + ".*"))
-        .respond(okJson(readJsonFromFile("fee-scheme/get-fee-details-200.json")));
-    client
-        .when(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP))
-        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
+    stubFeeSchemeEndpointsOk();
   }
 
   /**
-   * Overrides the app FSP fee-calculation stub to return the supplied HTTP status. Clears the
-   * default expectation first so this becomes the only match, regardless of registration order.
+   * Overrides the FSP fee-calculation stub to return the supplied HTTP status. Clears the default
+   * expectation first so this becomes the only match, regardless of registration order.
    */
   public void stubAmendmentFspCalculationStatus(int statusCode) {
-    HttpRequest feeCalc =
-        request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP);
+    HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
     client.clear(feeCalc, ClearType.EXPECTATIONS);
     client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
   }
 
-  /** Verifies how many times the app FSP {@code /v1/fee-calculation} endpoint was called. */
+  /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
   public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
-    client.verify(
-        request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION_APP), times);
+    client.verify(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);
   }
 
   // ---------------------------------------------------------------------------

@@ -154,6 +154,32 @@ public class AmendmentHarnessCommonSteps {
         });
   }
 
+  @When("I submit a well-formed pricing amendment")
+  public void iSubmitAWellFormedPricingAmendment() {
+    step(
+        "PATCH the amendment endpoint with a well-formed pricing (case_start_date) payload",
+        () -> {
+          if (!sharedPatchContext.isPopulated()) {
+            throw new IllegalStateException(
+                "No amendable claim seeded — call 'a fresh amendable claim ...' first");
+          }
+          // A pricing-impacting field change (case_start_date is on the FSP fee-calculation
+          // request body — see FeeSchemeRequestField) drives AmendmentFspValidationStep to make
+          // a real calculateFee call. Unlike a fee_code change it does not shift the resolved
+          // area of law, so it isolates the repricing HTTP path from the AoL eligibility gate.
+          sharedPatchContext.setPatchJson(buildPricingPatch(baselineClaimVersion));
+          api.patchClaimAmendment(
+              sharedPatchContext.getSubmissionId(),
+              sharedPatchContext.getClaimId(),
+              sharedPatchContext.getPatchJson());
+          log.info(
+              "[DSTEW-2353] PATCH pricing amendment for claim {} → status={} body={}",
+              sharedPatchContext.getClaimId(),
+              scenarioContext.getLastStatusCode(),
+              scenarioContext.getLastResponseBody());
+        });
+  }
+
   // ---------------------------------------------------------------------------
   // Then — outcome assertions
   // ---------------------------------------------------------------------------
@@ -359,5 +385,18 @@ public class AmendmentHarnessCommonSteps {
         + AMENDMENT_USER_ID
         + "\""
         + ",\"client_forename\":\"Harness-Canary\"}";
+  }
+
+  private String buildPricingPatch(long submittedVersion) {
+    // case_start_date is a pricing-impacting FSP request-body field; changing it from the
+    // fixture's seeded 01/07/2025 triggers a single FeeSchemePlatformRestClient.calculateFee.
+    return "{\"version\":"
+        + submittedVersion
+        + ",\"amendment_requested_by\":\"PROVIDER\""
+        + ",\"amendment_reason_code\":\"PROVIDER_ERROR\""
+        + ",\"amendment_user_id\":\""
+        + AMENDMENT_USER_ID
+        + "\""
+        + ",\"case_start_date\":\"04/08/2025\"}";
   }
 }
