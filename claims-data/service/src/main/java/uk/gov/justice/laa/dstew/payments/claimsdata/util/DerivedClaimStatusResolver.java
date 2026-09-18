@@ -16,6 +16,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
  *   <li>{@code claim_status = VOID} &rarr; {@link DerivedClaimStatus#VOIDED}
  *   <li>{@code claim_status = INVALID} &rarr; {@link DerivedClaimStatus#INVALID}
  *   <li>{@code claim_status = READY_TO_PROCESS} &rarr; {@link DerivedClaimStatus#READY_TO_PROCESS}
+ *   <li>{@code claim_status = VALIDATED_PENDING_APPROVAL} &rarr; {@link
+ *       DerivedClaimStatus#VALIDATED_PENDING_APPROVAL}
  *   <li>{@code has_assessment = true} &rarr; {@link DerivedClaimStatus#ASSESSED}
  *   <li>{@code is_amended = true} &rarr; {@link DerivedClaimStatus#AMENDED}
  *   <li>otherwise (i.e. {@code claim_status = VALID}) &rarr; {@link DerivedClaimStatus#ACCEPTED}
@@ -48,6 +50,7 @@ public class DerivedClaimStatusResolver {
       case VOID -> DerivedClaimStatus.VOIDED;
       case INVALID -> DerivedClaimStatus.INVALID;
       case READY_TO_PROCESS -> DerivedClaimStatus.READY_TO_PROCESS;
+      case VALIDATED_PENDING_APPROVAL -> DerivedClaimStatus.VALIDATED_PENDING_APPROVAL;
       case VALID -> {
         if (hasAssessment) {
           yield DerivedClaimStatus.ASSESSED;

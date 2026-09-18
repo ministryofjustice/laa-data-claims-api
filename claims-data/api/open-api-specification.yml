@@ -1493,6 +1493,10 @@ components:
         - REPLACED
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
+        - VALIDATED_PENDING_APPROVAL
+      description: |
+        Processing status for a bulk submission. VALIDATED_PENDING_APPROVAL indicates the bulk file passed initial validation and is held for provider review
+        before Final Submit; contained submissions/claims are not yet accepted (VALID).
     bulk_submission_error_code:
       type: string
       enum:
@@ -1528,8 +1532,11 @@ components:
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED
+        - VALIDATED_PENDING_APPROVAL
       description: |
-        Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion
+        Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion.
+        VALIDATED_PENDING_APPROVAL indicates the submission passed initial validation and is held for provider review
+        before Final Submit; its claims are not yet accepted (VALID).
     submission_claim:
       type: object
       description: Claim UUID and status
@@ -1682,6 +1689,7 @@ components:
         - VOIDED
         - INVALID
         - READY_TO_PROCESS
+        - VALIDATED_PENDING_APPROVAL
       description: |
         Derived business status of a claim. This is a read-only value computed from the raw
         `claim_status` together with `has_assessment` and `is_amended`. It does NOT replace
@@ -1692,12 +1700,17 @@ components:
         listed; descending is the reverse).
 
         Derivation precedence (first matching rule wins, not chronological):
-          1. claim_status = VOID              -> VOIDED
-          2. claim_status = INVALID           -> INVALID
-          3. claim_status = READY_TO_PROCESS  -> READY_TO_PROCESS
-          4. has_assessment = true            -> ASSESSED
-          5. is_amended = true                -> AMENDED
-          6. otherwise (claim_status = VALID) -> ACCEPTED
+          1. claim_status = VOID                 -> VOIDED
+          2. claim_status = INVALID              -> INVALID
+          3. claim_status = READY_TO_PROCESS     -> READY_TO_PROCESS
+          4. claim_status = VALIDATED_PENDING_APPROVAL -> VALIDATED_PENDING_APPROVAL
+          5. has_assessment = true               -> ASSESSED
+          6. is_amended = true                   -> AMENDED
+          7. otherwise (claim_status = VALID)    -> ACCEPTED
+
+        A `VALIDATED_PENDING_APPROVAL` claim has passed initial validation but is held for the provider's
+        Final Submit; it is not yet accepted, so it derives its own distinct business status rather
+        than `ACCEPTED`.
 
         A null `has_assessment` or `is_amended` is treated as false. `claim_status` is never null.
         See docs/derived-claim-status.md for the full specification and truth table.

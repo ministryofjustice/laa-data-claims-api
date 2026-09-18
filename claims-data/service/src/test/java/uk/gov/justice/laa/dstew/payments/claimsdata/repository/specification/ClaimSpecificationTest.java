@@ -26,6 +26,7 @@ import org.springframework.data.jpa.domain.Specification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 
@@ -1267,6 +1268,15 @@ class ClaimSpecificationTest {
 
       assertThat(result).isEqualTo(predicate1);
       verify(cb).selectCase();
+      // Ensure the VALIDATED_PENDING_APPROVAL branch maps to the correct DerivedClaimStatus ordinal
+      org.mockito.ArgumentCaptor<Integer> ordinalCaptor =
+          org.mockito.ArgumentCaptor.forClass(Integer.class);
+      // Capture the integer ordinals passed to the chained when(...) calls and assert the expected
+      // value is present
+      verify(caseBuilder, org.mockito.Mockito.atLeastOnce())
+          .when(org.mockito.ArgumentMatchers.nullable(Expression.class), ordinalCaptor.capture());
+      assertThat(ordinalCaptor.getAllValues())
+          .contains(DerivedClaimStatus.VALIDATED_PENDING_APPROVAL.ordinal());
       verify(caseBuilder).otherwise(anyInt());
       verify(cb).asc(root.get(ClaimSpecification.ID));
     }
