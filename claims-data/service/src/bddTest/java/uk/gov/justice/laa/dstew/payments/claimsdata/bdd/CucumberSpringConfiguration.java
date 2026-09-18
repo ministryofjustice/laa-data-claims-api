@@ -100,9 +100,12 @@ public class CucumberSpringConfiguration {
   @MockitoSpyBean private ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
 
   /**
-   * WARNING — aggregate-facade mock; see class-level Javadoc for the scope-risk explanation.
-   * Replace with a targeted PDA-transport mock in the follow-up story before adding scenarios that
-   * depend on real {@code ValidationService} side-effects.
+   * Retained as a spy only for two narrow, deliberate uses after the DSTEW-2317 convergence: (1)
+   * the {@code validateSubmission(...)} happy default that many non-amendment submission scenarios
+   * rely on, and (2) the {@code @dstew-1753} race-barrier carve-out that re-arms a {@code doAnswer}
+   * at the {@code validateClaim} boundary (a deterministic in-process seam HTTP cannot provide).
+   * Every amendment scenario's {@code validateClaim(...)} now runs the REAL facade over MockServer
+   * — see {@code BddAmendmentResetHook#applyDefaults()}.
    */
   @MockitoSpyBean private ValidationService validationService;
 }

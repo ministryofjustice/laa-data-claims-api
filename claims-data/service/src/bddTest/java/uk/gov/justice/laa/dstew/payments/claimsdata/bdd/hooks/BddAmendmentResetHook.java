@@ -7,10 +7,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 
 import io.cucumber.java.Before;
-import io.cucumber.java.Scenario;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
@@ -76,29 +74,24 @@ public class BddAmendmentResetHook {
         .when(claimAmendmentPersistenceService)
         .persistSuccessfulAmendment(any(), any());
 
+    // validateSubmission stays mocked: it is the submission harness's concern, exercised by many
+    // non-amendment scenarios that must not make real outbound validation HTTP. Only validateClaim
+    // converges onto the real facade here (DSTEW-2317).
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any());
     doReturn(validSubmissionResult()).when(validationService).validateSubmission(any(), any());
-    doReturn(validClaimResult()).when(validationService).validateClaim(any());
-    doReturn(validClaimResult()).when(validationService).validateClaim(any(), any());
-    doReturn(validClaimResult()).when(validationService).validateClaim(any(), any(), any());
-  }
 
-  @Before(order = -1)
-  public void enableRealClaimValidationForPdaStories(Scenario scenario) {
-    boolean isPdaStory =
-        scenario.getSourceTagNames().stream()
-            .anyMatch(
-                tag ->
-                    tag.equals("@dstew-1772")
-                        || tag.equals("@dstew-1773")
-                        || tag.equals("@dstew-1774"));
-    if (!isPdaStory) {
-      return;
-    }
+    // validateClaim converges onto the REAL ValidationService facade for every amendment scenario
+    // (DSTEW-2317). validateClaim is only ever called from the amendment external-validation path
+    // (AmendmentExternalValidationStep), so calling the real method has zero submission blast
+    // radius. Validation behaviour is now armed via MockServer fixtures (PDA /schedules + FSP),
+    // not a Mockito doReturn -- closing Ben's PR #455 concern that the happy-path stub bypassed
+    // real validation. The @dstew-1753 race scenarios deliberately re-arm a doAnswer barrier on
+    // top of this default within their own steps (see AmendmentsFinalSaveGuardSteps); that scoped
+    // carve-out is intentional and documented -- HTTP cannot provide the deterministic
+    // at-the-validateClaim-boundary seam those concurrency tests need.
     doCallRealMethod().when(validationService).validateClaim(any());
     doCallRealMethod().when(validationService).validateClaim(any(), any());
     doCallRealMethod().when(validationService).validateClaim(any(), any(), any());
-    log.debug("[DSTEW-2301] PDA amendment stories enabled real ValidationService.claim validation");
   }
 
   /**
@@ -109,16 +102,6 @@ public class BddAmendmentResetHook {
    */
   private static ValidationResult validSubmissionResult() {
     ValidationResult result = new ValidationResult();
-    result.setValid(true);
-    return result;
-  }
-
-  /**
-   * A {@link ClaimValidationResult} carrying {@code valid=true} and no issues — the "happy"
-   * baseline for the amendment external-validation step and any other caller.
-   */
-  private static ClaimValidationResult validClaimResult() {
-    ClaimValidationResult result = ClaimValidationResult.builder().build();
     result.setValid(true);
     return result;
   }
