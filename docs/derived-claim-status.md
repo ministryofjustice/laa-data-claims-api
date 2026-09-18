@@ -38,39 +38,45 @@ source of truth for precedence and sort ordering):
 4. `VOIDED`
 5. `INVALID`
 6. `READY_TO_PROCESS`
+7. `VALIDATED_PENDING_APPROVAL`
 
 ## Derivation algorithm
 
 Rules are evaluated top-to-bottom; the **first matching rule wins**. This precedence is fixed
 business logic and is **not** chronological.
 
-1. `claim_status = VOID`              &rarr; `VOIDED`
-2. `claim_status = INVALID`           &rarr; `INVALID`
-3. `claim_status = READY_TO_PROCESS`  &rarr; `READY_TO_PROCESS`
-4. `has_assessment = true`            &rarr; `ASSESSED`
-5. `is_amended = true`                &rarr; `AMENDED`
-6. otherwise (`claim_status = VALID`) &rarr; `ACCEPTED`
+1. `claim_status = VOID`                          &rarr; `VOIDED`
+2. `claim_status = INVALID`                       &rarr; `INVALID`
+3. `claim_status = READY_TO_PROCESS`              &rarr; `READY_TO_PROCESS`
+4. `claim_status = VALIDATED_PENDING_APPROVAL`    &rarr; `VALIDATED_PENDING_APPROVAL`
+5. `has_assessment = true`                        &rarr; `ASSESSED`
+6. `is_amended = true`                            &rarr; `AMENDED`
+7. otherwise (`claim_status = VALID`)             &rarr; `ACCEPTED`
 
 ## Truth table
 
-| claim_status      | has_assessment | is_amended | derived_claim_status |
-|-------------------|----------------|------------|----------------------|
-| VOID              | false          | false      | VOIDED               |
-| VOID              | false          | true       | VOIDED               |
-| VOID              | true           | false      | VOIDED               |
-| VOID              | true           | true       | VOIDED               |
-| INVALID           | false          | false      | INVALID              |
-| INVALID           | false          | true       | INVALID              |
-| INVALID           | true           | false      | INVALID              |
-| INVALID           | true           | true       | INVALID              |
-| READY_TO_PROCESS  | false          | false      | READY_TO_PROCESS     |
-| READY_TO_PROCESS  | false          | true       | READY_TO_PROCESS     |
-| READY_TO_PROCESS  | true           | false      | READY_TO_PROCESS     |
-| READY_TO_PROCESS  | true           | true       | READY_TO_PROCESS     |
-| VALID             | false          | false      | ACCEPTED             |
-| VALID             | false          | true       | AMENDED              |
-| VALID             | true           | false      | ASSESSED             |
-| VALID             | true           | true       | ASSESSED             |
+| claim_status                 | has_assessment | is_amended | derived_claim_status            |
+|-----------------------------|----------------|------------|----------------------------------|
+| VOID                        | false          | false      | VOIDED                           |
+| VOID                        | false          | true       | VOIDED                           |
+| VOID                        | true           | false      | VOIDED                           |
+| VOID                        | true           | true       | VOIDED                           |
+| INVALID                     | false          | false      | INVALID                          |
+| INVALID                     | false          | true       | INVALID                          |
+| INVALID                     | true           | false      | INVALID                          |
+| INVALID                     | true           | true       | INVALID                          |
+| READY_TO_PROCESS            | false          | false      | READY_TO_PROCESS                 |
+| READY_TO_PROCESS            | false          | true       | READY_TO_PROCESS                 |
+| READY_TO_PROCESS            | true           | false      | READY_TO_PROCESS                 |
+| READY_TO_PROCESS            | true           | true       | READY_TO_PROCESS                 |
+| VALIDATED_PENDING_APPROVAL  | false          | false      | VALIDATED_PENDING_APPROVAL       |
+| VALIDATED_PENDING_APPROVAL  | false          | true       | VALIDATED_PENDING_APPROVAL       |
+| VALIDATED_PENDING_APPROVAL  | true           | false      | VALIDATED_PENDING_APPROVAL       |
+| VALIDATED_PENDING_APPROVAL  | true           | true       | VALIDATED_PENDING_APPROVAL       |
+| VALID                       | false          | false      | ACCEPTED                         |
+| VALID                       | false          | true       | AMENDED                          |
+| VALID                       | true           | false      | ASSESSED                         |
+| VALID                       | true           | true       | ASSESSED                         |
 
 ## Relationship to raw `claim_status`
 
@@ -83,8 +89,8 @@ consumers that want the business status read `derived_claim_status`.
 
 `GET /api/v2/claims?sort=derived_claim_status,asc` orders by the canonical business ordering:
 
-- **Ascending:** `ACCEPTED, AMENDED, ASSESSED, VOIDED, INVALID, READY_TO_PROCESS`
-- **Descending:** `READY_TO_PROCESS, INVALID, VOIDED, ASSESSED, AMENDED, ACCEPTED`
+- **Ascending:** `ACCEPTED, AMENDED, ASSESSED, VOIDED, INVALID, READY_TO_PROCESS, VALIDATED_PENDING_APPROVAL`
+- **Descending:** `VALIDATED_PENDING_APPROVAL, READY_TO_PROCESS, INVALID, VOIDED, ASSESSED, AMENDED, ACCEPTED`
 
 Sorting is performed in the backend/database across the **full paginated result set** (not in the
 UI, and not just within a page). It is implemented with a SQL `CASE` expression whose ordinal
@@ -160,7 +166,7 @@ This removes the "last `orderBy` wins" limitation at the cost of a larger change
 
 ## Test expectations
 
-- **Unit** — `DerivedClaimStatusResolver`: full 16-row truth table, `null` booleans treated as
+- **Unit** — `DerivedClaimStatusResolver`: full 20-row truth table, `null` booleans treated as
   `false`, `null` status rejected.
 - **Unit** — `ClaimMapper.toClaimResponseV2`: `derived_claim_status` is populated and the raw
   `status` is unchanged.
