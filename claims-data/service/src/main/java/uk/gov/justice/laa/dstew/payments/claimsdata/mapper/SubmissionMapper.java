@@ -98,5 +98,7 @@ public interface SubmissionMapper {
   @Mapping(target = "submitted", source = "createdOn")
   @Mapping(target = "calculatedTotalAmount", ignore = true)
   @Mapping(target = "assessedTotalAmount", ignore = true)
+  @Mapping(target = "claims", ignore = true)
+  @Mapping(target = "matterStarts", ignore = true)
   SubmissionResponse toSubmissionResponse(Submission submission);
 }
