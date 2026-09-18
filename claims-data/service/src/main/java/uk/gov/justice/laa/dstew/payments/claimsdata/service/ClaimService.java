@@ -85,6 +85,7 @@ public class ClaimService
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final ClaimResultSetMapper claimResultSetMapper;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -381,8 +382,8 @@ public class ClaimService
    * Persist any validation messages contained in the patch.
    *
    * <p>If the incoming patch contains validation messages these are converted to {@link
-   * ValidationMessageLog} entities via the {@link #claimMapper} and saved to the {@link
-   * #validationMessageLogRepository}.
+   * ValidationMessageLog} entities via the {@link #validationMessageLogFactory} and saved to the
+   * {@link #validationMessageLogRepository}.
    *
    * @param claim the claim the messages belong to
    * @param claimPatch the amendment patch that may contain validation messages
@@ -394,7 +395,8 @@ public class ClaimService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                ValidationMessageLog log =
+                    validationMessageLogFactory.createForClaim(message, claim);
                 validationMessageLogRepository.save(log);
               });
     }

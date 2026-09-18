@@ -89,9 +89,8 @@ public interface SubmissionMapper {
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
   @Mapping(target = "messageCode", source = "message.messageCode")
-  @Mapping(
-      target = "claimAmendment",
-      ignore = true) // Ignores the optional link during base parsing
+  @Mapping(target = "version", ignore = true)
+  @Mapping(target = "supersededByVersion", ignore = true)
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Submission submission);
 
@@ -99,5 +98,7 @@ public interface SubmissionMapper {
   @Mapping(target = "submitted", source = "createdOn")
   @Mapping(target = "calculatedTotalAmount", ignore = true)
   @Mapping(target = "assessedTotalAmount", ignore = true)
+  @Mapping(target = "claims", ignore = true)
+  @Mapping(target = "matterStarts", ignore = true)
   SubmissionResponse toSubmissionResponse(Submission submission);
 }
