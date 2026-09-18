@@ -31,6 +31,11 @@ class DerivedClaimStatusResolverTest {
     "READY_TO_PROCESS, false, true,  READY_TO_PROCESS",
     "READY_TO_PROCESS, true,  false, READY_TO_PROCESS",
     "READY_TO_PROCESS, true,  true,  READY_TO_PROCESS",
+    // VALIDATED_PENDING_APPROVAL always -> VALIDATED_PENDING_APPROVAL
+    "VALIDATED_PENDING_APPROVAL, false, false, VALIDATED_PENDING_APPROVAL",
+    "VALIDATED_PENDING_APPROVAL, false, true,  VALIDATED_PENDING_APPROVAL",
+    "VALIDATED_PENDING_APPROVAL, true,  false, VALIDATED_PENDING_APPROVAL",
+    "VALIDATED_PENDING_APPROVAL, true,  true,  VALIDATED_PENDING_APPROVAL",
     // VALID -> depends on the flags, assessment taking precedence over amendment
     "VALID,            false, false, ACCEPTED",
     "VALID,            false, true,  AMENDED",
@@ -74,6 +79,7 @@ class DerivedClaimStatusResolverTest {
             DerivedClaimStatus.ASSESSED,
             DerivedClaimStatus.VOIDED,
             DerivedClaimStatus.INVALID,
-            DerivedClaimStatus.READY_TO_PROCESS);
+            DerivedClaimStatus.READY_TO_PROCESS,
+            DerivedClaimStatus.VALIDATED_PENDING_APPROVAL);
   }
 }

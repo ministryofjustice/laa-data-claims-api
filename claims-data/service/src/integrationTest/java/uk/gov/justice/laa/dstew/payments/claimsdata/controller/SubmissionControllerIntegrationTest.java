@@ -1063,6 +1063,52 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(submissionRepository.findAll()).hasSize(2);
   }
 
+  @Test
+  @DisplayName(
+      "Should return 409 Conflict when a new submission duplicates the office, area of law and "
+          + "period of an existing VALIDATED_PENDING_APPROVAL submission")
+  void postSubmissionShouldReturnConflictWhenExistingDuplicateIsValidatedPendingApproval()
+      throws Exception {
+    submissionRepository.deleteAll();
+
+    Submission heldSubmission =
+        Submission.builder()
+            .id(UUID.randomUUID())
+            .bulkSubmissionId(null)
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_APR_2025)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(POST_CUTOVER_DATE.atStartOfDay().toInstant(ZoneOffset.UTC))
+            .build();
+    submissionRepository.save(heldSubmission);
+
+    SubmissionPost newSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(newSubmission)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.title").value("Conflict"))
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(
+            jsonPath("$.type")
+                .value(
+                    "https://claimsdata.payments.laa.justice.gov.uk/errors/duplicate-submission"))
+        .andExpect(jsonPath("$.detail").value(containsString(PERIOD_APR_2025)));
+
+    assertThat(submissionRepository.findAll()).hasSize(1);
+  }
+
   private SubmissionPost createdSubmissionPost(UUID submissionId) {
     return SubmissionPost.builder()
         .submissionId(submissionId)
