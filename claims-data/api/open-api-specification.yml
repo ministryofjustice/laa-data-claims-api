@@ -1494,6 +1494,9 @@ components:
         - UNAUTHORISED
         - VALIDATION_SUCCEEDED
         - VALIDATED_PENDING_APPROVAL
+      description: |
+        Processing status for a bulk submission. VALIDATED_PENDING_APPROVAL indicates the bulk file passed initial validation and is held for provider review
+        before Final Submit; contained submissions/claims are not yet accepted (VALID).
     bulk_submission_error_code:
       type: string
       enum:
