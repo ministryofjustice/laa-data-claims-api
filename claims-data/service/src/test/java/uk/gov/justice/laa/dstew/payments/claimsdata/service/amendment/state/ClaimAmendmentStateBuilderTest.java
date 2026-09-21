@@ -70,6 +70,7 @@ class ClaimAmendmentStateBuilderTest {
         .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
         .caseId(CASE_ID)
         .exemptionCriteriaSatisfied(EXEMPTION_CRITERIA_SATISFIED)
+        .netDisbursementAmount(new java.math.BigDecimal("1100.00"))
         .build();
   }
 
@@ -241,6 +242,25 @@ class ClaimAmendmentStateBuilderTest {
       assertThat(state.getRequestPayload().getCaseReferenceNumber().isPresent()).isFalse();
       // ...while the submitted field is present.
       assertThat(state.getRequestPayload().getFeeCode().isPresent()).isTrue();
+    }
+
+    @Test
+    @DisplayName(
+        "pricing-impacting claim and summary-fee fields are reflected in the post-amendment state")
+    void pricingImpactingFieldsAreAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder()
+              .feeCode(JsonNullable.of("CLININQ"))
+              .netDisbursementAmount(JsonNullable.of(new java.math.BigDecimal("2200.00")))
+              .build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getFeeCode()).isEqualTo("CLININQ");
+      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo("2200.00");
+      assertThat(after.getFeeCode()).isNotEqualTo(beforeState().getFeeCode());
+      assertThat(after.getNetDisbursementAmount())
+          .isNotEqualByComparingTo(beforeState().getNetDisbursementAmount());
     }
   }
 }
