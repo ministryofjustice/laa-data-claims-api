@@ -248,12 +248,15 @@ public class AmendmentMetadataValidationSteps {
   /** Asserts no claim_amendment row was persisted for the scenario's claim. */
   @Then("no amendment state was committed")
   public void noAmendmentStateWasCommitted() {
+    UUID targetClaimId = claimId != null ? claimId : sharedPatchContext.getClaimId();
     long count =
         claimAmendmentRepository.findAll().stream()
-            .filter(a -> a.getClaim() != null && claimId.equals(a.getClaim().getId()))
+            .filter(a -> a.getClaim() != null && targetClaimId.equals(a.getClaim().getId()))
             .count();
     assertThat(count)
-        .as("No claim_amendment row should exist for a rejected amendment on claim %s", claimId)
+        .as(
+            "No claim_amendment row should exist for a rejected amendment on claim %s",
+            targetClaimId)
         .isZero();
   }
 
