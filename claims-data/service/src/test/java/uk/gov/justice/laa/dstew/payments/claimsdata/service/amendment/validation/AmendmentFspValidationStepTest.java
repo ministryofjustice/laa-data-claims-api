@@ -360,4 +360,45 @@ class AmendmentFspValidationStepTest {
     assertThat(state.getFspResponseContext()).isNull();
     verifyNoInteractions(fspClient);
   }
+
+  @Test
+  @DisplayName(
+      "Should execute repricing for a pricing-impacting fee-code or net-disbursement mutation")
+  void validate_whenPricingDiffMatchesFeeCodeOrAmount_callsFsp() {
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.LEGAL_HELP).build())
+            .postAmendmentState(
+                postStateBuilder
+                    .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+                    .feeCode("CLININQ")
+                    .netDisbursementAmount(new BigDecimal("2200.00"))
+                    .build())
+            .build();
+
+    AmendmentDiff pricingDiff =
+        AmendmentDiff.of(
+            List.of(
+                new DiffEntry("claim.feeCode", null, "CAPA", "CLININQ"),
+                new DiffEntry(
+                    "claimSummaryFee.netDisbursementAmount",
+                    null,
+                    new BigDecimal("1100.00"),
+                    new BigDecimal("2200.00"))));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingDiff);
+    when(fspClient.calculateFee(any()))
+        .thenReturn(ResponseEntity.ok(new FeeCalculationResponse().feeCode("CLININQ")));
+    when(claimStateSnapshotMapper.toSnapshot(any(FeeCalculationResponse.class)))
+        .thenReturn(
+            CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(500.00)).build());
+    when(feeCalculationMetadataResolver.resolve(state, "CLININQ"))
+        .thenReturn(
+            new ResolvedFeeMetadata(
+                FeeCalculationType.HOURLY, "Test fee description", "LEGAL_HELP"));
+
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    assertThat(errors).isEmpty();
+    assertThat(state.getFspResponseContext()).isNotNull();
+  }
 }
