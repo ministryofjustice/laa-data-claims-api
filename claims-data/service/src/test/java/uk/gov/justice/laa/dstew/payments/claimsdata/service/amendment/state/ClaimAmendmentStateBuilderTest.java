@@ -29,6 +29,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestDat
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.VERSION;
 
+import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,7 @@ class ClaimAmendmentStateBuilderTest {
         .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
         .caseId(CASE_ID)
         .exemptionCriteriaSatisfied(EXEMPTION_CRITERIA_SATISFIED)
-        .netDisbursementAmount(new java.math.BigDecimal("1100.00"))
+        .netDisbursementAmount(new BigDecimal("1100.00"))
         .build();
   }
 
@@ -246,18 +247,18 @@ class ClaimAmendmentStateBuilderTest {
 
     @Test
     @DisplayName(
-        "pricing-impacting claim and summary-fee fields are reflected in the post-amendment state")
+        "DSTEW-2359: post-amendment state reflects feeCode and netDisbursementAmount so downstream repricing can detect the change")
     void pricingImpactingFieldsAreAppliedToPostAmendmentState() {
       ClaimAmendmentPayload payload =
           ClaimAmendmentPayload.builder()
               .feeCode(JsonNullable.of("CLININQ"))
-              .netDisbursementAmount(JsonNullable.of(new java.math.BigDecimal("2200.00")))
+              .netDisbursementAmount(JsonNullable.of(new BigDecimal("2200.00")))
               .build();
 
       ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
 
       assertThat(after.getFeeCode()).isEqualTo("CLININQ");
-      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo("2200.00");
+      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo(new BigDecimal("2200.00"));
       assertThat(after.getFeeCode()).isNotEqualTo(beforeState().getFeeCode());
       assertThat(after.getNetDisbursementAmount())
           .isNotEqualByComparingTo(beforeState().getNetDisbursementAmount());
