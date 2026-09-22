@@ -11,7 +11,7 @@ permissions:
 jobs:
   semgrep-scan:
     name: semgrep-security-scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: returntocorp/semgrep
     steps:
@@ -20,7 +20,7 @@ jobs:
         run: semgrep scan --exclude-rule python.django.security.django-no-csrf-token.django-no-csrf-token --error --config auto
 
   generate-swagger-ui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       actions: read
@@ -57,7 +57,7 @@ jobs:
 
   build-push-docker:
     name: build and push docker image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - generate-swagger-ui
     permissions:
@@ -93,7 +93,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
 
   deploy-uat:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - build-push-docker
     environment: uat

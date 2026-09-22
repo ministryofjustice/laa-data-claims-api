@@ -52,7 +52,7 @@ jobs:
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   bdd-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [ release ]
     timeout-minutes: 20
     permissions:
@@ -89,7 +89,7 @@ jobs:
       snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   deploy-uat:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - ecr-publish-image
       - pact-test
@@ -137,7 +137,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-staging:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - ecr-publish-image
       - pact-test
@@ -187,7 +187,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-production:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - ecr-publish-image
       - pact-test
