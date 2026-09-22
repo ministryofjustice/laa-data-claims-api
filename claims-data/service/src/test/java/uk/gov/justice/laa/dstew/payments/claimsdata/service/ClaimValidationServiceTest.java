@@ -10,6 +10,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidati
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,15 +24,18 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentInvalidUserException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimSummaryFeeNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ClaimValidationService tests")
 class ClaimValidationServiceTest {
 
   @Mock private ClaimRepository claimRepository;
@@ -44,10 +48,12 @@ class ClaimValidationServiceTest {
   // Validate User ID Tests
   // =====================================================
   @Nested
+  @DisplayName("Validate User ID tests")
   class ValidateUserIdTests {
 
     @ParameterizedTest
     @MethodSource("invalidUserIds")
+    @DisplayName("Should throw when user id is invalid")
     void shouldThrowWhenUserIdInvalid(
         String userId, AssessmentInvalidUserException.ErrorMessage errorMessage) {
       assertThatThrownBy(() -> validationService.validateUserId(userId))
@@ -70,9 +76,73 @@ class ClaimValidationServiceTest {
     }
 
     @Test
+    @DisplayName("Should not throw when user id is valid")
     void shouldNotThrowWhenUserIdValid() {
       assertDoesNotThrow(() -> validationService.validateUserId(Uuid7.timeBasedUuid().toString()));
     }
+  }
+
+  // =====================================================
+  // Version Validation Tests
+  // =====================================================
+  @Test
+  @DisplayName("Should not throw when version is null")
+  void shouldNotThrowWhenVersionIsNull() {
+    assertDoesNotThrow(() -> validationService.validateVersionNumber(null));
+  }
+
+  @Test
+  @DisplayName("Should not throw when version is positive")
+  void shouldNotThrowWhenVersionIsPositive() {
+    assertDoesNotThrow(() -> validationService.validateVersionNumber(1L));
+  }
+
+  @Test
+  @DisplayName("Should not throw when provided version is null for claim match")
+  void shouldNotThrowWhenProvidedVersionIsNullForClaimMatch() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).version(1L).build();
+
+    assertDoesNotThrow(() -> validationService.validateClaimVersionMatches(claim, null));
+  }
+
+  @Test
+  @DisplayName("Should throw when claim is null but provided version is not")
+  void shouldThrowWhenClaimIsNullButProvidedIsNot() {
+    assertThatThrownBy(() -> validationService.validateClaimVersionMatches(null, 1L))
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining("null");
+  }
+
+  @Test
+  @DisplayName("Should not throw when provided version matches claim version")
+  void shouldNotThrowWhenProvidedVersionMatchesClaimVersion() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).version(5L).build();
+
+    assertDoesNotThrow(() -> validationService.validateClaimVersionMatches(claim, 5L));
+  }
+
+  @Test
+  @DisplayName("Should throw when provided version does not match claim version")
+  void shouldThrowWhenProvidedVersionDoesNotMatchClaimVersion() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).version(2L).build();
+
+    assertThatThrownBy(() -> validationService.validateClaimVersionMatches(claim, 3L))
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining(claimId.toString());
+  }
+
+  @Test
+  @DisplayName("Should throw when claim version is null but provided is not")
+  void shouldThrowWhenClaimVersionIsNullButProvidedIsNot() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).build();
+
+    assertThatThrownBy(() -> validationService.validateClaimVersionMatches(claim, 1L))
+        .isInstanceOf(ClaimConflictException.class)
+        .hasMessageContaining(claimId.toString());
   }
 
   // =====================================================
@@ -80,10 +150,17 @@ class ClaimValidationServiceTest {
   // =====================================================
   @ParameterizedTest
   @MethodSource("invalidVoidClaimParameters")
+  @DisplayName("Should throw when void claim parameters are invalid")
   void shouldThrowWhenVoidClaimParametersInvalid(
       UUID claimId, UUID createdByUserId, String reason, String expectedMessage) {
-    assertThatThrownBy(
-            () -> validationService.validateVoidClaimParameters(claimId, createdByUserId, reason))
+    VoidClaimRequest voidClaimRequest =
+        VoidClaimRequest.builder()
+            .createdByUserId(createdByUserId)
+            .version(1L)
+            .assessmentReason(reason)
+            .build();
+
+    assertThatThrownBy(() -> validationService.validateVoidClaimRequest(claimId, voidClaimRequest))
         .isInstanceOf(ClaimBadRequestException.class)
         .hasMessageContaining(expectedMessage);
   }
@@ -98,19 +175,81 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should not throw when void claim parameters are valid")
   void shouldNotThrowWhenVoidClaimParametersValid() {
     UUID claimId = Uuid7.timeBasedUuid();
     UUID userId = Uuid7.timeBasedUuid();
     String reason = "Valid reason";
 
-    assertDoesNotThrow(
-        () -> validationService.validateVoidClaimParameters(claimId, userId, reason));
+    VoidClaimRequest voidClaimRequest =
+        VoidClaimRequest.builder()
+            .createdByUserId(userId)
+            .version(1L)
+            .assessmentReason(reason)
+            .build();
+
+    assertDoesNotThrow(() -> validationService.validateVoidClaimRequest(claimId, voidClaimRequest));
+  }
+
+  @Test
+  @DisplayName("Should throw when claimId is null")
+  void shouldThrowWhenClaimIdIsNull() {
+    UUID userId = Uuid7.timeBasedUuid();
+    VoidClaimRequest voidClaimRequest =
+        VoidClaimRequest.builder()
+            .createdByUserId(userId)
+            .version(1L)
+            .assessmentReason("reason")
+            .build();
+
+    assertThatThrownBy(() -> validationService.validateVoidClaimRequest(null, voidClaimRequest))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("claimId must be provided");
+  }
+
+  @Test
+  @DisplayName("Should throw when createdByUserId is null")
+  void shouldThrowWhenCreatedByUserIdIsNull() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    VoidClaimRequest voidClaimRequest =
+        VoidClaimRequest.builder().version(1L).assessmentReason("reason").build();
+
+    assertThatThrownBy(() -> validationService.validateVoidClaimRequest(claimId, voidClaimRequest))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("createdByUserId must be provided");
+  }
+
+  @Test
+  @DisplayName("Should throw when assessment reason is null")
+  void shouldThrowWhenAssessmentReasonIsNull() {
+    assertThatThrownBy(() -> validationService.validateAssessmentReason(null))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("assessmentReason must be provided");
+  }
+
+  @Test
+  @DisplayName("Should throw when assessment reason is blank or empty")
+  void shouldThrowWhenAssessmentReasonIsBlankOrEmpty() {
+    assertThatThrownBy(() -> validationService.validateAssessmentReason(""))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("assessmentReason must be provided");
+
+    assertThatThrownBy(() -> validationService.validateAssessmentReason("   "))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("assessmentReason must be provided");
+  }
+
+  @Test
+  @DisplayName("Should not throw when assessment reason is valid")
+  void shouldNotThrowWhenAssessmentReasonIsValid() {
+    assertDoesNotThrow(() -> validationService.validateAssessmentReason("valid reason"));
   }
 
   // =====================================================
   // Claim Summary Fee Tests
   // =====================================================
   @Test
+  @DisplayName("Should throw when claim summary fee not found")
   void shouldThrowWhenClaimSummaryFeeNotFound() {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimSummaryFeeRepository.findByClaimId(claimId)).thenReturn(Optional.empty());
@@ -123,6 +262,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should return claim summary fee when it exists")
   void shouldReturnClaimSummaryFeeWhenExists() {
     UUID claimId = Uuid7.timeBasedUuid();
     ClaimSummaryFee fee = new ClaimSummaryFee();
@@ -133,6 +273,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should throw when claim summary fee does not exist by id")
   void shouldThrowWhenClaimSummaryFeeDoesNotExistById() {
     UUID feeId = Uuid7.timeBasedUuid();
     when(claimSummaryFeeRepository.existsById(feeId)).thenReturn(false);
@@ -143,6 +284,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should return reference when claim summary fee exists by id")
   void shouldReturnReferenceWhenClaimSummaryFeeExistsById() {
     UUID feeId = Uuid7.timeBasedUuid();
     ClaimSummaryFee fee = new ClaimSummaryFee();
@@ -157,6 +299,7 @@ class ClaimValidationServiceTest {
   // Claim Tests
   // =====================================================
   @Test
+  @DisplayName("Should throw when claim not found")
   void shouldThrowWhenClaimNotFound() {
     UUID claimId = Uuid7.timeBasedUuid();
     when(claimRepository.findById(claimId)).thenReturn(Optional.empty());
@@ -167,6 +310,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should return claim when valid")
   void shouldReturnClaimWhenValid() {
     UUID claimId = Uuid7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
@@ -176,10 +320,23 @@ class ClaimValidationServiceTest {
     assertThat(result).isSameAs(claim);
   }
 
+  @Test
+  @DisplayName("Should throw when claim status is VOID")
+  void shouldThrowWhenClaimStatusIsVoid() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VOID).build();
+    when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+
+    assertThatThrownBy(() -> validationService.getValidClaimOrThrow(claimId))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining(claimId.toString());
+  }
+
   // =====================================================
   // Assessment Type Tests
   // =====================================================
   @Test
+  @DisplayName("Should throw when assessment type is null")
   void shouldThrowWhenAssessmentTypeIsNull() {
     assertThatThrownBy(() -> validationService.validateAssessmentType(null))
         .isInstanceOf(ClaimBadRequestException.class)
@@ -187,6 +344,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should throw when assessment type is VOID")
   void shouldThrowWhenAssessmentTypeIsVoid() {
     assertThatThrownBy(() -> validationService.validateAssessmentType(AssessmentType.VOID))
         .isInstanceOf(ClaimBadRequestException.class);
@@ -197,6 +355,7 @@ class ClaimValidationServiceTest {
       value = AssessmentType.class,
       names = {"VOID"},
       mode = EnumSource.Mode.EXCLUDE)
+  @DisplayName("Should not throw for non-VOID assessment types")
   void shouldNotThrowForNonVoidAssessmentTypes(AssessmentType type) {
     assertDoesNotThrow(() -> validationService.validateAssessmentType(type));
   }
@@ -204,11 +363,21 @@ class ClaimValidationServiceTest {
   // =====================================================
   // Claim Status Tests
   // =====================================================
+  @Test
+  @DisplayName("Should not throw when claim has VALID status")
+  void shouldNotThrowWhenClaimHasValidStatus() {
+    UUID claimId = Uuid7.timeBasedUuid();
+    Claim claim = Claim.builder().id(claimId).status(ClaimStatus.VALID).build();
+
+    assertDoesNotThrow(() -> validationService.ensureClaimIsValid(claim));
+  }
+
   @ParameterizedTest
   @EnumSource(
       value = ClaimStatus.class,
       names = {"VALID"},
       mode = EnumSource.Mode.EXCLUDE)
+  @DisplayName("Should throw when claim does not have VALID status")
   void shouldThrowWhenClaimDoesNotHaveValidStatus(ClaimStatus status) {
     UUID claimId = Uuid7.timeBasedUuid();
     Claim claim = Claim.builder().id(claimId).status(status).build();
@@ -222,12 +391,14 @@ class ClaimValidationServiceTest {
   // Ensure Status Is Not Void Tests
   // =====================================================
   @Nested
+  @DisplayName("Ensure status is not VOID tests")
   class EnsureStatusIsNotVoidTests {
 
     @ParameterizedTest
     @EnumSource(
         value = ClaimStatus.class,
         names = {"VOID"})
+    @DisplayName("Should throw when status is VOID")
     void shouldThrowWhenStatusIsVoid(ClaimStatus status) {
       assertThatThrownBy(() -> validationService.ensureStatusIsNotVoid(status))
           .isInstanceOf(ClaimBadRequestException.class)
@@ -239,6 +410,7 @@ class ClaimValidationServiceTest {
         value = ClaimStatus.class,
         names = {"VOID"},
         mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("Should not throw for non-VOID statuses")
     void shouldNotThrowForNonVoidStatuses(ClaimStatus status) {
       assertDoesNotThrow(() -> validationService.ensureStatusIsNotVoid(status));
     }

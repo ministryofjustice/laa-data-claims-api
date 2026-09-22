@@ -177,7 +177,8 @@ public class Claim {
   /**
    * Marks the claim as void by setting its status to {@link ClaimStatus#VOID}. This method also
    * sets the `hasAssessment` field to true, updates the `updatedByUserId` with the provided user
-   * ID, and modifies the `updatedOn` timestamp to the current time.
+   * ID. updated on will be automatically updated by JPA due to the @UpdateTimestamp annotation and
+   * the version will be incremented by JPA due to the @Version annotation.
    *
    * @param userId the ID of the user performing the void operation
    */
@@ -185,6 +186,5 @@ public class Claim {
     this.status = ClaimStatus.VOID;
     this.hasAssessment = true;
     this.updatedByUserId = userId.toString();
-    this.updatedOn = Instant.now();
   }
 }

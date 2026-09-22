@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,6 +43,8 @@ class SubmissionEventPublisherServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "publishBulkSubmissionEvent publishes bulk submission event with correct payload and attributes")
   void publish_BulkSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sns topic
     UUID bulkSubmissionId = Uuid7.timeBasedUuid();
@@ -78,6 +81,8 @@ class SubmissionEventPublisherServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "publishSubmissionValidationEvent publishes validation event with correct payload and attributes")
   void publish_ValidateSubmissionEvent_sendsMessageWithCorrectPayload() {
     // given an Sns queue
     UUID submissionId = Uuid7.timeBasedUuid();
@@ -109,6 +114,8 @@ class SubmissionEventPublisherServiceTest {
   }
 
   @Test
+  @DisplayName(
+      "publishSubmissionValidationSucceededEvent publishes success event with correct payload and attributes")
   void publish_ValidationSucceededEvent_sendsMessageWithCorrectPayload() {
     // given an Sns queue
     UUID submissionId = Uuid7.timeBasedUuid();
@@ -140,6 +147,7 @@ class SubmissionEventPublisherServiceTest {
   }
 
   @Test
+  @DisplayName("publishSubmissionValidationSucceededEvent does not throw when SNS publish fails")
   void publish_ValidationSucceededEvent_doesNotThrowWhenPublishFails() {
     // given an Sns queue
     UUID submissionId = Uuid7.timeBasedUuid();
