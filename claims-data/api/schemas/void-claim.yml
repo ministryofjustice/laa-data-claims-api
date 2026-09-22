@@ -1,0 +1,33 @@
+# =============================================================================
+# Shared void_claim schema definitions.
+#
+# Single source of truth for the void claim request/response shapes used by
+# the POST void claim endpoint in open-api-specification.yml.
+# =============================================================================
+void_claim_201_response:
+  type: object
+  required:
+    - id
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: UUID of the created void assessment record.
+
+void_claim_request:
+  type: object
+  required:
+    - created_by_user_id
+    - assessment_reason
+  properties:
+    created_by_user_id:
+      type: string
+      format: uuid
+      description: The user ID of the user who is attempting to void the claim.
+    assessment_reason:
+      type: string
+      description: The reason for voiding the claim. This is a free text field that will be stored in the database and can be used for auditing purposes.
+    version:
+      type: integer
+      format: int64
+      description: Used for optimistic locking.

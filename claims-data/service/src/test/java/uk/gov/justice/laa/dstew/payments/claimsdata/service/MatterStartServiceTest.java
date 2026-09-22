@@ -40,6 +40,7 @@ class MatterStartServiceTest {
   class CreateMatterStartTests {
 
     @Test
+    @DisplayName("Should create a matter start and persist it")
     void shouldCreateMatterStart() {
       final UUID submissionId = Uuid7.timeBasedUuid();
       final Submission submission = Submission.builder().id(submissionId).build();
@@ -61,6 +62,7 @@ class MatterStartServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw SubmissionNotFoundException when submission is missing")
     void shouldThrowWhenSubmissionNotFound() {
       final UUID missingSubmissionId = Uuid7.timeBasedUuid();
       final MatterStartPost request = new MatterStartPost();
@@ -78,6 +80,7 @@ class MatterStartServiceTest {
   class GetMatterStartIdsForSubmissionTests {
 
     @Test
+    @DisplayName("Should return matter start IDs for a given submission")
     void shouldGetMatterStartIdsForSubmission() {
       final UUID submissionId = Uuid7.timeBasedUuid();
       final MatterStart ms = MatterStart.builder().id(Uuid7.timeBasedUuid()).build();

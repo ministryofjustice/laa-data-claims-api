@@ -148,15 +148,15 @@ public class ClaimController implements ClaimsApi {
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<VoidClaim201Response> voidClaim(UUID claimId, VoidClaimRequest request) {
-    UUID assessmentId =
-        claimService.voidClaimByIdAndCreateAssessment(
-            claimId, request.getCreatedByUserId(), request.getAssessmentReason());
+
+    UUID assessmentId = claimService.voidClaimByIdAndCreateAssessment(claimId, request);
 
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path(GET_ASSESSMENT_ENDPOINT)
             .buildAndExpand(claimId, assessmentId)
             .toUri();
+
     return ResponseEntity.created(location)
         .body(VoidClaim201Response.builder().id(assessmentId).build());
   }
