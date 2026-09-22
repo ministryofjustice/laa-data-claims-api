@@ -117,7 +117,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     Given an original amendable claim exists with a valid pricing baseline
     And the claim already has an assessment recorded
     And the classifier will mark the amendment "impacts_pricing" as "false"
-    And an amendment changes only the field "client_surname" to "Smith"
+    And an amendment changes only the field "client_surname" to "Jones"
     And the field "client_surname" is on the AaBC amendable-fields list for the claim's area of law
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the response does not contain error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
