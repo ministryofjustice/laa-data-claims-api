@@ -286,22 +286,32 @@ public class AssessmentAdvancesClaimVersionSteps {
   public void iPostAValidAssessmentForClaim(String label) {
     step(
         "POST " + POST_ASSESSMENT_PATH + " with a valid payload for claim '" + label + "'",
-        () ->
-            postAssessment(
-                requireClaim(label),
-                assessmentJson(
-                    requireClaim(label), currentSummaryFeeId, "ESCAPE_CASE_ASSESSMENT")));
+        () -> {
+          UUID claimId = requireClaim(label);
+          postAssessment(
+              claimId,
+              assessmentJson(
+                  claimId,
+                  currentSummaryFeeId,
+                  "ESCAPE_CASE_ASSESSMENT",
+                  currentClaimVersion(claimId)));
+        });
   }
 
   @When("I POST a second valid assessment for claim {string}")
   public void iPostASecondValidAssessmentForClaim(String label) {
     step(
         "POST " + POST_ASSESSMENT_PATH + " for the second time on claim '" + label + "'",
-        () ->
-            postAssessment(
-                requireClaim(label),
-                assessmentJson(
-                    requireClaim(label), currentSummaryFeeId, "ESCAPE_CASE_ASSESSMENT")));
+        () -> {
+          UUID claimId = requireClaim(label);
+          postAssessment(
+              claimId,
+              assessmentJson(
+                  claimId,
+                  currentSummaryFeeId,
+                  "ESCAPE_CASE_ASSESSMENT",
+                  currentClaimVersion(claimId)));
+        });
   }
 
   @When("I POST a VOID assessment for claim {string}")
@@ -324,10 +334,12 @@ public class AssessmentAdvancesClaimVersionSteps {
             + " with a payload that references a non-existent "
             + "claim_summary_fee_id, forcing rollback of the assessment transaction",
         () -> {
+          UUID claimId = requireClaim(label);
           UUID bogusFeeId = Uuid7.timeBasedUuid();
           postAssessment(
-              requireClaim(label),
-              assessmentJson(requireClaim(label), bogusFeeId, "ESCAPE_CASE_ASSESSMENT"));
+              claimId,
+              assessmentJson(
+                  claimId, bogusFeeId, "ESCAPE_CASE_ASSESSMENT", currentClaimVersion(claimId)));
         });
   }
 
@@ -339,9 +351,14 @@ public class AssessmentAdvancesClaimVersionSteps {
             + "' — simulates the race where the assessment "
             + "commits after the amendment screen loaded the claim",
         () -> {
+          UUID claimId = requireClaim(label);
           postAssessment(
-              requireClaim(label),
-              assessmentJson(requireClaim(label), currentSummaryFeeId, "ESCAPE_CASE_ASSESSMENT"));
+              claimId,
+              assessmentJson(
+                  claimId,
+                  currentSummaryFeeId,
+                  "ESCAPE_CASE_ASSESSMENT",
+                  currentClaimVersion(claimId)));
           assertThat(lastStatusCode)
               .as(
                   "concurrent assessment must succeed (status 201) so the amendment sees a stale "
@@ -358,9 +375,14 @@ public class AssessmentAdvancesClaimVersionSteps {
             + "' — guards the DSTEW-2051 regression "
             + "that the second assessment used to bypass claim update",
         () -> {
+          UUID claimId = requireClaim(label);
           postAssessment(
-              requireClaim(label),
-              assessmentJson(requireClaim(label), currentSummaryFeeId, "ESCAPE_CASE_ASSESSMENT"));
+              claimId,
+              assessmentJson(
+                  claimId,
+                  currentSummaryFeeId,
+                  "ESCAPE_CASE_ASSESSMENT",
+                  currentClaimVersion(claimId)));
           assertThat(lastStatusCode)
               .as(
                   "second assessment must succeed (status 201) so the amendment sees a stale "
@@ -403,7 +425,11 @@ public class AssessmentAdvancesClaimVersionSteps {
         () ->
             postAssessment(
                 currentClaimId,
-                assessmentJson(currentClaimId, currentSummaryFeeId, "ESCAPE_CASE_ASSESSMENT")));
+                assessmentJson(
+                    currentClaimId,
+                    currentSummaryFeeId,
+                    "ESCAPE_CASE_ASSESSMENT",
+                    currentClaimVersion(currentClaimId))));
   }
 
   // ---------------------------------------------------------------------------
@@ -940,8 +966,11 @@ public class AssessmentAdvancesClaimVersionSteps {
   // HTTP-level failure with the raw body attached to the AssertionError.
   // ---------------------------------------------------------------------------
 
-  private static String assessmentJson(UUID claimId, UUID summaryFeeId, String assessmentType) {
+  private static String assessmentJson(
+      UUID claimId, UUID summaryFeeId, String assessmentType, long claimVersion) {
     // claim_id is a REQUIRED field on the AssessmentPost body (in addition to being in the URL).
+    // claim_version is the optimistic concurrency check field (DSTEW-2051 follow-on): the caller
+    // must supply the claim version it loaded, and the service rejects a stale/missing value.
     return ("""
         {
           "claim_id": "%s",
@@ -950,6 +979,7 @@ public class AssessmentAdvancesClaimVersionSteps {
           "assessment_reason": "DSTEW-2051 BDD assessment",
           "assessment_outcome": "NILLED",
           "created_by_user_id": "%s",
+          "claim_version": %d,
           "fixed_fee_amount": 100.00,
           "assessed_total_vat": 0,
           "assessed_total_incl_vat": 0,
@@ -957,7 +987,7 @@ public class AssessmentAdvancesClaimVersionSteps {
           "allowed_total_incl_vat": 0
         }
         """)
-        .formatted(claimId, summaryFeeId, assessmentType, BDD_USER_UUID);
+        .formatted(claimId, summaryFeeId, assessmentType, BDD_USER_UUID, claimVersion);
   }
 
   /**

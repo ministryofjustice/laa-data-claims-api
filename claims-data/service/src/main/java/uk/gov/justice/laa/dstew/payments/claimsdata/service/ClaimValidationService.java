@@ -51,6 +51,7 @@ public class ClaimValidationService {
   public static final String VERSION_MUST_NOT_BE_NEGATIVE_ERROR = "version must not be negative";
   public static final String VERSION_MISMATCH_ERROR =
       "provided version does not match claim version for id: %s";
+  public static final String CLAIM_VERSION_MUST_BE_PROVIDED_ERROR = "claimVersion must be provided";
   public static final String INVALID_CLAIM_STATUS_UPDATE_MESSAGE =
       "Claim status VOID cannot be set via %s endpoint. Use POST "
           + ClaimController.VOID_CLAIM_ENDPOINT;
@@ -179,6 +180,22 @@ public class ClaimValidationService {
   }
 
   /**
+   * Validates that a claim version was supplied on the request.
+   *
+   * <p>Used by flows (such as assessment creation) where, unlike claim amendment, the claim version
+   * is mandatory rather than optional: the caller must always confirm the claim version it loaded
+   * before submitting an outcome that depends on it.
+   *
+   * @param version the claim version supplied on the request
+   * @throws ClaimBadRequestException when the version is {@code null}
+   */
+  public void validateClaimVersionProvided(Long version) {
+    if (version == null) {
+      throw new ClaimBadRequestException(CLAIM_VERSION_MUST_BE_PROVIDED_ERROR);
+    }
+  }
+
+  /**
    * Validates that when a version is provided it matches the claim's persisted version.
    *
    * <p>If the provided version is null this check is skipped. If the claim's version is null or
@@ -199,6 +216,14 @@ public class ClaimValidationService {
     Long claimVersion = claim == null ? null : claim.getVersion();
     if (claimVersion == null || !claimVersion.equals(version)) {
       String claimIdStr = claim == null ? "null" : String.valueOf(claim.getId());
+      // Structured warning for support/investigation. Safe fields only - never claim/assessment
+      // financial details.
+      log.warn(
+          "event={} claimId={} submittedClaimVersion={} currentClaimVersion={}",
+          "CLAIM_VERSION_CONFLICT",
+          claimIdStr,
+          version,
+          claimVersion);
       throw new ClaimConflictException(String.format(VERSION_MISMATCH_ERROR, claimIdStr));
     }
   }

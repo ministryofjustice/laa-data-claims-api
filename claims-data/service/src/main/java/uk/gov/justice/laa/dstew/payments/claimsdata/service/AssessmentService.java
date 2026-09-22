@@ -41,6 +41,15 @@ public class AssessmentService {
   /**
    * Create an assessment for a claim.
    *
+   * <p>Requires the claim version the caller loaded ({@code request.getClaimVersion()}) and
+   * enforces an optimistic concurrency check against the claim's current version before creating
+   * the assessment: a missing version is rejected with a 400 Bad Request, and a stale (mismatched)
+   * version is rejected with a 409 Conflict (CLAIM_VERSION_CONFLICT) - see {@link
+   * ClaimValidationService#validateClaimVersionProvided(Long)} and {@link
+   * ClaimValidationService#validateClaimVersionMatches(Claim, Long)}. No assessment is created and
+   * no claim update is persisted when either check fails, since both run before any entity is
+   * mutated and the whole method is transactional.
+   *
    * @param claimId claim identifier
    * @param request request payload
    * @return identifier of the created assessment
@@ -49,8 +58,12 @@ public class AssessmentService {
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
     claimValidationService.validateUserId(request.getCreatedByUserId());
     claimValidationService.validateAssessmentReason(request.getAssessmentReason());
+    claimValidationService.validateClaimVersionProvided(request.getClaimVersion());
+    claimValidationService.validateVersionNumber(request.getClaimVersion());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);
+    claimValidationService.validateClaimVersionMatches(claim, request.getClaimVersion());
+
     ClaimSummaryFee claimSummaryFee =
         claimValidationService.getClaimSummaryFeeByIdOrThrow(request.getClaimSummaryFeeId());
 

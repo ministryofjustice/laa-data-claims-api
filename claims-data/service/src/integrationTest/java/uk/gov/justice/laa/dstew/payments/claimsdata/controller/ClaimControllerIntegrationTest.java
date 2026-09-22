@@ -2190,8 +2190,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
               .andReturn();
 
       String responseBody = result.getResponse().getContentAsString();
-      assertThat(responseBody)
-          .contains(String.format(ClaimValidationService.VERSION_MISMATCH_ERROR, CLAIM_2_ID));
+      // The version-conflict Problem Detail now carries the stable, machine-readable
+      // CLAIM_VERSION_CONFLICT code (shared with the assessment-create OCC check) rather than the
+      // internal mismatch message, so consumers can reliably detect a stale-version conflict.
+      assertThat(responseBody).contains("CLAIM_VERSION_CONFLICT");
 
       Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
       assertThat(after.getVersion()).isEqualTo(existing.getVersion());

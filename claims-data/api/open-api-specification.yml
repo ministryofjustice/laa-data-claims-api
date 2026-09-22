@@ -2216,6 +2216,20 @@ components:
     assessment_post:
       allOf:
         - $ref: '#/components/schemas/assessment_base'
+        - type: object
+          properties:
+            claim_version:
+              type: integer
+              format: int64
+              description: |
+                The version of the claim as loaded by the caller before completing the assessment.
+                Used as an optimistic concurrency check: the assessment is only created if this
+                matches the claim's current version. If the claim has changed since it was loaded
+                (e.g. amended, assessed or voided by another user or process), the request is
+                rejected with a 409 Conflict (CLAIM_VERSION_CONFLICT). This field is mandatory:
+                omitting it is rejected with a 400 Bad Request explaining that it is required.
+                It is intentionally not listed under `required` here (which would trigger a generic
+                bean-validation message) so the service layer can return a precise, user-safe error.
       required:
         - claim_id
         - claim_summary_fee_id

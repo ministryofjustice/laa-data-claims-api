@@ -119,6 +119,27 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handles the claim-version optimistic concurrency conflict raised by {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService#validateClaimVersionMatches(
+   * uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim, Long) the early version-match gate}
+   * (used by both assessment creation and voiding a claim).
+   *
+   * <p>Delegates to the same {@link #buildVersionConflictResponse(Class, HttpServletRequest)} used
+   * by the database-level optimistic-lock guards, so callers receive the same 409 Conflict body and
+   * stable {@code CLAIM_VERSION_CONFLICT} code regardless of which guard detected the conflict.
+   *
+   * @param ex the claim conflict exception raised by the early version-match gate
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
+   */
+  @ExceptionHandler(ClaimConflictException.class)
+  public ResponseEntity<ProblemDetail> handleClaimConflictException(
+      ClaimConflictException ex, HttpServletRequest request) {
+    log.warn("Claim version conflict detected: {}", ex.getMessage());
+    return buildVersionConflictResponse(ex.getClass(), request);
+  }
+
+  /**
    * Handle {@link ExportValidationException} instances and convert them to RFC 9457 Problem
    * Details.
    *
