@@ -1,9 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -11,14 +13,18 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -64,8 +70,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AmendableClaimFixture {
 
   private static final String SEED_ACTOR = "bdd-DSTEW-2301";
-  private static final String DEFAULT_OFFICE = "0U099L";
+  // Every scenario gets a unique 6-char office code so the JVM-wide PDA cache (keyed on office)
+  // cannot false-pass across scenarios. This mirrors the existing PDA harness isolation pattern.
+  private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
   private static final String DEFAULT_FEE_CODE = "CAPA";
+  // Reference-data-valid Legal Help matter type. Codes like "MAT01"/"MTC" trip
+  // INVALID_MATTER_TYPE_CODE once the real ValidationService facade runs (DSTEW-2317); "MATT:111"
+  // is the governed code the integration suite's amendable claim (CLAIM_1) seeds.
+  private static final String VALID_MATTER_TYPE_CODE = "MATT:111";
+  private static final String DEFAULT_SCHEDULE_REFERENCE = "SCH-123";
   // NOTE: UCN is intentionally NOT stored here. The Claim entity does not carry a UCN field —
   // UCNs live on the linked Client entity. When DSTEW-1769 needs UCN-based duplicate scenarios
   // it will add UCN handling via Client seeding, not via a shared constant on this class.
@@ -76,6 +89,8 @@ public class AmendableClaimFixture {
   private final ClaimRepository claimRepository;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  private final ClientRepository clientRepository;
+  private final ClaimCaseRepository claimCaseRepository;
   private final PlatformTransactionManager transactionManager;
 
   /**
@@ -180,6 +195,7 @@ public class AmendableClaimFixture {
                 Submission submission = seedSubmission(areaOfLaw);
                 Claim claim = seedClaim(submission, feeCode, status, assessment, ufn);
                 seedClaimSummaryFeeAndBaselineCfd(claim, feeCode);
+                seedClientAndCase(claim);
 
                 if (targetVersion > 0) {
                   claim = advanceClaimVersion(claim, targetVersion);
@@ -204,10 +220,11 @@ public class AmendableClaimFixture {
   // ---------------------------------------------------------------------------
 
   Submission seedSubmission(AreaOfLaw areaOfLaw) {
+    String office = String.format("P2%04d", OFFICE_SEQ.incrementAndGet());
     return submissionRepository.saveAndFlush(
         Submission.builder()
             .id(Uuid7.timeBasedUuid())
-            .officeAccountNumber(DEFAULT_OFFICE)
+            .officeAccountNumber(office)
             .submissionPeriod(nextSubmissionPeriod())
             .areaOfLaw(areaOfLaw)
             .status(SubmissionStatus.CREATED)
@@ -226,7 +243,8 @@ public class AmendableClaimFixture {
             .status(status)
             .feeCode(feeCode)
             .lineNumber(1)
-            .matterTypeCode("MAT01")
+            .matterTypeCode(VALID_MATTER_TYPE_CODE)
+            .scheduleReference(DEFAULT_SCHEDULE_REFERENCE)
             .uniqueFileNumber(ufn)
             .caseReferenceNumber(DEFAULT_CASE_REF)
             .caseStartDate(LocalDate.of(2025, Month.JULY, 1))
@@ -248,6 +266,19 @@ public class AmendableClaimFixture {
             ClaimSummaryFee.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claim)
+                // Mandatory Legal Help fee/time fields the real ValidationService facade requires
+                // once validateClaim runs over real HTTP (DSTEW-2317). Values mirror the
+                // integration
+                // amendment suite's valid claim so the seeded claim is genuinely amendable.
+                .adviceTime(60)
+                .travelTime(30)
+                .waitingTime(15)
+                .netProfitCostsAmount(BigDecimal.valueOf(80))
+                .netDisbursementAmount(BigDecimal.valueOf(13))
+                .netCounselCostsAmount(BigDecimal.valueOf(35))
+                .disbursementsVatAmount(BigDecimal.valueOf(2))
+                .travelWaitingCostsAmount(BigDecimal.valueOf(7))
+                .isVatApplicable(Boolean.TRUE)
                 .createdByUserId(SEED_ACTOR)
                 .createdOn(Instant.now())
                 .build());
@@ -258,6 +289,42 @@ public class AmendableClaimFixture {
             .claim(claim)
             .claimSummaryFee(summaryFee)
             .feeCode(feeCode)
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(Instant.now())
+            .build());
+  }
+
+  /**
+   * Seeds the {@link Client} and {@link ClaimCase} rows the real {@code ValidationService} facade
+   * requires once {@code validateClaim} runs over real HTTP (DSTEW-2317). Before the harness
+   * converged onto real validation these were unnecessary because {@code validateClaim} was mocked
+   * {@code valid=true}; an amendable claim is by definition a valid claim, so the fixture now seeds
+   * the mandatory client + case attributes. Values mirror the integration amendment suite.
+   */
+  void seedClientAndCase(Claim claim) {
+    clientRepository.saveAndFlush(
+        Client.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .clientForename("Jane")
+            .clientSurname("Smith")
+            .clientDateOfBirth(LocalDate.of(1990, Month.JANUARY, 1))
+            .uniqueClientNumber("01011990/A/BCDE")
+            .clientPostcode("SW1H 9HE")
+            .genderCode("F")
+            .ethnicityCode("99")
+            .disabilityCode("COG")
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(Instant.now())
+            .build());
+
+    claimCaseRepository.saveAndFlush(
+        ClaimCase.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .caseId("123")
+            .uniqueCaseId("UC_ID_1")
+            .outcomeCode("AB")
             .createdByUserId(SEED_ACTOR)
             .createdOn(Instant.now())
             .build());

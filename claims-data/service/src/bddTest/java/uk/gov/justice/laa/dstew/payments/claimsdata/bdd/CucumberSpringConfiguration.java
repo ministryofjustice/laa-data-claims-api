@@ -8,14 +8,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.mockserver.MockServerContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.AwsTestConfig;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
 
@@ -99,14 +97,15 @@ public class CucumberSpringConfiguration {
         () -> String.valueOf(NEW_SUBMISSION_PDA_READ_TIMEOUT_MS));
   }
 
-  @MockitoBean private FeeSchemePlatformRestClient feeSchemePlatformRestClient;
-
   @MockitoSpyBean private ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
 
   /**
-   * WARNING — aggregate-facade mock; see class-level Javadoc for the scope-risk explanation.
-   * Replace with a targeted PDA-transport mock in the follow-up story before adding scenarios that
-   * depend on real {@code ValidationService} side-effects.
+   * Retained as a spy only for two narrow, deliberate uses after the DSTEW-2317 convergence: (1)
+   * the {@code validateSubmission(...)} happy default that many non-amendment submission scenarios
+   * rely on, and (2) the {@code @dstew-1753} race-barrier carve-out that re-arms a {@code doAnswer}
+   * at the {@code validateClaim} boundary (a deterministic in-process seam HTTP cannot provide).
+   * Every amendment scenario's {@code validateClaim(...)} now runs the REAL facade over MockServer
+   * — see {@code BddAmendmentResetHook#applyDefaults()}.
    */
   @MockitoSpyBean private ValidationService validationService;
 }

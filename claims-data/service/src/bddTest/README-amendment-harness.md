@@ -16,9 +16,9 @@ baseline `calculated_fee_detail` row, and every external call hit unresolvable U
 | Piece | Class / File | Purpose |
 | --- | --- | --- |
 | Fixture builder | `bdd.support.AmendableClaimFixture` | Seeds a fresh `Submission` + `Claim` + `ClaimSummaryFee` + baseline `CalculatedFeeDetail` in one transaction so amendment validation reaches the "amendable" branch. |
-| Mocked FSP client | `@MockitoBean FeeSchemePlatformRestClient` on `bdd.CucumberSpringConfiguration` | Replaces the real Fee-Scheme-Platform HTTP client so amendment repricing can be armed / verified without a live upstream. |
-| Mocked PDA validator | `@MockitoBean ValidationService` | Replaces the Provider-Details-API `ValidationService` bean so PDA outcomes can be armed / verified. |
-| Per-scenario reset | `bdd.hooks.BddAmendmentResetHook` | `@Before(order = -1)` — resets both mocks and re-applies "happy" defaults. Runs **before** `BddHooks` (order = 0) so mock defaults are in place before any repository truncation and so downstream `Given the FSP service will …` arming steps overwrite our defaults rather than the other way round. **Note**: the amendments feature flag (`laa.claims.api.amendments.enabled`) reset lives in `BddHooks`, not here — see `BddHooks.resetScenarioContextAndData()` line 63. |
+| Real FSP client + MockServer | `FeeSchemePlatformRestClient` (real bean) + `bdd.support.BddMockServerSupport` | **DSTEW-2353:** the Fee-Scheme-Platform client is the **real** HTTP client — no longer a `@MockitoBean`. Its base URL (`${FEE_SCHEME_PLATFORM_API_URL}`) is pointed at a shared `MockServerContainer` started by `CucumberSpringConfiguration`. Because the client is annotated `@HttpExchange("/api")`, amendment repricing (`AmendmentFspValidationStep`) makes a single real `POST /api/v1/fee-calculation` call, armed / verified via `BddMockServerSupport` on the same `/api/…` path the claims-validation-core client uses. (`stubAmendmentFspOk()` also stubs `GET /api/v2/fee-details/…`, but that endpoint is shared support consumed by the claims-validation-core pipeline — the amendment repricing step does not call it.) |
+| Validation facade (real) | `ValidationService` (real) + `bdd.support.BddMockServerSupport` | **DSTEW-2317:** every amendment scenario's `validateClaim(...)` now runs the **real** `ValidationService` facade over MockServer (it is called only from `AmendmentExternalValidationStep`, so this is amendment-scoped). PDA outcomes are armed as real `/schedules` responses and asserted from the MockServer request journal. A `@MockitoSpyBean ValidationService` is retained only for the `validateSubmission(...)` happy default and the `@dstew-1753` race-barrier carve-out. |
+| Per-scenario reset | `bdd.hooks.BddAmendmentResetHook` + `BddHooks` | `BddAmendmentResetHook` (`@Before(order = -2)`) resets the persistence spy + the retained `ValidationService` spy and re-applies defaults: `validateSubmission` → `valid=true`, while `validateClaim` is wired to the **real** facade (`doCallRealMethod`). `BddHooks.resetScenarioContextAndData()` (`order = 0`) resets the MockServer and seeds the FSP happy-path default (`bddMockServerSupport.stubAmendmentFspOk()`), and owns the amendments feature-flag reset. |
 | Shared step glue | `bdd.steps.AmendmentHarnessCommonSteps` | The Gherkin phrases downstream stories reuse (see below). |
 | Canary scenario | `resources/features/bdd/amendmentHarnessCanary.feature` | One scenario tagged `@dstew-harness-canary` — if this ever goes red on `main`, the harness itself has regressed. |
 
@@ -27,28 +27,50 @@ touches `main`/production code paths.
 
 ---
 
-## How mocking is wired (and why)
+## How external transports are wired (and why)
 
-`@MockitoBean` annotations **must** be declared on the class that carries
-`@CucumberContextConfiguration` — Spring's bean-override machinery only scans the test
-class itself, not `@Import`ed `@Configuration` classes. That is why both mocks live on
-`CucumberSpringConfiguration` rather than in `BddBeansConfiguration`.
+There are **two different mechanisms**, one per transport.
 
-Default answers cannot be applied from `@PostConstruct` because the mock beans are
-injected **after** the `@Configuration` lifecycle fires. `BddAmendmentResetHook` fires at
-`@Before(order = -1)` so:
+**Fee Scheme Platform (FSP) — real client over MockServer (DSTEW-2353).**
+`FeeSchemePlatformRestClient` is the real bean (no longer a `@MockitoBean`).
+`CucumberSpringConfiguration` starts a shared `MockServerContainer` and points the client's base
+URL (`${FEE_SCHEME_PLATFORM_API_URL}`) at it via `@DynamicPropertySource`, so amendment repricing
+makes **real HTTP** calls that MockServer answers. The client is annotated `@HttpExchange("/api")`;
+the amendment repricing step (`AmendmentFspValidationStep`) calls only `calculateFee`, i.e. a
+single `POST /api/v1/fee-calculation`, on the same `/api/…` base the claims-validation-core client
+uses. (`stubAmendmentFspOk()` also stubs `GET /api/v2/fee-details/…`, but that endpoint is shared
+support for the validation pipeline, not traffic the amendment flow makes or verifies.)
+Stub/verify helpers live in `bdd.support.BddMockServerSupport`;
+the happy-path default (`stubAmendmentFspOk()`) is seeded every scenario from
+`BddHooks.resetScenarioContextAndData()` (order 0), right after `bddMockServerSupport.reset()`. A
+scenario overrides it with an explicit arming step (e.g. `Given the FSP service will fail with HTTP
+500`, which clears the fee-calculation expectation and replaces it).
 
-1. mocks exist,
-2. defaults land **before** any `Given the FSP service will …` step overrides them,
-3. defaults land **before** the shared `BddHooks` (order = 0) truncates repositories,
-   so a data-clean-up path can never call into an un-stubbed mock.
+**Validation facade — real over MockServer (DSTEW-2317).**
+`validateClaim(...)` is called only from the amendment path (`AmendmentExternalValidationStep`), so
+the harness runs the **real** `ValidationService` facade for it: `BddAmendmentResetHook` wires
+`doCallRealMethod()` for `validateClaim`, and validation behaviour is armed via MockServer fixtures
+(PDA `/schedules` + FSP `/api/…`) rather than a Mockito `doReturn`. This closes the review concern
+that a blanket `valid=true` stub bypassed real validation. Because the facade runs for real, the
+seed claim must be genuinely valid — `AmendableClaimFixture` seeds a full `Client` + `ClaimCase` +
+populated `ClaimSummaryFee` (mandatory amounts/times) + governed `matter_type_code` (`MATT:111`).
+
+A `@MockitoSpyBean ValidationService` is **retained** for two narrow uses: (1) the
+`validateSubmission(...)` happy default many non-amendment submission scenarios rely on, and (2) the
+`@dstew-1753` race-barrier carve-out, which re-arms a `doAnswer` at the `validateClaim` boundary — a
+deterministic in-process seam HTTP cannot provide. `ClaimAmendmentPersistenceService` remains a
+`@MockitoSpyBean`. Spy annotations **must** live on the class carrying
+`@CucumberContextConfiguration` — Spring's bean-override machinery only scans the test class itself,
+not `@Import`ed `@Configuration` classes. `BddAmendmentResetHook` fires at `@Before(order = -2)` to
+reset the spies and re-apply defaults before `BddHooks` (order 0) truncates repositories.
 
 **Default answers** applied every scenario:
 
-- `FeeSchemePlatformRestClient.calculateFee(any())` → `ResponseEntity.ok(new FeeCalculationResponse())`
-- `FeeSchemePlatformRestClient.getFeeDetails(any())` → `ResponseEntity.ok(new FeeDetailsResponseV2())`
-- `ValidationService.validateSubmission(...)` → `ValidationResult(valid = true)`
-- `ValidationService.validateClaim(...)` → `ClaimValidationResult(valid = true)`
+- FSP `GET /api/v2/fee-details/…` and `POST /api/v1/fee-calculation` → 200 (MockServer, via
+  `stubAmendmentFspOk()` seeded from `BddHooks`)
+- `ValidationService.validateSubmission(...)` → `ValidationResult(valid = true)` (spy default)
+- `ValidationService.validateClaim(...)` → **real facade** over MockServer (DSTEW-2317); the seed
+  claim is fully valid, so the happy default is a genuine `valid=true` result
 
 > ⚠️ `ValidationResult.valid` defaults to `false` (Java `boolean` primitive). Setting it
 > to `true` explicitly in the reset hook is **load-bearing** — omit it and every
@@ -74,9 +96,11 @@ ref-data clean-up in there or you'll add cost to every non-amendment scenario.
    DSTEW-xxxx` marker. Type 3 (dead) → delete + renumber Examples.
 3. Any new outbound-call verification phrase goes on `AmendmentHarnessCommonSteps` so
    there is one owner per phrase across the codebase.
-4. If a scenario needs a non-default FSP or PDA answer, arm the mock with an explicit
-   `Given the …` step in the scenario, not in a bean initialiser. The reset hook wipes
-   any static / boot-time mock stubbing at the start of every scenario.
+4. If a scenario needs a non-default FSP or PDA answer, arm it with an explicit
+   `Given the …` step in the scenario, not in a bean initialiser. FSP arming re-stubs the
+   MockServer expectation; PDA arming stubs the real `/schedules` MockServer endpoint. The per-scenario reset
+   (`BddHooks` clears MockServer, `BddAmendmentResetHook` resets the spies) wipes any prior
+   stubbing at the start of every scenario.
 
 ---
 
@@ -92,6 +116,9 @@ Owned by `AmendmentHarnessCommonSteps` (see class for exact phrasing):
 
 **When**
 - `I submit a well-formed non-pricing amendment`
+- `I submit a well-formed pricing amendment` (changes `case_start_date`, a pricing-impacting FSP
+  request-body field, so a real `POST /api/v1/fee-calculation` fires — see
+  `amendmentsFspRepricingHttp.feature`)
 
 **Then — outcome**
 - `the amendment is accepted`
@@ -105,16 +132,16 @@ Owned by `AmendmentHarnessCommonSteps` (see class for exact phrasing):
 **Then — outbound-call verification**
 - `no outbound PDA call was made`
 - `exactly {int} outbound PDA call was made`
-- `no outbound FSP call was made`
-- `exactly {int} outbound FSP call was made`
+- `no outbound FSP call was made from the amendment harness` (a MockServer request-count check on
+  `POST /api/v1/fee-calculation`)
+- `exactly {int} outbound FSP call was made` (MockServer request-count on the same endpoint)
 
-`AmendmentPdaTriggerSteps#noOutboundPdaCallWasMade` was a log-only spec-guard prior to
-DSTEW-2301 — it has been removed and ownership moved to the harness so the phrase now
-performs a real `verify(validationService, never()).validateClaim(any(), any())`. That
-2-arg overload is the one the amendment path calls
-(`AmendmentExternalValidationStep.java` line 85: `validationService.validateClaim(claim,
-validationCodes)`); asserting on the 3-arg overload would silently pass even when a
-real PDA call happened, so the harness fixes on the exact overload production uses.
+Since DSTEW-2317 the `no outbound PDA call was made` phrase asserts over the **MockServer request
+journal** — `mock.verifyProviderSchedulesCalled(VerificationTimes.never())` — rather than a Mockito
+`verify` on the spy. A recorded `GET /api/v1/provider-offices/…/schedules` means the PDA read was
+dispatched; its absence means the amendment either short-circuited before `validateClaim` or reached
+the real facade with a validator-set that omits `CLAIM_CATEGORY_OF_LAW_VALIDATOR`. Positive-path PDA
+assertions live in `AmendmentPdaTriggerSteps` / `AmendmentPdaOutcomeMappingSteps`.
 
 ---
 
@@ -134,12 +161,11 @@ real PDA call happened, so the harness fixes on the exact overload production us
 > **Note on `bdd.mode=uat`.** UAT mode currently changes only the
 > event-service target: BDD scenarios hit a real event-service on
 > `localhost:8080` instead of the local application's in-process handler.
-> **The `FeeSchemePlatformRestClient` and `ValidationService` `@MockitoBean`
-> declarations on `CucumberSpringConfiguration` remain active** — FSP and
-> the aggregate validation facade are still mocked in UAT mode. Making
-> those transports real in UAT mode is out of scope; tracked under the
-> follow-up story that scopes the `ValidationService` mock (see
-> `~/IdeaProjects/jira_drafts/DSTEW-XXXX_scope_validationservice_mock.md`).
+> The **FSP client is real HTTP against the shared MockServer** in both
+> modes (DSTEW-2353). Since **DSTEW-2317** the amendment `validateClaim(...)`
+> path also runs the real `ValidationService` facade over MockServer; the
+> retained `@MockitoSpyBean` covers only the `validateSubmission` default and
+> the `@dstew-1753` race-barrier carve-out.
 
 The CI pipeline (`.github/workflows/deploy-main.yml → :claims-data:service:bddTest`)
 runs in local mode by default. The harness therefore covers CI **and** local runs.
@@ -162,8 +188,11 @@ scenarios were skipped or dropped.
 
 When a new amendment story needs harness support:
 
-1. If it needs a new default mock behaviour → add it to `BddAmendmentResetHook.applyDefaults()`
-   with a comment naming the ticket that requires it.
+1. If it needs a new default behaviour → for FSP add a MockServer stub in
+   `BddMockServerSupport` (and seed it from `BddHooks` if it must apply every scenario); for the
+   real `validateClaim` facade arm the downstream response on the shared MockServer (PDA `/schedules`
+   / FSP `/api/…`). Comment the ticket
+   that requires it.
 2. If it needs a new arming phrase (`Given the FSP service will …`) → add it to
    `AmendmentHarnessCommonSteps`, not to the story's own step class.
 3. If it needs additional seed shape (assessment claim, duplicate sibling, non-legal-help
