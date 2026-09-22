@@ -28,6 +28,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartReposi
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.audit.ExternalApiCallLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.BulkSubmissionService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.SubmissionEventPublisherService;
 import uk.gov.laa.springboot.auth.TokenDetailsManager;
@@ -85,6 +86,8 @@ public class AbstractProviderPactTests {
   @MockitoBean protected RequestedByReferenceRepository requestedByReferenceRepository;
 
   @MockitoBean protected AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+
+  @MockitoBean protected ExternalApiCallLogRepository externalApiCallLogRepository;
 
   @MockitoBean protected SqsClient sqsClient;
 
