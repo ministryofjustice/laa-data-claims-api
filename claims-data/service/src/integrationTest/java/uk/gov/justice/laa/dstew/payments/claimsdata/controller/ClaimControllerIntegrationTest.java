@@ -2098,6 +2098,69 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST v1/claims/{id}/void - 409 when version is a non-integer number (decimal)")
+    // Note: Jackson may coerce JSON floating-point numbers into integral target fields
+    // (fractional part discarded) depending on mapper configuration. We expect the
+    // application to treat this as a version mismatch (409) rather than accept/coerce it.
+    void shouldReturnBadRequestWhenVersionIsNonInteger() throws Exception {
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"decimal version\","
+              + "\"version\": 1.5"
+              + "}";
+
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isConflict());
+
+      Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      assertThat(after.getVersion()).isEqualTo(beforeVersion);
+    }
+
+    @Test
+    @DisplayName("POST v1/claims/{id}/void - 400 when version is an invalid (non-numeric) value")
+    void shouldReturnBadRequestWhenVersionIsInvalidString() throws Exception {
+      Claim before =
+          claimRepository
+              .findById(CLAIM_2_ID)
+              .orElseThrow(() -> new RuntimeException("Claim not found"));
+      Long beforeVersion = before.getVersion();
+
+      String requestBody =
+          "{"
+              + "\"created_by_user_id\":\""
+              + API_USER_ID
+              + "\","
+              + "\"assessment_reason\":\"string version\","
+              + "\"version\": \"not-a-number\""
+              + "}";
+
+      mockMvc
+          .perform(
+              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(requestBody)
+                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+          .andExpect(status().isBadRequest());
+
+      Claim after = claimRepository.findById(CLAIM_2_ID).orElseThrow();
+      assertThat(after.getVersion()).isEqualTo(beforeVersion);
+    }
+
+    @Test
     @DisplayName(
         "POST v1/claims/{id}/void - 409 when provided version does not match claim version (OCC)")
     void shouldReturnBadRequestWhenVersionDoesNotMatch() throws Exception {
