@@ -52,11 +52,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
  * ({@code is/NOT on the AaBC amendable-fields list}) and the two single-code pricing assertions are
  * strict in both modes.
  *
- * <p>The {@code classifier will mark ...} and {@code an unrelated validation collects ...} steps
- * are spec-guards: real pricing impact is derived from the changed fields ({@code
- * FeeSchemeRequestField.impactsPricing}), and cross-source message injection is a UAT-only seam
- * (the {@code @MockitoSpyBean ValidationService}). Both record intent explicitly so the scenario
- * wiring stays honest rather than silently passing.
+ * <p>The {@code classifier will mark ...} step is a spec-guard: real pricing impact is derived from
+ * the changed fields ({@code FeeSchemeRequestField.impactsPricing}), so the scenario changes a
+ * genuinely pricing-impacting field ({@code fee_code}) for "true" and a non-pricing field for
+ * "false" and the real gate produces the intended outcome. It records intent explicitly so the
+ * scenario wiring stays honest rather than silently passing. DS1767_3 asserts only the two {@code
+ * INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW} codes the production validators genuinely produce —
+ * no fabricated cross-source message is injected (an earlier {@code INVALID_FIELD_VALUE}
+ * expectation and its log-only spec-guard were removed as a false-green; see PR #478 Copilot
+ * review).
  */
 @Slf4j
 public class AmendmentAssessedPricingAndAmendabilitySteps {
@@ -74,6 +78,39 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
   // ---------------------------------------------------------------------------
   // Given — provisioning
   // ---------------------------------------------------------------------------
+
+  /**
+   * Seeds a fully-valid amendable Legal Help claim graph (Submission + Claim + ClaimSummaryFee +
+   * baseline CalculatedFeeDetail + Client + ClaimCase) via {@link AmendableClaimFixture} and
+   * records the pre-amendment baseline (claim version + CFD row count) onto {@link
+   * SharedAmendmentPatchContext}. This is what the assessed-pricing scenarios (DS1767_4/_5/_6) rely
+   * on so the harness's baseline-relative Thens — {@code no FSP-derived calculated_fee_detail row
+   * was inserted} and {@code the claim persisted state matches the pre-amendment state} — compare
+   * against a real captured baseline rather than a zero/absent default.
+   *
+   * <p>Deliberately distinct from the DSTEW-1757 {@code an original claim exists with a valid
+   * pricing baseline} phrase (owned by {@code AmendmentFspPricingRuleSteps}), which seeds a thinner
+   * graph for classifier spec-guards and records no baseline.
+   */
+  @Given("an original amendable claim exists with a valid pricing baseline")
+  public void anOriginalAmendableClaimExistsWithValidPricingBaseline() {
+    step(
+        "Seeding a fully-valid amendable claim and recording its pre-amendment baseline",
+        () -> {
+          AmendableClaimFixture.Seeded seeded = fixture.legalHelpValid().seed();
+          sharedPatchContext.setSubmissionId(seeded.submissionId());
+          sharedPatchContext.setClaimId(seeded.claimId());
+          sharedPatchContext.setBaselineClaimVersion(seeded.baselineVersion());
+          sharedPatchContext.setBaselineCfdCount(countCfd(seeded.claimId()));
+          log.info(
+              "[DSTEW-1767] Seeded amendable claim {} on submission {} (baseline version={},"
+                  + " cfdCount={})",
+              seeded.claimId(),
+              seeded.submissionId(),
+              sharedPatchContext.getBaselineClaimVersion(),
+              sharedPatchContext.getBaselineCfdCount());
+        });
+  }
 
   /** Seeds a fully-valid amendable claim graph for the given area of law. */
   @Given("an original claim exists with area of law {string}")
@@ -203,19 +240,6 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
         value);
   }
 
-  @Given(
-      "an unrelated validation collects a validation message with code {string} for field {string}")
-  public void anUnrelatedValidationCollectsMessage(String code, String field) {
-    // Spec-guard: real cross-source injection is a UAT-only seam via the @MockitoSpyBean
-    // ValidationService. In local mode the aggregation is proven by the real gates firing; this
-    // records the additional expected message for traceability without faking a green.
-    log.info(
-        "[spec-guard][DSTEW-1767] unrelated validation message {} for field {} expected in the"
-            + " aggregated Step 12 response (UAT-injected)",
-        code,
-        field);
-  }
-
   // ---------------------------------------------------------------------------
   // Given — amendment mutation
   // ---------------------------------------------------------------------------
@@ -259,17 +283,32 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
               .as("field-level rejection must be a 4xx (was %s)", status)
               .isBetween(400, 499);
           List<Map<String, String>> rows = table.asMaps(String.class, String.class);
-          List<String> codes = extractErrorCodes();
+          // Each table row is a (field, code) expectation. The `field` column is part of the
+          // contract: the code must be attributed to that field, and repeated codes must appear
+          // with matching multiplicity — a plain containsAll would let one error masquerade as two,
+          // or accept a code attributed to the wrong field. INVALID_FIELD_NOT_AMENDABLE_* carries a
+          // null fieldName in the production catalogue and names the offending field in the message
+          // ("Field '<field>' is not amendable ..."), so field-association is verified against the
+          // message; codes that populate fieldName are matched on that too.
+          List<ErrorEntry> actual = extractErrorEntries();
           if (isUatMode()) {
-            List<String> expectedCodes = rows.stream().map(r -> r.get("Error Code")).toList();
-            assertThat(codes)
-                .as("response must carry every expected field-level code")
-                .containsAll(expectedCodes);
+            for (Map<String, String> row : rows) {
+              String field = row.get("field");
+              String code = row.get("Error Code");
+              long expectedCount =
+                  rows.stream()
+                      .filter(r -> code.equals(r.get("Error Code")) && field.equals(r.get("field")))
+                      .count();
+              long actualCount = actual.stream().filter(e -> e.matches(code, field)).count();
+              assertThat(actualCount)
+                  .as(
+                      "response must report code %s attributed to field %s at least %s time(s)"
+                          + " (saw %s); actual errors=%s",
+                      code, field, expectedCount, actualCount, actual)
+                  .isGreaterThanOrEqualTo(expectedCount);
+            }
           } else {
-            log.info(
-                "[local mode] field-level rejection — expected {}, saw {}",
-                rows,
-                codes.size() > 20 ? codes.subList(0, 20) + " (truncated)" : codes);
+            log.info("[local mode] field-level rejection — expected {}, saw {}", rows, actual);
           }
         });
   }
@@ -277,15 +316,31 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
   @Then("no amendment-related event was published for this attempt")
   public void noAmendmentRelatedEventWasPublished() {
     step(
-        "Asserting no amendment success event was published",
+        "Asserting no amendment event was published — verified against persisted amendment state",
         () -> {
-          // A rejected amendment commits nothing and therefore publishes no amendment event. We
-          // assert the observable proxy (the request was rejected) rather than a silent no-op.
+          // A rejected amendment commits no claim_amendment row, and the AMENDMENT timeline event
+          // is
+          // derived from that persisted row — so zero rows proves no event could have been
+          // published. We assert the real DB state rather than a status-only proxy that would pass
+          // even if an event were emitted. The rejection status is also asserted so the reason for
+          // "no event" (rejection, not a silent success) stays explicit.
           Integer status = scenarioContext.getLastStatusCode();
           assertThat(status).as("expected an HTTP response").isNotNull();
           assertThat(status)
-              .as("a rejected amendment (>=400) publishes no amendment event (was %s)", status)
+              .as("a rejected amendment (>=400) is the precondition for no event (was %s)", status)
               .isGreaterThanOrEqualTo(400);
+          UUID claimId = requireClaimId();
+          Long amendmentRows =
+              jdbcTemplate.queryForObject(
+                  "SELECT COUNT(*) FROM claims.claim_amendment WHERE claim_id = ?",
+                  Long.class,
+                  claimId);
+          assertThat(amendmentRows)
+              .as(
+                  "no claim_amendment row must exist for claim %s — the AMENDMENT event is derived"
+                      + " from it, so zero rows proves no event was published",
+                  claimId)
+              .isZero();
         });
   }
 
@@ -297,6 +352,16 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
     UUID claimId = sharedPatchContext.getClaimId();
     assertThat(claimId).as("a claim must have been seeded before this step").isNotNull();
     return claimId;
+  }
+
+  /** Counts the {@code calculated_fee_detail} rows currently bound to the given claim. */
+  private long countCfd(UUID claimId) {
+    Long count =
+        jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM claims.calculated_fee_detail WHERE claim_id = ?",
+            Long.class,
+            claimId);
+    return count == null ? 0L : count;
   }
 
   /**
@@ -334,6 +399,49 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
           });
     }
     return codes;
+  }
+
+  /**
+   * A single error entry from the response {@code errors} array, carrying its {@code code}, its
+   * (possibly {@code null}) {@code fieldName} and its user-facing {@code message}.
+   * Field-association is checked against both: some codes populate {@code fieldName}, while others
+   * (e.g. {@code INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW}) name the offending field only in the
+   * message.
+   */
+  private record ErrorEntry(String code, String fieldName, String message) {
+    boolean matches(String expectedCode, String expectedField) {
+      if (!expectedCode.equals(code)) {
+        return false;
+      }
+      String normalisedField = normalise(expectedField);
+      return normalisedField.equals(normalise(fieldName))
+          || normalise(message).contains(normalisedField);
+    }
+
+    private static String normalise(String value) {
+      return value == null ? "" : value.toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+  }
+
+  private List<ErrorEntry> extractErrorEntries() {
+    JsonNode body = scenarioContext.getLastResponseBody();
+    List<ErrorEntry> entries = new ArrayList<>();
+    if (body == null) {
+      return entries;
+    }
+    JsonNode errors = body.path("errors");
+    if (errors.isArray()) {
+      errors.forEach(
+          node -> {
+            String code = node.path("code").asText(null);
+            if (code != null) {
+              entries.add(
+                  new ErrorEntry(
+                      code, node.path("fieldName").asText(null), node.path("message").asText("")));
+            }
+          });
+    }
+    return entries;
   }
 
   /** Maps a feature-file wire field name to its amendment diff identifier. */
