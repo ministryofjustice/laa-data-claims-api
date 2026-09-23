@@ -68,6 +68,13 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
   private static final String FIELD_NOT_AMENDABLE_CODE =
       "INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW";
 
+  // Valid amendment metadata so AmendmentReferenceValidationStep / AmendmentUserIdValidationStep do
+  // not add unrelated metadata errors — every patch these scenarios build must carry it, otherwise
+  // the intended field-amendability / assessed-pricing gate is not isolated and the FSP call is
+  // skipped because an unrelated error already exists (PR #478 review). Mirrors the DSTEW-2301
+  // harness values.
+  private static final String AMENDMENT_USER_ID = "0190b6a0-9b7e-7c8a-9e2d-230100000001";
+
   @Autowired private AmendableClaimFixture fixture;
   @Autowired private SharedAmendmentPatchContext sharedPatchContext;
   @Autowired private BddScenarioContext scenarioContext;
@@ -252,6 +259,7 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
           ObjectNode root = objectMapper.createObjectNode();
           root.put("ufn".equals(field) ? "unique_file_number" : field, value);
           root.put("version", 0);
+          putValidAmendmentMetadata(root);
           sharedPatchContext.setPatchJson(root.toString());
         });
   }
@@ -352,6 +360,16 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
     UUID claimId = sharedPatchContext.getClaimId();
     assertThat(claimId).as("a claim must have been seeded before this step").isNotNull();
     return claimId;
+  }
+
+  /**
+   * Adds the mandatory, valid amendment metadata every well-formed patch must carry so the metadata
+   * validation steps do not raise unrelated errors that would mask the gate under test.
+   */
+  private static void putValidAmendmentMetadata(ObjectNode root) {
+    root.put("amendment_requested_by", "PROVIDER");
+    root.put("amendment_reason_code", "PROVIDER_ERROR");
+    root.put("amendment_user_id", AMENDMENT_USER_ID);
   }
 
   /** Counts the {@code calculated_fee_detail} rows currently bound to the given claim. */
