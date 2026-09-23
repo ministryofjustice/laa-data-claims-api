@@ -39,7 +39,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
   Scenario: Amendable field for the claim's Area of Law does not raise a field-amendability error
     Given an original claim exists with area of law "CRIME_LOWER"
     And the field "client_surname" is on the AaBC amendable-fields list for area of law "CRIME_LOWER"
-    And an amendment changes only the field "client_surname" to a different value
+    And an amendment changes only the field "client_surname" to "Jones"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then no field-amendability error is raised for the field "client_surname"
 
@@ -47,7 +47,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
   Scenario Outline: Non-amendable field "<field>" for area of law "<areaOfLaw>" is collected as INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW
     Given an original claim exists with area of law "<areaOfLaw>"
     And the field "<field>" is NOT on the AaBC amendable-fields list for area of law "<areaOfLaw>"
-    And an amendment changes only the field "<field>" to a different value
+    And an amendment changes only the field "<field>" to "<newValue>"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with the following field-level errors
       | field   | Error Code                                    |
@@ -55,9 +55,9 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     And no amendment state was committed
 
     Examples:
-      | areaOfLaw   | field                     |
-      | CRIME_LOWER | case_start_date           |
-      | LEGAL_HELP  | representation_order_date |
+      | areaOfLaw   | field                     | newValue   |
+      | CRIME_LOWER | case_start_date           | 01/05/2026 |
+      | LEGAL_HELP  | representation_order_date | 01/05/2026 |
 
   @DS1767_3
   Scenario: Multiple non-amendable fields are aggregated in the Step 12 response
@@ -92,7 +92,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     Given an original amendable claim exists with a valid pricing baseline
     And the claim already has an assessment recorded
     And the classifier will mark the amendment "impacts_pricing" as "true"
-    And an amendment changes only the field "fee_code" to a different value
+    And an amendment changes only the field "fee_code" to "FEE-B"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with the following errors
       | Error Code                                  |
@@ -108,7 +108,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     Given an original amendable claim exists with a valid pricing baseline
     And the claim has no assessment recorded
     And the classifier will mark the amendment "impacts_pricing" as "true"
-    And an amendment changes only the field "fee_code" to a different value
+    And an amendment changes only the field "fee_code" to "FEE-B"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the response does not contain error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
 
