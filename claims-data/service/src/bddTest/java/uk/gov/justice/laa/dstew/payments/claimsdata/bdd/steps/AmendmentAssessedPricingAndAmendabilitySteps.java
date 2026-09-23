@@ -250,7 +250,7 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
         "Building a patch that changes " + field + " to " + value,
         () -> {
           ObjectNode root = objectMapper.createObjectNode();
-root.put("ufn".equals(field) ? "unique_file_number" : field, value);
+          root.put("ufn".equals(field) ? "unique_file_number" : field, value);
           root.put("version", 0);
           sharedPatchContext.setPatchJson(root.toString());
         });
