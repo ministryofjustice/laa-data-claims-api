@@ -5,7 +5,7 @@
 Feature: Amendment gates — field amendability & assessed-claim pricing restriction
 
   # Jira: DSTEW-1767 (parent: DSTEW-1593 → DSTEW-1999)
-  # Endpoint: POST /api/v1/claims/{claimId}/amendments  (DSTEW-1593)
+# Endpoint: PATCH /api/v1/submissions/{submissionId}/claims/{claimId}  (DSTEW-1593)
   #
   # Consumes ChangedFieldClassification output from DSTEW-1766 to apply two
   # amendment-specific gates that do NOT need fee-code detail lookup:
