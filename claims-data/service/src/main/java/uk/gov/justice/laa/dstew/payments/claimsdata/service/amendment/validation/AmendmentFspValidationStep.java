@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validatio
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSch
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSchemeRequestField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
+import uk.gov.justice.laa.fee.scheme.model.ValidationMessagesInner;
 
 /**
  * Fee Scheme Platform (FSP) validation step responsible for orchestrating claim repricing during
@@ -131,6 +133,15 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
           Objects.requireNonNull(
               fspClient.calculateFee(requestBuilder.buildRequest(state)).getBody(),
               "FSP calculateFee returned a null response body");
+
+      List<ClaimAmendmentValidationError> fspValidationErrors =
+          toAmendmentValidationErrors(fspResponse);
+      if (!fspValidationErrors.isEmpty()) {
+        log.warn(
+            "FSP validation rejected payload with {} error message(s)", fspValidationErrors.size());
+        return fspValidationErrors;
+      }
+
       state.setFspResponseContext(fspResponse);
 
       // 1595-F: Populate snap containers into state slots for historical audit tracking
@@ -210,5 +221,42 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       return false;
     }
     return FeeSchemeRequestField.impactsPricing(fieldIdentifier, areaOfLaw);
+  }
+
+  /**
+   * Converts every FSP {@code ERROR} validation message into a fatal amendment validation error.
+   * Warnings and null entries are ignored; when no ERROR messages are present an empty list is
+   * returned so the caller can continue with the success path.
+   */
+  private static List<ClaimAmendmentValidationError> toAmendmentValidationErrors(
+      FeeCalculationResponse fspResponse) {
+    List<ValidationMessagesInner> messages = fspResponse.getValidationMessages();
+    if (messages == null || messages.isEmpty()) {
+      return List.of();
+    }
+    return messages.stream()
+        .filter(
+            message ->
+                message != null && message.getType() == ValidationMessagesInner.TypeEnum.ERROR)
+        .map(AmendmentFspValidationStep::toAmendmentValidationError)
+        .toList();
+  }
+
+  private static ClaimAmendmentValidationError toAmendmentValidationError(
+      ValidationMessagesInner message) {
+    return ClaimAmendmentValidationError.of(
+        ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE, formatFspMessage(message));
+  }
+
+  private static String formatFspMessage(ValidationMessagesInner message) {
+    String body =
+        Optional.ofNullable(message.getMessage())
+            .filter(text -> !text.isBlank())
+            .orElse("FSP validation rejected the fee calculation request");
+    String code = message.getCode();
+    if (code == null || code.isBlank()) {
+      return body;
+    }
+    return "[" + code + "] " + body;
   }
 }
