@@ -247,8 +247,42 @@ class ClaimAmendmentStateBuilderTest {
 
     @Test
     @DisplayName(
-        "DSTEW-2359: post-amendment state reflects feeCode and netDisbursementAmount so downstream repricing can detect the change")
-    void pricingImpactingFieldsAreAppliedToPostAmendmentState() {
+        "DSTEW-2359: feeCode change is reflected in post-amendment state for repricing detection")
+    void feeCodeChangeIsAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder().feeCode(JsonNullable.of("CLININQ")).build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getFeeCode()).isEqualTo("CLININQ");
+      assertThat(after.getFeeCode()).isNotEqualTo(beforeState().getFeeCode());
+      // netDisbursementAmount must remain unchanged
+      assertThat(after.getNetDisbursementAmount())
+          .isEqualByComparingTo(beforeState().getNetDisbursementAmount());
+    }
+
+    @Test
+    @DisplayName(
+        "DSTEW-2359: netDisbursementAmount change is reflected in post-amendment state for repricing detection")
+    void netDisbursementAmountChangeIsAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder()
+              .netDisbursementAmount(JsonNullable.of(new BigDecimal("2200.00")))
+              .build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo(new BigDecimal("2200.00"));
+      assertThat(after.getNetDisbursementAmount())
+          .isNotEqualByComparingTo(beforeState().getNetDisbursementAmount());
+      // feeCode must remain unchanged
+      assertThat(after.getFeeCode()).isEqualTo(beforeState().getFeeCode());
+    }
+
+    @Test
+    @DisplayName(
+        "DSTEW-2359: both feeCode and netDisbursementAmount changes are reflected together for repricing detection")
+    void bothPricingImpactingFieldsAreAppliedToPostAmendmentState() {
       ClaimAmendmentPayload payload =
           ClaimAmendmentPayload.builder()
               .feeCode(JsonNullable.of("CLININQ"))
