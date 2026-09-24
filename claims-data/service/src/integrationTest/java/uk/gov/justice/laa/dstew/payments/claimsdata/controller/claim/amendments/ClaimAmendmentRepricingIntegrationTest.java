@@ -493,6 +493,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
 
     Claim claimBefore = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     Long versionBefore = claimBefore.getVersion();
+    Instant updatedOnBefore = claimBefore.getUpdatedOn();
 
     // Mock FSP to return a successful response with a warning (warnings should be ignored)
     mockServerClient
@@ -527,7 +528,8 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     Claim claimAfter = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(claimAfter.isAmended()).isTrue();
     assertThat(claimAfter.getUpdatedByUserId()).isEqualTo(VALID_USER_UUID.toString());
-    assertThat(claimAfter.getUpdatedOn()).isNotNull();
+    assertThat(updatedOnBefore).isNotNull();
+    assertThat(claimAfter.getUpdatedOn()).isAfterOrEqualTo(updatedOnBefore);
     assertThat(claimAfter.getVersion()).isEqualTo(versionBefore + 1);
   }
 
