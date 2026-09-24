@@ -122,20 +122,6 @@ ignore:
           available upstream for Ubuntu 24.04. Not fixable from application code.
         expires: 2026-10-14T00:00:00.000Z
 
-  # netty-codec-http HTTP Request Smuggling (Medium). Transitive dependency pulled in
-  # via the Spring Boot BOM (reactor-netty → netty-codec-http). Fix available in
-  # 4.2.18.Final / 4.1.138.Final — will be picked up automatically on the next
-  # Spring Boot BOM patch bump. Not remediated here because a Gradle-level forced
-  # override belongs in a platform/dep PR, not in a BDD-test-only PR. Short expiry so
-  # this doesn't linger.
-  SNYK-JAVA-IONETTY-19778369:
-    - '*':
-        reason: >-
-          Transitive io.netty:netty-codec-http@4.2.17.Final vulnerability
-          (SNYK-JAVA-IONETTY-19778369, HTTP Request Smuggling, Medium). Fix
-          available in 4.2.18.Final; will be resolved by next Spring Boot BOM
-          patch bump. Not remediated in this test-only PR.
-        expires: 2026-10-14T00:00:00.000Z
 # Example entry format:
 #  SNYK-VULNERABILITY-ID:
 #    - '<package>@<version>':

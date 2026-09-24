@@ -29,6 +29,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestDat
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.UNIQUE_FILE_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.AmendmentTestData.VERSION;
 
+import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,7 @@ class ClaimAmendmentStateBuilderTest {
         .uniqueClientNumber(UNIQUE_CLIENT_NUMBER)
         .caseId(CASE_ID)
         .exemptionCriteriaSatisfied(EXEMPTION_CRITERIA_SATISFIED)
+        .netDisbursementAmount(new BigDecimal("1100.00"))
         .build();
   }
 
@@ -241,6 +243,59 @@ class ClaimAmendmentStateBuilderTest {
       assertThat(state.getRequestPayload().getCaseReferenceNumber().isPresent()).isFalse();
       // ...while the submitted field is present.
       assertThat(state.getRequestPayload().getFeeCode().isPresent()).isTrue();
+    }
+
+    @Test
+    @DisplayName(
+        "DSTEW-2359: feeCode change is reflected in post-amendment state for repricing detection")
+    void feeCodeChangeIsAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder().feeCode(JsonNullable.of("CLININQ")).build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getFeeCode()).isEqualTo("CLININQ");
+      assertThat(after.getFeeCode()).isNotEqualTo(beforeState().getFeeCode());
+      // netDisbursementAmount must remain unchanged
+      assertThat(after.getNetDisbursementAmount())
+          .isEqualByComparingTo(beforeState().getNetDisbursementAmount());
+    }
+
+    @Test
+    @DisplayName(
+        "DSTEW-2359: netDisbursementAmount change is reflected in post-amendment state for repricing detection")
+    void netDisbursementAmountChangeIsAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder()
+              .netDisbursementAmount(JsonNullable.of(new BigDecimal("2200.00")))
+              .build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo(new BigDecimal("2200.00"));
+      assertThat(after.getNetDisbursementAmount())
+          .isNotEqualByComparingTo(beforeState().getNetDisbursementAmount());
+      // feeCode must remain unchanged
+      assertThat(after.getFeeCode()).isEqualTo(beforeState().getFeeCode());
+    }
+
+    @Test
+    @DisplayName(
+        "DSTEW-2359: both feeCode and netDisbursementAmount changes are reflected together for repricing detection")
+    void bothPricingImpactingFieldsAreAppliedToPostAmendmentState() {
+      ClaimAmendmentPayload payload =
+          ClaimAmendmentPayload.builder()
+              .feeCode(JsonNullable.of("CLININQ"))
+              .netDisbursementAmount(JsonNullable.of(new BigDecimal("2200.00")))
+              .build();
+
+      ClaimStateSnapshot after = builder.buildPostAmendmentState(beforeState(), payload);
+
+      assertThat(after.getFeeCode()).isEqualTo("CLININQ");
+      assertThat(after.getNetDisbursementAmount()).isEqualByComparingTo(new BigDecimal("2200.00"));
+      assertThat(after.getFeeCode()).isNotEqualTo(beforeState().getFeeCode());
+      assertThat(after.getNetDisbursementAmount())
+          .isNotEqualByComparingTo(beforeState().getNetDisbursementAmount());
     }
   }
 }
