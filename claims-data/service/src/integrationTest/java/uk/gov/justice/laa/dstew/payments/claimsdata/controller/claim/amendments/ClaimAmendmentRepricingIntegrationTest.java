@@ -406,6 +406,9 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setVersion(1L);
     patchPayload.setFeeCode("CLININQ"); // Changed fee code that will fail FSP validation
 
+    Claim claimBefore = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    Long versionBefore = claimBefore.getVersion();
+
     // Capture baseline fee count before attempt
     long feesBefore =
         calculatedFeeDetailRepository.findAll().stream()
@@ -442,6 +445,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertThat(feesAfter).isEqualTo(feesBefore); // Count unchanged after rejection
     Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     assertThat(reloaded.isAmended()).isFalse();
+    assertThat(reloaded.getVersion()).isEqualTo(versionBefore);
   }
 
   @Test
@@ -487,6 +491,9 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     patchPayload.setVersion(1L);
     patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(5000.00));
 
+    Claim claimBefore = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    Long versionBefore = claimBefore.getVersion();
+
     // Mock FSP to return a successful response with a warning (warnings should be ignored)
     mockServerClient
         .when(request().withMethod("POST").withPath(FEE_CALCULATION))
@@ -516,6 +523,12 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
             .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
             .toList();
     assertThat(savedFees.getFirst().getTotalAmount()).isEqualByComparingTo("1500.00");
+
+    Claim claimAfter = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(claimAfter.isAmended()).isTrue();
+    assertThat(claimAfter.getUpdatedByUserId()).isEqualTo(VALID_USER_UUID.toString());
+    assertThat(claimAfter.getUpdatedOn()).isNotNull();
+    assertThat(claimAfter.getVersion()).isEqualTo(versionBefore + 1);
   }
 
   /**
