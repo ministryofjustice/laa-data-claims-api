@@ -1,0 +1,20 @@
+{
+  "feeCode": "CLININQ",
+  "schemeId": "CAPA_FS2013",
+  "claimId": "f6bde766-a0a3-483b-bf13-bef888b4f06e",
+  "validationMessages": [
+    {
+      "type": "ERROR",
+      "code": "FEE_CODE_NOT_ELIGIBLE",
+      "message": "Fee code CLININQ is not eligible for matter type CRIME_LOWER"
+    },
+    {
+      "type": "ERROR",
+      "code": "INVALID_DISBURSEMENT",
+      "message": "Disbursement amount exceeds maximum allowed for this fee code"
+    }
+  ],
+  "escapeCaseFlag": false,
+  "feeCalculation": null
+}
+

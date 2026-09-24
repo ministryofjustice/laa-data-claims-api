@@ -196,7 +196,6 @@ class AmendmentFspValidationStepTest {
         .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
     assertThat(error.isFatal()).isTrue();
     assertThat(error.getMessage())
-        .contains("[ERRCIV2]")
         .contains("Cases started before 1st April 2013 cannot be accepted");
     assertThat(state.getFspResponseContext()).isNull();
     verifyNoInteractions(claimStateSnapshotMapper);
@@ -246,8 +245,8 @@ class AmendmentFspValidationStepTest {
             });
     assertThat(errors)
         .extracting(ClaimAmendmentValidationError::getMessage)
-        .anySatisfy(msg -> assertThat(msg).contains("[ERRCIV2]"))
-        .anySatisfy(msg -> assertThat(msg).contains("[ERRCIV3]"))
+        .anySatisfy(msg -> assertThat(msg).contains("Cases started before 1st April 2013"))
+        .anySatisfy(msg -> assertThat(msg).contains("Fee code CLININQ is not permitted"))
         .noneSatisfy(msg -> assertThat(msg).contains("WARN01"));
 
     assertThat(state.getFspResponseContext()).isNull();

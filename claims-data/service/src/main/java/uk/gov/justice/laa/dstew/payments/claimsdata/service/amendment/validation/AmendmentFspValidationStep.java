@@ -137,7 +137,7 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
       List<ClaimAmendmentValidationError> fspValidationErrors =
           toAmendmentValidationErrors(fspResponse);
       if (!fspValidationErrors.isEmpty()) {
-        log.warn(
+        log.debug(
             "FSP validation rejected payload with {} error message(s)", fspValidationErrors.size());
         return fspValidationErrors;
       }
@@ -244,19 +244,20 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
 
   private static ClaimAmendmentValidationError toAmendmentValidationError(
       ValidationMessagesInner message) {
+    String formattedMessage = formatFspMessageForAmendmentError(message);
     return ClaimAmendmentValidationError.of(
-        ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE, formatFspMessage(message));
+        ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE, formattedMessage);
   }
 
-  private static String formatFspMessage(ValidationMessagesInner message) {
-    String body =
-        Optional.ofNullable(message.getMessage())
-            .filter(text -> !text.isBlank())
-            .orElse("FSP validation rejected the fee calculation request");
-    String code = message.getCode();
-    if (code == null || code.isBlank()) {
-      return body;
-    }
-    return "[" + code + "] " + body;
+  /**
+   * Formats the FSP error message for inclusion in the amendment error response.
+   *
+   * @param message the FSP validation message
+   * @return the message text, or a default message if the FSP message is blank
+   */
+  private static String formatFspMessageForAmendmentError(ValidationMessagesInner message) {
+    return Optional.ofNullable(message.getMessage())
+        .filter(text -> !text.isBlank())
+        .orElse("FSP validation rejected the fee calculation request");
   }
 }
