@@ -529,7 +529,7 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertThat(claimAfter.isAmended()).isTrue();
     assertThat(claimAfter.getUpdatedByUserId()).isEqualTo(VALID_USER_UUID.toString());
     assertThat(updatedOnBefore).isNotNull();
-    assertThat(claimAfter.getUpdatedOn()).isAfterOrEqualTo(updatedOnBefore);
+    assertThat(claimAfter.getUpdatedOn()).isAfter(updatedOnBefore);
     assertThat(claimAfter.getVersion()).isEqualTo(versionBefore + 1);
   }
 
