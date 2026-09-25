@@ -46,6 +46,37 @@ jobs:
           echo "snapshot_version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Snapshot version: ${VERSION}"
 
+  test-release-diff:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Generate release diff
+        id: release_diff
+        uses: ./.github/actions/release_diff
+        with:
+          from: v1.22.2
+          to: ${{ github.event.pull_request.head.sha }}
+
+      - name: Show release diff
+        shell: bash
+        env:
+          JSON_FILE: ${{ steps.release_diff.outputs.json-file }}
+        run: |
+          echo "Generated release data:"
+          cat "$JSON_FILE"
+
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false

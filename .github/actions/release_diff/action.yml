@@ -1,0 +1,38 @@
+name: Release Diff
+description: Generate a list of pull requests between two Git refs
+
+inputs:
+  from:
+    description: Git tag, SHA or ref currently deployed
+    required: true
+
+  to:
+    description: Git tag, SHA or ref being deployed
+    required: true
+
+outputs:
+  markdown-file:
+    description: Path to the generated Markdown release notes
+    value: ${{ steps.release_diff.outputs.markdown-file }}
+
+  json-file:
+    description: Path to the generated JSON release data
+    value: ${{ steps.release_diff.outputs.json-file }}
+
+  pull-request-count:
+    description: Number of pull requests found
+    value: ${{ steps.release_diff.outputs.pull-request-count }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Generate release diff
+      id: release_diff
+      shell: bash
+      env:
+        FROM_REF: ${{ inputs.from }}
+        TO_REF: ${{ inputs.to }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        "${{ github.action_path }}/release-diff.sh"
