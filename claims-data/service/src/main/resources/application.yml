@@ -161,6 +161,11 @@ laa:
           accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
           readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:3000}
           connectTimeoutMs: ${FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS:1000}
+      inquests:
+        # Feature toggle for the inquests capability, supplied via the CLAIMS_API_INQUESTS_ENABLED
+        # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
+        # value is off).
+        enabled: ${CLAIMS_API_INQUESTS_ENABLED:false}
 
   springboot.starter:
     auth:
