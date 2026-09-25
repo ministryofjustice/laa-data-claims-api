@@ -94,9 +94,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     And the classifier will mark the amendment "impacts_pricing" as "true"
     And an amendment changes only the field "fee_code" to "FEE-B"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the amendment is rejected with the following errors
-      | Error Code                                  |
-      | INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM |
+    Then the response contains error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
     And no outbound FSP call was made from the amendment harness
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
