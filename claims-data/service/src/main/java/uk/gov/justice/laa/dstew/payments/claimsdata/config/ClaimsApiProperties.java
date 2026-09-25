@@ -87,8 +87,8 @@ public class ClaimsApiProperties {
     private String enabled;
 
     /**
-     * Whether the inquests capability is enabled, resolving the raw {@link #enabled} value fail-safe
-     * to off.
+     * Whether the inquests capability is enabled, resolving the raw {@link #enabled} value
+     * fail-safe to off.
      *
      * <p>Returns {@code true} only when the configured value is {@code "true"} (case-insensitive,
      * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "false"} or
