@@ -123,7 +123,12 @@ class ClaimStateSnapshotMapperTest {
 
     ClaimStateSnapshot snapshot =
         mapper.toSnapshot(
-            claim(submission()), client, claimCase, summaryFee, feeDetail, assessment);
+            claim(submission()),
+            Optional.of(client),
+            Optional.of(claimCase),
+            Optional.of(summaryFee),
+            Optional.of(feeDetail),
+            Optional.of(assessment));
 
     assertThat(snapshot.getClaimId()).isEqualTo(CLAIM_ID);
     assertThat(snapshot.getSubmissionId()).isEqualTo(SUBMISSION_ID);
@@ -160,11 +165,11 @@ class ClaimStateSnapshotMapperTest {
     ClaimStateSnapshot snapshot =
         mapper.toSnapshot(
             claim(submission()),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty());
+            Optional.<Client>empty(),
+            Optional.<ClaimCase>empty(),
+            Optional.<ClaimSummaryFee>empty(),
+            Optional.<CalculatedFeeDetail>empty(),
+            Optional.<Assessment>empty());
 
     assertThat(snapshot.getClaimId()).isEqualTo(CLAIM_ID);
     assertThat(snapshot.getUniqueFileNumber()).isEqualTo(UNIQUE_FILE_NUMBER);
@@ -185,11 +190,11 @@ class ClaimStateSnapshotMapperTest {
     ClaimStateSnapshot snapshot =
         mapper.toSnapshot(
             claim(null),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty());
+            Optional.<Client>empty(),
+            Optional.<ClaimCase>empty(),
+            Optional.<ClaimSummaryFee>empty(),
+            Optional.<CalculatedFeeDetail>empty(),
+            Optional.<Assessment>empty());
 
     assertThat(snapshot.getSubmissionId()).isNull();
     assertThat(snapshot.getAreaOfLaw()).isNull();
@@ -337,7 +342,13 @@ class ClaimStateSnapshotMapperTest {
         Assessment.builder().assessedTotalInclVat(ASSESSED_TOTAL_INCL_VAT).build();
 
     ClaimStateSnapshot snapshot =
-        mapper.toSnapshot(claim, client, claimCase, summaryFee, feeDetail, assessment);
+        mapper.toSnapshot(
+            claim,
+            Optional.of(client),
+            Optional.of(claimCase),
+            Optional.of(summaryFee),
+            Optional.of(feeDetail),
+            Optional.of(assessment));
 
     // Reflectively assert every (non-static, non-synthetic) field is populated. This converts the
     // latent silent-null risk from unmappedTargetPolicy = IGNORE into an explicit, future-proof
@@ -403,5 +414,31 @@ class ClaimStateSnapshotMapperTest {
     assertThat(snapshot.getFeeCode()).isEqualTo("FEE002");
     assertThat(snapshot.getTotalAmount()).isNull();
     assertThat(snapshot.getBoltOnTotalFeeAmount()).isNull();
+  }
+
+  @Test
+  @DisplayName("maps pricing-relevant summary-fee fields from the claim aggregate")
+  void mapsPricingRelevantFieldsFromAggregate() {
+    ClaimSummaryFee summaryFee =
+        ClaimSummaryFee.builder()
+            .netDisbursementAmount(new BigDecimal("1100.00"))
+            .netProfitCostsAmount(new BigDecimal("1000.00"))
+            .isVatApplicable(true)
+            .createdByUserId(CREATED_BY_USER_ID)
+            .build();
+
+    ClaimStateSnapshot snapshot =
+        mapper.toSnapshot(
+            claim(submission()),
+            Optional.<Client>empty(),
+            Optional.<ClaimCase>empty(),
+            Optional.of(summaryFee),
+            Optional.<CalculatedFeeDetail>empty(),
+            Optional.<Assessment>empty());
+
+    assertThat(snapshot.getFeeCode()).isEqualTo(FEE_CODE);
+    assertThat(snapshot.getNetDisbursementAmount()).isEqualByComparingTo("1100.00");
+    assertThat(snapshot.getNetProfitCostsAmount()).isEqualByComparingTo("1000.00");
+    assertThat(snapshot.getIsVatApplicable()).isTrue();
   }
 }
