@@ -1,0 +1,34 @@
+{
+  "feeCode": "CAPA",
+  "schemeId": "CAPA_FS2013",
+  "claimId": "f6bde766-a0a3-483b-bf13-bef888b4f06e",
+  "validationMessages": [
+    {
+      "type": "WARNING",
+      "code": "HIGH_COSTS",
+      "message": "Costs exceed typical range for this matter type, but are acceptable"
+    }
+  ],
+  "escapeCaseFlag": true,
+  "feeCalculation": {
+    "totalAmount": 1500.0,
+    "vatIndicator": true,
+    "vatRateApplied": 0.2,
+    "calculatedVatAmount": 300.0,
+    "disbursementAmount": 500.0,
+    "requestedNetDisbursementAmount": 500.0,
+    "disbursementVatAmount": 100.0,
+    "hourlyTotalAmount": 0.0,
+    "fixedFeeAmount": 1000.0,
+    "netProfitCostsAmount": 0.0,
+    "requestedNetProfitCostsAmount": null,
+    "netCostOfCounselAmount": 0.0,
+    "netTravelCostsAmount": 0.0,
+    "netWaitingCostsAmount": 0.0,
+    "detentionTravelAndWaitingCostsAmount": 0.0,
+    "jrFormFillingAmount": 0.0,
+    "travelAndWaitingCostAmount": 0.0,
+    "boltOnFeeDetails": null
+  }
+}
+
