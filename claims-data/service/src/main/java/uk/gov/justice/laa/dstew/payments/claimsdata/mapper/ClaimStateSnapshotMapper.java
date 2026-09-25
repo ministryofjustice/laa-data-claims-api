@@ -51,12 +51,16 @@ public interface ClaimStateSnapshotMapper {
   @Mapping(target = "feeCode", source = "claim.feeCode")
   @Mapping(target = "schemeId", source = "claim.schemeId")
   @Mapping(target = "netProfitCostsAmount", source = "summaryFee.netProfitCostsAmount")
+  @Mapping(target = "netDisbursementAmount", source = "summaryFee.netDisbursementAmount")
   @Mapping(target = "netWaitingCostsAmount", source = "summaryFee.netWaitingCostsAmount")
   @Mapping(target = "jrFormFillingAmount", source = "summaryFee.jrFormFillingAmount")
   @Mapping(target = "isVatApplicable", source = "summaryFee.isVatApplicable")
   @Mapping(target = "categoryOfLaw", source = "calculatedFeeDetail.categoryOfLaw")
   @Mapping(target = "calculatedFeeDetail", source = "calculatedFeeDetail")
   @Mapping(target = "latestAssessment", source = "latestAssessment")
+  @Mapping(target = "matterTypeCode", source = "claim.matterTypeCode")
+  @Mapping(target = "crimeMatterTypeCode", source = "claim.crimeMatterTypeCode")
+  @Mapping(target = "feeSchemeCode", source = "claim.feeSchemeCode")
   ClaimStateSnapshot toSnapshot(
       Claim claim,
       Client client,

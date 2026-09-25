@@ -165,6 +165,11 @@ laa:
       external-api-audit:
         # Kill switch for outbound external API audit logging
         enabled: ${EXTERNAL_API_AUDIT_ENABLED:true}
+      inquests:
+        # Feature toggle for the inquests capability, supplied via the CLAIMS_API_INQUESTS_ENABLED
+        # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
+        # value is off).
+        enabled: ${CLAIMS_API_INQUESTS_ENABLED:false}
 
   springboot.starter:
     auth:

@@ -22,6 +22,9 @@ public class ClaimsApiProperties {
 
   /** Settings for outbound external API audit logging. */
   private final ExternalApiAudit externalApiAudit = new ExternalApiAudit();
+  
+  /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
+  private final Inquests inquests = new Inquests();
 
   /** Settings for the amendments feature. */
   @Getter
@@ -98,6 +101,37 @@ public class ClaimsApiProperties {
      */
     public boolean isEnabled() {
       return enabled == null || Boolean.parseBoolean(enabled.trim());
+    }
+  }
+
+  /** Settings for the inquests feature. */
+  @Getter
+  @Setter
+  public static class Inquests {
+
+    /**
+     * Raw configured value for the inquests toggle ({@code laa.claims.api.inquests.enabled}).
+     *
+     * <p><b>Off by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
+     * fails safe to off: it is enabled only when this resolves to {@code true} via {@link
+     * #isEnabled()}. An absent/null, blank, {@code false} or otherwise invalid value leaves the
+     * feature off without failing application start-up. Prefer {@link #isEnabled()} over reading
+     * this field directly.
+     */
+    private String enabled;
+
+    /**
+     * Whether the inquests capability is enabled, resolving the raw {@link #enabled} value
+     * fail-safe to off.
+     *
+     * <p>Returns {@code true} only when the configured value is {@code "true"} (case-insensitive,
+     * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "false"} or
+     * any unrecognised value - returns {@code false}.
+     *
+     * @return {@code true} only when inquests is explicitly enabled
+     */
+    public boolean isEnabled() {
+      return enabled != null && Boolean.parseBoolean(enabled.trim());
     }
   }
 }
