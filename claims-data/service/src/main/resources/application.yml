@@ -11,7 +11,8 @@ spring:
     username: user
     password: dev
   flyway:
-    schemas: claims, javers
+    schemas: claims, javers, audit
+    default-schema: claims
     create-schemas: true
     enabled: true
     out-of-order: true
@@ -161,6 +162,9 @@ laa:
           accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
           readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:3000}
           connectTimeoutMs: ${FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS:1000}
+      external-api-audit:
+        # Kill switch for outbound external API audit logging
+        enabled: ${EXTERNAL_API_AUDIT_ENABLED:true}
       inquests:
         # Feature toggle for the inquests capability, supplied via the CLAIMS_API_INQUESTS_ENABLED
         # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent

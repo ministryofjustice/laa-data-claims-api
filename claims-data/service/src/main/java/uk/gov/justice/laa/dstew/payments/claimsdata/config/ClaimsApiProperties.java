@@ -20,6 +20,9 @@ public class ClaimsApiProperties {
   /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
   private final Amendments amendments = new Amendments();
 
+  /** Settings for outbound external API audit logging. */
+  private final ExternalApiAudit externalApiAudit = new ExternalApiAudit();
+
   /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
   private final Inquests inquests = new Inquests();
 
@@ -67,6 +70,37 @@ public class ClaimsApiProperties {
        * {@code 30m} or {@code 2h}.
        */
       private Duration refresh = Duration.ofMinutes(30);
+    }
+  }
+
+  /** Settings for outbound external API audit logging. */
+  @Getter
+  @Setter
+  public static class ExternalApiAudit {
+    /**
+     * Whether outbound external API audit logging is enabled ({@code
+     * laa.claims.api.external-api-audit.enabled}).
+     *
+     * <p><b>On by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
+     * fails safe to on: it is enabled only when this resolves to {@code true} via {@link
+     * #isEnabled()}. An absent/null, blank, {@code false} or otherwise invalid value leaves the
+     * feature on without failing application start-up. Prefer {@link #isEnabled()} over reading
+     * this field directly.
+     */
+    private String enabled;
+
+    /**
+     * Whether outbound external API audit logging is enabled, resolving the raw {@link #enabled}
+     * value fail-safe to on.
+     *
+     * <p>Returns {@code false} only when the configured value is {@code "false"} (case-insensitive,
+     * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "true"} or
+     * any unrecognised value - returns {@code true}.
+     *
+     * @return {@code false} only when external API audit logging is explicitly disabled
+     */
+    public boolean isEnabled() {
+      return enabled == null || Boolean.parseBoolean(enabled.trim());
     }
   }
 
