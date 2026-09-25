@@ -59,7 +59,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     And the Fee Code Details lookup returns area of law "CRIME_LOWER" for feeCode "CRIME-B"
     And the amendment changes the fee code to "CRIME-B"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the response does not contain error code "INVALID_FEE_CODE_AREA_OF_LAW_CHANGE"
+    Then the amendment is accepted
 
   @DS1768_2
   Scenario: Fee-code change to a different Area of Law is rejected with INVALID_FEE_CODE_AREA_OF_LAW_CHANGE
