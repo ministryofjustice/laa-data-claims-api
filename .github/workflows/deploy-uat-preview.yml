@@ -46,41 +46,6 @@ jobs:
           echo "snapshot_version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Snapshot version: ${VERSION}"
 
-  test-release-diff:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    # Scoped to the 'uat' environment so we read the same KUBE_* secrets used by
-    # deploy-uat-preview below, letting us compare what's currently live on UAT
-    # against this PR's head commit. Safe to do here since deploy-uat-preview
-    # already runs environment: uat unattended on every PR.
-    environment: uat
-
-    permissions:
-      contents: read
-      pull-requests: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Release diff + Slack notify
-        uses: ./.github/actions/release_diff_notify
-        with:
-          kube-cert: ${{ secrets.KUBE_CERT }}
-          kube-token: ${{ secrets.KUBE_TOKEN }}
-          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
-          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
-          deployment: main-data-claims-api
-          image-prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
-          to-ref: ${{ github.event.pull_request.head.sha }}
-          environment-name: UAT
-          to-label: "PR #${{ github.event.pull_request.number }}"
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false

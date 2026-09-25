@@ -1,39 +1,21 @@
 name: Release diff and notify
 description: >
-  End-to-end release-diff workflow: reads the currently deployed image from a
-  Kubernetes deployment, resolves it back to a git ref, generates a PR-based
-  release diff against a target ref, and (if a Slack webhook is supplied and
-  there's at least one PR to report) posts a summary to Slack with links to
-  each PR and its Jira ticket (derived from the PR title).
-  Requires the calling job to have already checked out the repository
-  (fetch-depth: 0, fetch-tags: true) at the ref being diffed "to".
+  Generates a PR-based release diff between a "from" and "to" git ref, and (if
+  a Slack webhook is supplied and there's at least one PR to report) posts a
+  summary to Slack with links to each PR and its Jira ticket (derived from the
+  PR title). Requires the calling job to have already checked out the
+  repository (fetch-depth: 0, fetch-tags: true) at the ref being diffed "to".
+  To diff against what was deployed immediately prior to a deployment, use
+  ./.github/actions/get_deployed_git_ref *before* deploying to capture
+  "from-ref", then call this action *after* the deployment succeeds.
 
 inputs:
-  kube-cert:
-    description: "Kubernetes cluster authentication certificate"
-    required: true
-  kube-token:
-    description: "Kubernetes cluster authentication token"
-    required: true
-  kube-cluster:
-    description: "Kubernetes cluster name"
-    required: true
-  kube-namespace:
-    description: "Kubernetes namespace"
-    required: true
-  deployment:
-    description: "Kubernetes deployment name to read the currently deployed image from"
-    required: true
-  image-prefix:
-    description: "Image tag prefix to strip when resolving the deployed image tag to a git ref"
+  from-ref:
+    description: "Git ref/SHA to diff from (e.g. output of get_deployed_git_ref, captured before deploying)"
     required: true
   to-ref:
     description: "Git ref/SHA to diff against (e.g. PR head SHA or github.sha)"
     required: true
-  git-tag-prefix:
-    description: "Prefix used on release git tags"
-    required: false
-    default: "v"
   jira-base-url:
     description: "Base URL to prepend to a ticket ID to build its Jira link"
     required: false
@@ -49,7 +31,7 @@ inputs:
     required: false
     default: ""
   release-by:
-    description: "Who to credit as having triggered this release. Defaults to the GitHub actor who triggered the workflow run."
+    description: "Who to credit as having triggered this release. Defaults to the GitHub user who directly triggered this workflow run."
     required: false
     default: ""
   slack-webhook-url:
@@ -64,50 +46,15 @@ outputs:
   json-file:
     description: "Path to the generated release diff JSON"
     value: ${{ steps.release_diff.outputs.json-file }}
-  git-ref:
-    description: "Git ref resolved from the currently deployed image tag"
-    value: ${{ steps.resolve_ref.outputs.git-ref }}
 
 runs:
   using: composite
   steps:
-    - name: Get deployed version
-      id: deployed
-      uses: ./.github/actions/get_deployed_version
-      with:
-        kube-cert: ${{ inputs.kube-cert }}
-        kube-token: ${{ inputs.kube-token }}
-        kube-cluster: ${{ inputs.kube-cluster }}
-        kube-namespace: ${{ inputs.kube-namespace }}
-        deployment: ${{ inputs.deployment }}
-
-    - name: Resolve deployed image tag to git ref
-      id: resolve_ref
-      uses: ./.github/actions/resolve_image_git_ref
-      with:
-        image-tag: ${{ steps.deployed.outputs.image-tag }}
-        image-prefix: ${{ inputs.image-prefix }}
-        git-tag-prefix: ${{ inputs.git-tag-prefix }}
-
-    - name: Show comparison
-      shell: bash
-      env:
-        DEPLOYED_IMAGE: ${{ steps.deployed.outputs.image }}
-        DEPLOYED_TAG: ${{ steps.deployed.outputs.image-tag }}
-        RESOLVED_REF: ${{ steps.resolve_ref.outputs.git-ref }}
-        TO_REF: ${{ inputs.to-ref }}
-      run: |
-        echo "Currently deployed:"
-        echo "  $DEPLOYED_IMAGE"
-        echo
-        echo "From: $DEPLOYED_TAG (resolved git ref: $RESOLVED_REF)"
-        echo "To:   $TO_REF"
-
     - name: Generate release diff
       id: release_diff
       uses: ./.github/actions/release_diff
       with:
-        from: ${{ steps.resolve_ref.outputs.git-ref }}
+        from: ${{ inputs.from-ref }}
         to: ${{ inputs.to-ref }}
 
     - name: Show release diff
@@ -127,7 +74,7 @@ runs:
         JIRA_BASE_URL: ${{ inputs.jira-base-url }}
         TO_REF: ${{ inputs.to-ref }}
         TO_LABEL_INPUT: ${{ inputs.to-label }}
-        RELEASE_BY: ${{ inputs.release-by || github.actor }}
+        RELEASE_BY: ${{ inputs.release-by || github.triggering_actor }}
       run: |
         : > pr_lines.txt
 
@@ -187,7 +134,7 @@ runs:
         webhook-type: incoming-webhook
         payload: |
           {
-            "text": "Releasing to ${{ inputs.environment-name }} version ${{ steps.resolve_ref.outputs.git-ref }} -> ${{ steps.build_list.outputs.to-label }}\nRelease by ${{ steps.build_list.outputs.release-by }}",
+            "text": "Updating ${{ inputs.environment-name }} from ${{ inputs.from-ref }} → ${{ steps.build_list.outputs.to-label }}\nRelease by ${{ steps.build_list.outputs.release-by }}",
             "attachments": [
               {
                 "color": "#2eb67d",
