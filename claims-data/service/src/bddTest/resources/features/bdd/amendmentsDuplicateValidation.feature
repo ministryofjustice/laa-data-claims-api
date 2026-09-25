@@ -128,9 +128,7 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
     And a sibling claim in the same submission has UCN "02021990/B/CDEF" and the same UFN and fee code
     And an amendment updates the UCN to "02021990/B/CDEF"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the amendment is rejected with the following errors
-      | Error Code                                     |
-      | INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION |
+    Then the amendment is rejected with error code "INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION"
     And no duplicate amendment state was committed
 
   # ============================================================================
