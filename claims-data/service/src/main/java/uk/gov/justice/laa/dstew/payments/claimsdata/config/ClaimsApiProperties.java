@@ -22,7 +22,7 @@ public class ClaimsApiProperties {
 
   /** Settings for outbound external API audit logging. */
   private final ExternalApiAudit externalApiAudit = new ExternalApiAudit();
-  
+
   /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
   private final Inquests inquests = new Inquests();
 
