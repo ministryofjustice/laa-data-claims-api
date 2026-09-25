@@ -20,8 +20,8 @@ public class ClaimsApiProperties {
   /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
   private final Amendments amendments = new Amendments();
 
-  /** Settings for the inquest feature ({@code laa.claims.api.inquest.*}). */
-  private final Inquest inquest = new Inquest();
+  /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
+  private final Inquests inquests = new Inquests();
 
   /** Settings for the amendments feature. */
   @Getter
@@ -70,13 +70,13 @@ public class ClaimsApiProperties {
     }
   }
 
-  /** Settings for the inquest feature. */
+  /** Settings for the inquests feature. */
   @Getter
   @Setter
-  public static class Inquest {
+  public static class Inquests {
 
     /**
-     * Raw configured value for the inquest toggle ({@code laa.claims.api.inquest.enabled}).
+     * Raw configured value for the inquests toggle ({@code laa.claims.api.inquests.enabled}).
      *
      * <p><b>Off by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
      * fails safe to off: it is enabled only when this resolves to {@code true} via {@link
@@ -87,14 +87,14 @@ public class ClaimsApiProperties {
     private String enabled;
 
     /**
-     * Whether the inquest capability is enabled, resolving the raw {@link #enabled} value fail-safe
+     * Whether the inquests capability is enabled, resolving the raw {@link #enabled} value fail-safe
      * to off.
      *
      * <p>Returns {@code true} only when the configured value is {@code "true"} (case-insensitive,
      * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "false"} or
      * any unrecognised value - returns {@code false}.
      *
-     * @return {@code true} only when inquest is explicitly enabled
+     * @return {@code true} only when inquests is explicitly enabled
      */
     public boolean isEnabled() {
       return enabled != null && Boolean.parseBoolean(enabled.trim());

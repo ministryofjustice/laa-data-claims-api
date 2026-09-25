@@ -133,11 +133,11 @@ spec:
                   name: laa-data-claims-api-secrets
                   key: amendments-enabled
                   optional: true
-            - name: CLAIMS_API_INQUEST_ENABLED
+            - name: CLAIMS_API_INQUESTS_ENABLED
               valueFrom:
                 secretKeyRef:
                   name: laa-data-claims-api-secrets
-                  key: inquest-enabled
+                  key: inquests-enabled
                   optional: true
             - name: HIKARI_CONNECTION_TIMEOUT
               valueFrom:
