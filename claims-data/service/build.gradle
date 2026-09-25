@@ -59,7 +59,7 @@ dependencies {
     // Security: force Netty's HTTP codec to the fixed version for SNYK-JAVA-IONETTY-20074868.
     implementation 'io.netty:netty-codec-http:4.2.18.Final'
 
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.5.0'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'

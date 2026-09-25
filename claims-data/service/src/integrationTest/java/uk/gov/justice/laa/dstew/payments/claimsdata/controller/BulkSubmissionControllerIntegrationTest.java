@@ -1327,6 +1327,28 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
+  @DisplayName(
+      "With the lifecycle disabled, updating a bulk submission to VALIDATED_PENDING_APPROVAL "
+          + "persists the legacy VALIDATION_SUCCEEDED status")
+  void shouldCoerceIntermediateBulkStatusWhenLifecycleDisabled() throws Exception {
+    createBulkSubmission();
+
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    assertThat(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow().getStatus())
+        .isEqualTo(BulkSubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
   void shouldReturnNotFoundWhenUpdatingNonExistingBulkSubmission() throws Exception {
     // given: a Bulk Submission patch payload with the changes to make
     BulkSubmissionPatch patch =
