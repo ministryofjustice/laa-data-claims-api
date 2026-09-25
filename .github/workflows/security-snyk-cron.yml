@@ -9,18 +9,21 @@ on:
 jobs:
   security-snyk-check:
     name: Project security Snyk dependency check
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/snyk-vulnerability-scan.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    with:
-      java_version: '25'
-      java_distribution: 'corretto'
-      snyk_organisation: 'legal-aid-agency'
-      snyk_test_exclude: ''
-      snyk_target_reference: ''
-    secrets:
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
-      snyk_token: ${{ secrets.SNYK_TOKEN }}
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SNYK_TEST_EXCLUDE: build,generated
+      SNYK_TARGET_REFERENCE: main
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run Snyk to check app for vulnerabilities
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
+        with:
+          command: code test
+          args: --severity-threshold=high
 
   slack-notify:
     name: Notify Slack via webhook
