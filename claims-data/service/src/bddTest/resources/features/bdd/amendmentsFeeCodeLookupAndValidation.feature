@@ -70,7 +70,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     Then the amendment is rejected with the following errors
       | Error Code                          |
       | INVALID_FEE_CODE_AREA_OF_LAW_CHANGE |
-    And no outbound FSP call was made
+    And no outbound FSP call was made from the amendment harness
     And no fee-code amendment state was committed
 
   @DS1768_3
