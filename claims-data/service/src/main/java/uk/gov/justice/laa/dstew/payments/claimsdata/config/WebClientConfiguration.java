@@ -29,7 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.audit.ExternalApiCal
  */
 @Slf4j
 @Configuration
-@EnableConfigurationProperties({FeeSchemePlatformApiProperties.class})
+@EnableConfigurationProperties({FeeSchemePlatformApiProperties.class, ClaimsApiProperties.class})
 public class WebClientConfiguration {
 
   /**
@@ -44,12 +44,15 @@ public class WebClientConfiguration {
   @Bean
   public FeeSchemePlatformRestClient feeSchemePlatformRestClient(
       final FeeSchemePlatformApiProperties properties,
+      final ClaimsApiProperties claimsApiProperties,
       final ExternalApiCallAuditService auditService,
       final ObjectMapper objectMapper) {
+    final boolean auditEnabled = claimsApiProperties.getExternalApiAudit().isEnabled();
     final ClientHttpConnector connector =
-        new AuditingClientHttpConnector(
+        auditing(
             reactorConnector(properties),
             ExternalSystemType.FEE_SCHEME_PLATFORM,
+            auditEnabled,
             auditService,
             objectMapper,
             new ExternalApiCallContext());
@@ -58,6 +61,20 @@ public class WebClientConfiguration {
     HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(webClientAdapter).build();
 
     return factory.createClient(FeeSchemePlatformRestClient.class);
+  }
+
+  private static ClientHttpConnector auditing(
+      final ClientHttpConnector delegate,
+      final ExternalSystemType systemType,
+      final boolean enabled,
+      final ExternalApiCallAuditService auditService,
+      final ObjectMapper objectMapper,
+      final ExternalApiCallContext ids) {
+    log.info("External API audit logging is {} for system type: {}", enabled ? "enabled" : "disabled", systemType);
+
+    return enabled
+      ? new AuditingClientHttpConnector(delegate, systemType, auditService, objectMapper, ids)
+      : delegate;
   }
 
   /**

@@ -162,6 +162,9 @@ laa:
           accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
           readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:3000}
           connectTimeoutMs: ${FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS:1000}
+      external-api-audit:
+        # Kill switch for outbound external API audit logging
+        enabled: ${EXTERNAL_API_AUDIT_ENABLED:true}
 
   springboot.starter:
     auth:
