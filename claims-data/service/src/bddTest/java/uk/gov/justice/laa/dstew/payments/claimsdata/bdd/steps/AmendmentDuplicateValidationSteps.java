@@ -203,6 +203,11 @@ public class AmendmentDuplicateValidationSteps {
 
   @Then("no duplicate validation error is raised")
   public void noDuplicateValidationErrorIsRaised() {
+    Integer status = scenarioContext.getLastStatusCode();
+    assertThat(status)
+        .as("amendment should complete successfully")
+        .isNotNull()
+        .isBetween(200, 299);
     String body = bodyAsString();
     assertThat(body)
         .as("response must not carry any duplicate code (body=%s)", preview(body))
