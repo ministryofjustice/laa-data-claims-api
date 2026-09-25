@@ -91,7 +91,7 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
       | changedField         | newValue   |
       | client_surname       | Smith      |
       | client_forename      | Ada        |
-      | client_date_of_birth | 1980-01-01 |
+      | client_date_of_birth | 01/01/1980 |
       | case_id              | CASE-999   |
 
   @DS1769_4
