@@ -69,9 +69,7 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
     And another claim exists with UCN "14091962/T/PERS" and UFN "150725/999" and area of law "LEGAL_HELP"
     And an amendment updates the UFN to "150725/999"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the amendment is rejected with the following errors
-      | Error Code                                        |
-      | INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION |
+    Then the amendment is rejected with error code "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION"
     And no duplicate amendment state was committed
 
   # ============================================================================
