@@ -144,10 +144,8 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
     And an amendment updates the UFN to "150725/999"
     And the amendment supplies an unknown amendment reason code "NOT_A_REAL_REASON_CODE"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the amendment is rejected with the following errors in any order
-      | Error Code                                        |
-      | INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION |
-      | INVALID_AMENDMENT_REASON_UNKNOWN                  |
+    Then the amendment is rejected with error code "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION"
+    And the amendment is rejected with error code "INVALID_AMENDMENT_REASON_UNKNOWN"
     And each error is returned in the shared Step 12 multi-message response
     And no duplicate amendment state was committed
 
