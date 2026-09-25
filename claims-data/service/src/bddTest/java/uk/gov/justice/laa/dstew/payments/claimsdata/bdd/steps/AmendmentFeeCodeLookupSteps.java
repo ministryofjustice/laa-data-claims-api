@@ -241,9 +241,8 @@ public class AmendmentFeeCodeLookupSteps {
     // verification is the closest observable proxy — the lookup was attempted (hence a measurable
     // duration), whatever its outcome — mirroring the PDA-monitoring spec-guard convention.
     int calls = mock.countFeeDetailsCalls();
-    if (calls > 0) {
-      mock.verifyFeeDetailsCalled(VerificationTimes.atLeast(1));
-    }
+    assertThat(calls).as("Fee Code Details lookup should be attempted").isGreaterThan(0);
+    mock.verifyFeeDetailsCalled(VerificationTimes.atLeast(1));
     log.info(
         "[spec-guard] Fee Code Details monitoring outcome={} not scraped from BDD harness —"
             + " observed {} outbound fee-details call(s) via MockServer",
