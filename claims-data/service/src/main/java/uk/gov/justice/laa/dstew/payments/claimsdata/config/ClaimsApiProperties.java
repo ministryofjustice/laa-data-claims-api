@@ -68,7 +68,6 @@ public class ClaimsApiProperties {
        */
       private Duration refresh = Duration.ofMinutes(30);
     }
-
   }
 
   /** Settings for the inquest feature. */
