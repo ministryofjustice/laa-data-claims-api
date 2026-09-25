@@ -65,22 +65,24 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
             .createdByUserId("TEST")
             .build());
 
-    claim.getInterestedDepartments().addAll(
-        List.of(
-            ClaimInterestedDepartment.builder()
-            .id(UUID.randomUUID())
-            .claim(claim)
-            .governmentDepartment(dept1)
-            .displayOrder(1)
-            .createdByUserId("TEST")
-            .build(),
-            ClaimInterestedDepartment.builder()
-            .id(UUID.randomUUID())
-            .claim(claim)
-            .governmentDepartment(dept2)
-            .displayOrder(2)
-            .createdByUserId("TEST")
-            .build()));
+    claim
+        .getInterestedDepartments()
+        .addAll(
+            List.of(
+                ClaimInterestedDepartment.builder()
+                    .id(UUID.randomUUID())
+                    .claim(claim)
+                    .governmentDepartment(dept1)
+                    .displayOrder(1)
+                    .createdByUserId("TEST")
+                    .build(),
+                ClaimInterestedDepartment.builder()
+                    .id(UUID.randomUUID())
+                    .claim(claim)
+                    .governmentDepartment(dept2)
+                    .displayOrder(2)
+                    .createdByUserId("TEST")
+                    .build()));
 
     claimRepository.saveAndFlush(claim);
 

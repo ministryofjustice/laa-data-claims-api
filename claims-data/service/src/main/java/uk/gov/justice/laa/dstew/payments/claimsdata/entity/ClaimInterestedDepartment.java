@@ -61,6 +61,5 @@ public class ClaimInterestedDepartment {
 
   private String updatedByUserId;
 
-  @UpdateTimestamp
-  private Instant updatedOn;
+  @UpdateTimestamp private Instant updatedOn;
 }

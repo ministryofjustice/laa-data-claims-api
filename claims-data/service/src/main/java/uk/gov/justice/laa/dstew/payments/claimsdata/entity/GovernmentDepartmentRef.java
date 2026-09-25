@@ -56,8 +56,7 @@ public class GovernmentDepartmentRef {
 
   private String updatedByUserId;
 
-  @UpdateTimestamp
-  private Instant updatedOn;
+  @UpdateTimestamp private Instant updatedOn;
 
   @OneToMany(mappedBy = "governmentDepartment")
   @Builder.Default

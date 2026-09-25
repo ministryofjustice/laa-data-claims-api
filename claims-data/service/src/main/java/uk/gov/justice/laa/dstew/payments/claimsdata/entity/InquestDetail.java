@@ -54,6 +54,5 @@ public class InquestDetail {
 
   private String updatedByUserId;
 
-  @UpdateTimestamp
-  private Instant updatedOn;
+  @UpdateTimestamp private Instant updatedOn;
 }

@@ -71,18 +71,10 @@ class InquestDetailRepositoryIntegrationTest extends AbstractIntegrationTest {
   void secondInquestDetailRowForTheSameClaimIsRejected() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     inquestDetailRepository.saveAndFlush(
-        InquestDetail.builder()
-            .id(UUID.randomUUID())
-            .claim(claim)
-            .createdByUserId("TEST")
-            .build());
+        InquestDetail.builder().id(UUID.randomUUID()).claim(claim).createdByUserId("TEST").build());
 
     InquestDetail duplicate =
-        InquestDetail.builder()
-            .id(UUID.randomUUID())
-            .claim(claim)
-            .createdByUserId("TEST")
-            .build();
+        InquestDetail.builder().id(UUID.randomUUID()).claim(claim).createdByUserId("TEST").build();
 
     assertThatThrownBy(() -> inquestDetailRepository.saveAndFlush(duplicate))
         .isInstanceOf(DataIntegrityViolationException.class);
