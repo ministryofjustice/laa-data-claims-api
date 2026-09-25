@@ -139,6 +139,14 @@ spec:
                   name: laa-data-claims-api-secrets
                   key: inquests-enabled
                   optional: true
+            # TEMPORARY (DSTEW-2173): enable the new validated-pending-approval lifecycle through
+            # the environment secret once all dependent systems are ready and business approval is received.
+            - name: VALIDATED_PENDING_APPROVAL_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: laa-data-claims-api-secrets
+                  key: validated-pending-approval-enabled
+                  optional: true
             - name: HIKARI_CONNECTION_TIMEOUT
               valueFrom:
                 secretKeyRef:

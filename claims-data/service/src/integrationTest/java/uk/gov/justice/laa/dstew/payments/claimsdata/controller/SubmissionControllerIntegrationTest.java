@@ -35,6 +35,10 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -1024,6 +1028,55 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(jsonPath("$.detail").value(containsString(PERIOD_APR_2025)));
 
     assertThat(submissionRepository.findAll()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName(
+      "Concurrent live submissions with the same office, area of law and period create exactly one row")
+  void concurrentDuplicateLiveSubmissionsCreateOnlyOneSubmission() throws Exception {
+    submissionRepository.deleteAll();
+
+    SubmissionPost firstSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+    SubmissionPost secondSubmission =
+        createdSubmissionPost(Uuid7.timeBasedUuid())
+            .officeAccountNumber(OFFICE_ACCOUNT_NUMBER)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionPeriod(PERIOD_APR_2025);
+
+    CountDownLatch start = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    try {
+      Future<Integer> firstResponse =
+          executor.submit(() -> performConcurrentCreate(start, firstSubmission));
+      Future<Integer> secondResponse =
+          executor.submit(() -> performConcurrentCreate(start, secondSubmission));
+      start.countDown();
+
+      List<Integer> responseStatuses = List.of(firstResponse.get(), secondResponse.get());
+
+      assertThat(responseStatuses).containsExactlyInAnyOrder(201, 409);
+      assertThat(submissionRepository.findAll()).hasSize(1);
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  private int performConcurrentCreate(CountDownLatch start, SubmissionPost submissionPost)
+      throws Exception {
+    start.await();
+    return mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andReturn()
+        .getResponse()
+        .getStatus();
   }
 
   @Test
