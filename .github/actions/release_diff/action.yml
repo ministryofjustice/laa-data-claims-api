@@ -34,5 +34,6 @@ runs:
         FROM_REF: ${{ inputs.from }}
         TO_REF: ${{ inputs.to }}
         GH_TOKEN: ${{ github.token }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
-        "${{ github.action_path }}/release-diff.sh"
+        "$ACTION_PATH/release-diff.sh"

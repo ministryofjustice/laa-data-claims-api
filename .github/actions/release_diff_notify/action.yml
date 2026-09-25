@@ -52,8 +52,10 @@ runs:
   steps:
     - name: Validate inputs
       shell: bash
+      env:
+        FROM_REF: ${{ inputs.from-ref }}
       run: |
-        if [ -z "${{ inputs.from-ref }}" ]; then
+        if [ -z "$FROM_REF" ]; then
           echo "::warning::from-ref is empty (likely because a prior step failed to capture it) - skipping release diff and Slack notification."
         fi
 
