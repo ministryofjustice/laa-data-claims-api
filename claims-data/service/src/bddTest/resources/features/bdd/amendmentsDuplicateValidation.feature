@@ -5,7 +5,7 @@
 Feature: Amendment duplicate validation - reuse existing rules against post-amendment state
 
   # Jira: DSTEW-1769 (parent: DSTEW-1593 -> DSTEW-1999)
-  # Endpoint: POST /api/v1/claims/{claimId}/amendments  (DSTEW-1593)
+  # Endpoint: PATCH /api/v1/submissions/{submissionId}/claims/{claimId}  (DSTEW-1593)
   #
   # Runs AFTER post-amendment field/business validation (DSTEW-1768) and BEFORE
   # the Step 12 outcome check. Reuses the existing per-Area-of-Law duplicate
