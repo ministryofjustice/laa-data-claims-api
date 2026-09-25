@@ -108,6 +108,9 @@ jobs:
 
       - name: Get currently deployed ref
         id: uat_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
         uses: ./.github/actions/get_deployed_git_ref
         with:
           kube-cert: ${{ secrets.KUBE_CERT }}
@@ -142,8 +145,10 @@ jobs:
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       # Runs only once "Deploy UAT" above has succeeded, using the ref
-      # captured before deployment as the "from" side of the diff.
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
       - name: Notify Slack of UAT update
+        continue-on-error: true
         uses: ./.github/actions/release_diff_notify
         with:
           from-ref: ${{ steps.uat_deployed.outputs.git-ref }}
@@ -184,6 +189,9 @@ jobs:
 
       - name: Get currently deployed ref
         id: staging_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
         uses: ./.github/actions/get_deployed_git_ref
         with:
           kube-cert: ${{ secrets.KUBE_CERT }}
@@ -218,8 +226,10 @@ jobs:
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       # Runs only once "Deploy staging" above has succeeded, using the ref
-      # captured before deployment as the "from" side of the diff.
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
       - name: Notify Slack of Staging update
+        continue-on-error: true
         uses: ./.github/actions/release_diff_notify
         with:
           from-ref: ${{ steps.staging_deployed.outputs.git-ref }}
@@ -260,6 +270,9 @@ jobs:
 
       - name: Get currently deployed ref
         id: production_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
         uses: ./.github/actions/get_deployed_git_ref
         with:
           kube-cert: ${{ secrets.KUBE_CERT }}
@@ -294,8 +307,10 @@ jobs:
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
       # Runs only once "Deploy production" above has succeeded, using the ref
-      # captured before deployment as the "from" side of the diff.
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
       - name: Notify Slack of Production update
+        continue-on-error: true
         uses: ./.github/actions/release_diff_notify
         with:
           from-ref: ${{ steps.production_deployed.outputs.git-ref }}
