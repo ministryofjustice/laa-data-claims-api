@@ -70,11 +70,14 @@ public class WebClientConfiguration {
       final ExternalApiCallAuditService auditService,
       final ObjectMapper objectMapper,
       final ExternalApiCallContext ids) {
-    log.info("External API audit logging is {} for system type: {}", enabled ? "enabled" : "disabled", systemType);
+    log.info(
+        "External API audit logging is {} for system type: {}",
+        enabled ? "enabled" : "disabled",
+        systemType);
 
     return enabled
-      ? new AuditingClientHttpConnector(delegate, systemType, auditService, objectMapper, ids)
-      : delegate;
+        ? new AuditingClientHttpConnector(delegate, systemType, auditService, objectMapper, ids)
+        : delegate;
   }
 
   /**

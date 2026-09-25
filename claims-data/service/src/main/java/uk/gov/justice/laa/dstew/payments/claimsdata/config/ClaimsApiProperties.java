@@ -20,7 +20,7 @@ public class ClaimsApiProperties {
   /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
   private final Amendments amendments = new Amendments();
 
-  /** Settings for outbound external API audit logging */
+  /** Settings for outbound external API audit logging. */
   private final ExternalApiAudit externalApiAudit = new ExternalApiAudit();
 
   /** Settings for the amendments feature. */
@@ -70,11 +70,13 @@ public class ClaimsApiProperties {
     }
   }
 
+  /** Settings for outbound external API audit logging. */
   @Getter
   @Setter
   public static class ExternalApiAudit {
     /**
-     * Whether outbound external API audit logging is enabled ({@code laa.claims.api.external-api-audit.enabled}).
+     * Whether outbound external API audit logging is enabled ({@code
+     * laa.claims.api.external-api-audit.enabled}).
      *
      * <p><b>On by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
      * fails safe to on: it is enabled only when this resolves to {@code true} via {@link
@@ -85,8 +87,8 @@ public class ClaimsApiProperties {
     private String enabled;
 
     /**
-     * Whether outbound external API audit logging is enabled, resolving the raw {@link #enabled} value
-     * fail-safe to on.
+     * Whether outbound external API audit logging is enabled, resolving the raw {@link #enabled}
+     * value fail-safe to on.
      *
      * <p>Returns {@code false} only when the configured value is {@code "false"} (case-insensitive,
      * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "true"} or
