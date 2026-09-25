@@ -46,6 +46,8 @@ jobs:
           echo "snapshot_version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Snapshot version: ${VERSION}"
 
+  
+
   test-release-diff:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -62,12 +64,22 @@ jobs:
           fetch-tags: true
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Get staging version
+        id: staging
+        uses: ./.github/actions/get_deployed_version
+        with:
+          kube-cert: ${{ secrets.STAGING_KUBE_CERT }}
+          kube-token: ${{ secrets.STAGING_KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.STAGING_KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.STAGING_KUBE_NAMESPACE }}
+          deployment: laa-data-claims-api
+
       - name: Generate release diff
         id: release_diff
         uses: ./.github/actions/release_diff
         with:
-          from: v1.22.2
-          to: ${{ github.event.pull_request.head.sha }}
+          from: ${{ github.event.pull_request.head.sha }}
+          to: ${{ steps.staging.outputs.image-tag }}
 
       - name: Show release diff
         shell: bash
