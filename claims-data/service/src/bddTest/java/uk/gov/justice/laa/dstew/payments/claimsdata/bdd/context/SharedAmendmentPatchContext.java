@@ -29,6 +29,24 @@ public class SharedAmendmentPatchContext {
   private UUID claimId;
   private String patchJson;
 
+  /**
+   * Pre-amendment {@code claim.version} recorded by the provisioning step, so baseline-relative
+   * "persisted state unchanged" assertions in a different step class (e.g. {@code
+   * AmendmentHarnessCommonSteps#theClaimPersistedStateMatchesThePreAmendmentState}) can read a real
+   * baseline captured before the PATCH rather than re-reading the post-PATCH row. {@code null} when
+   * the active provisioning step did not record a baseline (the reader then falls back to its own
+   * local field for backwards compatibility).
+   */
+  private Long baselineClaimVersion;
+
+  /**
+   * Pre-amendment {@code calculated_fee_detail} row count for the seeded claim, recorded by the
+   * provisioning step so a "no new FSP-derived CFD row was inserted" assertion in a different step
+   * class can compare against a real baseline. {@code null} when not recorded (reader falls back to
+   * its own local field).
+   */
+  private Long baselineCfdCount;
+
   /** {@code true} when all three fields are set — the submit step should use this context. */
   public boolean isPopulated() {
     return submissionId != null && claimId != null && patchJson != null;
