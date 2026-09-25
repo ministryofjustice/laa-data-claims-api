@@ -59,12 +59,6 @@ jobs:
       contents: read
       pull-requests: read
 
-    outputs:
-      pull-request-count: ${{ steps.release_diff.outputs.pull-request-count }}
-      # Jobs don't share a filesystem, so pass the JSON content itself through
-      # as a job output for slack-notify-release-diff to consume.
-      release-diff-json: ${{ steps.expose_diff.outputs.json }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,138 +67,19 @@ jobs:
           fetch-tags: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Get UAT version
-        id: uat
-        uses: ./.github/actions/get_deployed_version
+      - name: Release diff + Slack notify
+        uses: ./.github/actions/release_diff_notify
         with:
           kube-cert: ${{ secrets.KUBE_CERT }}
           kube-token: ${{ secrets.KUBE_TOKEN }}
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           deployment: main-data-claims-api
-
-      - name: Resolve deployed image tag to git ref
-        id: resolve_ref
-        uses: ./.github/actions/resolve_image_git_ref
-        with:
-          image-tag: ${{ steps.uat.outputs.image-tag }}
           image-prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
-
-      - name: Show comparison
-        shell: bash
-        env:
-          UAT_IMAGE: ${{ steps.uat.outputs.image }}
-          UAT_TAG: ${{ steps.uat.outputs.image-tag }}
-          RESOLVED_REF: ${{ steps.resolve_ref.outputs.git-ref }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          echo "Currently deployed:"
-          echo "  $UAT_IMAGE"
-          echo
-          echo "From: $UAT_TAG (resolved git ref: $RESOLVED_REF)"
-          echo "To:   $PR_HEAD"
-
-      - name: Generate release diff
-        id: release_diff
-        uses: ./.github/actions/release_diff
-        with:
-          from: ${{ steps.resolve_ref.outputs.git-ref }}
-          to: ${{ github.event.pull_request.head.sha }}
-
-      - name: Show release diff
-        shell: bash
-        env:
-          JSON_FILE: ${{ steps.release_diff.outputs.json-file }}
-        run: |
-          echo "Generated release data:"
-          cat "$JSON_FILE"
-
-      - name: Expose release diff JSON as job output
-        id: expose_diff
-        shell: bash
-        env:
-          JSON_FILE: ${{ steps.release_diff.outputs.json-file }}
-        run: |
-          {
-            echo 'json<<RELEASE_DIFF_EOF'
-            cat "$JSON_FILE"
-            echo 'RELEASE_DIFF_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-  # Posts the PRs included in the release diff to Slack, each linked to its PR
-  # and (where the title follows the '(DSTEW-1234): ...' / '[DSTEW-1234] - ...'
-  # convention) its Jira ticket. Only runs when there's actually something to
-  # report, to avoid noisy empty notifications.
-  slack-notify-release-diff:
-    needs: [ test-release-diff ]
-    if: needs.test-release-diff.outputs.pull-request-count > 0
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build PR/ticket list
-        id: build_list
-        shell: bash
-        env:
-          DIFF_JSON: ${{ needs.test-release-diff.outputs.release-diff-json }}
-        run: |
-          echo "$DIFF_JSON" > diff.json
-          : > pr_lines.txt
-
-          while IFS= read -r pr; do
-            number=$(jq -r '.number' <<< "$pr")
-            title=$(jq -r '.title' <<< "$pr")
-            url=$(jq -r '.url' <<< "$pr")
-
-            # Reuse the extract_ticket_id script directly (rather than
-            # duplicating its regex logic here) by pointing GITHUB_OUTPUT at a
-            # scratch file for this single invocation.
-            TICKET_OUT=$(mktemp)
-            TITLE="$title" GITHUB_OUTPUT="$TICKET_OUT" \
-              .github/actions/extract_ticket_id/extract-ticket-id.sh > /dev/null
-            ticket_id=$(grep '^ticket-id=' "$TICKET_OUT" | cut -d= -f2-)
-            ticket_url=$(grep '^ticket-url=' "$TICKET_OUT" | cut -d= -f2-)
-            rm -f "$TICKET_OUT"
-
-            # Escape characters that would break Slack's mrkdwn / JSON payload
-            safe_title=$(echo "$title" | sed 's/[&<>]/ /g')
-
-            line="- <${url}|PR #${number}> ${safe_title}"
-            if [ -n "$ticket_id" ]; then
-              line="${line} (<${ticket_url}|${ticket_id}>)"
-            fi
-
-            echo "$line" >> pr_lines.txt
-          done < <(jq -c '.pull_requests[]' diff.json)
-
-          {
-            echo 'lines<<PR_LINES_EOF'
-            cat pr_lines.txt
-            echo 'PR_LINES_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Send Slack notification
-        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
-        with:
-          webhook: ${{ env.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": "Release diff for PR #${{ github.event.pull_request.number }} vs currently-deployed UAT",
-              "attachments": [
-                {
-                  "color": "#2eb67d",
-                  "text": "<${{ github.event.pull_request.html_url }}|PR #${{ github.event.pull_request.number }}>: ${{ github.event.pull_request.title }}\n\n*Included changes since UAT was last deployed:*\n${{ steps.build_list.outputs.lines }}"
-                }
-              ]
-            }
+          to-ref: ${{ github.event.pull_request.head.sha }}
+          environment-name: UAT
+          to-label: "PR #${{ github.event.pull_request.number }}"
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-and-test:
     needs: [ compute-snapshot-version ]
