@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -36,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.Resolv
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationRequest;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
+import uk.gov.justice.laa.fee.scheme.model.ValidationMessagesInner;
 
 @ExtendWith(MockitoExtension.class)
 class AmendmentFspValidationStepTest {
@@ -161,6 +163,97 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
+  @DisplayName("1595-E: Should treat FSP validationMessages errors as fatal validation failures")
+  void validate_whenFspReturnsValidationMessagesError_returnsFatalValidationError() {
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("CLININQ").build())
+            .build();
+
+    FeeCalculationResponse validationFailureResponse =
+        new FeeCalculationResponse()
+            .feeCode("CLININQ")
+            .validationMessages(
+                List.of(
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.ERROR)
+                        .code("ERRCIV2")
+                        .message(
+                            "Cases started before 1st April 2013 cannot be accepted. Check Case Start Date and resubmit.")));
+
+    when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(validationFailureResponse));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class)))
+        .thenReturn(
+            AmendmentDiff.of(List.of(new DiffEntry("claim.feeCode", null, "FEE01", "CLININQ"))));
+
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    assertThat(errors).hasSize(1);
+    ClaimAmendmentValidationError error = errors.getFirst();
+    assertThat(error.getCode())
+        .isEqualTo(ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
+    assertThat(error.isFatal()).isTrue();
+    assertThat(error.getMessage())
+        .contains("Cases started before 1st April 2013 cannot be accepted");
+    assertThat(state.getFspResponseContext()).isNull();
+    verifyNoInteractions(claimStateSnapshotMapper);
+  }
+
+  @Test
+  @DisplayName(
+      "1595-E: Should surface every FSP ERROR validation message as its own fatal amendment error")
+  void validate_whenFspReturnsMultipleValidationErrors_surfacesAllAsFatal() {
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("CLININQ").build())
+            .build();
+
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("CLININQ")
+            .validationMessages(
+                List.of(
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.ERROR)
+                        .code("ERRCIV2")
+                        .message("Cases started before 1st April 2013 cannot be accepted."),
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.WARNING)
+                        .code("WARN01")
+                        .message("A warning that should be ignored"),
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.ERROR)
+                        .code("ERRCIV3")
+                        .message("Fee code CLININQ is not permitted for this scheme")));
+
+    when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(response));
+
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    assertThat(errors).hasSize(2);
+    assertThat(errors)
+        .allSatisfy(
+            error -> {
+              assertThat(error.getCode())
+                  .isEqualTo(
+                      ClaimAmendmentValidationCode.INVALID_FSP_VALIDATION_FAILURE.toString());
+              assertThat(error.isFatal()).isTrue();
+            });
+    assertThat(errors)
+        .extracting(ClaimAmendmentValidationError::getMessage)
+        .anySatisfy(msg -> assertThat(msg).contains("Cases started before 1st April 2013"))
+        .anySatisfy(msg -> assertThat(msg).contains("Fee code CLININQ is not permitted"))
+        .noneSatisfy(msg -> assertThat(msg).contains("WARN01"));
+
+    assertThat(state.getFspResponseContext()).isNull();
+    verifyNoInteractions(claimStateSnapshotMapper);
+  }
+
+  @Test
   @DisplayName(
       "1595-E: Should capture BadRequest (400) rejections and map them to semantic validation errors")
   void validate_onWebClientBadRequestException_returnsFspValidationError() {
@@ -176,7 +269,7 @@ class AmendmentFspValidationStepTest {
         WebClientResponseException.create(
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
-            null,
+            new HttpHeaders(),
             "FSP Rejected: Invalid combinations".getBytes(StandardCharsets.UTF_8),
             StandardCharsets.UTF_8);
 
@@ -359,5 +452,46 @@ class AmendmentFspValidationStepTest {
     assertThat(errors).isEmpty();
     assertThat(state.getFspResponseContext()).isNull();
     verifyNoInteractions(fspClient);
+  }
+
+  @Test
+  @DisplayName(
+      "Should execute repricing for a pricing-impacting fee-code or net-disbursement mutation")
+  void validate_whenPricingDiffMatchesFeeCodeOrAmount_callsFsp() {
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.LEGAL_HELP).build())
+            .postAmendmentState(
+                postStateBuilder
+                    .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+                    .feeCode("CLININQ")
+                    .netDisbursementAmount(new BigDecimal("2200.00"))
+                    .build())
+            .build();
+
+    AmendmentDiff pricingDiff =
+        AmendmentDiff.of(
+            List.of(
+                new DiffEntry("claim.feeCode", null, "CAPA", "CLININQ"),
+                new DiffEntry(
+                    "claimSummaryFee.netDisbursementAmount",
+                    null,
+                    new BigDecimal("1100.00"),
+                    new BigDecimal("2200.00"))));
+    when(diffAssembler.assemble(any(ClaimAmendmentState.class))).thenReturn(pricingDiff);
+    when(fspClient.calculateFee(any()))
+        .thenReturn(ResponseEntity.ok(new FeeCalculationResponse().feeCode("CLININQ")));
+    when(claimStateSnapshotMapper.toSnapshot(any(FeeCalculationResponse.class)))
+        .thenReturn(
+            CalculatedFeeDetailSnapshot.builder().totalAmount(BigDecimal.valueOf(500.00)).build());
+    when(feeCalculationMetadataResolver.resolve(state, "CLININQ"))
+        .thenReturn(
+            new ResolvedFeeMetadata(
+                FeeCalculationType.HOURLY, "Test fee description", "LEGAL_HELP"));
+
+    List<ClaimAmendmentValidationError> errors = validationStep.validate(state);
+
+    assertThat(errors).isEmpty();
+    assertThat(state.getFspResponseContext()).isNotNull();
   }
 }
