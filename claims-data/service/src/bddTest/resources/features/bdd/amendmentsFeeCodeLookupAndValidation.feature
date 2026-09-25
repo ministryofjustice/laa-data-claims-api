@@ -125,8 +125,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     And the Fee Code Details lookup will respond successfully after 8 seconds for feeCode "CRIME-B"
     And the amendment changes the fee code to "CRIME-B"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the amendment processing was not aborted by any Claims-API response-time limit
-    And the response does not contain error code "INVALID_FEE_CODE_AREA_OF_LAW_CHANGE"
+    Then the amendment is accepted
     And Fee Code Details monitoring records outcome "success" with a non-zero call duration
 
   @DS1768_6
