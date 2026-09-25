@@ -75,7 +75,7 @@ jobs:
           kube-token: ${{ secrets.KUBE_TOKEN }}
           kube-cluster: ${{ secrets.KUBE_CLUSTER }}
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
-          deployment: main-laa-data-claims-api
+          deployment: main-data-claims-api
 
       - name: Show comparison
         shell: bash
