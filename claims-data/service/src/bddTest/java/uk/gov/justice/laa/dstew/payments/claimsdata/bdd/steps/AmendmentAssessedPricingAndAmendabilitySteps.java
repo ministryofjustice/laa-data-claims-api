@@ -1,7 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.isUatMode;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.BddStepFailures.step;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -298,25 +297,26 @@ public class AmendmentAssessedPricingAndAmendabilitySteps {
           // null fieldName in the production catalogue and names the offending field in the message
           // ("Field '<field>' is not amendable ..."), so field-association is verified against the
           // message; codes that populate fieldName are matched on that too.
+          // The code/field/multiplicity assertions run in BOTH local and UAT modes: these scenarios
+          // seed a complete amendment graph and the field-amendability gate runs before external
+          // validation, so the expected codes are deterministically present regardless of mode.
+          // Gating them behind UAT would let a regression that drops or misattributes a code stay
+          // green locally, defeating the advertised coverage.
           List<ErrorEntry> actual = extractErrorEntries();
-          if (isUatMode()) {
-            for (Map<String, String> row : rows) {
-              String field = row.get("field");
-              String code = row.get("Error Code");
-              long expectedCount =
-                  rows.stream()
-                      .filter(r -> code.equals(r.get("Error Code")) && field.equals(r.get("field")))
-                      .count();
-              long actualCount = actual.stream().filter(e -> e.matches(code, field)).count();
-              assertThat(actualCount)
-                  .as(
-                      "response must report code %s attributed to field %s at least %s time(s)"
-                          + " (saw %s); actual errors=%s",
-                      code, field, expectedCount, actualCount, actual)
-                  .isGreaterThanOrEqualTo(expectedCount);
-            }
-          } else {
-            log.info("[local mode] field-level rejection — expected {}, saw {}", rows, actual);
+          for (Map<String, String> row : rows) {
+            String field = row.get("field");
+            String code = row.get("Error Code");
+            long expectedCount =
+                rows.stream()
+                    .filter(r -> code.equals(r.get("Error Code")) && field.equals(r.get("field")))
+                    .count();
+            long actualCount = actual.stream().filter(e -> e.matches(code, field)).count();
+            assertThat(actualCount)
+                .as(
+                    "response must report code %s attributed to field %s at least %s time(s)"
+                        + " (saw %s); actual errors=%s",
+                    code, field, expectedCount, actualCount, actual)
+                .isGreaterThanOrEqualTo(expectedCount);
           }
         });
   }
