@@ -361,7 +361,9 @@ public class ClaimStatusAmendmentIntegrationTest extends AbstractAmendmentPatchI
       assertThat(result.getResponse().getStatus()).isEqualTo(204);
       // Status should have been updated
       Claim updated = claimRepository.findById(claim.getId()).orElseThrow();
-      assertThat(updated.getStatus()).isEqualTo(targetStatus);
+      ClaimStatus expectedPersistedStatus =
+          targetStatus == ClaimStatus.VALIDATED_PENDING_APPROVAL ? ClaimStatus.VALID : targetStatus;
+      assertThat(updated.getStatus()).isEqualTo(expectedPersistedStatus);
 
       // Validation message persisted
       var page =

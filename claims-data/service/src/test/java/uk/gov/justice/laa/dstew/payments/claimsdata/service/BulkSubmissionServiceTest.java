@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -46,6 +47,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -65,6 +67,8 @@ class BulkSubmissionServiceTest {
   @SuppressWarnings("unused") // This is needed by the bulkSubmissionService
   @Mock
   SubmissionService submissionService;
+
+  @Mock StatusCoercer statusCoercer;
 
   @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 
@@ -391,6 +395,40 @@ class BulkSubmissionServiceTest {
             patch.getUpdatedByUserId()))
         .thenReturn(1);
     assertDoesNotThrow(() -> bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch));
+  }
+
+  @Test
+  @DisplayName("Coerces validated-pending-approval before persisting a bulk submission")
+  void shouldCoerceValidatedPendingApprovalBeforePersisting() {
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    doAnswer(
+            invocation -> {
+              patch.setStatus(BulkSubmissionStatus.VALIDATION_SUCCEEDED);
+              return null;
+            })
+        .when(statusCoercer)
+        .coerce(patch);
+    when(bulkSubmissionRepository.updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            BulkSubmissionStatus.VALIDATION_SUCCEEDED.getValue(),
+            null,
+            null,
+            null))
+        .thenReturn(1);
+
+    bulkSubmissionService.updateBulkSubmission(BULK_SUBMISSION_ID, patch);
+
+    assertThat(patch.getStatus()).isEqualTo(BulkSubmissionStatus.VALIDATION_SUCCEEDED);
+    verify(statusCoercer).coerce(patch);
+    verify(bulkSubmissionRepository)
+        .updateBulkSubmission(
+            BULK_SUBMISSION_ID,
+            BulkSubmissionStatus.VALIDATION_SUCCEEDED.getValue(),
+            null,
+            null,
+            null);
   }
 
   @Test

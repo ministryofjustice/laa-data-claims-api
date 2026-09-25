@@ -67,6 +67,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimW
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
@@ -96,6 +97,7 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
+  private final StatusCoercer statusCoercer;
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
@@ -252,6 +254,7 @@ public class ClaimService
   public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
 
+    statusCoercer.coerce(claimPatch);
     if (isAnAmendment(claimPatch)) {
       amendClaim(claim, claimPatch);
     } else {

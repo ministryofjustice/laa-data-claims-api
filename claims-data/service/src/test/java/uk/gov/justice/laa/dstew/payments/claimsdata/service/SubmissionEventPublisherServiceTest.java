@@ -123,7 +123,8 @@ class SubmissionEventPublisherServiceTest {
     String topicArn = "arn:aws:sns:us-east-1:000000000000:claims-events";
 
     // when publish is called with some IDs
-    submissionEventPublisherService.publishSubmissionValidationSucceededEvent(submissionId);
+    submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
+        submissionId, SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
 
     // then the correct message is published to the topic
     // Capture the actual Publish Request
@@ -159,7 +160,7 @@ class SubmissionEventPublisherServiceTest {
     assertDoesNotThrow(
         () ->
             submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
-                submissionId));
+                submissionId, SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED));
     verify(snsClient).publish(any(PublishRequest.class));
   }
 }

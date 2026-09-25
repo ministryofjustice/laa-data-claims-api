@@ -13,6 +13,7 @@ public class IntegrationTestUtils {
         ReceiveMessageRequest.builder()
             .queueUrl(queueUrl)
             .maxNumberOfMessages(1)
+            .messageAttributeNames("All")
             .waitTimeSeconds(2)
             .build());
   }

@@ -148,6 +148,13 @@ laa:
   # under this namespace, grouped by feature, so paths stay consistent and discoverable.
   claims:
     api:
+      validated-pending-approval:
+        # TEMPORARY (DSTEW-2173): the new validated-pending-approval lifecycle is opt-in until all
+        # dependent systems are ready and business approval is received. Supplied via the
+        # VALIDATED_PENDING_APPROVAL_ENABLED env var.
+        # Remove this property together with the service.coercion package once the hold is enabled
+        # permanently.
+        enabled: ${VALIDATED_PENDING_APPROVAL_ENABLED:false}
       amendments:
         # Feature toggle for the amendments capability, supplied via the CLAIMS_API_AMENDMENTS_ENABLED
         # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent

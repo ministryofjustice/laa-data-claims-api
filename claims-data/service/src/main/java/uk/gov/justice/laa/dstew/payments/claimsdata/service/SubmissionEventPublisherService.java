@@ -75,22 +75,27 @@ public class SubmissionEventPublisherService {
   }
 
   /**
-   * Publishes a submission id for validation succeeded event to an Amazon SNS topic.
+   * Publishes a validation-succeeded event for a submission to an Amazon SNS topic.
    *
    * @param submissionId the unique identifier for the submission
+   * @param eventType the validation-succeeded event type to publish
+   * @throws IllegalArgumentException when {@code eventType} is not a validation-succeeded event
+   *     type
    */
-  public void publishSubmissionValidationSucceededEvent(UUID submissionId) {
-    SubmissionValidationMessage submissionValidationSucceededMessage =
+  public void publishSubmissionValidationSucceededEvent(
+      UUID submissionId, SubmissionEventType eventType) {
+    if (eventType != SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED
+        && eventType != SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED) {
+      throw new IllegalArgumentException(
+          "Unsupported validation-succeeded event type: " + eventType);
+    }
+
+    SubmissionValidationMessage submissionValidationMessage =
         new SubmissionValidationMessage(submissionId);
     try {
-      publishEvent(
-          submissionValidationSucceededMessage,
-          SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
+      publishEvent(submissionValidationMessage, eventType);
     } catch (Exception e) {
-      log.error(
-          "Failed to publish SUBMISSION_VALIDATION_SUCCEEDED event for submission id [{}]",
-          submissionId,
-          e);
+      log.error("Failed to publish {} event for submission id [{}]", eventType, submissionId, e);
     }
   }
 
