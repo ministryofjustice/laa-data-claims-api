@@ -56,6 +56,9 @@ public class Client {
 
   private Boolean isLegallyAided;
 
+  @Column(name = "is_means_tested")
+  private Boolean isMeansTested;
+
   private String clientTypeCode;
 
   private String homeOfficeClientNumber;

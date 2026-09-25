@@ -126,4 +126,7 @@ public class CalculatedFeeDetail {
   private ClaimAmendment claimAmendment;
 
   private Boolean isPriceChanged; // New flag for FSP outcomes
+
+  @Column(name = "is_inquest")
+  private Boolean isInquest;
 }
