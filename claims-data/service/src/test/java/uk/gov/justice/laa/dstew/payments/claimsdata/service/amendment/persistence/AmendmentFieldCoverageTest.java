@@ -75,6 +75,8 @@ class AmendmentFieldCoverageTest {
               "submission",
               "claimCase",
               "client",
+              "inquestDetail",
+              "interestedDepartments",
               "claimSummaryFee",
               "calculatedFeeDetails",
               // Lifecycle / status - governed by the amendment flow, not copied from the payload.
@@ -90,7 +92,7 @@ class AmendmentFieldCoverageTest {
               "matchedClaimId"));
 
   private static final Set<String> CLIENT_IGNORED_FIELDS =
-      union(COMMON_IGNORED_FIELDS, Set.of("claim"));
+      union(COMMON_IGNORED_FIELDS, Set.of("claim", "isMeansTested"));
 
   private static final Set<String> CLAIM_CASE_IGNORED_FIELDS =
       union(COMMON_IGNORED_FIELDS, Set.of("claim"));
