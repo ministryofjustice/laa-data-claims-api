@@ -56,6 +56,8 @@ dependencies {
     // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
     implementation 'ch.qos.logback:logback-classic:1.6.3'
     implementation 'ch.qos.logback:logback-core:1.6.3'
+    // Security: force Netty's HTTP codec to the fixed version for SNYK-JAVA-IONETTY-20074868.
+    implementation 'io.netty:netty-codec-http:4.2.18.Final'
 
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
