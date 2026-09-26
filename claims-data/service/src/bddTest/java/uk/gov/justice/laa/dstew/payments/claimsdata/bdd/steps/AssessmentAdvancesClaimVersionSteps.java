@@ -298,6 +298,21 @@ public class AssessmentAdvancesClaimVersionSteps {
         });
   }
 
+  @When("I POST a valid assessment for claim {string} without a claim version")
+  public void iPostAValidAssessmentForClaimWithoutAClaimVersion(String label) {
+    step(
+        "POST "
+            + POST_ASSESSMENT_PATH
+            + " with claim_version omitted for claim '"
+            + label
+            + "' — proves temporary backward compatibility (mirrors void, DSTEW-1604)",
+        () -> {
+          UUID claimId = requireClaim(label);
+          postAssessment(
+              claimId, assessmentJsonWithoutVersion(claimId, currentSummaryFeeId));
+        });
+  }
+
   @When("I POST a second valid assessment for claim {string}")
   public void iPostASecondValidAssessmentForClaim(String label) {
     step(
@@ -988,6 +1003,30 @@ public class AssessmentAdvancesClaimVersionSteps {
         }
         """)
         .formatted(claimId, summaryFeeId, assessmentType, BDD_USER_UUID, claimVersion);
+  }
+
+  /**
+   * Builds an assessment payload with {@code claim_version} entirely omitted from the JSON body,
+   * rather than sent as {@code null} - proves the field is genuinely optional on the wire (DSTEW-1604
+   * temporary backward compatibility), mirroring the void-claim request's optional {@code version}.
+   */
+  private static String assessmentJsonWithoutVersion(UUID claimId, UUID summaryFeeId) {
+    return ("""
+        {
+          "claim_id": "%s",
+          "claim_summary_fee_id": "%s",
+          "assessment_type": "ESCAPE_CASE_ASSESSMENT",
+          "assessment_reason": "DSTEW-1604 BDD assessment without claim_version",
+          "assessment_outcome": "NILLED",
+          "created_by_user_id": "%s",
+          "fixed_fee_amount": 100.00,
+          "assessed_total_vat": 0,
+          "assessed_total_incl_vat": 0,
+          "allowed_total_vat": 0,
+          "allowed_total_incl_vat": 0
+        }
+        """)
+        .formatted(claimId, summaryFeeId, BDD_USER_UUID);
   }
 
   /**

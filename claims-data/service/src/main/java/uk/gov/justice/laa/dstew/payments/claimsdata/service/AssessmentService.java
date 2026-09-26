@@ -41,14 +41,18 @@ public class AssessmentService {
   /**
    * Create an assessment for a claim.
    *
-   * <p>Requires the claim version the caller loaded ({@code request.getClaimVersion()}) and
-   * enforces an optimistic concurrency check against the claim's current version before creating
-   * the assessment: a missing version is rejected with a 400 Bad Request, and a stale (mismatched)
-   * version is rejected with a 409 Conflict (CLAIM_VERSION_CONFLICT) - see {@link
-   * ClaimValidationService#validateClaimVersionProvided(Long)} and {@link
-   * ClaimValidationService#validateClaimVersionMatches(Claim, Long)}. No assessment is created and
-   * no claim update is persisted when either check fails, since both run before any entity is
-   * mutated and the whole method is transactional.
+   * <p>Accepts an optional claim version the caller loaded ({@code request.getClaimVersion()}) and,
+   * when supplied, enforces an optimistic concurrency check against the claim's current version
+   * before creating the assessment: a stale (mismatched) version is rejected with a 409 Conflict
+   * (CLAIM_VERSION_CONFLICT) - see {@link ClaimValidationService#validateClaimVersionMatches(Claim,
+   * Long)}. A {@code null} version is accepted and the check is skipped entirely - this mirrors
+   * {@link ClaimValidationService#validateVoidClaimRequest(UUID,
+   * uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest) the void-claim flow} and is
+   * a temporary backward-compatibility allowance while not every consumer yet sends this field; once
+   * all consumers reliably send it, this should be tightened back to mandatory (see {@link
+   * ClaimValidationService#validateClaimVersionProvided(Long)}, currently unused). No assessment is
+   * created and no claim update is persisted when the match check fails, since it runs before any
+   * entity is mutated and the whole method is transactional.
    *
    * @param claimId claim identifier
    * @param request request payload
@@ -58,7 +62,6 @@ public class AssessmentService {
   public UUID createAssessment(UUID claimId, AssessmentPost request) {
     claimValidationService.validateUserId(request.getCreatedByUserId());
     claimValidationService.validateAssessmentReason(request.getAssessmentReason());
-    claimValidationService.validateClaimVersionProvided(request.getClaimVersion());
     claimValidationService.validateVersionNumber(request.getClaimVersion());
 
     Claim claim = claimValidationService.getValidClaimOrThrow(claimId);

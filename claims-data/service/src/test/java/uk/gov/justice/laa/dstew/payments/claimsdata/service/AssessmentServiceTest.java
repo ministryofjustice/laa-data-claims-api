@@ -234,7 +234,6 @@ class AssessmentServiceTest {
 
       assessmentService.createAssessment(claimId, post);
 
-      verify(claimValidationService).validateClaimVersionProvided(claimVersion);
       verify(claimValidationService).validateVersionNumber(claimVersion);
       verify(claimValidationService).validateClaimVersionMatches(claim, claimVersion);
       verify(assessmentRepository).save(assessment);
@@ -242,8 +241,9 @@ class AssessmentServiceTest {
 
     @Test
     @DisplayName(
-        "should reject with 400 when claim version is missing, without persisting anything")
-    void shouldRejectWhenClaimVersionMissing() {
+        "should accept a null claim version and skip the version-match check entirely "
+            + "(temporary backward compatibility, mirrors void)")
+    void shouldAllowMissingClaimVersion() {
       UUID claimId = UUID.randomUUID();
       UUID claimSummaryFeeId = UUID.randomUUID();
 
@@ -255,16 +255,21 @@ class AssessmentServiceTest {
               .claimVersion(null)
               .build();
 
-      doThrow(new ClaimBadRequestException("claimVersion must be provided"))
-          .when(claimValidationService)
-          .validateClaimVersionProvided(null);
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).version(9L).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
 
-      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
-          .isInstanceOf(ClaimBadRequestException.class)
-          .hasMessageContaining("claimVersion must be provided");
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
 
-      verify(claimValidationService, never()).getValidClaimOrThrow(any());
-      verifyNoInteractions(assessmentRepository);
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimValidationService, never()).validateClaimVersionProvided(any());
+      verify(claimValidationService).validateVersionNumber(null);
+      verify(claimValidationService).validateClaimVersionMatches(claim, null);
+      verify(assessmentRepository).save(assessment);
     }
 
     @Test

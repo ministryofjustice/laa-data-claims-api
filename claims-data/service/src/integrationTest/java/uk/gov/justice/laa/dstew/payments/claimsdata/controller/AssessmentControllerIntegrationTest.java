@@ -149,12 +149,16 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
-  @DisplayName("returns 400 Bad Request when the claim version is missing from the request")
-  void shouldReturnBadRequestWhenClaimVersionMissing() throws Exception {
+  @DisplayName(
+      "returns 201 Created when the claim version is missing from the request (temporary "
+          + "backward compatibility - not every consumer sends it yet, mirrors void)")
+  void shouldCreateAssessmentWhenClaimVersionMissing() throws Exception {
     final long assessmentCountBefore =
         assessmentRepository
             .findByClaimId(CLAIM_ID_WITH_VALID_STATUS, Pageable.unpaged())
             .getTotalElements();
+    final Claim claimBeforeAssessment = reloadValidClaim();
+    final Long versionBeforeAssessment = claimBeforeAssessment.getVersion();
 
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
@@ -168,18 +172,22 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
                     .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isCreated())
             .andReturn();
 
     String responseBody = result.getResponse().getContentAsString();
-    assertThat(responseBody).contains("claimVersion must be provided");
+    var createAssessment201Response =
+        OBJECT_MAPPER.readValue(responseBody, CreateAssessment201Response.class);
+    assertThat(createAssessment201Response.getId()).isNotNull();
 
-    // no new assessment must have been created for this claim
+    // a new assessment must have been created for this claim, and the claim's version must still
+    // have advanced by one even though no version was supplied on the request.
     assertThat(
             assessmentRepository
                 .findByClaimId(CLAIM_ID_WITH_VALID_STATUS, Pageable.unpaged())
                 .getTotalElements())
-        .isEqualTo(assessmentCountBefore);
+        .isEqualTo(assessmentCountBefore + 1);
+    assertThat(reloadValidClaim().getVersion()).isEqualTo(versionBeforeAssessment + 1);
   }
 
   @Test
