@@ -308,8 +308,7 @@ public class AssessmentAdvancesClaimVersionSteps {
             + "' — proves temporary backward compatibility (mirrors void, DSTEW-1604)",
         () -> {
           UUID claimId = requireClaim(label);
-          postAssessment(
-              claimId, assessmentJsonWithoutVersion(claimId, currentSummaryFeeId));
+          postAssessment(claimId, assessmentJsonWithoutVersion(claimId, currentSummaryFeeId));
         });
   }
 
@@ -1007,8 +1006,9 @@ public class AssessmentAdvancesClaimVersionSteps {
 
   /**
    * Builds an assessment payload with {@code claim_version} entirely omitted from the JSON body,
-   * rather than sent as {@code null} - proves the field is genuinely optional on the wire (DSTEW-1604
-   * temporary backward compatibility), mirroring the void-claim request's optional {@code version}.
+   * rather than sent as {@code null} - proves the field is genuinely optional on the wire
+   * (DSTEW-1604 temporary backward compatibility), mirroring the void-claim request's optional
+   * {@code version}.
    */
   private static String assessmentJsonWithoutVersion(UUID claimId, UUID summaryFeeId) {
     return ("""

@@ -128,9 +128,9 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    * co-occurring failures - it is always the single, deterministic outcome of comparing two version
    * numbers - so the response intentionally does <b>not</b> carry the amendment-shaped {@code
    * errors} array (with its {@code severity}/{@code isFatal}/{@code httpStatus} fields that only
-   * have meaning inside the amendment orchestrator). Instead it carries a single scalar {@code code}
-   * property so non-amendment callers (void, assessment) get a lean, purpose-fit body rather than a
-   * borrowed one.
+   * have meaning inside the amendment orchestrator). Instead it carries a single scalar {@code
+   * code} property so non-amendment callers (void, assessment) get a lean, purpose-fit body rather
+   * than a borrowed one.
    *
    * @param ex the claim conflict exception raised by the early version-match gate
    * @param request the HTTP request
@@ -142,7 +142,10 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     log.warn("Claim version conflict detected: {}", ex.getMessage());
     ResponseEntity<ProblemDetail> response =
         buildProblemDetailResponse(
-            HttpStatus.CONFLICT, CLAIM_VERSION_CONFLICT.getMessageTemplate(), ex.getClass(), request);
+            HttpStatus.CONFLICT,
+            CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+            ex.getClass(),
+            request);
     ProblemDetail problemDetail = response.getBody();
     if (problemDetail != null) {
       problemDetail.setProperty("code", CLAIM_VERSION_CONFLICT.name());
@@ -336,8 +339,8 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
    * (optimistic-lock) guards.
    *
    * <p>These guards are shared plumbing across all versioned-claim flows (amendment commit, void,
-   * assessment creation), but in practice the amendment flow is the one that deliberately forces its
-   * final-commit flush early (see {@code ClaimAmendmentCommitService#commit}) so a genuine race
+   * assessment creation), but in practice the amendment flow is the one that deliberately forces
+   * its final-commit flush early (see {@code ClaimAmendmentCommitService#commit}) so a genuine race
    * reliably surfaces here rather than escaping to the transaction boundary. The envelope therefore
    * matches the amendment validation error format: an RFC 9457 Problem Detail with the user-safe
    * conflict message and an {@code errors} property carrying the stable, machine readable {@link

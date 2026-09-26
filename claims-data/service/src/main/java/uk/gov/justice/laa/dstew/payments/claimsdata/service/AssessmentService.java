@@ -47,9 +47,9 @@ public class AssessmentService {
    * (CLAIM_VERSION_CONFLICT) - see {@link ClaimValidationService#validateClaimVersionMatches(Claim,
    * Long)}. A {@code null} version is accepted and the check is skipped entirely - this mirrors
    * {@link ClaimValidationService#validateVoidClaimRequest(UUID,
-   * uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest) the void-claim flow} and is
-   * a temporary backward-compatibility allowance while not every consumer yet sends this field; once
-   * all consumers reliably send it, this should be tightened back to mandatory (see {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest) the void-claim flow} and
+   * is a temporary backward-compatibility allowance while not every consumer yet sends this field;
+   * once all consumers reliably send it, this should be tightened back to mandatory (see {@link
    * ClaimValidationService#validateClaimVersionProvided(Long)}, currently unused). No assessment is
    * created and no claim update is persisted when the match check fails, since it runs before any
    * entity is mutated and the whole method is transactional.
