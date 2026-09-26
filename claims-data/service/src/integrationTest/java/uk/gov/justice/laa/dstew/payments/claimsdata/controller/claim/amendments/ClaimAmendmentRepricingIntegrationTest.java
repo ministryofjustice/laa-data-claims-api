@@ -393,6 +393,146 @@ class ClaimAmendmentRepricingIntegrationTest extends AbstractAmendmentPatchInteg
     assertThat(latestFee.getBoltOnSubstantiveHearingFee()).isEqualByComparingTo("150.00");
   }
 
+  // ===================================== FSP Error Handling Tests
+  // =====================================
+  // DSTEW-2359: Tests for FSP validation error scenarios to ensure amendments fail with appropriate
+  // error messages and no state corruption.
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - rejects amendment when FSP returns validation error")
+  void shouldRejectAmendmentWhenFspReturnsValidationError() throws Exception {
+    ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setFeeCode("CLININQ"); // Changed fee code that will fail FSP validation
+
+    Claim claimBefore = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    Long versionBefore = claimBefore.getVersion();
+
+    // Capture baseline fee count before attempt
+    long feesBefore =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+
+    // Mock FSP to return a validation error
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(
+                    "{\"feeCode\":\"CLININQ\",\"schemeId\":\"CAPA_FS2013\","
+                        + "\"validationMessages\":[{\"type\":\"ERROR\",\"code\":\"FEE_CODE_NOT_ELIGIBLE\","
+                        + "\"message\":\"Fee code CLININQ is not eligible for matter type CRIME_LOWER\"}],"
+                        + "\"escapeCaseFlag\":false,\"feeCalculation\":null}"));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, HttpStatus.BAD_REQUEST);
+
+    // Error response includes the FSP error message
+    assertThat(result.getResponse().getContentAsString())
+        .contains("Fee code CLININQ is not eligible")
+        .contains("INVALID_FSP_VALIDATION_FAILURE");
+
+    // Nothing was persisted: no new calculated-fee row and the claim is not marked amended
+    calculatedFeeDetailRepository.flush();
+    long feesAfter =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .count();
+    assertThat(feesAfter).isEqualTo(feesBefore); // Count unchanged after rejection
+    Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(reloaded.isAmended()).isFalse();
+    assertThat(reloaded.getVersion()).isEqualTo(versionBefore);
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - includes all error messages when FSP returns multiple validation errors")
+  void shouldIncludeAllErrorMessagesWhenFspReturnsMultipleErrors() throws Exception {
+    ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setNetDisbursementAmount(BigDecimal.valueOf(99999.00));
+
+    // Mock FSP to return multiple validation errors
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(
+                    "{\"feeCode\":\"CAPA\",\"schemeId\":\"CAPA_FS2013\","
+                        + "\"validationMessages\":["
+                        + "{\"type\":\"ERROR\",\"code\":\"FEE_CODE_NOT_ELIGIBLE\","
+                        + "\"message\":\"Fee code CAPA is not eligible for this scenario\"},"
+                        + "{\"type\":\"ERROR\",\"code\":\"INVALID_DISBURSEMENT\","
+                        + "\"message\":\"Disbursement amount exceeds maximum allowed\"}"
+                        + "],"
+                        + "\"escapeCaseFlag\":false,\"feeCalculation\":null}"));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+    assertResponseStatus(result, HttpStatus.BAD_REQUEST);
+
+    // Both error messages should be present in the response
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody)
+        .contains("Fee code CAPA is not eligible")
+        .contains("Disbursement amount exceeds maximum allowed");
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH /submissions/{id}/claims/{id} - ignores FSP warnings and accepts amendment when only warnings are returned")
+  void shouldAcceptAmendmentWhenFspReturnsOnlyWarnings() throws Exception {
+    ClaimPatch patchPayload = createBasePatch();
+    patchPayload.setVersion(1L);
+    patchPayload.setNetProfitCostsAmount(BigDecimal.valueOf(5000.00));
+
+    Claim claimBefore = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    Long versionBefore = claimBefore.getVersion();
+    Instant updatedOnBefore = claimBefore.getUpdatedOn();
+
+    // Mock FSP to return a successful response with a warning (warnings should be ignored)
+    mockServerClient
+        .when(request().withMethod("POST").withPath(FEE_CALCULATION))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(
+                    "{\"feeCode\":\"CAPA\",\"schemeId\":\"CAPA_FS2013\","
+                        + "\"validationMessages\":[{\"type\":\"WARNING\",\"code\":\"HIGH_COSTS\","
+                        + "\"message\":\"Costs exceed typical range but are acceptable\"}],"
+                        + "\"escapeCaseFlag\":true,"
+                        + "\"feeCalculation\":{\"totalAmount\":1500.00,\"vatIndicator\":true,"
+                        + "\"netProfitCostsAmount\":5000.00}}"));
+
+    MvcResult result = performPatch(SUBMISSION_1_ID, CLAIM_1_ID, patchPayload);
+
+    // Amendment should succeed despite the warning
+    assertResponseStatus(result, HttpStatus.NO_CONTENT);
+
+    // Verify the new fee was persisted
+    mockServerClient.verify(request().withPath(FEE_CALCULATION), VerificationTimes.once());
+    calculatedFeeDetailRepository.flush();
+    List<CalculatedFeeDetail> savedFees =
+        calculatedFeeDetailRepository.findAll().stream()
+            .filter(cfd -> cfd.getClaim().getId().equals(CLAIM_1_ID))
+            .sorted((f1, f2) -> f2.getCreatedOn().compareTo(f1.getCreatedOn()))
+            .toList();
+    assertThat(savedFees.getFirst().getTotalAmount()).isEqualByComparingTo("1500.00");
+
+    Claim claimAfter = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(claimAfter.isAmended()).isTrue();
+    assertThat(claimAfter.getUpdatedByUserId()).isEqualTo(VALID_USER_UUID.toString());
+    assertThat(updatedOnBefore).isNotNull();
+    assertThat(claimAfter.getUpdatedOn()).isAfter(updatedOnBefore);
+    assertThat(claimAfter.getVersion()).isEqualTo(versionBefore + 1);
+  }
+
   /**
    * Reads {@code calculated_fee_detail.claim_amendment_id} for the given row directly from the
    * database (test-only), returning {@code null} when the row is unlinked. Avoids initialising the
