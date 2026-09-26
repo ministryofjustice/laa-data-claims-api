@@ -2216,6 +2216,20 @@ components:
     assessment_post:
       allOf:
         - $ref: '#/components/schemas/assessment_base'
+        - type: object
+          properties:
+            claim_version:
+              type: integer
+              format: int64
+              description: |
+                The version of the claim as loaded by the caller before completing the assessment.
+                Used as an optimistic concurrency check: when provided, the assessment is only
+                created if this matches the claim's current version. If the claim has changed since
+                it was loaded (e.g. amended, assessed or voided by another user or process), the
+                request is rejected with a 409 Conflict (CLAIM_VERSION_CONFLICT). This field is
+                currently optional for backward compatibility while not every consumer sends it yet:
+                omitting it skips the check entirely. Once all consumers reliably send it, this will
+                be tightened to mandatory.
       required:
         - claim_id
         - claim_summary_fee_id

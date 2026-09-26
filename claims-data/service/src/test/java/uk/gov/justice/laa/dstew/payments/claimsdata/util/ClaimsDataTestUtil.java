@@ -474,7 +474,10 @@ public class ClaimsDataTestUtil {
         .allowedTotalInclVat(new BigDecimal("1900.00"))
         .assessmentReason("test")
         .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
-        .createdByUserId(API_USER_ID);
+        .createdByUserId(API_USER_ID)
+        // Default placeholder; callers exercising the optimistic concurrency check should
+        // override this with the claim's actual current version before posting.
+        .claimVersion(0L);
   }
 
   public static Assessment.AssessmentBuilder getAssessmentBuilder() {

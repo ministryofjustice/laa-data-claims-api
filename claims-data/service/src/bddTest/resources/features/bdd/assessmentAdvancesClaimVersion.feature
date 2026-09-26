@@ -154,3 +154,16 @@ Feature: Assessment must advance claim.version so in-flight amendments are inval
     Then hasAssessment and @Version are advanced via Hibernate dirty-checking on the managed entity
     And `ClaimRepository.updateAssessmentStatus(...)` is not invoked on the assessment path
 
+  @DS1604_1
+  Scenario: Assessment omitting claim_version is accepted (temporary backward compatibility)
+    # DSTEW-1604: not every consumer sends claim_version yet, so it must remain optional and
+    # mirror the void-claim endpoint's already-optional version field: omitting it skips the OCC
+    # check entirely rather than being rejected with a 400. The claim still advances its version
+    # as normal, since the version-advance itself does not depend on the caller having supplied one.
+    Given claim "C" has version 12
+    And claim "C" has hasAssessment=false
+    When I POST a valid assessment for claim "C" without a claim version
+    Then the response is 201 Created
+    And claim "C" version is now 13
+    And claim "C" hasAssessment is now true
+

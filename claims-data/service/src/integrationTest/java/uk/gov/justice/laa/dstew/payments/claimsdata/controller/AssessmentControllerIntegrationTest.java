@@ -44,6 +44,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MvcResult;
@@ -98,6 +99,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
             .orElseThrow(() -> new RuntimeException(CLAIM_NOT_FOUND));
     final Long versionBeforeAssessment = claimBeforeAssessment.getVersion();
     final Instant updatedOnBeforeAssessment = claimBeforeAssessment.getUpdatedOn();
+    assessmentPost.setClaimVersion(versionBeforeAssessment);
 
     // when: calling the POST endpoint with the AssessmentPost
     MvcResult result =
@@ -148,6 +150,84 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
 
   @Test
   @DisplayName(
+      "returns 201 Created when the claim version is missing from the request (temporary "
+          + "backward compatibility - not every consumer sends it yet, mirrors void)")
+  void shouldCreateAssessmentWhenClaimVersionMissing() throws Exception {
+    final long assessmentCountBefore =
+        assessmentRepository
+            .findByClaimId(CLAIM_ID_WITH_VALID_STATUS, Pageable.unpaged())
+            .getTotalElements();
+    final Claim claimBeforeAssessment = reloadValidClaim();
+    final Long versionBeforeAssessment = claimBeforeAssessment.getVersion();
+
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
+    assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    assessmentPost.setClaimVersion(null);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+    String responseBody = result.getResponse().getContentAsString();
+    var createAssessment201Response =
+        OBJECT_MAPPER.readValue(responseBody, CreateAssessment201Response.class);
+    assertThat(createAssessment201Response.getId()).isNotNull();
+
+    // a new assessment must have been created for this claim, and the claim's version must still
+    // have advanced by one even though no version was supplied on the request.
+    assertThat(
+            assessmentRepository
+                .findByClaimId(CLAIM_ID_WITH_VALID_STATUS, Pageable.unpaged())
+                .getTotalElements())
+        .isEqualTo(assessmentCountBefore + 1);
+    assertThat(reloadValidClaim().getVersion()).isEqualTo(versionBeforeAssessment + 1);
+  }
+
+  @Test
+  @DisplayName(
+      "returns 409 Conflict with CLAIM_VERSION_CONFLICT when the supplied claim version is "
+          + "stale, and no assessment or claim update is persisted")
+  void shouldReturnConflictWhenClaimVersionIsStale() throws Exception {
+    final Long currentVersion = claimVersion(CLAIM_ID_WITH_VALID_STATUS);
+    final Instant updatedOnBefore = reloadValidClaim().getUpdatedOn();
+
+    final AssessmentPost assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
+    assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    // Simulate the caller having loaded a now-stale version of the claim (use +1, not -1, so this
+    // remains a valid non-negative version even when the seeded claim version starts at 0).
+    assessmentPost.setClaimVersion(currentVersion + 1);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
+                    .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+    String responseBody = result.getResponse().getContentAsString();
+    assertThat(responseBody).contains("CLAIM_VERSION_CONFLICT");
+
+    // the claim must be left completely unchanged: same version, same audit fields, not marked
+    // as assessed - and no assessment row must have been created for this claim.
+    final Claim claimAfterConflict = reloadValidClaim();
+    assertThat(claimAfterConflict.getVersion()).isEqualTo(currentVersion);
+    assertThat(claimAfterConflict.getUpdatedOn()).isEqualTo(updatedOnBefore);
+    assertThat(claimAfterConflict.isHasAssessment()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
       "every successful assessment advances claim.version and refreshes the audit fields - both the "
           + "first (which also flips hasAssessment) and a subsequent repeat by the same user")
   void eachSuccessfulAssessmentAdvancesClaimVersion() throws Exception {
@@ -189,6 +269,9 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
+    // the claim version advances with every prior assessment, so always fetch the current
+    // version immediately before posting (mirrors a caller loading the latest claim state).
+    assessmentPost.setClaimVersion(claimVersion(CLAIM_ID_WITH_VALID_STATUS));
     mockMvc
         .perform(
             post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_ID_WITH_VALID_STATUS)
@@ -329,6 +412,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     // when: calling the POST endpoint to set a VOID status, 400 should be returned
     final AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setAssessmentType(AssessmentType.VOID);
+    assessmentPost.setClaimVersion(claimVersion(CLAIM_ID_WITH_VALID_STATUS));
     MvcResult result =
         mockMvc
             .perform(
@@ -351,6 +435,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assessmentPost.setAssessmentType(null);
+    assessmentPost.setClaimVersion(claimVersion(CLAIM_ID_WITH_VALID_STATUS));
 
     MvcResult result =
         mockMvc
@@ -372,6 +457,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(SUMMARY_FEE_ID_FOR_VALID_CLAIM);
     assessmentPost.setAssessmentType(AssessmentType.STAGE_DISBURSEMENT_ASSESSMENT);
+    assessmentPost.setClaimVersion(claimVersion(CLAIM_ID_WITH_VALID_STATUS));
 
     MvcResult result =
         mockMvc
@@ -442,6 +528,7 @@ public class AssessmentControllerIntegrationTest extends AbstractIntegrationTest
     AssessmentPost assessmentPost = getAssessmentPost();
     assessmentPost.setClaimId(CLAIM_ID_WITH_VALID_STATUS);
     assessmentPost.setClaimSummaryFeeId(claimSummaryFeeId);
+    assessmentPost.setClaimVersion(claimVersion(CLAIM_ID_WITH_VALID_STATUS));
 
     // when: calling the POST endpoint for an unknown claimSummaryFeeId, 404 should be returned.
     mockMvc

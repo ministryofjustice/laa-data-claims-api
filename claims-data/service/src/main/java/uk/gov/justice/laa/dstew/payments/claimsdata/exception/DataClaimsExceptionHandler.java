@@ -119,6 +119,41 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * Handles the claim-version optimistic concurrency conflict raised by {@link
+   * uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimValidationService#validateClaimVersionMatches(
+   * uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim, Long) the early version-match gate}
+   * (used by both assessment creation and voiding a claim).
+   *
+   * <p>Unlike the amendment flow's validation errors, this conflict is never one of several
+   * co-occurring failures - it is always the single, deterministic outcome of comparing two version
+   * numbers - so the response intentionally does <b>not</b> carry the amendment-shaped {@code
+   * errors} array (with its {@code severity}/{@code isFatal}/{@code httpStatus} fields that only
+   * have meaning inside the amendment orchestrator). Instead it carries a single scalar {@code
+   * code} property so non-amendment callers (void, assessment) get a lean, purpose-fit body rather
+   * than a borrowed one.
+   *
+   * @param ex the claim conflict exception raised by the early version-match gate
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 409 Conflict status code
+   */
+  @ExceptionHandler(ClaimConflictException.class)
+  public ResponseEntity<ProblemDetail> handleClaimConflictException(
+      ClaimConflictException ex, HttpServletRequest request) {
+    log.warn("Claim version conflict detected: {}", ex.getMessage());
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(
+            HttpStatus.CONFLICT,
+            CLAIM_VERSION_CONFLICT.getMessageTemplate(),
+            ex.getClass(),
+            request);
+    ProblemDetail problemDetail = response.getBody();
+    if (problemDetail != null) {
+      problemDetail.setProperty("code", CLAIM_VERSION_CONFLICT.name());
+    }
+    return response;
+  }
+
+  /**
    * Handle {@link ExportValidationException} instances and convert them to RFC 9457 Problem
    * Details.
    *
@@ -300,15 +335,20 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Builds the shared stale-version 409 Conflict response used by both the early version gate and
-   * the final transactional (optimistic-lock) guard.
+   * Builds the shared stale-version 409 Conflict response used by the database-level
+   * (optimistic-lock) guards.
    *
-   * <p>The envelope matches the amendment validation error format: an RFC 9457 Problem Detail with
-   * the user-safe conflict message and an {@code errors} property carrying the stable, machine
-   * readable {@link
+   * <p>These guards are shared plumbing across all versioned-claim flows (amendment commit, void,
+   * assessment creation), but in practice the amendment flow is the one that deliberately forces
+   * its final-commit flush early (see {@code ClaimAmendmentCommitService#commit}) so a genuine race
+   * reliably surfaces here rather than escaping to the transaction boundary. The envelope therefore
+   * matches the amendment validation error format: an RFC 9457 Problem Detail with the user-safe
+   * conflict message and an {@code errors} property carrying the stable, machine readable {@link
    * uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode#CLAIM_VERSION_CONFLICT
-   * CLAIM_VERSION_CONFLICT} code, so consumers receive the same code and structure regardless of
-   * which guard detected the conflict.
+   * CLAIM_VERSION_CONFLICT} code. Contrast with {@link #handleClaimConflictException(
+   * ClaimConflictException, HttpServletRequest)}, which handles the early, deterministic
+   * version-match gate for void/assessment and intentionally returns a leaner body without this
+   * array.
    *
    * @param exceptionClass the source exception class for the type URI
    * @param request the HTTP request for populating the instance field
