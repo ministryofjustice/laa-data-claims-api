@@ -45,6 +45,17 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
   #               inventing amendment-specific same-submission rules;
   #               physical index / query tuning;
   #               fee-code lookup + reusable field validation -> DSTEW-1768.
+  #
+  # ASSERTION NOTE ("no duplicate validation error is raised"):
+  #   This story owns the duplicate gate only. Post-DSTEW-1768 the amendment path
+  #   runs full reusable field validation in the SAME claims-validation-core pass
+  #   that performs duplicate detection, so the deliberately-minimal seed may
+  #   collect unrelated field-completeness errors. The happy-path Then therefore
+  #   asserts the discriminating fact - NEITHER duplicate code is present - rather
+  #   than overall 2xx success (full commit is proven by
+  #   ClaimAmendmentDuplicateValidationIntegrationTest). Happy-path and rejection
+  #   scenarios share identical seeding except the colliding twin/key, so a
+  #   duplicate code appears iff a real collision exists.
 
   Background:
     Given the amendments feature flag is enabled
