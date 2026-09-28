@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import reactor.netty.http.client.HttpClient;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.config.ClientHttpConnectorCustomizer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.audit.ExternalSystemType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.config.FeeSchemePlatformApiProperties;
@@ -61,6 +62,41 @@ public class WebClientConfiguration {
     HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(webClientAdapter).build();
 
     return factory.createClient(FeeSchemePlatformRestClient.class);
+  }
+
+  /**
+   * Creates a {@link ClientHttpConnectorCustomizer} bean that wraps the provided connector with
+   * auditing functionality for outbound API calls.
+   */
+  @Bean
+  public ClientHttpConnectorCustomizer auditingConnectorCustomizer(
+      final ClaimsApiProperties claimsApiProperties,
+      final ExternalApiCallAuditService auditService,
+      final ObjectMapper objectMapper) {
+
+    final boolean auditEnabled = claimsApiProperties.getExternalApiAudit().isEnabled();
+    final ExternalApiCallContext ids = new ExternalApiCallContext();
+
+    return (clientName, connector) ->
+        switch (clientName) {
+          case ClientHttpConnectorCustomizer.FEE_SCHEME ->
+              auditing(
+                  connector,
+                  ExternalSystemType.FEE_SCHEME_PLATFORM,
+                  auditEnabled,
+                  auditService,
+                  objectMapper,
+                  ids);
+          case ClientHttpConnectorCustomizer.PROVIDER_DETAILS ->
+              auditing(
+                  connector,
+                  ExternalSystemType.PROVIDER_DETAILS_API,
+                  auditEnabled,
+                  auditService,
+                  objectMapper,
+                  ids);
+          default -> connector;
+        };
   }
 
   private static ClientHttpConnector auditing(
