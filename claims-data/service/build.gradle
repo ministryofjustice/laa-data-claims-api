@@ -41,6 +41,9 @@ jacocoTestCoverageVerification {
 // example:
 // Upgrade to fix CVE-xxxx-xxxxx
 // ext['dependency-name.version'] = 'x.x.x'
+// Upgrade Netty QUIC/HTTP3 modules to fix SNYK-JAVA-IONETTY-20154418,
+// SNYK-JAVA-IONETTY-20154839/40/41/42 and SNYK-JAVA-IONETTY-20158598/20158603.
+ext['netty.version'] = '4.2.18.Final'
 
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
 
@@ -56,9 +59,6 @@ dependencies {
     // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
     implementation 'ch.qos.logback:logback-classic:1.6.3'
     implementation 'ch.qos.logback:logback-core:1.6.3'
-    // Security: force Netty's HTTP codec to the fixed version for SNYK-JAVA-IONETTY-20074868.
-    implementation 'io.netty:netty-codec-http:4.2.18.Final'
-
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
