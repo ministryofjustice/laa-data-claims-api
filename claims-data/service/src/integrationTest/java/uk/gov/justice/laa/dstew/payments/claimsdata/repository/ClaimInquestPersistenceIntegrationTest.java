@@ -23,6 +23,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+  @Autowired private InquestDetailRepository inquestDetailRepository;
+  @Autowired private ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
   @Autowired private EntityManager entityManager;
 
   @BeforeEach
@@ -32,10 +34,11 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
-  @DisplayName("saving claim persists inquest detail and interested departments")
+  @DisplayName(
+      "saving a claim with inquest details, departments and reference persists")
   void savingClaimPersistsInquestDetailAndInterestedDepartments() {
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    GovernmentDepartmentRef dept1 =
+    GovernmentDepartmentRef department1Ref =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
@@ -45,7 +48,7 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
                 .displayOrder(1)
                 .createdByUserId("TEST")
                 .build());
-    GovernmentDepartmentRef dept2 =
+    GovernmentDepartmentRef department2Ref =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
@@ -56,17 +59,17 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
                 .createdByUserId("TEST")
                 .build());
 
+    LocalDate deceasedDateOfDeath = LocalDate.of(2024, 1, 2);
     claim.setInquestDetail(
         InquestDetail.builder()
             .id(UUID.randomUUID())
             .claim(claim)
             .deceasedForename("Jane")
             .deceasedSurname("Doe")
-            .deceasedDateOfDeath(LocalDate.of(2024, 1, 2))
+            .deceasedDateOfDeath(deceasedDateOfDeath)
             .coronersInquestReference("INQ-123")
             .createdByUserId("TEST")
             .build());
-
     claim
         .getInterestedDepartments()
         .addAll(
@@ -74,14 +77,14 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
                 ClaimInterestedDepartment.builder()
                     .id(UUID.randomUUID())
                     .claim(claim)
-                    .governmentDepartment(dept1)
+                    .governmentDepartment(department1Ref)
                     .displayOrder(1)
                     .createdByUserId("TEST")
                     .build(),
                 ClaimInterestedDepartment.builder()
                     .id(UUID.randomUUID())
                     .claim(claim)
-                    .governmentDepartment(dept2)
+                    .governmentDepartment(department2Ref)
                     .displayOrder(2)
                     .createdByUserId("TEST")
                     .build()));
@@ -90,12 +93,20 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
     entityManager.clear();
 
-    Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    InquestDetail persistedInquestDetail =
+        inquestDetailRepository.findByClaimId(CLAIM_1_ID).orElseThrow();
+    assertThat(persistedInquestDetail.getDeceasedForename()).isEqualTo("Jane");
+    assertThat(persistedInquestDetail.getDeceasedSurname()).isEqualTo("Doe");
+    assertThat(persistedInquestDetail.getDeceasedDateOfDeath()).isEqualTo(deceasedDateOfDeath);
+    assertThat(persistedInquestDetail.getCoronersInquestReference()).isEqualTo("INQ-123");
 
-    assertThat(reloaded.getInquestDetail()).isNotNull();
-    assertThat(reloaded.getInquestDetail().getDeceasedForename()).isEqualTo("Jane");
-    assertThat(reloaded.getInterestedDepartments()).hasSize(2);
-    assertThat(reloaded.getInterestedDepartments())
+    List<ClaimInterestedDepartment> persistedDepartments =
+        claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(CLAIM_1_ID);
+    assertThat(persistedDepartments).hasSize(2);
+    assertThat(persistedDepartments)
+        .extracting(row -> row.getGovernmentDepartment().getId())
+        .containsExactly(department1Ref.getId(), department2Ref.getId());
+    assertThat(persistedDepartments)
         .extracting(ClaimInterestedDepartment::getDisplayOrder)
         .containsExactly(1, 2);
   }
