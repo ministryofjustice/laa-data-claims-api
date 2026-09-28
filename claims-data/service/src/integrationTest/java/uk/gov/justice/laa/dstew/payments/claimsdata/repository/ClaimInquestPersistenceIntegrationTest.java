@@ -34,8 +34,7 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   @Transactional
-  @DisplayName(
-      "saving a claim with inquest details, departments and reference persists")
+  @DisplayName("saving a claim with inquest details, departments and reference persists")
   void savingClaimPersistsInquestDetailAndInterestedDepartments() {
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     GovernmentDepartmentRef department1Ref =

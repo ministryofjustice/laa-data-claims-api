@@ -141,8 +141,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
   }
 
   @Test
-  @DisplayName(
-      "departments are all stored and returned in supplied order")
+  @DisplayName("departments are all stored and returned in supplied order")
   void repeatedOccurrencesOfSameDepartmentAreAllStoredAndReturnedInSuppliedOrder() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     GovernmentDepartmentRef ministryOfJustice =
@@ -229,7 +228,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("BLANK-SLOT-CODE2")
+                .governmentDepartmentCode("CODE2")
                 .displayLabel("LABEL2")
                 .isActive(true)
                 .displayOrder(1)
@@ -239,7 +238,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("BLANK-SLOT-CODE3")
+                .governmentDepartmentCode("CODE3")
                 .displayLabel("LABEL3")
                 .isActive(true)
                 .displayOrder(2)
