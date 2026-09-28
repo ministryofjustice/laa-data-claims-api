@@ -8,6 +8,7 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeri
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -30,6 +32,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -87,6 +90,7 @@ public class AmendmentFeeCodeLookupSteps {
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
+  @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private BddMockServerSupport mock;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -303,9 +307,33 @@ public class AmendmentFeeCodeLookupSteps {
             ClaimSummaryFee.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claim)
+                // Mandatory Crime Lower fee amounts the real ValidationService facade requires once
+                // validateClaim runs over real HTTP (post-DSTEW-1768). Values mirror the integration
+                // amendment suite's valid claim so the ONLY thing that can reject an amendment here
+                // is the fee-code Area-of-Law gate under test, letting the happy-path scenarios
+                // reach a genuine 2xx commit.
+                .netProfitCostsAmount(BigDecimal.valueOf(80))
+                .netDisbursementAmount(BigDecimal.valueOf(13))
+                .disbursementsVatAmount(BigDecimal.valueOf(2))
                 .createdByUserId(SEED_ACTOR)
                 .createdOn(Instant.now())
                 .build());
+
+    // Crime Lower requires stage_reached_code, which lives on ClaimCase. Without a ClaimCase the
+    // mapped claim has a null stage_reached_code and full field validation rejects every amendment
+    // before the fee-code gate is reached. Values satisfy claims-validation-core's Crime Lower
+    // rules: case_id is exactly 3 digits, stage_reached_code matches the Crime Lower pattern
+    // (PRO[C-F…] → "PROC"), and outcome_code is left blank (a valid Crime Lower outcome).
+    claimCaseRepository.saveAndFlush(
+        ClaimCase.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claim)
+            .caseId("123")
+            .uniqueCaseId("UC_ID_1768")
+            .stageReachedCode("PROC")
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(Instant.now())
+            .build());
 
     calculatedFeeDetailRepository.saveAndFlush(
         CalculatedFeeDetail.builder()
