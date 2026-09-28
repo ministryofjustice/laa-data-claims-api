@@ -25,8 +25,8 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
   }
 
   @Test
-  @DisplayName("findByClaimId returns interested department rows for the claim")
-  void findByClaimIdReturnsInterestedDepartmentRowsForTheClaim() {
+  @DisplayName("findByClaimIdOrderByDisplayOrderAsc returns interested department rows for the claim")
+  void findByClaimIdOrderByDisplayOrderAscReturnsInterestedDepartmentRowsForTheClaim() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     GovernmentDepartmentRef ref =
         governmentDepartmentRefRepository.saveAndFlush(
@@ -49,7 +49,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
                 .createdByUserId("TEST")
                 .build());
 
-    var result = claimInterestedDepartmentRepository.findByClaimId(CLAIM_1_ID);
+    var result = claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(CLAIM_1_ID);
 
     assertThat(result).hasSize(1);
     assertThat(result.getFirst().getId()).isEqualTo(saved.getId());
@@ -57,10 +57,79 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
   }
 
   @Test
-  @DisplayName("findByClaimId when no rows exist returns empty")
-  void findByClaimIdWhenNoRowsExistReturnsEmpty() {
-    var result = claimInterestedDepartmentRepository.findByClaimId(CLAIM_1_ID);
+  @DisplayName("findByClaimIdOrderByDisplayOrderAsc when no rows exist returns empty")
+  void findByClaimIdOrderByDisplayOrderAscWhenNoRowsExistReturnsEmpty() {
+    var result = claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(CLAIM_1_ID);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "findByClaimIdOrderByDisplayOrderAsc returns rows ordered by displayOrder regardless of"
+          + " insertion order")
+  void findByClaimIdOrderByDisplayOrderAscReturnsRowsInDisplayOrderRegardlessOfInsertionOrder() {
+    var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    GovernmentDepartmentRef dept1 =
+        governmentDepartmentRefRepository.saveAndFlush(
+            GovernmentDepartmentRef.builder()
+                .id(UUID.randomUUID())
+                .governmentDepartmentCode("CODE1")
+                .displayLabel("LABEL1")
+                .isActive(true)
+                .displayOrder(1)
+                .createdByUserId("TEST")
+                .build());
+    GovernmentDepartmentRef dept2 =
+        governmentDepartmentRefRepository.saveAndFlush(
+            GovernmentDepartmentRef.builder()
+                .id(UUID.randomUUID())
+                .governmentDepartmentCode("CODE2")
+                .displayLabel("LABEL2")
+                .isActive(true)
+                .displayOrder(2)
+                .createdByUserId("TEST")
+                .build());
+    GovernmentDepartmentRef dept3 =
+        governmentDepartmentRefRepository.saveAndFlush(
+            GovernmentDepartmentRef.builder()
+                .id(UUID.randomUUID())
+                .governmentDepartmentCode("CODE3")
+                .displayLabel("LABEL3")
+                .isActive(true)
+                .displayOrder(3)
+                .createdByUserId("TEST")
+                .build());
+
+    claimInterestedDepartmentRepository.saveAndFlush(
+        ClaimInterestedDepartment.builder()
+            .id(UUID.randomUUID())
+            .claim(claim)
+            .governmentDepartment(dept3)
+            .displayOrder(3)
+            .createdByUserId("TEST")
+            .build());
+    claimInterestedDepartmentRepository.saveAndFlush(
+        ClaimInterestedDepartment.builder()
+            .id(UUID.randomUUID())
+            .claim(claim)
+            .governmentDepartment(dept1)
+            .displayOrder(1)
+            .createdByUserId("TEST")
+            .build());
+    claimInterestedDepartmentRepository.saveAndFlush(
+        ClaimInterestedDepartment.builder()
+            .id(UUID.randomUUID())
+            .claim(claim)
+            .governmentDepartment(dept2)
+            .displayOrder(2)
+            .createdByUserId("TEST")
+            .build());
+
+    var result = claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(CLAIM_1_ID);
+
+    assertThat(result)
+        .extracting(ClaimInterestedDepartment::getDisplayOrder)
+        .containsExactly(1, 2, 3);
   }
 }

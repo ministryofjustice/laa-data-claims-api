@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+  @Autowired private EntityManager entityManager;
 
   @BeforeEach
   void setup() {
@@ -85,6 +87,8 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
                     .build()));
 
     claimRepository.saveAndFlush(claim);
+
+    entityManager.clear();
 
     Claim reloaded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
 

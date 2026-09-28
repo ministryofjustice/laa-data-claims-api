@@ -14,5 +14,5 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepart
 public interface ClaimInterestedDepartmentRepository
     extends JpaRepository<ClaimInterestedDepartment, UUID> {
 
-  List<ClaimInterestedDepartment> findByClaimId(UUID claimId);
+  List<ClaimInterestedDepartment> findByClaimIdOrderByDisplayOrderAsc(UUID claimId);
 }
