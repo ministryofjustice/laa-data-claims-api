@@ -1,0 +1,51 @@
+name: Security Snyk dependency check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1-5' # every day at 6 AM, Monday to Friday
+    - cron: '0 15 * * 1-5' # every day at 3 PM, Monday to Friday
+
+jobs:
+  security-snyk-check:
+    name: Project security Snyk dependency check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SNYK_TEST_EXCLUDE: build,generated
+      SNYK_TARGET_REFERENCE: main
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run Snyk to check app for vulnerabilities
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
+        with:
+          command: code test
+          args: --severity-threshold=high
+
+  slack-notify:
+    name: Notify Slack via webhook
+    needs: security-snyk-check
+    if: ${{ always() && needs.security-snyk-check.result == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - name: Send Slack notification
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Snyk dependency scan for laa-data-claims-api failed or found vulnerabilities requiring review",
+              "attachments": [
+                {
+                  "color": "#d63384",
+                  "text": "Workflow status: ${{ needs.security-snyk-check.result }}\nSeverity focus: HIGH and CRITICAL\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              ]
+            }
