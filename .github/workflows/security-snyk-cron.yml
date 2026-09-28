@@ -5,9 +5,12 @@ on:
   push:
     branches:
       - bug/snyk-issue-fix
+  # GitHub Actions cron schedules always run in UTC, which is one hour behind
+  # UK local time during British Summer Time. Runs may also start a few minutes
+  # late when GitHub is under load.
   schedule:
-    - cron: '0 6 * * 1-5' # every day at 6 AM, Monday to Friday
-    - cron: '0 15 * * 1-5' # every day at 3 PM, Monday to Friday
+    - cron: '0 6 * * 1-5' # 06:00 UTC, Monday to Friday
+    - cron: '0 15 * * 1-5' # 15:00 UTC, Monday to Friday
 
 jobs:
   security-snyk-check:
