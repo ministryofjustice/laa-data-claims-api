@@ -34,6 +34,11 @@ public interface FeeSchemeMapper {
   @Mapping(target = "numberOfMediationSessions", source = "mediationSessionsCount")
   @Mapping(target = "jrFormFilling", source = "jrFormFillingAmount")
   @Mapping(target = "londonRate", source = "isLondonRate", defaultValue = "false")
+  // Ignoring these fields because they are area-of-law specific and will be set in the
+  // @AfterMapping method
+  @Mapping(target = "netTravelCosts", ignore = true)
+  @Mapping(target = "netWaitingCosts", ignore = true)
+  @Mapping(target = "travelAndWaitingCosts", ignore = true)
   FeeCalculationRequest mapToFeeCalculationRequest(
       ClaimStateSnapshot claim, @Context AreaOfLaw areaOfLaw);
 
