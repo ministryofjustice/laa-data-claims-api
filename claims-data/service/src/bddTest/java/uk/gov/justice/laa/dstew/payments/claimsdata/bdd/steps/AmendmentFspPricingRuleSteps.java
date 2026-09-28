@@ -50,6 +50,12 @@ public class AmendmentFspPricingRuleSteps {
   private static final String SEED_ACTOR = "bdd-DSTEW-1757";
   private static final DateTimeFormatter API_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+  // Valid amendment metadata so AmendmentReferenceValidationStep / AmendmentUserIdValidationStep do
+  // not add unrelated metadata errors that would mask the gate under test and cause the FSP call to
+  // be skipped because an unrelated error already exists (PR #478 review). Mirrors the DSTEW-2301
+  // harness values.
+  private static final String AMENDMENT_USER_ID = "0190b6a0-9b7e-7c8a-9e2d-230100000001";
+
   // FSP fee-calculation request-body field map (canonical pricing rule source per DSTEW-1757). The
   // feature-file field names come from the FSP contract; some map to concrete ClaimPatch json
   // fields, others are non-ClaimPatch fields whose amendment intent we record for classifier
@@ -326,6 +332,9 @@ public class AmendmentFspPricingRuleSteps {
       }
     }
     root.put("version", 0);
+    root.put("amendment_requested_by", "PROVIDER");
+    root.put("amendment_reason_code", "PROVIDER_ERROR");
+    root.put("amendment_user_id", AMENDMENT_USER_ID);
     sharedPatchContext.setPatchJson(root.toString());
   }
 }
