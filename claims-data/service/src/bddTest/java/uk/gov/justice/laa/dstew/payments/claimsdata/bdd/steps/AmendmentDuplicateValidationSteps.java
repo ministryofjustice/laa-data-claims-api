@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
@@ -19,14 +20,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentP
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
@@ -70,6 +74,14 @@ public class AmendmentDuplicateValidationSteps {
   private static final String DEFAULT_UFN = "010725/123";
   private static final String PRIOR_PERIOD = "DEC-2024";
 
+  // Reference-data-valid Legal Help attributes so the TARGET claim passes the full reusable
+  // field validation the amendment path now runs (DSTEW-1768/2317). Values mirror
+  // AmendableClaimFixture / the integration amendment suite's valid claim, so a clean amendment
+  // commits (204) and a colliding amendment is rejected with ONLY the duplicate code - making the
+  // duplicate assertions genuinely discriminating rather than passing on unrelated field errors.
+  private static final String VALID_MATTER_TYPE_CODE = "MATT:111";
+  private static final String DEFAULT_SCHEDULE_REFERENCE = "SCH-123";
+
   private static final String DUPLICATE_ANOTHER =
       "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION";
   private static final String DUPLICATE_SAME = "INVALID_CLAIM_HAS_DUPLICATE_IN_SAME_SUBMISSION";
@@ -85,6 +97,7 @@ public class AmendmentDuplicateValidationSteps {
   @Autowired private SubmissionRepository submissionRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private ClientRepository clientRepository;
+  @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private BddScenarioContext scenarioContext;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -94,6 +107,7 @@ public class AmendmentDuplicateValidationSteps {
   private String feeCode = DEFAULT_FEE_CODE;
   private String ufn = DEFAULT_UFN;
   private AreaOfLaw areaOfLaw;
+  private boolean disbursementsOnly;
   private ObjectNode patch;
 
   // ---------------------------------------------------------------------------
@@ -110,8 +124,16 @@ public class AmendmentDuplicateValidationSteps {
   @Given("an original claim exists with area of law {string} and outcome-code exemption {string}")
   public void anOriginalClaimExistsWithAreaOfLawAndExemption(String aol, String exemption) {
     areaOfLaw = AreaOfLaw.valueOf(aol.trim());
+    // Seed the target's before-state fee type so the Legal Help disbursements-only exemption
+    // applies
+    // (must be set before provisionTarget, which reads the flag when building the
+    // CalculatedFeeDetail).
+    this.disbursementsOnly = "DISB_ONLY".equalsIgnoreCase(exemption.trim());
     provisionTarget(DEFAULT_UCN, DEFAULT_UFN, areaOfLaw);
-    log.info("[fixture] target claim seeded with outcome-code exemption intent {}", exemption);
+    log.info(
+        "[fixture] target claim seeded with outcome-code exemption {} (disbursementsOnly={})",
+        exemption,
+        disbursementsOnly);
   }
 
   // ---------------------------------------------------------------------------
@@ -139,25 +161,24 @@ public class AmendmentDuplicateValidationSteps {
   }
 
   @Given(
-      "another claim exists whose UCN\\/UFN would collide only if UCN\\/UFN were recomputed from"
-          + " {string}")
-  public void anotherClaimWouldCollideOnlyIfRecomputed(String changedField) {
-    // No real key collision is seeded: because UCN/UFN are NOT recomputed from {changedField},
-    // the post-amendment key stays on the stored UCN/UFN and no duplicate can arise.
-    log.info(
-        "[fixture] no stored-key collision seeded - changing {} must not recompute UCN/UFN",
-        changedField);
-  }
-
-  @Given(
       "another claim exists with the same UCN, UFN and area of law that would normally duplicate but"
           + " qualifies for the same exemption")
   public void anotherExemptClaimExists() {
-    // The DISB_ONLY exemption's observable effect is that no duplicate error is raised. A real
-    // colliding disbursement twin cannot be provisioned deterministically from the harness without
-    // controlling the resolved fee-calculation type, so the exemption reasoning is asserted as a
-    // spec-guard while the no-duplicate outcome is asserted end-to-end.
-    log.info("[fixture] exempt twin recorded as spec-guard - exemption yields no duplicate error");
+    // Seed a REAL cross-submission twin on the SAME UCN/UFN key as the target. Without the
+    // DISB_ONLY
+    // exemption this twin would force a duplicate rejection; because the target's before-state fee
+    // type is DISB_ONLY the exemption suppresses it and the amendment commits. The successful
+    // commit
+    // is therefore the discriminating proof the exemption was applied.
+    UUID priorSubmissionId = seedSubmission(office, areaOfLaw, PRIOR_PERIOD);
+    UUID priorClaimId = seedComparisonClaim(priorSubmissionId, feeCode, DEFAULT_UFN);
+    seedClient(priorClaimId, DEFAULT_UCN);
+    log.info(
+        "[fixture] exempt colliding twin seeded (office={} feeCode={} UFN={} UCN={})",
+        office,
+        feeCode,
+        DEFAULT_UFN,
+        DEFAULT_UCN);
   }
 
   @Given("a sibling claim in the same submission has UCN {string} and the same UFN and fee code")
@@ -203,42 +224,23 @@ public class AmendmentDuplicateValidationSteps {
 
   @Then("no duplicate validation error is raised")
   public void noDuplicateValidationErrorIsRaised() {
-    // This story owns the DUPLICATE gate only. Post-DSTEW-1768, the amendment path runs the full
-    // reusable field validation in the same claims-validation-core pass that also performs
-    // duplicate detection, so the deliberately-minimal seed (only the fields needed to form the
-    // duplicate key + pass the before-state gate) can collect unrelated field-completeness errors.
-    // Those are out of scope here (covered by DSTEW-1768) and full happy-path commit is proven by
-    // ClaimAmendmentDuplicateValidationIntegrationTest. The faithful, discriminating assertion for
-    // the duplicate rule is that NEITHER duplicate code is present: the happy-path and rejection
-    // scenarios share identical seeding except the colliding twin/key, so a duplicate code appears
-    // iff a real collision exists. The duplicate validator provably runs (see
-    // DuplicateClaimValidation
-    // in the same pass), so its absence here is a genuine "no duplicate raised" result.
+    // The TARGET claim is seeded fully valid, so the ONLY thing that can reject the amendment is
+    // the
+    // duplicate gate. A clean (non-colliding) or exemption-covered amendment therefore commits with
+    // a 2xx - the strict, discriminating proof that no duplicate error was raised. It can no longer
+    // pass on an unrelated request-contract or field-validation failure.
+    Integer status = scenarioContext.getLastStatusCode();
     String body = bodyAsString();
+    assertThat(status)
+        .as(
+            "amendment should commit successfully when no duplicate is raised (body=%s)",
+            preview(body))
+        .isNotNull()
+        .isBetween(200, 299);
     assertThat(body)
-        .as("response must not carry any duplicate code (body=%s)", preview(body))
+        .as("a committed amendment must not carry any duplicate code (body=%s)", preview(body))
         .doesNotContain(DUPLICATE_ANOTHER)
         .doesNotContain(DUPLICATE_SAME);
-  }
-
-  @Then("the duplicate key used for this claim is UCN {string} and UFN {string}")
-  public void theDuplicateKeyUsedIs(String ucn, String ufnValue) {
-    // The duplicate key is computed inside claims-validation-core and is not exposed on the PATCH
-    // response; the observable guarantee (no duplicate raised) is asserted separately. Record the
-    // expected key for traceability.
-    log.info("[spec-guard] duplicate key expected to remain UCN={} UFN={}", ucn, ufnValue);
-  }
-
-  @Then("the duplicate key used for this claim uses the submitted {string} value {string}")
-  public void theDuplicateKeyUsesSubmittedValue(String key, String value) {
-    log.info("[spec-guard] duplicate key expected to use submitted {}={}", key, value);
-  }
-
-  @Then("the same exemption reasoning that applies for new submissions was applied")
-  public void theSameExemptionReasoningWasApplied() {
-    log.info(
-        "[spec-guard] DISB_ONLY exemption reuses the new-submission reasoning - observable effect"
-            + " (no duplicate error) asserted separately");
   }
 
   @Then("the amendment is rejected with error code {string}")
@@ -318,7 +320,8 @@ public class AmendmentDuplicateValidationSteps {
                 .status(ClaimStatus.VALID)
                 .feeCode(feeCode)
                 .lineNumber(1)
-                .matterTypeCode("MAT01")
+                .matterTypeCode(VALID_MATTER_TYPE_CODE)
+                .scheduleReference(DEFAULT_SCHEDULE_REFERENCE)
                 .uniqueFileNumber(ufnValue)
                 .caseReferenceNumber("CRN-1769")
                 .caseStartDate(LocalDate.of(2025, Month.JULY, 1))
@@ -326,26 +329,44 @@ public class AmendmentDuplicateValidationSteps {
                 .createdByUserId(SEED_ACTOR)
                 .build());
 
-    seedClient(claim.getId(), ucn);
+    seedTargetClient(claim.getId(), ucn);
+    seedTargetCase(claim.getId());
 
     ClaimSummaryFee summaryFee =
         claimSummaryFeeRepository.saveAndFlush(
             ClaimSummaryFee.builder()
                 .id(Uuid7.timeBasedUuid())
                 .claim(claim)
+                // Mandatory Legal Help fee/time fields the reusable ValidationService facade
+                // requires once validateClaim runs over real HTTP. Values mirror
+                // AmendableClaimFixture so the seeded TARGET claim is genuinely amendable.
+                .adviceTime(60)
+                .travelTime(30)
+                .waitingTime(15)
+                .netProfitCostsAmount(BigDecimal.valueOf(80))
+                .netDisbursementAmount(BigDecimal.valueOf(13))
+                .netCounselCostsAmount(BigDecimal.valueOf(35))
+                .disbursementsVatAmount(BigDecimal.valueOf(2))
+                .travelWaitingCostsAmount(BigDecimal.valueOf(7))
+                .isVatApplicable(Boolean.TRUE)
                 .createdByUserId(SEED_ACTOR)
                 .createdOn(Instant.now())
                 .build());
 
-    calculatedFeeDetailRepository.saveAndFlush(
+    CalculatedFeeDetail.CalculatedFeeDetailBuilder cfd =
         CalculatedFeeDetail.builder()
             .id(Uuid7.timeBasedUuid())
             .claim(claim)
             .claimSummaryFee(summaryFee)
             .feeCode(feeCode)
             .createdByUserId(SEED_ACTOR)
-            .createdOn(Instant.now())
-            .build());
+            .createdOn(Instant.now());
+    if (disbursementsOnly) {
+      // DISB_ONLY before-state so the Legal Help disbursements-only duplicate exemption applies
+      // (DS1769_5). The exemption's observable effect is that a colliding twin raises no duplicate.
+      cfd.feeType(FeeCalculationType.DISB_ONLY);
+    }
+    calculatedFeeDetailRepository.saveAndFlush(cfd.build());
 
     sharedPatchContext.setSubmissionId(submission.getId());
     sharedPatchContext.setClaimId(claim.getId());
@@ -408,6 +429,44 @@ public class AmendmentDuplicateValidationSteps {
             .clientForename("Dup")
             .clientSurname("Licate")
             .uniqueClientNumber(ucn)
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(Instant.now())
+            .build());
+  }
+
+  /**
+   * Seeds the TARGET claim's {@link Client} with the full set of mandatory Legal Help attributes
+   * the reusable field validation requires, so a clean amendment commits (204). Comparison twins
+   * use the lighter {@link #seedClient} because they are never validated - they only supply a
+   * duplicate-key comparison row.
+   */
+  private void seedTargetClient(UUID claimId, String ucn) {
+    clientRepository.saveAndFlush(
+        Client.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claimRepository.getReferenceById(claimId))
+            .clientForename("Jane")
+            .clientSurname("Smith")
+            .clientDateOfBirth(LocalDate.of(1990, Month.JANUARY, 1))
+            .uniqueClientNumber(ucn)
+            .clientPostcode("SW1H 9HE")
+            .genderCode("F")
+            .ethnicityCode("99")
+            .disabilityCode("COG")
+            .createdByUserId(SEED_ACTOR)
+            .createdOn(Instant.now())
+            .build());
+  }
+
+  /** Seeds the mandatory {@link ClaimCase} attributes the reusable field validation requires. */
+  private void seedTargetCase(UUID claimId) {
+    claimCaseRepository.saveAndFlush(
+        ClaimCase.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claimRepository.getReferenceById(claimId))
+            .caseId("123")
+            .uniqueCaseId("UC_ID_" + LINE_SEQ.incrementAndGet())
+            .outcomeCode("AB")
             .createdByUserId(SEED_ACTOR)
             .createdOn(Instant.now())
             .build());
