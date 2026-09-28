@@ -5,7 +5,7 @@
 Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
 
   # Jira: DSTEW-1768 (parent: DSTEW-1593 -> DSTEW-1999)
-  # Endpoint: POST /api/v1/claims/{claimId}/amendments  (DSTEW-1593)
+  # Endpoint: PATCH /api/v1/submissions/{submissionId}/claims/{claimId}  (DSTEW-1593)
   # Dependency: LFSP-418 -- GET Fee Code Details API (adds Area of Law).
   #
   # Concern owned by this file: fee-code detail retrieval and the fee-code
