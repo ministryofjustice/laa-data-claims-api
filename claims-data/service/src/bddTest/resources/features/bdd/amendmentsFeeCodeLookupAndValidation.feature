@@ -70,6 +70,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     Then the amendment is rejected with the following errors
       | Error Code                          |
       | INVALID_FEE_CODE_AREA_OF_LAW_CHANGE |
+    And the amendment rejection strictly carries code "INVALID_FEE_CODE_AREA_OF_LAW_CHANGE"
     And no outbound FSP call was made from the amendment harness
     And no fee-code amendment state was committed
 
@@ -86,6 +87,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     Then the amendment is rejected with the following errors
       | Error Code                     |
       | TECHNICAL_ERROR_FEE_SCHEME_API |
+    And the amendment rejection strictly carries code "TECHNICAL_ERROR_FEE_SCHEME_API"
     And no fee-code amendment state was committed
 
   # ============================================================================
@@ -96,18 +98,23 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
   Scenario: Multiple reusable-validation failures aggregate in the shared Step 12 response
     # Same Area of Law so the terminal AoL gate does NOT short-circuit; the reusable
     # validators then run against the post-amendment state and their ERROR issues
-    # aggregate into the single Step 12 multi-message response.
+    # aggregate into the single Step 12 multi-message response. Both a malformed UFN and
+    # an over-length client forename surface as ERROR-severity SCHEMA_VALIDATION_ERROR
+    # issues on distinct fields (the real shipped code -- see
+    # ClaimAmendmentErrorResponseIntegrationTest#validatorReturnsFieldLevelValidation).
     Given an original claim exists with feeCode "CRIME-A" and area of law "CRIME_LOWER"
     And the Fee Code Details lookup returns area of law "CRIME_LOWER" for feeCode "CRIME-B"
     And the amendment applies the following fee-code and field changes
       | field              | newValue  |
       | fee_code           | CRIME-B   |
       | unique_file_number | not-a-ufn |
+      | client_forename    | TOO_LONG  |
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with the following errors in any order
-      | Error Code                        |
-      | INVALID_UNIQUE_FILE_NUMBER_FORMAT |
-      | MISSING_MANDATORY_FIELD           |
+      | Error Code              |
+      | SCHEMA_VALIDATION_ERROR |
+    And the amendment rejection strictly carries code "SCHEMA_VALIDATION_ERROR"
+    And the rejection aggregates at least 2 errors
     And each error is returned in the shared Step 12 multi-message response
     And no fee-code amendment state was committed
 
@@ -135,6 +142,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
     And the amendment changes the fee code to "CRIME-B"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the endpoint responds with a controlled terminal failure "TECHNICAL_ERROR_FEE_SCHEME_API"
+    And the amendment rejection strictly carries code "TECHNICAL_ERROR_FEE_SCHEME_API"
     And no fee-code amendment state was committed
     And Fee Code Details monitoring records outcome "<expectedOutcome>" with a non-zero call duration
 

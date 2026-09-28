@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.cucumber.datatable.DataTable;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.CucumberSpringConfiguration;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.generator.SubmissionPeriodHelper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
@@ -92,12 +94,14 @@ public class AmendmentFeeCodeLookupSteps {
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private ClaimCaseRepository claimCaseRepository;
   @Autowired private BddMockServerSupport mock;
+  @Autowired private BddScenarioContext scenarioContext;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   // Scenario-scoped state (Cucumber creates a fresh instance per scenario).
   private AreaOfLaw claimAreaOfLaw;
   private String wireFeeCode;
+  private String originalFeeCode;
   private ObjectNode patch;
 
   // ---------------------------------------------------------------------------
@@ -211,6 +215,11 @@ public class AmendmentFeeCodeLookupSteps {
         patch.put("fee_code", wireFeeCode());
       } else if (value == null || value.isBlank()) {
         patch.putNull(field);
+      } else if ("TOO_LONG".equals(value)) {
+        // Sentinel expanded here to keep the feature table readable; a 500-char value overruns the
+        // field's max length so the reusable validators emit a second SCHEMA_VALIDATION_ERROR,
+        // proving multiple issues aggregate into the shared Step 12 response.
+        patch.put(field, "A".repeat(500));
       } else {
         patch.put(field, value);
       }
@@ -237,6 +246,43 @@ public class AmendmentFeeCodeLookupSteps {
     assertThat(after.isAmended())
         .as("Claim %s must not be flagged amended after a rejected amendment", claimId)
         .isFalse();
+    // A partial write that changed the fee code but skipped the audit/amended flag would slip past
+    // the two checks above, so assert the persisted fee code is still the original seeded value —
+    // mirroring the integration coverage's "fee code unchanged" invariant.
+    assertThat(after.getFeeCode())
+        .as("Claim %s fee code must remain the original after a rejected amendment", claimId)
+        .isEqualTo(originalFeeCode);
+  }
+
+  @Then("the amendment rejection strictly carries code {string}")
+  public void theAmendmentRejectionStrictlyCarriesCode(String expectedCode) {
+    // Unlike the shared narrative reject step (lenient in local mode because most suites seed a
+    // minimal claim), DS1768 seeds a FULLY-VALID claim so the ONLY thing that can reject an
+    // amendment is the gate under test. That lets us strictly assert — in every mode — that the
+    // rejection response actually carries the expected code, closing the "any 4xx passes" gap.
+    Integer status = scenarioContext.getLastStatusCode();
+    JsonNode body = scenarioContext.getLastResponseBody();
+    assertThat(status)
+        .as("A rejection must produce an HTTP error status (body=%s)", body)
+        .isNotNull()
+        .isGreaterThanOrEqualTo(400);
+    assertThat(body).as("A rejected amendment must include a JSON response body").isNotNull();
+    assertThat(body.toString())
+        .as("Rejection response must carry the expected code %s (body=%s)", expectedCode, body)
+        .contains(expectedCode);
+  }
+
+  @Then("the rejection aggregates at least {int} errors")
+  public void theRejectionAggregatesAtLeastErrors(int minimum) {
+    JsonNode body = scenarioContext.getLastResponseBody();
+    assertThat(body).as("A rejected amendment must include a JSON response body").isNotNull();
+    JsonNode errors = body.path("errors");
+    assertThat(errors.isArray())
+        .as("Aggregated rejection must expose a nested errors array (body=%s)", body)
+        .isTrue();
+    assertThat(errors.size())
+        .as("Step 12 response must aggregate at least %s errors (body=%s)", minimum, body)
+        .isGreaterThanOrEqualTo(minimum);
   }
 
   @Then("Fee Code Details monitoring records outcome {string} with a non-zero call duration")
@@ -270,6 +316,7 @@ public class AmendmentFeeCodeLookupSteps {
   }
 
   private void provisionAmendableClaim(String originalFeeCode, AreaOfLaw areaOfLaw) {
+    this.originalFeeCode = originalFeeCode;
     String office = String.format("F1%04d", OFFICE_SEQ.incrementAndGet());
     String period = periodHelper.nextAvailablePeriod(office, areaOfLaw);
 
@@ -308,7 +355,8 @@ public class AmendmentFeeCodeLookupSteps {
                 .id(Uuid7.timeBasedUuid())
                 .claim(claim)
                 // Mandatory Crime Lower fee amounts the real ValidationService facade requires once
-                // validateClaim runs over real HTTP (post-DSTEW-1768). Values mirror the integration
+                // validateClaim runs over real HTTP (post-DSTEW-1768). Values mirror the
+                // integration
                 // amendment suite's valid claim so the ONLY thing that can reject an amendment here
                 // is the fee-code Area-of-Law gate under test, letting the happy-path scenarios
                 // reach a genuine 2xx commit.
