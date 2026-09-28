@@ -2,9 +2,6 @@ name: Security Snyk container image check
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - bug/snyk-issue-fix
   # GitHub Actions cron schedules always run in UTC, which is one hour behind
   # UK local time during British Summer Time. Runs may also start a few minutes
   # late when GitHub is under load.
