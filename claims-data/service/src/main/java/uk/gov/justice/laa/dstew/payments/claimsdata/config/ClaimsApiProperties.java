@@ -23,6 +23,9 @@ public class ClaimsApiProperties {
   /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
   private final Inquests inquests = new Inquests();
 
+  /** Settings for the validated-pending-approval lifecycle feature. */
+  private final ValidatedPendingApproval validatedPendingApproval = new ValidatedPendingApproval();
+
   /** Settings for the amendments feature. */
   @Getter
   @Setter
@@ -96,6 +99,26 @@ public class ClaimsApiProperties {
      *
      * @return {@code true} only when inquests is explicitly enabled
      */
+    public boolean isEnabled() {
+      return enabled != null && Boolean.parseBoolean(enabled.trim());
+    }
+  }
+
+  /** Settings for the validated-pending-approval lifecycle feature. */
+  @Getter
+  @Setter
+  public static class ValidatedPendingApproval {
+
+    /**
+     * Raw configured value for the lifecycle toggle ({@code
+     * laa.claims.api.validated-pending-approval.enabled}).
+     *
+     * <p>Only an explicit {@code true} enables the lifecycle; absent, blank and invalid values
+     * retain the legacy behaviour.
+     */
+    private String enabled;
+
+    /** Whether the validated-pending-approval lifecycle is explicitly enabled. */
     public boolean isEnabled() {
       return enabled != null && Boolean.parseBoolean(enabled.trim());
     }

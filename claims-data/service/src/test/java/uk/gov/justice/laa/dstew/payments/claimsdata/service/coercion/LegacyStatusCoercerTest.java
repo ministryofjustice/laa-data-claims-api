@@ -11,6 +11,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -112,6 +113,37 @@ class LegacyStatusCoercerTest {
       coercer.coerce(patch);
 
       assertThat(patch.getStatus()).isEqualTo(ClaimStatus.VALID);
+    }
+
+    @Nested
+    @DisplayName("claim creation")
+    class ClaimPostCoercion {
+
+      @Test
+      @DisplayName("demotes VALIDATED_PENDING_APPROVAL to VALID")
+      void demotesValidatedPendingApproval() {
+        ClaimPost claimPost = new ClaimPost().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+
+        coercer.coerce(claimPost);
+
+        assertThat(claimPost.getStatus()).isEqualTo(ClaimStatus.VALID);
+      }
+
+      @Test
+      @DisplayName("leaves other statuses untouched")
+      void leavesOtherStatusesUntouched() {
+        ClaimPost claimPost = new ClaimPost().status(ClaimStatus.INVALID);
+
+        coercer.coerce(claimPost);
+
+        assertThat(claimPost.getStatus()).isEqualTo(ClaimStatus.INVALID);
+      }
+
+      @Test
+      @DisplayName("tolerates null claim post")
+      void toleratesNull() {
+        assertThatCode(() -> coercer.coerce((ClaimPost) null)).doesNotThrowAnyException();
+      }
     }
 
     @Test

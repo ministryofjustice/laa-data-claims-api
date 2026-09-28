@@ -9,6 +9,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -83,17 +84,20 @@ class StatusCoercerConfigTest {
         new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
     ClaimAmendmentPatch claimPatch =
         new ClaimAmendmentPatch().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+    ClaimPost claimPost = new ClaimPost().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
     Submission submission =
         Submission.builder().status(SubmissionStatus.VALIDATED_PENDING_APPROVAL).build();
 
     StatusCoercer.NO_OP.coerce(submissionPatch);
     StatusCoercer.NO_OP.coerce(bulkPatch);
     StatusCoercer.NO_OP.coerce(claimPatch);
+    StatusCoercer.NO_OP.coerce(claimPost);
     StatusCoercer.NO_OP.coerce(submission);
 
     assertThat(submissionPatch.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
     assertThat(bulkPatch.getStatus()).isEqualTo(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
     assertThat(claimPatch.getStatus()).isEqualTo(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+    assertThat(claimPost.getStatus()).isEqualTo(ClaimStatus.VALIDATED_PENDING_APPROVAL);
     assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 }

@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 
 /**
@@ -11,9 +12,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
  * reporting service and other dependent systems become ready to understand the new status.
  *
  * <p>This is the single choke point for that translation. Every API path that persists a status
- * originating from INITIAL validation funnels its carrier (patch or entity) through one of the
- * overloads below; each overload demotes {@code VALIDATED_PENDING_APPROVAL} to the legacy status
- * for that entity type:
+ * originating from INITIAL validation can funnel its carrier (request, patch or entity) through one
+ * of the overloads below; each overload demotes {@code VALIDATED_PENDING_APPROVAL} to the legacy
+ * status for that entity type:
  *
  * <ul>
  *   <li>submission / bulk submission &rarr; {@code VALIDATION_SUCCEEDED}
@@ -34,7 +35,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
  * <p><strong>Removal, once the validated-pending-approval lifecycle no longer needs
  * gating:</strong> delete the whole {@code service.coercion} package (this interface, {@code
  * LegacyStatusCoercer}, {@code StatusCoercerConfig}), remove the {@code statusCoercer} field and
- * the four {@code statusCoercer.coerce(...)} call sites in {@code SubmissionService}, {@code
+ * the five {@code statusCoercer.coerce(...)} call sites in {@code SubmissionService}, {@code
  * BulkSubmissionService} and {@code ClaimService}, and drop the {@code
  * laa.claims.api.validated-pending-approval.*} property (plus its Helm wiring). The remaining code
  * is already the desired hold-enabled behaviour. All the removable pieces are greppable by the
@@ -55,6 +56,9 @@ public interface StatusCoercer {
 
   /** Demotes {@code VALIDATED_PENDING_APPROVAL} on the claim patch in place (else leaves it). */
   void coerce(ClaimAmendmentPatch patch);
+
+  /** Demotes {@code VALIDATED_PENDING_APPROVAL} on a new claim in place (else leaves it). */
+  void coerce(ClaimPost claimPost);
 
   /**
    * Demotes {@code VALIDATED_PENDING_APPROVAL} on the submission entity in place (else leaves it).
@@ -81,6 +85,11 @@ public interface StatusCoercer {
 
         @Override
         public void coerce(ClaimAmendmentPatch patch) {
+          // no-op
+        }
+
+        @Override
+        public void coerce(ClaimPost claimPost) {
           // no-op
         }
 

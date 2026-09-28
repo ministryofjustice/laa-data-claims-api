@@ -5,6 +5,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
@@ -50,6 +51,16 @@ class LegacyStatusCoercer implements StatusCoercer {
           "Validated-pending-approval lifecycle disabled: coercing claim status "
               + "VALIDATED_PENDING_APPROVAL -> VALID");
       patch.setStatus(ClaimStatus.VALID);
+    }
+  }
+
+  @Override
+  public void coerce(ClaimPost claimPost) {
+    if (claimPost != null && claimPost.getStatus() == ClaimStatus.VALIDATED_PENDING_APPROVAL) {
+      log.warn(
+          "Validated-pending-approval lifecycle disabled: coercing new claim status "
+              + "VALIDATED_PENDING_APPROVAL -> VALID");
+      claimPost.setStatus(ClaimStatus.VALID);
     }
   }
 

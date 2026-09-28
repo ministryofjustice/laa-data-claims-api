@@ -141,7 +141,7 @@ public class ClaimService
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
-    Submission submission = requireEntity(submissionId);
+    final Submission submission = requireEntity(submissionId);
 
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
@@ -166,6 +166,7 @@ public class ClaimService
               "A claim with line number %d already exists for the submission.", lineNumber));
     }
 
+    statusCoercer.coerce(claimPost);
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);

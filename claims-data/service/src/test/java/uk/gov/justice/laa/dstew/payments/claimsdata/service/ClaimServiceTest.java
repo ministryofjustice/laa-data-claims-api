@@ -182,6 +182,36 @@ class ClaimServiceTest {
         Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
   }
 
+  @DisplayName("coerce claim status before mapping a new claim")
+  @Test
+  void shouldCoerceClaimStatusBeforeMappingNewClaim() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+    final Claim claim = Claim.builder().build();
+    final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
+    final ClaimCase claimCase = ClaimCase.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
+    when(claimMapper.toClaimCase(post)).thenReturn(claimCase);
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    doAnswer(
+            invocation -> {
+              post.setStatus(ClaimStatus.VALID);
+              return null;
+            })
+        .when(statusCoercer)
+        .coerce(post);
+
+    claimService.createClaim(submissionId, post);
+
+    verify(statusCoercer).coerce(post);
+    verify(claimMapper).toClaim(post);
+    assertThat(post.getStatus()).isEqualTo(ClaimStatus.VALID);
+  }
+
   @DisplayName("create claim without client when no client data")
   @Test
   void shouldCreateClaimWithoutClientWhenNoClientData() {
