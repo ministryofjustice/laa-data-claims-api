@@ -35,7 +35,8 @@ public class ClaimAmendmentOutboundAuditIntegrationTest
     extends AbstractAmendmentPatchIntegrationTest {
 
   private static final String AUDIT_ROWS_SQL =
-      "SELECT * FROM audit.external_api_call_log WHERE system_type = 'FEE_SCHEME_PLATFORM'";
+      "SELECT * FROM audit.external_api_call_log "
+          + "WHERE system_type = 'FEE_SCHEME_PLATFORM' AND endpoint = '/api/v1/fee-calculation'";
   private static final String FSP_RESPONSE =
       "{\"feeCode\":\"FEE-123\",\"schemeId\":\"SCHEME-TEST\",\"escapeCaseFlag\":false,"
           + "\"feeCalculation\":{\"totalAmount\":650.00,\"netProfitCostsAmount\":450.00,"

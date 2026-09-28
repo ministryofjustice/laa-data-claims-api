@@ -92,7 +92,7 @@ public class WebClientConfigurationTest {
     @Test
     @DisplayName("Leaves the provider details client's transport untouched")
     void leavesProviderDetailsClientUntouched() {
-      assertThat(customizer().customize(ClientHttpConnectorCustomizer.FEE_SCHEME, delegate))
+      assertThat(customizer().customize(ClientHttpConnectorCustomizer.PROVIDER_DETAILS, delegate))
           .isSameAs(delegate);
     }
   }
