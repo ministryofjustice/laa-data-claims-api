@@ -56,8 +56,24 @@ dependencies {
     // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
     implementation 'ch.qos.logback:logback-classic:1.6.3'
     implementation 'ch.qos.logback:logback-core:1.6.3'
-    // Security: force Netty's HTTP codec to the fixed version for SNYK-JAVA-IONETTY-20074868.
+    // Security: pin the vulnerable Netty modules to 4.2.18.Final. Spring Boot's BOM manages
+    // Netty at 4.2.17.Final and these are pulled in transitively via reactor-netty-http
+    // (spring-boot-starter-webflux):
+    //   netty-codec-http          - SNYK-JAVA-IONETTY-20074868
+    //   netty-codec-http3         - SNYK-JAVA-IONETTY-20154839, -20154840, -20154841,
+    //                               -20154842, -20158598, -20158603
+    //   netty-codec-classes-quic  - SNYK-JAVA-IONETTY-20154418
+    // netty-codec-native-quic is not itself flagged but is pinned alongside so the native
+    // library stays on the same version as netty-codec-classes-quic.
+    // NOTE: importing `platform('io.netty:netty-bom:4.2.18.Final')` does NOT work here - it
+    // is outranked by Spring Boot's managed versions and even drops netty-codec-http back to
+    // 4.2.17.Final. Only explicit `implementation` declarations win, the same pattern used
+    // for logback and jackson-databind above. Verified with
+    // `gradlew :claims-data:service:dependencyInsight --dependency io.netty:<artifact> --configuration runtimeClasspath`.
     implementation 'io.netty:netty-codec-http:4.2.18.Final'
+    implementation 'io.netty:netty-codec-http3:4.2.18.Final'
+    implementation 'io.netty:netty-codec-classes-quic:4.2.18.Final'
+    implementation 'io.netty:netty-codec-native-quic:4.2.18.Final'
 
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
