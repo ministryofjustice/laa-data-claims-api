@@ -73,6 +73,73 @@ public class BddMockServerSupport {
         .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
   }
 
+  // ---------------------------------------------------------------------------
+  // Fee Code Details (GET /api/v2/fee-details/{feeCode}) overrides for DSTEW-1768.
+  //
+  // claims-validation-core calls this endpoint to resolve the (new) fee code's
+  // Area of Law during amendment external validation. Each helper first CLEARS
+  // the default fee-details expectation (armed per scenario by BddHooks via
+  // stubAmendmentFspOk) so the override is the only match regardless of
+  // registration order — mirroring the integration MockServerIntegrationTest
+  // helpers of the same names.
+  // ---------------------------------------------------------------------------
+
+  private static HttpRequest feeDetailsRequest() {
+    return request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*");
+  }
+
+  /** Overrides fee-details to report the given Area of Law (name form) for any fee code. */
+  public void stubFeeDetailsAreaOfLaw(String areaOfLaw) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).respond(okJson(feeDetailsBody(areaOfLaw)));
+  }
+
+  /** Overrides fee-details to report the given Area of Law after a delay, for any fee code. */
+  public void stubFeeDetailsAreaOfLawWithDelay(String areaOfLaw, Duration delay) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client
+        .when(feeDetailsRequest())
+        .respond(
+            okJson(feeDetailsBody(areaOfLaw)).withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /** Overrides fee-details to return the given HTTP status with no body, for any fee code. */
+  public void stubFeeDetailsStatus(int statusCode) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /** Overrides fee-details to drop the connection, for any fee code. */
+  public void stubFeeDetailsConnectionDrop() {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).error(HttpError.error().withDropConnection(true));
+  }
+
+  /** Overrides fee-details to respond (200) only after the given delay, for any fee code. */
+  public void stubFeeDetailsWithDelay(String areaOfLaw, Duration delay) {
+    stubFeeDetailsAreaOfLawWithDelay(areaOfLaw, delay);
+  }
+
+  /** Verifies how many times the fee-details endpoint was called, regardless of fee code. */
+  public void verifyFeeDetailsCalled(VerificationTimes times) {
+    client.verify(feeDetailsRequest(), times);
+  }
+
+  /** Number of outbound fee-details calls recorded so far this scenario. */
+  public int countFeeDetailsCalls() {
+    return client.retrieveRecordedRequests(feeDetailsRequest()).length;
+  }
+
+  private static String feeDetailsBody(String areaOfLaw) {
+    // Shape mirrors FeeDetailsResponseV2 (and the integration helper's stub body): feeType is kept
+    // non-blank so claims-validation-core's fee-scheme resolution succeeds and reaches the
+    // area-of-law comparison.
+    return "{\"categoryOfLawCodes\":[\"string\"],\"feeCodeDescription\":\"test description\","
+        + "\"feeType\":\"HOURLY\",\"areaOfLaw\":\""
+        + areaOfLaw
+        + "\"}";
+  }
+
   // -------------------------------------------------------------------------
   // Amendment repricing FSP stubs.
   //
