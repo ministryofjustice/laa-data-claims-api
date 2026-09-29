@@ -109,7 +109,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     } catch (IOException e) {
       if (BulkSubmissionDecodingFailures.isCharacterDecodingFailure(e)) {
         throw new BulkSubmissionFileReadException(
-            BulkSubmissionDecodingFailures.characterDecodingMessage(file), e);
+            BulkSubmissionDecodingFailures.characterDecodingMessage(file, false), e);
       }
       throw new BulkSubmissionFileReadException("Failed to read bulk submission file", e);
     }

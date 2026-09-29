@@ -450,6 +450,33 @@ class BulkSubmissionCsvConverterTests {
       assertThat(submission.office().account()).isEqualTo("0U099L");
       assertThat(submission.outcomes().getFirst().clientSurname()).isEqualTo("Test");
     }
+
+    @Test
+    @DisplayName("Reports the correct line for old Mac-style (lone \\r) line endings")
+    void reportsCorrectLineForCrOnlyLineEndings() {
+      String thirdLineBeforeBadByte = "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Te";
+      String validPrefix =
+          "OFFICE,account=0U099L\r"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\r"
+              + thirdLineBeforeBadByte;
+      byte[] prefix = validPrefix.getBytes(StandardCharsets.UTF_8);
+      byte[] badByte = {(byte) 0xE2, (byte) 0x28, (byte) 0xA1}; // invalid continuation byte
+      byte[] content = new byte[prefix.length + badByte.length];
+      System.arraycopy(prefix, 0, content, 0, prefix.length);
+      System.arraycopy(badByte, 0, content, prefix.length, badByte.length);
+
+      MultipartFile file = new MockMultipartFile("file", "outcomes.csv", "text/csv", content);
+
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file));
+
+      int expectedCharacter = thirdLineBeforeBadByte.length() + 1;
+      assertThat(ex.getMessage())
+          .contains("line 3")
+          .contains("character %d".formatted(expectedCharacter));
+    }
   }
 
   private CsvSubmission convert(String content) {

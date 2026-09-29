@@ -2,16 +2,22 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.converter;
 
 import java.io.CharConversionException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,13 +30,16 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <ul>
  *   <li>inspect exception messages to classify a failure (type/cause based only)
- *   <li>perform charset detection or decide which encodings are acceptable
+ *   <li>decide which encodings are acceptable (that remains entirely up to Jackson/Woodstox)
  *   <li>pre-read the file before Jackson does
  * </ul>
  *
  * <p>It is intentionally narrow: it recognises only the confirmed character-conversion exception
- * types produced by the project's resolved Jackson/Woodstox versions. It is a "catch the common
- * cases, be helpful, not exhaustive" classifier, not a general-purpose parser-error classifier.
+ * types produced by the project's resolved Jackson/Woodstox versions, and only reports a location
+ * when it can determine, with the same cheap signals Jackson itself uses (BOM, byte-pattern
+ * heuristic, or declared XML encoding), which charset the failing decode was actually using. It is
+ * a "catch the common cases, be helpful, not exhaustive" classifier, not a general-purpose
+ * parser-error classifier.
  */
 @Slf4j
 final class BulkSubmissionDecodingFailures {
@@ -39,10 +48,19 @@ final class BulkSubmissionDecodingFailures {
   private static final int MAX_CAUSE_CHAIN_DEPTH = 10;
 
   /**
-   * Size of the reusable output buffer used to find the decoding failure position. Kept small and
-   * constant (rather than sized to the file) so peak memory use does not scale with file size.
+   * Size of the fixed input/output buffers used while streaming the file for location-finding. Kept
+   * small and constant (rather than sized to the file) so peak memory use does not scale with file
+   * size, regardless of how large an upload is ever allowed to be.
    */
-  private static final int DECODE_CHUNK_CHARS = 8192;
+  private static final int DECODE_BUFFER_BYTES = 8192;
+
+  private static final int DECODE_BUFFER_CHARS = 8192;
+
+  /** Number of leading bytes read (once, cheaply) to sniff a BOM or declared XML encoding. */
+  private static final int CHARSET_SNIFF_PREFIX_BYTES = 1024;
+
+  private static final Pattern XML_ENCODING_DECLARATION_PATTERN =
+      Pattern.compile("encoding\\s*=\\s*[\"']([\\w.:-]+)[\"']", Pattern.CASE_INSENSITIVE);
 
   private BulkSubmissionDecodingFailures() {}
 
@@ -79,129 +97,251 @@ final class BulkSubmissionDecodingFailures {
   }
 
   /**
-   * Determines the 1-based line number and character-within-line position of the first byte that
-   * could not be decoded as valid UTF-8 within the given raw file bytes.
+   * Determines the character set that Jackson itself would most likely have used to read the file,
+   * using only the same cheap signals it uses: a byte-order-mark, and (for XML only) a declared
+   * {@code encoding="..."} attribute in the prolog. Falls back to a byte-pattern heuristic
+   * equivalent to the one Jackson uses when no BOM is present.
    *
-   * <p>This performs its own independent decode pass (rather than parsing Jackson/Woodstox
-   * exception messages) because those internal position figures were found, by experimentation
-   * against this project's resolved dependency versions, to be unreliable for XML (buffer-relative
-   * and capped at internal read-buffer boundaries). Running a single, whole-array decode ourselves
-   * gives an exact byte offset, from which a genuine line number can be derived by counting
-   * newlines, consistently for both CSV/TXT and XML. The character-within-line position is derived
-   * by re-decoding just the (already known-good) bytes from the start of that line up to the
-   * failure, so it reflects actual characters rather than raw bytes.
+   * <p>Returns empty when none of these signals gives a confident answer (e.g. a UTF-32 BOM, or an
+   * unrecognised declared encoding name) - in that case the caller should omit a location rather
+   * than risk reporting one against the wrong charset.
    *
-   * <p>This only runs on the already-confirmed decoding-failure path (i.e. after {@link
-   * #isCharacterDecodingFailure(Throwable)} has matched), so it adds no cost to successful uploads.
-   *
-   * @param rawBytes the complete raw bytes of the uploaded file
-   * @return the location of the failure, or empty if the bytes could not be shown to contain an
-   *     invalid UTF-8 sequence (e.g. a non-UTF-8-specific decoding failure)
+   * @param prefixBytes the leading bytes of the file (does not need to be the whole file)
+   * @param xml whether the file is XML (enables declared-encoding sniffing)
+   * @return the detected charset, or empty if it could not be determined confidently
    */
-  static Optional<Location> findInvalidUtf8Location(byte[] rawBytes) {
-    int failurePosition = findFailureBytePosition(rawBytes);
-    if (failurePosition < 0) {
+  static Optional<Charset> detectCharset(byte[] prefixBytes, boolean xml) {
+    Optional<Charset> bomCharset = detectBom(prefixBytes);
+    if (bomCharset.isPresent()) {
+      return bomCharset;
+    }
+    if (xml) {
+      Optional<Charset> declaredCharset = detectXmlDeclaredEncoding(prefixBytes);
+      if (declaredCharset.isPresent()) {
+        return declaredCharset;
+      }
+    }
+    return detectByHeuristic(prefixBytes);
+  }
+
+  private static Optional<Charset> detectBom(byte[] bytes) {
+    if (startsWith(bytes, 0xEF, 0xBB, 0xBF)) {
+      return Optional.of(StandardCharsets.UTF_8);
+    }
+    if (startsWith(bytes, 0x00, 0x00, 0xFE, 0xFF) || startsWith(bytes, 0xFF, 0xFE, 0x00, 0x00)) {
+      // UTF-32 BOM (BE or LE) - not supported by the location-finding logic, so treat as
+      // undetectable rather than mis-decode as UTF-16.
       return Optional.empty();
     }
+    if (startsWith(bytes, 0xFE, 0xFF)) {
+      return Optional.of(StandardCharsets.UTF_16BE);
+    }
+    if (startsWith(bytes, 0xFF, 0xFE)) {
+      return Optional.of(StandardCharsets.UTF_16LE);
+    }
+    return Optional.empty();
+  }
 
-    int line = 1;
-    int lineStart = 0;
-    for (int i = 0; i < failurePosition && i < rawBytes.length; i++) {
-      if (rawBytes[i] == '\n') {
-        line++;
-        lineStart = i + 1;
+  private static boolean startsWith(byte[] bytes, int... unsignedBytePattern) {
+    if (bytes.length < unsignedBytePattern.length) {
+      return false;
+    }
+    for (int i = 0; i < unsignedBytePattern.length; i++) {
+      if ((bytes[i] & 0xFF) != unsignedBytePattern[i]) {
+        return false;
       }
     }
-
-    int character = decodeCharCount(rawBytes, lineStart, failurePosition) + 1;
-    return Optional.of(new Location(line, character));
+    return true;
   }
 
   /**
-   * Runs a UTF-8 decode and returns the byte offset at which decoding first failed, or -1 if the
-   * bytes are entirely valid UTF-8.
-   *
-   * <p>Decodes in small fixed-size chunks (rather than allocating an output buffer sized to the
-   * whole file) so peak memory use is a small constant, not proportional to file size. This keeps
-   * the failure path cheap even if the upload size limit (10MB at the time of writing, see {@code
-   * spring.servlet.multipart.max-file-size}) is ever increased.
+   * Mirrors the byte-pattern heuristic Jackson's own factory uses to guess an encoding when no BOM
+   * is present (based on the positions of zero bytes in the first four bytes, per the RFC 4627
+   * appendix B algorithm): a genuine UTF-16/UTF-32 file with ASCII-range content in its first
+   * character will have a zero byte in a predictable position, whereas UTF-8 (or ASCII-compatible
+   * single-byte) content will not.
    */
-  private static int findFailureBytePosition(byte[] rawBytes) {
-    ByteBuffer in = ByteBuffer.wrap(rawBytes);
-    CharBuffer out = CharBuffer.allocate(DECODE_CHUNK_CHARS);
-    CharsetDecoder decoder = newStrictUtf8Decoder();
+  private static Optional<Charset> detectByHeuristic(byte[] bytes) {
+    if (bytes.length < 4) {
+      return Optional.of(StandardCharsets.UTF_8);
+    }
+    int b0 = bytes[0] & 0xFF;
+    int b1 = bytes[1] & 0xFF;
+    int b2 = bytes[2] & 0xFF;
+    int b3 = bytes[3] & 0xFF;
+    if ((b0 == 0 && b1 == 0) || (b2 == 0 && b3 == 0)) {
+      // Looks like UTF-32 without a BOM - not supported, treat as undetectable.
+      return Optional.empty();
+    }
+    if (b0 == 0) {
+      return Optional.of(StandardCharsets.UTF_16BE);
+    }
+    if (b1 == 0) {
+      return Optional.of(StandardCharsets.UTF_16LE);
+    }
+    return Optional.of(StandardCharsets.UTF_8);
+  }
 
-    while (in.hasRemaining()) {
+  /**
+   * Looks for a declared {@code encoding="..."} attribute in an XML prolog. The prefix is decoded
+   * as ISO-8859-1 purely to sniff this attribute name: that decode can never itself fail (every
+   * byte maps to a character 1:1), regardless of the file's real encoding, so it is safe to use
+   * even before the real encoding is known.
+   */
+  private static Optional<Charset> detectXmlDeclaredEncoding(byte[] prefixBytes) {
+    String prolog = new String(prefixBytes, StandardCharsets.ISO_8859_1);
+    Matcher matcher = XML_ENCODING_DECLARATION_PATTERN.matcher(prolog);
+    if (!matcher.find()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(Charset.forName(matcher.group(1)));
+    } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+      log.debug("Declared XML encoding '{}' is not recognised", matcher.group(1), e);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Streams the given input through a decoder for the given charset, in small fixed-size buffers,
+   * tracking line and character-within-line position as it goes, until either a decoding error is
+   * found or the stream is exhausted.
+   *
+   * <p>Treats {@code \n}, {@code \r} and {@code \r\n} all as a single line break, so files using
+   * any of the three common line-ending conventions are reported correctly.
+   *
+   * <p>Peak memory use is a small constant (two ~8KB buffers), not proportional to file size, since
+   * the input is streamed rather than read into a single byte array.
+   *
+   * @param inputStream the raw file content
+   * @param charset the charset to decode with (should be the same one the real parser used)
+   * @return the location of the first decoding failure, or empty if the stream is entirely valid
+   *     under the given charset
+   */
+  static Optional<Location> findFailureLocation(InputStream inputStream, Charset charset)
+      throws IOException {
+    CharsetDecoder decoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT);
+
+    ByteBuffer in = ByteBuffer.allocate(DECODE_BUFFER_BYTES);
+    CharBuffer out = CharBuffer.allocate(DECODE_BUFFER_CHARS);
+    byte[] readBuffer = new byte[DECODE_BUFFER_BYTES];
+    LineTracker tracker = new LineTracker();
+
+    in.limit(0); // start empty, ready for the first compact()/read()
+    boolean streamExhausted = false;
+    while (true) {
+      in.compact();
+      if (!streamExhausted && in.hasRemaining()) {
+        int read = inputStream.read(readBuffer, 0, Math.min(readBuffer.length, in.remaining()));
+        if (read < 0) {
+          streamExhausted = true;
+        } else if (read > 0) {
+          in.put(readBuffer, 0, read);
+        }
+      }
+      in.flip();
+
       out.clear();
-      CoderResult result = decoder.decode(in, out, true);
+      CoderResult result = decoder.decode(in, out, streamExhausted);
+      out.flip();
+      tracker.consume(out);
+
       if (result.isError()) {
-        return in.position();
+        return Optional.of(tracker.currentLocation());
+      }
+      if (streamExhausted && !in.hasRemaining()) {
+        out.clear();
+        CoderResult flushResult = decoder.flush(out);
+        out.flip();
+        tracker.consume(out);
+        if (flushResult.isError()) {
+          return Optional.of(tracker.currentLocation());
+        }
+        return Optional.empty();
       }
     }
-    return -1;
   }
 
-  /**
-   * Counts the number of characters represented by the given (already known-good, since it precedes
-   * the failure position) byte range, so a byte offset can be translated into a human-meaningful
-   * character-within-line position.
-   *
-   * <p>Rather than re-decoding the range with a {@link CharsetDecoder} (which would risk a second
-   * full-file-sized decode pass in the pathological case of one very long line), this simply counts
-   * the bytes that are not UTF-8 continuation bytes ({@code 10xxxxxx}). Every UTF-8 character has
-   * exactly one non-continuation (leading) byte, so this is an exact, single-pass, zero-allocation
-   * character count for a byte range that is already known to be valid UTF-8.
-   */
-  private static int decodeCharCount(byte[] rawBytes, int fromInclusive, int toExclusive) {
-    int count = 0;
-    for (int i = fromInclusive; i < toExclusive; i++) {
-      if ((rawBytes[i] & 0xC0) != 0x80) {
-        count++;
+  /** Tracks 1-based line/character-within-line position as decoded characters are consumed. */
+  private static final class LineTracker {
+    private int line = 1;
+    private int charInLine = 0;
+    private boolean previousWasCr = false;
+
+    void consume(CharBuffer decodedChars) {
+      while (decodedChars.hasRemaining()) {
+        char c = decodedChars.get();
+        if (c == '\n') {
+          if (!previousWasCr) {
+            line++;
+          }
+          charInLine = 0;
+          previousWasCr = false;
+        } else if (c == '\r') {
+          line++;
+          charInLine = 0;
+          previousWasCr = true;
+        } else {
+          charInLine++;
+          previousWasCr = false;
+        }
       }
     }
-    return count;
-  }
 
-  private static CharsetDecoder newStrictUtf8Decoder() {
-    return StandardCharsets.UTF_8
-        .newDecoder()
-        .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT);
+    Location currentLocation() {
+      return new Location(line, charInLine + 1);
+    }
   }
 
   /**
    * Builds the provider-facing message for a confirmed character-decoding failure, including a
-   * line/character position when one can be determined from the raw file bytes.
+   * line/character position when one could be determined.
    *
-   * @param rawBytes the complete raw bytes of the uploaded file
+   * @param location the location of the failure, or empty if it could not be determined
    * @return the provider-facing message
    */
-  static String buildMessage(byte[] rawBytes) {
-    return findInvalidUtf8Location(rawBytes)
+  static String buildMessage(Optional<Location> location) {
+    return location
         .map(
-            location ->
+            loc ->
                 BulkSubmissionConverter.CHARACTER_DECODING_ERROR_MESSAGE_WITH_LINE_TEMPLATE
-                    .formatted(location.line(), location.character()))
+                    .formatted(loc.line(), loc.character()))
         .orElse(BulkSubmissionConverter.CHARACTER_DECODING_ERROR_MESSAGE);
   }
 
   /**
    * Builds the provider-facing character-decoding-failure message for an uploaded file, including a
    * line/character position when it can be determined. Falls back to the location-less message if
-   * the raw bytes cannot be re-read for any reason (defensive; should not normally happen since
-   * {@link MultipartFile#getBytes()} reads from already-buffered content).
+   * the charset can't be confidently determined, or the file can't be re-read for any reason
+   * (defensive; should not normally happen since {@link MultipartFile} supports being read more
+   * than once).
    *
    * <p>Shared by both {@link BulkSubmissionCsvConverter} and {@link BulkSubmissionXmlConverter} so
    * the logic is not duplicated.
    *
    * @param file the uploaded file
+   * @param xml whether the file is XML (enables declared-encoding sniffing)
    * @return the provider-facing message
    */
-  static String characterDecodingMessage(MultipartFile file) {
+  static String characterDecodingMessage(MultipartFile file, boolean xml) {
     try {
-      return buildMessage(file.getBytes());
+      byte[] prefix;
+      try (InputStream prefixStream = file.getInputStream()) {
+        prefix = prefixStream.readNBytes(CHARSET_SNIFF_PREFIX_BYTES);
+      }
+      Optional<Charset> charset = detectCharset(prefix, xml);
+      if (charset.isEmpty()) {
+        return BulkSubmissionConverter.CHARACTER_DECODING_ERROR_MESSAGE;
+      }
+      try (InputStream inputStream = file.getInputStream()) {
+        return buildMessage(findFailureLocation(inputStream, charset.get()));
+      }
     } catch (IOException e) {
-      log.debug("Unable to re-read file bytes to determine decoding failure location", e);
+      log.debug("Unable to re-read file to determine decoding failure location", e);
       return BulkSubmissionConverter.CHARACTER_DECODING_ERROR_MESSAGE;
     }
   }

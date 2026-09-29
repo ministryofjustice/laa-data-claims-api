@@ -61,7 +61,8 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
           jsonProcessingException);
       if (BulkSubmissionDecodingFailures.isCharacterDecodingFailure(jsonProcessingException)) {
         throw new BulkSubmissionFileReadException(
-            BulkSubmissionDecodingFailures.characterDecodingMessage(file), jsonProcessingException);
+            BulkSubmissionDecodingFailures.characterDecodingMessage(file, true),
+            jsonProcessingException);
       }
       if (isMalformedXml(jsonProcessingException)) {
         throw new BulkSubmissionFileReadException(
@@ -75,7 +76,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
       log.error("Failed to read/parse XML file: {}", ioException.getMessage(), ioException);
       if (BulkSubmissionDecodingFailures.isCharacterDecodingFailure(ioException)) {
         throw new BulkSubmissionFileReadException(
-            BulkSubmissionDecodingFailures.characterDecodingMessage(file), ioException);
+            BulkSubmissionDecodingFailures.characterDecodingMessage(file, true), ioException);
       }
       throw new BulkSubmissionFileReadException(
           "Failed to read/parse XML file: {}" + file.getName());
