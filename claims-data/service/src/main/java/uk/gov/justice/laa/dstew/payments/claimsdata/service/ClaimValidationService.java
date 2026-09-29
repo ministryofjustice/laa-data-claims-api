@@ -182,9 +182,9 @@ public class ClaimValidationService {
   /**
    * Validates that a claim version was supplied on the request.
    *
-   * <p>Used by flows (such as assessment creation) where, unlike claim amendment, the claim version
-   * is mandatory rather than optional: the caller must always confirm the claim version it loaded
-   * before submitting an outcome that depends on it.
+   * <p>Reserved for future use by flows where the claim version is mandatory. Assessment and void
+   * creation currently accept an omitted version for backward compatibility, so neither calls this
+   * validator.
    *
    * @param version the claim version supplied on the request
    * @throws ClaimBadRequestException when the version is {@code null}
