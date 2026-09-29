@@ -384,6 +384,72 @@ class BulkSubmissionCsvConverterTests {
       assertEquals("IALB:IFRA", outcome.matterType());
       assertEquals("Test", outcome.clientSurname());
     }
+
+    @Test
+    @DisplayName("Throws a helpful, non-raw message when the file contains an invalid UTF-8 byte")
+    void throwsHelpfulMessageForInvalidUtf8Byte() {
+      String thirdLine = "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Te";
+      byte[] prefix =
+          ("OFFICE,account=0U099L\n"
+                  + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+                  + thirdLine)
+              .getBytes(StandardCharsets.UTF_8);
+      byte[] badByte = {(byte) 0xE2, (byte) 0x28, (byte) 0xA1}; // invalid continuation byte
+      byte[] content = new byte[prefix.length + badByte.length];
+      System.arraycopy(prefix, 0, content, 0, prefix.length);
+      System.arraycopy(badByte, 0, content, prefix.length, badByte.length);
+
+      MultipartFile file = new MockMultipartFile("file", "outcomes.csv", "text/csv", content);
+
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionCsvConverter.convert(file));
+
+      // The bad byte is the character immediately after the (all-ASCII) third line's content.
+      int expectedCharacter = thirdLine.length() + 1;
+      assertThat(ex.getMessage())
+          .contains("could not be read as valid text")
+          .contains("line 3")
+          .contains("character %d".formatted(expectedCharacter))
+          .doesNotContain("Invalid UTF-8")
+          .doesNotContain("byte #")
+          .doesNotContain("char #");
+    }
+
+    @Test
+    @DisplayName("Can still convert a UTF-16 (with BOM) encoded file")
+    void canConvertUtf16WithBom() {
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Test\n";
+      MultipartFile file =
+          new MockMultipartFile(
+              "file", "outcomes.csv", "text/csv", content.getBytes(StandardCharsets.UTF_16));
+
+      CsvSubmission submission = bulkSubmissionCsvConverter.convert(file);
+
+      assertThat(submission.office().account()).isEqualTo("0U099L");
+      assertThat(submission.outcomes().getFirst().clientSurname()).isEqualTo("Test");
+    }
+
+    @Test
+    @DisplayName("Can still convert a UTF-16LE (no BOM) encoded file")
+    void canConvertUtf16LeWithoutBom() {
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Test\n";
+      MultipartFile file =
+          new MockMultipartFile(
+              "file", "outcomes.csv", "text/csv", content.getBytes(StandardCharsets.UTF_16LE));
+
+      CsvSubmission submission = bulkSubmissionCsvConverter.convert(file);
+
+      assertThat(submission.office().account()).isEqualTo("0U099L");
+      assertThat(submission.outcomes().getFirst().clientSurname()).isEqualTo("Test");
+    }
   }
 
   private CsvSubmission convert(String content) {
