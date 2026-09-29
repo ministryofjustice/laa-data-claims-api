@@ -144,7 +144,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
   @DisplayName("departments are all stored and returned in supplied order")
   void repeatedOccurrencesOfSameDepartmentAreAllStoredAndReturnedInSuppliedOrder() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    GovernmentDepartmentRef ministryOfJustice =
+    GovernmentDepartmentRef dept1 =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
@@ -154,7 +154,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
                 .displayOrder(1)
                 .createdByUserId("TEST")
                 .build());
-    GovernmentDepartmentRef departmentForHealthAndSocialCare =
+    GovernmentDepartmentRef dept2 =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
@@ -170,7 +170,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
             ClaimInterestedDepartment.builder()
                 .id(UUID.randomUUID())
                 .claim(claim)
-                .governmentDepartment(ministryOfJustice)
+                .governmentDepartment(dept1)
                 .displayOrder(1)
                 .createdByUserId("TEST")
                 .build());
@@ -179,7 +179,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
             ClaimInterestedDepartment.builder()
                 .id(UUID.randomUUID())
                 .claim(claim)
-                .governmentDepartment(ministryOfJustice)
+                .governmentDepartment(dept1)
                 .displayOrder(2)
                 .createdByUserId("TEST")
                 .build());
@@ -188,7 +188,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
             ClaimInterestedDepartment.builder()
                 .id(UUID.randomUUID())
                 .claim(claim)
-                .governmentDepartment(departmentForHealthAndSocialCare)
+                .governmentDepartment(dept2)
                 .displayOrder(3)
                 .createdByUserId("TEST")
                 .build());
@@ -203,9 +203,9 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
     assertThat(result)
         .extracting(row -> row.getGovernmentDepartment().getId())
         .containsExactly(
-            ministryOfJustice.getId(),
-            ministryOfJustice.getId(),
-            departmentForHealthAndSocialCare.getId());
+            dept1.getId(),
+            dept1.getId(),
+            dept2.getId());
   }
 
   @Test
@@ -224,42 +224,42 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
             .createdByUserId("TEST")
             .build();
 
-    GovernmentDepartmentRef slot2Department =
+    GovernmentDepartmentRef deptRef =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("BLANK-SLOT-CODE2")
+                .governmentDepartmentCode("DEPT-CODE")
                 .displayLabel("LABEL2")
                 .isActive(true)
                 .displayOrder(1)
                 .createdByUserId("TEST")
                 .build());
-    GovernmentDepartmentRef slot3Department =
+    GovernmentDepartmentRef deptRef2 =
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("BLANK-SLOT-CODE3")
+                .governmentDepartmentCode("DEPT-CODE-2")
                 .displayLabel("LABEL3")
                 .isActive(true)
                 .displayOrder(2)
                 .createdByUserId("TEST")
                 .build());
 
-    ClaimInterestedDepartment slot2Row =
+    ClaimInterestedDepartment row2 =
         claimInterestedDepartmentRepository.saveAndFlush(
             ClaimInterestedDepartment.builder()
                 .id(UUID.randomUUID())
                 .claim(claim)
-                .governmentDepartment(slot2Department)
+                .governmentDepartment(deptRef)
                 .displayOrder(2)
                 .createdByUserId("TEST")
                 .build());
-    ClaimInterestedDepartment slot3Row =
+    ClaimInterestedDepartment row3 =
         claimInterestedDepartmentRepository.saveAndFlush(
             ClaimInterestedDepartment.builder()
                 .id(UUID.randomUUID())
                 .claim(claim)
-                .governmentDepartment(slot3Department)
+                .governmentDepartment(deptRef2)
                 .displayOrder(3)
                 .createdByUserId("TEST")
                 .build());
@@ -273,7 +273,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
     assertThat(result).hasSize(2);
     assertThat(result)
         .extracting(ClaimInterestedDepartment::getId)
-        .containsExactly(slot2Row.getId(), slot3Row.getId());
+        .containsExactly(row2.getId(), row3.getId());
     assertThat(result).extracting(ClaimInterestedDepartment::getDisplayOrder).containsExactly(2, 3);
     assertThat(result).noneMatch(row -> row.getGovernmentDepartment() == null);
   }
@@ -287,7 +287,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("NONEXISTENT-CLAIM-CODE")
+                .governmentDepartmentCode("NONEXISTENT-CODE")
                 .displayLabel("LABEL")
                 .isActive(true)
                 .displayOrder(1)
