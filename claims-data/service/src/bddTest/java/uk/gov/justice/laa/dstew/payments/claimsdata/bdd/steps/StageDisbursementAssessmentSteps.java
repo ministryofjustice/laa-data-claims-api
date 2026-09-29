@@ -849,9 +849,9 @@ public class StageDisbursementAssessmentSteps {
     sb.append("  \"claim_summary_fee_id\": \"").append(summaryFeeId).append("\",\n");
     sb.append("  \"assessment_outcome\": \"NILLED\",\n");
     sb.append("  \"created_by_user_id\": \"").append(BDD_USER_UUID).append("\",\n");
-    // claim_version is the optimistic-concurrency field the assessment-create endpoint requires
-    // (DSTEW-2051 follow-on). Default it to the claim's current version unless the scenario's
-    // table explicitly overrides it (e.g. to test a missing/stale value).
+    // claim_version enables the optimistic-concurrency check. Default it to the claim's current
+    // version unless the scenario's table explicitly overrides or omits it (e.g. to test a
+    // missing/stale value).
     boolean versionSuppliedByTable =
         fields.keySet().stream().anyMatch(k -> "claim_version".equals(camelToSnake(k)));
     if (!versionSuppliedByTable) {
