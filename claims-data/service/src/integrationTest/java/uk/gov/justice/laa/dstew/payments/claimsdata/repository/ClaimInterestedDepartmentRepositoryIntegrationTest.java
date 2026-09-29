@@ -202,10 +202,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         .containsExactly(occurrence1.getId(), occurrence2.getId(), occurrence3.getId());
     assertThat(result)
         .extracting(row -> row.getGovernmentDepartment().getId())
-        .containsExactly(
-            dept1.getId(),
-            dept1.getId(),
-            dept2.getId());
+        .containsExactly(dept1.getId(), dept1.getId(), dept2.getId());
   }
 
   @Test
