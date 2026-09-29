@@ -983,8 +983,8 @@ public class AssessmentAdvancesClaimVersionSteps {
   private static String assessmentJson(
       UUID claimId, UUID summaryFeeId, String assessmentType, long claimVersion) {
     // claim_id is a REQUIRED field on the AssessmentPost body (in addition to being in the URL).
-    // claim_version is the optimistic concurrency check field (DSTEW-2051 follow-on): the caller
-    // must supply the claim version it loaded, and the service rejects a stale/missing value.
+    // claim_version enables the optimistic concurrency check (DSTEW-2051 follow-on): when supplied,
+    // the service rejects a stale value; omission remains temporarily supported.
     return ("""
         {
           "claim_id": "%s",
