@@ -1,34 +1,43 @@
-name: Security Snyk dependency check
+name: Security Snyk container image check
 
 on:
   workflow_dispatch:
+  # GitHub Actions cron schedules always run in UTC, which is one hour behind
+  # UK local time during British Summer Time. Runs may also start a few minutes
+  # late when GitHub is under load.
   schedule:
-    - cron: '0 6 * * 1-5' # every day at 6 AM, Monday to Friday
-    - cron: '0 15 * * 1-5' # every day at 3 PM, Monday to Friday
+    - cron: '0 6 * * 1-5' # 06:00 UTC, Monday to Friday
+    - cron: '0 15 * * 1-5' # 15:00 UTC, Monday to Friday
 
 jobs:
-  security-snyk-check:
-    name: Project security Snyk dependency check
-    runs-on: ubuntu-latest
+  # Mirrors the "ecr-publish-image / Publish image" job from deploy-uat-preview.yml,
+  # scanning the built container image (OS packages plus bundled jars). publish is
+  # 'false' so the image is built and scanned but never pushed to ECR.
+  image-scan:
+    name: Container image Snyk scan
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
     permissions:
       contents: read
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      SNYK_TEST_EXCLUDE: build,generated
-      SNYK_TARGET_REFERENCE: main
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Run Snyk to check app for vulnerabilities
-        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
-        with:
-          command: code test
-          args: --severity-threshold=high
+      id-token: write
+      security-events: write
+    with:
+      jar_subproject: 'claims-data:service'
+      image_version: ${{ format('{0}-snyk-cron-{1}', vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX, github.sha) }}
+      java_version: '25'
+      java_distribution: 'corretto'
+      image_scan: 'true'
+      publish: 'false'
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
+      ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
+      ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
+      ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   slack-notify:
     name: Notify Slack via webhook
-    needs: security-snyk-check
-    if: ${{ always() && needs.security-snyk-check.result == 'failure' }}
+    needs: image-scan
+    if: ${{ always() && needs.image-scan.result == 'failure' }}
     runs-on: ubuntu-latest
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -41,11 +50,11 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "Snyk dependency scan for laa-data-claims-api failed or found vulnerabilities requiring review",
+              "text": "Snyk container image scan for laa-data-claims-api failed or found vulnerabilities requiring review",
               "attachments": [
                 {
                   "color": "#d63384",
-                  "text": "Workflow status: ${{ needs.security-snyk-check.result }}\nSeverity focus: HIGH and CRITICAL\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  "text": "Container image scan: ${{ needs.image-scan.result }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                 }
               ]
             }
