@@ -22,7 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 @DisplayName("StatusCoercer configuration")
 class StatusCoercerConfigTest {
 
-  private static final String PROPERTY = "laa.claims.api.validated-pending-approval.enabled";
+  private static final String PROPERTY = "laa.claims.api.features.validated-pending-approval";
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner().withUserConfiguration(StatusCoercerConfig.class);

@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -28,10 +29,11 @@ import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 /**
  * End-to-end coverage for the TEMPORARY (DSTEW-2173) legacy-status compatibility behaviour. With
  * the validated-pending-approval lifecycle disabled by default, a NIL submission that would
- * otherwise be assigned the intermediate status (VALIDATED_PENDING_APPROVAL) is coerced back to the
- * legacy accepted status.
+ * otherwise be assigned the validated-pending-approval status is coerced back to the legacy
+ * accepted status.
  */
-class SubmissionCoercionIntegrationTest extends AbstractAwsIntegrationTest {
+@TestPropertySource(properties = "laa.claims.api.features.validated-pending-approval=false")
+class SubmissionStatusCoercionIntegrationTest extends AbstractAwsIntegrationTest {
 
   private static final String AUTHORIZATION_HEADER = "Authorization";
   // must match application-test.yml for test-runner token
@@ -42,7 +44,7 @@ class SubmissionCoercionIntegrationTest extends AbstractAwsIntegrationTest {
 
   @Test
   @DisplayName(
-      "With the validated-pending-approval lifecycle disabled, a valid NIL submission is stored as "
+      "With the VALIDATED_PENDING_APPROVAL lifecycle disabled, a valid NIL submission is stored as "
           + "VALIDATION_SUCCEEDED rather than VALIDATED_PENDING_APPROVAL and publishes "
           + "SUBMISSION_VALIDATION_SUCCEEDED")
   void nilSubmissionUsesLegacyStatusWhenLifecycleDisabled() throws Exception {
@@ -93,7 +95,7 @@ class SubmissionCoercionIntegrationTest extends AbstractAwsIntegrationTest {
 
   @Test
   @DisplayName(
-      "With the validated-pending-approval lifecycle disabled, updating a submission to "
+      "With the VALIDATED_PENDING_APPROVAL lifecycle disabled, updating a submission to "
           + "VALIDATED_PENDING_APPROVAL coerces the status and publishes the legacy validation event")
   void submissionPatchUsesLegacyStatusWhenLifecycleDisabled() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();
@@ -137,7 +139,7 @@ class SubmissionCoercionIntegrationTest extends AbstractAwsIntegrationTest {
 
   @Test
   @DisplayName(
-      "With the lifecycle disabled, an existing non-NIL held submission is coerced to the legacy "
+      "With the VALIDATED_PENDING_APPROVAL lifecycle disabled, an existing non-NIL held submission is coerced to the legacy "
           + "status")
   void existingNonNilHeldSubmissionUsesLegacyStatusWhenLifecycleDisabled() throws Exception {
     final UUID submissionId = Uuid7.timeBasedUuid();

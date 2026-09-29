@@ -9,22 +9,51 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Typed configuration for the Claims API, rooted at the {@code laa.claims.api} namespace.
  *
  * <p>Centralising the prefix here keeps property paths consistent and discoverable: every Claims
- * API setting lives under {@code laa.claims.api.*}, grouped by feature (for example {@code
- * laa.claims.api.amendments.*}). New settings should be added as nested fields here rather than
- * scattering {@code @Value("${...}")} strings, so the namespace stays maintained and self-evident.
+ * API setting lives under {@code laa.claims.api.*}, with selected capabilities grouped under {@code
+ * features}. New settings should be added as nested fields here rather than scattering
+ * {@code @Value("${...}")} strings, so the namespace stays maintained and self-evident.
  */
 @Getter
 @ConfigurationProperties(prefix = "laa.claims.api")
 public class ClaimsApiProperties {
 
+  /** Feature-specific Claims API settings. */
+  @Getter
+  @Setter
+  public static class Features {
+
+    /**
+     * Raw inquests feature flag ({@code laa.claims.api.features.inquests}).
+     *
+     * <p>Bound as a {@link String} so missing and invalid values fail safe to disabled.
+     */
+    private String inquests;
+
+    /**
+     * Raw validated-pending-approval feature flag ({@code
+     * laa.claims.api.features.validated-pending-approval}).
+     *
+     * <p>Bound as a {@link String} so missing and invalid values fail safe to disabled.
+     */
+    private String validatedPendingApproval;
+
+    public boolean isInquestsEnabled() {
+      return isExplicitlyTrue(inquests);
+    }
+
+    public boolean isValidatedPendingApprovalEnabled() {
+      return isExplicitlyTrue(validatedPendingApproval);
+    }
+
+    private static boolean isExplicitlyTrue(String value) {
+      return value != null && Boolean.parseBoolean(value.trim());
+    }
+  }
+
   /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
   private final Amendments amendments = new Amendments();
 
-  /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
-  private final Inquests inquests = new Inquests();
-
-  /** Settings for the validated-pending-approval lifecycle feature. */
-  private final ValidatedPendingApproval validatedPendingApproval = new ValidatedPendingApproval();
+  private final Features features = new Features();
 
   /** Settings for the amendments feature. */
   @Getter
@@ -70,57 +99,6 @@ public class ClaimsApiProperties {
        * {@code 30m} or {@code 2h}.
        */
       private Duration refresh = Duration.ofMinutes(30);
-    }
-  }
-
-  /** Settings for the inquests feature. */
-  @Getter
-  @Setter
-  public static class Inquests {
-
-    /**
-     * Raw configured value for the inquests toggle ({@code laa.claims.api.inquests.enabled}).
-     *
-     * <p><b>Off by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
-     * fails safe to off: it is enabled only when this resolves to {@code true} via {@link
-     * #isEnabled()}. An absent/null, blank, {@code false} or otherwise invalid value leaves the
-     * feature off without failing application start-up. Prefer {@link #isEnabled()} over reading
-     * this field directly.
-     */
-    private String enabled;
-
-    /**
-     * Whether the inquests capability is enabled, resolving the raw {@link #enabled} value
-     * fail-safe to off.
-     *
-     * <p>Returns {@code true} only when the configured value is {@code "true"} (case-insensitive,
-     * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "false"} or
-     * any unrecognised value - returns {@code false}.
-     *
-     * @return {@code true} only when inquests is explicitly enabled
-     */
-    public boolean isEnabled() {
-      return enabled != null && Boolean.parseBoolean(enabled.trim());
-    }
-  }
-
-  /** Settings for the validated-pending-approval lifecycle feature. */
-  @Getter
-  @Setter
-  public static class ValidatedPendingApproval {
-
-    /**
-     * Raw configured value for the lifecycle toggle ({@code
-     * laa.claims.api.validated-pending-approval.enabled}).
-     *
-     * <p>Only an explicit {@code true} enables the lifecycle; absent, blank and invalid values
-     * retain the legacy behaviour.
-     */
-    private String enabled;
-
-    /** Whether the validated-pending-approval lifecycle is explicitly enabled. */
-    public boolean isEnabled() {
-      return enabled != null && Boolean.parseBoolean(enabled.trim());
     }
   }
 }

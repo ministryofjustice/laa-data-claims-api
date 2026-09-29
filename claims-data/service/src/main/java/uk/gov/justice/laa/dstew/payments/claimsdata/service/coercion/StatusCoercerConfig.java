@@ -22,7 +22,7 @@ class StatusCoercerConfig {
 
   @Bean
   StatusCoercer statusCoercer(ClaimsApiProperties properties) {
-    return properties.getValidatedPendingApproval().isEnabled()
+    return properties.getFeatures().isValidatedPendingApprovalEnabled()
         ? StatusCoercer.NO_OP
         : new LegacyStatusCoercer();
   }

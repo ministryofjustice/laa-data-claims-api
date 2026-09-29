@@ -148,13 +148,6 @@ laa:
   # under this namespace, grouped by feature, so paths stay consistent and discoverable.
   claims:
     api:
-      validated-pending-approval:
-        # TEMPORARY (DSTEW-2173): the new validated-pending-approval lifecycle is opt-in until all
-        # dependent systems are ready and business approval is received. Supplied via the
-        # VALIDATED_PENDING_APPROVAL_ENABLED env var.
-        # Remove this property together with the service.coercion package once the hold is enabled
-        # permanently.
-        enabled: ${VALIDATED_PENDING_APPROVAL_ENABLED:false}
       amendments:
         # Feature toggle for the amendments capability, supplied via the CLAIMS_API_AMENDMENTS_ENABLED
         # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
@@ -168,11 +161,10 @@ laa:
           accessToken: ${FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN}
           readTimeoutMs: ${FEE_SCHEME_PLATFORM_API_READ_TIMEOUT_MS:3000}
           connectTimeoutMs: ${FEE_SCHEME_PLATFORM_API_CONNECT_TIMEOUT_MS:1000}
-      inquests:
-        # Feature toggle for the inquests capability, supplied via the CLAIMS_API_INQUESTS_ENABLED
-        # env var. Off by default: enabled only when explicitly "true" (any other/invalid/absent
-        # value is off).
-        enabled: ${CLAIMS_API_INQUESTS_ENABLED:false}
+      features:
+        # Feature flags are String-backed so missing or invalid environment values fail safe to off.
+        inquests: ${CLAIMS_API_INQUESTS_ENABLED:false}
+        validated-pending-approval: ${VALIDATED_PENDING_APPROVAL_ENABLED:false}
 
   springboot.starter:
     auth:

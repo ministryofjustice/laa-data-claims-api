@@ -35,6 +35,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,6 +68,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * queue.
  */
 @TestInstance(Lifecycle.PER_CLASS)
+@TestPropertySource(properties = "laa.claims.api.features.validated-pending-approval=true")
 public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String FILE = "file";
@@ -1328,9 +1330,9 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
 
   @Test
   @DisplayName(
-      "With the lifecycle disabled, updating a bulk submission to VALIDATED_PENDING_APPROVAL "
-          + "persists the legacy VALIDATION_SUCCEEDED status")
-  void shouldCoerceIntermediateBulkStatusWhenLifecycleDisabled() throws Exception {
+      "With the VALIDATED_PENDING_APPROVAL lifecycle enabled, updating a bulk submission to VALIDATED_PENDING_APPROVAL "
+          + "persists the VALIDATED_PENDING_APPROVAL status")
+  void shouldPersistValidatedPendingApprovalStatusWhenLifecycleEnabled() throws Exception {
     createBulkSubmission();
 
     BulkSubmissionPatch patch =
@@ -1345,7 +1347,7 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .andExpect(status().isNoContent());
 
     assertThat(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow().getStatus())
-        .isEqualTo(BulkSubmissionStatus.VALIDATION_SUCCEEDED);
+        .isEqualTo(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test

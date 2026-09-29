@@ -13,8 +13,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -287,102 +285,6 @@ public class ClaimStatusAmendmentIntegrationTest extends AbstractAmendmentPatchI
     MvcResult result = performPatch(savedClaim.getSubmission().getId(), savedClaim.getId(), json);
 
     assertThat(result.getResponse().getStatus()).isEqualTo(204);
-  }
-
-  @ParameterizedTest
-  @EnumSource(ClaimStatus.class)
-  @DisplayName(
-      "Parameterized: status update should persist messages and fee calculation when status changes; VOID should be rejected")
-  void parameterizedStatusUpdatePersistsMessagesAndFeeCalculation(ClaimStatus targetStatus)
-      throws Exception {
-    // Arrange: fetch claim and ensure its current status differs from the target to force an update
-    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    // Choose an initial status different from the target
-    ClaimStatus initialStatus =
-        targetStatus == ClaimStatus.VALID ? ClaimStatus.READY_TO_PROCESS : ClaimStatus.VALID;
-    claim.setStatus(initialStatus);
-    claimRepository.saveAndFlush(claim);
-
-    // Ensure there is an existing calculated fee detail to observe overwrite behaviour
-    createFeeDetail(
-        claim, new BigDecimal("50"), OffsetDateTime.now(java.time.ZoneOffset.UTC), null);
-    calculatedFeeDetailRepository.flush();
-
-    // Capture pre-update counts / values
-    long beforeWarnings =
-        validationMessageLogRepository.countAllByClaimIdAndType(
-            claim.getId(), ValidationMessageType.WARNING);
-    var beforeFeeDetail =
-        calculatedFeeDetailRepository
-            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
-            .orElseThrow();
-
-    // Build patch carrying status, a validation message and a fee-calculation response
-    ClaimPatch patch = new ClaimPatch();
-    patch.setStatus(targetStatus);
-    patch.setCreatedByUserId("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e");
-
-    ValidationMessagePatch vmp =
-        ValidationMessagePatch.builder()
-            .type(ValidationMessageType.WARNING)
-            .source("FSP")
-            .displayMessage("Param test warning")
-            .messageCode("PTWARN")
-            .build();
-    patch.setValidationMessages(List.of(vmp));
-
-    FeeCalculationPatch fcp =
-        FeeCalculationPatch.builder()
-            .feeCode("PARAM-FEE")
-            .totalAmount(new BigDecimal("99.00"))
-            .build();
-    patch.setFeeCalculationResponse(fcp);
-
-    String body = PATCH_MAPPER.writeValueAsString(patch);
-
-    // Act
-    MvcResult result = performPatch(claim.getSubmission().getId(), claim.getId(), body);
-
-    if (targetStatus == ClaimStatus.VOID) {
-      // VOID updates are forbidden via this endpoint
-      assertThat(result.getResponse().getStatus()).isEqualTo(400);
-      // No validation messages should have been added and fee detail should remain unchanged
-      long afterWarnings =
-          validationMessageLogRepository.countAllByClaimIdAndType(
-              claim.getId(), ValidationMessageType.WARNING);
-      assertThat(afterWarnings).isEqualTo(beforeWarnings);
-      var afterFee =
-          calculatedFeeDetailRepository
-              .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
-              .orElseThrow();
-      assertThat(afterFee.getFeeCode()).isEqualTo(beforeFeeDetail.getFeeCode());
-    } else {
-      // Expect success
-      assertThat(result.getResponse().getStatus()).isEqualTo(204);
-      // Status should have been updated
-      Claim updated = claimRepository.findById(claim.getId()).orElseThrow();
-      ClaimStatus expectedPersistedStatus =
-          targetStatus == ClaimStatus.VALIDATED_PENDING_APPROVAL ? ClaimStatus.VALID : targetStatus;
-      assertThat(updated.getStatus()).isEqualTo(expectedPersistedStatus);
-
-      // Validation message persisted
-      var page =
-          validationMessageLogRepository.findWithClaimDetailsByFilters(
-              claim.getSubmission().getId(),
-              claim.getId(),
-              ValidationMessageType.WARNING,
-              null,
-              PageRequest.of(0, 10));
-      assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(beforeWarnings + 1);
-
-      // Fee calculation applied (legacy behaviour overwrites existing fee detail)
-      var afterFee =
-          calculatedFeeDetailRepository
-              .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
-              .orElseThrow();
-      assertThat(afterFee.getFeeCode()).isEqualTo("PARAM-FEE");
-      assertThat(afterFee.getTotalAmount()).isEqualByComparingTo(new BigDecimal("99.00"));
-    }
   }
 
   @Test

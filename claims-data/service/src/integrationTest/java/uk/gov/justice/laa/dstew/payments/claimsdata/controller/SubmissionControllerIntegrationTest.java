@@ -51,6 +51,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,11 +60,15 @@ import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.BulkSubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
@@ -78,8 +83,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.IntegrationTestUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 @TestInstance(Lifecycle.PER_CLASS)
+@TestPropertySource(properties = "laa.claims.api.features.validated-pending-approval=true")
 public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
@@ -1836,5 +1843,166 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(jsonPath("$.amendment_flags").doesNotExist())
         .andExpect(jsonPath("$.is_amended").doesNotExist())
         .andExpect(jsonPath("$.claims[0].claim_amendment_id").doesNotExist());
+  }
+
+  @Test
+  @DisplayName(
+      "With the VALIDATED_PENDING_APPROVAL lifecycle enabled, a valid NIL submission is stored as "
+          + "VALIDATED_PENDING_APPROVAL and publishes INITIAL_SUBMISSION_VALIDATION_SUCCEEDED")
+  void nilSubmissionUsesValidatedPendingApprovalStatusWhenLifecycleEnabled() throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.deleteAll();
+
+    SubmissionPost submissionPost =
+        SubmissionPost.builder()
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .submissionId(submissionId)
+            .bulkSubmissionId(null)
+            .createdByUserId(USER_ID)
+            .numberOfClaims(0)
+            .crimeLowerScheduleNumber(VALID_CRIME_SCHEDULE_NUMBER)
+            .isNilSubmission(true)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.READY_FOR_VALIDATION)
+            .submissionPeriod(PERIOD_APR_2025)
+            .submitted(CREATED_ON.atOffset(ZoneOffset.UTC))
+            .build();
+
+    mockMvc
+        .perform(
+            post(SUBMISSIONS_ENDPOINT)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPost)))
+        .andExpect(status().isCreated());
+
+    Submission stored = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(stored.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    ReceiveMessageResponse receiveResp =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    assertThat(receiveResp.messages()).hasSize(1);
+    var message = receiveResp.messages().getFirst();
+    assertThat(message.messageAttributes().get("SubmissionEventType").stringValue())
+        .isEqualTo(SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED.toString());
+    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  @Test
+  @DisplayName(
+      "With the VALIDATED_PENDING_APPROVAL lifecycle enabled, updating a submission to VALIDATED_PENDING_APPROVAL persists "
+          + "the status and publishes the initial validation event")
+  void submissionPatchPreservesValidatedPendingApprovalStatusWhenLifecycleEnabled()
+      throws Exception {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        Submission.builder()
+            .id(submissionId)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .officeAccountNumber(VALID_OFFICE_ACCOUNT_NUMBER)
+            .submissionPeriod(PERIOD_APR_2025)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.VALIDATION_SUCCEEDED)
+            .createdOn(CREATED_ON)
+            .build());
+
+    SubmissionPatch patch =
+        SubmissionPatch.builder().status(SubmissionStatus.VALIDATED_PENDING_APPROVAL).build();
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    Submission updated = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    ReceiveMessageResponse receiveResp =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    assertThat(receiveResp.messages()).hasSize(1);
+    assertThat(
+            receiveResp
+                .messages()
+                .getFirst()
+                .messageAttributes()
+                .get("SubmissionEventType")
+                .stringValue())
+        .isEqualTo(SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED.toString());
+    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  @Test
+  @DisplayName(
+      "Persists VALIDATED_PENDING_APPROVAL for a non-NIL submission and keeps its bulk status aligned")
+  void nonNilSubmissionAndBulkUseValidatedPendingApprovalStatus() throws Exception {
+    UUID bulkSubmissionId = Uuid7.timeBasedUuid();
+    UUID submissionId = Uuid7.timeBasedUuid();
+    bulkSubmissionRepository.saveAndFlush(
+        BulkSubmission.builder()
+            .id(bulkSubmissionId)
+            .data(new GetBulkSubmission200ResponseDetails())
+            .status(BulkSubmissionStatus.READY_FOR_PARSING)
+            .createdByUserId(USER_ID)
+            .createdOn(CREATED_ON)
+            .updatedOn(CREATED_ON)
+            .build());
+    submissionRepository.saveAndFlush(
+        Submission.builder()
+            .id(submissionId)
+            .bulkSubmissionId(bulkSubmissionId)
+            .officeAccountNumber("NONNIL-OFFICE")
+            .submissionPeriod("APR-2025")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .status(SubmissionStatus.CREATED)
+            .isNilSubmission(false)
+            .numberOfClaims(0)
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .createdOn(CREATED_ON)
+            .build());
+
+    SubmissionPatch submissionPatch =
+        SubmissionPatch.builder().status(SubmissionStatus.VALIDATED_PENDING_APPROVAL).build();
+    BulkSubmissionPatch bulkPatch =
+        new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(submissionPatch)))
+        .andExpect(status().isNoContent());
+
+    ReceiveMessageResponse receiveResp =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    assertThat(receiveResp.messages()).hasSize(1);
+    assertThat(
+            receiveResp
+                .messages()
+                .getFirst()
+                .messageAttributes()
+                .get("SubmissionEventType")
+                .stringValue())
+        .isEqualTo(SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED.toString());
+    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+
+    mockMvc
+        .perform(
+            patch("/api/v1/bulk-submissions/{id}", bulkSubmissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(OBJECT_MAPPER.writeValueAsString(bulkPatch)))
+        .andExpect(status().isNoContent());
+
+    assertThat(submissionRepository.findById(submissionId).orElseThrow().getStatus())
+        .isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+    assertThat(bulkSubmissionRepository.findById(bulkSubmissionId).orElseThrow().getStatus())
+        .isEqualTo(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 }

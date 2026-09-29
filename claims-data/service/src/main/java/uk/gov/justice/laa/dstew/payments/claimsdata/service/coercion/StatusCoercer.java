@@ -29,7 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
  * end-to-end.
  *
  * <p><strong>Default behaviour is legacy coercion</strong>: the validated-pending-approval
- * lifecycle is enabled only when {@code laa.claims.api.validated-pending-approval.enabled=true}.
+ * lifecycle is enabled only when {@code laa.claims.api.features.validated-pending-approval=true}.
  * When the property is true, {@code StatusCoercerConfig} falls back to {@link #NO_OP}.
  *
  * <p><strong>Removal, once the validated-pending-approval lifecycle no longer needs
@@ -37,9 +37,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
  * LegacyStatusCoercer}, {@code StatusCoercerConfig}), remove the {@code statusCoercer} field and
  * the five {@code statusCoercer.coerce(...)} call sites in {@code SubmissionService}, {@code
  * BulkSubmissionService} and {@code ClaimService}, and drop the {@code
- * laa.claims.api.validated-pending-approval.*} property (plus its Helm wiring). The remaining code
- * is already the desired hold-enabled behaviour. All the removable pieces are greppable by the
- * property name or {@code StatusCoercer}.
+ * laa.claims.api.features.validated-pending-approval} property (plus its Helm wiring). The
+ * remaining code is already the desired hold-enabled behaviour. All the removable pieces are
+ * greppable by the property name or {@code StatusCoercer}.
  */
 public interface StatusCoercer {
 
