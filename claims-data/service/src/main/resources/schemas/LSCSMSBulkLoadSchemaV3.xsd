@@ -258,7 +258,6 @@
             <xs:enumeration value="PUB"/>
             <xs:enumeration value="WB"/>
             <xs:enumeration value="DISC"/>
-            <xs:enumeration value="INQ"/>
 
             <!-- Optional other matter start codes -->
             <xs:enumeration value="SCHEDULE_REF"/>
