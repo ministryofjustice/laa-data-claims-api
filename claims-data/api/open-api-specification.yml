@@ -939,6 +939,53 @@ paths:
         '429':
           description: 'Too many requests'
 
+  /api/v1/claims/retention-lookup:
+    get:
+      operationId: getClaimsRetentionLookup
+      x-spring-paginated: true
+      tags:
+        - Claims
+      summary: Get claims retention lookup data
+      description: |
+        Retrieves claims data for a given office code and unique file number (UFN).
+        Returns only VALID status claims with minimal retention-relevant fields for data governance.
+        No PII is included in the response.
+        Results are paginated using zero-based page index and page size (defaults: page=0, size=20).
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+        - name: ufn
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique File Number - the unique reference for the case file.
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+      responses:
+        '200':
+          description: Claims retrieved successfully. Returns a paginated array of VALID claims matching office_code and ufn. If no matching claims exist, returns an empty content array with pagination metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/claim_retention_lookup_result_set'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: 'Internal server error'
+
   /api/v2/submissions/{submission-id}/claims/{claim-id}:
     get:
       operationId: getClaimV2
@@ -2401,3 +2448,72 @@ components:
           type: 'integer'
         size:
           type: 'integer'
+    claim_retention_lookup_response:
+      type: 'object'
+      description: |
+        Response containing a list of VALID claims matching the office_code and UFN.
+        Returns only retention-relevant minimal fields with no PII.
+        Returns empty array if no VALID claims match the composite key.
+      properties:
+        claims:
+          type: 'array'
+          description: |
+            List of VALID status claims. Each claim contains minimal retention-relevant fields.
+            Sorted by updated_on in descending order (most recent first).
+            Empty array if no claims match the office_code and ufn composite key.
+          items:
+            $ref: '#/components/schemas/claim_retention_lookup_claim_detail'
+      required:
+        - claims
+    claim_retention_lookup_result_set:
+      allOf:
+        - $ref: '#/components/schemas/page'
+      type: 'object'
+      description: |
+        Paginated response containing VALID claims matching the office_code and UFN composite key.
+        Includes pagination metadata (total_pages, total_elements, number, size).
+        Returns empty content array if no VALID claims match the composite key or requested page.
+      properties:
+        content:
+          type: 'array'
+          description: |
+            List of VALID status claims. Each claim contains minimal retention-relevant fields.
+            Sorted by updated_on in descending order (most recent first).
+            Empty array if no claims match the office_code and ufn composite key or requested page.
+          items:
+            $ref: '#/components/schemas/claim_retention_lookup_claim_detail'
+    claim_retention_lookup_claim_detail:
+      type: 'object'
+      description: |
+        Minimal claim detail for retention lookup. Contains only retention-relevant fields with no PII.
+        Timestamps use ISO 8601 UTC format.
+      properties:
+        claim_id:
+          type: 'string'
+          format: uuid
+          description: |
+            Unique identifier for the claim (system-generated UUID).
+        status:
+          type: 'string'
+          enum:
+            - VALID
+          description: |
+            Claim status. Only VALID status claims are returned by this endpoint.
+        created_on:
+          type: 'string'
+          format: 'date-time'
+          description: |
+            Timestamp when the claim was initially created (submitted).
+            Format: ISO 8601 UTC (e.g., 2026-09-28T14:14:05Z).
+        updated_on:
+          type: 'string'
+          format: 'date-time'
+          description: |
+            Timestamp of the most recent update (status change, amendment, or repricing).
+            This is the decision timestamp for retention policy calculations.
+            Format: ISO 8601 UTC (e.g., 2026-09-28T14:14:05Z).
+      required:
+        - claim_id
+        - status
+        - created_on
+        - updated_on
