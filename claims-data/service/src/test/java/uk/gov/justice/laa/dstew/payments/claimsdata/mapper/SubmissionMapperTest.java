@@ -22,6 +22,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionBase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPost;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
@@ -132,6 +133,36 @@ class SubmissionMapperTest {
     submissionMapper.updateSubmissionFromPatch(patch, submission);
 
     assertThat(submission.getErrorMessages()).isEqualTo("Updated error message");
+  }
+
+  @Test
+  @DisplayName(
+      "maps Submission entity to SubmissionResponse leaving claims/matterStarts unpopulated")
+  void shouldMapToSubmissionResponseWithoutClaimsOrMatterStarts() {
+    // claims and matterStarts have no corresponding Submission entity field: they are deliberately
+    // left for the service layer (SubmissionService#getSubmission) to assemble from
+    // ClaimService/MatterStartService. This test documents that contract and guards against a
+    // future change accidentally wiring them into the mapper (which would silently diverge from
+    // the service-layer assembled values, e.g. via a stale/derived Submission-entity field).
+    UUID id = Uuid7.timeBasedUuid();
+    Submission submission =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber("12345")
+            .submissionPeriod("2025-07")
+            .areaOfLaw(AREA_OF_LAW)
+            .numberOfClaims(2)
+            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
+            .build();
+
+    SubmissionResponse result = submissionMapper.toSubmissionResponse(submission);
+
+    assertThat(result.getSubmissionId()).isEqualTo(id);
+    assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
+    assertThat(result.getClaims()).isEmpty();
+    assertThat(result.getMatterStarts()).isEmpty();
+    assertThat(result.getCalculatedTotalAmount()).isNull();
+    assertThat(result.getAssessedTotalAmount()).isNull();
   }
 
   @Test

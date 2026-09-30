@@ -95,9 +95,14 @@ public interface SubmissionMapper {
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Submission submission);
 
+  // claims/matterStarts have no corresponding Submission entity fields: they are assembled in the
+  // service layer (SubmissionService#getSubmission) from ClaimService/MatterStartService, not
+  // derived from the Submission entity itself.
   @Mapping(target = "submissionId", source = "id")
   @Mapping(target = "submitted", source = "createdOn")
   @Mapping(target = "calculatedTotalAmount", ignore = true)
   @Mapping(target = "assessedTotalAmount", ignore = true)
+  @Mapping(target = "claims", ignore = true)
+  @Mapping(target = "matterStarts", ignore = true)
   SubmissionResponse toSubmissionResponse(Submission submission);
 }

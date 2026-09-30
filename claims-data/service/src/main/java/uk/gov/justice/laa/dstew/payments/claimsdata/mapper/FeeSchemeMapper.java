@@ -34,6 +34,11 @@ public interface FeeSchemeMapper {
   @Mapping(target = "numberOfMediationSessions", source = "mediationSessionsCount")
   @Mapping(target = "jrFormFilling", source = "jrFormFillingAmount")
   @Mapping(target = "londonRate", source = "isLondonRate", defaultValue = "false")
+  // netTravelCosts/netWaitingCosts/travelAndWaitingCosts are area-of-law specific and are set by
+  // applyPostMappingAdjustments (@AfterMapping) below, not by this primary mapping.
+  @Mapping(target = "netTravelCosts", ignore = true)
+  @Mapping(target = "netWaitingCosts", ignore = true)
+  @Mapping(target = "travelAndWaitingCosts", ignore = true)
   FeeCalculationRequest mapToFeeCalculationRequest(
       ClaimStateSnapshot claim, @Context AreaOfLaw areaOfLaw);
 
