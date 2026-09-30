@@ -957,15 +957,19 @@ paths:
           required: true
           schema:
             type: string
+            pattern: '^[0-9A-Za-z]{6}$'
           description: |
             The unique account number assigned to the provider office by the LAA.
+            Exactly 6 alphanumeric characters, e.g. 0R695K.
         - name: ufn
           in: query
           required: true
           schema:
             type: string
+            pattern: '^[0-9]{6}/[0-9]{3}$'
           description: |
             Unique File Number - the unique reference for the case file.
+            Format DDMMYY/NNN, e.g. 230493/001.
         - $ref: '#/components/parameters/pageParam'
         - $ref: '#/components/parameters/sizeParam'
       responses:
