@@ -52,15 +52,18 @@ class AssessmentAndClaimAuditFieldsIntegrationTest extends AbstractAmendmentPatc
 
     var request = getAssessmentPost();
 
-    MvcResult result = mockMvc.perform(
-              post(API_URI_PREFIX + "/claims/{claimId}/assessments", CLAIM_1_ID)
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(API_URI_PREFIX + "/claims/{claimId}/assessments", CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andReturn();
 
-    UUID assessmentId = UUID.fromString(
+    UUID assessmentId =
+        UUID.fromString(
             objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
 
     Assessment assessment = assessmentRepository.findById(assessmentId).orElseThrow();
@@ -89,15 +92,18 @@ class AssessmentAndClaimAuditFieldsIntegrationTest extends AbstractAmendmentPatc
             .assessmentReason("test void reason")
             .version(amendable.getVersion());
 
-    MvcResult result = mockMvc.perform(
-            post(API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(voidRequest)))
             .andExpect(status().isCreated())
             .andReturn();
 
-    UUID assessmentId = UUID.fromString(
+    UUID assessmentId =
+        UUID.fromString(
             objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
 
     Assessment assessment = assessmentRepository.findById(assessmentId).orElseThrow();
