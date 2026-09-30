@@ -1652,9 +1652,41 @@ components:
           items:
             $ref: '#/components/schemas/submission_base'
 
+    claim_inquest_detail:
+      type: object
+      description: Inquest details for the claim
+      properties:
+        is_client_means_tested:
+          type: boolean
+          nullable: true
+        deceased_forename:
+          type: string
+          maxLength: 30
+          nullable: true
+        deceased_surname:
+          type: string
+          maxLength: 30
+          nullable: true
+        deceased_date_of_death:
+          type: string
+          description: Date of death (format DD/MM/YYYY)
+          nullable: true
+        coroners_inquest_reference:
+          type: string
+          maxLength: 30
+          nullable: true
+        interested_departments:
+          type: array
+          description: Full department names in occurrence order, including repetitions
+          items:
+            type: string
     claim_post:
       allOf:
         - $ref: '#/components/schemas/claim_base'
+        - type: object
+          properties:
+            inquest_detail:
+              $ref: '#/components/schemas/claim_inquest_detail'
       required:
         - status
         - line_number
@@ -1756,6 +1788,8 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            inquest_detail:
+              $ref: '#/components/schemas/claim_inquest_detail'
             total_warnings:
               type: integer
               description: Number of validation warnings for this claim.
@@ -1766,6 +1800,8 @@ components:
         - $ref: '#/components/schemas/claim_base'
         - type: object
           properties:
+            inquest_detail:
+              $ref: '#/components/schemas/claim_inquest_detail'
             area_of_law:
               $ref: '#/components/schemas/area_of_law'
             office_code:

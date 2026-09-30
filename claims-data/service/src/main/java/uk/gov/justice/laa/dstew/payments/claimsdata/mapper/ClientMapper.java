@@ -27,6 +27,7 @@ public interface ClientMapper {
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "claim", ignore = true)
+  @Mapping(target = "isMeansTested", source = "inquestDetail.isClientMeansTested")
   Client toClient(ClaimPost claimPost);
 
   /**

@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,16 +42,21 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
@@ -94,6 +100,10 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   private static final String GET_CLAIMS_ENDPOINT_V2 = "/api/v2/claims";
 
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
+
+  private static final String MINISTRY_OF_JUSTICE = "Ministry of Justice";
+  private static final String DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE =
+      "Department for Health and Social Care";
 
   private Boolean amendmentSwitch;
 
@@ -205,6 +215,277 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(booleans = {true, false})
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - persists is_client_means_tested as supplied"
+          + " (true, false, or null when no inquest_detail is sent)")
+  void shouldPersistClientMeansTestedFlagAsSupplied(Boolean isClientMeansTested) throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                isClientMeansTested == null
+                    ? null
+                    : new ClaimInquestDetail().isClientMeansTested(isClientMeansTested));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var savedClient = clientRepository.findByClaimId(claimId).orElseThrow();
+    assertThat(savedClient.getIsMeansTested()).isEqualTo(isClientMeansTested);
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - persists is_client_means_tested = false when it"
+          + " is the only client value supplied")
+  void shouldPersistFalseMeansTestedFlagWhenNoOtherClientDataSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .clientForename(null)
+            .clientSurname(null)
+            .clientDateOfBirth(null)
+            .client2Forename(null)
+            .client2Surname(null)
+            .client2DateOfBirth(null)
+            .inquestDetail(new ClaimInquestDetail().isClientMeansTested(false));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var savedClient = clientRepository.findByClaimId(claimId).orElseThrow();
+    assertThat(savedClient.getIsMeansTested()).isFalse();
+  }
+
+  @Test
+  @DisplayName("POST v1/submissions/{submissionId}/claims - persists inquest details when supplied")
+  void shouldPersistInquestDetailWhenSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .deceasedForename("Jane")
+                    .deceasedSurname("Doe")
+                    .deceasedDateOfDeath("05/03/2026")
+                    .coronersInquestReference("INQ-123"));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var saved = inquestDetailRepository.findByClaimId(claimId).orElseThrow();
+    assertThat(saved.getDeceasedForename()).isEqualTo("Jane");
+    assertThat(saved.getDeceasedSurname()).isEqualTo("Doe");
+    assertThat(saved.getDeceasedDateOfDeath()).isEqualTo(LocalDate.of(2026, 3, 5));
+    assertThat(saved.getCoronersInquestReference()).isEqualTo("INQ-123");
+    assertThat(saved.getCreatedByUserId()).isEqualTo(claimPost.getCreatedByUserId());
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - persists a null coroner's reference when it is"
+          + " not supplied")
+  void shouldPersistNullCoronersReferenceWhenNotSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .deceasedForename("Jane")
+                    .deceasedSurname("Doe")
+                    .deceasedDateOfDeath("05/03/2026"));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var saved = inquestDetailRepository.findByClaimId(claimId).orElseThrow();
+    assertThat(saved.getCoronersInquestReference()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - does not persist inquest details for a"
+          + " non-Inquest claim")
+  void shouldNotPersistInquestDetailWhenNotSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+
+    UUID claimId = postClaimAndReturnId(getClaimPost(CASE_REFERENCE));
+
+    assertThat(inquestDetailRepository.findByClaimId(claimId)).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - does not persist inquest details when only the"
+          + " client means-tested flag is supplied")
+  void shouldNotPersistInquestDetailWhenOnlyMeansTestedFlagSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(new ClaimInquestDetail().isClientMeansTested(true));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    assertThat(inquestDetailRepository.findByClaimId(claimId)).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - returns 400 and saves nothing when the date of"
+          + " death is invalid")
+  void shouldReturnBadRequestWhenDateOfDeathInvalid() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(new ClaimInquestDetail().deceasedDateOfDeath("31/02/2026"));
+
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).isEmpty();
+    assertThat(inquestDetailRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - persists one interested department row per"
+          + " occurrence, in supplied order, including repeats")
+  void shouldPersistInterestedDepartmentsInSuppliedOrderIncludingRepeats() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    var moj = saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
+    var dhsc = saveGovernmentDepartment("DHSC", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .interestedDepartments(
+                        List.of(
+                            MINISTRY_OF_JUSTICE,
+                            MINISTRY_OF_JUSTICE,
+                            DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE)));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var saved = claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId);
+    assertThat(saved)
+        .extracting(ClaimInterestedDepartment::getDisplayOrder)
+        .containsExactly(1, 2, 3);
+    assertThat(saved)
+        .extracting(department -> department.getGovernmentDepartment().getId())
+        .containsExactly(moj.getId(), moj.getId(), dhsc.getId());
+    assertThat(saved)
+        .extracting(ClaimInterestedDepartment::getCreatedByUserId)
+        .containsOnly(claimPost.getCreatedByUserId());
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - skips blank department names and keeps the"
+          + " order of populated ones")
+  void shouldSkipBlankInterestedDepartments() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    var moj = saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
+    var dhsc = saveGovernmentDepartment("DHSC", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .interestedDepartments(
+                        List.of(DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE, " ", MINISTRY_OF_JUSTICE)));
+
+    UUID claimId = postClaimAndReturnId(claimPost);
+
+    var saved = claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId);
+    assertThat(saved).extracting(ClaimInterestedDepartment::getDisplayOrder).containsExactly(1, 2);
+    assertThat(saved)
+        .extracting(department -> department.getGovernmentDepartment().getId())
+        .containsExactly(dhsc.getId(), moj.getId());
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - saves no interested department rows when the"
+          + " list is empty or inquest_detail is absent")
+  void shouldNotPersistInterestedDepartmentsWhenNoneSupplied() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+
+    UUID claimWithEmptyList =
+        postClaimAndReturnId(
+            getClaimPost(CASE_REFERENCE)
+                .lineNumber(1)
+                .inquestDetail(new ClaimInquestDetail().interestedDepartments(List.of())));
+    UUID claimWithoutInquestDetail =
+        postClaimAndReturnId(getClaimPost(CASE_REFERENCE).lineNumber(2));
+
+    assertThat(
+            claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(
+                claimWithEmptyList))
+        .isEmpty();
+    assertThat(
+            claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(
+                claimWithoutInquestDetail))
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "POST v1/submissions/{submissionId}/claims - returns 400 and saves nothing when a department"
+          + " name is unknown")
+  void shouldReturnBadRequestWhenInterestedDepartmentUnknown() throws Exception {
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
+    final ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .deceasedForename("Jane")
+                    .interestedDepartments(
+                        List.of(MINISTRY_OF_JUSTICE, "Department That Does Not Exist")));
+
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).isEmpty();
+    assertThat(inquestDetailRepository.findAll()).isEmpty();
+    assertThat(claimInterestedDepartmentRepository.findAll()).isEmpty();
+  }
+
+  private GovernmentDepartmentRef saveGovernmentDepartment(String code, String displayLabel) {
+    return governmentDepartmentRefRepository.saveAndFlush(
+        GovernmentDepartmentRef.builder()
+            .id(Uuid7.timeBasedUuid())
+            .governmentDepartmentCode(code)
+            .displayLabel(displayLabel)
+            .isActive(true)
+            .displayOrder(1)
+            .createdByUserId("TEST")
+            .build());
+  }
+
+  private UUID postClaimAndReturnId(ClaimPost claimPost) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return OBJECT_MAPPER
+        .readValue(result.getResponse().getContentAsString(), CreateClaim201Response.class)
+        .getId();
   }
 
   @Test

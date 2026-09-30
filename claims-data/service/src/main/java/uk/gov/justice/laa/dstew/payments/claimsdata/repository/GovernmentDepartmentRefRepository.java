@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -11,4 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentR
  */
 @Repository
 public interface GovernmentDepartmentRefRepository
-    extends JpaRepository<GovernmentDepartmentRef, UUID> {}
+    extends JpaRepository<GovernmentDepartmentRef, UUID> {
+
+  Optional<GovernmentDepartmentRef> findByDisplayLabel(String displayLabel);
+}

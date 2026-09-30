@@ -68,8 +68,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
@@ -80,8 +83,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.InquestDetailMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -96,9 +101,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
@@ -124,6 +132,11 @@ class ClaimServiceTest {
   @Mock private AssessmentService assessmentService;
   @Mock private ClaimAmendmentService claimAmendmentService;
   @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+  @Mock private InquestDetailRepository inquestDetailRepository;
+  @Mock private InquestDetailMapper inquestDetailMapper;
+  @Mock private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+  @Mock private ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+  @Captor ArgumentCaptor<ClaimInterestedDepartment> interestedDepartmentCaptor;
 
   @Spy
   private final ClaimSearchRequestValidator claimSearchRequestValidator =
@@ -201,6 +214,165 @@ class ClaimServiceTest {
     assertThat(id).isNotNull();
     verify(claimRepository).save(claim);
     verify(clientRepository, never()).save(emptyClient);
+  }
+
+  @DisplayName("create claim and inquest detail when inquest data provided")
+  @ParameterizedTest
+  @MethodSource("getInquestDetailTestingArguments")
+  void shouldCreateInquestDetailWhenInquestDataProvided(InquestDetail inquestDetail) {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimInquestDetail claimInquestDetail = new ClaimInquestDetail();
+    final ClaimPost post = new ClaimPost().inquestDetail(claimInquestDetail);
+    post.setCreatedByUserId(API_USER_ID);
+    final Claim claim = Claim.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(ClaimSummaryFee.builder().build());
+    when(claimMapper.toClaimCase(post)).thenReturn(ClaimCase.builder().build());
+    when(inquestDetailMapper.toInquestDetail(claimInquestDetail)).thenReturn(inquestDetail);
+
+    claimService.createClaim(submissionId, post);
+
+    assertThat(inquestDetail.getId()).isNotNull();
+    assertThat(inquestDetail.getClaim()).isSameAs(claim);
+    assertThat(inquestDetail.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    verify(inquestDetailRepository).save(inquestDetail);
+  }
+
+  public static Stream<Arguments> getInquestDetailTestingArguments() {
+    return Stream.of(
+        Arguments.of(InquestDetail.builder().deceasedForename("Jane").build()),
+        Arguments.of(InquestDetail.builder().deceasedSurname("Doe").build()),
+        Arguments.of(InquestDetail.builder().deceasedDateOfDeath(LocalDate.of(2026, 3, 5)).build()),
+        Arguments.of(InquestDetail.builder().coronersInquestReference("INQ-123").build()));
+  }
+
+  @DisplayName("create claim without inquest detail when no inquest data")
+  @ParameterizedTest
+  @MethodSource("getNoInquestDetailTestingArguments")
+  void shouldCreateClaimWithoutInquestDetailWhenNoInquestData(InquestDetail mappedInquestDetail) {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost();
+    final Claim claim = Claim.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(ClaimSummaryFee.builder().build());
+    when(claimMapper.toClaimCase(post)).thenReturn(ClaimCase.builder().build());
+    when(inquestDetailMapper.toInquestDetail(null)).thenReturn(mappedInquestDetail);
+
+    claimService.createClaim(submissionId, post);
+
+    verify(inquestDetailRepository, never()).save(any());
+  }
+
+  public static Stream<Arguments> getNoInquestDetailTestingArguments() {
+    return Stream.of(
+        Arguments.of((InquestDetail) null), Arguments.of(InquestDetail.builder().build()));
+  }
+
+  @DisplayName(
+      "create one interested department per occurrence in supplied order, keeping repeats and"
+          + " skipping blanks")
+  @Test
+  void shouldCreateInterestedDepartmentsInOrderKeepingRepeatsAndSkippingBlanks() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final ClaimPost post =
+        new ClaimPost()
+            .inquestDetail(
+                new ClaimInquestDetail()
+                    .interestedDepartments(
+                        Arrays.asList(
+                            "Ministry of Justice",
+                            "",
+                            null,
+                            "Ministry of Justice",
+                            "Department for Health and Social Care")));
+    post.setCreatedByUserId(API_USER_ID);
+    final Claim claim = stubCreateClaimDependencies(submissionId, post);
+    final GovernmentDepartmentRef moj =
+        GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
+    final GovernmentDepartmentRef dhsc =
+        GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
+    when(governmentDepartmentRefRepository.findByDisplayLabel("Ministry of Justice"))
+        .thenReturn(Optional.of(moj));
+    when(governmentDepartmentRefRepository.findByDisplayLabel(
+            "Department for Health and Social Care"))
+        .thenReturn(Optional.of(dhsc));
+
+    claimService.createClaim(submissionId, post);
+
+    verify(claimInterestedDepartmentRepository, times(3))
+        .save(interestedDepartmentCaptor.capture());
+    final List<ClaimInterestedDepartment> saved = interestedDepartmentCaptor.getAllValues();
+    assertThat(saved)
+        .extracting(ClaimInterestedDepartment::getGovernmentDepartment)
+        .containsExactly(moj, moj, dhsc);
+    assertThat(saved)
+        .extracting(ClaimInterestedDepartment::getDisplayOrder)
+        .containsExactly(1, 2, 3);
+    assertThat(saved)
+        .allSatisfy(
+            department -> {
+              assertThat(department.getId()).isNotNull();
+              assertThat(department.getClaim()).isSameAs(claim);
+              assertThat(department.getCreatedByUserId()).isEqualTo(API_USER_ID);
+            });
+  }
+
+  @DisplayName("create no interested departments when none supplied")
+  @ParameterizedTest
+  @MethodSource("getNoInterestedDepartmentsTestingArguments")
+  void shouldCreateNoInterestedDepartmentsWhenNoneSupplied(ClaimInquestDetail claimInquestDetail) {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final ClaimPost post = new ClaimPost().inquestDetail(claimInquestDetail);
+    stubCreateClaimDependencies(submissionId, post);
+
+    claimService.createClaim(submissionId, post);
+
+    verify(governmentDepartmentRefRepository, never()).findByDisplayLabel(any());
+    verify(claimInterestedDepartmentRepository, never()).save(any());
+  }
+
+  public static Stream<Arguments> getNoInterestedDepartmentsTestingArguments() {
+    return Stream.of(
+        Arguments.of((ClaimInquestDetail) null),
+        Arguments.of(new ClaimInquestDetail().interestedDepartments(null)),
+        Arguments.of(new ClaimInquestDetail().interestedDepartments(List.of())));
+  }
+
+  @DisplayName("throw ClaimBadRequestException when an interested department name is unknown")
+  @Test
+  void shouldThrowWhenInterestedDepartmentUnknown() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final ClaimPost post =
+        new ClaimPost()
+            .inquestDetail(
+                new ClaimInquestDetail().interestedDepartments(List.of("Unknown Department")));
+    stubCreateClaimDependencies(submissionId, post);
+    when(governmentDepartmentRefRepository.findByDisplayLabel("Unknown Department"))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> claimService.createClaim(submissionId, post))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("Unknown Department");
+    verify(claimInterestedDepartmentRepository, never()).save(any());
+  }
+
+  private Claim stubCreateClaimDependencies(UUID submissionId, ClaimPost post) {
+    final Claim claim = Claim.builder().build();
+    when(submissionRepository.findById(submissionId))
+        .thenReturn(Optional.of(Submission.builder().id(submissionId).build()));
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(ClaimSummaryFee.builder().build());
+    when(claimMapper.toClaimCase(post)).thenReturn(ClaimCase.builder().build());
+    return claim;
   }
 
   @DisplayName("throw SubmissionNotFoundException when submission not found on create")
