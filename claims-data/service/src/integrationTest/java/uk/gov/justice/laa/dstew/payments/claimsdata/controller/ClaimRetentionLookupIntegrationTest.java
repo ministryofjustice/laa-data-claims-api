@@ -10,8 +10,11 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.OFFICE_ACCOUNT_NUMBER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.UNIQUE_FILE_NUMBER;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -796,7 +799,47 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
         .doesNotContainNull();
   }
 
+  @Test
+  @DisplayName("Should expose only the fields declared in the OpenAPI contract")
+  void testResponseExposesOnlyContractFields() throws Exception {
+    createTestClaims(2, ClaimStatus.VALID);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(RETENTION_LOOKUP_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("ufn", UNIQUE_FILE_NUMBER)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+
+    assertThat(fieldNamesOf(root))
+        .as("response envelope must expose no field beyond the OpenAPI contract")
+        .containsExactlyInAnyOrder("content", "total_pages", "total_elements", "number", "size");
+
+    JsonNode content = root.get("content");
+    assertThat(content.isArray()).isTrue();
+    assertThat(content.size()).isEqualTo(2);
+
+    content.forEach(
+        claim ->
+            assertThat(fieldNamesOf(claim))
+                .as("claim entry must expose no field beyond the OpenAPI contract")
+                .containsExactlyInAnyOrder("claim_id", "status", "created_on", "updated_on"));
+  }
+
   // Helper methods
+
+  /** Raw JSON field names of a node, so fields absent from the contract can be detected. */
+  private static List<String> fieldNamesOf(JsonNode node) {
+    List<String> names = new ArrayList<>();
+    node.fieldNames().forEachRemaining(names::add);
+    return names;
+  }
 
   private void createTestClaims(int count, ClaimStatus status) {
     for (int i = 0; i < count; i++) {
