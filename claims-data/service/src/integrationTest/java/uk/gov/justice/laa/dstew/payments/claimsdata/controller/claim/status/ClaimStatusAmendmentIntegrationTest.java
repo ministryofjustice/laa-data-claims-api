@@ -1,8 +1,8 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller.claim.status;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.*;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +13,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -309,6 +311,89 @@ public class ClaimStatusAmendmentIntegrationTest extends AbstractAmendmentPatchI
 
     // The legacy flow stamps claim.updatedBy with the patch.createdByUserId
     assertThat(updated.getUpdatedByUserId()).isEqualTo(patch.getCreatedByUserId());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = ClaimStatus.class,
+      names = "VALIDATED_PENDING_APPROVAL",
+      mode = EnumSource.Mode.EXCLUDE)
+  @DisplayName(
+      "Status update persists validation messages and fee calculation for every legacy claim status; "
+          + "VOID is rejected")
+  void statusUpdatePersistsMessagesAndFeeCalculationForEachLegacyStatus(ClaimStatus targetStatus)
+      throws Exception {
+    Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    ClaimStatus initialStatus =
+        targetStatus == ClaimStatus.VALID ? ClaimStatus.READY_TO_PROCESS : ClaimStatus.VALID;
+    claim.setStatus(initialStatus);
+    claimRepository.saveAndFlush(claim);
+
+    createFeeDetail(
+        claim, new BigDecimal("50"), OffsetDateTime.now(java.time.ZoneOffset.UTC), null);
+    calculatedFeeDetailRepository.flush();
+
+    long beforeWarnings =
+        validationMessageLogRepository.countAllByClaimIdAndType(
+            claim.getId(), ValidationMessageType.WARNING);
+    var beforeFeeDetail =
+        calculatedFeeDetailRepository
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
+            .orElseThrow();
+
+    ClaimPatch patch = new ClaimPatch();
+    patch.setStatus(targetStatus);
+    patch.setCreatedByUserId("0190b6a0-9b7e-7c8a-9e2d-2f3a4b5c6d7e");
+    ValidationMessagePatch validationMessage =
+        ValidationMessagePatch.builder()
+            .type(ValidationMessageType.WARNING)
+            .source("FSP")
+            .displayMessage("Param test warning")
+            .messageCode("PTWARN")
+            .build();
+    patch.setValidationMessages(List.of(validationMessage));
+    patch.setFeeCalculationResponse(
+        FeeCalculationPatch.builder()
+            .feeCode("PARAM-FEE")
+            .totalAmount(new BigDecimal("99.00"))
+            .build());
+
+    MvcResult result =
+        performPatch(
+            claim.getSubmission().getId(), claim.getId(), PATCH_MAPPER.writeValueAsString(patch));
+
+    if (targetStatus == ClaimStatus.VOID) {
+      assertThat(result.getResponse().getStatus()).isEqualTo(400);
+      assertThat(
+              validationMessageLogRepository.countAllByClaimIdAndType(
+                  claim.getId(), ValidationMessageType.WARNING))
+          .isEqualTo(beforeWarnings);
+      var afterFee =
+          calculatedFeeDetailRepository
+              .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
+              .orElseThrow();
+      assertThat(afterFee.getFeeCode()).isEqualTo(beforeFeeDetail.getFeeCode());
+    } else {
+      assertThat(result.getResponse().getStatus()).isEqualTo(204);
+      assertThat(claimRepository.findById(claim.getId()).orElseThrow().getStatus())
+          .isEqualTo(targetStatus);
+
+      var messages =
+          validationMessageLogRepository.findWithClaimDetailsByFilters(
+              claim.getSubmission().getId(),
+              claim.getId(),
+              ValidationMessageType.WARNING,
+              null,
+              PageRequest.of(0, 10));
+      assertThat(messages.getTotalElements()).isGreaterThanOrEqualTo(beforeWarnings + 1);
+
+      var afterFee =
+          calculatedFeeDetailRepository
+              .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
+              .orElseThrow();
+      assertThat(afterFee.getFeeCode()).isEqualTo("PARAM-FEE");
+      assertThat(afterFee.getTotalAmount()).isEqualByComparingTo(new BigDecimal("99.00"));
+    }
   }
 
   @Test
