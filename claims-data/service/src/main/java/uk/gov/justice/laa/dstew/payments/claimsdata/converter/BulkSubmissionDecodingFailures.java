@@ -13,16 +13,15 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Shared, narrowly-scoped helper for recognising genuine character-decoding failures raised while
+ * Shared, narrowly-scoped helper for recognizing genuine character-decoding failures raised while
  * Jackson (CSV or XML) reads a bulk submission file, and for locating an approximate line/character
  * position for such a failure.
  *
@@ -34,7 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
  *   <li>pre-read the file before Jackson does
  * </ul>
  *
- * <p>It is intentionally narrow: it recognises only the confirmed character-conversion exception
+ * <p>It is intentionally narrow: it recognizes only the confirmed character-conversion exception
  * types produced by the project's resolved Jackson/Woodstox versions, and only reports a location
  * when it can determine, with the same cheap signals Jackson itself uses (BOM, byte-pattern
  * heuristic, or declared XML encoding), which charset the failing decode was actually using. It is
@@ -44,13 +43,28 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 final class BulkSubmissionDecodingFailures {
 
-  /** Maximum depth walked up the cause chain, guarding against pathological/cyclic chains. */
-  private static final int MAX_CAUSE_CHAIN_DEPTH = 10;
+  /**
+   * Determines whether the given exception, or any exception in its cause chain, represents a
+   * genuine character-decoding failure (as opposed to a structural, mapping or validation failure).
+   *
+   * <p>Uses {@link ExceptionUtils#getThrowableList(Throwable)} (Commons Lang, already a dependency
+   * of this project) to walk the cause chain, rather than a hand-rolled loop: it provides the same
+   * cycle protection we would otherwise have to write and test ourselves.
+   *
+   * @param throwable the exception caught at the converter boundary
+   * @return true if a {@link CharConversionException} or {@link CharacterCodingException} is found
+   *     anywhere in the cause chain
+   */
+  static boolean isCharacterDecodingFailure(Throwable throwable) {
+    return ExceptionUtils.getThrowableList(throwable).stream()
+        .anyMatch(
+            t -> t instanceof CharConversionException || t instanceof CharacterCodingException);
+  }
 
   /**
-   * Size of the fixed input/output buffers used while streaming the file for location-finding. Kept
-   * small and constant (rather than sized to the file) so peak memory use does not scale with file
-   * size, regardless of how large an upload is ever allowed to be.
+   * Size of the fixed-size internal byte buffer used while streaming the file for location-finding.
+   * Kept small and constant (rather than sized to the file) so peak memory use does not scale with
+   * file size, regardless of how large an upload is ever allowed to be.
    */
   private static final int DECODE_BUFFER_BYTES = 8192;
 
@@ -74,32 +88,9 @@ final class BulkSubmissionDecodingFailures {
   record Location(int line, int character) {}
 
   /**
-   * Determines whether the given exception, or any exception in its cause chain, represents a
-   * genuine character-decoding failure (as opposed to a structural, mapping or validation failure).
-   *
-   * @param throwable the exception caught at the converter boundary
-   * @return true if a {@link CharConversionException} or {@link CharacterCodingException} is found
-   *     anywhere in the cause chain
-   */
-  static boolean isCharacterDecodingFailure(Throwable throwable) {
-    Set<Throwable> seen = new HashSet<>();
-    Throwable current = throwable;
-    int depth = 0;
-    while (current != null && depth < MAX_CAUSE_CHAIN_DEPTH && seen.add(current)) {
-      if (current instanceof CharConversionException
-          || current instanceof CharacterCodingException) {
-        return true;
-      }
-      current = current.getCause();
-      depth++;
-    }
-    return false;
-  }
-
-  /**
    * Determines the character set that Jackson itself would most likely have used to read the file,
    * using only the same cheap signals it uses: a byte-order-mark, and (for XML only) a declared
-   * {@code encoding="..."} attribute in the prolog. Falls back to a byte-pattern heuristic
+   * {@code encoding="..."} attribute in the prologue. Falls back to a byte-pattern heuristic
    * equivalent to the one Jackson uses when no BOM is present.
    *
    * <p>Returns empty when none of these signals gives a confident answer (e.g. a UTF-32 BOM, or an
@@ -183,7 +174,7 @@ final class BulkSubmissionDecodingFailures {
   }
 
   /**
-   * Looks for a declared {@code encoding="..."} attribute in an XML prolog. The prefix is decoded
+   * Looks for a declared {@code encoding="..."} attribute in an XML prologue. The prefix is decoded
    * as ISO-8859-1 purely to sniff this attribute name: that decode can never itself fail (every
    * byte maps to a character 1:1), regardless of the file's real encoding, so it is safe to use
    * even before the real encoding is known.
@@ -209,6 +200,16 @@ final class BulkSubmissionDecodingFailures {
    *
    * <p>Treats {@code \n}, {@code \r} and {@code \r\n} all as a single line break, so files using
    * any of the three common line-ending conventions are reported correctly.
+   *
+   * <p>Uses the low-level {@link CharsetDecoder#decode(ByteBuffer, CharBuffer, boolean)} API
+   * directly, rather than wrapping it in a {@link java.io.Reader}: a {@code Reader}'s {@code
+   * read(...)} methods report a decoding failure by throwing, and in doing so, they do not reliably
+   * expose how many characters were already decoded successfully within that same call (the
+   * standard {@code Reader.read(CharBuffer)} default implementation only advances the buffer's
+   * position on a normal return, not when an exception propagates) - which is exactly the
+   * information this method needs to report an accurate location. {@link CharsetDecoder#decode}
+   * itself never throws; it returns a {@link CoderResult} while still having advanced the output
+   * buffer for everything decoded so far, which is what makes an accurate position possible here.
    *
    * <p>Peak memory use is a small constant (two ~8KB buffers), not proportional to file size, since
    * the input is streamed rather than read into a single byte array.
