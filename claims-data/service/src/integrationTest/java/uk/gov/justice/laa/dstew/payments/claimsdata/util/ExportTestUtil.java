@@ -19,32 +19,36 @@ public final class ExportTestUtil {
       throws IOException {
     List<String> expectedHeaders = headersFromDefinition(definitionFile);
     List<String> actualHeaders = csvCells(firstNonEmptyLine(csv));
-    assertThat(actualHeaders).containsExactlyInAnyOrderElementsOf(expectedHeaders);
+    assertThat(actualHeaders).containsExactlyElementsOf(expectedHeaders);
   }
 
   public static Map<String, String> firstDataRowByHeader(String csv) {
-    String[] lines = csv.split("\\R");
-    String headerLine =
-        Arrays.stream(lines).filter(line -> !line.isBlank()).findFirst().orElseThrow();
-    String firstDataLine =
-        Arrays.stream(lines)
-            .filter(line -> !line.isBlank())
-            .skip(1)
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new AssertionError(
-                        "Expected CSV to contain at least one data row. CSV was:\n" + csv));
+    return dataRowsByHeader(csv).stream()
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new AssertionError(
+                    "Expected CSV to contain at least one data row. CSV was:\n" + csv));
+  }
 
-    List<String> headers = csvCells(headerLine);
-    List<String> values = csvCells(firstDataLine);
-    assertThat(values).hasSize(headers.size());
+  /** Returns every data row in the CSV as an ordered header-to-value map. */
+  public static List<Map<String, String>> dataRowsByHeader(String csv) {
+    List<String> lines = csv.lines().filter(line -> !line.isBlank()).toList();
+    List<String> headers = csvCells(lines.getFirst());
 
-    Map<String, String> row = new LinkedHashMap<>();
-    for (int i = 0; i < headers.size(); i++) {
-      row.put(headers.get(i), values.get(i));
-    }
-    return row;
+    return lines.stream()
+        .skip(1)
+        .map(
+            line -> {
+              List<String> values = csvCells(line);
+              assertThat(values).hasSize(headers.size());
+              Map<String, String> row = new LinkedHashMap<>();
+              for (int i = 0; i < headers.size(); i++) {
+                row.put(headers.get(i), values.get(i));
+              }
+              return row;
+            })
+        .toList();
   }
 
   private static List<String> headersFromDefinition(String definitionFile) throws IOException {
