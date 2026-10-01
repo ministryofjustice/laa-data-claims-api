@@ -32,13 +32,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 /**
  * Step definitions for {@code amendmentsValidationAggregation.feature} (DSTEW-1770).
  *
- * <p>Owns the Step-12 cross-source aggregation glue. The five aggregation sources are driven with
- * their REAL shipped triggers on a fully-valid Legal Help claim (seeded by the reused {@code an
- * original claim exists with area of law} step): only the fee-code Area-of-Law gate is terminal, so
- * several ERROR-severity issues from different sources aggregate into one Step-12 multi-message
- * response. This class owns only the NEW phrases (the collected-failure composers, the colliding
- * sibling + PDA-mismatch setup, and the strict envelope assertions); the seed, submit and generic
- * reject/accept assertions are reused from sibling amendment step classes.
+ * <p>Owns the Step-12 cross-source aggregation glue. Four aggregation sources are driven with their
+ * real shipped triggers on a fully-valid Legal Help claim (seeded by the reused {@code an original
+ * claim exists with area of law} step), so several ERROR-severity issues from different sources
+ * aggregate into one Step-12 multi-message response. PDA aggregation is covered separately by
+ * DSTEW-1774. This class owns only the new phrases: the collected-failure composers, colliding
+ * sibling setup, and strict envelope assertions; seed, submit, and generic outcome assertions are
+ * reused from sibling amendment step classes.
  */
 @Slf4j
 public class AmendmentValidationAggregationSteps {
