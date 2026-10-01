@@ -74,7 +74,7 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
 
   @DS1770_2
   Scenario: Any collected validation error → FSP not called, nothing saved
-    Given an original claim exists with area of law "LEGAL_HELP"
+    Given an original amendable claim exists with a valid pricing baseline
     And an amendment is submitted that triggers a single collected error with code "SCHEMA_VALIDATION_ERROR"
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with error code "SCHEMA_VALIDATION_ERROR"
