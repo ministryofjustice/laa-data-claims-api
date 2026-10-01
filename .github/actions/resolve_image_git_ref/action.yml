@@ -1,0 +1,77 @@
+name: Resolve image git ref
+description: >
+  Maps a deployed Docker image tag back to a resolvable git ref (tag or commit SHA).
+  Handles both release image tags (<image-prefix>-<semver>, mapped to a
+  "<tag-prefix><semver>" git tag) and snapshot/preview image tags
+  (<image-prefix>-<semver>-<shortsha>-SNAPSHOT, where the embedded short SHA is
+  used directly), so callers don't need to know the tagging convention.
+
+inputs:
+  image-tag:
+    description: "Deployed image tag, e.g. 'data-claims-api-1.25.0' or 'data-claims-api-1.25.1-40d1616-SNAPSHOT'"
+    required: true
+  image-prefix:
+    description: "Image tag prefix to strip, e.g. 'data-claims-api'"
+    required: true
+  git-tag-prefix:
+    description: "Prefix used on release git tags"
+    required: false
+    default: "v"
+
+outputs:
+  git-ref:
+    description: "A resolvable git ref (tag name or commit SHA) corresponding to the deployed image"
+    value: ${{ steps.resolve.outputs.git-ref }}
+  match-type:
+    description: "How the ref was resolved: 'snapshot-sha', 'release-tag', or 'unresolved'"
+    value: ${{ steps.resolve.outputs.match-type }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Resolve git ref from image tag
+      id: resolve
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        IMAGE_PREFIX: ${{ inputs.image-prefix }}
+        GIT_TAG_PREFIX: ${{ inputs.git-tag-prefix }}
+      run: |
+        set -euo pipefail
+
+        if [[ "$IMAGE_TAG" != "${IMAGE_PREFIX}-"* ]]; then
+          echo "::error::Image tag '$IMAGE_TAG' does not start with expected prefix '${IMAGE_PREFIX}-'"
+          exit 1
+        fi
+
+        # Strip "<image-prefix>-" to leave the version/snapshot portion
+        VERSION_PART="${IMAGE_TAG#${IMAGE_PREFIX}-}"
+
+        SNAPSHOT_RE='^[0-9]+\.[0-9]+\.[0-9]+-([0-9a-f]{7,40})-SNAPSHOT$'
+        RELEASE_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
+
+        if [[ "$VERSION_PART" =~ $SNAPSHOT_RE ]]; then
+          GIT_REF="${BASH_REMATCH[1]}"
+          MATCH_TYPE="snapshot-sha"
+          echo "Snapshot image tag detected. Using embedded commit SHA as git ref: $GIT_REF"
+
+        elif [[ "$VERSION_PART" =~ $RELEASE_RE ]]; then
+          GIT_REF="${GIT_TAG_PREFIX}${VERSION_PART}"
+          MATCH_TYPE="release-tag"
+          echo "Release image tag detected. Using derived git tag: $GIT_REF"
+
+        else
+          echo "::error::Unable to determine git ref from image tag '$IMAGE_TAG' (version part: '$VERSION_PART')"
+          exit 1
+        fi
+
+        if ! git rev-parse --verify "${GIT_REF}^{commit}" >/dev/null 2>&1; then
+          echo "::error::Resolved git ref '$GIT_REF' does not exist in this repository. Make sure tags/history have been fetched (fetch-depth: 0, fetch-tags: true)."
+          exit 1
+        fi
+
+        echo "Resolved '$IMAGE_TAG' -> '$GIT_REF' ($MATCH_TYPE)"
+        echo "git-ref=$GIT_REF" >> "$GITHUB_OUTPUT"
+        echo "match-type=$MATCH_TYPE" >> "$GITHUB_OUTPUT"
+

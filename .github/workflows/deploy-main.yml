@@ -91,6 +91,7 @@ jobs:
   deploy-uat:
     runs-on: ubuntu-latest
     needs:
+      - release
       - ecr-publish-image
       - pact-test
     environment: uat
@@ -101,6 +102,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get currently deployed ref
+        id: uat_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
+        uses: ./.github/actions/get_deployed_git_ref
+        with:
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          deployment: main-data-claims-api
+          image-prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
@@ -126,6 +144,19 @@ jobs:
           app-environment: uat
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
+      # Runs only once "Deploy UAT" above has succeeded, using the ref
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
+      - name: Notify Slack of UAT update
+        continue-on-error: true
+        uses: ./.github/actions/release_diff_notify
+        with:
+          from-ref: ${{ steps.uat_deployed.outputs.git-ref }}
+          to-ref: ${{ github.sha }}
+          environment-name: UAT
+          to-label: "v${{ needs.release.outputs.published_artifact_version }}"
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
@@ -139,6 +170,7 @@ jobs:
   deploy-staging:
     runs-on: ubuntu-latest
     needs:
+      - release
       - ecr-publish-image
       - pact-test
       - deploy-uat
@@ -151,6 +183,23 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get currently deployed ref
+        id: staging_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
+        uses: ./.github/actions/get_deployed_git_ref
+        with:
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          deployment: laa-data-claims-api
+          image-prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
 
       - name: Can I deploy Staging?
         id: can_i_deploy_staging
@@ -176,6 +225,19 @@ jobs:
           app-environment: staging
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
 
+      # Runs only once "Deploy staging" above has succeeded, using the ref
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
+      - name: Notify Slack of Staging update
+        continue-on-error: true
+        uses: ./.github/actions/release_diff_notify
+        with:
+          from-ref: ${{ steps.staging_deployed.outputs.git-ref }}
+          to-ref: ${{ github.sha }}
+          environment-name: Staging
+          to-label: "v${{ needs.release.outputs.published_artifact_version }}"
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Record staging deployment to pact broker
         id: record_staging_deployment
         uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
@@ -189,6 +251,7 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs:
+      - release
       - ecr-publish-image
       - pact-test
       - deploy-staging
@@ -201,6 +264,23 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get currently deployed ref
+        id: production_deployed
+        # Non-blocking: this only feeds the post-deploy Slack notification, it
+        # must never prevent the actual deployment below from running.
+        continue-on-error: true
+        uses: ./.github/actions/get_deployed_git_ref
+        with:
+          kube-cert: ${{ secrets.KUBE_CERT }}
+          kube-token: ${{ secrets.KUBE_TOKEN }}
+          kube-cluster: ${{ secrets.KUBE_CLUSTER }}
+          kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
+          deployment: laa-data-claims-api
+          image-prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
 
       - name: Can I deploy Production?
         id: can_i_deploy_production
@@ -225,6 +305,19 @@ jobs:
           kube-namespace: ${{ secrets.KUBE_NAMESPACE }}
           app-environment: production
           image-tag: ${{ needs.ecr-publish-image.outputs.published_image_version }}
+
+      # Runs only once "Deploy production" above has succeeded, using the ref
+      # captured before deployment as the "from" side of the diff. Never
+      # blocks the pipeline - this is a nicety, not a deployment requirement.
+      - name: Notify Slack of Production update
+        continue-on-error: true
+        uses: ./.github/actions/release_diff_notify
+        with:
+          from-ref: ${{ steps.production_deployed.outputs.git-ref }}
+          to-ref: ${{ github.sha }}
+          environment-name: Production
+          to-label: "v${{ needs.release.outputs.published_artifact_version }}"
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Record production deployment to pact broker
         id: record_production_deployment
