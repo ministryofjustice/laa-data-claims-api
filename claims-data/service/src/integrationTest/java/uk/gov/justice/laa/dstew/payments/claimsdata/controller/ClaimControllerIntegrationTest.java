@@ -1821,7 +1821,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1869,7 +1869,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       // Act: call the void endpoint
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1909,7 +1909,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_1_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1942,7 +1942,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       // Act: attempt to void (expected 400)
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_1_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1975,9 +1975,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(
-                      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
-                      Uuid7.timeBasedUuid())
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, Uuid7.timeBasedUuid())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -1992,7 +1990,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2012,7 +2010,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
@@ -2041,7 +2039,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2080,7 +2078,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2120,7 +2118,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2150,7 +2148,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2182,7 +2180,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2215,7 +2213,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))

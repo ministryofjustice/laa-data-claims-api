@@ -7,6 +7,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.VOID_CLAIM_URI;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentPost;
 
 import java.util.UUID;
@@ -95,7 +96,7 @@ class AssessmentAndClaimAuditFieldsIntegrationTest extends AbstractAmendmentPatc
     MvcResult result =
         mockMvc
             .perform(
-                post(API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+                post(VOID_CLAIM_URI, CLAIM_1_ID)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(voidRequest)))
