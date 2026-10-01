@@ -53,6 +53,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentType;
@@ -89,6 +90,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String GET_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
+
+  private static final String GET_A_CLAIM_ENDPOINT_V2 =
+      "/api/v2/submissions/{submissionId}/claims/{claimId}";
 
   private static final String POST_A_CLAIM_ENDPOINT =
       ClaimsDataTestUtil.API_URI_PREFIX + "/submissions/{submissionId}/claims";
@@ -167,6 +171,130 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(feeCalculationResponse.getBoltOnDetails()).isNotNull();
     assertThat(feeCalculationResponse.getBoltOnDetails().getBoltOnTotalFeeAmount())
         .isEqualByComparingTo("12");
+  }
+
+  @Test
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - returns complete Inquest information")
+  void shouldReturnCompleteInquestInformationV1() throws Exception {
+    createInquestDetailTestData();
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponse response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponse.class);
+
+    assertCompleteInquestInformation(response.getInquestDetail());
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "GET v2/submissions/{submissionId}/claims/{claimId} - returns complete Inquest information")
+  void shouldReturnCompleteInquestInformationV2() throws Exception {
+    createInquestDetailTestData();
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT_V2, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponseV2 response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponseV2.class);
+
+    assertCompleteInquestInformation(response.getInquestDetail());
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - returns empty Inquest information when"
+          + " none is stored")
+  void shouldReturnEmptyInquestInformationV1() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_2_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponse response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponse.class);
+
+    assertEmptyInquestInformation(response.getInquestDetail());
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "GET v2/submissions/{submissionId}/claims/{claimId} - returns empty Inquest information when"
+          + " none is stored")
+  void shouldReturnEmptyInquestInformationV2() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT_V2, SUBMISSION_1_ID, CLAIM_2_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponseV2 response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponseV2.class);
+
+    assertEmptyInquestInformation(response.getInquestDetail());
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "GET v1/submissions/{submissionId}/claims/{claimId} - returns a null coroner's reference when"
+          + " it is not stored")
+  void shouldReturnNullCoronersReferenceV1() throws Exception {
+    createInquestDetailWithoutCoronersReference();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponse response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponse.class);
+
+    assertThat(response.getInquestDetail().getDeceasedForename()).isEqualTo("Jane");
+    assertThat(response.getInquestDetail().getCoronersInquestReference()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "GET v2/submissions/{submissionId}/claims/{claimId} - returns a null coroner's reference when"
+          + " it is not stored")
+  void shouldReturnNullCoronersReferenceV2() throws Exception {
+    createInquestDetailWithoutCoronersReference();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT_V2, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResponseV2 response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponseV2.class);
+
+    assertThat(response.getInquestDetail().getDeceasedForename()).isEqualTo("Jane");
+    assertThat(response.getInquestDetail().getCoronersInquestReference()).isNull();
   }
 
   @Test
@@ -2597,5 +2725,78 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     claimRepository.flush();
     return ids;
+  }
+
+  private void createInquestDetailTestData() {
+    var client = clientRepository.findByClaimId(CLAIM_1_ID).orElseThrow();
+    client.setIsMeansTested(false);
+    clientRepository.saveAndFlush(client);
+
+    inquestDetailRepository.saveAndFlush(
+        InquestDetail.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .deceasedForename("Jane")
+            .deceasedSurname("Doe")
+            .deceasedDateOfDeath(LocalDate.of(2026, 3, 5))
+            .coronersInquestReference("INQ-123")
+            .createdByUserId(API_USER_ID)
+            .build());
+
+    var dept1 = saveGovernmentDepartment("DEPT1", MINISTRY_OF_JUSTICE);
+    var dept2 = saveGovernmentDepartment("DEPT2", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    claimInterestedDepartmentRepository.saveAllAndFlush(
+        List.of(
+            getInterestedDepartment(dept1, 1),
+            getInterestedDepartment(dept1, 2),
+            getInterestedDepartment(dept2, 3)));
+
+    calculatedFeeDetail1.setIsInquest(true);
+    calculatedFeeDetailRepository.saveAndFlush(calculatedFeeDetail1);
+  }
+
+  private void createInquestDetailWithoutCoronersReference() {
+    inquestDetailRepository.saveAndFlush(
+        InquestDetail.builder()
+            .id(Uuid7.timeBasedUuid())
+            .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+            .deceasedForename("Jane")
+            .deceasedSurname("Doe")
+            .deceasedDateOfDeath(LocalDate.of(2026, 3, 5))
+            .createdByUserId(API_USER_ID)
+            .build());
+  }
+
+  private void assertCompleteInquestInformation(ClaimInquestDetail inquestDetail) {
+    assertThat(inquestDetail).isNotNull();
+    assertThat(inquestDetail.getIsClientMeansTested()).isFalse();
+    assertThat(inquestDetail.getDeceasedForename()).isEqualTo("Jane");
+    assertThat(inquestDetail.getDeceasedSurname()).isEqualTo("Doe");
+    assertThat(inquestDetail.getDeceasedDateOfDeath()).isEqualTo("05/03/2026");
+    assertThat(inquestDetail.getCoronersInquestReference()).isEqualTo("INQ-123");
+    assertThat(inquestDetail.getInterestedDepartments())
+        .containsExactly(
+            MINISTRY_OF_JUSTICE, MINISTRY_OF_JUSTICE, DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+  }
+
+  private void assertEmptyInquestInformation(ClaimInquestDetail inquestDetail) {
+    assertThat(inquestDetail).isNotNull();
+    assertThat(inquestDetail.getIsClientMeansTested()).isNull();
+    assertThat(inquestDetail.getDeceasedForename()).isNull();
+    assertThat(inquestDetail.getDeceasedSurname()).isNull();
+    assertThat(inquestDetail.getDeceasedDateOfDeath()).isNull();
+    assertThat(inquestDetail.getCoronersInquestReference()).isNull();
+    assertThat(inquestDetail.getInterestedDepartments()).isEmpty();
+  }
+
+  private ClaimInterestedDepartment getInterestedDepartment(
+      GovernmentDepartmentRef governmentDepartment, int displayOrder) {
+    return ClaimInterestedDepartment.builder()
+        .id(Uuid7.timeBasedUuid())
+        .claim(claimRepository.getReferenceById(CLAIM_1_ID))
+        .governmentDepartment(governmentDepartment)
+        .displayOrder(displayOrder)
+        .createdByUserId(API_USER_ID)
+        .build();
   }
 }

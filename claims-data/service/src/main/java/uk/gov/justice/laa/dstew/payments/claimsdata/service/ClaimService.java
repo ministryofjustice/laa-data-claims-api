@@ -247,6 +247,7 @@ public class ClaimService
         .findByClaimId(claimId)
         .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
 
+    response.setInquestDetail(getClaimInquestDetail(claimId));
     return response;
   }
 
@@ -260,7 +261,30 @@ public class ClaimService
   @Transactional(readOnly = true)
   public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
     Claim claim = requireClaim(submissionId, claimId);
-    return claimMapper.toClaimResponseV2(claim);
+    ClaimResponseV2 response = claimMapper.toClaimResponseV2(claim);
+    response.setInquestDetail(getClaimInquestDetail(claimId));
+    return response;
+  }
+
+  private ClaimInquestDetail getClaimInquestDetail(UUID claimId) {
+    ClaimInquestDetail claimInquestDetail =
+        inquestDetailRepository
+            .findByClaimId(claimId)
+            .map(inquestDetailMapper::toClaimInquestDetail)
+            .orElseGet(ClaimInquestDetail::new);
+
+    clientRepository
+        .findByClaimId(claimId)
+        .ifPresent(client -> claimInquestDetail.setIsClientMeansTested(client.getIsMeansTested()));
+
+    List<String> departments =
+        claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId).stream()
+            .map(ClaimInterestedDepartment::getGovernmentDepartment)
+            .map(GovernmentDepartmentRef::getDisplayLabel)
+            .toList();
+    claimInquestDetail.setInterestedDepartments(departments);
+
+    return claimInquestDetail;
   }
 
   /**
