@@ -951,6 +951,8 @@ paths:
         Returns only VALID status claims with minimal retention-relevant fields for data governance.
         No PII is included in the response.
         Results are paginated using zero-based page index and page size (defaults: page=0, size=20).
+        Results always use the fixed order updated_on descending, then claim_id ascending.
+        Caller-provided sort criteria are ignored.
       parameters:
         - name: office_code
           in: query
@@ -978,17 +980,38 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/claim_retention_lookup_result_set'
+                $ref: './schemas/claim-retention-lookup.yml#/claim_retention_lookup_result_set'
         '400':
           description: 'Bad request'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
         '401':
           description: 'Unauthorized'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
         '403':
           description: 'Forbidden'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
         '429':
           description: 'Too many requests'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Too many requests
         '500':
           description: 'Internal server error'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
 
   /api/v2/submissions/{submission-id}/claims/{claim-id}:
     get:
@@ -2453,72 +2476,3 @@ components:
           type: 'integer'
         size:
           type: 'integer'
-    claim_retention_lookup_response:
-      type: 'object'
-      description: |
-        Response containing a list of VALID claims matching the office_code and UFN.
-        Returns only retention-relevant minimal fields with no PII.
-        Returns empty array if no VALID claims match the composite key.
-      properties:
-        claims:
-          type: 'array'
-          description: |
-            List of VALID status claims. Each claim contains minimal retention-relevant fields.
-            Sorted by updated_on in descending order (most recent first).
-            Empty array if no claims match the office_code and ufn composite key.
-          items:
-            $ref: '#/components/schemas/claim_retention_lookup_claim_detail'
-      required:
-        - claims
-    claim_retention_lookup_result_set:
-      allOf:
-        - $ref: '#/components/schemas/page'
-      type: 'object'
-      description: |
-        Paginated response containing VALID claims matching the office_code and UFN composite key.
-        Includes pagination metadata (total_pages, total_elements, number, size).
-        Returns empty content array if no VALID claims match the composite key or requested page.
-      properties:
-        content:
-          type: 'array'
-          description: |
-            List of VALID status claims. Each claim contains minimal retention-relevant fields.
-            Sorted by updated_on in descending order (most recent first).
-            Empty array if no claims match the office_code and ufn composite key or requested page.
-          items:
-            $ref: '#/components/schemas/claim_retention_lookup_claim_detail'
-    claim_retention_lookup_claim_detail:
-      type: 'object'
-      description: |
-        Minimal claim detail for retention lookup. Contains only retention-relevant fields with no PII.
-        Timestamps use ISO 8601 UTC format.
-      properties:
-        claim_id:
-          type: 'string'
-          format: uuid
-          description: |
-            Unique identifier for the claim (system-generated UUID).
-        status:
-          type: 'string'
-          enum:
-            - VALID
-          description: |
-            Claim status. Only VALID status claims are returned by this endpoint.
-        created_on:
-          type: 'string'
-          format: 'date-time'
-          description: |
-            Timestamp when the claim was initially created (submitted).
-            Format: ISO 8601 UTC (e.g., 2026-09-28T14:14:05Z).
-        updated_on:
-          type: 'string'
-          format: 'date-time'
-          description: |
-            Timestamp of the most recent update (status change, amendment, or repricing).
-            This is the decision timestamp for retention policy calculations.
-            Format: ISO 8601 UTC (e.g., 2026-09-28T14:14:05Z).
-      required:
-        - claim_id
-        - status
-        - created_on
-        - updated_on
