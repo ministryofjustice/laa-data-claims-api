@@ -13,23 +13,25 @@ class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrati
   private static final String DEPARTMENT_LABEL = "Ministry of Justice";
 
   @Test
-  @DisplayName("findByDisplayLabel returns the department whose full name matches")
-  void findByDisplayLabelReturnsMatchingDepartment() {
+  @DisplayName("findByDisplayLabelIgnoreCase returns the department regardless of name casing")
+  void findByDisplayLabelIgnoreCaseReturnsMatchingDepartment() {
     GovernmentDepartmentRef saved = saveDepartment(DEPARTMENT_LABEL);
 
-    var result = governmentDepartmentRefRepository.findByDisplayLabel(DEPARTMENT_LABEL);
+    var result =
+        governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("mInIsTrY oF jUsTiCe");
 
     assertThat(result).isPresent();
     assertThat(result.get().getId()).isEqualTo(saved.getId());
   }
 
   @Test
-  @DisplayName("findByDisplayLabel returns empty when no department has that full name")
-  void findByDisplayLabelReturnsEmptyWhenNoMatch() {
+  @DisplayName("findByDisplayLabelIgnoreCase returns empty when no department has that full name")
+  void findByDisplayLabelIgnoreCaseReturnsEmptyWhenNoMatch() {
     saveDepartment(DEPARTMENT_LABEL);
 
     var result =
-        governmentDepartmentRefRepository.findByDisplayLabel("Department That Does Not Exist");
+        governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase(
+            "Department That Does Not Exist");
 
     assertThat(result).isEmpty();
   }

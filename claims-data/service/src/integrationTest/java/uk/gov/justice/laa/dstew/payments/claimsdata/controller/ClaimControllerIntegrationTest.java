@@ -356,7 +356,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName(
       "POST v1/submissions/{submissionId}/claims - persists one interested department row per"
-          + " occurrence, in supplied order, including repeats")
+          + " occurrence, in supplied order, including repeats and case-insensitive names")
   void shouldPersistInterestedDepartmentsInSuppliedOrderIncludingRepeats() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
     var moj = saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
@@ -367,9 +367,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 new ClaimInquestDetail()
                     .interestedDepartments(
                         List.of(
-                            MINISTRY_OF_JUSTICE,
-                            MINISTRY_OF_JUSTICE,
-                            DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE)));
+                            "ministry of justice",
+                            " MINISTRY OF JUSTICE ",
+                            "department for health and social care")));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 

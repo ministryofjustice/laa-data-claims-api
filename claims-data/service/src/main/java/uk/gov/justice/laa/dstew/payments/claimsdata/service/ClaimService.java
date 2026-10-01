@@ -208,7 +208,7 @@ public class ClaimService
       }
       GovernmentDepartmentRef governmentDepartment =
           governmentDepartmentRefRepository
-              .findByDisplayLabel(departmentName.trim())
+              .findByDisplayLabelIgnoreCase(departmentName.trim())
               .orElseThrow(
                   () ->
                       new ClaimBadRequestException(

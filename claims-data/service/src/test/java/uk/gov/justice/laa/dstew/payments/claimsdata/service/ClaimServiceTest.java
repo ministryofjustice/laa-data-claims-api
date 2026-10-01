@@ -299,9 +299,9 @@ class ClaimServiceTest {
         GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
     final GovernmentDepartmentRef dhsc =
         GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
-    when(governmentDepartmentRefRepository.findByDisplayLabel("Ministry of Justice"))
+    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Ministry of Justice"))
         .thenReturn(Optional.of(moj));
-    when(governmentDepartmentRefRepository.findByDisplayLabel(
+    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase(
             "Department for Health and Social Care"))
         .thenReturn(Optional.of(dhsc));
 
@@ -335,7 +335,7 @@ class ClaimServiceTest {
 
     claimService.createClaim(submissionId, post);
 
-    verify(governmentDepartmentRefRepository, never()).findByDisplayLabel(any());
+    verify(governmentDepartmentRefRepository, never()).findByDisplayLabelIgnoreCase(any());
     verify(claimInterestedDepartmentRepository, never()).save(any());
   }
 
@@ -355,7 +355,7 @@ class ClaimServiceTest {
             .inquestDetail(
                 new ClaimInquestDetail().interestedDepartments(List.of("Unknown Department")));
     stubCreateClaimDependencies(submissionId, post);
-    when(governmentDepartmentRefRepository.findByDisplayLabel("Unknown Department"))
+    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Unknown Department"))
         .thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> claimService.createClaim(submissionId, post))

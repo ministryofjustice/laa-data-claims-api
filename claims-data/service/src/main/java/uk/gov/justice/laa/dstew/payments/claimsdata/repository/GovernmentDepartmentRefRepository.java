@@ -14,5 +14,5 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentR
 public interface GovernmentDepartmentRefRepository
     extends JpaRepository<GovernmentDepartmentRef, UUID> {
 
-  Optional<GovernmentDepartmentRef> findByDisplayLabel(String displayLabel);
+  Optional<GovernmentDepartmentRef> findByDisplayLabelIgnoreCase(String displayLabel);
 }
