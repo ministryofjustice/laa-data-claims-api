@@ -3,405 +3,341 @@ provider: submissionClaimsLegalHelpProvider
 packageName: uk.gov.justice.laa.dstew.payments.claimsdata.export.generated
 sql: |
   select
-       s.office_account_number                               as officeAccountNumber,
-       s.submission_period                                   as submissionPeriod,
-       s.area_of_law                                         as areaOfLaw,
-       s.legal_help_submission_reference                     as scheduleNum,
-       c.fee_code                                            as feeCode,
-       c.schedule_reference                                  as scheduleReference,
-       c.case_reference_number                               as caseReferenceNumber,
-       c.case_start_date                                     as caseStartDate,
-       claim_case.case_id                                    as caseId,
-       c.unique_file_number                                  as ufn,
-       c.status                                              as claimStatus,
-       c.procurement_area_code                               as procurementArea,
-       c.access_point_code                                   as accessPoint,
-       c.delivery_location                                   as deliveryLocation,
-       client.client_forename                                as clientForename,
-       client.client_surname                                 as clientSurname,
-       client.client_date_of_birth                           as clientDateOfBirth,
-       client.unique_client_number                           as clientUcn,
-       client.home_office_client_number                      as homeOfficeClientNumber,
-       client.cla_reference_number                           as claReferenceNumber,
-       client.cla_exemption_code                             as claExemptionCode,
-       client.gender_code                                    as gender,
-       client.ethnicity_code                                 as ethnicity,
-       client.disability_code                                as disability,
-       client.client_postcode                                as clientPostcode,
-       c.case_concluded_date                                 as caseConcludedDate,
-       c.matter_type_code                                    as matterType,
-       claim_case.case_stage_code                            as caseStageLevel,
-       csf.advice_time                                       as adviceTime,
-       csf.travel_time                                       as travelTime,
-       csf.waiting_time                                      as waitingTime,
-       csf.net_profit_costs_amount                           as netProfitCostsAmount,
-       csf.net_disbursement_amount                           as netDisbursementAmount,
-       csf.net_counsel_costs_amount                          as netCounselCostsAmount,
-       csf.disbursements_vat_amount                          as disbursementsVatAmount,
-       csf.travel_waiting_costs_amount                       as travelWaitingCostsAmount,
-       csf.is_vat_applicable                                 as vatIndicator,
-       csf.is_tolerance_applicable                           as toleranceIndicator,
-       claim_case.is_legacy_case                             as legacyCase,
-       csf.prior_authority_reference                         as priorAuthorityReference,
-       csf.is_london_rate                                    as londonRate,
-       csf.adjourned_hearing_fee_amount                      as adjournedHearingFeeAmount,
-       csf.is_additional_travel_payment                      as additionalTravelPayment,
-       csf.costs_damages_recovered_amount                    as costsDamagesRecoveredAmount,
-       csf.meetings_attended_code                            as meetingsAttendedCode,
-       csf.detention_travel_waiting_costs_amount             as detentionTravelWaitingCostsAmount,
-       csf.jr_form_filling_amount                            as jrFormFillingAmount,
-       csf.is_eligible_client                                as eligibleClient,
-       csf.court_location_code                               as courtLocationCode,
-       csf.cmrh_oral_count                                   as cmrhOralCount,
-       csf.cmrh_telephone_count                              as cmrhTelephoneCount,
-       csf.ait_hearing_centre_code                           as aitHearingCentreCode,
-       csf.is_substantive_hearing                            as substantiveHearing,
-       csf.ho_interview                                      as hoInterview,
-       csf.local_authority_number                            as localAuthorityNumber,
-       client.client_type_code                               as clientType,
-       claim_case.stage_reached_code                         as stageReached,
-       claim_case.outcome_code                               as outcomeCode,
-       csf.advice_type_code                                  as adviceType,
-       csf.medical_reports_count                             as medicalReportsCount,
-       claim_case.transfer_date                              as transferDate,
-       claim_case.exemption_criteria_satisfied               as exemptionCriteriaSatisfied,
-       csf.is_irc_surgery                                    as ircSurgery,
-       csf.surgery_date                                      as surgeryDate,
-       csf.surgery_clients_count                             as surgeryClientsCount,
-       csf.surgery_matters_count                             as surgeryMattersCount,
-       claim_case.designated_accredited_representative_code  as designatedAccreditedRepresentative,
-       claim_case.is_postal_application_accepted             as postalApplicationAccepted,
-       claim_case.mental_health_tribunal_reference           as mentalHealthTribunalReference,
-       claim_case.exceptional_case_funding_reference         as exceptionalCaseFundingReference,
-       claim_case.is_nrm_advice                              as nrmAdvice,
-       claim_case.follow_on_work                             as followOnWork,
-       cfd.fee_type                                          as feeDetailFeeType,
-       cfd.category_of_law                                   as feeDetailCategoryOfLaw,
-       cfd.total_amount                                      as feeDetailTotalAmount,
-       cfd.vat_indicator                                     as feeDetailVatIndicator,
-       cfd.vat_rate_applied                                  as feeDetailVatRateApplied,
-       cfd.calculated_vat_amount                             as feeDetailCalculatedVatAmount,
-       cfd.disbursement_amount                               as feeDetailDisbursementAmount,
-       cfd.requested_net_disbursement_amount                 as feeDetailRequestedNetDisbursementAmount,
-       cfd.disbursement_vat_amount                           as feeDetailDisbursementVatAmount,
-       cfd.hourly_total_amount                               as feeDetailHourlyTotalAmount,
-       cfd.fixed_fee_amount                                  as feeDetailFixedFeeAmount,
-       cfd.net_profit_costs_amount                           as feeDetailNetProfitCostsAmount,
-       cfd.requested_net_profit_costs_amount                 as feeDetailRequestedNetProfitCostsAmount,
-       cfd.net_cost_of_counsel_amount                        as feeDetailNetCostOfCounselAmount,
-       cfd.net_travel_costs_amount                           as feeDetailNetTravelCostsAmount,
-       cfd.net_waiting_costs_amount                          as feeDetailNetWaitingCostsAmount,
-       cfd.detention_travel_and_waiting_costs_amount         as feeDetailDetentionTravelAndWaitingCostsAmount,
-       cfd.jr_form_filling_amount                            as feeDetailJrFormFillingAmount,
-       cfd.travel_and_waiting_costs_amount                   as feeDetailTravelAndWaitingCostsAmount,
-       cfd.bolt_on_total_fee_amount                          as feeDetailBoltOnTotalFeeAmount,
-       cfd.bolt_on_adjourned_hearing_count                   as feeDetailBoltOnAdjournedHearingCount,
-       cfd.bolt_on_adjourned_hearing_fee                     as feeDetailBoltOnAdjournedHearingFee,
-       cfd.bolt_on_cmrh_telephone_count                      as feeDetailBoltOnCmrhTelephoneCount,
-       cfd.bolt_on_cmrh_telephone_fee                        as feeDetailBoltOnCmrhTelephoneFee,
-       cfd.bolt_on_cmrh_oral_count                           as feeDetailBoltOnCmrhOralCount,
-       cfd.bolt_on_cmrh_oral_fee                             as feeDetailBoltOnCmrhOralFee,
-       cfd.bolt_on_home_office_interview_count               as feeDetailBoltOnHomeOfficeInterviewCount,
-       cfd.bolt_on_home_office_interview_fee                 as feeDetailBoltOnHomeOfficeInterviewFee,
-       cfd.bolt_on_substantive_hearing_fee                   as feeDetailBoltOnSubstantiveHearingFee,
-       cfd.escape_case_flag                                  as feeDetailEscapeCaseFlag,
-       assess.assessment_outcome                              as assessmentOutcome,
-       assess.assessment_type                                 as assessmentType,
-       assess.assessment_reason                               as assessmentReason,
-       assess.created_on::date                                as assessmentDate,
-       assess.fixed_fee_amount                                as assessmentFixedFeeAmount,
-       assess.net_profit_costs_amount                         as assessmentNetProfitCostsAmount,
-       assess.disbursement_amount                             as assessmentDisbursementAmount,
-       assess.disbursement_vat_amount                         as assessmentDisbursementVatAmount,
-       assess.net_cost_of_counsel_amount                      as assessmentNetCostOfCounselAmount,
-       assess.net_travel_costs_amount                         as assessmentNetTravelCostsAmount,
-       assess.net_waiting_costs_amount                        as assessmentNetWaitingCostsAmount,
-       assess.detention_travel_and_waiting_costs_amount       as assessmentDetentionTravelAndWaitingCostsAmount,
-       assess.jr_form_filling_amount                          as assessmentJrFormFillingAmount,
-       assess.is_vat_applicable                               as assessmentVatIndicator,
-       assess.assessed_total_vat                              as assessmentTotalVat,
-       assess.assessed_total_incl_vat                         as assessmentTotalIncVat,
-       coalesce(round(assess.allowed_total_vat::numeric, 2),
-                round(cfd.calculated_vat_amount::numeric, 2)) as finalClaimValueVat,
-       coalesce(round(assess.allowed_total_incl_vat::numeric, 2),
-                round(cfd.total_amount::numeric, 2))          as finalClaimValue
+       -- Claim identifiers
+       concat_ws(' ', client.client_forename, client.client_surname) as clientName,
+       c.unique_file_number                                          as ufn,
+       c.fee_code                                                    as feeCode,
+       split_part(c.matter_type_code, ':', 1)                        as matterType1,
+       split_part(c.matter_type_code, ':', 2)                        as matterType2,
+       c.case_start_date                                             as caseStartDate,
+       c.case_concluded_date                                         as caseConcludedDate,
+  
+       -- Reported
+       case latest_calculated.escape_case_flag
+           when true then 'Yes'
+           when false then 'No'
+       end                                       as feeDetailEscapeCaseFlag,
+       csf.net_profit_costs_amount               as netProfitCostsAmount,
+       csf.net_disbursement_amount               as netDisbursementAmount,
+       csf.disbursements_vat_amount              as disbursementsVatAmount,
+       csf.net_counsel_costs_amount              as netCounselCostsAmount,
+       csf.travel_waiting_costs_amount           as travelWaitingCostsAmount,
+       csf.detention_travel_waiting_costs_amount as detentionTravelWaitingCostsAmount,
+       csf.jr_form_filling_amount                as jrFormFillingAmount,
+       csf.adjourned_hearing_fee_amount          as adjournedHearingFeeAmount,
+       csf.cmrh_telephone_count                  as cmrhTelephoneCount,
+       csf.cmrh_oral_count                       as cmrhOralCount,
+       case csf.is_london_rate
+           when true then 'Yes'
+           when false then 'No'
+       end                                       as londonRate,
+       csf.ho_interview                          as hoInterview,
+       case csf.is_substantive_hearing
+           when true then 'Yes'
+           when false then 'No'
+       end                                       as substantiveHearing,
+       csf.prior_authority_reference             as priorAuthorityReference,
+       case csf.is_vat_applicable
+           when true then 'Yes'
+           when false then 'No'
+       end                                       as vatIndicator,
+  
+       -- Initial calculated
+       initial_calculated.fixed_fee_amount                          as initialCalculatedFixedFeeAmount,
+       initial_calculated.hourly_total_amount                       as initialCalculatedHourlyTotalAmount,
+       initial_calculated.net_profit_costs_amount                   as initialCalculatedNetProfitCostsAmount,
+       initial_calculated.disbursement_amount                       as initialCalculatedNetDisbursementAmount,
+       initial_calculated.disbursement_vat_amount                   as initialCalculatedDisbursementsVatAmount,
+       initial_calculated.net_cost_of_counsel_amount                as initialCalculatedNetCostOfCounselAmount,
+       initial_calculated.travel_and_waiting_costs_amount           as initialCalculatedTravelAndWaitingCostsAmount,
+       initial_calculated.detention_travel_and_waiting_costs_amount as initialCalculatedDetentionTravelAndWaitingCostsAmount,
+       initial_calculated.jr_form_filling_amount                    as initialCalculatedJrFormFillingAmount,
+       initial_calculated.bolt_on_adjourned_hearing_fee             as initialCalculatedAdjournedHearingFeeAmount,
+       initial_calculated.bolt_on_cmrh_telephone_fee                as initialCalculatedBoltOnCmrhTelephoneFee,
+       initial_calculated.bolt_on_cmrh_oral_fee                     as initialCalculatedBoltOnCmrhOralFee,
+       initial_calculated.bolt_on_home_office_interview_fee         as initialCalculatedBoltOnHomeOfficeInterviewFee,
+       initial_calculated.bolt_on_substantive_hearing_fee           as initialCalculatedBoltOnSubstantiveHearingFee,
+  
+       -- Current calculated
+       coalesce(latest_assessment.fixed_fee_amount,
+                latest_calculated.fixed_fee_amount)                          as currentCalculatedFixedFeeAmount,
+       latest_calculated.hourly_total_amount                                 as currentCalculatedHourlyTotalAmount,
+       coalesce(latest_assessment.net_profit_costs_amount,
+                latest_calculated.net_profit_costs_amount)                   as currentCalculatedNetProfitCostsAmount,
+       coalesce(latest_assessment.disbursement_amount,
+                latest_calculated.disbursement_amount)                       as currentCalculatedNetDisbursementAmount,
+       coalesce(latest_assessment.disbursement_vat_amount,
+                latest_calculated.disbursement_vat_amount)                   as currentCalculatedDisbursementsVatAmount,
+       coalesce(latest_assessment.net_cost_of_counsel_amount,
+                latest_calculated.net_cost_of_counsel_amount)                as currentCalculatedNetCostOfCounselAmount,
+       latest_calculated.travel_and_waiting_costs_amount                     as currentCalculatedTravelAndWaitingCostsAmount,
+       coalesce(latest_assessment.detention_travel_and_waiting_costs_amount,
+                latest_calculated.detention_travel_and_waiting_costs_amount) as currentCalculatedDetentionTravelAndWaitingCostsAmount,
+       coalesce(latest_assessment.jr_form_filling_amount,
+                latest_calculated.jr_form_filling_amount)                    as currentCalculatedJrFormFillingAmount,
+       latest_calculated.bolt_on_adjourned_hearing_fee                       as currentCalculatedAdjournedHearingFeeAmount,
+       latest_calculated.bolt_on_cmrh_telephone_fee                          as currentCalculatedBoltOnCmrhTelephoneFee,
+       latest_calculated.bolt_on_cmrh_oral_fee                               as currentCalculatedBoltOnCmrhOralFee,
+       latest_calculated.bolt_on_home_office_interview_fee                   as currentCalculatedBoltOnHomeOfficeInterviewFee,
+       latest_calculated.bolt_on_substantive_hearing_fee                     as currentCalculatedBoltOnSubstantiveHearingFee,
+  
+       -- Total allowed values
+       round(initial_calculated.total_amount::numeric, 2)                   as initialClaimValue,
+       round(initial_calculated.calculated_vat_amount::numeric, 2)          as initialClaimValueVat,
+       coalesce(round(latest_assessment.allowed_total_incl_vat::numeric, 2),
+                round(latest_calculated.total_amount::numeric, 2))          as currentClaimValue,
+       coalesce(round(latest_assessment.allowed_total_vat::numeric, 2),
+                round(latest_calculated.calculated_vat_amount::numeric, 2)) as currentClaimValueVat,
+  
+       -- Status
+       case
+           when c.status = 'VOID' then 'Voided'
+           when c.status = 'VALIDATED_PENDING_APPROVAL' then 'Not submitted'
+           when c.status = 'VALID' and latest_assessment.claim_id is not null then 'Assessed'
+           when c.status = 'VALID' and latest_amendment.claim_id is not null then 'Amended'
+           when c.status = 'VALID' then 'Accepted'
+       end as derivedStatus,
+  
+       -- Assessment details
+       case latest_assessment.assessment_outcome
+           when 'PAID_IN_FULL' then 'Assessed in full'
+           when 'REDUCED_STILL_ESCAPED' then 'Reduced (still escaped)'
+           when 'REDUCED_TO_FIXED_FEE' then 'Reduced to fixed fee (assessed)'
+           when 'NILLED' then 'Nilled'
+       end                                  as assessmentOutcome,
+       latest_assessment.created_on::date   as assessmentDate,
+  
+       -- Amendment details
+       latest_amendment.display_label    as amendmentRequestedBy,
+       latest_amendment.created_on::date as amendmentDate,
+  
+       -- Submission details
+       s.office_account_number as officeAccountNumber,
+       s.submission_period     as submissionPeriod,
+       case s.area_of_law
+           when 'LEGAL_HELP' then 'Legal help'
+           when 'CRIME_LOWER' then 'Crime lower'
+           when 'MEDIATION' then 'Mediation'
+       end                     as areaOfLaw,
+       s.created_on::date      as submissionDate
+  
   from claims.submission s
   join claims.claim c on c.submission_id = s.id
   left join claims.client client on client.claim_id = c.id
-  left join claims.claim_case claim_case on claim_case.claim_id = c.id
   left join claims.claim_summary_fee csf on csf.claim_id = c.id
-  left join claims.calculated_fee_detail cfd on cfd.claim_id = c.id
+  left join lateral (
+      select
+          cfd.fixed_fee_amount,
+          cfd.hourly_total_amount,
+          cfd.net_profit_costs_amount,
+          cfd.disbursement_amount,
+          cfd.disbursement_vat_amount,
+          cfd.net_cost_of_counsel_amount,
+          cfd.travel_and_waiting_costs_amount,
+          cfd.detention_travel_and_waiting_costs_amount,
+          cfd.jr_form_filling_amount,
+          cfd.bolt_on_adjourned_hearing_fee,
+          cfd.bolt_on_cmrh_telephone_fee,
+          cfd.bolt_on_cmrh_oral_fee,
+          cfd.bolt_on_home_office_interview_fee,
+          cfd.bolt_on_substantive_hearing_fee,
+          cfd.total_amount,
+          cfd.calculated_vat_amount
+      from claims.calculated_fee_detail cfd
+      where cfd.claim_id = c.id
+      order by cfd.created_on, cfd.id
+      limit 1
+      ) initial_calculated on true
+  left join lateral (
+      select
+          cfd.fixed_fee_amount,
+          cfd.hourly_total_amount,
+          cfd.net_profit_costs_amount,
+          cfd.disbursement_amount,
+          cfd.disbursement_vat_amount,
+          cfd.net_cost_of_counsel_amount,
+          cfd.travel_and_waiting_costs_amount,
+          cfd.detention_travel_and_waiting_costs_amount,
+          cfd.jr_form_filling_amount,
+          cfd.bolt_on_adjourned_hearing_fee,
+          cfd.bolt_on_cmrh_telephone_fee,
+          cfd.bolt_on_cmrh_oral_fee,
+          cfd.bolt_on_home_office_interview_fee,
+          cfd.bolt_on_substantive_hearing_fee,
+          cfd.total_amount,
+          cfd.calculated_vat_amount,
+          cfd.escape_case_flag
+      from claims.calculated_fee_detail cfd
+      where cfd.claim_id = c.id
+      order by cfd.created_on desc, cfd.id desc
+      limit 1
+      ) latest_calculated on true
   left join lateral (
       select
           a.claim_id,
           a.assessment_outcome,
-          a.assessment_type,
-          a.assessment_reason,
           a.created_on::date,
           a.fixed_fee_amount,
           a.net_profit_costs_amount,
           a.disbursement_amount,
           a.disbursement_vat_amount,
           a.net_cost_of_counsel_amount,
-          a.net_travel_costs_amount,
-          a.net_waiting_costs_amount,
           a.detention_travel_and_waiting_costs_amount,
           a.jr_form_filling_amount,
-          a.is_vat_applicable,
-          a.assessed_total_vat,
-          a.assessed_total_incl_vat,
           a.allowed_total_vat,
           a.allowed_total_incl_vat
       from claims.assessment a
-      where a.claim_id = c.id 
+      where a.claim_id = c.id
+        and c.status <> 'VOID'
       order by a.created_on desc, a.id desc
       limit 1
-      ) assess on true
+      ) latest_assessment on true
+  left join lateral (
+      select
+          am.claim_id,
+          requested_by.display_label,
+          am.created_on::date
+      from claims.claim_amendment am
+      join claims.requested_by_reference requested_by on requested_by.code = am.requested_by_code
+      where am.claim_id = c.id
+      order by am.created_on desc, am.id desc
+      limit 1
+      ) latest_amendment on true
   where s.id = :submissionId
+    and c.status in ('VALID', 'VOID', 'VALIDATED_PENDING_APPROVAL')
     and s.office_account_number = :office
     and s.area_of_law = 'LEGAL_HELP'
   limit :maxRows
 columns:
-  - key: officeAccountNumber
-    header: Providers LAA Office Number
-  - key: submissionPeriod
-    header: Submission Month
-  - key: areaOfLaw
-    header: Area of Law
-  - key: scheduleNum
-    header: Legal Help Submission Reference
-  - key: feeCode
-    header: Fee Code
-  - key: scheduleReference
-    header: Schedule Reference
-  - key: caseReferenceNumber
-    header: Case Reference Number
-  - key: caseStartDate
-    header: Case Start Date
-  - key: caseId
-    header: Case ID
+  - key: clientName
+    header: Client name
   - key: ufn
-    header: UFN
-  - key: claimStatus
-    header: Claim Status
-  - key: procurementArea
-    header: Procurement Area
-  - key: accessPoint
-    header: Access Point
-  - key: deliveryLocation
-    header: Delivery Location
-  - key: clientForename
-    header: Client Forename
-  - key: clientSurname
-    header: Client Surname
-  - key: clientDateOfBirth
-    header: Client Date of Birth
-  - key: clientUcn
-    header: UCN
-  - key: homeOfficeClientNumber
-    header: HO UCN
-  - key: claReferenceNumber
-    header: CLA Reference Number
-  - key: claExemptionCode
-    header: CLA Exemption Code
-  - key: gender
-    header: Gender
-  - key: ethnicity
-    header: Ethnicity
-  - key: disability
-    header: Disability
-  - key: clientPostcode
-    header: Client Postcode
+    header: Unique file number (UFN)
+  - key: feeCode
+    header: Fee code
+  - key: matterType1
+    header: Matter type 1
+  - key: matterType2
+    header: Matter type 2
+  - key: caseStartDate
+    header: Case start date
   - key: caseConcludedDate
-    header: Case Concluded Date/Case Claimed Date
-  - key: matterType
-    header: Matter Type (1:2)
-  - key: caseStageLevel
-    header: Case Stage/Level
-  - key: adviceTime
-    header: Advice Time
-  - key: travelTime
-    header: Travel Time
-  - key: waitingTime
-    header: Waiting Time
-  - key: netProfitCostsAmount
-    header: Net Profit Costs (Including Travel & Waiting / Excluding VAT)
-  - key: netDisbursementAmount
-    header: Net Disbursement Amount (Excluding VAT)
-  - key: netCounselCostsAmount
-    header: Net Cost of Counsel (Excluding VAT)
-  - key: disbursementsVatAmount
-    header: Disbursements VAT amount
-  - key: travelWaitingCostsAmount
-    header: Travel & Waiting Costs
-  - key: vatIndicator
-    header: VAT Indicator
-  - key: toleranceIndicator
-    header: Tolerance indicator
-  - key: legacyCase
-    header: Legacy Case
-  - key: priorAuthorityReference
-    header: NIAT Disbursement Prior Authority Number
-  - key: londonRate
-    header: London / Non London rate
-  - key: adjournedHearingFeeAmount
-    header: Adjourned Hearing Fee
-  - key: additionalTravelPayment
-    header: Additional Travel Payment
-  - key: costsDamagesRecoveredAmount
-    header: Value of Costs/Damages recovered
-  - key: meetingsAttendedCode
-    header: Meetings Attended?
-  - key: detentionTravelWaitingCostsAmount
-    header: Detention Travel & Waiting Costs (Excluding VAT)
-  - key: jrFormFillingAmount
-    header: JR / Form Filling (Excluding VAT)
-  - key: eligibleClient
-    header: Eligible Client
-  - key: courtLocationCode
-    header: Court Location (HPCDS)
-  - key: cmrhOralCount
-    header: CMRH Oral
-  - key: cmrhTelephoneCount
-    header: CMRH Telephone
-  - key: aitHearingCentreCode
-    header: AIT Hearing Centre
-  - key: substantiveHearing
-    header: Substantive hearing?
-  - key: hoInterview
-    header: HO Interview
-  - key: localAuthorityNumber
-    header: Local Authority number
-  - key: clientType
-    header: Client Type
-  - key: stageReached
-    header: Stage Reached
-  - key: outcomeCode
-    header: Outcome for client
-  - key: adviceType
-    header: Type of Advice
-  - key: transferDate
-    header: Transfer Date
-  - key: medicalReportsCount
-    header: Medical Reports Claimed
-  - key: exemptionCriteriaSatisfied
-    header: Exemption Criteria Satisfied
-  - key: ircSurgery
-    header: IRC Surgery
-  - key: surgeryDate
-    header: Surgery date
-  - key: surgeryClientsCount
-    header: No of clients seen at surgery
-  - key: surgeryMattersCount
-    header: No of clients resulting in a Legal Help matter opened
-  - key: designatedAccreditedRepresentative
-    header: Designated Accredited Representative
-  - key: postalApplicationAccepted
-    header: Postal Application Accepted
-  - key: mentalHealthTribunalReference
-    header: Mental Health Tribunal reference
-  - key: exceptionalCaseFundingReference
-    header: Exceptional Case Funding Reference
-  - key: nrmAdvice
-    header: NRM Advice
-  - key: followOnWork
-    header: Follow on work
-  - key: feeDetailFeeType
-    header: Calculated Fee Detail - Fee Type
-  - key: feeDetailCategoryOfLaw
-    header: Calculated Fee Detail - Category of Law
-  - key: feeDetailTotalAmount
-    header: Calculated Fee Detail - Total Amount
-  - key: feeDetailVatIndicator
-    header: Calculated Fee Detail - VAT Indicator
-  - key: feeDetailVatRateApplied
-    header: Calculated Fee Detail - VAT Rate Applied
-  - key: feeDetailCalculatedVatAmount
-    header: Calculated Fee Detail - Calculated VAT Amount
-  - key: feeDetailDisbursementAmount
-    header: Calculated Fee Detail - Disbursement Amount
-  - key: feeDetailRequestedNetDisbursementAmount
-    header: Calculated Fee Detail - Requested Net Disbursement Amount
-  - key: feeDetailDisbursementVatAmount
-    header: Calculated Fee Detail - Disbursement VAT Amount
-  - key: feeDetailHourlyTotalAmount
-    header: Calculated Fee Detail - Hourly Total Amount
-  - key: feeDetailFixedFeeAmount
-    header: Calculated Fee Detail - Fixed Fee Amount
-  - key: feeDetailNetProfitCostsAmount
-    header: Calculated Fee Detail - Net Profit Costs Amount
-  - key: feeDetailRequestedNetProfitCostsAmount
-    header: Calculated Fee Detail - Requested Net Profit Costs Amount
-  - key: feeDetailNetCostOfCounselAmount
-    header: Calculated Fee Detail - Net Cost Of Counsel Amount
-  - key: feeDetailNetTravelCostsAmount
-    header: Calculated Fee Detail - Net Travel Costs Amount
-  - key: feeDetailNetWaitingCostsAmount
-    header: Calculated Fee Detail - Net Waiting Costs Amount
-  - key: feeDetailDetentionTravelAndWaitingCostsAmount
-    header: Calculated Fee Detail - Detention Travel And Waiting Costs Amount
-  - key: feeDetailJrFormFillingAmount
-    header: Calculated Fee Detail - JR Form Filling Amount
-  - key: feeDetailTravelAndWaitingCostsAmount
-    header: Calculated Fee Detail - Travel And Waiting Costs Amount
-  - key: feeDetailBoltOnTotalFeeAmount
-    header: Calculated Fee Detail - Bolt On Total Fee Amount
-  - key: feeDetailBoltOnAdjournedHearingCount
-    header: Calculated Fee Detail - Bolt On Adjourned Hearing Count
-  - key: feeDetailBoltOnAdjournedHearingFee
-    header: Calculated Fee Detail - Bolt On Adjourned Hearing Fee
-  - key: feeDetailBoltOnCmrhTelephoneCount
-    header: Calculated Fee Detail - Bolt On CMRH Telephone Count
-  - key: feeDetailBoltOnCmrhTelephoneFee
-    header: Calculated Fee Detail - Bolt On CMRH Telephone Fee
-  - key: feeDetailBoltOnCmrhOralCount
-    header: Calculated Fee Detail - Bolt On CMRH Oral Count
-  - key: feeDetailBoltOnCmrhOralFee
-    header: Calculated Fee Detail - Bolt On CMRH Oral Fee
-  - key: feeDetailBoltOnHomeOfficeInterviewCount
-    header: Calculated Fee Detail - Bolt On Home Office Interview Count
-  - key: feeDetailBoltOnHomeOfficeInterviewFee
-    header: Calculated Fee Detail - Bolt On Home Office Interview Fee
-  - key: feeDetailBoltOnSubstantiveHearingFee
-    header: Calculated Fee Detail - Bolt On Substantive Hearing Fee
+    header: Case concluded/case claimed date
   - key: feeDetailEscapeCaseFlag
-    header: Calculated Fee Detail - Escape Case Flag
+    header: Escape case?
+  - key: netProfitCostsAmount
+    header: Reported net profit costs
+  - key: netDisbursementAmount
+    header: Reported net disbursements
+  - key: disbursementsVatAmount
+    header: VAT on reported disbursements
+  - key: netCounselCostsAmount
+    header: Reported net counsel costs
+  - key: travelWaitingCostsAmount
+    header: Reported travel and waiting costs
+  - key: detentionTravelWaitingCostsAmount
+    header: Reported detention travel and waiting costs
+  - key: jrFormFillingAmount
+    header: Reported judicial review form-filling costs
+  - key: adjournedHearingFeeAmount
+    header: Reported adjourned hearing fee?
+  - key: cmrhTelephoneCount
+    header: Reported case management review hearing (CMRH) telephone fee
+  - key: cmrhOralCount
+    header: Reported case management review hearing (CMRH) oral fee
+  - key: londonRate
+    header: London rate?
+  - key: hoInterview
+    header: Reported Home Office interview fee
+  - key: substantiveHearing
+    header: Reported substantive hearing fee?
+  - key: priorAuthorityReference
+    header: Immigration prior authority reference
+  - key: vatIndicator
+    header: VAT claimed?
+  - key: initialCalculatedFixedFeeAmount
+    header: Initial calculated fixed fee
+  - key: initialCalculatedHourlyTotalAmount
+    header: Initial calculated hourly rates total
+  - key: initialCalculatedNetProfitCostsAmount
+    header: Initial calculated net profit costs
+  - key: initialCalculatedNetDisbursementAmount
+    header: Initial calculated net disbursements
+  - key: initialCalculatedDisbursementsVatAmount
+    header: Initial calculated VAT on disbursements
+  - key: initialCalculatedNetCostOfCounselAmount
+    header: Initial calculated net counsel costs
+  - key: initialCalculatedTravelAndWaitingCostsAmount
+    header: Initial calculated travel and waiting costs
+  - key: initialCalculatedDetentionTravelAndWaitingCostsAmount
+    header: Initial calculated detention travel and waiting costs
+  - key: initialCalculatedJrFormFillingAmount
+    header: Initial calculated judicial review form-filling costs
+  - key: initialCalculatedAdjournedHearingFeeAmount
+    header: Initial calculated adjourned hearing fee
+  - key: initialCalculatedBoltOnCmrhTelephoneFee
+    header: Initial calculated case management review hearing (CMRH) telephone fee
+  - key: initialCalculatedBoltOnCmrhOralFee
+    header: Initial calculated case management review hearing (CMRH) oral fee
+  - key: initialCalculatedBoltOnHomeOfficeInterviewFee
+    header: Initial calculated Home Office interview fee
+  - key: initialCalculatedBoltOnSubstantiveHearingFee
+    header: Initial calculated substantive hearing fee?
+  - key: currentCalculatedFixedFeeAmount
+    header: Current calculated fixed fee
+  - key: currentCalculatedHourlyTotalAmount
+    header: Current calculated hourly rates total
+  - key: currentCalculatedNetProfitCostsAmount
+    header: Current calculated net profit costs
+  - key: currentCalculatedNetDisbursementAmount
+    header: Current calculated net disbursements
+  - key: currentCalculatedDisbursementsVatAmount
+    header: Current calculated VAT on disbursements
+  - key: currentCalculatedNetCostOfCounselAmount
+    header: Current calculated net counsel costs
+  - key: currentCalculatedTravelAndWaitingCostsAmount
+    header: Current calculated travel and waiting costs
+  - key: currentCalculatedDetentionTravelAndWaitingCostsAmount
+    header: Current calculated detention travel and waiting costs
+  - key: currentCalculatedJrFormFillingAmount
+    header: Current calculated judicial review form-filling costs
+  - key: currentCalculatedAdjournedHearingFeeAmount
+    header: Current calculated adjourned hearing fee
+  - key: currentCalculatedBoltOnCmrhTelephoneFee
+    header: Current calculated case management review hearing (CMRH) telephone fee
+  - key: currentCalculatedBoltOnCmrhOralFee
+    header: Current calculated case management review hearing (CMRH) oral fee
+  - key: currentCalculatedBoltOnHomeOfficeInterviewFee
+    header: Current calculated Home Office interview fee
+  - key: currentCalculatedBoltOnSubstantiveHearingFee
+    header: Current calculated substantive hearing fee?
+  - key: initialClaimValue
+    header: Initial total claim value (including VAT)
+  - key: initialClaimValueVat
+    header: VAT on initial claim
+  - key: currentClaimValue
+    header: Current total claim value (including VAT)
+  - key: currentClaimValueVat
+    header: VAT on current claim
+  - key: derivedStatus
+    header: Claim status
   - key: assessmentOutcome
-    header: Assessment - Outcome
-  - key: assessmentType
-    header: Assessment - Type
-  - key: assessmentReason
-    header: Assessment - Reason
+    header: Latest assessment outcome
   - key: assessmentDate
-    header: Assessment - Date
-  - key: assessmentFixedFeeAmount
-    header: Assessment - Fixed Fee Amount
-  - key: assessmentNetProfitCostsAmount
-    header: Assessment - Net Profit Costs Amount
-  - key: assessmentDisbursementAmount
-    header: Assessment - Disbursement Amount
-  - key: assessmentDisbursementVatAmount
-    header: Assessment - Disbursement VAT Amount
-  - key: assessmentNetCostOfCounselAmount
-    header: Assessment - Net Cost Of Counsel Amount
-  - key: assessmentNetTravelCostsAmount
-    header: Assessment - Net Travel Costs Amount
-  - key: assessmentNetWaitingCostsAmount
-    header: Assessment - Net Waiting Costs Amount
-  - key: assessmentDetentionTravelAndWaitingCostsAmount
-    header: Assessment - Detention Travel And Waiting Costs Amount
-  - key: assessmentJrFormFillingAmount
-    header: Assessment - JR Form Filling Amount
-  - key: assessmentVatIndicator
-    header: Assessment - VAT Indicator
-  - key: assessmentTotalVat
-    header: Assessment - Total VAT
-  - key: assessmentTotalIncVat
-    header: Assessment - Total Inc VAT
-  - key: finalClaimValueVat
-    header: Final Claim Value VAT
-  - key: finalClaimValue
-    header: Final Claim Value
+    header: Latest assessment date
+  - key: amendmentRequestedBy
+    header: Latest amendment requestor
+  - key: amendmentDate
+    header: Latest amendment date
+  - key: officeAccountNumber
+    header: Office account number
+  - key: submissionPeriod
+    header: Submission month
+  - key: areaOfLaw
+    header: Area of law
+  - key: submissionDate
+    header: Submission date
+
 params:
   - name: submissionId
     requestName: submission-id

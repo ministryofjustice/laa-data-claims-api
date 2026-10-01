@@ -2091,6 +2091,7 @@ components:
         - PUB
         - WB
         - DISC
+        - INQ
       description: |
         Category code assigned to a legal aid matter start.
     validation_message_base:
