@@ -190,11 +190,7 @@ public class ClaimService
     return claim.getId();
   }
 
-  /**
-   * Save one interested department row per supplied department name, in the order supplied.
-   * Repeated names are kept and blank names are skipped. An unknown name fails the whole claim
-   * creation with a 400.
-   */
+
   private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {
     ClaimInquestDetail claimInquestDetail = claimPost.getInquestDetail();
     if (claimInquestDetail == null || claimInquestDetail.getInterestedDepartments() == null) {
