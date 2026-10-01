@@ -49,7 +49,7 @@ jobs:
   build-and-test:
     needs: [ compute-snapshot-version ]
     if: startsWith(github.head_ref || github.ref_name, 'openapi/') == false
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@a7de9dca6657c896b4339c612a0014de51758791 # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -64,6 +64,7 @@ jobs:
       jacoco_coverage_report_path: 'claims-data/service/build/reports/jacoco'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      package_token: ${{ secrets.PHILS_PAT }}
 
   pact-test:
     needs: [ build-and-test ]
