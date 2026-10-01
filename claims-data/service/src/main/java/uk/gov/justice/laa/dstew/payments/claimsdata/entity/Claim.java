@@ -55,6 +55,14 @@ public class Claim {
   @OneToOne(mappedBy = "claim")
   private Client client;
 
+  @OneToOne(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
+  private InquestDetail inquestDetail;
+
+  @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("displayOrder ASC")
+  @Builder.Default
+  private List<ClaimInterestedDepartment> interestedDepartments = new ArrayList<>();
+
   @OneToMany(mappedBy = "claim")
   private List<ClaimSummaryFee> claimSummaryFee;
 

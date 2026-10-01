@@ -636,16 +636,19 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             new Object[] {
               3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
             },
-            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
-            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
             new Object[] {
-              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+              4, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.INQ, null, 19
+            },
+            new Object[] {5, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
+            new Object[] {6, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
+            new Object[] {
+              7, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
             },
             new Object[] {
-              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+              8, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
             },
-            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
-            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
+            new Object[] {9, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
+            new Object[] {10, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
         .forEach(
             params ->
                 verifyBulkSubmissionMatterStart(
