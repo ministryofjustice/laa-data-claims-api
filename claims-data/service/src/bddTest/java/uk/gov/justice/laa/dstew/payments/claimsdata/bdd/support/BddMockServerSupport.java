@@ -166,6 +166,23 @@ public class BddMockServerSupport {
     client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
   }
 
+  /**
+   * Overrides the FSP fee-calculation stub to return the happy-path 200 body only after the given
+   * delay. Clears the default expectation first so this becomes the only fee-calculation match,
+   * regardless of registration order — the FSP analogue of {@link
+   * #stubProviderSchedulesWithDelay(Duration)}, used to prove a slow-but-successful FSP leg still
+   * completes rather than being aborted by a fabricated Claims-API response-time limit.
+   */
+  public void stubAmendmentFspCalculationWithDelay(Duration delay) throws IOException {
+    HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
+    client.clear(feeCalc, ClearType.EXPECTATIONS);
+    client
+        .when(feeCalc)
+        .respond(
+            okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json"))
+                .withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
   /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
   public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
     client.verify(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);

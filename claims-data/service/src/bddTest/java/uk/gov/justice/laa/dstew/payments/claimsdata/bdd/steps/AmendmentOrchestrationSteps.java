@@ -101,10 +101,14 @@ public class AmendmentOrchestrationSteps {
   @Given(
       "an orchestration pricing amendment changes the fee code with slow-but-successful PDA and FSP")
   public void anOrchestrationPricingAmendmentSlow() throws IOException {
-    // A slow-but-within-budget PDA dependency still completes: proves no Claims-API hard limit.
+    // A slow-but-within-budget PDA AND FSP dependency still completes: proves no Claims-API hard
+    // response-time limit is imposed around either outbound leg of the pricing orchestration. Both
+    // the /schedules (PDA) and /fee-calculation (FSP) stubs are delayed-but-successful so the
+    // scenario would catch a fabricated time-limit abort on either leg.
     mock.stubFeeDetailsAreaOfLaw("LEGAL_HELP");
     mock.stubProviderSchedulesWithDelay(SLOW_BUT_OK);
     mock.stubAmendmentFspOk();
+    mock.stubAmendmentFspCalculationWithDelay(SLOW_BUT_OK);
     patch.put("fee_code", WIRE_FEE_CODE);
     publish();
   }
@@ -174,17 +178,46 @@ public class AmendmentOrchestrationSteps {
     if (!"client_surname".equals(field)) {
       throw new IllegalArgumentException("Unsupported persisted-field assertion: " + field);
     }
-    Client client =
-        clientRepository.findAll().stream()
-            .filter(
-                c ->
-                    c.getClaim() != null
-                        && sharedPatchContext.getClaimId().equals(c.getClaim().getId()))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("no Client row for amended claim"));
-    assertThat(client.getClientSurname())
+    assertThat(currentClient().getClientSurname())
         .as("amended client_surname must be persisted")
         .isEqualTo(expected);
+  }
+
+  @Then("the orchestration claim now has fee code {string}")
+  public void theOrchestrationClaimNowHasFeeCode(String expected) {
+    // The pricing write the happy-path scenario claims is saved atomically: the amended fee code
+    // must actually be persisted on the claim row, not merely accepted at the HTTP boundary.
+    Claim claim = claimRepository.findById(sharedPatchContext.getClaimId()).orElseThrow();
+    assertThat(claim.getFeeCode())
+        .as("amended claim fee_code must be persisted")
+        .isEqualTo(expected);
+  }
+
+  @Then("exactly one new calculated_fee_detail row was inserted for this amendment")
+  public void exactlyOneNewCfdRowWasInserted() {
+    // The FSP reprice appends exactly one amendment-linked calculated_fee_detail row. Comparing
+    // against the pre-amendment baseline count proves the new fee row was actually committed (the
+    // scenario would otherwise stay green even if the pricing write were silently dropped).
+    long baseline = sharedPatchContext.getBaselineCfdCount();
+    long now = countCfd(sharedPatchContext.getClaimId());
+    assertThat(now - baseline)
+        .as(
+            "new calculated_fee_detail rows for claim %s (baseline=%s, now=%s)",
+            sharedPatchContext.getClaimId(), baseline, now)
+        .isEqualTo(1L);
+  }
+
+  @Then("the orchestration client state is unchanged from the seed")
+  public void theOrchestrationClientStateIsUnchanged() {
+    // A rejected amendment must leave the touched Client row untouched. The failing-step composers
+    // stage a client_surname change in the patch; this proves that change was never committed.
+    Client client = currentClient();
+    assertThat(client.getClientSurname())
+        .as("client_surname must be unchanged by a rejected amendment")
+        .isEqualTo("Smith");
+    assertThat(client.getClientForename())
+        .as("client_forename must be unchanged by a rejected amendment")
+        .isEqualTo("Jane");
   }
 
   @Then("the response body is not the DSTEW-1743 stub error envelope")
@@ -234,6 +267,16 @@ public class AmendmentOrchestrationSteps {
     return calculatedFeeDetailRepository.findAll().stream()
         .filter(cfd -> cfd.getClaim() != null && claimId.equals(cfd.getClaim().getId()))
         .count();
+  }
+
+  private Client currentClient() {
+    return clientRepository.findAll().stream()
+        .filter(
+            c ->
+                c.getClaim() != null
+                    && sharedPatchContext.getClaimId().equals(c.getClaim().getId()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("no Client row for amended claim"));
   }
 
   private void seedCollidingSibling() {

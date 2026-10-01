@@ -58,6 +58,8 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And claim.is_amended is true
     And claim.version is now 1
     And exactly one claim_amendment row was inserted for this claim
+    And the orchestration claim now has fee code "ORCH1"
+    And exactly one new calculated_fee_detail row was inserted for this amendment
 
   # ============================================================================
   # Step-order sequencing — earlier failures short-circuit later steps
@@ -72,6 +74,9 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And no outbound PDA call was made
     And no outbound FSP call was made from the amendment harness
     And no amendment state was committed
+    And the claim persisted state matches the pre-amendment state
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And the orchestration client state is unchanged from the seed
 
     # Every failing step here fails BEFORE any PDA-impacting change is validated, so no outbound
     # PDA (/schedules) or FSP (/fee-calculation) call is made and nothing is committed. The
