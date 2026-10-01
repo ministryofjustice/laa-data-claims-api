@@ -49,6 +49,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimRetentionLookupService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -66,6 +67,7 @@ class ClaimControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ClaimService claimService;
+  @MockitoBean private ClaimRetentionLookupService claimRetentionLookupService;
 
   @Nested
   @DisplayName("v1 endpoints")

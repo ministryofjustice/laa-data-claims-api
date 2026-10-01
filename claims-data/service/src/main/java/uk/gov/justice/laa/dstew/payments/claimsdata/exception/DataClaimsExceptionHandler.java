@@ -4,11 +4,13 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAm
 
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -132,6 +134,30 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     log.warn("ExportValidationException occurred: {}", exception.getMessage());
     return buildProblemDetailResponse(
         HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
+  }
+
+  /**
+   * Handle {@link ConstraintViolationException} instances raised by parameter-level validation (for
+   * example {@code @Pattern} on a request parameter) and convert them to RFC 9457 Problem Details.
+   *
+   * <p>Without this handler such violations fall through to the catch-all handler and surface as a
+   * 500, which misleadingly reports a malformed client request as a server fault.
+   *
+   * @param exception the constraint violation exception
+   * @param request the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 400 status code
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ProblemDetail> handleConstraintViolationException(
+      ConstraintViolationException exception, HttpServletRequest request) {
+    String errorMessage =
+        exception.getConstraintViolations().stream()
+            .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+            .sorted()
+            .collect(Collectors.joining(", "));
+    log.warn("ConstraintViolationException occurred: {}", errorMessage);
+    return buildProblemDetailResponse(
+        HttpStatus.BAD_REQUEST, errorMessage, exception.getClass(), request);
   }
 
   /**
