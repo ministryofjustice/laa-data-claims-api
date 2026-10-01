@@ -66,6 +66,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.DerivedClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -619,6 +620,35 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(booleans = {true, false})
+  @DisplayName(
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - stores fee calculation is_inquest"
+          + " without creating an amendment")
+  void shouldUpdateFeeCalculationIsInquestWithoutCreatingAmendment(Boolean isInquest)
+      throws Exception {
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    claimPatch.setCreatedByUserId(API_USER_ID);
+    claimPatch.setFeeCalculationResponse(new FeeCalculationPatch().isInquest(isInquest));
+
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    CalculatedFeeDetail savedFeeDetail =
+        calculatedFeeDetailRepository
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID)
+            .orElseThrow();
+    assertThat(savedFeeDetail.getIsInquest()).isEqualTo(isInquest);
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
   }
 
   @Test
