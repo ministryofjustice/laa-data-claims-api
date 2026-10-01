@@ -25,7 +25,8 @@ class ControllersGenericFallbackTest {
   @Test
   @DisplayName("ClaimController genericFallback returns 429")
   void claimController_genericFallback_returns429() throws Exception {
-    ClaimController controller = new ClaimController(mock(ClaimService.class));
+    ClaimController controller =
+        new ClaimController(mock(ClaimService.class), mock(ClaimRetentionLookupService.class));
     invokeGenericFallbackAndAssert429(controller);
   }
 
