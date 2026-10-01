@@ -90,6 +90,8 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is accepted
     And exactly 1 outbound FSP call was made
+    And claim.is_amended is true
+    And exactly one claim_amendment row was inserted for this claim
 
   # ============================================================================
   # Terminal-vs-collected mutual exclusion (parent-level guarantee)
