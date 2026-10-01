@@ -15,7 +15,7 @@ jobs:
   # 'false' so the image is built and scanned but never pushed to ECR.
   image-scan:
     name: Container image Snyk scan
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
     permissions:
       contents: read
       id-token: write
@@ -29,6 +29,7 @@ jobs:
       publish: 'false'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
