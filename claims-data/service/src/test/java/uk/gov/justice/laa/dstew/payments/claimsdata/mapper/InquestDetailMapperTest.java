@@ -88,4 +88,31 @@ class InquestDetailMapperTest {
 
     assertThrows(ClaimBadRequestException.class, () -> mapper.toInquestDetail(post));
   }
+
+  @Test
+  void toClaimInquestDetail_null_returnsNull() {
+    assertNull(mapper.toClaimInquestDetail(null));
+  }
+
+  @Test
+  void toClaimInquestDetail_mapsStoredFieldsAndFormatsDate() {
+    final InquestDetail entity =
+        InquestDetail.builder()
+            .deceasedForename("Jane")
+            .deceasedSurname("Doe")
+            .deceasedDateOfDeath(LocalDate.of(2026, 3, 5))
+            .coronersInquestReference("INQ-123")
+            .build();
+
+    final ClaimInquestDetail result = mapper.toClaimInquestDetail(entity);
+
+    assertNotNull(result);
+    assertEquals("Jane", result.getDeceasedForename());
+    assertEquals("Doe", result.getDeceasedSurname());
+    assertEquals("05/03/2026", result.getDeceasedDateOfDeath());
+    assertEquals("INQ-123", result.getCoronersInquestReference());
+    assertNull(result.getIsClientMeansTested());
+    assertNotNull(result.getInterestedDepartments());
+    assertEquals(0, result.getInterestedDepartments().size());
+  }
 }

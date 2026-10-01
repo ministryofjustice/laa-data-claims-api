@@ -1,11 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import org.mapstruct.BeanMapping;
-import org.mapstruct.InheritConfiguration;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.NullValuePropertyMappingStrategy;
-import org.mapstruct.ReportingPolicy;
+import org.mapstruct.*;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 
@@ -26,4 +21,10 @@ public interface InquestDetailMapper {
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "claim", ignore = true)
   InquestDetail toInquestDetail(ClaimInquestDetail claimInquestDetail);
+
+  @Mapping(
+      target = "deceasedDateOfDeath",
+      source = "deceasedDateOfDeath",
+      qualifiedByName = "formatDate")
+  ClaimInquestDetail toClaimInquestDetail(InquestDetail entity);
 }

@@ -190,7 +190,6 @@ public class ClaimService
     return claim.getId();
   }
 
-
   private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {
     ClaimInquestDetail claimInquestDetail = claimPost.getInquestDetail();
     if (claimInquestDetail == null || claimInquestDetail.getInterestedDepartments() == null) {
@@ -247,6 +246,7 @@ public class ClaimService
     claimCaseRepository
         .findByClaimId(claimId)
         .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
+
     return response;
   }
 
