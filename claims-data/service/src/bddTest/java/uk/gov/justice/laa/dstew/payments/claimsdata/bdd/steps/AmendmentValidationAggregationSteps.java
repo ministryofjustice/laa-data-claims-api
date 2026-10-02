@@ -37,8 +37,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * claim exists with area of law} step), so several ERROR-severity issues from different sources
  * aggregate into one Step-12 multi-message response. PDA aggregation is covered separately by
  * DSTEW-1774. This class owns only the new phrases: the collected-failure composers, colliding
- * sibling setup, and strict envelope assertions; seed, submit, and generic outcome assertions are
- * reused from sibling amendment step classes.
+ * sibling setup, the collected-then-terminal composers (an earlier step collects an ERROR before a
+ * later FATAL gate; the orchestrator appends rather than replaces, so the terminal response still
+ * carries the earlier code), and strict envelope assertions; seed, submit, and generic outcome
+ * assertions are reused from sibling amendment step classes.
  */
 @Slf4j
 public class AmendmentValidationAggregationSteps {
@@ -184,30 +186,60 @@ public class AmendmentValidationAggregationSteps {
   }
 
   @Given(
-      "an amendment is submitted that would also collect code {string} but hits terminal {string}")
-  public void anAmendmentThatWouldCollectButHitsTerminal(String collectedCode, String terminalKind)
+      "an amendment is submitted that first collects {string} from an earlier step then hits"
+          + " terminal {string}")
+  public void anAmendmentCollectsEarlierThenHitsTerminal(String collectedCode, String terminalKind)
       throws IOException {
+    // Drive a genuine, NON-fatal ERROR from a step that runs BEFORE the terminal gate so the
+    // orchestrator has already collected it when the fatal arrives.
+    // INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW is raised by FieldAmendabilityValidationStep
+    // (pipeline step 7) — well before AmendmentExternalValidationStep (step 10) where the fee-code
+    // gate lives. (The previous SCHEMA_VALIDATION_ERROR driver proved nothing: it is produced
+    // INSIDE AmendmentExternalValidationStep AFTER the fee-code gate already returned, so it was
+    // never collected first.)
     ObjectNode patch = baseValidPatch();
-    // The would-be collected reusable error: an over-length forename.
-    if ("SCHEMA_VALIDATION_ERROR".equals(collectedCode)) {
-      patch.put("client_forename", LONG_FORENAME);
+    expectedCollectedCodes.clear();
+    if ("INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW".equals(collectedCode)) {
+      patch.put(NON_AMENDABLE_FIELD, "15/07/2025");
+    } else {
+      throw new IllegalArgumentException("Unsupported earlier-collected code: " + collectedCode);
     }
+    expectedCollectedCodes.add(collectedCode);
+    armTerminal(terminalKind, patch);
+    publish(patch);
+  }
+
+  @Given(
+      "an amendment is submitted that would edit a non-amendable field but trips the early terminal"
+          + " {string} first")
+  public void anAmendmentTripsEarlyTerminalBeforeCollection(String terminalKind)
+      throws IOException {
+    // The patch requests an amendability-violating edit (would raise
+    // INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW at pipeline step 7), but an EARLY fatal gate
+    // short-circuits before that step runs, so nothing is ever collected and the terminal response
+    // carries the terminal code alone.
+    ObjectNode patch = baseValidPatch();
+    expectedCollectedCodes.clear();
+    patch.put(NON_AMENDABLE_FIELD, "15/07/2025");
+    armTerminal(terminalKind, patch);
+    publish(patch);
+  }
+
+  private void armTerminal(String terminalKind, ObjectNode patch) throws IOException {
     switch (terminalKind.trim()) {
       case "fee-code Area-of-Law change" -> {
-        // fee-details resolves a DIFFERENT Area of Law → terminal
-        // INVALID_FEE_CODE_AREA_OF_LAW_CHANGE
-        // which discards any collected issue (see AmendmentExternalValidationStep).
+        // fee-details resolves a DIFFERENT Area of Law → FATAL INVALID_FEE_CODE_AREA_OF_LAW_CHANGE
+        // inside AmendmentExternalValidationStep (pipeline step 10).
         mock.stubFeeDetailsAreaOfLaw("CRIME_LOWER");
         mock.stubProviderSchedulesOk();
         patch.put("fee_code", CROSS_AOL_FEE_CODE);
       }
       case "OCC version conflict" ->
-          // A stale/mismatched version trips the early version gate → CLAIM_VERSION_CONFLICT,
-          // short-circuiting before the collected issue is aggregated.
+          // A stale/mismatched version trips the early version gate (pipeline step 3) →
+          // CLAIM_VERSION_CONFLICT, short-circuiting before any later step can collect.
           patch.put("version", 99);
       default -> throw new IllegalArgumentException("Unsupported terminal kind: " + terminalKind);
     }
-    publish(patch);
   }
 
   @Given("an amendment is submitted that omits the required metadata fields")
@@ -241,23 +273,48 @@ public class AmendmentValidationAggregationSteps {
         .isNotNull()
         .isBetween(400, 499);
     assertThat(body).as("aggregated rejection must carry a JSON body").isNotNull();
-    String serialised = body.toString();
     assertThat(expectedCollectedCodes)
         .as("scenario must declare the collected codes it expects")
         .isNotEmpty();
-    for (String code : expectedCollectedCodes) {
-      assertThat(serialised)
-          .as("aggregated Step-12 response must carry collected code %s (body=%s)", code, body)
-          .contains(code);
-    }
+    // Assert against the STRUCTURED errors[].code list rather than a raw substring match on the
+    // serialised body: a substring check can pass spuriously (e.g. a code echoed inside a message
+    // or an unrelated field) without the code actually being a distinct aggregated error entry.
+    assertThat(errorCodes())
+        .as(
+            "aggregated Step-12 response must carry each collected code as a distinct entry (body=%s)",
+            body)
+        .containsAll(expectedCollectedCodes);
   }
 
   @Then("the response strictly carries terminal code {string}")
   public void theResponseStrictlyCarriesTerminalCode(String code) {
     JsonNode body = scenarioContext.getLastResponseBody();
+    Integer status = scenarioContext.getLastStatusCode();
     assertThat(body).as("terminal response must carry a JSON body").isNotNull();
-    assertThat(body.toString())
-        .as("terminal response must carry code %s (body=%s)", code, body)
+    assertThat(status)
+        .as("terminal failure must produce an error status (body=%s)", body)
+        .isNotNull()
+        .isGreaterThanOrEqualTo(400);
+    assertThat(errorCodes())
+        .as(
+            "terminal response must carry code %s as a structured error entry (body=%s)",
+            code, body)
+        .contains(code);
+  }
+
+  @Then("the response also carries the earlier collected code {string}")
+  public void theResponseAlsoCarriesEarlierCollectedCode(String code) {
+    JsonNode body = scenarioContext.getLastResponseBody();
+    assertThat(body).as("terminal response must carry a JSON body").isNotNull();
+    // The orchestrator APPENDS prior errors rather than replacing them when a fatal arrives
+    // (ClaimAmendmentValidationService returns state.getErrors(); the exception handler renders
+    // every entry). So an error collected by an EARLIER step must still be present alongside the
+    // terminal code — that is the collected-then-terminal behaviour this scenario proves.
+    assertThat(errorCodes())
+        .as(
+            "terminal response must still carry the earlier-collected code %s alongside the"
+                + " terminal (body=%s)",
+            code, body)
         .contains(code);
   }
 

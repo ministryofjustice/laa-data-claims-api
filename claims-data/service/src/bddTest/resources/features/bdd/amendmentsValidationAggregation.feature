@@ -33,8 +33,14 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
   #     from several sources aggregate into one multi-message response.
   #   * No collected messages → flow continues to Step 13 FSP trigger.
   #   * A FATAL terminal failure (fee-code Area-of-Law gate, metadata reference
-  #     data down, OCC 409) short-circuits the pipeline — collected messages are
-  #     NOT mixed into the terminal response.
+  #     data down, OCC 409) short-circuits the pipeline — NO later step runs. The
+  #     orchestrator APPENDS errors as each step runs and returns everything
+  #     collected so far (ClaimAmendmentValidationService#validateAmendmentRequest
+  #     returns state.getErrors(); DataClaimsExceptionHandler renders every entry
+  #     under the fatal error's HTTP status). So an ERROR already collected by an
+  #     EARLIER step is preserved ALONGSIDE the terminal code — it is NOT replaced.
+  #     Only a terminal gate reached BEFORE anything was collected (e.g. the early
+  #     OCC version gate) returns the terminal code alone.
   #
   # OUT OF SCOPE: individual per-field message wording;
   #               terminal technical response shape → owning integration tickets.
@@ -94,28 +100,39 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
     And exactly one claim_amendment row was inserted for this claim
 
   # ============================================================================
-  # Terminal-vs-collected mutual exclusion (parent-level guarantee)
+  # Terminal short-circuit — the orchestrator PRESERVES earlier collected errors
   # ============================================================================
 
+  # A FATAL terminal stops later steps but does NOT discard what earlier steps
+  # already collected (the orchestrator appends, it does not replace). The two
+  # scenarios below prove both sides of that: a terminal reached AFTER an earlier
+  # source collected keeps that collected code alongside the terminal; a terminal
+  # reached BEFORE anything could be collected returns the terminal code alone.
+  #
+  # NOTE: the metadata-reference-data-down terminal (TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA)
+  # is proven by DSTEW-1765's own terminal scenario; it is omitted here because reproducing it needs
+  # destructive reference-table mutation whose cross-scenario restore is owned by the @dstew-1765
+  # hooks, not this file.
+
   @DS1770_4
-  Scenario Outline: A terminal <terminalKind> failure short-circuits aggregation — collected messages are NOT mixed in
+  Scenario: A FATAL terminal reached AFTER an earlier error was collected short-circuits later steps but still carries that collected error
     Given an original claim exists with area of law "LEGAL_HELP"
-    And an amendment is submitted that would also collect code "SCHEMA_VALIDATION_ERROR" but hits terminal "<terminalKind>"
+    And the field "representation_order_date" is NOT on the AaBC amendable-fields list for area of law "LEGAL_HELP"
+    And an amendment is submitted that first collects "INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW" from an earlier step then hits terminal "fee-code Area-of-Law change"
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the endpoint responds with a controlled terminal failure "<terminalCode>"
-    And the response strictly carries terminal code "<terminalCode>"
-    And the response does not contain a validation message with code "SCHEMA_VALIDATION_ERROR"
+    Then the response strictly carries terminal code "INVALID_FEE_CODE_AREA_OF_LAW_CHANGE"
+    And the response also carries the earlier collected code "INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW"
     And no amendment state was committed
 
-    # NOTE: the metadata-reference-data-down terminal (TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA)
-    # is proven by DSTEW-1765's own terminal scenario; it is omitted here because reproducing it needs
-    # destructive reference-table mutation whose cross-scenario restore is owned by the @dstew-1765
-    # hooks, not this file. The two examples below prove the same terminal-vs-collected mutual
-    # exclusion guarantee (a FATAL short-circuit discards collected messages) via clean, real gates.
-    Examples:
-      | terminalKind                | terminalCode                        |
-      | fee-code Area-of-Law change | INVALID_FEE_CODE_AREA_OF_LAW_CHANGE |
-      | OCC version conflict        | CLAIM_VERSION_CONFLICT              |
+  @DS1770_4b
+  Scenario: A FATAL terminal reached BEFORE any source could collect carries only the terminal code
+    Given an original claim exists with area of law "LEGAL_HELP"
+    And the field "representation_order_date" is NOT on the AaBC amendable-fields list for area of law "LEGAL_HELP"
+    And an amendment is submitted that would edit a non-amendable field but trips the early terminal "OCC version conflict" first
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the response strictly carries terminal code "CLAIM_VERSION_CONFLICT"
+    And the response does not contain a validation message with code "INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW"
+    And no amendment state was committed
 
   # ============================================================================
   # Envelope-shape guarantee
