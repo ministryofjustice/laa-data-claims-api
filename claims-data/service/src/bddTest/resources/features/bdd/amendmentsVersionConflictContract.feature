@@ -113,6 +113,7 @@ Feature: Amendment stale-version conflict — shared CLAIM_VERSION_CONFLICT enve
     And the stale-version conflict log contains "event=CLAIM_VERSION_CONFLICT"
     And the stale-version conflict log contains "conflictPoint=final_save"
     And the stale-version conflict log contains "submittedClaimVersion=0"
+    And the stale-version conflict log does not contain a current claim version
     And the stale-version conflict log contains the current claim id
     And the stale-version conflict log carries no amendment payload or financial values
 

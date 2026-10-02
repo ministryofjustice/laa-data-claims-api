@@ -15,7 +15,6 @@ import io.cucumber.java.en.Then;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +79,14 @@ public class AmendmentVersionConflictContractSteps {
   private Logger earlyGateLogger;
   private Logger finalGuardLogger;
 
+  // The single CLAIM_VERSION_CONFLICT WARN selected from the EXPECTED conflict-point logger by the
+  // point-specific "a stale-version conflict WARN was logged at the ... point" step. Every
+  // subsequent field assertion runs against THIS one event, so the scenario proves that a single
+  // structured conflict event carries the complete contract (rather than letting tokens be spread
+  // across unrelated entries or supplied by the wrong logger).
+  private String selectedConflictWarn;
+  private String selectedConflictPoint;
+
   // ---------------------------------------------------------------------------
   // Lifecycle — attach + detach a WARN capture on BOTH conflict-point loggers,
   // scoped to @dstew-1754 so unrelated scenarios are untouched.
@@ -87,6 +94,8 @@ public class AmendmentVersionConflictContractSteps {
 
   @Before("@dstew-1754")
   public void attachConflictLogCaptures() {
+    selectedConflictWarn = null;
+    selectedConflictPoint = null;
     earlyGateLogger = (Logger) LoggerFactory.getLogger(ClaimVersionValidationStep.class);
     earlyGateAppender = new ListAppender<>();
     earlyGateAppender.start();
@@ -159,73 +168,82 @@ public class AmendmentVersionConflictContractSteps {
   @Then("a stale-version conflict WARN was logged at the initial_check point")
   public void aStaleVersionConflictWarnWasLoggedAtInitialCheck() {
     step(
-        "assert the ClaimVersionValidationStep logger captured at least one WARN — proves the early"
-            + " gate emitted its structured diagnostic",
-        () ->
-            assertThat(warnMessages(earlyGateAppender))
-                .as("WARN entries on ClaimVersionValidationStep")
-                .isNotEmpty());
+        "select the single CLAIM_VERSION_CONFLICT WARN from the ClaimVersionValidationStep logger —"
+            + " proves the early gate emitted its structured diagnostic and anchors every"
+            + " subsequent field assertion to that one event",
+        () -> selectSingleConflictWarn(earlyGateAppender, "initial_check"));
   }
 
   @Then("a stale-version conflict WARN was logged at the final_save point")
   public void aStaleVersionConflictWarnWasLoggedAtFinalSave() {
     step(
-        "assert the ClaimAmendmentCommitService logger captured at least one WARN — proves the final"
-            + " guard reached its catch block and emitted its structured diagnostic",
-        () ->
-            assertThat(warnMessages(finalGuardAppender))
-                .as("WARN entries on ClaimAmendmentCommitService")
-                .isNotEmpty());
+        "select the single CLAIM_VERSION_CONFLICT WARN from the ClaimAmendmentCommitService logger —"
+            + " proves the final guard reached its catch block and anchors every subsequent field"
+            + " assertion to that one event",
+        () -> selectSingleConflictWarn(finalGuardAppender, "final_save"));
   }
 
   @Then("the stale-version conflict log contains {string}")
   public void theStaleVersionConflictLogContains(String needle) {
     step(
-        "assert at least one captured WARN entry (from either conflict-point logger) individually"
-            + " contains \""
-            + needle
-            + "\"",
+        "assert the SELECTED conflict event contains \"" + needle + "\"",
         () ->
-            assertThat(allWarnMessages())
-                .as("captured WARN entries across both conflict-point loggers")
-                .anyMatch(msg -> msg.contains(needle)));
+            assertThat(selectedConflictWarn())
+                .as("the selected %s CLAIM_VERSION_CONFLICT WARN", selectedConflictPoint)
+                .contains(needle));
   }
 
   @Then("the stale-version conflict log contains the current stored claim version")
   public void theStaleVersionConflictLogContainsTheCurrentStoredClaimVersion() {
     step(
-        "assert a captured WARN entry carries currentClaimVersion=<the real stored version> — the"
-            + " early gate has the stored version in hand so logs it (the 'where available' field)",
+        "assert the selected conflict event carries currentClaimVersion=<the real stored version> —"
+            + " the early gate has the stored version in hand so logs it (the 'where available'"
+            + " field)",
         () -> {
           long storedVersion = requireClaim().getVersion();
           String token = "currentClaimVersion=" + storedVersion;
-          assertThat(allWarnMessages())
-              .as("captured WARN entries must carry %s", token)
-              .anyMatch(msg -> msg.contains(token));
+          assertThat(selectedConflictWarn())
+              .as("the selected %s conflict event must carry %s", selectedConflictPoint, token)
+              .contains(token);
         });
+  }
+
+  @Then("the stale-version conflict log does not contain a current claim version")
+  public void theStaleVersionConflictLogDoesNotContainACurrentClaimVersion() {
+    step(
+        "assert the selected conflict event OMITS currentClaimVersion= — at the final guard the row"
+            + " was advanced by a concurrent writer so the current version is not available (the"
+            + " 'where available' omission); a stale/fabricated value here must fail the scenario",
+        () ->
+            assertThat(selectedConflictWarn())
+                .as(
+                    "the selected %s conflict event must omit the current claim version",
+                    selectedConflictPoint)
+                .doesNotContain("currentClaimVersion="));
   }
 
   @Then("the stale-version conflict log contains the current claim id")
   public void theStaleVersionConflictLogContainsTheCurrentClaimId() {
     step(
-        "assert a captured WARN entry references the current claimId",
+        "assert the selected conflict event references the current claimId",
         () -> {
           UUID claimId = sharedPatchContext.getClaimId();
           assertThat(claimId).as("current claim id").isNotNull();
           String token = "claimId=" + claimId;
-          assertThat(allWarnMessages())
-              .as("captured WARN entries must carry %s", token)
-              .anyMatch(msg -> msg.contains(token));
+          assertThat(selectedConflictWarn())
+              .as("the selected %s conflict event must carry %s", selectedConflictPoint, token)
+              .contains(token);
         });
   }
 
   @Then("the stale-version conflict log carries no amendment payload or financial values")
   public void theStaleVersionConflictLogCarriesNoPayloadOrFinancialValues() {
     step(
-        "assert no captured WARN entry contains amendment payload field values or financial-field"
-            + " tokens — proves the structured log carries only the whitelisted safe fields",
+        "assert the selected conflict event contains no amendment payload field values or"
+            + " financial-field tokens — proves the structured log carries only the whitelisted"
+            + " safe fields",
         () -> {
-          String warnBody = String.join("\n", allWarnMessages()).toLowerCase(Locale.ROOT);
+          String warnBody = selectedConflictWarn().toLowerCase(Locale.ROOT);
           // Amendment payload values must never appear.
           assertThat(warnBody)
               .as("WARN log must not carry the client_forename payload value")
@@ -251,6 +269,33 @@ public class AmendmentVersionConflictContractSteps {
   // Helpers.
   // ---------------------------------------------------------------------------
 
+  /**
+   * Selects the single {@code CLAIM_VERSION_CONFLICT} WARN emitted by the given conflict-point
+   * logger and remembers it, so every later field assertion runs against that one event. Requiring
+   * exactly one match on the EXPECTED logger prevents a token being satisfied by an unrelated entry
+   * or by the other conflict point's logger.
+   */
+  private void selectSingleConflictWarn(ListAppender<ILoggingEvent> appender, String point) {
+    List<String> conflicts =
+        warnMessages(appender).stream()
+            .filter(msg -> msg.contains("event=CLAIM_VERSION_CONFLICT"))
+            .toList();
+    assertThat(conflicts)
+        .as("exactly one CLAIM_VERSION_CONFLICT WARN at the %s point", point)
+        .hasSize(1);
+    this.selectedConflictWarn = conflicts.get(0);
+    this.selectedConflictPoint = point;
+  }
+
+  private String selectedConflictWarn() {
+    assertThat(selectedConflictWarn)
+        .as(
+            "a conflict-point WARN must be selected first via 'a stale-version conflict WARN was"
+                + " logged at the ... point'")
+        .isNotNull();
+    return selectedConflictWarn;
+  }
+
   private Claim requireClaim() {
     UUID claimId = sharedPatchContext.getClaimId();
     assertThat(claimId).as("current claim id").isNotNull();
@@ -263,12 +308,6 @@ public class AmendmentVersionConflictContractSteps {
     return appender.list.stream()
         .filter(e -> e.getLevel() == Level.WARN)
         .map(ILoggingEvent::getFormattedMessage)
-        .toList();
-  }
-
-  private List<String> allWarnMessages() {
-    return Stream.concat(
-            warnMessages(earlyGateAppender).stream(), warnMessages(finalGuardAppender).stream())
         .toList();
   }
 
