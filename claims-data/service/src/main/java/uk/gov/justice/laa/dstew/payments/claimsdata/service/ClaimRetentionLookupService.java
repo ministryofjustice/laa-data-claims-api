@@ -3,8 +3,8 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -12,6 +12,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimRetentionLookupM
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRetentionLookupResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimRetentionLookupValidator;
 
 /** Service containing business logic for retention lookup endpoint. */
 @Service
@@ -21,6 +22,7 @@ public class ClaimRetentionLookupService {
 
   private final ClaimRepository claimRepository;
   private final ClaimRetentionLookupMapper mapper;
+  private final ClaimRetentionLookupValidator validator;
 
   /**
    * Retrieves VALID claims for a given office code and unique file number (UFN) with pagination.
@@ -41,27 +43,14 @@ public class ClaimRetentionLookupService {
   @Transactional(readOnly = true)
   public ClaimRetentionLookupResultSet getClaimsRetentionLookup(
       String officeCode, String ufn, Pageable pageable) {
-    Pageable effectivePageable = applyDefaultPagination(pageable);
+    validator.validate(officeCode, ufn);
+    Pageable effectivePageable =
+        PageableUtils.withDefaultPaginationAndSort(pageable, Sort.unsorted());
 
     Page<Claim> claimsPage =
         claimRepository.findValidByOfficeAccountNumberAndUniqueFileNumber(
             officeCode, ufn, effectivePageable);
 
     return mapper.toClaimRetentionLookupResultSet(claimsPage);
-  }
-
-  /**
-   * Guarantees a paged request. Spring only resolves a {@link PageRequest} when both {@code page}
-   * and {@code size} query parameters are supplied; otherwise the configured fallback is {@link
-   * Pageable#unpaged()}, whose {@code getPageNumber()} and {@code getPageSize()} throw.
-   *
-   * @param pageable the resolved pageable, possibly unpaged or null
-   * @return a paged {@link Pageable}, preserving any requested sort
-   */
-  private Pageable applyDefaultPagination(Pageable pageable) {
-    if (pageable == null || pageable.isUnpaged()) {
-      return PageRequest.of(PageableUtils.DEFAULT_PAGE_NUMBER, PageableUtils.DEFAULT_PAGE_SIZE);
-    }
-    return pageable;
   }
 }

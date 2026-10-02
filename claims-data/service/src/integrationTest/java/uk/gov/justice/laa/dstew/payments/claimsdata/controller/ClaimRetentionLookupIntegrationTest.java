@@ -2,6 +2,7 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -196,23 +198,33 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
         .andReturn();
   }
 
-  @Test
-  @DisplayName("Should filter out INVALID claims and return only VALID")
-  void testFiltersInvalidClaims() throws Exception {
-    createTestClaims(30, ClaimStatus.VALID);
-    createTestClaims(20, ClaimStatus.INVALID);
+  @ParameterizedTest
+  @EnumSource(
+      value = ClaimStatus.class,
+      names = {"INVALID", "VOID", "READY_TO_PROCESS", "VALIDATED_PENDING_APPROVAL"})
+  @DisplayName("Should filter out every non-VALID retention status")
+  void testFiltersOutNonValidClaims(ClaimStatus excludedStatus) throws Exception {
+    createTestClaims(5, ClaimStatus.VALID);
+    createTestClaims(3, excludedStatus);
 
-    mockMvc
-        .perform(
-            get(RETENTION_LOOKUP_ENDPOINT)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                .param("ufn", UNIQUE_FILE_NUMBER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.total_elements").value(30))
-        .andExpect(jsonPath("$.content[0].status").value("VALID"))
-        .andReturn();
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(RETENTION_LOOKUP_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("ufn", UNIQUE_FILE_NUMBER)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.total_elements").value(5))
+            .andReturn();
+
+    ClaimRetentionLookupResultSet response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimRetentionLookupResultSet.class);
+    assertThat(response.getContent())
+        .allMatch(
+            claim -> ClaimRetentionLookupClaimDetail.StatusEnum.VALID.equals(claim.getStatus()));
   }
 
   @Test
@@ -230,6 +242,40 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
                 get(RETENTION_LOOKUP_ENDPOINT)
                     .param("office_code", OFFICE_ACCOUNT_NUMBER)
                     .param("ufn", UNIQUE_FILE_NUMBER)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimRetentionLookupResultSet response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimRetentionLookupResultSet.class);
+
+    assertThat(response.getContent()).hasSize(3);
+    assertThat(response.getContent().get(0).getClaimId()).isEqualTo(amendedLast.getId());
+    assertThat(response.getContent())
+        .extracting(detail -> detail.getUpdatedOn().toInstant())
+        .isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"createdOn,asc", "notAClaimProperty,asc", "client.clientSurname,asc"})
+  @DisplayName("Should ignore caller sorting and retain the fixed retention order")
+  void testCallerSortIsIgnored(String sort) throws Exception {
+    saveClaim(ClaimStatus.VALID);
+    Claim amendedLast = saveClaim(ClaimStatus.VALID);
+    saveClaim(ClaimStatus.VALID);
+    amendClaim(amendedLast);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(RETENTION_LOOKUP_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("ufn", UNIQUE_FILE_NUMBER)
+                    .param("page", "0")
+                    .param("size", "20")
+                    .param("sort", sort)
                     .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                     .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -370,6 +416,9 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Required parameter 'office_code' is not present."))
         .andReturn();
   }
 
@@ -385,6 +434,7 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("Required parameter 'ufn' is not present."))
         .andReturn();
   }
 
@@ -447,6 +497,22 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("office_code must not be 'null'."))
+        .andReturn();
+  }
+
+  @Test
+  @DisplayName("Should explicitly reject the literal string 'null' for ufn")
+  void testLiteralNullUfnRejectedExplicitly() throws Exception {
+    mockMvc
+        .perform(
+            get(RETENTION_LOOKUP_ENDPOINT)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                .param("ufn", "null")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("ufn must not be 'null'."))
         .andReturn();
   }
 
@@ -587,42 +653,6 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
         .allMatch(
             claim -> ClaimRetentionLookupClaimDetail.StatusEnum.VALID.equals(claim.getStatus()),
             "All claims should have VALID status");
-  }
-
-  @Test
-  @DisplayName("Should filter out VOID claims (not accepted/retained)")
-  void testFiltersOutVoidClaims() throws Exception {
-    createTestClaims(5, ClaimStatus.VALID);
-    createTestClaims(3, ClaimStatus.VOID);
-
-    mockMvc
-        .perform(
-            get(RETENTION_LOOKUP_ENDPOINT)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                .param("ufn", UNIQUE_FILE_NUMBER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.total_elements").value(5))
-        .andReturn();
-  }
-
-  @Test
-  @DisplayName("Should filter out VALIDATED_PENDING_APPROVAL claims")
-  void testFiltersOutValidatedPendingApprovalClaims() throws Exception {
-    createTestClaims(5, ClaimStatus.VALID);
-    createTestClaims(2, ClaimStatus.VALIDATED_PENDING_APPROVAL);
-
-    mockMvc
-        .perform(
-            get(RETENTION_LOOKUP_ENDPOINT)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                .param("ufn", UNIQUE_FILE_NUMBER)
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.total_elements").value(5))
-        .andReturn();
   }
 
   @Test
