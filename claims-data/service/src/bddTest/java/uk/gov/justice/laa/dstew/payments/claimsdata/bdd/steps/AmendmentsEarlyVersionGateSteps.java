@@ -15,11 +15,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.mockserver.verify.VerificationTimes;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.SharedAmendmentPatchContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.AmendableClaimFixture;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.support.BddMockServerSupport;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
@@ -65,14 +67,22 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 public class AmendmentsEarlyVersionGateSteps {
 
   private static final String AMENDMENT_USER_ID = "0190b6a0-9b7e-7c8a-9e2d-175200000001";
-  // Marker value embedded in the non-pricing payload — asserted ABSENT from the WARN log to prove
+  // Marker value embedded in the stale payload — asserted ABSENT from the WARN log to prove
   // the structured diagnostic never leaks amendment payload field values.
   private static final String AMENDMENT_PAYLOAD_MARKER_FORENAME = "Harness-Canary";
+  // Conflict-specific downstream canary. case_start_date is BOTH PDA-impacting
+  // (PdaRequestField.CASE_START_DATE) and pricing-impacting (FeeSchemeRequestField.START_DATE),
+  // so a version-MATCHING submit of this payload WOULD drive PDA + FSP (fee-details and
+  // fee-calculation). Embedding it in the STALE payload makes DS1752_4's "no external call"
+  // assertions meaningful: they fail if the early gate were moved after external validation.
+  // The fixture baseline caseStartDate is 01/07/2025, so 04/08/2025 is a genuine change.
+  private static final String CANARY_CASE_START_DATE = "04/08/2025";
 
   @Autowired private AmendableClaimFixture fixture;
   @Autowired private SharedAmendmentPatchContext sharedPatchContext;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired private JdbcClient jdbcClient;
+  @Autowired private BddMockServerSupport mock;
 
   private ListAppender<ILoggingEvent> gateLogAppender;
   private Logger gateStepLogger;
@@ -113,7 +123,7 @@ public class AmendmentsEarlyVersionGateSteps {
           sharedPatchContext.setSubmissionId(seeded.submissionId());
           sharedPatchContext.setClaimId(seeded.claimId());
           // Default the payload to the stored version; the stale-version Given below overrides it.
-          sharedPatchContext.setPatchJson(buildNonPricingPatch(storedVersion));
+          sharedPatchContext.setPatchJson(buildStalePatch(storedVersion));
           sharedPatchContext.setBaselineClaimVersion(storedVersion);
           sharedPatchContext.setBaselineCfdCount(countCfd(seeded.claimId()));
           log.info(
@@ -135,8 +145,22 @@ public class AmendmentsEarlyVersionGateSteps {
               .as(
                   "a stored amendable claim must be seeded before setting a stale submitted version")
               .isNotNull();
-          sharedPatchContext.setPatchJson(buildNonPricingPatch(submittedVersion));
+          sharedPatchContext.setPatchJson(buildStalePatch(submittedVersion));
         });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Then — initial_check WARN log assertions (early gate logs from
+  // ClaimVersionValidationStep).
+  // ---------------------------------------------------------------------------
+
+  @Then("no outbound FSP fee-details call was made")
+  public void noOutboundFspFeeDetailsCallWasMade() {
+    step(
+        "verify MockServer recorded no outbound FSP /fee-details call — the stale payload changes"
+            + " case_start_date (a fee-details/fee-calculation driver), so an empty fee-details"
+            + " journal proves the early gate short-circuited before FSP fee-scheme resolution",
+        () -> mock.verifyFeeDetailsCalled(VerificationTimes.never()));
   }
 
   // ---------------------------------------------------------------------------
@@ -159,44 +183,49 @@ public class AmendmentsEarlyVersionGateSteps {
   @Then("the early-gate WARN log contains {string}")
   public void theEarlyGateWarnLogContains(String needle) {
     step(
-        "assert at least one captured WARN entry individually contains \""
+        "assert the SINGLE structured conflict WARN entry for the current claim contains \""
             + needle
-            + "\" — avoids false positives from tokens spread across separate log lines",
+            + "\" — proves one entry carries the complete contract, not tokens spread across"
+            + " separate log lines",
         () ->
-            assertThat(warnMessages())
-                .as("captured WARN entries on ClaimVersionValidationStep")
-                .anyMatch(msg -> msg.contains(needle)));
+            assertThat(conflictWarnEntryForCurrentClaim())
+                .as("the structured conflict WARN entry for the current claim")
+                .contains(needle));
   }
 
   @Then("the early-gate WARN log contains the current claim id")
   public void theEarlyGateWarnLogContainsTheCurrentClaimId() {
     step(
-        "assert at least one captured WARN entry individually references the current claimId",
+        "assert exactly one captured WARN entry references the current claimId (the structured"
+            + " conflict entry under test)",
         () -> {
           UUID claimId = sharedPatchContext.getClaimId();
           assertThat(claimId).as("current claim id").isNotNull();
-          String token = "claimId=" + claimId;
-          assertThat(warnMessages())
-              .as("captured WARN entries on ClaimVersionValidationStep")
-              .anyMatch(msg -> msg.contains(token));
+          // conflictWarnEntryForCurrentClaim() asserts exactly one entry carrying claimId=<id>.
+          assertThat(conflictWarnEntryForCurrentClaim())
+              .as("the structured conflict WARN entry references the current claim")
+              .contains("claimId=" + claimId);
         });
   }
 
   @Then("the early-gate WARN log does not carry any amendment payload field values")
   public void theEarlyGateWarnLogDoesNotCarryAnyAmendmentPayloadFieldValues() {
     step(
-        "assert no captured WARN entry contains the amendment payload's field-value markers —"
-            + " proves the gate's structured log carries only the whitelisted safe fields",
+        "assert the structured conflict WARN entry contains none of the amendment payload's"
+            + " field-value markers — proves it carries only the whitelisted safe fields",
         () -> {
-          String warnBody = allWarnFormatted();
-          assertThat(warnBody.toLowerCase(Locale.ROOT))
-              .as("WARN log must not carry the client_forename payload value")
+          String warnEntry = conflictWarnEntryForCurrentClaim();
+          assertThat(warnEntry.toLowerCase(Locale.ROOT))
+              .as("WARN entry must not carry the client_forename payload value")
               .doesNotContain(AMENDMENT_PAYLOAD_MARKER_FORENAME.toLowerCase(Locale.ROOT));
-          assertThat(warnBody)
-              .as("WARN log must not carry the amendment_reason_code payload literal")
+          assertThat(warnEntry)
+              .as("WARN entry must not carry the case_start_date canary payload value")
+              .doesNotContain(CANARY_CASE_START_DATE);
+          assertThat(warnEntry)
+              .as("WARN entry must not carry the amendment_reason_code payload literal")
               .doesNotContain("PROVIDER_ERROR");
-          assertThat(warnBody)
-              .as("WARN log must not carry the amendment_requested_by payload literal")
+          assertThat(warnEntry)
+              .as("WARN entry must not carry the amendment_requested_by payload literal")
               .doesNotContain("PROVIDER");
         });
   }
@@ -226,13 +255,19 @@ public class AmendmentsEarlyVersionGateSteps {
         .count();
   }
 
-  private String buildNonPricingPatch(long submittedVersion) {
+  private String buildStalePatch(long submittedVersion) {
+    // Carries the case_start_date downstream canary (PDA- and FSP-impacting) so the early-gate
+    // ordering is genuinely provable, plus a client_forename marker used only to prove no payload
+    // value leaks into the structured WARN log.
     return "{\"version\":"
         + submittedVersion
         + ",\"amendment_requested_by\":\"PROVIDER\""
         + ",\"amendment_reason_code\":\"PROVIDER_ERROR\""
         + ",\"amendment_user_id\":\""
         + AMENDMENT_USER_ID
+        + "\""
+        + ",\"case_start_date\":\""
+        + CANARY_CASE_START_DATE
         + "\""
         + ",\"client_forename\":\""
         + AMENDMENT_PAYLOAD_MARKER_FORENAME
@@ -247,11 +282,20 @@ public class AmendmentsEarlyVersionGateSteps {
     return warnEntries().stream().map(ILoggingEvent::getFormattedMessage).toList();
   }
 
-  private String allWarnFormatted() {
-    StringBuilder sb = new StringBuilder();
-    for (ILoggingEvent e : warnEntries()) {
-      sb.append(e.getFormattedMessage()).append('\n');
-    }
-    return sb.toString();
+  /**
+   * Returns the single structured conflict WARN entry for the claim under test, asserting exactly
+   * one such entry exists. Scoping to {@code claimId=<id>} and requiring a unique match proves ONE
+   * log line carries the complete diagnostic contract, rather than letting separate entries each
+   * satisfy a different token.
+   */
+  private String conflictWarnEntryForCurrentClaim() {
+    UUID claimId = sharedPatchContext.getClaimId();
+    assertThat(claimId).as("current claim id must be seeded").isNotNull();
+    String token = "claimId=" + claimId;
+    List<String> matching = warnMessages().stream().filter(msg -> msg.contains(token)).toList();
+    assertThat(matching)
+        .as("exactly one structured conflict WARN entry for claim %s", claimId)
+        .hasSize(1);
+    return matching.get(0);
   }
 }

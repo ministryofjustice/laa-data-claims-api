@@ -52,11 +52,13 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
 
   # AC2 — stale (behind) submitted version → 409 CLAIM_VERSION_CONFLICT.
   # Worked example from the ticket: stored version 9, user still holds version 7.
+  # The stale payload carries a case_start_date canary (PDA- and FSP-impacting), so
+  # the submit is the prepared stale body rather than a pure non-pricing change.
   @DS1752_2
   Scenario: Stale submitted version behind the stored version is rejected with 409 CLAIM_VERSION_CONFLICT
     Given a stored amendable claim at version 9
     And the submitted amendment carries the stale claim version 7
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
 
   # AC2 — the gate is a strict inequality, not "behind only": a submitted version
@@ -65,18 +67,22 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   Scenario: Submitted version ahead of the stored version is also rejected with 409 CLAIM_VERSION_CONFLICT
     Given a stored amendable claim at version 3
     And the submitted amendment carries the stale claim version 5
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
 
   # AC3 — the stale request is short-circuited BEFORE any external call, so it
-  # spends no PDA/FSP budget.
+  # spends no PDA/FSP budget. The stale payload changes case_start_date — a field
+  # that is BOTH PDA- and FSP-impacting (fee-details + fee-calculation) — so these
+  # no-call assertions genuinely detect an ordering regression (the gate running
+  # after external validation would have already spent both services' budget).
   @DS1752_4
   Scenario: A stale request is detected before PDA/FSP — neither external service is called
     Given a stored amendable claim at version 9
     And the submitted amendment carries the stale claim version 7
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
     And no outbound PDA call was made
+    And no outbound FSP fee-details call was made
     And no outbound FSP call was made from the amendment harness
 
   # AC4 — on an early conflict, save nothing: no amendment record, no before-state
@@ -86,7 +92,7 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   Scenario: Early version conflict persists nothing and leaves the claim untouched
     Given a stored amendable claim at version 9
     And the submitted amendment carries the stale claim version 7
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
@@ -100,7 +106,7 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   Scenario: The 409 body is the shared stale-version envelope carrying the machine-readable code
     Given a stored amendable claim at version 9
     And the submitted amendment carries the stale claim version 7
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
     And the response body is an RFC 9457 ProblemDetail with status 409
     And the response body's errors array carries exactly one entry with code "CLAIM_VERSION_CONFLICT"
@@ -112,7 +118,7 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   Scenario: Structured WARN log — early gate emits event=CLAIM_VERSION_CONFLICT with safe fields and conflictPoint=initial_check
     Given a stored amendable claim at version 9
     And the submitted amendment carries the stale claim version 7
-    When I submit a well-formed non-pricing amendment
+    When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
     And a WARN log entry from the early version gate was captured
     And the early-gate WARN log contains "event=CLAIM_VERSION_CONFLICT"
