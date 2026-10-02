@@ -161,14 +161,97 @@ public class BddMockServerSupport {
    * expectation first so this becomes the only match, regardless of registration order.
    */
   public void stubAmendmentFspCalculationStatus(int statusCode) {
-    HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
-    client.clear(feeCalc, ClearType.EXPECTATIONS);
-    client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Amendment FSP fee-calculation outcome stubs (DSTEW-1761 outcome mapping).
+  //
+  // Each override clears the per-scenario happy default first so it is the only
+  // match regardless of registration order, then arms the specific outcome the
+  // mapping scenario under test needs: a 200 carrying FSP business validation
+  // ERROR messages (passthrough), or a technical failure (connection drop,
+  // unparseable body, configured read-timeout, or an opaque 5xx body).
+  // ---------------------------------------------------------------------------
+
+  /** 200 OK carrying a single FSP business validation ERROR message (passthrough mapping). */
+  public void stubAmendmentFspCalculationValidationError() throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-validation-error.json")));
+  }
+
+  /** 200 OK carrying multiple FSP business validation ERROR messages (passthrough mapping). */
+  public void stubAmendmentFspCalculationMultipleErrors() throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-multiple-errors.json")));
+  }
+
+  /** Drops the connection on the FSP fee-calculation call (technical-failure mapping). */
+  public void stubAmendmentFspCalculationConnectionDrop() {
+    clearFeeCalculationExpectation();
+    client.when(feeCalculationRequest()).error(HttpError.error().withDropConnection(true));
+  }
+
+  /** 200 with an unparseable body so response decoding fails (schema/parse technical mapping). */
+  public void stubAmendmentFspCalculationMalformedBody() {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(200)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody("{not-valid-json"));
+  }
+
+  /**
+   * Responds with a valid 200 fee-calculation only after {@code delay}, so a delay greater than the
+   * amendment-path read timeout trips a real client-side timeout (configured-timeout mapping). The
+   * amendment FSP path makes a single blocking attempt with no retry, so the recorded call count
+   * stays at exactly one.
+   */
+  public void stubAmendmentFspCalculationWithDelay(Duration delay) throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json"))
+                .withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /**
+   * Returns the given status carrying the given raw body, used to prove an opaque 5xx FSP payload
+   * is NOT leaked into the user-facing amendment response (safe-message mapping).
+   */
+  public void stubAmendmentFspCalculationStatusWithBody(int statusCode, String rawBody) {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(statusCode)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody(rawBody));
+  }
+
+  private static HttpRequest feeCalculationRequest() {
+    return request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
+  }
+
+  private void clearFeeCalculationExpectation() {
+    client.clear(feeCalculationRequest(), ClearType.EXPECTATIONS);
   }
 
   /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
   public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
-    client.verify(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);
+    client.verify(feeCalculationRequest(), times);
   }
 
   /**
