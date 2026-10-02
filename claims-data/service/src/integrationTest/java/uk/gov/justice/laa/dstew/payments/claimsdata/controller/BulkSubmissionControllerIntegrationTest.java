@@ -35,6 +35,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,6 +68,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * queue.
  */
 @TestInstance(Lifecycle.PER_CLASS)
+@TestPropertySource(properties = "laa.claims.api.features.validated-pending-approval=true")
 public class BulkSubmissionControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String FILE = "file";
@@ -636,16 +638,19 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
             new Object[] {
               3, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.DISC, null, 18
             },
-            new Object[] {4, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
-            new Object[] {5, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
             new Object[] {
-              6, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
+              4, "2A300G/2010/01", "PA00100", "LONDON", "AP00000", CategoryCode.INQ, null, 19
+            },
+            new Object[] {5, null, null, null, null, null, MediationType.MDCS_CHILD_ONLY_SOLE, 1},
+            new Object[] {6, null, null, null, null, null, MediationType.MDCC_CHILD_ONLY_CO, 2},
+            new Object[] {
+              7, null, null, null, null, null, MediationType.MDPS_PROPERTY_FINANCE_SOLE, 3
             },
             new Object[] {
-              7, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
+              8, null, null, null, null, null, MediationType.MDPC_PROPERTY_FINANCE_CO, 4
             },
-            new Object[] {8, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
-            new Object[] {9, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
+            new Object[] {9, null, null, null, null, null, MediationType.MDAS_ALL_ISSUES_SOLE, 5},
+            new Object[] {10, null, null, null, null, null, MediationType.MDAC_ALL_ISSUES_CO, 6})
         .forEach(
             params ->
                 verifyBulkSubmissionMatterStart(
@@ -1324,6 +1329,28 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
         .isEqualTo("This is the error message");
     // clean up the test-data
     bulkSubmissionRepository.deleteAll();
+  }
+
+  @Test
+  @DisplayName(
+      "With the VALIDATED_PENDING_APPROVAL lifecycle enabled, updating a bulk submission to VALIDATED_PENDING_APPROVAL "
+          + "persists the VALIDATED_PENDING_APPROVAL status")
+  void shouldPersistValidatedPendingApprovalStatusWhenLifecycleEnabled() throws Exception {
+    createBulkSubmission();
+
+    BulkSubmissionPatch patch =
+        new BulkSubmissionPatch().status(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
+
+    mockMvc
+        .perform(
+            patch(BULK_SUBMISSION_ENDPOINT, BULK_SUBMISSION_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    assertThat(bulkSubmissionRepository.findById(BULK_SUBMISSION_ID).orElseThrow().getStatus())
+        .isEqualTo(BulkSubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test

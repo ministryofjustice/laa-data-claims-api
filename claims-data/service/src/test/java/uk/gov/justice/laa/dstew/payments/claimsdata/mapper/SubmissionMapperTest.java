@@ -110,6 +110,21 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("leaves nested response collections for service-layer enrichment")
+  void shouldLeaveNestedCollectionsUnmappedInSubmissionResponse() {
+    Submission submission =
+        Submission.builder()
+            .id(Uuid7.timeBasedUuid())
+            .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
+            .build();
+
+    var result = submissionMapper.toSubmissionResponse(submission);
+
+    assertThat(result.getClaims()).isEmpty();
+    assertThat(result.getMatterStarts()).isEmpty();
+  }
+
+  @Test
   @DisplayName("updates Submission fields from SubmissionPatch")
   void shouldUpdateSubmissionFromPatch() {
     Submission submission =

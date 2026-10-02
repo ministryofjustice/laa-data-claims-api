@@ -43,6 +43,7 @@ public class XmlValidationV4Test {
         "outcomes_with_client.xml",
         "schedule_with_nil_outcomes.xml",
         "matter_starts_with_category_code.xml",
+        "matter_starts_with_inq_category_code.xml",
         "immigration_clr.xml",
         "matter_starts_with_mediation_type.xml",
         "matter_starts_with_only_mediation_types.xml",

@@ -451,6 +451,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: a voidable claim exists");
     Claim claim = getClaim();
     claim.setStatus(ClaimStatus.VALID);
+    claim.setVersion(0L);
     when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
