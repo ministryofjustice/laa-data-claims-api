@@ -61,13 +61,21 @@ Feature: Amendment FSP calculated-fee persistence handoff
 
   Scenario: Atomic-save rollback after successful FSP — the prepared calculated-fee row is discarded
     Given a fresh amendable claim on a legal-help submission at version 0
+    And the PDA service will respond "authorised" within the amendment-path timeout
     And the FSP service will return a valid fee calculation for the amendment
     And the claim's previous calculated fee total is 100.00
     And the FSP service will return a fee calculation with total amount 125.00
     And a concurrent writer will advance claim.version by 1 during external validation
     When I submit a well-formed pricing amendment
     Then the amendment is rejected with HTTP 409 and amendment error code "CLAIM_VERSION_CONFLICT"
+    # Proves FSP really was called before the final-save conflict, so this exercises rollback of an
+    # FSP outcome rather than a path that short-circuited before repricing (addresses review: a
+    # 409 + baseline row count alone could otherwise pass with repricing skipped entirely).
+    And exactly 1 outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And the claim has exactly 1 calculated_fee_detail rows
+    # Confirms the surviving row is the untouched pre-amendment baseline (same total, still unlinked),
+    # i.e. it was retained in place and not edited — not merely that one row happens to remain.
+    And the previous calculated_fee_detail row is retained unchanged
 
