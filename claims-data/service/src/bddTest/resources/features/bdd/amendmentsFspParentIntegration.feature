@@ -32,8 +32,10 @@ Feature: FSP repricing — parent-level integration (ordering & atomicity)
   #     resolved Area of Law, so it isolates the repricing HTTP path from the AoL
   #     eligibility gate), then forces the persistence step to throw AFTER FSP has
   #     returned success. The atomicity is proven by the real DB no-write assertions;
-  #     "controlled terminal failure" and "no partial fields" remain DSTEW-1646-style
-  #     spec-guards (orchestration-internal, not harness-observable).
+  #     the post-FSP failure is additionally asserted as a real HTTP 500 + RFC 9457
+  #     ProblemDetail (controlled terminal failure), replacing the DSTEW-1646-style
+  #     spec-guard. "no partial fields" stays a spec-guard but is already backed by
+  #     the real "claim persisted state matches the pre-amendment state" DB assertion.
   #   * DS1595_2 mirrors the merged DSTEW-1767 @DS1767_4 proven combination and asserts
   #     the real INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM code plus a real
   #     MockServer verification that no FSP fee-calculation call was made — replacing
@@ -60,7 +62,7 @@ Feature: FSP repricing — parent-level integration (ordering & atomicity)
     And the FSP service will return a valid fee calculation for the amendment
     And the amendment persistence step will fail after FSP has returned success
     When I submit a well-formed pricing amendment
-    Then the endpoint responds with a controlled terminal failure
+    Then the endpoint responds with a controlled post-FSP persistence failure
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And the claim persisted state matches the pre-amendment state

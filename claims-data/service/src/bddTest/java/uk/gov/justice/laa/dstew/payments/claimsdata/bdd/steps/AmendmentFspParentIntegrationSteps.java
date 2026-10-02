@@ -1,11 +1,15 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.context.BddScenarioContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.ClaimAmendmentPersistenceService;
 
@@ -38,6 +42,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
 public class AmendmentFspParentIntegrationSteps {
 
   @Autowired private ClaimAmendmentPersistenceService claimAmendmentPersistenceService;
+  @Autowired private BddScenarioContext scenarioContext;
 
   @Given("the amendment persistence step will fail after FSP has returned success")
   public void amendmentPersistenceWillFailAfterFsp() {
@@ -47,5 +52,30 @@ public class AmendmentFspParentIntegrationSteps {
     log.info(
         "[fixture][DSTEW-1595] forced ClaimAmendmentPersistenceService.persistSuccessfulAmendment"
             + "(...) to throw after FSP success so the post-FSP rollback path is exercised");
+  }
+
+  /**
+   * Real status/body assertion for the post-FSP persistence-failure path (DS1595_1). The forced
+   * {@link RuntimeException} thrown from {@code persistSuccessfulAmendment} is uncaught by the
+   * amendment orchestrator, so it surfaces through {@code
+   * DataClaimsExceptionHandler#handleGenericException} as an HTTP 500 carrying an RFC 9457
+   * ProblemDetail. Unlike the DSTEW-1646 {@code "controlled terminal failure"} spec-guard (which
+   * only logs), this inspects {@link BddScenarioContext} so the scenario fails if the exception
+   * were exposed with the wrong status or swallowed.
+   */
+  @Then("the endpoint responds with a controlled post-FSP persistence failure")
+  public void endpointRespondsWithControlledPostFspPersistenceFailure() {
+    Integer status = scenarioContext.getLastStatusCode();
+    JsonNode body = scenarioContext.getLastResponseBody();
+    assertThat(status)
+        .as("post-FSP persistence failure must produce an HTTP response (body=%s)", body)
+        .isNotNull();
+    assertThat(status)
+        .as("an uncaught persistence failure must surface as a controlled 500 (body=%s)", body)
+        .isEqualTo(500);
+    assertThat(body).as("the 500 response must carry an RFC 9457 ProblemDetail body").isNotNull();
+    assertThat(body.path("status").asInt())
+        .as("the ProblemDetail status field must mirror the 500 HTTP status (body=%s)", body)
+        .isEqualTo(500);
   }
 }
