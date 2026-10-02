@@ -154,6 +154,16 @@ class BulkSubmissionDecodingFailuresTests {
     }
 
     @Test
+    @DisplayName("Does not treat an encoding attribute in XML content as a declaration")
+    void ignoresEncodingAttributeOutsideXmlDeclaration() {
+      byte[] prefix =
+          "<submission>caf\u00e9 encoding=\"US-ASCII\"</submission>"
+              .getBytes(StandardCharsets.UTF_8);
+      assertThat(BulkSubmissionDecodingFailures.detectCharset(prefix, true))
+          .contains(StandardCharsets.UTF_8);
+    }
+
+    @Test
     @DisplayName("Ignores a declared XML encoding attribute for non-XML (CSV) content")
     void ignoresDeclaredEncodingForNonXml() {
       // Looks like it contains an "encoding=" attribute, but this is CSV, not XML.

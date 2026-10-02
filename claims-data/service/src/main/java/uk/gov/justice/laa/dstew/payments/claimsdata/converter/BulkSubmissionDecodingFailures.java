@@ -73,8 +73,13 @@ final class BulkSubmissionDecodingFailures {
   /** Number of leading bytes read (once, cheaply) to sniff a BOM or declared XML encoding. */
   private static final int CHARSET_SNIFF_PREFIX_BYTES = 1024;
 
+  // Safe here because this pattern is only ever evaluated against the bounded 1 KiB charset-sniff
+  // prefix, and it is anchored to the start of an XML declaration.
+  @SuppressWarnings("java:S8786")
   private static final Pattern XML_ENCODING_DECLARATION_PATTERN =
-      Pattern.compile("encoding\\s*=\\s*[\"']([\\w.:-]+)[\"']", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "\\A<\\?xml\\s+[^?]*\\bencoding\\s*=\\s*[\"']([\\w.:-]+)[\"'][^?]*\\?>",
+          Pattern.CASE_INSENSITIVE);
 
   private BulkSubmissionDecodingFailures() {}
 
