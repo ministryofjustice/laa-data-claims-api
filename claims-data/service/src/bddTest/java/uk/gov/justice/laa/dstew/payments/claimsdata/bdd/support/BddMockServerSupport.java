@@ -249,6 +249,23 @@ public class BddMockServerSupport {
     client.clear(feeCalculationRequest(), ClearType.EXPECTATIONS);
   }
 
+  /**
+   * 200 OK carrying a successful fee-calculation whose {@code feeCalculation.totalAmount} is the
+   * supplied value (DSTEW-1762). Lets a scenario drive the {@code is_price_changed} comparison
+   * deterministically by matching / differing from the seeded previous calculated-fee total. Clears
+   * the default expectation first so this becomes the only fee-calculation match.
+   */
+  public void stubAmendmentFspCalculationWithTotal(double totalAmount) {
+    HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
+    client.clear(feeCalc, ClearType.EXPECTATIONS);
+    String body =
+        "{\"feeCode\":\"CAPA\",\"schemeId\":\"CAPA_FS2013\",\"validationMessages\":[],"
+            + "\"escapeCaseFlag\":false,\"feeCalculation\":{\"totalAmount\":"
+            + totalAmount
+            + ",\"vatIndicator\":true}}";
+    client.when(feeCalc).respond(okJson(body));
+  }
+
   /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
   public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
     client.verify(feeCalculationRequest(), times);
