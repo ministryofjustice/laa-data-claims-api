@@ -111,11 +111,13 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       "Department for Health and Social Care";
 
   private Boolean amendmentSwitch;
+  private Boolean inquestsSwitch;
 
   @BeforeEach
   void setUp() {
     // Capture the original boolean state
     amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
+    inquestsSwitch = claimsApiProperties.getInquests().isEnabled();
     seedClaimsData();
   }
 
@@ -123,6 +125,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void tearDown() {
     // Use String.valueOf() for a null-safe string conversion
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
+    claimsApiProperties.getInquests().setEnabled(String.valueOf(inquestsSwitch));
   }
 
   @Test
@@ -254,6 +257,48 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET v1 claim detail - hides Inquest data when the Inquests feature is disabled")
+  void shouldHideInquestDataFromV1WhenFeatureDisabled() throws Exception {
+    createInquestDetailTestData();
+    claimsApiProperties.getInquests().setEnabled("false");
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    ClaimResponse response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponse.class);
+
+    assertThat(response.getInquestDetail()).isNull();
+      assertThat(response.getFeeCalculationResponse()).isNotNull();
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
+  @DisplayName("GET v2 claim detail - hides Inquest data when the Inquests feature is disabled")
+  void shouldHideInquestDataFromV2WhenFeatureDisabled() throws Exception {
+    createInquestDetailTestData();
+    claimsApiProperties.getInquests().setEnabled("false");
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_A_CLAIM_ENDPOINT_V2, SUBMISSION_1_ID, CLAIM_1_ID)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    ClaimResponseV2 response =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponseV2.class);
+
+    assertThat(response.getInquestDetail()).isNull();
+      assertThat(response.getFeeCalculationResponse()).isNotNull();
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
   @DisplayName(
       "GET v1/submissions/{submissionId}/claims/{claimId} - returns a null coroner's reference when"
           + " it is not stored")
@@ -344,6 +389,39 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+  }
+
+  @Test
+  @DisplayName("POST claim without Inquest data succeeds when the Inquests feature is disabled")
+  void shouldAllowNonInquestPostWhenFeatureDisabled() throws Exception {
+    claimsApiProperties.getInquests().setEnabled("false");
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+
+    postClaimAndReturnId(getClaimPost(CASE_REFERENCE));
+
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("POST claim with Inquest data is rejected when the Inquests feature is disabled")
+  void shouldRejectInquestPostWhenFeatureDisabled() throws Exception {
+    claimsApiProperties.getInquests().setEnabled("false");
+    createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
+    ClaimPost claimPost =
+        getClaimPost(CASE_REFERENCE)
+            .inquestDetail(new ClaimInquestDetail().isClientMeansTested(false));
+
+    mockMvc
+        .perform(
+            post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+        .andExpect(status().isBadRequest());
+
+    assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).isEmpty();
+    assertThat(inquestDetailRepository.findAll()).isEmpty();
+    assertThat(claimInterestedDepartmentRepository.findAll()).isEmpty();
   }
 
   @ParameterizedTest
@@ -748,6 +826,61 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
     assertThat(updatedClaim.getFeeCode()).isEqualTo(FEE_CODE);
     assertThat(updatedClaim.getCaseReferenceNumber()).isEqualTo(CASE_REFERENCE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("PATCH rejects is_inquest when the Inquests feature is disabled")
+  void shouldRejectIsInquestPatchWhenFeatureDisabled(Boolean isInquest) throws Exception {
+    claimsApiProperties.getInquests().setEnabled("false");
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    claimPatch.setCreatedByUserId(API_USER_ID);
+    claimPatch.setFeeCalculationResponse(new FeeCalculationPatch().isInquest(isInquest));
+
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    assertThat(
+            calculatedFeeDetailRepository
+                .findById(calculatedFeeDetail1.getId())
+                .orElseThrow()
+                .getIsInquest())
+        .isNull();
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("PATCH without is_inquest succeeds when the Inquests feature is disabled")
+  void shouldAllowCalculationPatchWithoutIsInquestWhenFeatureDisabled() throws Exception {
+    claimsApiProperties.getInquests().setEnabled("false");
+    calculatedFeeDetail1.setIsInquest(true);
+    calculatedFeeDetailRepository.saveAndFlush(calculatedFeeDetail1);
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    claimPatch.setCreatedByUserId(API_USER_ID);
+    claimPatch.setFeeCalculationResponse(new FeeCalculationPatch().feeCode("UPDATED-FEE"));
+
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    CalculatedFeeDetail updated =
+        calculatedFeeDetailRepository
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID)
+            .orElseThrow();
+    assertThat(updated.getFeeCode()).isEqualTo("UPDATED-FEE");
+    assertThat(updated.getIsInquest()).isTrue();
+    assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
   }
 
   @ParameterizedTest

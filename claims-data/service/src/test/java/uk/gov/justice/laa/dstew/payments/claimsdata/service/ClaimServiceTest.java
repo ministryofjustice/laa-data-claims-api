@@ -62,6 +62,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
@@ -136,6 +137,7 @@ class ClaimServiceTest {
   @Mock private InquestDetailMapper inquestDetailMapper;
   @Mock private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
   @Mock private ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+  @Spy private final ClaimsApiProperties claimsApiProperties = inquestsEnabledProperties();
   @Captor ArgumentCaptor<ClaimInterestedDepartment> interestedDepartmentCaptor;
 
   @Spy
@@ -145,6 +147,12 @@ class ClaimServiceTest {
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
   @InjectMocks private ClaimService claimService;
+
+  private static ClaimsApiProperties inquestsEnabledProperties() {
+    ClaimsApiProperties properties = new ClaimsApiProperties();
+    properties.getInquests().setEnabled("true");
+    return properties;
+  }
 
   @DisplayName("create claim and client when client data provided (parameterized)")
   @ParameterizedTest
@@ -242,7 +250,7 @@ class ClaimServiceTest {
     verify(inquestDetailRepository).save(inquestDetail);
   }
 
-  public static Stream<Arguments> getInquestDetailTestingArguments() {
+  private static Stream<Arguments> getInquestDetailTestingArguments() {
     return Stream.of(
         Arguments.of(InquestDetail.builder().deceasedForename("Jane").build()),
         Arguments.of(InquestDetail.builder().deceasedSurname("Doe").build()),
@@ -271,7 +279,7 @@ class ClaimServiceTest {
     verify(inquestDetailRepository, never()).save(any());
   }
 
-  public static Stream<Arguments> getNoInquestDetailTestingArguments() {
+  private static Stream<Arguments> getNoInquestDetailTestingArguments() {
     return Stream.of(
         Arguments.of((InquestDetail) null), Arguments.of(InquestDetail.builder().build()));
   }
@@ -339,7 +347,7 @@ class ClaimServiceTest {
     verify(claimInterestedDepartmentRepository, never()).save(any());
   }
 
-  public static Stream<Arguments> getNoInterestedDepartmentsTestingArguments() {
+  private static Stream<Arguments> getNoInterestedDepartmentsTestingArguments() {
     return Stream.of(
         Arguments.of((ClaimInquestDetail) null),
         Arguments.of(new ClaimInquestDetail().interestedDepartments(null)),
