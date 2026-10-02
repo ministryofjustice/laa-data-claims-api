@@ -91,15 +91,22 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
   # AC3 — an assessed claim with a non-pricing-only amendment proceeds past the
   # assessed-pricing gate and Step 13 still skips FSP. (DSTEW-1767 @DS1767_6 owns
   # the assessed-gate angle; this asserts the Step-13 skip + no new calc-fee row.)
+  # The amendment must be ACCEPTED (204): that proves it genuinely reached and
+  # passed the Step 13 skip decision, rather than being rejected upstream (which
+  # would also omit the assessed-pricing code, make no FSP call and add no fee row,
+  # passing the assertions below for the wrong reason).
   @DS1758_4
   Scenario: Assessed claim + non-pricing amendment — Step 13 still skips FSP
     Given an original amendable claim exists with a valid pricing baseline
+    And the PDA service will respond "authorised" within the amendment-path timeout
+    And the FSP service will return a valid fee calculation for the amendment
     And the claim already has an assessment recorded
     And the classifier will mark the amendment "impacts_pricing" as "false"
     And an amendment changes only the field "client_surname" to "Jones"
     And the field "client_surname" is on the AaBC amendable-fields list for the claim's area of law
     When I submit the amendment and wait for the event service to complete amendment validation
-    Then the response does not contain error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
+    Then the amendment is accepted
+    And the response does not contain error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
     And no outbound FSP call was made from the amendment harness
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
 
