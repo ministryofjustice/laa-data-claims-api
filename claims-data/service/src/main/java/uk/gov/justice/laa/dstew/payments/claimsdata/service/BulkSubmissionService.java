@@ -37,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Re
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetailsSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
@@ -53,6 +54,7 @@ public class BulkSubmissionService
   private final BulkSubmissionMapper bulkSubmissionMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final SubmissionService submissionService;
+  private final StatusCoercer statusCoercer;
 
   @Override
   public BulkSubmissionRepository lookup() {
@@ -367,6 +369,7 @@ public class BulkSubmissionService
   @Transactional
   public void updateBulkSubmission(UUID id, BulkSubmissionPatch bulkSubmissionPatch) {
 
+    statusCoercer.coerce(bulkSubmissionPatch);
     int updateCount =
         bulkSubmissionRepository.updateBulkSubmission(
             id,
