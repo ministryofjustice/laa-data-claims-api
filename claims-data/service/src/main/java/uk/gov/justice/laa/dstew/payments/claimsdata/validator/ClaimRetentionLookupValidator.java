@@ -10,11 +10,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestExc
 public class ClaimRetentionLookupValidator {
 
   public static final String OFFICE_CODE_REQUIRED = "office_code is required.";
-  public static final String OFFICE_CODE_NULL = "office_code must not be 'null'.";
   public static final String OFFICE_CODE_INVALID =
       "office_code must contain exactly six alphanumeric characters.";
   public static final String UFN_REQUIRED = "ufn is required.";
-  public static final String UFN_NULL = "ufn must not be 'null'.";
   public static final String UFN_INVALID = "ufn must match DDMMYY/NNN.";
 
   private static final Pattern OFFICE_CODE_PATTERN = Pattern.compile("^[0-9A-Za-z]{6}$");
@@ -35,9 +33,6 @@ public class ClaimRetentionLookupValidator {
     if (!StringUtils.hasText(officeCode)) {
       throw new ClaimBadRequestException(OFFICE_CODE_REQUIRED);
     }
-    if ("null".equalsIgnoreCase(officeCode.trim())) {
-      throw new ClaimBadRequestException(OFFICE_CODE_NULL);
-    }
     if (!OFFICE_CODE_PATTERN.matcher(officeCode).matches()) {
       throw new ClaimBadRequestException(OFFICE_CODE_INVALID);
     }
@@ -52,9 +47,6 @@ public class ClaimRetentionLookupValidator {
   public void validateUfn(String ufn) {
     if (!StringUtils.hasText(ufn)) {
       throw new ClaimBadRequestException(UFN_REQUIRED);
-    }
-    if ("null".equalsIgnoreCase(ufn.trim())) {
-      throw new ClaimBadRequestException(UFN_NULL);
     }
     if (!UFN_PATTERN.matcher(ufn).matches()) {
       throw new ClaimBadRequestException(UFN_INVALID);

@@ -484,38 +484,6 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
         .andReturn();
   }
 
-  @Test
-  @DisplayName("Should return 400 for the literal string 'null' as an identifier")
-  void testLiteralNullIdentifiersRejected() throws Exception {
-    createTestClaims(3, ClaimStatus.VALID);
-
-    mockMvc
-        .perform(
-            get(RETENTION_LOOKUP_ENDPOINT)
-                .param("office_code", "null")
-                .param("ufn", "null")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.detail").value("office_code must not be 'null'."))
-        .andReturn();
-  }
-
-  @Test
-  @DisplayName("Should explicitly reject the literal string 'null' for ufn")
-  void testLiteralNullUfnRejectedExplicitly() throws Exception {
-    mockMvc
-        .perform(
-            get(RETENTION_LOOKUP_ENDPOINT)
-                .param("office_code", OFFICE_ACCOUNT_NUMBER)
-                .param("ufn", "null")
-                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.detail").value("ufn must not be 'null'."))
-        .andReturn();
-  }
-
   @ParameterizedTest
   @ValueSource(
       strings = {

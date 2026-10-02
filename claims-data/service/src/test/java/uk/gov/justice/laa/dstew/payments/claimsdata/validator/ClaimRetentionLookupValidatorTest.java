@@ -21,16 +21,6 @@ class ClaimRetentionLookupValidatorTest {
   }
 
   @Test
-  void shouldRejectLiteralNullOfficeCodeExplicitly() {
-    assertThatThrownBy(() -> validator.validate("null", "010125/001"))
-        .isInstanceOfSatisfying(
-            ClaimBadRequestException.class,
-            exception ->
-                assertThat(exception.getMessage())
-                    .isEqualTo(ClaimRetentionLookupValidator.OFFICE_CODE_NULL));
-  }
-
-  @Test
   void shouldRejectMalformedOfficeCode() {
     assertThatThrownBy(() -> validator.validate("invalid", "010125/001"))
         .isInstanceOfSatisfying(
@@ -48,16 +38,6 @@ class ClaimRetentionLookupValidatorTest {
             exception ->
                 assertThat(exception.getMessage())
                     .isEqualTo(ClaimRetentionLookupValidator.UFN_REQUIRED));
-  }
-
-  @Test
-  void shouldRejectLiteralNullUfnExplicitly() {
-    assertThatThrownBy(() -> validator.validate("0R695K", "null"))
-        .isInstanceOfSatisfying(
-            ClaimBadRequestException.class,
-            exception ->
-                assertThat(exception.getMessage())
-                    .isEqualTo(ClaimRetentionLookupValidator.UFN_NULL));
   }
 
   @Test
