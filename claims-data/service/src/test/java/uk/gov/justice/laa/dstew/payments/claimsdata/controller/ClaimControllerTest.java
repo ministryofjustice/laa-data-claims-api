@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_V2_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.VOID_CLAIM_URI;
 
 import java.util.List;
 import java.util.UUID;
@@ -341,9 +342,7 @@ class ClaimControllerTest {
 
       mockMvc
           .perform(
-              post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(body))
+              post(VOID_CLAIM_URI, claimId).contentType(MediaType.APPLICATION_JSON).content(body))
           .andExpect(status().isCreated())
           .andExpect(
               header()
@@ -362,9 +361,7 @@ class ClaimControllerTest {
       UUID claimId = Uuid7.timeBasedUuid();
       mockMvc
           .perform(
-              post(API_URI_PREFIX + "/claims/{claimId}/void", claimId)
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content("{}"))
+              post(VOID_CLAIM_URI, claimId).contentType(MediaType.APPLICATION_JSON).content("{}"))
           .andExpect(status().isBadRequest());
 
       verify(claimService, never()).voidClaimByIdAndCreateAssessment(any(), any());
