@@ -108,7 +108,7 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
     Then the OCC endpoint response status is 409
     And the response body indicates "CLAIM_VERSION_CONFLICT"
     And no outbound PDA call was made
-    And no outbound FSP call was made
+    And no outbound FSP call was made from the amendment harness
     And the structured conflict log entry contains "conflictPoint=initial_check"
     And the structured conflict log entry does not contain any amendment payload values
     And the structured conflict log entry does not contain any financial values
