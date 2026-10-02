@@ -38,11 +38,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionsResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.SubmissionSpecification;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.BigDecimalUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.PageableUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.SubmissionSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.TransactionalPublisher;
+import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 /** Service containing business logic for handling submissions. */
 @Service
@@ -69,6 +71,7 @@ public class SubmissionService
   private final ValidationMessageLogRepository validationMessageLogRepository;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
+  private final StatusCoercer statusCoercer;
   private final AssessmentService assessmentService;
 
   @Override
@@ -101,7 +104,8 @@ public class SubmissionService
         throw new SubmissionValidationException(
             "Submission failed validation", validationResult.getIssues());
       }
-      submission.setStatus(SubmissionStatus.VALIDATION_SUCCEEDED);
+      submission.setStatus(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+      statusCoercer.coerce(submission);
       if (submission.getCreatedOn() == null) {
         submission.setCreatedOn(Instant.now());
       }
@@ -111,8 +115,12 @@ public class SubmissionService
 
     submissionRepository.save(submission);
 
-    if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
-      publishValidationSucceededAfterCommit(submission.getId());
+    if (submission.getStatus() == SubmissionStatus.VALIDATED_PENDING_APPROVAL) {
+      publishValidationSucceededAfterCommit(
+          submission.getId(), SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED);
+    } else if (submission.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
+      publishValidationSucceededAfterCommit(
+          submission.getId(), SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
     }
 
     return submission.getId();
@@ -214,6 +222,7 @@ public class SubmissionService
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
 
+    statusCoercer.coerce(submissionPatch);
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
 
@@ -221,8 +230,12 @@ public class SubmissionService
       TransactionalPublisher.runAfterCommit(
           () ->
               submissionEventPublisherService.publishSubmissionValidationEvent(submission.getId()));
+    } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATED_PENDING_APPROVAL) {
+      publishValidationSucceededAfterCommit(
+          submission.getId(), SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED);
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_SUCCEEDED) {
-      publishValidationSucceededAfterCommit(submission.getId());
+      publishValidationSucceededAfterCommit(
+          submission.getId(), SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
           claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
@@ -314,11 +327,12 @@ public class SubmissionService
     return resultSet;
   }
 
-  private void publishValidationSucceededAfterCommit(UUID submissionId) {
+  private void publishValidationSucceededAfterCommit(
+      UUID submissionId, SubmissionEventType eventType) {
     TransactionalPublisher.runAfterCommit(
         () ->
             submissionEventPublisherService.publishSubmissionValidationSucceededEvent(
-                submissionId));
+                submissionId, eventType));
   }
 
   /**
