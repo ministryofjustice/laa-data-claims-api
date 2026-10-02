@@ -413,6 +413,77 @@ public class BulkSubmissionXmlConverterTests {
 
       assertThat(outcome.clientSurname()).isEqualTo("Test");
     }
+
+    @Test
+    @DisplayName(
+        "Throws a helpful, non-raw message when a UTF-8-declared file contains an invalid byte")
+    void throwsHelpfulMessageForInvalidUtf8Byte() {
+      String fourthLineBeforeBadByte = "<outcomeItem name=\"CLIENT_SURNAME\">Te";
+      byte[] prefix =
+          ("<?xml version='1.0' encoding='UTF-8'?>"
+                  + "<submission xmlns=\"http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/\">"
+                  + "<office account=\"2P554H\">\n"
+                  + "<schedule submissionPeriod=\"JAN-2010\" areaOfLaw=\"CRIME LOWER\" scheduleNum=\"ABC/20000L/10\">\n"
+                  + "<outcome matterType=\"INVC\">\n"
+                  + fourthLineBeforeBadByte)
+              .getBytes(StandardCharsets.UTF_8);
+      byte[] badByte = {(byte) 0xE9}; // raw Windows-1252 'é' - invalid alone in UTF-8
+      byte[] suffix =
+          "st</outcomeItem></outcome></schedule></office></submission>"
+              .getBytes(StandardCharsets.UTF_8);
+      byte[] content = new byte[prefix.length + badByte.length + suffix.length];
+      System.arraycopy(prefix, 0, content, 0, prefix.length);
+      System.arraycopy(badByte, 0, content, prefix.length, badByte.length);
+      System.arraycopy(suffix, 0, content, prefix.length + badByte.length, suffix.length);
+
+      MultipartFile file =
+          new MockMultipartFile("file", "submission.xml", "application/xml", content);
+
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+
+      // The bad byte is the character immediately after the (all-ASCII) fourth line's content.
+      int expectedCharacter = fourthLineBeforeBadByte.length() + 1;
+      assertThat(ex.getMessage())
+          .contains("could not be read as valid text")
+          .contains("line 4")
+          .contains("character %d".formatted(expectedCharacter))
+          .doesNotContain("Invalid UTF-8")
+          .doesNotContain("byte #")
+          .doesNotContain("char #")
+          .doesNotContain("WstxIOException");
+    }
+
+    @Test
+    @DisplayName("Correctly declared Windows-1252 XML with a Windows-1252 character still converts")
+    void convertsCorrectlyDeclaredWindows1252Xml() {
+      // U+00E9 e-acute, representable directly in windows-1252, not just UTF-8.
+      String clientSurname = "Caf\u00e9"; // e-acute
+      byte[] content =
+          ("<?xml version='1.0' encoding='windows-1252'?>"
+                  + "<submission xmlns=\"http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/\">"
+                  + "<office account=\"2P554H\">"
+                  + "<schedule submissionPeriod=\"JAN-2010\" areaOfLaw=\"CRIME LOWER\" scheduleNum=\"ABC/20000L/10\">"
+                  + "<outcome matterType=\"INVC\">"
+                  + "<outcomeItem name=\"CLIENT_SURNAME\">"
+                  + clientSurname
+                  + "</outcomeItem>"
+                  + "</outcome>"
+                  + "</schedule>"
+                  + "</office>"
+                  + "</submission>")
+              .getBytes(java.nio.charset.Charset.forName("windows-1252"));
+
+      MultipartFile file =
+          new MockMultipartFile("file", "submission.xml", "application/xml", content);
+
+      XmlSubmission submission = bulkSubmissionXmlConverter.convert(file);
+
+      assertThat(submission.office().schedule().outcomes().getFirst().clientSurname())
+          .isEqualTo(clientSurname);
+    }
   }
 
   private static String outcomeXml(String outcomeItems) {
