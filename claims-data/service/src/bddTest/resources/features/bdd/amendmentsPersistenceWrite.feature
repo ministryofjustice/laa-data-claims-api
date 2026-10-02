@@ -41,9 +41,13 @@ Feature: Amendment persistence — assemble & write the durable business record
   #     `impacts_pricing` flag; a pricing amendment always adds one calc-fee row.
   #   * The draft's `applied_at` wall-clock timestamps (Apr/Jun 2026) are not
   #     controllable — created_on is stamped server-side at commit. The real
-  #     amendments here commit milliseconds apart; UUIDv7 ids and created_on
-  #     still ascend in application order, which is exactly the property under
-  #     test, so the specific dates are narrative only.
+  #     amendments here commit close together; created_on (sub-millisecond,
+  #     authoritative) ascends in commit order, and the UUIDv7 ids' embedded
+  #     millisecond timestamps are non-decreasing in that order. UUIDv7 embeds a
+  #     MILLISECOND-precision timestamp and this generator is not monotonic within
+  #     a millisecond, so same-ms commits are allowed — the tested property is that
+  #     the UUIDv7 time component never contradicts created_on order (NOT a strict
+  #     lexicographic ascent). The specific dates are narrative only.
   #   * "the timeline's source_id / event_timestamp" for an AMENDMENT event are
   #     the persisted claim_amendment.id / created_on — asserted via the real
   #     GET /claims/{id}/history response.
@@ -122,6 +126,6 @@ Feature: Amendment persistence — assemble & write the durable business record
       | 2     | true            |
     And I request the claim history timeline for the amended claim
     Then the timeline contains 2 AMENDMENT events
-    And the earlier AMENDMENT event source_id sorts before the later one when compared as a UUIDv7
-    And ordering the AMENDMENT events by source_id yields the same order as ordering by event_timestamp
+    And the earlier AMENDMENT event source_id is time-ordered no later than the later one as a UUIDv7
+    And the AMENDMENT event source_id UUIDv7 timestamps are non-decreasing in event_timestamp order
 

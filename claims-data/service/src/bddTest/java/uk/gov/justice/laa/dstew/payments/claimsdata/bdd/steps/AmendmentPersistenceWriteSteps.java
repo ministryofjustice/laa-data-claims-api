@@ -199,21 +199,24 @@ public class AmendmentPersistenceWriteSteps {
   }
 
   @Then(
-      "the earlier AMENDMENT event source_id sorts before the later one when compared as a UUIDv7")
+      "the earlier AMENDMENT event source_id is time-ordered no later than the later one as a"
+          + " UUIDv7")
   public void earlierAmendmentSourceIdSortsBefore() {
     step(
-        "assert the earlier AMENDMENT event's source_id precedes the later one as a UUIDv7",
+        "assert the chronologically-earlier AMENDMENT's source_id UUIDv7 time component is not"
+            + " after the later one's",
         () -> {
           List<JsonNode> events = amendmentEvents();
           assertThat(events).as("need two AMENDMENT events to compare ordering").hasSize(2);
 
           JsonNode a = events.get(0);
           JsonNode b = events.get(1);
-          JsonNode earlier =
-              Instant.parse(a.path("event_timestamp").asText())
-                      .isBefore(Instant.parse(b.path("event_timestamp").asText()))
-                  ? a
-                  : b;
+          // Determine earlier/later by the authoritative chronological field (created_on, exposed
+          // as event_timestamp) rather than by the UUID — event_timestamp has sub-millisecond
+          // precision and is monotonic in commit order.
+          Instant tsA = Instant.parse(a.path("event_timestamp").asText());
+          Instant tsB = Instant.parse(b.path("event_timestamp").asText());
+          JsonNode earlier = tsA.isAfter(tsB) ? b : a;
           JsonNode later = (earlier == a) ? b : a;
 
           UUID earlierId = UUID.fromString(earlier.path("source_id").asText());
@@ -221,41 +224,43 @@ public class AmendmentPersistenceWriteSteps {
 
           assertThat(earlierId.version()).as("earlier source_id is a UUIDv7").isEqualTo(7);
           assertThat(laterId.version()).as("later source_id is a UUIDv7").isEqualTo(7);
+          // A UUIDv7 embeds a MILLISECOND-precision timestamp, and this project's generator
+          // (java-uuid-generator timeBasedEpochGenerator) is NOT monotonic within a millisecond —
+          // two amendments committed in the same ms legitimately share an embedded timestamp with
+          // independently random trailing bits. So the only guaranteed invariant is NON-DECREASING:
+          // the earlier event's embedded ms timestamp must not be AFTER the later one's. Asserting
+          // strict "<" (or lexicographic UUID order) would be brittle under same-ms commits.
           assertThat(uuidV7Timestamp(earlierId))
-              .as("earlier source_id's UUIDv7 timestamp precedes the later one's")
-              .isLessThan(uuidV7Timestamp(laterId));
-          assertThat(earlierId.toString().compareTo(laterId.toString()))
-              .as("UUIDv7 ids are lexicographically time-ordered, so the earlier id sorts first")
-              .isLessThan(0);
+              .as("the earlier AMENDMENT's UUIDv7 ms timestamp is not after the later one's")
+              .isLessThanOrEqualTo(uuidV7Timestamp(laterId));
         });
   }
 
   @Then(
-      "ordering the AMENDMENT events by source_id yields the same order as ordering by event_timestamp")
+      "the AMENDMENT event source_id UUIDv7 timestamps are non-decreasing in event_timestamp order")
   public void orderingBySourceIdMatchesOrderingByTimestamp() {
     step(
-        "assert sort-by-source_id and sort-by-event_timestamp produce the same AMENDMENT sequence",
+        "assert source_id UUIDv7 ms timestamps do not contradict event_timestamp ordering",
         () -> {
           List<JsonNode> events = amendmentEvents();
 
-          List<String> bySourceId =
-              events.stream()
-                  .sorted(
-                      Comparator.comparingLong(
-                          e -> uuidV7Timestamp(UUID.fromString(e.path("source_id").asText()))))
-                  .map(e -> e.path("source_id").asText())
-                  .toList();
-
-          List<String> byTimestamp =
+          // Place the events in authoritative chronological order (created_on / event_timestamp,
+          // which is sub-millisecond precise and monotonic in commit order), then assert the
+          // embedded UUIDv7 millisecond timestamps are monotonically NON-DECREASING along that
+          // order. Equal ms values are allowed (same-millisecond commits) — the UUIDv7 time
+          // component must simply never run backwards relative to event_timestamp. A strict
+          // "same lexicographic order" check would be brittle because the generator is not
+          // monotonic within a millisecond (see earlierAmendmentSourceIdSortsBefore).
+          List<Long> msInTimestampOrder =
               events.stream()
                   .sorted(
                       Comparator.comparing(e -> Instant.parse(e.path("event_timestamp").asText())))
-                  .map(e -> e.path("source_id").asText())
+                  .map(e -> uuidV7Timestamp(UUID.fromString(e.path("source_id").asText())))
                   .toList();
 
-          assertThat(bySourceId)
-              .as("ordering AMENDMENT events by source_id matches ordering by event_timestamp")
-              .isEqualTo(byTimestamp);
+          assertThat(msInTimestampOrder)
+              .as("source_id UUIDv7 ms timestamps are non-decreasing in event_timestamp order")
+              .isSorted();
         });
   }
 
