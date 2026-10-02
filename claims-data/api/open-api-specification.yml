@@ -939,6 +939,78 @@ paths:
         '429':
           description: 'Too many requests'
 
+  /api/v1/claims/retention-lookup:
+    get:
+      operationId: getClaimsRetentionLookup
+      x-spring-paginated: true
+      tags:
+        - Claims
+      summary: Get claims retention lookup data
+      description: |
+        Retrieves claims data for a given office code and unique file number (UFN).
+        Returns only VALID status claims with minimal retention-relevant fields for data governance.
+        No PII is included in the response.
+        Results are paginated using zero-based page index and page size (defaults: page=0, size=20).
+        Results always use the fixed order updated_on descending, then claim_id ascending.
+        Caller-provided sort criteria are ignored.
+      parameters:
+        - name: office_code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            The unique account number assigned to the provider office by the LAA.
+            Exactly 6 alphanumeric characters, e.g. 0R695K.
+        - name: ufn
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique File Number - the unique reference for the case file.
+            Format DDMMYY/NNN, e.g. 230493/001.
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/sizeParam'
+      responses:
+        '200':
+          description: Claims retrieved successfully. Returns a paginated array of VALID claims matching office_code and ufn. If no matching claims exist, returns an empty content array with pagination metadata.
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/claim-retention-lookup.yml#/claim_retention_lookup_result_set'
+        '400':
+          description: 'Bad request'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
+        '401':
+          description: 'Unauthorized'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
+        '403':
+          description: 'Forbidden'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
+        '429':
+          description: 'Too many requests'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Too many requests
+        '500':
+          description: 'Internal server error'
+          content:
+            application/problem+json:
+              schema:
+                $ref: './schemas/problem-detail.yml#/problem_detail_base'
+
   /api/v2/submissions/{submission-id}/claims/{claim-id}:
     get:
       operationId: getClaimV2
