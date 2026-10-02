@@ -105,6 +105,8 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the amendment is accepted
     And the amendment processing was not aborted by any Claims-API response-time limit
+    And exactly 1 outbound PDA call was made
+    And exactly 1 outbound FSP call was made
     And exactly one claim_amendment row was inserted for this claim
 
   # ============================================================================
