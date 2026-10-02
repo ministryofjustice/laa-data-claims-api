@@ -10,7 +10,8 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
   # Orchestration story wiring DSTEW-1593 end-to-end. This file covers ONLY the
   # cross-cutting orchestration guarantees no single child can prove:
   #   * Full-flow happy paths (non-pricing + pricing).
-  #   * Step-order sequencing — an earlier failure short-circuits later steps.
+  #   * Rejected-amendment guarantee — a validation failure makes no outbound PDA/FSP call and
+  #     commits no state (observable no-outbound / no-commit; not internal step ordering).
   #   * No Claims-API hard response-time limit anywhere in the orchestration.
   #   * The DSTEW-1743 stub selector is unreachable on the real path.
   #
@@ -62,11 +63,11 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And exactly one new calculated_fee_detail row was inserted for this amendment
 
   # ============================================================================
-  # Step-order sequencing — earlier failures short-circuit later steps
+  # Rejected amendment — no outbound dependency call, no committed state
   # ============================================================================
 
   @DS1771_3
-  Scenario Outline: Failure at "<failingStep>" short-circuits all later orchestration steps
+  Scenario Outline: Failure at "<failingStep>" makes no outbound PDA/FSP call and commits no state
     Given an orchestration claim exists with area of law "LEGAL_HELP"
     And the orchestration amendment is set up to fail at step "<failingStep>"
     When I submit the amendment and wait for the event service to complete amendment validation
@@ -77,12 +78,19 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And the claim persisted state matches the pre-amendment state
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And the orchestration client state is unchanged from the seed
+    And the orchestration claim representation_order_date is unchanged from the seed
 
-    # Every failing step here fails BEFORE any PDA-impacting change is validated, so no outbound
-    # PDA (/schedules) or FSP (/fee-calculation) call is made and nothing is committed. The
-    # fee-code-lookup step is intentionally NOT in this table: a fee-code change is PDA-impacting, so
-    # it necessarily exercises the PDA validator (an outbound /schedules call) before the fee-code
-    # gate rejects — that short-circuit is proven in amendmentsFeeCodeLookupAndValidation.feature.
+    # This outline asserts the OBSERVABLE rejected-amendment guarantee, not internal step ordering:
+    # for each named failure the endpoint rejects, no outbound PDA (/schedules) or FSP
+    # (/fee-calculation) call is journalled, and NO row (claim, client, claim_amendment or
+    # calculated_fee_detail) is committed. It deliberately does not claim to prove that an earlier
+    # validation step halts later ones — ClaimAmendmentValidationService continues past non-fatal
+    # ERROR findings, and each patch here independently avoids PDA impact — so step-order
+    # short-circuiting is left to the per-gate child files. Every failing step fails BEFORE any
+    # PDA-impacting change is validated, which is why no outbound call is made. The fee-code-lookup
+    # step is intentionally NOT in this table: a fee-code change is PDA-impacting, so it necessarily
+    # exercises the PDA validator (an outbound /schedules call) before the fee-code gate rejects —
+    # that path is proven in amendmentsFeeCodeLookupAndValidation.feature.
     # version contract returns 409 (CLAIM_VERSION_CONFLICT); the others aggregate as 400.
     Examples:
       | failingStep                     | httpStatus |

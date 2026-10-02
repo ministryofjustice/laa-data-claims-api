@@ -66,6 +66,11 @@ public class AmendmentOrchestrationSteps {
   private ObjectNode patch;
   private Map<String, String> extraHeaders = Map.of();
 
+  // Seeded baseline of the non-amendable claim field the DS1771_3 amendability row mutates,
+  // captured
+  // at seed time so a rejected amendment can be proven to have left that exact field untouched.
+  private LocalDate seededRepresentationOrderDate;
+
   // ---------------------------------------------------------------------------
   // Given — seed + amend composers
   // ---------------------------------------------------------------------------
@@ -78,6 +83,8 @@ public class AmendmentOrchestrationSteps {
     sharedPatchContext.setClaimId(seeded.claimId());
     sharedPatchContext.setBaselineClaimVersion(seeded.baselineVersion());
     sharedPatchContext.setBaselineCfdCount(countCfd(seeded.claimId()));
+    seededRepresentationOrderDate =
+        claimRepository.findById(seeded.claimId()).orElseThrow().getRepresentationOrderDate();
     patch = baseValidPatch();
   }
 
@@ -218,6 +225,20 @@ public class AmendmentOrchestrationSteps {
     assertThat(client.getClientForename())
         .as("client_forename must be unchanged by a rejected amendment")
         .isEqualTo("Jane");
+  }
+
+  @Then("the orchestration claim representation_order_date is unchanged from the seed")
+  public void theOrchestrationClaimRepresentationOrderDateIsUnchanged() {
+    // The amendability (DSTEW-1767) failing-step composer stages an invalid
+    // representation_order_date
+    // in the patch (a non-amendable claim field). A rejected amendment must leave that exact claim
+    // field at its seeded value — not merely the version/is_amended flags — so a partial write of
+    // the
+    // invalid date would fail here even though the other rollback assertions would stay green.
+    Claim claim = claimRepository.findById(sharedPatchContext.getClaimId()).orElseThrow();
+    assertThat(claim.getRepresentationOrderDate())
+        .as("claim.representation_order_date must be unchanged by a rejected amendment")
+        .isEqualTo(seededRepresentationOrderDate);
   }
 
   @Then("the response body is not the DSTEW-1743 stub error envelope")
