@@ -1,6 +1,11 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.InheritConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 

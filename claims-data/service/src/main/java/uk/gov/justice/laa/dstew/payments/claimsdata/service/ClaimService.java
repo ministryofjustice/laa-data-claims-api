@@ -4,7 +4,12 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.repository.specificat
 
 import java.lang.reflect.Field;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +28,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.entity.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
@@ -47,7 +62,17 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
-import uk.gov.justice.laa.dstew.payments.claimsdata.repository.*;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
@@ -194,7 +219,6 @@ public class ClaimService
     return claim.getId();
   }
 
-
   /**
    * Retrieve a claim for a submission.
    *
@@ -277,90 +301,88 @@ public class ClaimService
     }
   }
 
-
-    private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {
-        ClaimInquestDetail claimInquestDetail = claimPost.getInquestDetail();
-        if (claimInquestDetail == null || claimInquestDetail.getInterestedDepartments() == null) {
-            return;
-        }
-
-        int displayOrder = 1;
-        for (String departmentName : claimInquestDetail.getInterestedDepartments()) {
-            if (!StringUtils.hasText(departmentName)) {
-                continue;
-            }
-            GovernmentDepartmentRef governmentDepartment =
-                    governmentDepartmentRefRepository
-                            .findByDisplayLabelIgnoreCase(departmentName.trim())
-                            .orElseThrow(
-                                    () ->
-                                            new ClaimBadRequestException(
-                                                    String.format(
-                                                            "Unknown interested government department: %s", departmentName)));
-
-            claimInterestedDepartmentRepository.save(
-                    ClaimInterestedDepartment.builder()
-                            .id(Uuid7.timeBasedUuid())
-                            .claim(claim)
-                            .governmentDepartment(governmentDepartment)
-                            .displayOrder(displayOrder++)
-                            .createdByUserId(claimPost.getCreatedByUserId())
-                            .build());
-        }
+  private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {
+    ClaimInquestDetail claimInquestDetail = claimPost.getInquestDetail();
+    if (claimInquestDetail == null || claimInquestDetail.getInterestedDepartments() == null) {
+      return;
     }
 
-    private void rejectInquestPostWhenDisabled(ClaimPost claimPost) {
-        if (!claimsApiProperties.getInquests().isEnabled() && claimPost.getInquestDetail() != null) {
-            throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
-        }
+    int displayOrder = 1;
+    for (String departmentName : claimInquestDetail.getInterestedDepartments()) {
+      if (!StringUtils.hasText(departmentName)) {
+        continue;
+      }
+      GovernmentDepartmentRef governmentDepartment =
+          governmentDepartmentRefRepository
+              .findByDisplayLabelIgnoreCase(departmentName.trim())
+              .orElseThrow(
+                  () ->
+                      new ClaimBadRequestException(
+                          String.format(
+                              "Unknown interested government department: %s", departmentName)));
+
+      claimInterestedDepartmentRepository.save(
+          ClaimInterestedDepartment.builder()
+              .id(Uuid7.timeBasedUuid())
+              .claim(claim)
+              .governmentDepartment(governmentDepartment)
+              .displayOrder(displayOrder++)
+              .createdByUserId(claimPost.getCreatedByUserId())
+              .build());
+    }
+  }
+
+  private void rejectInquestPostWhenDisabled(ClaimPost claimPost) {
+    if (!claimsApiProperties.getInquests().isEnabled() && claimPost.getInquestDetail() != null) {
+      throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
+    }
+  }
+
+  private void applyInquestResponse(UUID claimId, ClaimResponse response) {
+    if (claimsApiProperties.getInquests().isEnabled()) {
+      response.setInquestDetail(getClaimInquestDetail(claimId));
+      return;
     }
 
-    private void applyInquestResponse(UUID claimId, ClaimResponse response) {
-        if (claimsApiProperties.getInquests().isEnabled()) {
-            response.setInquestDetail(getClaimInquestDetail(claimId));
-            return;
-        }
+    response.setInquestDetail(null);
+    if (response.getFeeCalculationResponse() != null) {
+      response.getFeeCalculationResponse().setIsInquest(null);
+    }
+  }
 
-        response.setInquestDetail(null);
-        if (response.getFeeCalculationResponse() != null) {
-            response.getFeeCalculationResponse().setIsInquest(null);
-        }
+  private void applyInquestResponse(UUID claimId, ClaimResponseV2 response) {
+    if (claimsApiProperties.getInquests().isEnabled()) {
+      response.setInquestDetail(getClaimInquestDetail(claimId));
+      return;
     }
 
-    private void applyInquestResponse(UUID claimId, ClaimResponseV2 response) {
-        if (claimsApiProperties.getInquests().isEnabled()) {
-            response.setInquestDetail(getClaimInquestDetail(claimId));
-            return;
-        }
-
-        response.setInquestDetail(null);
-        if (response.getFeeCalculationResponse() != null) {
-            response.getFeeCalculationResponse().setIsInquest(null);
-        }
+    response.setInquestDetail(null);
+    if (response.getFeeCalculationResponse() != null) {
+      response.getFeeCalculationResponse().setIsInquest(null);
     }
+  }
 
+  private ClaimInquestDetail getClaimInquestDetail(UUID claimId) {
+    ClaimInquestDetail claimInquestDetail =
+        inquestDetailRepository
+            .findByClaimId(claimId)
+            .map(inquestDetailMapper::toClaimInquestDetail)
+            .orElseGet(ClaimInquestDetail::new);
 
+    clientRepository
+        .findByClaimId(claimId)
+        .ifPresent(client -> claimInquestDetail.setIsClientMeansTested(client.getIsMeansTested()));
 
-    private ClaimInquestDetail getClaimInquestDetail(UUID claimId) {
-        ClaimInquestDetail claimInquestDetail =
-                inquestDetailRepository
-                        .findByClaimId(claimId)
-                        .map(inquestDetailMapper::toClaimInquestDetail)
-                        .orElseGet(ClaimInquestDetail::new);
+    List<String> departments =
+        claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId).stream()
+            .map(ClaimInterestedDepartment::getGovernmentDepartment)
+            .map(GovernmentDepartmentRef::getDisplayLabel)
+            .toList();
+    claimInquestDetail.setInterestedDepartments(departments);
 
-        clientRepository
-                .findByClaimId(claimId)
-                .ifPresent(client -> claimInquestDetail.setIsClientMeansTested(client.getIsMeansTested()));
+    return claimInquestDetail;
+  }
 
-        List<String> departments =
-                claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId).stream()
-                        .map(ClaimInterestedDepartment::getGovernmentDepartment)
-                        .map(GovernmentDepartmentRef::getDisplayLabel)
-                        .toList();
-        claimInquestDetail.setInterestedDepartments(departments);
-
-        return claimInquestDetail;
-    }
   /**
    * Determine whether the incoming patch should be handled as an amendment.
    *

@@ -25,7 +25,7 @@ class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrati
   }
 
   @Test
-  @DisplayName("findByDisplayLabelIgnoreCase returns empty when no department has that full name")
+  @DisplayName("findByDisplayLabelIgnoreCase returns empty when no department has that name")
   void findByDisplayLabelIgnoreCaseReturnsEmptyWhenNoMatch() {
     saveDepartment(DEPARTMENT_LABEL);
 

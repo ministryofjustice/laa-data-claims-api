@@ -273,8 +273,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponse.class);
 
     assertThat(response.getInquestDetail()).isNull();
-      assertThat(response.getFeeCalculationResponse()).isNotNull();
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+    assertThat(response.getFeeCalculationResponse()).isNotNull();
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
   }
 
   @Test
@@ -294,8 +294,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResponseV2.class);
 
     assertThat(response.getInquestDetail()).isNull();
-      assertThat(response.getFeeCalculationResponse()).isNotNull();
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+    assertThat(response.getFeeCalculationResponse()).isNotNull();
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
   }
 
   @Test
