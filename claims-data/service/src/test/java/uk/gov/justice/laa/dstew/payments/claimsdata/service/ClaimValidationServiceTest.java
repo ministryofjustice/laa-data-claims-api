@@ -98,6 +98,20 @@ class ClaimValidationServiceTest {
   }
 
   @Test
+  @DisplayName("Should throw when required claim version is missing")
+  void shouldThrowWhenRequiredClaimVersionIsMissing() {
+    assertThatThrownBy(() -> validationService.validateClaimVersionProvided(null))
+        .isInstanceOf(ClaimBadRequestException.class)
+        .hasMessageContaining("claimVersion must be provided");
+  }
+
+  @Test
+  @DisplayName("Should not throw when required claim version is provided")
+  void shouldNotThrowWhenRequiredClaimVersionIsProvided() {
+    assertDoesNotThrow(() -> validationService.validateClaimVersionProvided(1L));
+  }
+
+  @Test
   @DisplayName("Should not throw when provided version is null for claim match")
   void shouldNotThrowWhenProvidedVersionIsNullForClaimMatch() {
     UUID claimId = Uuid7.timeBasedUuid();

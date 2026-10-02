@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.AssessmentNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimConflictException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.AssessmentMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AssessmentGet;
@@ -204,6 +206,100 @@ class AssessmentServiceTest {
 
       assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
           .isInstanceOf(ClaimNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("should validate claim version is provided and matches before persisting")
+    void shouldValidateClaimVersionBeforePersisting() {
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+      Long claimVersion = 7L;
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .claimVersion(claimVersion)
+              .build();
+
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).version(claimVersion).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
+
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimValidationService).validateVersionNumber(claimVersion);
+      verify(claimValidationService).validateClaimVersionMatches(claim, claimVersion);
+      verify(assessmentRepository).save(assessment);
+    }
+
+    @Test
+    @DisplayName(
+        "should accept a null claim version and skip the version-match check entirely "
+            + "(temporary backward compatibility, mirrors void)")
+    void shouldAllowMissingClaimVersion() {
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .claimVersion(null)
+              .build();
+
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).version(9L).build();
+      ClaimSummaryFee fee = ClaimSummaryFee.builder().id(claimSummaryFeeId).build();
+      Assessment assessment = Assessment.builder().id(UUID.randomUUID()).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      when(claimValidationService.getClaimSummaryFeeByIdOrThrow(claimSummaryFeeId)).thenReturn(fee);
+      when(assessmentMapper.toAssessment(post)).thenReturn(assessment);
+      when(assessmentRepository.save(assessment)).thenReturn(assessment);
+
+      assessmentService.createAssessment(claimId, post);
+
+      verify(claimValidationService, never()).validateClaimVersionProvided(any());
+      verify(claimValidationService).validateVersionNumber(null);
+      verify(claimValidationService).validateClaimVersionMatches(claim, null);
+      verify(assessmentRepository).save(assessment);
+    }
+
+    @Test
+    @DisplayName("should reject with 409 when claim version is stale, without persisting anything")
+    void shouldRejectWhenClaimVersionIsStale() {
+      UUID claimId = UUID.randomUUID();
+      UUID claimSummaryFeeId = UUID.randomUUID();
+      Long staleVersion = 3L;
+
+      AssessmentPost post =
+          AssessmentPost.builder()
+              .claimId(claimId)
+              .claimSummaryFeeId(claimSummaryFeeId)
+              .createdByUserId(API_USER_ID)
+              .claimVersion(staleVersion)
+              .build();
+
+      Claim claim = Claim.builder().id(claimId).hasAssessment(false).version(5L).build();
+
+      when(claimValidationService.getValidClaimOrThrow(claimId)).thenReturn(claim);
+      doThrow(
+              new ClaimConflictException(
+                  "provided version does not match claim version for id: " + claimId))
+          .when(claimValidationService)
+          .validateClaimVersionMatches(claim, staleVersion);
+
+      assertThatThrownBy(() -> assessmentService.createAssessment(claimId, post))
+          .isInstanceOf(ClaimConflictException.class);
+
+      verifyNoInteractions(assessmentRepository);
     }
   }
 
