@@ -71,6 +71,17 @@ public class AmendmentOccParentSteps {
   private static final String VALID_REASON = "PROVIDER_ERROR";
   private static final String NON_PRICING_SURNAME = "Jones";
 
+  // Conflict-specific "canary" business change. case_start_date is a member of BOTH
+  // PdaRequestField (CASE_START_DATE -> impactsPda when not PROD-with-concluded) and
+  // FeeSchemeRequestField (START_DATE, all areas), so an absent-conflict submit actually
+  // dispatches outbound PDA + FSP calls. (The previous client_surname-only change touched
+  // NEITHER field set, so the application short-circuited PDA/FSP regardless of the version
+  // gate — meaning the "no PDA/FSP call" and "no calculated_fee_detail row" guarantees could
+  // stay green even if the OCC short-circuit regressed. See PR #507 Copilot review.) The
+  // fixture baseline caseStartDate is 01/07/2025, so 04/08/2025 is a genuine diff; it is the
+  // same proven-valid value used by the sibling pricing-amendment harness steps.
+  private static final String CANARY_CASE_START_DATE = "04/08/2025";
+
   private static final Pattern CLAIM_VERSION = Pattern.compile("claim_version=(\\d+)");
   private static final Pattern ADVANCING_TO = Pattern.compile("advancing to (\\d+)");
 
@@ -214,6 +225,9 @@ public class AmendmentOccParentSteps {
     assertThat(warnBody)
         .as("early-gate WARN log must not carry the amendment_user_id payload value")
         .doesNotContain(VALID_USER_ID);
+    assertThat(warnBody)
+        .as("early-gate WARN log must not carry the case_start_date canary payload value")
+        .doesNotContain(CANARY_CASE_START_DATE);
   }
 
   @Then("the structured conflict log entry does not contain any financial values")
@@ -234,14 +248,18 @@ public class AmendmentOccParentSteps {
   // ---------------------------------------------------------------------------
 
   private ObjectNode baseValidPatch() {
-    // Valid metadata + a single genuine non-pricing change so a version-matching submit commits a
-    // real amendment (204) rather than a no-change 204, and so conflict cases carry a realistic
-    // payload whose values must never leak into the structured log.
+    // Valid metadata + a conflict-specific canary change (case_start_date) so a version-matching
+    // submit commits a real PRICING amendment (204) that genuinely exercises the PDA and FSP
+    // downstream paths — and so a conflict case's "no PDA/FSP call / no calculated_fee_detail row"
+    // guarantees have real teeth (they would fail if the OCC short-circuit regressed and let the
+    // flow reach PDA/FSP). The non-pricing client_surname is retained purely to give the
+    // structured-log no-leak assertion an additional payload value to prove absent.
     ObjectNode node = objectMapper.createObjectNode();
     node.put("amendment_requested_by", VALID_REQUESTED_BY);
     node.put("amendment_reason_code", VALID_REASON);
     node.put("amendment_user_id", VALID_USER_ID);
     node.put("client_surname", NON_PRICING_SURNAME);
+    node.put("case_start_date", CANARY_CASE_START_DATE);
     return node;
   }
 

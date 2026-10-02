@@ -59,6 +59,7 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
     Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
+    And the FSP service will return a valid fee calculation for the amendment
 
   @smoke @DS1658_1
   Scenario Outline: End-to-end OCC contract sweep — <case> returns the documented outcome
@@ -82,6 +83,13 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
     # diff lives on that row. The early gate leaves the version at 7; the final guard
     # row is advanced to 8 by the concurrent writer (not by our amendment), so the
     # no-write guarantee is asserted as is_amended=false + the real final version.
+    #
+    # The payload carries the case_start_date canary (PDA- and FSP-impacting). The early
+    # gate short-circuits BEFORE any PDA/FSP call, so no calculated_fee_detail row is ever
+    # produced. The final guard runs the full pricing pipeline (PDA + FSP ARE called) and
+    # then fails the commit-time @Version check, so the REQUIRES_NEW transaction rolls back
+    # entirely — the FSP-derived calculated_fee_detail row is discarded. Either way, zero
+    # rows remain.
     Given an original claim exists at stored version <storedVersion>
     And an amendment payload built as "<payloadShape>"
     When I submit the amendment and wait for the event service to complete amendment validation
@@ -98,10 +106,27 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
       | final guard  | 7             | claim_version=7 with concurrent commit advancing to 8 before save | 8                    |
 
   @DS1658_3
+  Scenario: Canary control — a no-conflict amendment DOES exercise both the PDA and FSP paths
+    # Positive control for the short-circuit proof below. Every composed payload carries a
+    # case_start_date change, a conflict-specific canary that is a member of BOTH
+    # PdaRequestField and FeeSchemeRequestField. When there is NO version conflict the amendment
+    # commits (204) and genuinely dispatches outbound PDA and FSP calls — so the "no PDA/FSP call"
+    # assertions in the early-stale scenario below are meaningful (they would fail if the OCC
+    # short-circuit regressed and let the flow reach these downstream services).
+    Given an original claim exists at stored version 7
+    And an amendment payload built as "claim_version=7"
+    When I submit the amendment and wait for the event service to complete amendment validation
+    Then the OCC endpoint response status is 204
+    And the observed outbound PDA call count is exactly 1
+    And exactly 1 outbound FSP call was made
+
+  @DS1658_3
   Scenario: Early stale-version conflict short-circuits before any PDA or FSP call
     # The cross-ticket budget-preservation guarantee: an early stale conflict must
     # NOT spend PDA/FSP external-call budget, and its structured log must carry only
-    # safe fields (no amendment payload values, no financial values).
+    # safe fields (no amendment payload values, no financial values). The canary
+    # case_start_date change WOULD trigger both downstream paths absent a conflict
+    # (proven by the control scenario above), so these no-call assertions have teeth.
     Given an original claim exists at stored version 7
     And an amendment payload built as "claim_version=6"
     When I submit the amendment and wait for the event service to complete amendment validation
