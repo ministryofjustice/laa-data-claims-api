@@ -106,9 +106,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
-  private static final String MINISTRY_OF_JUSTICE = "Ministry of Justice";
-  private static final String DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE =
-      "Department for Health and Social Care";
+  private static final String DEPARTMENT1 = "Department 1";
+  private static final String DEPARTMENT2 =
+      "Department 2";
 
   private Boolean amendmentSwitch;
   private Boolean inquestsSwitch;
@@ -565,17 +565,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " occurrence, in supplied order, including repeats and case-insensitive names")
   void shouldPersistInterestedDepartmentsInSuppliedOrderIncludingRepeats() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    var moj = saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
-    var dhsc = saveGovernmentDepartment("DHSC", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    var dept1 = saveGovernmentDepartment("CODE1", DEPARTMENT1);
+    var dept2 = saveGovernmentDepartment("CODE2", DEPARTMENT2);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
                 new ClaimInquestDetail()
                     .interestedDepartments(
                         List.of(
-                            "ministry of justice",
-                            " MINISTRY OF JUSTICE ",
-                            "department for health and social care")));
+                            "department 1",
+                            " DEPARTMENT 1 ",
+                            "department 2")));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
@@ -585,7 +585,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .containsExactly(1, 2, 3);
     assertThat(saved)
         .extracting(department -> department.getGovernmentDepartment().getId())
-        .containsExactly(moj.getId(), moj.getId(), dhsc.getId());
+        .containsExactly(dept1.getId(), dept1.getId(), dept2.getId());
     assertThat(saved)
         .extracting(ClaimInterestedDepartment::getCreatedByUserId)
         .containsOnly(claimPost.getCreatedByUserId());
@@ -597,14 +597,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " order of populated ones")
   void shouldSkipBlankInterestedDepartments() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    var moj = saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
-    var dhsc = saveGovernmentDepartment("DHSC", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    var dept1 = saveGovernmentDepartment("CODE1", DEPARTMENT1);
+    var dept2 = saveGovernmentDepartment("CODE2", DEPARTMENT2);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
                 new ClaimInquestDetail()
                     .interestedDepartments(
-                        List.of(DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE, " ", MINISTRY_OF_JUSTICE)));
+                        List.of(DEPARTMENT2, " ", DEPARTMENT1)));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
@@ -612,7 +612,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(saved).extracting(ClaimInterestedDepartment::getDisplayOrder).containsExactly(1, 2);
     assertThat(saved)
         .extracting(department -> department.getGovernmentDepartment().getId())
-        .containsExactly(dhsc.getId(), moj.getId());
+        .containsExactly(dept2.getId(), dept1.getId());
   }
 
   @Test
@@ -646,14 +646,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " name is unknown")
   void shouldReturnBadRequestWhenInterestedDepartmentUnknown() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    saveGovernmentDepartment("MOJ", MINISTRY_OF_JUSTICE);
+    saveGovernmentDepartment("CODE1", DEPARTMENT1);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
                 new ClaimInquestDetail()
                     .deceasedForename("Jane")
                     .interestedDepartments(
-                        List.of(MINISTRY_OF_JUSTICE, "Department That Does Not Exist")));
+                        List.of(DEPARTMENT1, "Department That Does Not Exist")));
 
     mockMvc
         .perform(
@@ -2876,8 +2876,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .createdByUserId(API_USER_ID)
             .build());
 
-    var dept1 = saveGovernmentDepartment("DEPT1", MINISTRY_OF_JUSTICE);
-    var dept2 = saveGovernmentDepartment("DEPT2", DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+    var dept1 = saveGovernmentDepartment("DEPT1", DEPARTMENT1);
+    var dept2 = saveGovernmentDepartment("DEPT2", DEPARTMENT2);
     claimInterestedDepartmentRepository.saveAllAndFlush(
         List.of(
             getInterestedDepartment(dept1, 1),
@@ -2909,7 +2909,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(inquestDetail.getCoronersInquestReference()).isEqualTo("INQ-123");
     assertThat(inquestDetail.getInterestedDepartments())
         .containsExactly(
-            MINISTRY_OF_JUSTICE, MINISTRY_OF_JUSTICE, DEPARTMENT_FOR_HEALTH_AND_SOCIAL_CARE);
+            DEPARTMENT1, DEPARTMENT1, DEPARTMENT2);
   }
 
   private void assertEmptyInquestInformation(ClaimInquestDetail inquestDetail) {

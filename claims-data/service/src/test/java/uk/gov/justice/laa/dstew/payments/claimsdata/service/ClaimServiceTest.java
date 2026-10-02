@@ -296,22 +296,22 @@ class ClaimServiceTest {
                 new ClaimInquestDetail()
                     .interestedDepartments(
                         Arrays.asList(
-                            "Ministry of Justice",
+                            "Department 1",
                             "",
                             null,
-                            "Ministry of Justice",
-                            "Department for Health and Social Care")));
+                            "Department 1",
+                            "Department 2")));
     post.setCreatedByUserId(API_USER_ID);
     final Claim claim = stubCreateClaimDependencies(submissionId, post);
-    final GovernmentDepartmentRef moj =
+    final GovernmentDepartmentRef dept1 =
         GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
-    final GovernmentDepartmentRef dhsc =
+    final GovernmentDepartmentRef dept2 =
         GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
-    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Ministry of Justice"))
-        .thenReturn(Optional.of(moj));
+    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Department 1"))
+        .thenReturn(Optional.of(dept1));
     when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase(
-            "Department for Health and Social Care"))
-        .thenReturn(Optional.of(dhsc));
+            "Department 2"))
+        .thenReturn(Optional.of(dept2));
 
     claimService.createClaim(submissionId, post);
 
@@ -320,7 +320,7 @@ class ClaimServiceTest {
     final List<ClaimInterestedDepartment> saved = interestedDepartmentCaptor.getAllValues();
     assertThat(saved)
         .extracting(ClaimInterestedDepartment::getGovernmentDepartment)
-        .containsExactly(moj, moj, dhsc);
+        .containsExactly(dept1, dept1, dept2);
     assertThat(saved)
         .extracting(ClaimInterestedDepartment::getDisplayOrder)
         .containsExactly(1, 2, 3);

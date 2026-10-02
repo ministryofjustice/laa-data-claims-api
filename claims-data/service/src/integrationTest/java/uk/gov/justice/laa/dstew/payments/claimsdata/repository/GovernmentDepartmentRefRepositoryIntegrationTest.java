@@ -10,7 +10,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentR
 
 class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrationTest {
 
-  private static final String DEPARTMENT_LABEL = "Ministry of Justice";
+  private static final String DEPARTMENT_LABEL = "Department 1";
 
   @Test
   @DisplayName("findByDisplayLabelIgnoreCase returns the department regardless of name casing")
@@ -18,7 +18,7 @@ class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrati
     GovernmentDepartmentRef saved = saveDepartment(DEPARTMENT_LABEL);
 
     var result =
-        governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("mInIsTrY oF jUsTiCe");
+        governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("dEpArTmEnT 1");
 
     assertThat(result).isPresent();
     assertThat(result.get().getId()).isEqualTo(saved.getId());
@@ -40,7 +40,7 @@ class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrati
     return governmentDepartmentRefRepository.saveAndFlush(
         GovernmentDepartmentRef.builder()
             .id(UUID.randomUUID())
-            .governmentDepartmentCode("MOJ")
+            .governmentDepartmentCode("CODE1")
             .displayLabel(displayLabel)
             .isActive(true)
             .displayOrder(1)
