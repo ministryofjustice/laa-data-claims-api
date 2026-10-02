@@ -47,6 +47,7 @@ Feature: Amendment FSP outcome mapping
     And exactly 1 outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: Multiple FSP validation failures surface every FSP message
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -57,6 +58,9 @@ Feature: Amendment FSP outcome mapping
     And the FSP outcome response contains the text "Fee code CLININQ is not eligible for matter type CRIME_LOWER"
     And the FSP outcome response contains the text "Disbursement amount exceeds maximum allowed for this fee code"
     And the claim persisted state matches the pre-amendment state
+    And no claim_amendment record was inserted for this claim by this attempt
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: FSP connection drop maps to a controlled technical failure and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -66,6 +70,8 @@ Feature: Amendment FSP outcome mapping
     Then the amendment is rejected with HTTP 503 and amendment error code "TECHNICAL_ERROR_FSP_REPRICING_FAILURE"
     And exactly 1 outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: FSP malformed response body maps to a controlled technical failure and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -74,6 +80,8 @@ Feature: Amendment FSP outcome mapping
     When I submit a well-formed pricing amendment
     Then the amendment is rejected with HTTP 503 and amendment error code "TECHNICAL_ERROR_FSP_REPRICING_FAILURE"
     And no claim_amendment record was inserted for this claim by this attempt
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: FSP external-service timeout maps to a controlled technical failure with a single attempt
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -83,6 +91,8 @@ Feature: Amendment FSP outcome mapping
     Then the amendment is rejected with HTTP 503 and amendment error code "TECHNICAL_ERROR_FSP_REPRICING_FAILURE"
     And exactly 1 outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: Technical failure returns a safe user message without leaking the FSP payload
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -93,6 +103,8 @@ Feature: Amendment FSP outcome mapping
     And the FSP outcome response contains the text "A technical error occurred while recalculating the fee. Please try again later."
     And the FSP outcome response does not contain the text "SENSITIVE-FSP-INTERNAL-TRACE-abc123"
     And no claim_amendment record was inserted for this claim by this attempt
+    And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
+    And no amendment event was recorded for this claim by this attempt
 
   Scenario: Successful FSP response maps to an accepted amendment, not a failure
     Given a fresh amendable claim on a legal-help submission at version 0
