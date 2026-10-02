@@ -155,10 +155,9 @@ public class AmendmentPersistenceWriteSteps {
     Integer status = scenarioContext.getLastStatusCode();
     assertThat(status)
         .as(
-            "amendment #%d (pricing=%s) should be accepted (2xx); body=%s",
+            "amendment #%d (pricing=%s) should return HTTP 204; body=%s",
             index + 1, pricing, scenarioContext.getLastResponseBody())
-        .isNotNull()
-        .satisfies(s -> assertThat(s / 100).isEqualTo(2));
+        .isEqualTo(204);
 
     // The newest claim_amendment row (UUIDv7-id desc) is the one this PATCH just committed.
     List<ClaimAmendment> amendments = claimAmendmentRepository.findByClaimIdOrderByIdDesc(claimId);
