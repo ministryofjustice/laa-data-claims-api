@@ -227,6 +227,9 @@ public class AmendmentsEarlyVersionGateSteps {
           assertThat(warnEntry)
               .as("WARN entry must not carry the amendment_requested_by payload literal")
               .doesNotContain("PROVIDER");
+          assertThat(warnEntry)
+              .as("WARN entry must not carry the amendment_user_id payload value")
+              .doesNotContain(AMENDMENT_USER_ID);
         });
   }
 
