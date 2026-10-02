@@ -17,7 +17,7 @@ Feature: Amendment persistence — assemble & write the durable business record
   # These scenarios drive REAL amendments over HTTP (PATCH the live endpoint,
   # using the DSTEW-2317 real-validation harness) and assert the actually
   # persisted rows plus the real claim-history timeline (GET /claims/{id}/history).
-  # No rows are hand-seeded — the write path itself is exercised end to end.
+  # No amendment or amendment-linked fee rows are hand-seeded — the write path itself is exercised end to end.
   #
   # Gaps this file closes — API-observable write behaviours no other file covers:
   #   (a) Multi-amendment accumulation over a claim's lifetime — each successful
