@@ -71,6 +71,12 @@ public class MatterStartsControllerIntegrationTest extends AbstractIntegrationTe
     assertThat(savedMatterStarts.getFirst().getCategoryCode())
         .isEqualTo(CategoryCode.AAP.getValue());
     assertThat(savedMatterStarts.getFirst().getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedMatterStarts.getFirst().getUpdatedByUserId())
+        .isEqualTo(savedMatterStarts.getFirst().getCreatedByUserId());
+    assertThat(savedMatterStarts.getFirst().getCreatedOn()).isNotNull();
+    assertThat(savedMatterStarts.getFirst().getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(savedMatterStarts.getFirst().getCreatedOn());
   }
 
   @Test
