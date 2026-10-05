@@ -74,6 +74,7 @@ public class FeeSchemeHandoffFactory {
     newFeeDetail.setCreatedOn(Instant.now());
     // Inherit the user ID from the amendment request
     newFeeDetail.setCreatedByUserId(claimAmendment.getCreatedByUserId());
+    newFeeDetail.setUpdatedByUserId(claimAmendment.getCreatedByUserId());
 
     // Link to the active ClaimSummaryFee (required by CalculatedFeeDetail.claimSummaryFee)
     List<ClaimSummaryFee> claimSummaryFees = claim.getClaimSummaryFee();
