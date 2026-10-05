@@ -73,6 +73,73 @@ public class BddMockServerSupport {
         .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json")));
   }
 
+  // ---------------------------------------------------------------------------
+  // Fee Code Details (GET /api/v2/fee-details/{feeCode}) overrides for DSTEW-1768.
+  //
+  // claims-validation-core calls this endpoint to resolve the (new) fee code's
+  // Area of Law during amendment external validation. Each helper first CLEARS
+  // the default fee-details expectation (armed per scenario by BddHooks via
+  // stubAmendmentFspOk) so the override is the only match regardless of
+  // registration order — mirroring the integration MockServerIntegrationTest
+  // helpers of the same names.
+  // ---------------------------------------------------------------------------
+
+  private static HttpRequest feeDetailsRequest() {
+    return request().withMethod(HttpMethod.GET.name()).withPath(FEE_DETAILS + ".*");
+  }
+
+  /** Overrides fee-details to report the given Area of Law (name form) for any fee code. */
+  public void stubFeeDetailsAreaOfLaw(String areaOfLaw) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).respond(okJson(feeDetailsBody(areaOfLaw)));
+  }
+
+  /** Overrides fee-details to report the given Area of Law after a delay, for any fee code. */
+  public void stubFeeDetailsAreaOfLawWithDelay(String areaOfLaw, Duration delay) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client
+        .when(feeDetailsRequest())
+        .respond(
+            okJson(feeDetailsBody(areaOfLaw)).withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /** Overrides fee-details to return the given HTTP status with no body, for any fee code. */
+  public void stubFeeDetailsStatus(int statusCode) {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  /** Overrides fee-details to drop the connection, for any fee code. */
+  public void stubFeeDetailsConnectionDrop() {
+    client.clear(feeDetailsRequest(), ClearType.EXPECTATIONS);
+    client.when(feeDetailsRequest()).error(HttpError.error().withDropConnection(true));
+  }
+
+  /** Overrides fee-details to respond (200) only after the given delay, for any fee code. */
+  public void stubFeeDetailsWithDelay(String areaOfLaw, Duration delay) {
+    stubFeeDetailsAreaOfLawWithDelay(areaOfLaw, delay);
+  }
+
+  /** Verifies how many times the fee-details endpoint was called, regardless of fee code. */
+  public void verifyFeeDetailsCalled(VerificationTimes times) {
+    client.verify(feeDetailsRequest(), times);
+  }
+
+  /** Number of outbound fee-details calls recorded so far this scenario. */
+  public int countFeeDetailsCalls() {
+    return client.retrieveRecordedRequests(feeDetailsRequest()).length;
+  }
+
+  private static String feeDetailsBody(String areaOfLaw) {
+    // Shape mirrors FeeDetailsResponseV2 (and the integration helper's stub body): feeType is kept
+    // non-blank so claims-validation-core's fee-scheme resolution succeeds and reaches the
+    // area-of-law comparison.
+    return "{\"categoryOfLawCodes\":[\"string\"],\"feeCodeDescription\":\"test description\","
+        + "\"feeType\":\"HOURLY\",\"areaOfLaw\":\""
+        + areaOfLaw
+        + "\"}";
+  }
+
   // -------------------------------------------------------------------------
   // Amendment repricing FSP stubs.
   //
@@ -94,14 +161,130 @@ public class BddMockServerSupport {
    * expectation first so this becomes the only match, regardless of registration order.
    */
   public void stubAmendmentFspCalculationStatus(int statusCode) {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(HttpResponse.response().withStatusCode(statusCode));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Amendment FSP fee-calculation outcome stubs (DSTEW-1761 outcome mapping).
+  //
+  // Each override clears the per-scenario happy default first so it is the only
+  // match regardless of registration order, then arms the specific outcome the
+  // mapping scenario under test needs: a 200 carrying FSP business validation
+  // ERROR messages (passthrough), or a technical failure (connection drop,
+  // unparseable body, configured read-timeout, or an opaque 5xx body).
+  // ---------------------------------------------------------------------------
+
+  /** 200 OK carrying a single FSP business validation ERROR message (passthrough mapping). */
+  public void stubAmendmentFspCalculationValidationError() throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-validation-error.json")));
+  }
+
+  /** 200 OK carrying multiple FSP business validation ERROR messages (passthrough mapping). */
+  public void stubAmendmentFspCalculationMultipleErrors() throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(okJson(readJsonFromFile("fee-scheme/post-fee-calculation-multiple-errors.json")));
+  }
+
+  /** Drops the connection on the FSP fee-calculation call (technical-failure mapping). */
+  public void stubAmendmentFspCalculationConnectionDrop() {
+    clearFeeCalculationExpectation();
+    client.when(feeCalculationRequest()).error(HttpError.error().withDropConnection(true));
+  }
+
+  /** 200 with an unparseable body so response decoding fails (schema/parse technical mapping). */
+  public void stubAmendmentFspCalculationMalformedBody() {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(200)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody("{not-valid-json"));
+  }
+
+  /**
+   * Responds with a valid 200 fee-calculation only after {@code delay}, so a delay greater than the
+   * amendment-path read timeout trips a real client-side timeout (configured-timeout mapping). The
+   * amendment FSP path makes a single blocking attempt with no retry, so the recorded call count
+   * stays at exactly one.
+   */
+  public void stubAmendmentFspCalculationWithDelay(Duration delay) throws IOException {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            okJson(readJsonFromFile("fee-scheme/post-fee-calculation-200.json"))
+                .withDelay(TimeUnit.MILLISECONDS, delay.toMillis()));
+  }
+
+  /**
+   * Returns the given status carrying the given raw body, used to prove an opaque 5xx FSP payload
+   * is NOT leaked into the user-facing amendment response (safe-message mapping).
+   */
+  public void stubAmendmentFspCalculationStatusWithBody(int statusCode, String rawBody) {
+    clearFeeCalculationExpectation();
+    client
+        .when(feeCalculationRequest())
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(statusCode)
+                .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .withBody(rawBody));
+  }
+
+  private static HttpRequest feeCalculationRequest() {
+    return request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
+  }
+
+  private void clearFeeCalculationExpectation() {
+    client.clear(feeCalculationRequest(), ClearType.EXPECTATIONS);
+  }
+
+  /**
+   * 200 OK carrying a successful fee-calculation whose {@code feeCalculation.totalAmount} is the
+   * supplied value (DSTEW-1762). Lets a scenario drive the {@code is_price_changed} comparison
+   * deterministically by matching / differing from the seeded previous calculated-fee total. Clears
+   * the default expectation first so this becomes the only fee-calculation match.
+   */
+  public void stubAmendmentFspCalculationWithTotal(double totalAmount) {
     HttpRequest feeCalc = request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION);
     client.clear(feeCalc, ClearType.EXPECTATIONS);
-    client.when(feeCalc).respond(HttpResponse.response().withStatusCode(statusCode));
+    String body =
+        "{\"feeCode\":\"CAPA\",\"schemeId\":\"CAPA_FS2013\",\"validationMessages\":[],"
+            + "\"escapeCaseFlag\":false,\"feeCalculation\":{\"totalAmount\":"
+            + totalAmount
+            + ",\"vatIndicator\":true}}";
+    client.when(feeCalc).respond(okJson(body));
   }
 
   /** Verifies how many times the FSP {@code /api/v1/fee-calculation} endpoint was called. */
   public void verifyAmendmentFspCalculationCalled(VerificationTimes times) {
-    client.verify(request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION), times);
+    client.verify(feeCalculationRequest(), times);
+  }
+
+  /**
+   * Returns the request body of the FIRST recorded outbound FSP {@code POST
+   * /api/v1/fee-calculation} call this scenario, or {@code null} if none was recorded. Lets
+   * DSTEW-1759 assert the fee-scheme request the builder produced on the wire — the post-amendment
+   * values for changed FSP-input fields and the preserved stored values for omitted ones.
+   */
+  public String firstFspCalculationRequestBody() {
+    HttpRequest[] recorded =
+        client.retrieveRecordedRequests(
+            request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION));
+    if (recorded.length == 0) {
+      return null;
+    }
+    return recorded[0].getBodyAsString();
   }
 
   // ---------------------------------------------------------------------------

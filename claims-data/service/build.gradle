@@ -16,6 +16,13 @@ def versions = [
         jacksonToolsBom : '3.1.7'
 ]
 
+// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is one patch release below the fix for the
+// critical Snyk finding SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
+// request-method bypass). Overriding the BOM property here ensures the resolved tomcat-embed-*
+// versions are patched.
+// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.25.
+ext['tomcat.version'] = '11.0.25'
+
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
@@ -56,10 +63,26 @@ dependencies {
     // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
     implementation 'ch.qos.logback:logback-classic:1.6.3'
     implementation 'ch.qos.logback:logback-core:1.6.3'
-    // Security: force Netty's HTTP codec to the fixed version for SNYK-JAVA-IONETTY-20074868.
+    // Security: pin the vulnerable Netty modules to 4.2.18.Final. Spring Boot's BOM manages
+    // Netty at 4.2.17.Final and these are pulled in transitively via reactor-netty-http
+    // (spring-boot-starter-webflux):
+    //   netty-codec-http          - SNYK-JAVA-IONETTY-20074868
+    //   netty-codec-http3         - SNYK-JAVA-IONETTY-20154839, -20154840, -20154841,
+    //                               -20154842, -20158598, -20158603
+    //   netty-codec-classes-quic  - SNYK-JAVA-IONETTY-20154418
+    // netty-codec-native-quic is not itself flagged but is pinned alongside so the native
+    // library stays on the same version as netty-codec-classes-quic.
+    // NOTE: importing `platform('io.netty:netty-bom:4.2.18.Final')` does NOT work here - it
+    // is outranked by Spring Boot's managed versions and even drops netty-codec-http back to
+    // 4.2.17.Final. Only explicit `implementation` declarations win, the same pattern used
+    // for logback and jackson-databind above. Verified with
+    // `gradlew :claims-data:service:dependencyInsight --dependency io.netty:<artifact> --configuration runtimeClasspath`.
     implementation 'io.netty:netty-codec-http:4.2.18.Final'
+    implementation 'io.netty:netty-codec-http3:4.2.18.Final'
+    implementation 'io.netty:netty-codec-classes-quic:4.2.18.Final'
+    implementation 'io.netty:netty-codec-native-quic:4.2.18.Final'
 
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.5.0'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'
@@ -217,7 +240,7 @@ tasks.register('bddTest', Test) {
 //   - legacy: org.hibernate:hibernate-core (pulled in transitively by Javers)
 //   - current: org.hibernate.orm:hibernate-core (managed by Spring Boot)
 // This causes a capability conflict. Always prefer the modern org.hibernate.orm module.
-configurations.all {
+configurations.configureEach {
     resolutionStrategy.capabilitiesResolution.withCapability('org.hibernate:hibernate-core') {
         def preferred = candidates.find {
             it.id instanceof ModuleComponentIdentifier && it.id.group == 'org.hibernate.orm'
@@ -299,7 +322,7 @@ tasks.register("checkstyleStaged", Checkstyle) {
 
     def filesToCheck = project.findProperty("checkstyleFiles")
     if (filesToCheck != null) {
-        source = files(filesToCheck.split(","))
+        source = files(filesToCheck.toString().split(","))
     } else {
         source = sourceSets.main.allJava
     }

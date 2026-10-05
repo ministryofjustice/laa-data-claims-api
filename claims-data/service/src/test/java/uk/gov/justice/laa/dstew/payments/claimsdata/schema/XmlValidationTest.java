@@ -72,6 +72,7 @@ public class XmlValidationTest {
         "matter_starts_with_missing_count.xml",
         "matter_starts_with_no_data.xml",
         "matter_starts_with_unknown_code.xml",
+        "matter_starts_with_inq_category_code.xml",
         "missing_office.xml",
         "missing_outcomes_double.xml",
         "missing_outcomes_single.xml",

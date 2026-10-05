@@ -21,7 +21,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * Shared cucumber step glue owned by the DSTEW-2301 amendment BDD harness.
@@ -49,6 +51,7 @@ public class AmendmentHarnessCommonSteps {
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired private ClaimHistoryRepository claimHistoryRepository;
   @Autowired private BddMockServerSupport mock;
 
   // Scenario-scoped bookkeeping. Instantiated fresh per scenario because cucumber-spring gives us
@@ -72,6 +75,11 @@ public class AmendmentHarnessCommonSteps {
           sharedPatchContext.setPatchJson(buildNonPricingPatch(seeded.baselineVersion()));
           baselineClaimVersion = seeded.baselineVersion();
           baselineCfdCount = countCfd(seeded.claimId());
+          // Publish the baseline onto the scenario-scoped context too so baseline-relative Thens
+          // work uniformly whether the claim was provisioned here or by another step class (e.g.
+          // the DSTEW-1767 assessed-pricing provisioning step).
+          sharedPatchContext.setBaselineClaimVersion(baselineClaimVersion);
+          sharedPatchContext.setBaselineCfdCount(baselineCfdCount);
         });
   }
 
@@ -238,13 +246,14 @@ public class AmendmentHarnessCommonSteps {
     step(
         "assert claim.version unchanged from baseline",
         () -> {
-          if (baselineClaimVersion == null) {
-            baselineClaimVersion = requireClaim().getVersion();
+          Long baseline = resolveBaselineClaimVersion();
+          if (baseline == null) {
+            baseline = requireClaim().getVersion();
           }
           Claim claim = requireClaim();
           assertThat(claim.getVersion())
-              .as("claim.version must remain at %s (pre-amendment baseline)", baselineClaimVersion)
-              .isEqualTo(baselineClaimVersion);
+              .as("claim.version must remain at %s (pre-amendment baseline)", baseline)
+              .isEqualTo(baseline);
           assertThat(claim.isAmended()).as("claim.is_amended must remain false").isFalse();
         });
   }
@@ -254,10 +263,30 @@ public class AmendmentHarnessCommonSteps {
     step(
         "assert no new calculated_fee_detail row inserted",
         () -> {
+          long baseline = resolveBaselineCfdCount();
           long now = countCfd(sharedPatchContext.getClaimId());
           assertThat(now)
               .as("calculated_fee_detail row count for claim %s", sharedPatchContext.getClaimId())
-              .isEqualTo(baselineCfdCount);
+              .isEqualTo(baseline);
+        });
+  }
+
+  @Then("no amendment event was recorded for this claim by this attempt")
+  public void noAmendmentEventWasRecordedForThisClaimByThisAttempt() {
+    step(
+        "assert the claim-history timeline projects no AMENDMENT event — AMENDMENT events derive"
+            + " from the claim_amendment row (and its linked calculated_fee_detail), so a failure"
+            + " outcome that persists neither must surface no event, satisfying the DSTEW-1761"
+            + " invariant that no FSP failure path persists amendment state, calculated-fee rows or"
+            + " events",
+        () -> {
+          // A page size comfortably larger than any timeline a single failed attempt could produce;
+          // we only care whether ANY AMENDMENT-typed event is projected for this claim.
+          ClaimHistoryPage history =
+              claimHistoryRepository.findHistory(sharedPatchContext.getClaimId(), 100, 0);
+          assertThat(history.getEvents())
+              .as("claim-history AMENDMENT events for claim %s", sharedPatchContext.getClaimId())
+              .noneMatch(event -> "AMENDMENT".equals(event.eventType()));
         });
   }
 
@@ -315,6 +344,28 @@ public class AmendmentHarnessCommonSteps {
     return claimRepository
         .findById(claimId)
         .orElseThrow(() -> new AssertionError("Claim missing after PATCH: " + claimId));
+  }
+
+  /**
+   * Resolves the pre-amendment claim version baseline: the scenario-scoped context wins (it may
+   * have been recorded by a provisioning step in another step class, e.g. the DSTEW-1767
+   * assessed-pricing provisioning), falling back to this class's own field when only the harness
+   * seeded the claim.
+   */
+  private Long resolveBaselineClaimVersion() {
+    return sharedPatchContext.getBaselineClaimVersion() != null
+        ? sharedPatchContext.getBaselineClaimVersion()
+        : baselineClaimVersion;
+  }
+
+  /**
+   * Resolves the pre-amendment calculated_fee_detail row-count baseline. Shared context wins (see
+   * {@link #resolveBaselineClaimVersion()}); falls back to this class's own field.
+   */
+  private long resolveBaselineCfdCount() {
+    return sharedPatchContext.getBaselineCfdCount() != null
+        ? sharedPatchContext.getBaselineCfdCount()
+        : baselineCfdCount;
   }
 
   private long countCfd(UUID claimId) {
