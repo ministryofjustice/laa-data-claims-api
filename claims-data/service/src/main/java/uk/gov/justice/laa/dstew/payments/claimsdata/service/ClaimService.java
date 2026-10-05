@@ -96,7 +96,6 @@ public class ClaimService
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
-  private final ClaimAmendmentStateService claimAmendmentStateService;
   private final StatusCoercer statusCoercer;
 
   private static final Set<String> IGNORED_FIELDS =
@@ -171,18 +170,21 @@ public class ClaimService
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
     claim.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claim.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimRepository.save(claim);
 
     ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     claimSummaryFee.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimSummaryFee.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimSummaryFeeRepository.save(claimSummaryFee);
 
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
     claimCase.setId(Uuid7.timeBasedUuid());
     claimCase.setClaim(claim);
     claimCase.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimCase.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);
@@ -190,6 +192,7 @@ public class ClaimService
       client.setId(Uuid7.timeBasedUuid());
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
+      client.setUpdatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
     }
 
