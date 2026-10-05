@@ -232,9 +232,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     Client savedClient = clientRepository.findByClaimId(savedClaim.getId()).orElseThrow();
     assertThat(savedClient.getCreatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(savedClient.getUpdatedByUserId()).isEqualTo(savedClient.getCreatedByUserId());
-    assertThat(savedClient.getUpdatedOn())
-        .isNotNull()
-        .isAfterOrEqualTo(savedClient.getCreatedOn());
+    assertThat(savedClient.getUpdatedOn()).isNotNull().isAfterOrEqualTo(savedClient.getCreatedOn());
   }
 
   @Test
