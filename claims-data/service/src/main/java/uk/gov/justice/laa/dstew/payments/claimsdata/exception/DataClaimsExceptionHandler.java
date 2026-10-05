@@ -11,12 +11,17 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.laa.springboot.export.ExportValidationException;
@@ -167,6 +172,31 @@ public class DataClaimsExceptionHandler extends ResponseEntityExceptionHandler {
     log.warn("ExportValidationException occurred: {}", exception.getMessage());
     return buildProblemDetailResponse(
         HttpStatus.BAD_REQUEST, exception.getMessage(), exception.getClass(), request);
+  }
+
+  /**
+   * Handle missing required request parameters with an explicit client-facing message.
+   *
+   * @param exception the missing parameter exception
+   * @param webRequest the HTTP request
+   * @return a response containing a {@link ProblemDetail} with a 400 status code
+   */
+  @Override
+  protected ResponseEntity<Object> handleMissingServletRequestParameter(
+      MissingServletRequestParameterException exception,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest webRequest) {
+    String errorMessage =
+        "Required parameter '%s' is not present.".formatted(exception.getParameterName());
+    log.warn("Missing request parameter: {}", exception.getParameterName());
+    ResponseEntity<ProblemDetail> response =
+        buildProblemDetailResponse(
+            HttpStatus.BAD_REQUEST,
+            errorMessage,
+            exception.getClass(),
+            ((ServletWebRequest) webRequest).getRequest());
+    return new ResponseEntity<>(response.getBody(), response.getStatusCode());
   }
 
   /**
