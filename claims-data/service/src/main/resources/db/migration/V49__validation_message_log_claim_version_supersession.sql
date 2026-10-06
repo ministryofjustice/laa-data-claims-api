@@ -18,8 +18,5 @@ DROP INDEX IF EXISTS ix_validation_message_log_claim_amendment_id;
 ALTER TABLE claims.validation_message_log
     DROP COLUMN IF EXISTS claim_amendment_id;
 
-CREATE INDEX IF NOT EXISTS ix_validation_message_log_claim_id_source_superseded_by_version
-    ON claims.validation_message_log (claim_id, source, superseded_by_version);
-
 CREATE INDEX IF NOT EXISTS ix_validation_message_log_submission_id_type_superseded_by_version
     ON claims.validation_message_log (submission_id, type, superseded_by_version);
