@@ -1591,6 +1591,12 @@ components:
           type: array
           items:
             $ref: './schemas/claim-patch.yml#/validation_message_patch'
+        updated_by_user_id:
+          type: string
+          description: >-
+            Optional id of the user making this update (same free-text string format as
+            created_by_user_id, not a UUID). When present, it is recorded as the submission's
+            updated_by_user_id.
     submission_status:
       type: string
       enum:

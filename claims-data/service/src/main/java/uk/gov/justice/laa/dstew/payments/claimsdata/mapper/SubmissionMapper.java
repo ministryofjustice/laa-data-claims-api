@@ -76,7 +76,7 @@ public interface SubmissionMapper {
   @Mapping(target = "submissionPeriodSortKey", ignore = true)
   @Mapping(target = "officeAccountNumberSortKey", ignore = true)
   @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "createdByUserId", ignore = true)
   @Mapping(target = "updatedOn", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 

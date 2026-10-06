@@ -222,6 +222,16 @@ public class SubmissionService
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
 
+    if (submissionPatch.getUpdatedByUserId() == null) {
+      log.warn(
+          "Tombstone: Submission patch received without updated_by_user_id. "
+              + "submissionId={}, officeAccountNumber={}, providerUserId={}, areaOfLaw={}",
+          id,
+          submission.getOfficeAccountNumber(),
+          submission.getProviderUserId(),
+          submission.getAreaOfLaw());
+    }
+
     statusCoercer.coerce(submissionPatch);
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
