@@ -155,10 +155,7 @@ class SubmissionMapperTest {
   void shouldNotOverwriteCreatedAuditFieldsFromPatch() {
     Instant originalCreatedOn = LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant();
     Submission submission =
-        Submission.builder()
-            .createdByUserId("original-user")
-            .createdOn(originalCreatedOn)
-            .build();
+        Submission.builder().createdByUserId("original-user").createdOn(originalCreatedOn).build();
     SubmissionPatch patch =
         new SubmissionPatch().createdByUserId("patch-user").isNilSubmission(true);
 

@@ -465,7 +465,8 @@ class SubmissionServiceTest {
   }
 
   @Test
-  @DisplayName("Should not log a tombstone warning when a submission patch supplies updated_by_user_id")
+  @DisplayName(
+      "Should not log a tombstone warning when a submission patch supplies updated_by_user_id")
   void shouldNotLogTombstoneWarningWhenUpdatedByUserIdPresent() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
