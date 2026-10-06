@@ -17,8 +17,7 @@ class GovernmentDepartmentRefRepositoryIntegrationTest extends AbstractIntegrati
   void findByDisplayLabelIgnoreCaseReturnsMatchingDepartment() {
     GovernmentDepartmentRef saved = saveDepartment(DEPARTMENT_LABEL);
 
-    var result =
-        governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("dEpArTmEnT 1");
+    var result = governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("dEpArTmEnT 1");
 
     assertThat(result).isPresent();
     assertThat(result.get().getId()).isEqualTo(saved.getId());

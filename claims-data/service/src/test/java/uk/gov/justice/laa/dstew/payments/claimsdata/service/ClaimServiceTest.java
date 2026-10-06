@@ -295,12 +295,7 @@ class ClaimServiceTest {
             .inquestDetail(
                 new ClaimInquestDetail()
                     .interestedDepartments(
-                        Arrays.asList(
-                            "Department 1",
-                            "",
-                            null,
-                            "Department 1",
-                            "Department 2")));
+                        Arrays.asList("Department 1", "", null, "Department 1", "Department 2")));
     post.setCreatedByUserId(API_USER_ID);
     final Claim claim = stubCreateClaimDependencies(submissionId, post);
     final GovernmentDepartmentRef dept1 =
@@ -309,8 +304,7 @@ class ClaimServiceTest {
         GovernmentDepartmentRef.builder().id(UUID.randomUUID()).build();
     when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Department 1"))
         .thenReturn(Optional.of(dept1));
-    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase(
-            "Department 2"))
+    when(governmentDepartmentRefRepository.findByDisplayLabelIgnoreCase("Department 2"))
         .thenReturn(Optional.of(dept2));
 
     claimService.createClaim(submissionId, post);

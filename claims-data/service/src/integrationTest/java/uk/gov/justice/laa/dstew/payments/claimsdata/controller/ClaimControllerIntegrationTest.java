@@ -107,8 +107,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
   private static final String DEPARTMENT1 = "Department 1";
-  private static final String DEPARTMENT2 =
-      "Department 2";
+  private static final String DEPARTMENT2 = "Department 2";
 
   private Boolean amendmentSwitch;
   private Boolean inquestsSwitch;
@@ -428,8 +427,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @NullSource
   @ValueSource(booleans = {true, false})
   @DisplayName(
-      "POST v1/submissions/{submissionId}/claims - persists is_client_means_tested as supplied"
-          + " (true, false, or null when no inquest_detail is sent)")
+      "POST v1/submissions/{submissionId}/claims - persists is_client_means_tested as supplied")
   void shouldPersistClientMeansTestedFlagAsSupplied(Boolean isClientMeansTested) throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
     final ClaimPost claimPost =
@@ -572,10 +570,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .inquestDetail(
                 new ClaimInquestDetail()
                     .interestedDepartments(
-                        List.of(
-                            "department 1",
-                            " DEPARTMENT 1 ",
-                            "department 2")));
+                        List.of("department 1", " DEPARTMENT 1 ", "department 2")));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
@@ -603,8 +598,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
                 new ClaimInquestDetail()
-                    .interestedDepartments(
-                        List.of(DEPARTMENT2, " ", DEPARTMENT1)));
+                    .interestedDepartments(List.of(DEPARTMENT2, " ", DEPARTMENT1)));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
@@ -652,8 +646,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .inquestDetail(
                 new ClaimInquestDetail()
                     .deceasedForename("Jane")
-                    .interestedDepartments(
-                        List.of(DEPARTMENT1, "Department That Does Not Exist")));
+                    .interestedDepartments(List.of(DEPARTMENT1, "Department That Does Not Exist")));
 
     mockMvc
         .perform(
@@ -666,33 +659,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(claimRepository.findBySubmissionId(SUBMISSION_ID)).isEmpty();
     assertThat(inquestDetailRepository.findAll()).isEmpty();
     assertThat(claimInterestedDepartmentRepository.findAll()).isEmpty();
-  }
-
-  private GovernmentDepartmentRef saveGovernmentDepartment(String code, String displayLabel) {
-    return governmentDepartmentRefRepository.saveAndFlush(
-        GovernmentDepartmentRef.builder()
-            .id(Uuid7.timeBasedUuid())
-            .governmentDepartmentCode(code)
-            .displayLabel(displayLabel)
-            .isActive(true)
-            .displayOrder(1)
-            .createdByUserId("TEST")
-            .build());
-  }
-
-  private UUID postClaimAndReturnId(ClaimPost claimPost) throws Exception {
-    MvcResult result =
-        mockMvc
-            .perform(
-                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
-                    .content(OBJECT_MAPPER.writeValueAsString(claimPost))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
-            .andExpect(status().isCreated())
-            .andReturn();
-    return OBJECT_MAPPER
-        .readValue(result.getResponse().getContentAsString(), CreateClaim201Response.class)
-        .getId();
   }
 
   @Test
@@ -2908,8 +2874,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(inquestDetail.getDeceasedDateOfDeath()).isEqualTo("05/03/2026");
     assertThat(inquestDetail.getCoronersInquestReference()).isEqualTo("INQ-123");
     assertThat(inquestDetail.getInterestedDepartments())
-        .containsExactly(
-            DEPARTMENT1, DEPARTMENT1, DEPARTMENT2);
+        .containsExactly(DEPARTMENT1, DEPARTMENT1, DEPARTMENT2);
   }
 
   private void assertEmptyInquestInformation(ClaimInquestDetail inquestDetail) {
@@ -2931,5 +2896,32 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .displayOrder(displayOrder)
         .createdByUserId(API_USER_ID)
         .build();
+  }
+
+  private GovernmentDepartmentRef saveGovernmentDepartment(String code, String displayLabel) {
+    return governmentDepartmentRefRepository.saveAndFlush(
+        GovernmentDepartmentRef.builder()
+            .id(Uuid7.timeBasedUuid())
+            .governmentDepartmentCode(code)
+            .displayLabel(displayLabel)
+            .isActive(true)
+            .displayOrder(1)
+            .createdByUserId("TEST")
+            .build());
+  }
+
+  private UUID postClaimAndReturnId(ClaimPost claimPost) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post(POST_A_CLAIM_ENDPOINT, SUBMISSION_ID)
+                    .content(OBJECT_MAPPER.writeValueAsString(claimPost))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return OBJECT_MAPPER
+        .readValue(result.getResponse().getContentAsString(), CreateClaim201Response.class)
+        .getId();
   }
 }
