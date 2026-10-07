@@ -63,6 +63,19 @@ public class ClaimAmendmentCommitService {
 
     ClaimAmendment amendment = persistenceService.persistSuccessfulAmendment(managedClaim, state);
 
+    try {
+      // Flush the amended claim so warning versions match the committed claim version.
+      entityManager.flush();
+    } catch (OptimisticLockException ex) {
+      log.warn(
+          "event={} claimId={} submittedClaimVersion={} conflictPoint={}",
+          ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name(),
+          validatedClaim.getId(),
+          validatedClaim.getVersion(),
+          "final_save");
+      throw ex;
+    }
+
     FeeCalculationResponse feeCalcResponse = state.getFspResponseContext();
     if (feeCalcResponse != null) {
       CalculatedFeeDetail newFeeDetail =

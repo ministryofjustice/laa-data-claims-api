@@ -95,20 +95,13 @@ class ClaimAmendmentWarningLifecycleIntegrationTest
             .findFirst()
             .orElseThrow();
     assertThat(freshWarning.getSupersededByVersion()).isZero();
-    assertThat(freshWarning.getVersion())
-        .as(
-            "fresh warning stamped with the claim version at warning-persist time, before the REQUIRES_NEW commit increment")
-        .isPositive()
-        .isLessThanOrEqualTo(committedClaimVersion);
+    assertThat(freshWarning.getVersion()).isEqualTo(committedClaimVersion);
     assertThat(claim1Warnings)
         .filteredOn(log -> log.getDisplayMessage().equals("obsolete-warning"))
         .singleElement()
         .satisfies(
             log -> {
-              assertThat(log.getSupersededByVersion())
-                  .as(
-                      "obsolete warning superseded by the same claim version used to stamp the fresh one")
-                  .isEqualTo(freshWarning.getVersion());
+              assertThat(log.getSupersededByVersion()).isEqualTo(committedClaimVersion);
               assertThat(log.getVersion()).isEqualTo(seedClaimVersion);
             });
 
