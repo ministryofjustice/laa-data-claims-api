@@ -1,4 +1,4 @@
-name: Security Snyk container image scan
+name: Security Snyk container image scan and Slack notification
 
 on:
   workflow_call:
@@ -9,18 +9,25 @@ on:
         type: string
     secrets:
       gh_token:
+        description: GitHub token used by the image build and scan workflow
         required: true
       ecr_repository:
+        description: ECR repository used for the container image
         required: true
       ecr_region:
+        description: AWS region containing the ECR repository
         required: true
       ecr_role_to_assume:
+        description: AWS role assumed to access the ECR repository
         required: true
       snyk_client_id:
+        description: Snyk client ID used to authenticate the image scan
         required: true
       snyk_client_secret:
+        description: Snyk client secret used to authenticate the image scan
         required: true
       slack_webhook:
+        description: Slack incoming webhook used for scan failure notifications
         required: false
 
 env:
