@@ -84,24 +84,6 @@ jobs:
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
-  vulnerability-scan-app:
-    runs-on: ubuntu-latest
-    needs: [ build-and-test ]
-    permissions:
-      contents: read
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      SNYK_TEST_EXCLUDE: build,generated
-      SNYK_TARGET_REFERENCE: main
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Run Snyk to check app for vulnerabilities
-        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 # master
-        with:
-          command: code test
-          args: --severity-threshold=high
-
   bdd-test:
     runs-on: ubuntu-latest
     needs: [ build-and-test ]
@@ -167,13 +149,13 @@ jobs:
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
-      snyk_token: ${{ secrets.SNYK_TOKEN }}
+      snyk_client_id: ${{ secrets.SNYK_CLIENT_ID }}
+      snyk_client_secret: ${{ secrets.SNYK_CLIENT_SECRET }}
 
   deploy-uat-preview:
     needs:
       - ecr-publish-image
       - pact-test
-      - vulnerability-scan-app
       - bdd-test
     runs-on: ubuntu-latest
     environment: uat
