@@ -18,7 +18,7 @@ env:
 
 jobs:
   release:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -33,11 +33,12 @@ jobs:
       release_type: ${{ inputs.release_type != 'auto' && inputs.release_type || '' }}
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
       aws_region: ${{ vars.AWS_REGION }}
 
   pact-test:
     needs: [ release ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -47,6 +48,7 @@ jobs:
       is_provider: true
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -70,7 +72,7 @@ jobs:
 
   ecr-publish-image:
     needs: [ release, bdd-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
     permissions:
       contents: read
       id-token: write
@@ -83,6 +85,7 @@ jobs:
       image_scan: 'true'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}

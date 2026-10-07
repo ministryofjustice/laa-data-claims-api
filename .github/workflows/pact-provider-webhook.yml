@@ -9,7 +9,7 @@ on:
 
 jobs:
   pact-test:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-provider-webhook.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
     permissions:
       contents: write
       packages: write
@@ -21,6 +21,7 @@ jobs:
       java_version: 25
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
+      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
