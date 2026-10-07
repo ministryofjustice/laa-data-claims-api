@@ -1,0 +1,84 @@
+name: Security Snyk container image scan and Slack notification
+
+on:
+  workflow_call:
+    inputs:
+      image_prefix:
+        description: Prefix used when naming the temporary image
+        required: true
+        type: string
+    secrets:
+      gh_token:
+        description: GitHub token used by the image build and scan workflow
+        required: true
+      ecr_repository:
+        description: ECR repository used for the container image
+        required: true
+      ecr_region:
+        description: AWS region containing the ECR repository
+        required: true
+      ecr_role_to_assume:
+        description: AWS role assumed to access the ECR repository
+        required: true
+      snyk_client_id:
+        description: Snyk client ID used to authenticate the image scan
+        required: true
+      snyk_client_secret:
+        description: Snyk client secret used to authenticate the image scan
+        required: true
+      slack_webhook:
+        description: Slack incoming webhook used for scan failure notifications
+        required: false
+
+env:
+  JAVA_VERSION: &JAVA_VERSION '25'
+  JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
+
+jobs:
+  image-scan:
+    name: Container image Snyk scan
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+    with:
+      jar_subproject: 'claims-data:service'
+      image_version: ${{ format('{0}-snyk-cron-{1}', inputs.image_prefix, github.sha) }}
+      java_version: *JAVA_VERSION
+      java_distribution: *JDK_DISTRIBUTION
+      image_scan: 'true'
+      publish: 'false'
+    secrets:
+      gh_token: ${{ secrets.gh_token }}
+      ecr_repository: ${{ secrets.ecr_repository }}
+      ecr_region: ${{ secrets.ecr_region }}
+      ecr_role_to_assume: ${{ secrets.ecr_role_to_assume }}
+      snyk_client_id: ${{ secrets.snyk_client_id }}
+      snyk_client_secret: ${{ secrets.snyk_client_secret }}
+
+  slack-notify:
+    name: Notify Slack via webhook
+    needs: image-scan
+    if: ${{ always() && needs.image-scan.result == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook }}
+    steps:
+      - name: Send Slack notification
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Snyk container image scan for laa-data-claims-api failed or found vulnerabilities requiring review",
+              "attachments": [
+                {
+                  "color": "#d63384",
+                  "text": "Container image scan: ${{ needs.image-scan.result }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              ]
+            }
+
