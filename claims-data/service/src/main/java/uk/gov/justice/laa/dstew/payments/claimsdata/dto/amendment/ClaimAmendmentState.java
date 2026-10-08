@@ -5,6 +5,7 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ResolvedClaimData;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
 import uk.gov.justice.laa.fee.scheme.model.FeeCalculationResponse;
 
 /**
@@ -67,12 +68,26 @@ public class ClaimAmendmentState {
   @Builder.Default private final List<ClaimAmendmentValidationError> errors = new ArrayList<>();
 
   /**
+   * Warning-severity validation issues captured during external validation for commit-time write.
+   */
+  @Builder.Default private final List<ValidationIssue> fspWarnings = new ArrayList<>();
+
+  /**
    * Adds the errors a validation step found to the running collection.
    *
    * @param newErrors the errors returned by a step; may be empty
    */
   public void addErrors(List<ClaimAmendmentValidationError> newErrors) {
     errors.addAll(newErrors);
+  }
+
+  /**
+   * Adds warning-severity issues discovered by the external validation step.
+   *
+   * @param newWarnings warning issues returned by validation-core; may be empty
+   */
+  public void addWarnings(List<ValidationIssue> newWarnings) {
+    fspWarnings.addAll(newWarnings);
   }
 
   /**

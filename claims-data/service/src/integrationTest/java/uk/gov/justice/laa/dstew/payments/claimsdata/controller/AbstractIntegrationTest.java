@@ -593,30 +593,27 @@ public abstract class AbstractIntegrationTest {
   }
 
   public void createValidationMessageLogTestData() {
-    validationMessageLogRepository.saveAll(
-        List.of(
-            new ValidationMessageLog(
-                VALIDATION_ID_1,
-                SUBMISSION_1_ID,
-                CLAIM_1_ID,
-                ValidationMessageType.ERROR,
-                "SYSTEM",
-                "Missing case reference",
-                "Field `caseReferenceNumber` is required",
-                null, // messageCode - null for SYSTEM source
-                CREATED_ON,
-                null),
-            new ValidationMessageLog(
-                VALIDATION_ID_2,
-                SUBMISSION_1_ID,
-                CLAIM_2_ID,
-                ValidationMessageType.WARNING,
-                "SYSTEM",
-                "Missing UFN",
-                "Field `uniqueFileNumber` is required",
-                null, // messageCode - null for SYSTEM source
-                CREATED_ON,
-                null)));
+    ValidationMessageLog validationMessage1 = new ValidationMessageLog();
+    validationMessage1.setId(VALIDATION_ID_1);
+    validationMessage1.setSubmissionId(SUBMISSION_1_ID);
+    validationMessage1.setClaimId(CLAIM_1_ID);
+    validationMessage1.setType(ValidationMessageType.ERROR);
+    validationMessage1.setSource("SYSTEM");
+    validationMessage1.setDisplayMessage("Missing case reference");
+    validationMessage1.setTechnicalMessage("Field `caseReferenceNumber` is required");
+    validationMessage1.setCreatedOn(CREATED_ON);
+
+    ValidationMessageLog validationMessage2 = new ValidationMessageLog();
+    validationMessage2.setId(VALIDATION_ID_2);
+    validationMessage2.setSubmissionId(SUBMISSION_1_ID);
+    validationMessage2.setClaimId(CLAIM_2_ID);
+    validationMessage2.setType(ValidationMessageType.WARNING);
+    validationMessage2.setSource("SYSTEM");
+    validationMessage2.setDisplayMessage("Missing UFN");
+    validationMessage2.setTechnicalMessage("Field `uniqueFileNumber` is required");
+    validationMessage2.setCreatedOn(CREATED_ON);
+
+    validationMessageLogRepository.saveAll(List.of(validationMessage1, validationMessage2));
   }
 
   void createAssessmentsTestData() {
