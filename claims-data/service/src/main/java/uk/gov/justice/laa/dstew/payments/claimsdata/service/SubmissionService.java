@@ -238,7 +238,8 @@ public class SubmissionService
           submission.getId(), SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
-          claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
+          claimService.updateAllClaimsStatusForSubmission(
+              id, ClaimStatus.INVALID, submissionPatch.getCreatedByUserId());
       log.debug("Updated {} claims to INVALID status for submission {}", totalUpdatedClaims, id);
     }
 

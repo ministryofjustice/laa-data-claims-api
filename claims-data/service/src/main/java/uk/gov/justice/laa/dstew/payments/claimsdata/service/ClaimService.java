@@ -702,8 +702,10 @@ public class ClaimService
   }
 
   @Transactional
-  public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
-    return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  public int updateAllClaimsStatusForSubmission(
+      UUID submissionId, ClaimStatus status, String updatedByUserId) {
+    return claimRepository.updateStatusBySubmissionId(
+        submissionId, status, updatedByUserId, Instant.now());
   }
 
   /**

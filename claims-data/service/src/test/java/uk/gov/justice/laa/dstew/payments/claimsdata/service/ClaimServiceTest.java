@@ -268,6 +268,26 @@ class ClaimServiceTest {
     verify(claimRepository, never()).save(any());
   }
 
+  @Test
+  @DisplayName(
+      "updateAllClaimsStatusForSubmission should pass the status, updated_by_user_id and a fresh "
+          + "timestamp through to the repository bulk update")
+  void shouldPassStatusUpdatedByUserIdAndTimestampToBulkUpdate() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    when(claimRepository.updateStatusBySubmissionId(
+            eq(submissionId), eq(ClaimStatus.INVALID), eq("user-1"), any(Instant.class)))
+        .thenReturn(3);
+
+    int result =
+        claimService.updateAllClaimsStatusForSubmission(
+            submissionId, ClaimStatus.INVALID, "user-1");
+
+    assertThat(result).isEqualTo(3);
+    verify(claimRepository)
+        .updateStatusBySubmissionId(
+            eq(submissionId), eq(ClaimStatus.INVALID), eq("user-1"), any(Instant.class));
+  }
+
   @DisplayName("get a claim with associated data")
   @Test
   void shouldGetClaim() {
