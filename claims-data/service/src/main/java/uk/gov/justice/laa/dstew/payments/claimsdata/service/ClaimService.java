@@ -650,9 +650,7 @@ public class ClaimService
     if (!claimIds.isEmpty()) {
       // 2) Fetch all warning counts in a single query
       Map<UUID, Long> warningsByClaimId =
-          validationMessageLogRepository
-              .countWarningsByClaimIdsAndType(claimIds, ValidationMessageType.WARNING)
-              .stream()
+          validationMessageLogRepository.countCurrentWarningsByClaimIds(claimIds).stream()
               .collect(
                   Collectors.toMap(
                       ClaimWarningCountProjection::getClaimId,

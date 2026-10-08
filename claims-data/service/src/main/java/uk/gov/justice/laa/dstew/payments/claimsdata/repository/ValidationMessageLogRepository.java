@@ -54,15 +54,12 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
                   COUNT(v)   AS warningCount
            FROM ValidationMessageLog v
            WHERE v.claimId IN :claimIds
-             AND (:type IS NULL OR v.type = :type)
-             AND (
-               v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
-               OR v.supersededByVersion = 0
-             )
+             AND v.type = uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+             AND v.supersededByVersion = 0
            GROUP BY v.claimId
            """)
-  List<ClaimWarningCountProjection> countWarningsByClaimIdsAndType(
-      @Param("claimIds") Collection<UUID> claimIds, @Param("type") ValidationMessageType type);
+  List<ClaimWarningCountProjection> countCurrentWarningsByClaimIds(
+      @Param("claimIds") Collection<UUID> claimIds);
 
   @Query(
       """

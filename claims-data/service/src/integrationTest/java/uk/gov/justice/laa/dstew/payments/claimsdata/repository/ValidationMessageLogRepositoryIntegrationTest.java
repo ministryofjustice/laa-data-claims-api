@@ -98,14 +98,14 @@ class ValidationMessageLogRepositoryIntegrationTest extends AbstractIntegrationT
         .isEqualTo(2);
     Map<UUID, Long> warningCounts =
         validationMessageLogRepository
-            .countWarningsByClaimIdsAndType(List.of(CLAIM_1_ID, CLAIM_2_ID, CLAIM_4_ID), null)
+            .countCurrentWarningsByClaimIds(List.of(CLAIM_1_ID, CLAIM_2_ID, CLAIM_4_ID))
             .stream()
             .collect(
                 Collectors.toMap(
                     projection -> projection.getClaimId(),
                     projection -> projection.getWarningCount()));
     assertThat(warningCounts)
-        .containsEntry(CLAIM_1_ID, 2L)
+        .containsEntry(CLAIM_1_ID, 1L)
         .containsEntry(CLAIM_2_ID, 1L)
         .doesNotContainKey(CLAIM_4_ID);
   }
