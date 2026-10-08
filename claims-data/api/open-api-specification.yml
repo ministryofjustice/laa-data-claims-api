@@ -2068,6 +2068,21 @@ components:
           format: bigDecimal
         med_concluded_date:
           type: string
+        is_client_means_tested:
+          type: boolean
+        deceased_forename:
+          type: string
+        deceased_surname:
+          type: string
+        deceased_date_of_death:
+          type: string
+        coroners_inquest_reference:
+          type: string
+        interested_departments:
+          type: array
+          nullable: true
+          items:
+            type: string
     matter_start_post:
       allOf:
       - $ref: '#/components/schemas/matter_start_fields'

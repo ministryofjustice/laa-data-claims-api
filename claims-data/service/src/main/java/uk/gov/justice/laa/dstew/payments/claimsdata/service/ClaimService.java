@@ -154,9 +154,8 @@ public class ClaimService
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
-    Submission submission = requireEntity(submissionId);
     rejectInquestPostWhenDisabled(claimPost);
-
+    Submission submission = requireEntity(submissionId);
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
     // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.

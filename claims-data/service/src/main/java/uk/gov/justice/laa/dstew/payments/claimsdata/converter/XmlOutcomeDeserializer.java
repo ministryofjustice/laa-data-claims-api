@@ -145,6 +145,21 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String paNumber = null;
     String excessTravelCosts = null;
     String medConcludedDate = null;
+    String inqClientMeansTested = null;
+    String deceasedFirstName = null;
+    String deceasedSurname = null;
+    String dateOfDeath = null;
+    String inquestReferenceNumber = null;
+    String governmentDepartment1 = null;
+    String governmentDepartment2 = null;
+    String governmentDepartment3 = null;
+    String governmentDepartment4 = null;
+    String governmentDepartment5 = null;
+    String governmentDepartment6 = null;
+    String governmentDepartment7 = null;
+    String governmentDepartment8 = null;
+    String governmentDepartment9 = null;
+    String governmentDepartment10 = null;
 
     for (JsonNode outcomeItem : outcomeItems) {
       JsonNode nameNode = outcomeItem.get("name");
@@ -261,6 +276,22 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
+        case "INQ_CLIENT_MEANS_TESTED" -> inqClientMeansTested = value;
+        case "DECEASED_FIRST_NAME" -> deceasedFirstName = value;
+        case "DECEASED_SURNAME" -> deceasedSurname = value;
+        case "DATE_OF_DEATH" -> dateOfDeath = value;
+        case "INQUEST_REF" -> inquestReferenceNumber = value;
+        case "GOV_DEPT_1" -> governmentDepartment1 = value;
+        case "GOV_DEPT_2" -> governmentDepartment2 = value;
+        case "GOV_DEPT_3" -> governmentDepartment3 = value;
+        case "GOV_DEPT_4" -> governmentDepartment4 = value;
+        case "GOV_DEPT_5" -> governmentDepartment5 = value;
+        case "GOV_DEPT_6" -> governmentDepartment6 = value;
+        case "GOV_DEPT_7" -> governmentDepartment7 = value;
+        case "GOV_DEPT_8" -> governmentDepartment8 = value;
+        case "GOV_DEPT_9" -> governmentDepartment9 = value;
+        case "GOV_DEPT_10" -> governmentDepartment10 = value;
+
         default ->
             throw new IllegalStateException(
                 "The file contains an unrecognised field %s. Correct or remove the field and try again."
@@ -370,7 +401,22 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         localAuthorityNumber,
         paNumber,
         excessTravelCosts,
-        medConcludedDate);
+        medConcludedDate,
+        inqClientMeansTested,
+        deceasedFirstName,
+        deceasedSurname,
+        dateOfDeath,
+        inquestReferenceNumber,
+        governmentDepartment1,
+        governmentDepartment2,
+        governmentDepartment3,
+        governmentDepartment4,
+        governmentDepartment5,
+        governmentDepartment6,
+        governmentDepartment7,
+        governmentDepartment8,
+        governmentDepartment9,
+        governmentDepartment10);
   }
 
   private JsonNode getAllowedMatterType(JsonNode node) {

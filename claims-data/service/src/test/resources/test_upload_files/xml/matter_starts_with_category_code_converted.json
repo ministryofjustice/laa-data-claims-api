@@ -108,7 +108,22 @@
         "localAuthorityNumber" : null,
         "paNumber" : null,
         "excessTravelCosts" : null,
-        "medConcludedDate" : null
+        "medConcludedDate" : null,
+        "inqClientMeansTested" : null,
+        "deceasedFirstName" : null,
+        "deceasedSurname" : null,
+        "dateOfDeath" : null,
+        "inquestRef" : null,
+        "govDept1" : null,
+        "govDept2" : null,
+        "govDept3" : null,
+        "govDept4" : null,
+        "govDept5" : null,
+        "govDept6" : null,
+        "govDept7" : null,
+        "govDept8" : null,
+        "govDept9" : null,
+        "govDept10" : null
       } ],
       "matterStarts" : [ {
         "scheduleRef" : "0U719K/2024/01",

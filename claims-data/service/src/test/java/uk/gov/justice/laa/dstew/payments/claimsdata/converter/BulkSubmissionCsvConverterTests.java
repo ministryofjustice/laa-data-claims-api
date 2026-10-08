@@ -312,6 +312,31 @@ class BulkSubmissionCsvConverterTests {
     }
 
     @Test
+    void canConvertGovernmentDepartmentsWithSchemaFieldNames() {
+      String content =
+          "OFFICE,account=0U099L\n"
+              + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+              + "OUTCOME,matterType=INQ"
+              + ",GOV_DEPT_1=department1,GOV_DEPT_2=department2,GOV_DEPT_3=department3"
+              + ",GOV_DEPT_4=department4,GOV_DEPT_5=department5,GOV_DEPT_6=department6"
+              + ",GOV_DEPT_7=department7,GOV_DEPT_8=department8,GOV_DEPT_9=department9"
+              + ",GOV_DEPT_10=department10\n";
+
+      CsvOutcome outcome = convert(content).outcomes().getFirst();
+
+      assertEquals("department1", outcome.govDept1());
+      assertEquals("department2", outcome.govDept2());
+      assertEquals("department3", outcome.govDept3());
+      assertEquals("department4", outcome.govDept4());
+      assertEquals("department5", outcome.govDept5());
+      assertEquals("department6", outcome.govDept6());
+      assertEquals("department7", outcome.govDept7());
+      assertEquals("department8", outcome.govDept8());
+      assertEquals("department9", outcome.govDept9());
+      assertEquals("department10", outcome.govDept10());
+    }
+
+    @Test
     @DisplayName("Preserves accented letters and curly apostrophes in name fields (DSTEW-1863)")
     void preservesAccentedLettersAndCurlyApostrophesInNameFields() {
       // Curly apostrophe and accented letters must survive import so that validation - not this

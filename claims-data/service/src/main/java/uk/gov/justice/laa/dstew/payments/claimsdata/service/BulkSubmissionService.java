@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
@@ -53,6 +54,7 @@ public class BulkSubmissionService
   private final BulkSubmissionMapper bulkSubmissionMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final SubmissionService submissionService;
+  private final ClaimsApiProperties claimsApiProperties;
 
   @Override
   public BulkSubmissionRepository lookup() {
@@ -265,6 +267,9 @@ public class BulkSubmissionService
             validateDate(outcome.getRepOrderDate(), "Rep Order Date");
             validateDate(outcome.getClient2DateOfBirth(), "Client 2 Date of Birth");
             validateDate(outcome.getMedConcludedDate(), "Med Concluded Date");
+            if (claimsApiProperties.getInquests().isEnabled()) {
+              validateDate(outcome.getDeceasedDateOfDeath(), "Deceased Date of Death");
+            }
           } catch (Exception e) {
             failSubmission(
                 e.getMessage() + " must be a valid date in the format DD/MM/YYYY",
@@ -318,7 +323,8 @@ public class BulkSubmissionService
   public GetBulkSubmission200ResponseDetails getBulkSubmissionDetails(MultipartFile file) {
     FileSubmission fileSubmission = bulkSubmissionFileService.convert(file);
 
-    return bulkSubmissionMapper.toBulkSubmissionDetails(fileSubmission);
+    return bulkSubmissionMapper.toBulkSubmissionDetails(
+        fileSubmission, claimsApiProperties.getInquests().isEnabled());
   }
 
   /**
