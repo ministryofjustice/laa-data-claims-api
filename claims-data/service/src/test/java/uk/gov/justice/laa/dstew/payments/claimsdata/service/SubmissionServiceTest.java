@@ -436,8 +436,8 @@ class SubmissionServiceTest {
 
   @Test
   @DisplayName(
-      "Should log a tombstone warning when a submission patch arrives without updated_by_user_id")
-  void shouldLogTombstoneWarningWhenUpdatedByUserIdMissing() {
+      "Should log a tombstone warning when a submission patch arrives without created_by_user_id")
+  void shouldLogTombstoneWarningWhenCreatedByUserIdMissing() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
         Submission.builder()
@@ -456,7 +456,7 @@ class SubmissionServiceTest {
             event -> {
               assertThat(event.getLevel()).isEqualTo(Level.WARN);
               assertThat(event.getFormattedMessage())
-                  .contains("updated_by_user_id")
+                  .contains("created_by_user_id")
                   .contains(id.toString())
                   .contains("OFFICE1")
                   .contains("provider-user-1")
@@ -466,12 +466,12 @@ class SubmissionServiceTest {
 
   @Test
   @DisplayName(
-      "Should not log a tombstone warning when a submission patch supplies updated_by_user_id")
-  void shouldNotLogTombstoneWarningWhenUpdatedByUserIdPresent() {
+      "Should not log a tombstone warning when a submission patch supplies created_by_user_id")
+  void shouldNotLogTombstoneWarningWhenCreatedByUserIdPresent() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
-        new SubmissionPatch().crimeLowerScheduleNumber("456").updatedByUserId("user-123");
+        new SubmissionPatch().crimeLowerScheduleNumber("456").createdByUserId("user-123");
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);

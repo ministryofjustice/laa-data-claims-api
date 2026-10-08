@@ -65,7 +65,8 @@ public interface SubmissionMapper {
 
   /**
    * Update a {@link Submission} entity from a {@link SubmissionPatch}. Only non-null values from
-   * the patch will be copied.
+   * the patch will be copied. The patch's {@code createdByUserId} represents the user making this
+   * patch request. (when present) is recorded as the submission's {@code updatedByUserId}.
    *
    * @param patch the patch object
    * @param entity the entity to update
@@ -77,6 +78,7 @@ public interface SubmissionMapper {
   @Mapping(target = "officeAccountNumberSortKey", ignore = true)
   @Mapping(target = "createdOn", ignore = true)
   @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "updatedByUserId", source = "createdByUserId")
   @Mapping(target = "updatedOn", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 

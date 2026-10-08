@@ -167,18 +167,24 @@ class SubmissionMapperTest {
   }
 
   @Test
-  @DisplayName("sets updatedByUserId from SubmissionPatch when supplied")
-  void shouldSetUpdatedByUserIdWhenPresentOnPatch() {
-    Submission submission = Submission.builder().updatedByUserId("original-updater").build();
-    SubmissionPatch patch = new SubmissionPatch().updatedByUserId("new-updater");
+  @DisplayName(
+      "sets updatedByUserId from the patch's createdByUserId (the acting user) when supplied")
+  void shouldSetUpdatedByUserIdFromPatchCreatedByUserId() {
+    Submission submission =
+        Submission.builder()
+            .createdByUserId("original-user")
+            .updatedByUserId("original-updater")
+            .build();
+    SubmissionPatch patch = new SubmissionPatch().createdByUserId("acting-user");
 
     submissionMapper.updateSubmissionFromPatch(patch, submission);
 
-    assertThat(submission.getUpdatedByUserId()).isEqualTo("new-updater");
+    assertThat(submission.getCreatedByUserId()).isEqualTo("original-user");
+    assertThat(submission.getUpdatedByUserId()).isEqualTo("acting-user");
   }
 
   @Test
-  @DisplayName("preserves existing updatedByUserId when SubmissionPatch omits it")
+  @DisplayName("preserves existing updatedByUserId when SubmissionPatch omits createdByUserId")
   void shouldPreserveUpdatedByUserIdWhenAbsentFromPatch() {
     Submission submission = Submission.builder().updatedByUserId("original-updater").build();
     SubmissionPatch patch = new SubmissionPatch().isNilSubmission(true);

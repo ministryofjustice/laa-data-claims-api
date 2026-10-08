@@ -222,9 +222,9 @@ public class SubmissionService
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
 
-    if (submissionPatch.getUpdatedByUserId() == null) {
+    if (submissionPatch.getCreatedByUserId() == null) {
       log.warn(
-          "Tombstone: Submission patch received without updated_by_user_id. "
+          "Tombstone: Submission patch received without created_by_user_id. "
               + "submissionId={}, officeAccountNumber={}, providerUserId={}, areaOfLaw={}",
           id,
           submission.getOfficeAccountNumber(),

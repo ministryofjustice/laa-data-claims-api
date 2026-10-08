@@ -1541,8 +1541,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         SubmissionPatch.builder()
             .areaOfLaw(AREA_OF_LAW)
             .legalHelpSubmissionReference(sqlInjectionString)
-            .createdByUserId("some-other-user")
-            .updatedByUserId(API_USER_ID)
+            .createdByUserId(API_USER_ID)
             .validationMessages(
                 List.of(
                     new ValidationMessagePatch()
@@ -1573,7 +1572,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(updated.getCreatedByUserId()).isEqualTo(USER_ID);
     assertThat(updated.getCreatedOn()).isEqualTo(CREATED_ON);
 
-    // When the patch supplies an updated_by_user_id, it should be recorded on the submission.
+    // When the patch supplies a createdByUserId (the acting user),
+    // it is recorded as the submission's updatedByUserId.
     assertThat(updated.getUpdatedByUserId()).isEqualTo(API_USER_ID);
     assertThat(updated.getUpdatedOn()).isNotNull().isAfterOrEqualTo(updated.getCreatedOn());
 
