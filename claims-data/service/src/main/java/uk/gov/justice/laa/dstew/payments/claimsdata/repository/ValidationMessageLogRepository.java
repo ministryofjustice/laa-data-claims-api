@@ -20,16 +20,6 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
 
   long CURRENT_SUPERSEDED_BY_VERSION = 0L;
 
-  /**
-   * Count current validation-message claim IDs for a submission, defaulting warning reads to the
-   * current sentinel value.
-   */
-  default long countDistinctClaimIdsBySubmissionIdAndType(
-      UUID submissionId, ValidationMessageType type) {
-    return countDistinctClaimIdsBySubmissionIdAndType(
-        submissionId, type, ValidationMessageType.WARNING, CURRENT_SUPERSEDED_BY_VERSION);
-  }
-
   @Query(
       """
         SELECT COUNT(DISTINCT v.claimId)
@@ -37,53 +27,26 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
         WHERE v.submissionId = :submissionId
         AND (:type IS NULL OR v.type = :type)
         AND (
-          :type IS NULL
-          OR :type <> :warningType
-          OR v.supersededByVersion = :currentSupersededByVersion
+          v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+          OR v.supersededByVersion = 0
         )
         """)
   long countDistinctClaimIdsBySubmissionIdAndType(
-      @Param("submissionId") UUID submissionId,
-      @Param("type") ValidationMessageType type,
-      @Param("warningType") ValidationMessageType warningType,
-      @Param("currentSupersededByVersion") Long currentSupersededByVersion);
-
-  /**
-   * Count current validation messages for a claim, defaulting warning reads to the current sentinel
-   * value.
-   */
-  default long countAllByClaimIdAndType(UUID claimId, ValidationMessageType type) {
-    return countAllByClaimIdAndType(
-        claimId, type, ValidationMessageType.WARNING, CURRENT_SUPERSEDED_BY_VERSION);
-  }
+      @Param("submissionId") UUID submissionId, @Param("type") ValidationMessageType type);
 
   @Query(
       """
       SELECT COUNT(v)
       FROM ValidationMessageLog v
       WHERE v.claimId = :claimId
-        AND v.type = :type
+        AND (:type IS NULL OR v.type = :type)
         AND (
-          :type IS NULL
-          OR :type <> :warningType
-          OR v.supersededByVersion = :currentSupersededByVersion
+          v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+          OR v.supersededByVersion = 0
         )
       """)
   long countAllByClaimIdAndType(
-      @Param("claimId") UUID claimId,
-      @Param("type") ValidationMessageType type,
-      @Param("warningType") ValidationMessageType warningType,
-      @Param("currentSupersededByVersion") Long currentSupersededByVersion);
-
-  /**
-   * Count current warning totals for the supplied claims, defaulting warning reads to the current
-   * sentinel value.
-   */
-  default List<ClaimWarningCountProjection> countWarningsByClaimIdsAndType(
-      Collection<UUID> claimIds, ValidationMessageType type) {
-    return countWarningsByClaimIdsAndType(
-        claimIds, type, ValidationMessageType.WARNING, CURRENT_SUPERSEDED_BY_VERSION);
-  }
+      @Param("claimId") UUID claimId, @Param("type") ValidationMessageType type);
 
   @Query(
       """
@@ -91,39 +54,15 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
                   COUNT(v)   AS warningCount
            FROM ValidationMessageLog v
            WHERE v.claimId IN :claimIds
-             AND v.type = :type
+             AND (:type IS NULL OR v.type = :type)
              AND (
-               :type IS NULL
-               OR :type <> :warningType
-               OR v.supersededByVersion = :currentSupersededByVersion
+               v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+               OR v.supersededByVersion = 0
              )
            GROUP BY v.claimId
            """)
   List<ClaimWarningCountProjection> countWarningsByClaimIdsAndType(
-      @Param("claimIds") Collection<UUID> claimIds,
-      @Param("type") ValidationMessageType type,
-      @Param("warningType") ValidationMessageType warningType,
-      @Param("currentSupersededByVersion") Long currentSupersededByVersion);
-
-  /**
-   * Find current validation messages for the supplied filters, defaulting warning reads to the
-   * current sentinel value.
-   */
-  default Page<ValidationMessageWithClaimDetailsProjection> findWithClaimDetailsByFilters(
-      UUID submissionId,
-      UUID claimId,
-      ValidationMessageType type,
-      String source,
-      Pageable pageable) {
-    return findWithClaimDetailsByFilters(
-        submissionId,
-        claimId,
-        type,
-        source,
-        ValidationMessageType.WARNING,
-        CURRENT_SUPERSEDED_BY_VERSION,
-        pageable);
-  }
+      @Param("claimIds") Collection<UUID> claimIds, @Param("type") ValidationMessageType type);
 
   @Query(
       """
@@ -148,9 +87,8 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
              AND (:claimId IS NULL OR v.claimId = :claimId)
              AND (:type IS NULL OR v.type = :type)
              AND (
-               :type IS NULL
-               OR :type <> :warningType
-               OR v.supersededByVersion = :currentSupersededByVersion
+               v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+               OR v.supersededByVersion = 0
              )
              AND (:source IS NULL OR v.source = :source)
            """)
@@ -159,8 +97,6 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
       @Param("claimId") UUID claimId,
       @Param("type") ValidationMessageType type,
       @Param("source") String source,
-      @Param("warningType") ValidationMessageType warningType,
-      @Param("currentSupersededByVersion") Long currentSupersededByVersion,
       Pageable pageable);
 
   @Modifying
@@ -171,13 +107,11 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
          SET v.supersededByVersion = :supersededByVersion
        WHERE v.claimId = :claimId
          AND v.source = :source
-         AND v.type = :type
-         AND v.supersededByVersion = :currentSupersededByVersion
+         AND v.type = uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+         AND v.supersededByVersion = 0
       """)
   int supersedeCurrentByClaimIdAndSource(
       @Param("claimId") UUID claimId,
       @Param("source") String source,
-      @Param("type") ValidationMessageType type,
-      @Param("supersededByVersion") Long supersededByVersion,
-      @Param("currentSupersededByVersion") Long currentSupersededByVersion);
+      @Param("supersededByVersion") Long supersededByVersion);
 }

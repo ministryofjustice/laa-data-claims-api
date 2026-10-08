@@ -48,11 +48,7 @@ public class ClaimAmendmentValidationMessagePersistenceService {
     }
 
     validationMessageLogRepository.supersedeCurrentByClaimIdAndSource(
-        claim.getId(),
-        FSP_SOURCE,
-        ValidationMessageType.WARNING,
-        claimVersion,
-        ValidationMessageLogRepository.CURRENT_SUPERSEDED_BY_VERSION);
+        claim.getId(), FSP_SOURCE, claimVersion);
 
     List<ValidationMessageLog> warnings =
         state.getFspWarnings().stream()

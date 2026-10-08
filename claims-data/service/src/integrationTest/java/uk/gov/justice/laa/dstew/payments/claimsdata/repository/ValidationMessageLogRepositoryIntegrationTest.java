@@ -3,10 +3,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_1_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_2_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.CLAIM_4_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_1_ID;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,6 +73,44 @@ class ValidationMessageLogRepositoryIntegrationTest extends AbstractIntegrationT
   }
 
   @Test
+  @DisplayName("Should exclude superseded warnings when the message type filter is omitted")
+  void shouldExcludeSupersededWarningsWithoutTypeFilter() {
+    validationMessageLogRepository.saveAll(
+        List.of(
+            buildFspWarning("current-warning", CLAIM_1_ID, 0L),
+            buildFspWarning("superseded-warning", CLAIM_1_ID, 8L),
+            buildFspWarning("only-superseded-warning", CLAIM_4_ID, 8L)));
+
+    List<ValidationMessageWithClaimDetailsProjection> messages =
+        validationMessageLogRepository
+            .findWithClaimDetailsByFilters(SUBMISSION_1_ID, null, null, null, PageRequest.of(0, 10))
+            .getContent();
+
+    assertThat(messages)
+        .extracting(ValidationMessageWithClaimDetailsProjection::getDisplayMessage)
+        .containsExactlyInAnyOrder("Missing case reference", "Missing UFN", "current-warning");
+    assertThat(validationMessageLogRepository.countAllByClaimIdAndType(CLAIM_1_ID, null))
+        .isEqualTo(2);
+    assertThat(validationMessageLogRepository.countAllByClaimIdAndType(CLAIM_4_ID, null)).isZero();
+    assertThat(
+            validationMessageLogRepository.countDistinctClaimIdsBySubmissionIdAndType(
+                SUBMISSION_1_ID, null))
+        .isEqualTo(2);
+    Map<UUID, Long> warningCounts =
+        validationMessageLogRepository
+            .countWarningsByClaimIdsAndType(List.of(CLAIM_1_ID, CLAIM_2_ID, CLAIM_4_ID), null)
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    projection -> projection.getClaimId(),
+                    projection -> projection.getWarningCount()));
+    assertThat(warningCounts)
+        .containsEntry(CLAIM_1_ID, 2L)
+        .containsEntry(CLAIM_2_ID, 1L)
+        .doesNotContainKey(CLAIM_4_ID);
+  }
+
+  @Test
   @DisplayName("Should supersede only current FSP warnings when a later repricing succeeds")
   void supersedeCurrentByClaimIdAndSource_updatesOnlyCurrentWarnings() {
     ValidationMessageLog currentWarning = buildFspWarning("current-warning", CLAIM_1_ID, 0L);
@@ -77,12 +118,7 @@ class ValidationMessageLogRepositoryIntegrationTest extends AbstractIntegrationT
     validationMessageLogRepository.saveAll(List.of(currentWarning, historicalWarning));
 
     int updated =
-        validationMessageLogRepository.supersedeCurrentByClaimIdAndSource(
-            CLAIM_1_ID,
-            "FSP",
-            ValidationMessageType.WARNING,
-            12L,
-            ValidationMessageLogRepository.CURRENT_SUPERSEDED_BY_VERSION);
+        validationMessageLogRepository.supersedeCurrentByClaimIdAndSource(CLAIM_1_ID, "FSP", 12L);
 
     assertThat(updated).isEqualTo(1);
     assertThat(

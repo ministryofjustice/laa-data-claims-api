@@ -75,11 +75,7 @@ class ClaimAmendmentValidationMessagePersistenceServiceTest {
 
     verify(validationMessageLogRepository)
         .supersedeCurrentByClaimIdAndSource(
-            claim.getId(),
-            ClaimAmendmentValidationMessagePersistenceService.FSP_SOURCE,
-            ValidationMessageType.WARNING,
-            12L,
-            ValidationMessageLogRepository.CURRENT_SUPERSEDED_BY_VERSION);
+            claim.getId(), ClaimAmendmentValidationMessagePersistenceService.FSP_SOURCE, 12L);
     verify(validationMessageLogFactory)
         .createForClaimIssue(
             warning,
