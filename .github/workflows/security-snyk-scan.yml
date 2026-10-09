@@ -142,19 +142,16 @@ jobs:
         id: slack_summary
         run: |
           {
-            echo "*Container image scan:* ${{ needs.image-scan.result }}"
-            echo "*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            echo "*Snyk scan:* ${{ needs.image-scan.result == 'failure' && 'FAILURE' || needs.image-scan.result }} - Open alerts: ${{ steps.alerts.outputs.count || 'unknown' }} (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>)"
             echo
             if [ "${{ steps.alerts.outcome }}" = "success" ]; then
-              echo "*Open alerts: ${{ steps.alerts.outputs.count }}*"
-              echo
               jq -r '
                 def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
                 def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
                 sort_by(-sev_rank)[] |
                 (.rule.security_severity_level // "unknown" | ascii_upcase) as $sev |
                 (.rule.description // .rule.id | sub("^(Low|Medium|High|Critical) severity - "; "")) as $desc |
-                "\(sev_emoji) *[\($sev)]* \($desc)\n   <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
+                "\(sev_emoji) [\($sev)] \($desc) - <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
               ' snyk-alerts.json
             else
               echo "Vulnerability details unavailable - see job summary/artifact"
