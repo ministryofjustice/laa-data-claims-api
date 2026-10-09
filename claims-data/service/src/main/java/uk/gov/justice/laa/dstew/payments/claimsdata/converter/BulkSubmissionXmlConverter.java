@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlSubmission;
@@ -25,6 +26,8 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
   public static final String FILE_REJECTION_MESSAGE =
       "File rejected: unsupported content found. Please correct the file and try again.";
 
+  private final ClaimsApiProperties claimsApiProperties;
+
   private final XmlMapper xmlMapper;
 
   /**
@@ -37,7 +40,13 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
   public XmlSubmission convert(MultipartFile file) {
 
     try {
-      return xmlMapper.readValue(file.getInputStream(), XmlSubmission.class);
+      // return xmlMapper.readValue(file.getInputStream(), XmlSubmission.class);
+      return xmlMapper
+          .readerFor(XmlSubmission.class)
+          .withAttribute(
+              XmlOutcomeDeserializer.INQUESTS_ENABLED_ATTRIBUTE,
+              claimsApiProperties.getFeatures().isInquestsEnabled())
+          .readValue(file.getInputStream());
     } catch (MismatchedInputException mismatchedInputException) {
       log.error(
           "Unsupported XML tag: {}",

@@ -21,9 +21,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDeta
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -73,6 +76,12 @@ public class AbstractProviderPactTests {
   @MockitoBean protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
 
   @MockitoBean protected ClientRepository clientRepository;
+
+  @MockitoBean protected InquestDetailRepository inquestDetailRepository;
+
+  @MockitoBean protected GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+
+  @MockitoBean protected ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
 
   @MockitoBean protected MatterStartRepository matterStartRepository;
 

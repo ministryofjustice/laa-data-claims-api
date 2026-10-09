@@ -10,4 +10,5 @@ laa:
     api:
       amendments:
         enabled: true
-
+      features:
+        inquests: true

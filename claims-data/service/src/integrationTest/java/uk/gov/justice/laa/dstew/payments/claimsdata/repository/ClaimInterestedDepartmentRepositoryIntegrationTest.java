@@ -148,8 +148,8 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("MOJ")
-                .displayLabel("Ministry of Justice")
+                .governmentDepartmentCode("CODE1")
+                .displayLabel("Department 1")
                 .isActive(true)
                 .displayOrder(1)
                 .createdByUserId("TEST")
@@ -158,8 +158,8 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
         governmentDepartmentRefRepository.saveAndFlush(
             GovernmentDepartmentRef.builder()
                 .id(UUID.randomUUID())
-                .governmentDepartmentCode("DHSC")
-                .displayLabel("Department for Health and Social Care")
+                .governmentDepartmentCode("CODE2")
+                .displayLabel("Department 2")
                 .isActive(true)
                 .displayOrder(2)
                 .createdByUserId("TEST")

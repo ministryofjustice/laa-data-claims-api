@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -28,6 +29,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.BulkSubmission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionAreaOfLawException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
@@ -69,6 +71,8 @@ class BulkSubmissionServiceTest {
   SubmissionService submissionService;
 
   @Mock StatusCoercer statusCoercer;
+
+  @Mock ClaimsApiProperties claimsApiProperties;
 
   @Spy @InjectMocks BulkSubmissionService bulkSubmissionService;
 
@@ -154,42 +158,50 @@ class BulkSubmissionServiceTest {
         .containsExactly(BulkSubmissionStatus.VALIDATION_FAILED, BulkSubmissionErrorCode.V100);
   }
 
-  @ParameterizedTest(name = "dateField: {0}, dateValue: {1}, shouldBeValid: {2}")
+  @ParameterizedTest(
+      name = "dateField: {0}, dateValue: {1}, shouldBeValid: {2}, isInquestEnabled: {3}")
   @CsvSource({
     // Valid dates
-    "Case Start Date,getCaseStartDate,01/01/2025,true",
-    "Case Start Date,getCaseStartDate,1/1/2025,true",
-    "Case Start Date,getCaseStartDate, 1/1/2025 ,true",
-    "Client Date of Birth,getClientDateOfBirth,31/12/1980,true",
-    "Work Concluded Date,getWorkConcludedDate,15/06/2025,true",
-    "Transfer Date,getTransferDate,25/11/2025,true",
-    "Surgery Date,getSurgeryDate,01/07/2025,true",
-    "Rep Order Date,getRepOrderDate,30/09/2025,true",
-    "Client 2 Date of Birth,getClient2DateOfBirth,01/01/1990,true",
-    "Med Concluded Date,getMedConcludedDate,31/12/2025,true",
+    "Case Start Date,getCaseStartDate,01/01/2025,true, false",
+    "Case Start Date,getCaseStartDate,1/1/2025,true, false",
+    "Case Start Date,getCaseStartDate, 1/1/2025 ,true, false",
+    "Client Date of Birth,getClientDateOfBirth,31/12/1980,true, false",
+    "Work Concluded Date,getWorkConcludedDate,15/06/2025,true, false",
+    "Transfer Date,getTransferDate,25/11/2025,true, false",
+    "Surgery Date,getSurgeryDate,01/07/2025,true, false",
+    "Rep Order Date,getRepOrderDate,30/09/2025,true, false",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01/01/1990,true, false",
+    "Med Concluded Date,getMedConcludedDate,31/12/2025,true, false",
+    "Deceased Date of Death,getDeceasedDateOfDeath,30/01/2025,true, true",
     // Invalid dates
-    "Case Start Date,getCaseStartDate,32/01/2025,false",
-    "Case Start Date,getCaseStartDate,abc,false",
-    "Client Date of Birth,getClientDateOfBirth,29/02/2025,false",
-    "Work Concluded Date,getWorkConcludedDate,31/04/2025,false",
-    "Transfer Date,getTransferDate,00/11/2025,false",
-    "Surgery Date,getSurgeryDate,01/13/2025,false",
-    "Rep Order Date,getRepOrderDate,2025/09/30,false",
-    "Client 2 Date of Birth,getClient2DateOfBirth,01-01-1990,false",
-    "Med Concluded Date,getMedConcludedDate,2025-12-31,false",
+    "Case Start Date,getCaseStartDate,32/01/2025,false, false",
+    "Case Start Date,getCaseStartDate,abc,false, false",
+    "Client Date of Birth,getClientDateOfBirth,29/02/2025,false, false",
+    "Work Concluded Date,getWorkConcludedDate,31/04/2025,false, false",
+    "Transfer Date,getTransferDate,00/11/2025,false, false",
+    "Surgery Date,getSurgeryDate,01/13/2025,false, false",
+    "Rep Order Date,getRepOrderDate,2025/09/30,false, false",
+    "Client 2 Date of Birth,getClient2DateOfBirth,01-01-1990,false, false",
+    "Med Concluded Date,getMedConcludedDate,2025-12-31,false, false",
+    "Deceased Date of Death,getDeceasedDateOfDeath,32/01/2025,false, true",
     // Blank dates
-    "Case Start Date,getCaseStartDate,,true",
-    "Client Date of Birth,getClientDateOfBirth,,true",
-    "Work Concluded Date,getWorkConcludedDate,,true",
-    "Transfer Date,getTransferDate,,true",
-    "Surgery Date,getSurgeryDate,,true",
-    "Rep Order Date,getRepOrderDate,,true",
-    "Client 2 Date of Birth,getClient2DateOfBirth,,true",
-    "Med Concluded Date,getMedConcludedDate,,true",
+    "Case Start Date,getCaseStartDate,,true, false",
+    "Client Date of Birth,getClientDateOfBirth,,true, false",
+    "Work Concluded Date,getWorkConcludedDate,,true, false",
+    "Transfer Date,getTransferDate,,true, false",
+    "Surgery Date,getSurgeryDate,,true, false",
+    "Rep Order Date,getRepOrderDate,,true, false",
+    "Client 2 Date of Birth,getClient2DateOfBirth,,true, false",
+    "Med Concluded Date,getMedConcludedDate,,true, false",
+    "Deceased Date of Death,getDeceasedDateOfDeath,,true, true",
   })
   @DisplayName("Validates date formats in bulk submission file")
   void validateDateFormatsInBulkSubmission(
-      String dateField, String methodName, String dateValue, boolean shouldBeValid)
+      String dateField,
+      String methodName,
+      String dateValue,
+      boolean shouldBeValid,
+      boolean isInquestEnabled)
       throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     GetBulkSubmission200ResponseDetails mockDetails =
@@ -200,6 +212,11 @@ class BulkSubmissionServiceTest {
         mock(GetBulkSubmission200ResponseDetailsSchedule.class);
     BulkSubmissionOutcome bulkSubmissionOutcome = mock(BulkSubmissionOutcome.class);
 
+    if (shouldBeValid || methodName.equals("getDeceasedDateOfDeath")) {
+      ClaimsApiProperties.Features features = mock(ClaimsApiProperties.Features.class);
+      when(claimsApiProperties.getFeatures()).thenReturn(features);
+      when(features.isInquestsEnabled()).thenReturn(isInquestEnabled);
+    }
     when(mockDetails.getOffice()).thenReturn(mockOffice);
     when(mockDetails.getSchedule()).thenReturn(mockSchedule);
     when(mockSchedule.getSubmissionPeriod()).thenReturn("APR-2025");
@@ -300,19 +317,25 @@ class BulkSubmissionServiceTest {
         .containsExactly(BulkSubmissionStatus.VALIDATION_FAILED, BulkSubmissionErrorCode.V100);
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
   @DisplayName("Returns the bulk submission details from the multipart file")
-  void returnsBulkSubmissionDetailsFromFile() {
+  void returnsBulkSubmissionDetailsFromFile(Boolean inquestFeatureFlag) {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     FileSubmission csvSubmission = mock(CsvSubmission.class);
+    ClaimsApiProperties.Features features = mock(ClaimsApiProperties.Features.class);
+    when(claimsApiProperties.getFeatures()).thenReturn(features);
+    when(features.isInquestsEnabled()).thenReturn(inquestFeatureFlag);
     GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
     when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
-    when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission)).thenReturn(expected);
+    when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission, inquestFeatureFlag))
+        .thenReturn(expected);
 
     GetBulkSubmission200ResponseDetails actual =
         bulkSubmissionService.getBulkSubmissionDetails(file);
 
     assertEquals(expected, actual);
+    verify(bulkSubmissionMapper).toBulkSubmissionDetails(csvSubmission, inquestFeatureFlag);
   }
 
   @Test

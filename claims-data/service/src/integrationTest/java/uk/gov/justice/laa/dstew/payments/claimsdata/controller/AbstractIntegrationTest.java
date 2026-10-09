@@ -74,9 +74,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
@@ -121,6 +124,9 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClaimRepository claimRepository;
   @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
+  @Autowired protected InquestDetailRepository inquestDetailRepository;
+  @Autowired protected ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+  @Autowired protected GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
@@ -186,9 +192,12 @@ public abstract class AbstractIntegrationTest {
     claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
+    inquestDetailRepository.deleteAll();
+    claimInterestedDepartmentRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
     matterStartRepository.deleteAll();
     claimRepository.deleteAll();
+    governmentDepartmentRefRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
   }

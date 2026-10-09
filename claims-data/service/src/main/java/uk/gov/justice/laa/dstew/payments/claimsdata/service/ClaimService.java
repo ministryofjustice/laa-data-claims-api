@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
@@ -31,8 +32,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimAmendmentValidationException;
@@ -44,13 +48,16 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFound
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
+import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.InquestDetailMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.FeeCalculationPatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionClaim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
@@ -58,9 +65,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
@@ -99,6 +109,11 @@ public class ClaimService
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
   private final StatusCoercer statusCoercer;
+  private final InquestDetailRepository inquestDetailRepository;
+  private final InquestDetailMapper inquestDetailMapper;
+  private final GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+  private final ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+  private final ClaimsApiProperties claimsApiProperties;
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
@@ -142,8 +157,8 @@ public class ClaimService
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
+    rejectInquestPostWhenDisabled(claimPost);
     final Submission submission = requireEntity(submissionId);
-
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
     // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
@@ -194,6 +209,16 @@ public class ClaimService
       clientRepository.save(client);
     }
 
+    InquestDetail inquestDetail = inquestDetailMapper.toInquestDetail(claimPost.getInquestDetail());
+    if (hasInquestDetailData(inquestDetail)) {
+      inquestDetail.setId(Uuid7.timeBasedUuid());
+      inquestDetail.setClaim(claim);
+      inquestDetail.setCreatedByUserId(claimPost.getCreatedByUserId());
+      inquestDetailRepository.save(inquestDetail);
+    }
+
+    saveInterestedDepartments(claim, claimPost);
+
     return claim.getId();
   }
 
@@ -222,6 +247,8 @@ public class ClaimService
     claimCaseRepository
         .findByClaimId(claimId)
         .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
+
+    applyInquestResponse(claimId, response);
     return response;
   }
 
@@ -235,7 +262,9 @@ public class ClaimService
   @Transactional(readOnly = true)
   public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
     Claim claim = requireClaim(submissionId, claimId);
-    return claimMapper.toClaimResponseV2(claim);
+    ClaimResponseV2 response = claimMapper.toClaimResponseV2(claim);
+    applyInquestResponse(claimId, response);
+    return response;
   }
 
   /**
@@ -255,6 +284,7 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+    rejectInquestPatchWhenDisabled(claimPatch);
 
     statusCoercer.coerce(claimPatch);
     if (isAnAmendment(claimPatch)) {
@@ -262,6 +292,100 @@ public class ClaimService
     } else {
       updateClaimStatusAndFeeDetails(claim, claimPatch);
     }
+  }
+
+  private void rejectInquestPatchWhenDisabled(ClaimAmendmentPatch claimPatch) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
+      return;
+    }
+
+    FeeCalculationPatch feeCalculationResponse = claimPatch.getFeeCalculationResponse();
+    if (feeCalculationResponse != null && feeCalculationResponse.getIsInquest() != null) {
+      throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
+    }
+  }
+
+  private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {
+    ClaimInquestDetail claimInquestDetail = claimPost.getInquestDetail();
+    if (claimInquestDetail == null || claimInquestDetail.getInterestedDepartments() == null) {
+      return;
+    }
+
+    int displayOrder = 1;
+    for (String departmentName : claimInquestDetail.getInterestedDepartments()) {
+      if (!StringUtils.hasText(departmentName)) {
+        continue;
+      }
+      GovernmentDepartmentRef governmentDepartment =
+          governmentDepartmentRefRepository
+              .findByDisplayLabelIgnoreCase(departmentName.trim())
+              .orElseThrow(
+                  () ->
+                      new ClaimBadRequestException(
+                          String.format(
+                              "Unknown interested government department: %s", departmentName)));
+
+      claimInterestedDepartmentRepository.save(
+          ClaimInterestedDepartment.builder()
+              .id(Uuid7.timeBasedUuid())
+              .claim(claim)
+              .governmentDepartment(governmentDepartment)
+              .displayOrder(displayOrder++)
+              .createdByUserId(claimPost.getCreatedByUserId())
+              .build());
+    }
+  }
+
+  private void rejectInquestPostWhenDisabled(ClaimPost claimPost) {
+    if (!claimsApiProperties.getFeatures().isInquestsEnabled()
+        && claimPost.getInquestDetail() != null) {
+      throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
+    }
+  }
+
+  private void applyInquestResponse(UUID claimId, ClaimResponse response) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
+      response.setInquestDetail(getClaimInquestDetail(claimId));
+      return;
+    }
+
+    response.setInquestDetail(null);
+    if (response.getFeeCalculationResponse() != null) {
+      response.getFeeCalculationResponse().setIsInquest(null);
+    }
+  }
+
+  private void applyInquestResponse(UUID claimId, ClaimResponseV2 response) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
+      response.setInquestDetail(getClaimInquestDetail(claimId));
+      return;
+    }
+
+    response.setInquestDetail(null);
+    if (response.getFeeCalculationResponse() != null) {
+      response.getFeeCalculationResponse().setIsInquest(null);
+    }
+  }
+
+  private ClaimInquestDetail getClaimInquestDetail(UUID claimId) {
+    ClaimInquestDetail claimInquestDetail =
+        inquestDetailRepository
+            .findByClaimId(claimId)
+            .map(inquestDetailMapper::toClaimInquestDetail)
+            .orElseGet(ClaimInquestDetail::new);
+
+    clientRepository
+        .findByClaimId(claimId)
+        .ifPresent(client -> claimInquestDetail.setIsClientMeansTested(client.getIsMeansTested()));
+
+    List<String> departments =
+        claimInterestedDepartmentRepository.findByClaimIdOrderByDisplayOrderAsc(claimId).stream()
+            .map(ClaimInterestedDepartment::getGovernmentDepartment)
+            .map(GovernmentDepartmentRef::getDisplayLabel)
+            .toList();
+    claimInquestDetail.setInterestedDepartments(departments);
+
+    return claimInquestDetail;
   }
 
   /**
@@ -430,10 +554,17 @@ public class ClaimService
       // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
       calculatedFeeDetail.setCreatedOn(Instant.now());
 
-      // Get existing calculated fee detail, and set the ID if it exists
+      // Get existing calculated fee detail, and set the ID if it exists.
       calculatedFeeDetailRepository
           .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
-          .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
+          .ifPresent(
+              existing -> {
+                calculatedFeeDetail.setId(existing.getId());
+                if (!claimsApiProperties.getFeatures().isInquestsEnabled()
+                    && calculatedFeeDetail.getIsInquest() == null) {
+                  calculatedFeeDetail.setIsInquest(existing.getIsInquest());
+                }
+              });
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
@@ -494,7 +625,16 @@ public class ClaimService
         || client.getClientDateOfBirth() != null
         || StringUtils.hasText(client.getClient2Forename())
         || StringUtils.hasText(client.getClient2Surname())
-        || client.getClient2DateOfBirth() != null;
+        || client.getClient2DateOfBirth() != null
+        || client.getIsMeansTested() != null;
+  }
+
+  private boolean hasInquestDetailData(InquestDetail inquestDetail) {
+    return inquestDetail != null
+        && (StringUtils.hasText(inquestDetail.getDeceasedForename())
+            || StringUtils.hasText(inquestDetail.getDeceasedSurname())
+            || inquestDetail.getDeceasedDateOfDeath() != null
+            || StringUtils.hasText(inquestDetail.getCoronersInquestReference()));
   }
 
   /**

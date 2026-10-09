@@ -23,6 +23,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
    * @throws IOException when processing of the input fails.
    * @throws IllegalStateException when an unsupported outcome item has been found in the XML.
    */
+  public static final String INQUESTS_ENABLED_ATTRIBUTE = "inquestsEnabled";
+
   @Override
   public XmlOutcome deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
     XmlMapper mapper = (XmlMapper) p.getCodec();
@@ -36,6 +38,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     if (node.isEmpty()) {
       throw new BulkSubmissionFileReadException("Outcome does not contain any data.");
     }
+
+    boolean isInquestEnabled = Boolean.TRUE.equals(ctxt.getAttribute(INQUESTS_ENABLED_ATTRIBUTE));
 
     JsonNode matterTypeNode = getAllowedMatterType(node);
     String matterType = matterTypeNode == null ? null : matterTypeNode.asText();
@@ -145,6 +149,21 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     String paNumber = null;
     String excessTravelCosts = null;
     String medConcludedDate = null;
+    String inqClientMeansTested = null;
+    String deceasedFirstName = null;
+    String deceasedSurname = null;
+    String dateOfDeath = null;
+    String inquestReferenceNumber = null;
+    String governmentDepartment1 = null;
+    String governmentDepartment2 = null;
+    String governmentDepartment3 = null;
+    String governmentDepartment4 = null;
+    String governmentDepartment5 = null;
+    String governmentDepartment6 = null;
+    String governmentDepartment7 = null;
+    String governmentDepartment8 = null;
+    String governmentDepartment9 = null;
+    String governmentDepartment10 = null;
 
     for (JsonNode outcomeItem : outcomeItems) {
       JsonNode nameNode = outcomeItem.get("name");
@@ -261,6 +280,23 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
+        case "INQ_CLIENT_MEANS_TESTED" ->
+            inqClientMeansTested = checkFlag(name, value, isInquestEnabled);
+        case "DECEASED_FIRST_NAME" -> deceasedFirstName = checkFlag(name, value, isInquestEnabled);
+        case "DECEASED_SURNAME" -> deceasedSurname = checkFlag(name, value, isInquestEnabled);
+        case "DATE_OF_DEATH" -> dateOfDeath = checkFlag(name, value, isInquestEnabled);
+        case "INQUEST_REF" -> inquestReferenceNumber = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_1" -> governmentDepartment1 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_2" -> governmentDepartment2 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_3" -> governmentDepartment3 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_4" -> governmentDepartment4 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_5" -> governmentDepartment5 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_6" -> governmentDepartment6 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_7" -> governmentDepartment7 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_8" -> governmentDepartment8 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_9" -> governmentDepartment9 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_10" -> governmentDepartment10 = checkFlag(name, value, isInquestEnabled);
+
         default ->
             throw new IllegalStateException(
                 "The file contains an unrecognised field %s. Correct or remove the field and try again."
@@ -370,7 +406,31 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         localAuthorityNumber,
         paNumber,
         excessTravelCosts,
-        medConcludedDate);
+        medConcludedDate,
+        inqClientMeansTested,
+        deceasedFirstName,
+        deceasedSurname,
+        dateOfDeath,
+        inquestReferenceNumber,
+        governmentDepartment1,
+        governmentDepartment2,
+        governmentDepartment3,
+        governmentDepartment4,
+        governmentDepartment5,
+        governmentDepartment6,
+        governmentDepartment7,
+        governmentDepartment8,
+        governmentDepartment9,
+        governmentDepartment10);
+  }
+
+  private String checkFlag(String name, String value, boolean isInquestRefFlagEnabled) {
+    if (!isInquestRefFlagEnabled) {
+      throw new IllegalStateException(
+          "The file contains an unrecognised field %s. Correct or remove the field and try again."
+              .formatted(name));
+    }
+    return value;
   }
 
   private JsonNode getAllowedMatterType(JsonNode node) {

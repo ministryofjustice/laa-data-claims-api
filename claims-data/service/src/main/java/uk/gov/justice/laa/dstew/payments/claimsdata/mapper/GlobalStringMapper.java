@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import org.mapstruct.Mapper;
+import org.mapstruct.Named;
 import org.springframework.util.StringUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
 
@@ -19,6 +20,7 @@ public interface GlobalStringMapper {
 
   DateTimeFormatter FORMATTER =
       DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT);
+  DateTimeFormatter RESPONSE_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
   /**
    * Normalises {@link String} values by converting {@code null} or blank ("") strings to {@code
@@ -87,5 +89,11 @@ public interface GlobalStringMapper {
       throw new ClaimBadRequestException(
           String.format("Invalid date value '%s'. Expected format: d/M/yyyy", value));
     }
+  }
+
+  /** Formats a stored date as DD/MM/YYYY. */
+  @Named("formatDate")
+  default String formatDate(LocalDate value) {
+    return value == null ? null : value.format(RESPONSE_DATE_FORMATTER);
   }
 }

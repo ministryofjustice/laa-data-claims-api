@@ -29,6 +29,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -1095,13 +1096,15 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
-  @Test
-  void shouldGetBulkSubmissionById() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldGetBulkSubmissionById(Boolean inquestFeatureFlag) throws Exception {
     // given: a bulk submission is saved to the database
     var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
-            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .addOutcomesItem(
+                ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE, inquestFeatureFlag))
             .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
@@ -1147,7 +1150,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
-            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .addOutcomesItem(
+                ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE, Boolean.FALSE))
             .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
