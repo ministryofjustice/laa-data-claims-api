@@ -72,11 +72,15 @@ class AmendmentVersusAssessmentOccIntegrationTest extends AbstractAmendmentPatch
     Long versionLoadedByAmendScreen = amendable.getVersion();
 
     // (3) A concurrent assessment of the same claim is submitted via the real endpoint. Per the
-    // parent story this is a version-advancing action, so it must move claim.version on.
+    // parent story this is a version-advancing action, so it must move claim.version on. The
+    // assessment itself supplies the same version the amend screen loaded, since at this point
+    // (from the assessor's perspective) that is still the current claim version.
+    var assessmentPost = getAssessmentPost();
+    assessmentPost.setClaimVersion(versionLoadedByAmendScreen);
     mockMvc
         .perform(
             post(POST_AN_ASSESSMENT_ENDPOINT, CLAIM_1_ID)
-                .content(OBJECT_MAPPER.writeValueAsString(getAssessmentPost()))
+                .content(OBJECT_MAPPER.writeValueAsString(assessmentPost))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
         .andExpect(status().isCreated());
