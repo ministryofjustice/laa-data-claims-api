@@ -23,6 +23,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
    * @throws IOException when processing of the input fails.
    * @throws IllegalStateException when an unsupported outcome item has been found in the XML.
    */
+  public static final String INQUESTS_ENABLED_ATTRIBUTE = "inquestsEnabled";
+
   @Override
   public XmlOutcome deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
     XmlMapper mapper = (XmlMapper) p.getCodec();
@@ -36,6 +38,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
     if (node.isEmpty()) {
       throw new BulkSubmissionFileReadException("Outcome does not contain any data.");
     }
+
+    boolean isInquestEnabled = Boolean.TRUE.equals(ctxt.getAttribute(INQUESTS_ENABLED_ATTRIBUTE));
 
     JsonNode matterTypeNode = getAllowedMatterType(node);
     String matterType = matterTypeNode == null ? null : matterTypeNode.asText();
@@ -276,21 +280,22 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "PA_NUMBER" -> paNumber = value;
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
-        case "INQ_CLIENT_MEANS_TESTED" -> inqClientMeansTested = value;
-        case "DECEASED_FIRST_NAME" -> deceasedFirstName = value;
-        case "DECEASED_SURNAME" -> deceasedSurname = value;
-        case "DATE_OF_DEATH" -> dateOfDeath = value;
-        case "INQUEST_REF" -> inquestReferenceNumber = value;
-        case "GOV_DEPT_1" -> governmentDepartment1 = value;
-        case "GOV_DEPT_2" -> governmentDepartment2 = value;
-        case "GOV_DEPT_3" -> governmentDepartment3 = value;
-        case "GOV_DEPT_4" -> governmentDepartment4 = value;
-        case "GOV_DEPT_5" -> governmentDepartment5 = value;
-        case "GOV_DEPT_6" -> governmentDepartment6 = value;
-        case "GOV_DEPT_7" -> governmentDepartment7 = value;
-        case "GOV_DEPT_8" -> governmentDepartment8 = value;
-        case "GOV_DEPT_9" -> governmentDepartment9 = value;
-        case "GOV_DEPT_10" -> governmentDepartment10 = value;
+        case "INQ_CLIENT_MEANS_TESTED" ->
+            inqClientMeansTested = checkFlag(name, value, isInquestEnabled);
+        case "DECEASED_FIRST_NAME" -> deceasedFirstName = checkFlag(name, value, isInquestEnabled);
+        case "DECEASED_SURNAME" -> deceasedSurname = checkFlag(name, value, isInquestEnabled);
+        case "DATE_OF_DEATH" -> dateOfDeath = checkFlag(name, value, isInquestEnabled);
+        case "INQUEST_REF" -> inquestReferenceNumber = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_1" -> governmentDepartment1 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_2" -> governmentDepartment2 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_3" -> governmentDepartment3 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_4" -> governmentDepartment4 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_5" -> governmentDepartment5 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_6" -> governmentDepartment6 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_7" -> governmentDepartment7 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_8" -> governmentDepartment8 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_9" -> governmentDepartment9 = checkFlag(name, value, isInquestEnabled);
+        case "GOV_DEPT_10" -> governmentDepartment10 = checkFlag(name, value, isInquestEnabled);
 
         default ->
             throw new IllegalStateException(
@@ -417,6 +422,15 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         governmentDepartment8,
         governmentDepartment9,
         governmentDepartment10);
+  }
+
+  private String checkFlag(String name, String value, boolean isInquestRefFlagEnabled) {
+    if (!isInquestRefFlagEnabled) {
+      throw new IllegalStateException(
+          "The file contains an unrecognised field %s. Correct or remove the field and try again."
+              .formatted(name));
+    }
+    return value;
   }
 
   private JsonNode getAllowedMatterType(JsonNode node) {

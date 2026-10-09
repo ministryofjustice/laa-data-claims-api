@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
@@ -57,6 +58,8 @@ public class BulkSubmissionXmlConverterTests {
   ObjectMapper objectMapper;
 
   BulkSubmissionXmlConverter bulkSubmissionXmlConverter;
+
+  ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
 
   private static final String OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE =
       "classpath:test_upload_files/xml/outcomes_with_client.xml";
@@ -91,6 +94,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String OUTCOMES_WITH_INQUESTS_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/outcomes_with_client_inquests_converted.json";
   private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_outcomes_single.xml";
   private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
@@ -121,6 +126,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/multiple_off_and_sch.xml";
   private static final String MALFORMED_SUBMISSION =
       "classpath:test_upload_files/xml/malformed-submission.xml";
+  private static final String OUTCOMES_WITH_CLIENT_INQUESTS_DATA =
+      "classpath:test_upload_files/xml/outcomes_with_client_inquests_data.xml";
 
   /**
    * Initializes the test environment before each test execution. Sets up the ObjectMapper with
@@ -132,7 +139,8 @@ public class BulkSubmissionXmlConverterTests {
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     XmlMapper xmlMapper = new XmlMapper();
-    bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(xmlMapper);
+    claimsApiProperties.getFeatures().setInquests("false");
+    bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(claimsApiProperties, xmlMapper);
   }
 
   @Nested
@@ -154,6 +162,23 @@ public class BulkSubmissionXmlConverterTests {
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
 
       File convertedFile = getFile(OUTCOMES_CONVERTED_FILE);
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    @Test
+    @DisplayName(
+        "Can convert a bulk submission file with outcomes including inquests data when feature flag active")
+    void canConvertOutcomesToXmlSubmission() throws IOException {
+      claimsApiProperties.getFeatures().setInquests("true");
+      MultipartFile file = getMultipartFile(OUTCOMES_WITH_CLIENT_INQUESTS_DATA);
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(OUTCOMES_WITH_INQUESTS_CONVERTED_FILE);
       String expected = getContent(convertedFile);
 
       JsonNode expectedNode = objectMapper.readTree(expected);
@@ -301,6 +326,20 @@ public class BulkSubmissionXmlConverterTests {
               () -> bulkSubmissionXmlConverter.convert(file),
               "Expected exception to be thrown");
       assertThat(exception.getMessage()).contains(testData.expectedErrorMessage());
+    }
+
+    @Test()
+    @DisplayName("Inquest Outcome Items are ignored when rejected with feature flag disabled")
+    void throwsExceptionForInquestOutcomeDateOnFeatureFlagDisabled() throws IOException {
+      MultipartFile file = getMultipartFile(OUTCOMES_WITH_CLIENT_INQUESTS_DATA);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file),
+              "Expected exception to be thrown");
+      assertThat(exception.getMessage())
+          .contains(
+              "The file contains an unrecognised field INQ_CLIENT_MEANS_TESTED. Correct or remove the field and try again.");
     }
 
     @Test
