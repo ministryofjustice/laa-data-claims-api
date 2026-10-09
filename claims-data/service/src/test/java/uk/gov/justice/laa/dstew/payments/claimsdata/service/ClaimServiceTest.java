@@ -154,7 +154,7 @@ class ClaimServiceTest {
 
   private static ClaimsApiProperties inquestsEnabledProperties() {
     ClaimsApiProperties properties = new ClaimsApiProperties();
-    properties.getInquests().setEnabled("true");
+    properties.getFeatures().setInquests("true");
     return properties;
   }
 

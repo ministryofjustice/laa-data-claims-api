@@ -213,9 +213,9 @@ class BulkSubmissionServiceTest {
     BulkSubmissionOutcome bulkSubmissionOutcome = mock(BulkSubmissionOutcome.class);
 
     if (shouldBeValid || methodName.equals("getDeceasedDateOfDeath")) {
-      ClaimsApiProperties.Inquests inquests = mock(ClaimsApiProperties.Inquests.class);
-      when(claimsApiProperties.getInquests()).thenReturn(inquests);
-      when(inquests.isEnabled()).thenReturn(isInquestEnabled);
+      ClaimsApiProperties.Features features = mock(ClaimsApiProperties.Features.class);
+      when(claimsApiProperties.getFeatures()).thenReturn(features);
+      when(features.isInquestsEnabled()).thenReturn(isInquestEnabled);
     }
     when(mockDetails.getOffice()).thenReturn(mockOffice);
     when(mockDetails.getSchedule()).thenReturn(mockSchedule);
@@ -323,9 +323,9 @@ class BulkSubmissionServiceTest {
   void returnsBulkSubmissionDetailsFromFile(Boolean inquestFeatureFlag) {
     MultipartFile file = new MockMultipartFile("filePath.csv", new byte[0]);
     FileSubmission csvSubmission = mock(CsvSubmission.class);
-    ClaimsApiProperties.Inquests inquests = mock(ClaimsApiProperties.Inquests.class);
-    when(claimsApiProperties.getInquests()).thenReturn(inquests);
-    when(inquests.isEnabled()).thenReturn(inquestFeatureFlag);
+    ClaimsApiProperties.Features features = mock(ClaimsApiProperties.Features.class);
+    when(claimsApiProperties.getFeatures()).thenReturn(features);
+    when(features.isInquestsEnabled()).thenReturn(inquestFeatureFlag);
     GetBulkSubmission200ResponseDetails expected = mock(GetBulkSubmission200ResponseDetails.class);
     when(bulkSubmissionFileService.convert(file)).thenReturn(csvSubmission);
     when(bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission, inquestFeatureFlag))

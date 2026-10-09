@@ -295,7 +295,7 @@ public class ClaimService
   }
 
   private void rejectInquestPatchWhenDisabled(ClaimAmendmentPatch claimPatch) {
-    if (claimsApiProperties.getInquests().isEnabled()) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
       return;
     }
 
@@ -337,13 +337,14 @@ public class ClaimService
   }
 
   private void rejectInquestPostWhenDisabled(ClaimPost claimPost) {
-    if (!claimsApiProperties.getInquests().isEnabled() && claimPost.getInquestDetail() != null) {
+    if (!claimsApiProperties.getFeatures().isInquestsEnabled()
+        && claimPost.getInquestDetail() != null) {
       throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
     }
   }
 
   private void applyInquestResponse(UUID claimId, ClaimResponse response) {
-    if (claimsApiProperties.getInquests().isEnabled()) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
       response.setInquestDetail(getClaimInquestDetail(claimId));
       return;
     }
@@ -355,7 +356,7 @@ public class ClaimService
   }
 
   private void applyInquestResponse(UUID claimId, ClaimResponseV2 response) {
-    if (claimsApiProperties.getInquests().isEnabled()) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
       response.setInquestDetail(getClaimInquestDetail(claimId));
       return;
     }
@@ -559,7 +560,7 @@ public class ClaimService
           .ifPresent(
               existing -> {
                 calculatedFeeDetail.setId(existing.getId());
-                if (!claimsApiProperties.getInquests().isEnabled()
+                if (!claimsApiProperties.getFeatures().isInquestsEnabled()
                     && calculatedFeeDetail.getIsInquest() == null) {
                   calculatedFeeDetail.setIsInquest(existing.getIsInquest());
                 }

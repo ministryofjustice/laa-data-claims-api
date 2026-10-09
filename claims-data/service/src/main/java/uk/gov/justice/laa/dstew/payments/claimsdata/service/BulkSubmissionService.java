@@ -269,7 +269,7 @@ public class BulkSubmissionService
             validateDate(outcome.getRepOrderDate(), "Rep Order Date");
             validateDate(outcome.getClient2DateOfBirth(), "Client 2 Date of Birth");
             validateDate(outcome.getMedConcludedDate(), "Med Concluded Date");
-            if (claimsApiProperties.getInquests().isEnabled()) {
+            if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
               validateDate(outcome.getDeceasedDateOfDeath(), "Deceased Date of Death");
             }
           } catch (Exception e) {
@@ -326,7 +326,7 @@ public class BulkSubmissionService
     FileSubmission fileSubmission = bulkSubmissionFileService.convert(file);
 
     return bulkSubmissionMapper.toBulkSubmissionDetails(
-        fileSubmission, claimsApiProperties.getInquests().isEnabled());
+        fileSubmission, claimsApiProperties.getFeatures().isInquestsEnabled());
   }
 
   /**
