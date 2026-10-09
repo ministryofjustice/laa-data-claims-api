@@ -77,14 +77,18 @@ jobs:
       # at 60s total.
       - name: Wait for Snyk SARIF processing
         continue-on-error: true
+        env:
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
         run: |
           max_attempts=6
           delay=10
           for i in $(seq 1 "$max_attempts"); do
             found=$(gh api \
               -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/code-scanning/analyses?ref=${{ github.ref }}&tool_name=Snyk+Container" \
-              --jq ".[] | select(.commit_sha == \"${{ github.sha }}\") | .id" | wc -l)
+              "/repos/$REPO/code-scanning/analyses?ref=$REF&tool_name=Snyk+Container" \
+              --jq ".[] | select(.commit_sha == \"$SHA\") | .id" | wc -l)
             if [ "$found" -gt 0 ]; then
               echo "SARIF analysis found on attempt $i"
               exit 0
@@ -97,22 +101,29 @@ jobs:
       - name: Fetch Snyk code scanning alerts
         id: alerts
         continue-on-error: true
+        env:
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
         run: |
           gh api --paginate \
             -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/code-scanning/alerts?tool_name=Snyk+Container&state=open&ref=${{ github.ref }}" \
+            "/repos/$REPO/code-scanning/alerts?tool_name=Snyk+Container&state=open&ref=$REF" \
             > snyk-alerts.json
           echo "count=$(jq 'length' snyk-alerts.json)" >> "$GITHUB_OUTPUT"
 
       - name: Build vulnerability report
         if: ${{ steps.alerts.outcome == 'success' }}
+        env:
+          IMAGE_SCAN_RESULT: ${{ needs.image-scan.result }}
+          REF: ${{ github.ref }}
+          ALERT_COUNT: ${{ steps.alerts.outputs.count }}
         run: |
           {
             echo "# Snyk container image vulnerability report"
             echo
-            echo "Image scan result: \`${{ needs.image-scan.result }}\`"
+            echo "Image scan result: \`$IMAGE_SCAN_RESULT\`"
             echo
-            echo "Found **${{ steps.alerts.outputs.count }}** open code scanning alert(s) for \`${{ github.ref }}\`."
+            echo "Found **$ALERT_COUNT** open code scanning alert(s) for \`$REF\`."
             echo
             echo "| Severity | Rule | Location | Links |"
             echo "|---|---|---|---|"
@@ -140,11 +151,20 @@ jobs:
       # payload JSON in the slack-notify job without breaking it on newlines.
       - name: Build Slack summary
         id: slack_summary
+        env:
+          IMAGE_SCAN_RESULT: ${{ needs.image-scan.result }}
+          ALERT_COUNT: ${{ steps.alerts.outputs.count }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALERTS_OUTCOME: ${{ steps.alerts.outcome }}
         run: |
+          scan_result="$IMAGE_SCAN_RESULT"
+          if [ "$scan_result" = "failure" ]; then
+            scan_result="FAILURE"
+          fi
           {
-            echo "*Snyk scan:* ${{ needs.image-scan.result == 'failure' && 'FAILURE' || needs.image-scan.result }} - Open alerts: ${{ steps.alerts.outputs.count || 'unknown' }} (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run>)"
+            echo "*Snyk scan:* $scan_result - Open alerts: ${ALERT_COUNT:-unknown} (<$RUN_URL|run>)"
             echo
-            if [ "${{ steps.alerts.outcome }}" = "success" ]; then
+            if [ "$ALERTS_OUTCOME" = "success" ]; then
               jq -r '
                 def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
                 def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
