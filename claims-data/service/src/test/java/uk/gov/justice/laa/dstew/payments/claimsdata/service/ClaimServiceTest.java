@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -112,6 +113,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionReposit
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequestValidator;
@@ -124,6 +126,7 @@ class ClaimServiceTest {
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ValidationMessageLogFactory validationMessageLogFactory;
   @Mock private ClaimResultSetMapper claimResultSetMapper;
   @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -133,6 +136,7 @@ class ClaimServiceTest {
   @Mock private AssessmentService assessmentService;
   @Mock private ClaimAmendmentService claimAmendmentService;
   @Mock private ClaimAmendmentStateService claimAmendmentStateService;
+  @Mock private StatusCoercer statusCoercer;
   @Mock private InquestDetailRepository inquestDetailRepository;
   @Mock private InquestDetailMapper inquestDetailMapper;
   @Mock private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
@@ -198,6 +202,36 @@ class ClaimServiceTest {
         Arguments.of(Client.builder().client2Forename("TestName").build()),
         Arguments.of(Client.builder().client2Surname("TestSurname").build()),
         Arguments.of(Client.builder().client2DateOfBirth(LocalDate.of(1983, 12, 12)).build()));
+  }
+
+  @DisplayName("coerce claim status before mapping a new claim")
+  @Test
+  void shouldCoerceClaimStatusBeforeMappingNewClaim() {
+    final UUID submissionId = Uuid7.timeBasedUuid();
+    final Submission submission = Submission.builder().id(submissionId).build();
+    final ClaimPost post = new ClaimPost().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+    final Claim claim = Claim.builder().build();
+    final ClaimSummaryFee claimSummaryFee = ClaimSummaryFee.builder().build();
+    final ClaimCase claimCase = ClaimCase.builder().build();
+
+    when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+    when(claimMapper.toClaimSummaryFee(post)).thenReturn(claimSummaryFee);
+    when(claimMapper.toClaimCase(post)).thenReturn(claimCase);
+    when(claimMapper.toClaim(post)).thenReturn(claim);
+    when(clientMapper.toClient(post)).thenReturn(Client.builder().build());
+    doAnswer(
+            invocation -> {
+              post.setStatus(ClaimStatus.VALID);
+              return null;
+            })
+        .when(statusCoercer)
+        .coerce(post);
+
+    claimService.createClaim(submissionId, post);
+
+    verify(statusCoercer).coerce(post);
+    verify(claimMapper).toClaim(post);
+    assertThat(post.getStatus()).isEqualTo(ClaimStatus.VALID);
   }
 
   @DisplayName("create claim without client when no client data")
@@ -600,6 +634,31 @@ class ClaimServiceTest {
     verify(claimRepository).save(claim);
   }
 
+  @DisplayName("Coerces validated-pending-approval before persisting a claim")
+  @Test
+  void shouldCoerceValidatedPendingApprovalBeforePersisting() {
+    final Claim claim = Claim.builder().id(CLAIM_1_ID).version(1L).build();
+    final ClaimAmendmentPatch patch =
+        new ClaimAmendmentPatch().status(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+
+    when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+        .thenReturn(Optional.of(claim));
+    doAnswer(
+            invocation -> {
+              patch.setStatus(ClaimStatus.VALID);
+              return null;
+            })
+        .when(statusCoercer)
+        .coerce(patch);
+
+    claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+    assertThat(patch.getStatus()).isEqualTo(ClaimStatus.VALID);
+    assertThat(claim.getStatus()).isEqualTo(ClaimStatus.VALID);
+    verify(statusCoercer).coerce(patch);
+    verify(claimRepository).save(claim);
+  }
+
   @DisplayName(
       "status-only patch that omits createdByUserId does not clear existing updatedByUserId")
   @Test
@@ -767,14 +826,14 @@ class ClaimServiceTest {
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationMessageLog(message1, claim))
+    when(validationMessageLogFactory.createForClaim(message1, claim))
         .thenReturn(new ValidationMessageLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
     assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
-    verify(claimMapper).toValidationMessageLog(message1, claim);
+    verify(validationMessageLogFactory).createForClaim(message1, claim);
   }
 
   @Nested

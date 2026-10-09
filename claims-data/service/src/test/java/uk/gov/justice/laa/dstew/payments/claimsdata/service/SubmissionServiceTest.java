@@ -63,8 +63,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
+import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubmissionService Unit Tests")
@@ -75,9 +77,11 @@ class SubmissionServiceTest {
   @Mock private MatterStartService matterStartService;
   @Mock private SubmissionMapper submissionMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ValidationMessageLogFactory validationMessageLogFactory;
   @Mock private SubmissionsResultSetMapper submissionsResultSetMapper;
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
+  @Mock private StatusCoercer statusCoercer;
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -102,7 +106,7 @@ class SubmissionServiceTest {
     when(submissionRepository.save(entity)).thenReturn(entity);
 
     UUID result = submissionService.createSubmission(post);
-    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
     assertThat(result).isEqualTo(id);
     verify(submissionRepository).save(entity);
   }
@@ -437,7 +441,9 @@ class SubmissionServiceTest {
 
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
-    verify(submissionEventPublisherService).publishSubmissionValidationSucceededEvent(id);
+    verify(submissionEventPublisherService)
+        .publishSubmissionValidationSucceededEvent(
+            id, SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
   }
 
   @Test
@@ -484,12 +490,12 @@ class SubmissionServiceTest {
 
     SubmissionPatch patch = new SubmissionPatch().validationMessages(List.of(messagePatch));
     when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
-    when(submissionMapper.toValidationMessageLog(any(), eq(entity)))
+    when(validationMessageLogFactory.createForSubmission(any(), eq(entity)))
         .thenReturn(new ValidationMessageLog());
 
     submissionService.updateSubmission(id, patch);
 
-    verify(submissionMapper).toValidationMessageLog(any(), eq(entity));
+    verify(validationMessageLogFactory).createForSubmission(any(), eq(entity));
     verify(validationMessageLogRepository).save(any(ValidationMessageLog.class));
   }
 

@@ -16,12 +16,13 @@ def versions = [
         jacksonToolsBom : '3.1.7'
 ]
 
-// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is one patch release below the fix for the
-// critical Snyk finding SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
-// request-method bypass). Overriding the BOM property here ensures the resolved tomcat-embed-*
-// versions are patched.
-// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.25.
-ext['tomcat.version'] = '11.0.25'
+// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is below the fix for the critical Snyk
+// findings SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
+// request-method bypass, fixed in 11.0.25) and SNYK-JAVA-ORGAPACHETOMCATEMBED-20552494
+// (Authentication Bypass by Alternate Name, fixed in 11.0.26). Overriding the BOM property here
+// ensures the resolved tomcat-embed-* versions are patched.
+// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.26.
+ext['tomcat.version'] = '11.0.26'
 
 test {
     useJUnitPlatform()
@@ -82,7 +83,7 @@ dependencies {
     implementation 'io.netty:netty-codec-classes-quic:4.2.18.Final'
     implementation 'io.netty:netty-codec-native-quic:4.2.18.Final'
 
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.4.9'
+    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.5.0'
     implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'

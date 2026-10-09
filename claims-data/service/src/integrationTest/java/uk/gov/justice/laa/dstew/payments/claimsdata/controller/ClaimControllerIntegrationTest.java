@@ -46,6 +46,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
@@ -79,6 +80,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.validator.ClaimSearchRequest
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@TestPropertySource(properties = "laa.claims.api.features.validated-pending-approval=true")
 public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   // Serialises claim PATCH bodies omitting null fields, so only explicitly-set fields are sent (an
@@ -876,6 +878,26 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow();
     assertThat(savedFeeDetail.getIsInquest()).isEqualTo(isInquest);
     assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "PATCH v1/submissions/{submissionId}/claims/{claimId} - persists "
+          + "VALIDATED_PENDING_APPROVAL when the feature is enabled")
+  void shouldPersistValidatedPendingApprovalStatusWhenFeatureIsEnabled() throws Exception {
+    ClaimPatch claimPatch = new ClaimPatch();
+    claimPatch.setStatus(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+
+    mockMvc
+        .perform(
+            patch(PATCH_A_CLAIM_ENDPOINT, SUBMISSION_1_ID, CLAIM_1_ID)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(SPARSE_PATCH_MAPPER.writeValueAsString(claimPatch))
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNoContent());
+
+    Claim updatedClaim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
+    assertThat(updatedClaim.getStatus()).isEqualTo(ClaimStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test
@@ -2359,7 +2381,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2407,7 +2429,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       // Act: call the void endpoint
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2447,7 +2469,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_1_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2480,7 +2502,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       // Act: attempt to void (expected 400)
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_1_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_1_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2513,9 +2535,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(
-                      ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void",
-                      Uuid7.timeBasedUuid())
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, Uuid7.timeBasedUuid())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2530,7 +2550,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2550,7 +2570,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, Uuid7.timeBasedUuid()))
@@ -2579,7 +2599,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2618,7 +2638,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2658,7 +2678,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2688,7 +2708,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2720,7 +2740,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
       MvcResult result =
           mockMvc
               .perform(
-                  post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+                  post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(requestBody)
                       .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
@@ -2753,7 +2773,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
       mockMvc
           .perform(
-              post(ClaimsDataTestUtil.API_URI_PREFIX + "/claims/{claimId}/void", CLAIM_2_ID)
+              post(ClaimsDataTestUtil.VOID_CLAIM_URI, CLAIM_2_ID)
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(requestBody)
                   .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))

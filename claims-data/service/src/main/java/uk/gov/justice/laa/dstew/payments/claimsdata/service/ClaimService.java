@@ -77,6 +77,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimW
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.DataNormaliser;
@@ -96,6 +97,7 @@ public class ClaimService
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final ClaimResultSetMapper claimResultSetMapper;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -106,6 +108,7 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final ClaimAmendmentStateService claimAmendmentStateService;
+  private final StatusCoercer statusCoercer;
   private final InquestDetailRepository inquestDetailRepository;
   private final InquestDetailMapper inquestDetailMapper;
   private final GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
@@ -155,7 +158,7 @@ public class ClaimService
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
     rejectInquestPostWhenDisabled(claimPost);
-    Submission submission = requireEntity(submissionId);
+    final Submission submission = requireEntity(submissionId);
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
     // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
@@ -179,6 +182,7 @@ public class ClaimService
               "A claim with line number %d already exists for the submission.", lineNumber));
     }
 
+    statusCoercer.coerce(claimPost);
     Claim claim = claimMapper.toClaim(claimPost);
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
@@ -282,6 +286,7 @@ public class ClaimService
     Claim claim = requireClaim(submissionId, claimId);
     rejectInquestPatchWhenDisabled(claimPatch);
 
+    statusCoercer.coerce(claimPatch);
     if (isAnAmendment(claimPatch)) {
       amendClaim(claim, claimPatch);
     } else {
@@ -505,8 +510,8 @@ public class ClaimService
    * Persist any validation messages contained in the patch.
    *
    * <p>If the incoming patch contains validation messages these are converted to {@link
-   * ValidationMessageLog} entities via the {@link #claimMapper} and saved to the {@link
-   * #validationMessageLogRepository}.
+   * ValidationMessageLog} entities via the {@link #validationMessageLogFactory} and saved to the
+   * {@link #validationMessageLogRepository}.
    *
    * @param claim the claim the messages belong to
    * @param claimPatch the amendment patch that may contain validation messages
@@ -518,7 +523,8 @@ public class ClaimService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                ValidationMessageLog log =
+                    validationMessageLogFactory.createForClaim(message, claim);
                 validationMessageLogRepository.save(log);
               });
     }
@@ -783,9 +789,7 @@ public class ClaimService
     if (!claimIds.isEmpty()) {
       // 2) Fetch all warning counts in a single query
       Map<UUID, Long> warningsByClaimId =
-          validationMessageLogRepository
-              .countWarningsByClaimIdsAndType(claimIds, ValidationMessageType.WARNING)
-              .stream()
+          validationMessageLogRepository.countCurrentWarningsByClaimIds(claimIds).stream()
               .collect(
                   Collectors.toMap(
                       ClaimWarningCountProjection::getClaimId,
