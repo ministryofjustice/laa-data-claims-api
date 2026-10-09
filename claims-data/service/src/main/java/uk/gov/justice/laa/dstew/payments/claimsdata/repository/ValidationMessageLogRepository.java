@@ -6,8 +6,10 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
@@ -16,17 +18,35 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.Valida
 /** Repository for persisting {@link ValidationMessageLog} entries. */
 public interface ValidationMessageLogRepository extends JpaRepository<ValidationMessageLog, UUID> {
 
+  long CURRENT_SUPERSEDED_BY_VERSION = 0L;
+
   @Query(
       """
         SELECT COUNT(DISTINCT v.claimId)
         FROM ValidationMessageLog v
         WHERE v.submissionId = :submissionId
         AND (:type IS NULL OR v.type = :type)
+        AND (
+          v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+          OR v.supersededByVersion = 0
+        )
         """)
   long countDistinctClaimIdsBySubmissionIdAndType(
       @Param("submissionId") UUID submissionId, @Param("type") ValidationMessageType type);
 
-  long countAllByClaimIdAndType(UUID claimId, ValidationMessageType type);
+  @Query(
+      """
+      SELECT COUNT(v)
+      FROM ValidationMessageLog v
+      WHERE v.claimId = :claimId
+        AND (:type IS NULL OR v.type = :type)
+        AND (
+          v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+          OR v.supersededByVersion = 0
+        )
+      """)
+  long countAllByClaimIdAndType(
+      @Param("claimId") UUID claimId, @Param("type") ValidationMessageType type);
 
   @Query(
       """
@@ -34,11 +54,12 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
                   COUNT(v)   AS warningCount
            FROM ValidationMessageLog v
            WHERE v.claimId IN :claimIds
-             AND v.type = :type
+             AND v.type = uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+             AND v.supersededByVersion = 0
            GROUP BY v.claimId
            """)
-  List<ClaimWarningCountProjection> countWarningsByClaimIdsAndType(
-      @Param("claimIds") Collection<UUID> claimIds, @Param("type") ValidationMessageType type);
+  List<ClaimWarningCountProjection> countCurrentWarningsByClaimIds(
+      @Param("claimIds") Collection<UUID> claimIds);
 
   @Query(
       """
@@ -62,6 +83,10 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
            WHERE v.submissionId = :submissionId
              AND (:claimId IS NULL OR v.claimId = :claimId)
              AND (:type IS NULL OR v.type = :type)
+             AND (
+               v.type <> uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+               OR v.supersededByVersion = 0
+             )
              AND (:source IS NULL OR v.source = :source)
            """)
   Page<ValidationMessageWithClaimDetailsProjection> findWithClaimDetailsByFilters(
@@ -70,4 +95,20 @@ public interface ValidationMessageLogRepository extends JpaRepository<Validation
       @Param("type") ValidationMessageType type,
       @Param("source") String source,
       Pageable pageable);
+
+  @Modifying
+  @Transactional
+  @Query(
+      """
+      UPDATE ValidationMessageLog v
+         SET v.supersededByVersion = :supersededByVersion
+       WHERE v.claimId = :claimId
+         AND v.source = :source
+         AND v.type = uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType.WARNING
+         AND v.supersededByVersion = 0
+      """)
+  int supersedeCurrentByClaimIdAndSource(
+      @Param("claimId") UUID claimId,
+      @Param("source") String source,
+      @Param("supersededByVersion") Long supersededByVersion);
 }
