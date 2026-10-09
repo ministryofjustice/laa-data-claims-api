@@ -116,7 +116,12 @@ jobs:
             echo
             echo "| Severity | Rule | Location | Links |"
             echo "|---|---|---|---|"
-            jq -r '.[] | "| \(.rule.security_severity_level // "unknown") | \(.rule.description // .rule.id) | \(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a") | [GitHub](\(.html_url)) / [Snyk](https://security.snyk.io/vuln/\(.rule.id)) |"' snyk-alerts.json
+            jq -r '
+              def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
+              def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
+              sort_by(-sev_rank)[] |
+              "| \(sev_emoji) \(.rule.security_severity_level // "unknown" | ascii_upcase) | \(.rule.description // .rule.id) | \(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a") | [GitHub](\(.html_url)) / [Snyk](https://security.snyk.io/vuln/\(.rule.id)) |"
+            ' snyk-alerts.json
           } > snyk-report.md
           cat snyk-report.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -143,10 +148,13 @@ jobs:
             if [ "${{ steps.alerts.outcome }}" = "success" ]; then
               echo "*Open alerts: ${{ steps.alerts.outputs.count }}*"
               echo
-              jq -r '.[] |
+              jq -r '
+                def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
+                def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
+                sort_by(-sev_rank)[] |
                 (.rule.security_severity_level // "unknown" | ascii_upcase) as $sev |
                 (.rule.description // .rule.id | sub("^(Low|Medium|High|Critical) severity - "; "")) as $desc |
-                "• *[\($sev)]* \($desc)\n   <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
+                "\(sev_emoji) *[\($sev)]* \($desc)\n   <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
               ' snyk-alerts.json
             else
               echo "Vulnerability details unavailable - see job summary/artifact"
