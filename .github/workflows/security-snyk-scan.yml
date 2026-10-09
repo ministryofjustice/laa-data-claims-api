@@ -114,9 +114,9 @@ jobs:
             echo
             echo "Found **${{ steps.alerts.outputs.count }}** open code scanning alert(s) for \`${{ github.ref }}\`."
             echo
-            echo "| Severity | Rule | Location |"
-            echo "|---|---|---|"
-            jq -r '.[] | "| \(.rule.security_severity_level // "unknown") | \(.rule.description // .rule.id) | \(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a") |"' snyk-alerts.json
+            echo "| Severity | Rule | Location | Links |"
+            echo "|---|---|---|---|"
+            jq -r '.[] | "| \(.rule.security_severity_level // "unknown") | \(.rule.description // .rule.id) | \(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a") | [GitHub](\(.html_url)) / [Snyk](https://security.snyk.io/vuln/\(.rule.id)) |"' snyk-alerts.json
           } > snyk-report.md
           cat snyk-report.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -142,7 +142,7 @@ jobs:
             echo
             if [ "${{ steps.alerts.outcome }}" = "success" ]; then
               echo "Open alerts: ${{ steps.alerts.outputs.count }}"
-              jq -r '.[] | "- [\(.rule.security_severity_level // "unknown")] \(.rule.description // .rule.id) (\(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a"))"' snyk-alerts.json
+              jq -r '.[] | "- [\(.rule.security_severity_level // "unknown")] \(.rule.description // .rule.id) (\(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a")) - \(.html_url) - https://security.snyk.io/vuln/\(.rule.id)"' snyk-alerts.json
             else
               echo "Vulnerability details unavailable - see job summary/artifact"
             fi
