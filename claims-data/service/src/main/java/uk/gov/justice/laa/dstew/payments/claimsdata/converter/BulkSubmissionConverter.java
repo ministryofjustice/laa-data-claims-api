@@ -17,6 +17,14 @@ public interface BulkSubmissionConverter {
       "Unsupported matter start category code/mediation type: '%s'";
   String MATTER_START_ERROR_MESSAGE_TEMPLATE =
       "Error processing matter start item with code '%s' and value '%s': %s";
+  String CHARACTER_DECODING_ERROR_MESSAGE_WITH_LINE_TEMPLATE =
+      "The file contains a character that could not be read as valid text, near line %d,"
+          + " character %d of the file. Please check the file's encoding (UTF-8 is recommended)"
+          + " and resubmit.";
+  String CHARACTER_DECODING_ERROR_MESSAGE =
+      "The file contains a character that could not be read as valid text. Please check the"
+          + " file's encoding (UTF-8 is recommended) and resubmit.";
+
   Map<String, String> MAP_PROPERTY_TO_ERROR_MESSAGE =
       Map.of(
           "office",
