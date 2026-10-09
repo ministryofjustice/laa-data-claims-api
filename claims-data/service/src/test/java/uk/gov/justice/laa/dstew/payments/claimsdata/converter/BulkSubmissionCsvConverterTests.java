@@ -17,15 +17,20 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
@@ -36,6 +41,8 @@ class BulkSubmissionCsvConverterTests {
   ObjectMapper objectMapper;
 
   BulkSubmissionCsvConverter bulkSubmissionCsvConverter;
+
+  ClaimsApiProperties claimsApiProperties;
 
   private static final String OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE =
       "classpath:test_upload_files/csv/outcomes.csv";
@@ -112,7 +119,9 @@ class BulkSubmissionCsvConverterTests {
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     CsvMapper csvMapper = new CsvMapper();
-    bulkSubmissionCsvConverter = new BulkSubmissionCsvConverter(objectMapper, csvMapper);
+    claimsApiProperties = new ClaimsApiProperties();
+    bulkSubmissionCsvConverter =
+        new BulkSubmissionCsvConverter(objectMapper, csvMapper, claimsApiProperties);
   }
 
   @Nested
@@ -313,6 +322,7 @@ class BulkSubmissionCsvConverterTests {
 
     @Test
     void canConvertGovernmentDepartmentsWithSchemaFieldNames() {
+      claimsApiProperties.getFeatures().setInquests("true");
       String content =
           "OFFICE,account=0U099L\n"
               + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
@@ -334,6 +344,70 @@ class BulkSubmissionCsvConverterTests {
       assertEquals("department8", outcome.govDept8());
       assertEquals("department9", outcome.govDept9());
       assertEquals("department10", outcome.govDept10());
+    }
+
+    private static List<Arguments> inquestFields() {
+      List<String> fields =
+          List.of(
+              "INQ_CLIENT_MEANS_TESTED",
+              "DECEASED_FIRST_NAME",
+              "DECEASED_SURNAME",
+              "DATE_OF_DEATH",
+              "INQUEST_REF",
+              "GOV_DEPT_1",
+              "GOV_DEPT_2",
+              "GOV_DEPT_3",
+              "GOV_DEPT_4",
+              "GOV_DEPT_5",
+              "GOV_DEPT_6",
+              "GOV_DEPT_7",
+              "GOV_DEPT_8",
+              "GOV_DEPT_9",
+              "GOV_DEPT_10");
+
+      List<Arguments> testCases = new ArrayList<>();
+      for (String field : fields) {
+        testCases.add(Arguments.of(field, "value", "csv"));
+        testCases.add(Arguments.of(field, "value", "txt"));
+      }
+      return testCases;
+    }
+
+    @ParameterizedTest
+    @MethodSource("inquestFields")
+    void rejectsInquestFieldsWhenDisabled(String field, String value, String extension) {
+      claimsApiProperties.getFeatures().setInquests("false");
+
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> convert(inquestOutcome(field, value), extension));
+
+      assertThat(exception)
+          .hasMessage(
+              "The file contains an unrecognised field %s. Correct or remove the field and try again."
+                  .formatted(field));
+    }
+
+    @ParameterizedTest
+    @MethodSource("inquestFields")
+    void acceptsInquestFieldsWhenEnabled(String field, String value, String extension) {
+      claimsApiProperties.getFeatures().setInquests("true");
+
+      CsvOutcome outcome = convert(inquestOutcome(field, value), extension).outcomes().getFirst();
+
+      assertThat(outcome.matterType()).isEqualTo("INQ");
+      assertThat(objectMapper.valueToTree(outcome).get(field).asText()).isEqualTo(value);
+    }
+
+    private static String inquestOutcome(String field, String value) {
+      return "OFFICE,account=0U099L\n"
+          + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+          + "OUTCOME,matterType=INQ,"
+          + field
+          + "="
+          + value
+          + "\n";
     }
 
     @Test
@@ -412,9 +486,13 @@ class BulkSubmissionCsvConverterTests {
   }
 
   private CsvSubmission convert(String content) {
+    return convert(content, "csv");
+  }
+
+  private CsvSubmission convert(String content, String extension) {
     MultipartFile file =
         new MockMultipartFile(
-            "file", "outcomes.csv", "text/csv", content.getBytes(StandardCharsets.UTF_8));
+            "file", "outcomes." + extension, "text/csv", content.getBytes(StandardCharsets.UTF_8));
     return bulkSubmissionCsvConverter.convert(file);
   }
 
