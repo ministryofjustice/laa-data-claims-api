@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMITTED_DATE;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -147,6 +148,50 @@ class SubmissionMapperTest {
     submissionMapper.updateSubmissionFromPatch(patch, submission);
 
     assertThat(submission.getErrorMessages()).isEqualTo("Updated error message");
+  }
+
+  @Test
+  @DisplayName("does not overwrite createdByUserId/createdOn when patch supplies them")
+  void shouldNotOverwriteCreatedAuditFieldsFromPatch() {
+    Instant originalCreatedOn = LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    Submission submission =
+        Submission.builder().createdByUserId("original-user").createdOn(originalCreatedOn).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().createdByUserId("patch-user").isNilSubmission(true);
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getCreatedByUserId()).isEqualTo("original-user");
+    assertThat(submission.getCreatedOn()).isEqualTo(originalCreatedOn);
+    assertThat(submission.getIsNilSubmission()).isTrue();
+  }
+
+  @Test
+  @DisplayName(
+      "sets updatedByUserId from the patch's createdByUserId (the acting user) when supplied")
+  void shouldSetUpdatedByUserIdFromPatchCreatedByUserId() {
+    Submission submission =
+        Submission.builder()
+            .createdByUserId("original-user")
+            .updatedByUserId("original-updater")
+            .build();
+    SubmissionPatch patch = new SubmissionPatch().createdByUserId("acting-user");
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getCreatedByUserId()).isEqualTo("original-user");
+    assertThat(submission.getUpdatedByUserId()).isEqualTo("acting-user");
+  }
+
+  @Test
+  @DisplayName("preserves existing updatedByUserId when SubmissionPatch omits createdByUserId")
+  void shouldPreserveUpdatedByUserIdWhenAbsentFromPatch() {
+    Submission submission = Submission.builder().updatedByUserId("original-updater").build();
+    SubmissionPatch patch = new SubmissionPatch().isNilSubmission(true);
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getUpdatedByUserId()).isEqualTo("original-updater");
   }
 
   @Test

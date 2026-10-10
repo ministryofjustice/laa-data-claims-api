@@ -10,6 +10,10 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_STATUSES;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,6 +25,8 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +39,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -71,6 +78,22 @@ import uk.gov.justice.laa.dstew.payments.claimsevent.model.SubmissionEventType;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubmissionService Unit Tests")
 class SubmissionServiceTest {
+  private ListAppender<ILoggingEvent> logAppender;
+  private Logger serviceLogger;
+
+  @BeforeEach
+  void captureLogs() {
+    serviceLogger = (Logger) LoggerFactory.getLogger(SubmissionService.class);
+    logAppender = new ListAppender<>();
+    logAppender.start();
+    serviceLogger.addAppender(logAppender);
+  }
+
+  @AfterEach
+  void releaseLogs() {
+    serviceLogger.detachAppender(logAppender);
+  }
+
   @Mock private SubmissionRepository submissionRepository;
   @Mock private ValidationService validationService;
   @Mock private ClaimService claimService;
@@ -410,6 +433,52 @@ class SubmissionServiceTest {
 
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
+  }
+
+  @Test
+  @DisplayName(
+      "Should log a tombstone warning when a submission patch arrives without created_by_user_id")
+  void shouldLogTombstoneWarningWhenCreatedByUserIdMissing() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber("OFFICE1")
+            .providerUserId("provider-user-1")
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .build();
+    SubmissionPatch patch = new SubmissionPatch().crimeLowerScheduleNumber("456");
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    assertThat(logAppender.list)
+        .anySatisfy(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.WARN);
+              assertThat(event.getFormattedMessage())
+                  .contains("created_by_user_id")
+                  .contains(id.toString())
+                  .contains("OFFICE1")
+                  .contains("provider-user-1")
+                  .contains(AreaOfLaw.CRIME_LOWER.toString());
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "Should not log a tombstone warning when a submission patch supplies created_by_user_id")
+  void shouldNotLogTombstoneWarningWhenCreatedByUserIdPresent() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().crimeLowerScheduleNumber("456").createdByUserId("user-123");
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    assertThat(logAppender.list)
+        .noneSatisfy(event -> assertThat(event.getFormattedMessage()).contains("tombstone"));
   }
 
   @Test
