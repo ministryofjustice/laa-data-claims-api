@@ -443,6 +443,7 @@ public class ClaimService
       var cfdCreatedBy = claimPatch.getCreatedByUserId();
       if (cfdCreatedBy != null && cfdCreatedBy.isPresent()) {
         calculatedFeeDetail.setCreatedByUserId(cfdCreatedBy.get());
+        calculatedFeeDetail.setUpdatedByUserId(cfdCreatedBy.get());
       }
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
