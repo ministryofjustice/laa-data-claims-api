@@ -94,6 +94,7 @@ public class BulkSubmissionService
             .id(bulkSubmissionId)
             .data(bulkSubmissionDetails)
             .createdByUserId(userId)
+            .updatedByUserId(userId)
             .authorisedOffices(String.join(",", offices));
 
     String officeCode =
