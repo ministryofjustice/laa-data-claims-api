@@ -425,7 +425,22 @@ class SubmissionServiceTest {
 
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
-    verify(claimService).updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
+    verify(claimService).updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID, null);
+  }
+
+  @Test
+  @DisplayName(
+      "Should pass through the patch's created_by_user_id (the acting user) when cascading the VALIDATION_FAILED claim status update")
+  void shouldPassUpdatedByUserIdWhenCascadingClaimStatusUpdate() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity = Submission.builder().id(id).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED).createdByUserId("user-1");
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(claimService).updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID, "user-1");
   }
 
   @Test

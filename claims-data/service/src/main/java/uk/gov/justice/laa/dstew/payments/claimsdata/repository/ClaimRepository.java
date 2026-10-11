@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,8 +35,16 @@ public interface ClaimRepository
   boolean existsBySubmissionIdAndLineNumber(UUID submissionId, Integer lineNumber);
 
   @Modifying
-  @Query("UPDATE Claim c SET c.status = :status WHERE c.submission.id = :submissionId")
-  int updateStatusBySubmissionId(UUID submissionId, ClaimStatus status);
+  @Query(
+      """
+        UPDATE Claim c SET
+          c.status = :status,
+          c.updatedByUserId = COALESCE(:updatedByUserId, c.updatedByUserId),
+          c.updatedOn = :updatedOn
+          WHERE c.submission.id = :submissionId
+      """)
+  int updateStatusBySubmissionId(
+      UUID submissionId, ClaimStatus status, String updatedByUserId, Instant updatedOn);
 
   /**
    * Retrieves paginated VALID claims for a given office code and unique file number (UFN). Returns
