@@ -1784,8 +1784,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     // given: claims that already have an updater recorded
     final String previousUpdater = "previous-updater";
     var seededClaims =
-        List.of(
-            createClaimForSubmission(submission1, 1), createClaimForSubmission(submission1, 2));
+        List.of(createClaimForSubmission(submission1, 1), createClaimForSubmission(submission1, 2));
     seededClaims.forEach(claim -> claim.setUpdatedByUserId(previousUpdater));
     var savedClaims = claimRepository.saveAllAndFlush(seededClaims);
     var seededUpdatedOn =
