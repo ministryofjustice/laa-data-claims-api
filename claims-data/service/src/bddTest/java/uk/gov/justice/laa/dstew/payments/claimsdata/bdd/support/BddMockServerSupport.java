@@ -271,6 +271,22 @@ public class BddMockServerSupport {
     client.verify(feeCalculationRequest(), times);
   }
 
+  /**
+   * Returns the request body of the FIRST recorded outbound FSP {@code POST
+   * /api/v1/fee-calculation} call this scenario, or {@code null} if none was recorded. Lets
+   * DSTEW-1759 assert the fee-scheme request the builder produced on the wire — the post-amendment
+   * values for changed FSP-input fields and the preserved stored values for omitted ones.
+   */
+  public String firstFspCalculationRequestBody() {
+    HttpRequest[] recorded =
+        client.retrieveRecordedRequests(
+            request().withMethod(HttpMethod.POST.name()).withPath(FEE_CALCULATION));
+    if (recorded.length == 0) {
+      return null;
+    }
+    return recorded[0].getBodyAsString();
+  }
+
   // ---------------------------------------------------------------------------
   // Provider Details API (PDA) stubs
   // ---------------------------------------------------------------------------
