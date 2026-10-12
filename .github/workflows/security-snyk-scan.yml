@@ -98,13 +98,15 @@ jobs:
           max_attempts=7
           delay=10
           for i in $(seq 1 "$max_attempts"); do
-            found=$(gh api --method GET --paginate \
+            analysis_id=$(gh api --method GET --paginate \
               -H "Accept: application/vnd.github+json" \
               "/repos/$REPO/code-scanning/analyses" \
               -f ref="$REF" -f tool_name="Snyk Container" -f per_page=100 |
-              jq -s --arg sha "$SHA" --arg started "$run_started_at" \
-                '[.[][] | select(.commit_sha == $sha and .created_at >= $started)] | length')
-            if [ "$found" -gt 0 ]; then
+              jq -sr --arg sha "$SHA" --arg started "$run_started_at" \
+                '[.[][] | select(.commit_sha == $sha and .created_at >= $started)] |
+                 max_by(.created_at, .id) | .id // empty')
+            if [ -n "$analysis_id" ]; then
+              echo "analysis_id=$analysis_id" >> "$GITHUB_OUTPUT"
               echo "SARIF analysis found on attempt $i"
               exit 0
             fi
@@ -123,13 +125,39 @@ jobs:
         shell: bash
         env:
           REPO: ${{ github.repository }}
-          REF: ${{ github.ref }}
+          ANALYSIS_ID: ${{ steps.sarif.outputs.analysis_id }}
         run: |
           set -euo pipefail
-          gh api --paginate --slurp \
-            -H "Accept: application/vnd.github+json" \
-            "/repos/$REPO/code-scanning/alerts?tool_name=Snyk+Container&state=open&ref=$REF" \
-            | jq '[.[][]]' > snyk-alerts.json
+          gh api \
+            -H "Accept: application/sarif+json" \
+            "/repos/$REPO/code-scanning/analyses/$ANALYSIS_ID" |
+            jq '
+              [.runs[] |
+                .tool.driver.rules as $rules |
+                (.results // [])[] |
+                . as $result |
+                (if .ruleIndex != null then $rules[.ruleIndex]
+                 else [$rules[] | select(.id == $result.ruleId)][0] end) as $rule |
+                if $rule == null then error("Missing SARIF rule for a finding") else
+                (($rule.properties["security-severity"] | tonumber?) // 0) as $score |
+                {
+                  rule: {
+                    id: ($result.ruleId // $rule.id),
+                    description: ($rule.shortDescription.text // $result.message.text // $rule.id),
+                    security_severity_level:
+                      (if $score >= 9 then "critical" elif $score >= 7 then "high"
+                       elif $score >= 4 then "medium" elif $score > 0 then "low"
+                       else "unknown" end)
+                  },
+                  html_url: $result.properties["github/alertUrl"],
+                  most_recent_instance: {
+                    location: {
+                      path: $result.locations[0].physicalLocation.artifactLocation.uri,
+                      start_line: $result.locations[0].physicalLocation.region.startLine
+                    }
+                  }
+                } end]
+            ' > snyk-alerts.json
           alert_count=$(jq 'length' snyk-alerts.json)
           echo "count=$alert_count" >> "$GITHUB_OUTPUT"
 
