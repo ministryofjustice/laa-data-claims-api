@@ -123,11 +123,13 @@ jobs:
           REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
         run: |
+          set -euo pipefail
           gh api --paginate --slurp \
             -H "Accept: application/vnd.github+json" \
             "/repos/$REPO/code-scanning/alerts?tool_name=Snyk+Container&state=open&ref=$REF" \
             | jq '[.[][]]' > snyk-alerts.json
-          echo "count=$(jq 'length' snyk-alerts.json)" >> "$GITHUB_OUTPUT"
+          alert_count=$(jq 'length' snyk-alerts.json)
+          echo "count=$alert_count" >> "$GITHUB_OUTPUT"
 
       - name: Build vulnerability report
         if: ${{ steps.alerts.outcome == 'success' }}
