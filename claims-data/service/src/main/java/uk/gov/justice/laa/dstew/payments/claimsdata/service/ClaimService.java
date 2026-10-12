@@ -76,7 +76,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
@@ -107,7 +106,6 @@ public class ClaimService
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
-  private final ClaimAmendmentStateService claimAmendmentStateService;
   private final StatusCoercer statusCoercer;
   private final InquestDetailRepository inquestDetailRepository;
   private final InquestDetailMapper inquestDetailMapper;
@@ -151,7 +149,7 @@ public class ClaimService
 
     Map<UUID, ClaimInquestDetail> detailsByClaimId =
         claimIds.stream()
-            .collect(Collectors.toMap(claimId -> claimId, _ -> new ClaimInquestDetail()));
+            .collect(Collectors.toMap(claimId -> claimId, claimId -> new ClaimInquestDetail()));
 
     inquestDetailRepository
         .findByClaimIdIn(claimIds)
@@ -237,18 +235,21 @@ public class ClaimService
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
     claim.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claim.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimRepository.save(claim);
 
     ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     claimSummaryFee.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimSummaryFee.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimSummaryFeeRepository.save(claimSummaryFee);
 
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
     claimCase.setId(Uuid7.timeBasedUuid());
     claimCase.setClaim(claim);
     claimCase.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimCase.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);
@@ -256,6 +257,7 @@ public class ClaimService
       client.setId(Uuid7.timeBasedUuid());
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
+      client.setUpdatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
     }
 
@@ -602,6 +604,7 @@ public class ClaimService
       var cfdCreatedBy = claimPatch.getCreatedByUserId();
       if (cfdCreatedBy != null && cfdCreatedBy.isPresent()) {
         calculatedFeeDetail.setCreatedByUserId(cfdCreatedBy.get());
+        calculatedFeeDetail.setUpdatedByUserId(cfdCreatedBy.get());
       }
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }

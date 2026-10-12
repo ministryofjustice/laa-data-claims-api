@@ -51,8 +51,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepartment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
@@ -240,8 +242,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow();
 
     assertCompleteInquestInformation(response.getInquestDetail());
-      assert response.getFeeCalculationResponse() != null;
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+    assert response.getFeeCalculationResponse() != null;
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
   }
 
   @Test
@@ -267,8 +269,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow();
 
     assertCompleteInquestInformation(response.getInquestDetail());
-      assert response.getFeeCalculationResponse() != null;
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+    assert response.getFeeCalculationResponse() != null;
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
   }
 
   @Test
@@ -295,8 +297,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow();
 
     assertThat(response.getInquestDetail()).isNull();
-      assert response.getFeeCalculationResponse() != null;
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+    assert response.getFeeCalculationResponse() != null;
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
   }
 
   @Test
@@ -323,8 +325,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .orElseThrow();
 
     assertThat(response.getInquestDetail()).isNull();
-      assert response.getFeeCalculationResponse() != null;
-      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+    assert response.getFeeCalculationResponse() != null;
+    assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
   }
 
   @Test
@@ -500,6 +502,30 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
     assertThat(savedClaim.getUniqueFileNumber()).isEqualTo(claimPost.getUniqueFileNumber());
     assertThat(savedClaim.getFeeCode()).isEqualTo(claimPost.getFeeCode());
     assertThat(savedClaim.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedClaim.getUpdatedByUserId()).isEqualTo(savedClaim.getCreatedByUserId());
+    assertThat(savedClaim.getCreatedOn()).isNotNull();
+    assertThat(savedClaim.getUpdatedOn()).isNotNull().isAfterOrEqualTo(savedClaim.getCreatedOn());
+
+    ClaimSummaryFee savedClaimSummaryFee =
+        claimSummaryFeeRepository.findByClaimId(savedClaim.getId()).orElseThrow();
+    assertThat(savedClaimSummaryFee.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedClaimSummaryFee.getUpdatedByUserId())
+        .isEqualTo(savedClaimSummaryFee.getCreatedByUserId());
+    assertThat(savedClaimSummaryFee.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(savedClaimSummaryFee.getCreatedOn());
+
+    ClaimCase savedClaimCase = claimCaseRepository.findByClaimId(savedClaim.getId()).orElseThrow();
+    assertThat(savedClaimCase.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedClaimCase.getUpdatedByUserId()).isEqualTo(savedClaimCase.getCreatedByUserId());
+    assertThat(savedClaimCase.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(savedClaimCase.getCreatedOn());
+
+    Client savedClient = clientRepository.findByClaimId(savedClaim.getId()).orElseThrow();
+    assertThat(savedClient.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(savedClient.getUpdatedByUserId()).isEqualTo(savedClient.getCreatedByUserId());
+    assertThat(savedClient.getUpdatedOn()).isNotNull().isAfterOrEqualTo(savedClient.getCreatedOn());
   }
 
   @Test
