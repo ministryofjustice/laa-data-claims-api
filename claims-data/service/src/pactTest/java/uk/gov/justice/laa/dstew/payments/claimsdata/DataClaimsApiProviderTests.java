@@ -67,6 +67,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
@@ -580,6 +581,29 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
     when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+  }
+
+  @State("government department reference data exists")
+  public void governmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                GovernmentDepartmentRef.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000c1"))
+                    .governmentDepartmentCode("MINISTRY_OF_JUSTICE")
+                    .displayLabel("Ministry of Justice")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+  }
+
+  @State("no government department reference data exists")
+  public void noGovernmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: no government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
   }
 

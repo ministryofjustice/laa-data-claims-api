@@ -24,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepos
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -85,6 +86,8 @@ public class AbstractProviderPactTests {
   @MockitoBean protected RequestedByReferenceRepository requestedByReferenceRepository;
 
   @MockitoBean protected AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+
+  @MockitoBean protected GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
 
   @MockitoBean protected SqsClient sqsClient;
 
