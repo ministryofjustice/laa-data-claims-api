@@ -95,7 +95,7 @@ jobs:
             echo "::error::Unable to determine the current run attempt start time"
             exit 1
           fi
-          max_attempts=6
+          max_attempts=7
           delay=10
           for i in $(seq 1 "$max_attempts"); do
             found=$(gh api --method GET --paginate \
@@ -108,10 +108,12 @@ jobs:
               echo "SARIF analysis found on attempt $i"
               exit 0
             fi
-            echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
-            sleep "$delay"
+            if [ "$i" -lt "$max_attempts" ]; then
+              echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
+              sleep "$delay"
+            fi
           done
-          echo "::warning::Fresh Snyk SARIF analysis not found after $((max_attempts * delay))s; skipping alert report"
+          echo "::warning::Fresh Snyk SARIF analysis not found after $(((max_attempts - 1) * delay))s; skipping alert report"
           exit 1
 
       - name: Fetch Snyk code scanning alerts
