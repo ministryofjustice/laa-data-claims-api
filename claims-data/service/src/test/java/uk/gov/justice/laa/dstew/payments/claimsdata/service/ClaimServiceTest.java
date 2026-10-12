@@ -117,6 +117,7 @@ class ClaimServiceTest {
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ValidationMessageLogFactory validationMessageLogFactory;
   @Mock private ClaimResultSetMapper claimResultSetMapper;
   @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -651,14 +652,14 @@ class ClaimServiceTest {
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationMessageLog(message1, claim))
+    when(validationMessageLogFactory.createForClaim(message1, claim))
         .thenReturn(new ValidationMessageLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
     assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
-    verify(claimMapper).toValidationMessageLog(message1, claim);
+    verify(validationMessageLogFactory).createForClaim(message1, claim);
   }
 
   @Nested
