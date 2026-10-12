@@ -350,7 +350,8 @@ public final class ClaimSpecification {
             .select(cb.count(vml))
             .where(
                 cb.equal(vml.get("claimId"), root.get(ID)),
-                cb.equal(vml.get("type"), ValidationMessageType.WARNING));
+                cb.equal(vml.get("type"), ValidationMessageType.WARNING),
+                cb.equal(vml.get("supersededByVersion"), 0L));
 
         query.orderBy(
             order.isAscending() ? cb.asc(warningCountSubquery) : cb.desc(warningCountSubquery),
