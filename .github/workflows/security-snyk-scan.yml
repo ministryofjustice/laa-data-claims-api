@@ -63,6 +63,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: read
     env:
@@ -76,19 +77,33 @@ jobs:
       # flat delay on every run - exits early once the analysis lands, capped
       # at 60s total.
       - name: Wait for Snyk SARIF processing
+        id: sarif
         continue-on-error: true
+        shell: bash
         env:
           REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          run_started_at=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT" \
+            --jq '.run_started_at')
+          if [ -z "$run_started_at" ] || [ "$run_started_at" = "null" ]; then
+            echo "::error::Unable to determine the current run attempt start time"
+            exit 1
+          fi
           max_attempts=6
           delay=10
           for i in $(seq 1 "$max_attempts"); do
-            found=$(gh api \
+            found=$(gh api --method GET --paginate \
               -H "Accept: application/vnd.github+json" \
-              "/repos/$REPO/code-scanning/analyses?ref=$REF&tool_name=Snyk+Container" \
-              --jq ".[] | select(.commit_sha == \"$SHA\") | .id" | wc -l)
+              "/repos/$REPO/code-scanning/analyses" \
+              -f ref="$REF" -f tool_name="Snyk Container" -f per_page=100 |
+              jq -s --arg sha "$SHA" --arg started "$run_started_at" \
+                '[.[][] | select(.commit_sha == $sha and .created_at >= $started)] | length')
             if [ "$found" -gt 0 ]; then
               echo "SARIF analysis found on attempt $i"
               exit 0
@@ -96,10 +111,12 @@ jobs:
             echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
             sleep "$delay"
           done
-          echo "::warning::Snyk SARIF analysis not found after $((max_attempts * delay))s; report may be incomplete"
+          echo "::warning::Fresh Snyk SARIF analysis not found after $((max_attempts * delay))s; skipping alert report"
+          exit 1
 
       - name: Fetch Snyk code scanning alerts
         id: alerts
+        if: ${{ steps.sarif.outcome == 'success' }}
         continue-on-error: true
         env:
           REPO: ${{ github.repository }}
@@ -199,8 +216,7 @@ jobs:
               "attachments": [
                 {
                   "color": "#d63384",
-                  "text": ${{ needs.vulnerability-report.outputs.slack_text }}
+                  "text": ${{ needs.vulnerability-report.outputs.slack_text || '"Vulnerability details unavailable - see workflow run"' }}
                 }
               ]
             }
-
