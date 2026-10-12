@@ -143,8 +143,8 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
-    // Upgrade to fix Incorrect Implementation of Authentication Algorithm (SNYK-JAVA-ORGPOSTGRESQL-17874248)
-    runtimeOnly 'org.postgresql:postgresql:42.7.12'
+    // Upgrade to fix vulnerability (SNYK-JAVA-ORGPOSTGRESQL-20571163)
+    runtimeOnly 'org.postgresql:postgresql:42.7.14'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
