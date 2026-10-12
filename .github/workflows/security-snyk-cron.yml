@@ -13,6 +13,7 @@ jobs:
   image-scan:
     uses: ./.github/workflows/security-snyk-scan.yml
     permissions:
+      actions: read
       contents: read
       id-token: write
       security-events: write
