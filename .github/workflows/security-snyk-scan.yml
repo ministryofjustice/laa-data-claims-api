@@ -194,7 +194,7 @@ jobs:
                 "\(sev_emoji) [\($sev)] \($desc) - <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
               ' snyk-alerts.json
             else
-              echo "Vulnerability details unavailable - see job summary/artifact"
+              echo "Vulnerability details unavailable - see workflow run logs"
             fi
           } > slack-summary.txt
           echo "text=$(jq -Rs . slack-summary.txt)" >> "$GITHUB_OUTPUT"
