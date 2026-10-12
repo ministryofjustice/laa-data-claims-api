@@ -95,7 +95,7 @@ jobs:
             echo "::error::Unable to determine the current run attempt start time"
             exit 1
           fi
-          max_attempts=6
+          max_attempts=7
           delay=10
           for i in $(seq 1 "$max_attempts"); do
             found=$(gh api --method GET --paginate \
@@ -108,10 +108,12 @@ jobs:
               echo "SARIF analysis found on attempt $i"
               exit 0
             fi
-            echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
-            sleep "$delay"
+            if [ "$i" -lt "$max_attempts" ]; then
+              echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
+              sleep "$delay"
+            fi
           done
-          echo "::warning::Fresh Snyk SARIF analysis not found after $((max_attempts * delay))s; skipping alert report"
+          echo "::warning::Fresh Snyk SARIF analysis not found after $(((max_attempts - 1) * delay))s; skipping alert report"
           exit 1
 
       - name: Fetch Snyk code scanning alerts
@@ -123,11 +125,13 @@ jobs:
           REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
         run: |
+          set -euo pipefail
           gh api --paginate --slurp \
             -H "Accept: application/vnd.github+json" \
             "/repos/$REPO/code-scanning/alerts?tool_name=Snyk+Container&state=open&ref=$REF" \
             | jq '[.[][]]' > snyk-alerts.json
-          echo "count=$(jq 'length' snyk-alerts.json)" >> "$GITHUB_OUTPUT"
+          alert_count=$(jq 'length' snyk-alerts.json)
+          echo "count=$alert_count" >> "$GITHUB_OUTPUT"
 
       - name: Build vulnerability report
         if: ${{ steps.alerts.outcome == 'success' }}
@@ -195,7 +199,7 @@ jobs:
                 echo "$((ALERT_COUNT - 3)) more alert(s) - <$RUN_URL|View the full list in the GitHub summary>"
               fi
             else
-              echo "Vulnerability details unavailable - see job summary/artifact"
+              echo "Vulnerability details unavailable - see workflow run logs"
             fi
           } > slack-summary.txt
           echo "text=$(jq -Rs . slack-summary.txt)" >> "$GITHUB_OUTPUT"
