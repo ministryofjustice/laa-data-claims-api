@@ -3,9 +3,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.RETENTION_LOOKUP_OFFICE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.RETENTION_LOOKUP_UFN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAmendmentHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
@@ -20,6 +23,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimV2;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getRetentionLookupClaim;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmissionHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessageProjection;
@@ -506,6 +510,51 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: no claims exist for the search criteria");
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl(Collections.emptyList()));
+  }
+
+  @State("no claims exist for office code and UFN")
+  public void noClaimsExistForOfficeCodeAndUfn() {
+    log.info("Setting up state: no claims exist for office code and UFN");
+    stubRetentionLookupClaims(Collections.emptyList());
+  }
+
+  @State("one claim exists for office code and UFN")
+  public void oneClaimExistsForOfficeCodeAndUfn() {
+    log.info("Setting up state: one claim exists for office code and UFN");
+    stubRetentionLookupClaims(List.of(getRetentionLookupClaim(0)));
+  }
+
+  @State("multiple claims exist for office code and UFN")
+  public void multipleClaimsExistForOfficeCodeAndUfn() {
+    log.info("Setting up state: multiple claims exist for office code and UFN");
+    stubRetentionLookupClaims(
+        List.of(
+            getRetentionLookupClaim(0), getRetentionLookupClaim(1), getRetentionLookupClaim(2)));
+  }
+
+  @State("more claims exist than fit on one page")
+  public void moreClaimsExistThanFitOnOnePage() {
+    log.info("Setting up state: more claims exist than fit on one page");
+    stubRetentionLookupClaims(
+        List.of(
+            getRetentionLookupClaim(0),
+            getRetentionLookupClaim(1),
+            getRetentionLookupClaim(2),
+            getRetentionLookupClaim(3),
+            getRetentionLookupClaim(4)));
+  }
+
+  private void stubRetentionLookupClaims(List<Claim> claims) {
+    when(claimRepository.findValidByOfficeAccountNumberAndUniqueFileNumber(
+            eq(RETENTION_LOOKUP_OFFICE_CODE), eq(RETENTION_LOOKUP_UFN), any(Pageable.class)))
+        .thenAnswer(
+            invocation -> {
+              Pageable pageable = invocation.getArgument(2);
+              int start = (int) Math.min(pageable.getOffset(), claims.size());
+              int end = (int) Math.min((long) start + pageable.getPageSize(), claims.size());
+              List<Claim> pageContent = claims.subList(start, end);
+              return new PageImpl<>(pageContent, pageable, claims.size());
+            });
   }
 
   @State("no validation messages exist for the search criteria")
