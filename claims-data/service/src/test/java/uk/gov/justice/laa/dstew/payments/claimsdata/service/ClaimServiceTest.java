@@ -979,12 +979,19 @@ class ClaimServiceTest {
   @EnumSource(ClaimStatus.class)
   void getClaimResultSet_whenFiltersMatchData_shouldReturnNonEmptyResultSet(
       ClaimStatus claimStatus) {
-    Page<Claim> resultPage = new PageImpl<>(Collections.singletonList(new Claim()));
+    UUID claimId = Uuid7.timeBasedUuid();
+    Page<Claim> resultPage =
+        new PageImpl<>(Collections.singletonList(Claim.builder().id(claimId).build()));
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(resultPage);
 
     var expectedNonEmptyResultSet =
-        new ClaimResultSet().content(Collections.singletonList(new ClaimResponse()));
+        new ClaimResultSet()
+            .content(
+                Collections.singletonList(
+                    new ClaimResponse()
+                        .id(claimId.toString())
+                        .inquestDetail(new ClaimInquestDetail().interestedDepartments(List.of()))));
     when(claimResultSetMapper.toClaimResultSet(resultPage)).thenReturn(expectedNonEmptyResultSet);
 
     var actualResultSet =
@@ -1003,6 +1010,11 @@ class ClaimServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+    verify(clientRepository).findByClaimIdIn(List.of(claimId));
+    verify(inquestDetailRepository).findByClaimIdIn(List.of(claimId));
+    verify(claimInterestedDepartmentRepository)
+        .findByClaimIdInOrderByClaimIdAscDisplayOrderAsc(List.of(claimId));
+    verify(clientRepository, never()).findByClaimId(claimId);
   }
 
   @DisplayName("getClaimResultSet returns empty result set when filters match no data")
@@ -1092,7 +1104,10 @@ class ClaimServiceTest {
         new ClaimResultSetV2()
             .content(
                 Collections.singletonList(
-                    ClaimResponseV2.builder().id(claim.getId().toString()).build()));
+                    ClaimResponseV2.builder()
+                        .id(claim.getId().toString())
+                        .inquestDetail(new ClaimInquestDetail().interestedDepartments(List.of()))
+                        .build()));
     when(claimResultSetMapper.toClaimResultSetV2(resultPage)).thenReturn(expectedNonEmptyResultSet);
 
     var actualResultSet =
@@ -1113,6 +1128,11 @@ class ClaimServiceTest {
 
     assertThat(actualResultSet).isEqualTo(expectedNonEmptyResultSet);
     assertThat(actualResultSet.getContent()).hasSize(1);
+    verify(clientRepository).findByClaimIdIn(List.of(claim.getId()));
+    verify(inquestDetailRepository).findByClaimIdIn(List.of(claim.getId()));
+    verify(claimInterestedDepartmentRepository)
+        .findByClaimIdInOrderByClaimIdAscDisplayOrderAsc(List.of(claim.getId()));
+    verify(clientRepository, never()).findByClaimId(claim.getId());
   }
 
   private static ClaimSearchRequest validV2SearchRequest() {

@@ -218,6 +218,116 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  @DisplayName("GET v1/claims - returns Inquest information for each matching claim")
+  void shouldReturnInquestInformationFromV1ClaimSearch() throws Exception {
+    createInquestDetailTestData();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResultSet claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+    ClaimResponse response =
+        claimResultSet.getContent().stream()
+            .filter(claim -> claim.getId().equals(CLAIM_1_ID.toString()))
+            .findFirst()
+            .orElseThrow();
+
+    assertCompleteInquestInformation(response.getInquestDetail());
+      assert response.getFeeCalculationResponse() != null;
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+  }
+
+  @Test
+  @DisplayName("GET v2/claims - returns Inquest information for each matching claim")
+  void shouldReturnInquestInformationFromV2ClaimSearch() throws Exception {
+    createInquestDetailTestData();
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResultSetV2 claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+    ClaimResponseV2 response =
+        claimResultSet.getContent().stream()
+            .filter(claim -> claim.getId().equals(CLAIM_1_ID.toString()))
+            .findFirst()
+            .orElseThrow();
+
+    assertCompleteInquestInformation(response.getInquestDetail());
+      assert response.getFeeCalculationResponse() != null;
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isTrue();
+  }
+
+  @Test
+  @DisplayName("GET v1/claims - hides Inquest information when the feature is disabled")
+  void shouldHideInquestInformationFromV1ClaimSearchWhenFeatureDisabled() throws Exception {
+    createInquestDetailTestData();
+    claimsApiProperties.getFeatures().setInquests("false");
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResultSet claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSet.class);
+    ClaimResponse response =
+        claimResultSet.getContent().stream()
+            .filter(claim -> claim.getId().equals(CLAIM_1_ID.toString()))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(response.getInquestDetail()).isNull();
+      assert response.getFeeCalculationResponse() != null;
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
+  @DisplayName("GET v2/claims - hides Inquest information when the feature is disabled")
+  void shouldHideInquestInformationFromV2ClaimSearchWhenFeatureDisabled() throws Exception {
+    createInquestDetailTestData();
+    claimsApiProperties.getFeatures().setInquests("false");
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(GET_CLAIMS_ENDPOINT_V2)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER_1)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    ClaimResultSetV2 claimResultSet =
+        OBJECT_MAPPER.readValue(result.getResponse().getContentAsString(), ClaimResultSetV2.class);
+    ClaimResponseV2 response =
+        claimResultSet.getContent().stream()
+            .filter(claim -> claim.getId().equals(CLAIM_1_ID.toString()))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(response.getInquestDetail()).isNull();
+      assert response.getFeeCalculationResponse() != null;
+      assertThat(response.getFeeCalculationResponse().getIsInquest()).isNull();
+  }
+
+  @Test
   @DisplayName(
       "GET v1/submissions/{submissionId}/claims/{claimId} - returns empty Inquest information when"
           + " none is stored")

@@ -143,6 +143,56 @@ public class ClaimService
     return submissionRepository;
   }
 
+  private Map<UUID, ClaimInquestDetail> getClaimInquestDetails(
+      List<UUID> claimIds, Map<UUID, Client> clientsByClaimId) {
+    if (claimIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<UUID, ClaimInquestDetail> detailsByClaimId =
+        claimIds.stream()
+            .collect(Collectors.toMap(claimId -> claimId, _ -> new ClaimInquestDetail()));
+
+    inquestDetailRepository
+        .findByClaimIdIn(claimIds)
+        .forEach(
+            entity ->
+                detailsByClaimId.put(
+                    entity.getClaim().getId(), inquestDetailMapper.toClaimInquestDetail(entity)));
+
+    clientsByClaimId.forEach(
+        (claimId, client) ->
+            detailsByClaimId.get(claimId).setIsClientMeansTested(client.getIsMeansTested()));
+
+    Map<UUID, List<String>> departmentsByClaimId =
+        claimInterestedDepartmentRepository
+            .findByClaimIdInOrderByClaimIdAscDisplayOrderAsc(claimIds)
+            .stream()
+            .collect(
+                Collectors.groupingBy(
+                    department -> department.getClaim().getId(),
+                    Collectors.mapping(
+                        department -> department.getGovernmentDepartment().getDisplayLabel(),
+                        Collectors.toList())));
+    detailsByClaimId.forEach(
+        (claimId, detail) ->
+            detail.setInterestedDepartments(departmentsByClaimId.getOrDefault(claimId, List.of())));
+
+    return detailsByClaimId;
+  }
+
+  private ClaimInquestDetail getClaimInquestDetailForResponse(UUID claimId) {
+    return claimsApiProperties.getFeatures().isInquestsEnabled()
+        ? getClaimInquestDetail(claimId)
+        : null;
+  }
+
+  private void clearIsInquestIfFlagDisabled(FeeCalculationPatch feeCalculationResponse) {
+    if (!claimsApiProperties.getFeatures().isInquestsEnabled() && feeCalculationResponse != null) {
+      feeCalculationResponse.setIsInquest(null);
+    }
+  }
+
   @Override
   public Supplier<SubmissionNotFoundException> entityNotFoundSupplier(String message) {
     return () -> new SubmissionNotFoundException(message);
@@ -248,7 +298,8 @@ public class ClaimService
         .findByClaimId(claimId)
         .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
 
-    applyInquestResponse(claimId, response);
+    response.setInquestDetail(getClaimInquestDetailForResponse(claimId));
+    clearIsInquestIfFlagDisabled(response.getFeeCalculationResponse());
     return response;
   }
 
@@ -263,7 +314,8 @@ public class ClaimService
   public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
     Claim claim = requireClaim(submissionId, claimId);
     ClaimResponseV2 response = claimMapper.toClaimResponseV2(claim);
-    applyInquestResponse(claimId, response);
+    response.setInquestDetail(getClaimInquestDetailForResponse(claimId));
+    clearIsInquestIfFlagDisabled(response.getFeeCalculationResponse());
     return response;
   }
 
@@ -340,30 +392,6 @@ public class ClaimService
     if (!claimsApiProperties.getFeatures().isInquestsEnabled()
         && claimPost.getInquestDetail() != null) {
       throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
-    }
-  }
-
-  private void applyInquestResponse(UUID claimId, ClaimResponse response) {
-    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
-      response.setInquestDetail(getClaimInquestDetail(claimId));
-      return;
-    }
-
-    response.setInquestDetail(null);
-    if (response.getFeeCalculationResponse() != null) {
-      response.getFeeCalculationResponse().setIsInquest(null);
-    }
-  }
-
-  private void applyInquestResponse(UUID claimId, ClaimResponseV2 response) {
-    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
-      response.setInquestDetail(getClaimInquestDetail(claimId));
-      return;
-    }
-
-    response.setInquestDetail(null);
-    if (response.getFeeCalculationResponse() != null) {
-      response.getFeeCalculationResponse().setIsInquest(null);
     }
   }
 
@@ -704,11 +732,30 @@ public class ClaimService
             pageable);
 
     ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+
+    List<UUID> claimIds =
+        response.getContent().stream()
+            .map(ClaimResponse::getId)
+            .filter(Objects::nonNull)
+            .map(UUID::fromString)
+            .distinct()
+            .toList();
+    Map<UUID, Client> clientsByClaimId =
+        claimIds.isEmpty()
+            ? Map.of()
+            : clientRepository.findByClaimIdIn(claimIds).stream()
+                .collect(Collectors.toMap(client -> client.getClaim().getId(), client -> client));
+    Map<UUID, ClaimInquestDetail> inquestDetailsByClaimId =
+        claimsApiProperties.getFeatures().isInquestsEnabled()
+            ? getClaimInquestDetails(claimIds, clientsByClaimId)
+            : Map.of();
+
     for (ClaimResponse claimResponse : response.getContent()) {
       if (claimResponse.getId() != null) {
-        clientRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, claimResponse));
+        Client client = clientsByClaimId.get(UUID.fromString(claimResponse.getId()));
+        if (client != null) {
+          clientMapper.updateClaimResponseFromClient(client, claimResponse);
+        }
         claimSummaryFeeRepository
             .findByClaimId(UUID.fromString(claimResponse.getId()))
             .ifPresent(
@@ -728,6 +775,11 @@ public class ClaimService
             validationMessageLogRepository.countAllByClaimIdAndType(
                 UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
         claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+        claimResponse.setInquestDetail(
+            claimsApiProperties.getFeatures().isInquestsEnabled()
+                ? inquestDetailsByClaimId.get(UUID.fromString(claimResponse.getId()))
+                : null);
+        clearIsInquestIfFlagDisabled(claimResponse.getFeeCalculationResponse());
       }
     }
     return response;
@@ -795,6 +847,16 @@ public class ClaimService
                   Collectors.toMap(
                       ClaimWarningCountProjection::getClaimId,
                       ClaimWarningCountProjection::getWarningCount));
+      Map<UUID, Client> clientsByClaimId =
+          claimsApiProperties.getFeatures().isInquestsEnabled()
+              ? clientRepository.findByClaimIdIn(claimIds).stream()
+                  .collect(Collectors.toMap(client -> client.getClaim().getId(), client -> client))
+              : Map.of();
+
+      Map<UUID, ClaimInquestDetail> inquestDetailsByClaimId =
+          claimsApiProperties.getFeatures().isInquestsEnabled()
+              ? getClaimInquestDetails(claimIds, clientsByClaimId)
+              : Map.of();
 
       // 3) Apply counts to each ClaimResponse (pure in-memory)
       for (ClaimResponseV2 claimResponse : response.getContent()) {
@@ -803,6 +865,11 @@ public class ClaimService
           long totalWarningsForClaim = warningsByClaimId.getOrDefault(claimId, 0L);
 
           claimMapper.updateTotalWarningMessagesV2(totalWarningsForClaim, claimResponse);
+          claimResponse.setInquestDetail(
+              claimsApiProperties.getFeatures().isInquestsEnabled()
+                  ? inquestDetailsByClaimId.get(claimId)
+                  : null);
+          clearIsInquestIfFlagDisabled(claimResponse.getFeeCalculationResponse());
         }
       }
     }
