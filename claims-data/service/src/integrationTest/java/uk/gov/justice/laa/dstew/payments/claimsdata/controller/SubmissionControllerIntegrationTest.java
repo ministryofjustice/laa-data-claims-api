@@ -1943,6 +1943,97 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("Patching a pending submission to final validation in progress publishes one event")
+  void patchSubmissionStartsFinalValidationIdempotently() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        Submission.builder()
+            .id(submissionId)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .officeAccountNumber("APPROVE-OFFICE")
+            .submissionPeriod("APR-2025")
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .createdOn(CREATED_ON)
+            .updatedOn(CREATED_ON)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    OBJECT_MAPPER.writeValueAsString(
+                        new SubmissionPatch()
+                            .submissionId(submissionId)
+                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    OBJECT_MAPPER.writeValueAsString(
+                        new SubmissionPatch()
+                            .submissionId(submissionId)
+                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+        .andExpect(status().isNoContent());
+
+    Submission approved = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+
+    ReceiveMessageResponse receiveResp =
+        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
+    assertThat(receiveResp.messages()).hasSize(1);
+    assertThat(
+            receiveResp
+                .messages()
+                .getFirst()
+                .messageAttributes()
+                .get("SubmissionEventType")
+                .stringValue())
+        .isEqualTo(SubmissionEventType.APPROVE_SUBMISSION.toString());
+    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  @Test
+  @DisplayName("Patching final validation in any other status returns 400 and does not publish")
+  void patchFinalValidationRejectsIneligibleStatus() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        Submission.builder()
+            .id(submissionId)
+            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+            .officeAccountNumber("APPROVE-INVALID-OFFICE")
+            .submissionPeriod("APR-2025")
+            .createdByUserId(USER_ID)
+            .providerUserId(USER_ID)
+            .status(SubmissionStatus.VALIDATION_SUCCEEDED)
+            .createdOn(CREATED_ON)
+            .updatedOn(CREATED_ON)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    OBJECT_MAPPER.writeValueAsString(
+                        new SubmissionPatch()
+                            .submissionId(submissionId)
+                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
   @DisplayName(
       "Persists VALIDATED_PENDING_APPROVAL for a non-NIL submission and keeps its bulk status aligned")
   void nonNilSubmissionAndBulkUseValidatedPendingApprovalStatus() throws Exception {

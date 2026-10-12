@@ -775,7 +775,9 @@ paths:
       tags:
         - Submissions
       summary: Update submission status
-      description: Updates the `status` field of an existing submission identified by its ID.
+      description: >
+        Updates an existing submission. Setting `FINAL_VALIDATION_IN_PROGRESS` is accepted only
+        from `VALIDATED_PENDING_APPROVAL` and publishes an asynchronous final-validation event.
       parameters:
         - name: id
           in: path
@@ -1597,6 +1599,7 @@ components:
         - CREATED
         - READY_FOR_VALIDATION
         - VALIDATION_IN_PROGRESS
+        - FINAL_VALIDATION_IN_PROGRESS
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED

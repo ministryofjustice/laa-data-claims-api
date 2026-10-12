@@ -414,6 +414,82 @@ class SubmissionServiceTest {
 
   @Test
   @DisplayName(
+      "Should claim an eligible submission and publish final validation event through patch")
+  void shouldStartFinalValidationFromPatch() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.VALIDATED_PENDING_APPROVAL).build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionEventPublisherService).publishSubmissionApprovalEvent(id);
+    verify(submissionRepository).save(entity);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+  }
+
+  @Test
+  @DisplayName(
+      "Should not publish a duplicate final validation event after the submission is claimed")
+  void shouldNotStartFinalValidationTwice() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS).build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+
+    submissionService.updateSubmission(id, patch);
+
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "CREATED",
+        "READY_FOR_VALIDATION",
+        "VALIDATION_IN_PROGRESS",
+        "VALIDATION_SUCCEEDED",
+        "VALIDATION_FAILED",
+        "REPLACED"
+      })
+  @DisplayName("Should reject final validation when submission is not awaiting approval")
+  void shouldRejectFinalValidationForIneligibleStatus(String status) {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+
+    assertThrows(
+        SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
+
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should throw when starting final validation for a non-existent submission")
+  void shouldThrowWhenStartingFinalValidationForNonExistentSubmission() {
+    UUID id = Uuid7.timeBasedUuid();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.empty());
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+
+    assertThrows(
+        SubmissionNotFoundException.class, () -> submissionService.updateSubmission(id, patch));
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @Test
+  @DisplayName(
       "Should cascadingly update all associated claims to INVALID when submission status changes to VALIDATION_FAILED")
   void shouldUpdateAllClaimsAsInvalidWhenSubmissionStatusIsValidationFailed() {
     UUID id = Uuid7.timeBasedUuid();

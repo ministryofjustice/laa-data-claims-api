@@ -222,6 +222,11 @@ public class SubmissionService
    */
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
+    if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      updateFinalValidationSubmission(id, submissionPatch);
+      return;
+    }
+
     Submission submission = requireEntity(id);
 
     statusCoercer.coerce(submissionPatch);
@@ -255,6 +260,28 @@ public class SubmissionService
                 validationMessageLogRepository.save(validationLog);
               });
     }
+  }
+
+  private void updateFinalValidationSubmission(UUID id, SubmissionPatch submissionPatch) {
+    Submission submission =
+        submissionRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
+
+    if (submission.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      return;
+    }
+
+    if (submission.getStatus() != SubmissionStatus.VALIDATED_PENDING_APPROVAL) {
+      throw new SubmissionBadRequestException(
+          "Submission is not eligible for approval in status: " + submission.getStatus());
+    }
+
+    submission.setStatus(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
+    submissionRepository.save(submission);
+    TransactionalPublisher.runAfterCommit(
+        () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
   }
 
   /**
