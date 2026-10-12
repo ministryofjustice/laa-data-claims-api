@@ -164,9 +164,8 @@ jobs:
             snyk-report.md
           retention-days: 14
 
-      # Build a Slack-friendly plain-text summary (JSON-pre-escaped, including
-      # surrounding quotes) so it can be dropped straight into the Slack
-      # payload JSON in the slack-notify job without breaking it on newlines.
+      # Show the three highest-severity alerts in Slack and link to the full
+      # GitHub summary. JSON-escape the text for the slack-notify payload.
       - name: Build Slack summary
         id: slack_summary
         env:
@@ -186,11 +185,15 @@ jobs:
               jq -r '
                 def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
                 def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
-                sort_by(-sev_rank)[] |
+                sort_by(-sev_rank)[:3][] |
                 (.rule.security_severity_level // "unknown" | ascii_upcase) as $sev |
                 (.rule.description // .rule.id | sub("^(Low|Medium|High|Critical) severity - "; "")) as $desc |
                 "\(sev_emoji) [\($sev)] \($desc) - <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
               ' snyk-alerts.json
+              if [ "$ALERT_COUNT" -gt 3 ]; then
+                echo
+                echo "$((ALERT_COUNT - 3)) more alert(s) - <$RUN_URL|View the full list in the GitHub summary>"
+              fi
             else
               echo "Vulnerability details unavailable - see job summary/artifact"
             fi
