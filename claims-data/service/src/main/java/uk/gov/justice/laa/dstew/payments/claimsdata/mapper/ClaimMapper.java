@@ -113,6 +113,9 @@ public interface ClaimMapper {
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
   @Mapping(target = "messageCode", source = "message.messageCode")
+  // Supersession fields not in source DTO; entity defaults handle them (persistence-layer managed)
+  @Mapping(target = "version", ignore = true)
+  @Mapping(target = "supersededByVersion", ignore = true)
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

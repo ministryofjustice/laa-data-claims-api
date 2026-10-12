@@ -192,6 +192,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     BulkSubmission savedBulkSubmission = submissions.getFirst();
     assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
     assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    assertThat(savedBulkSubmission.getUpdatedByUserId())
+        .isEqualTo(savedBulkSubmission.getCreatedByUserId());
+    assertThat(savedBulkSubmission.getCreatedOn()).isNotNull();
+    assertThat(savedBulkSubmission.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(savedBulkSubmission.getCreatedOn());
     BulkSubmissionOutcome bulkSubmissionOutcome =
         savedBulkSubmission.getData().getOutcomes().getFirst();
     assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();

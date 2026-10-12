@@ -66,7 +66,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessage
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimWarningCountProjection;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.specification.ClaimSpecification;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentService;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.ClaimAmendmentStateService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.coercion.StatusCoercer;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.lookup.AbstractEntityLookup;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimSortField;
@@ -87,6 +86,7 @@ public class ClaimService
   private final ClaimMapper claimMapper;
   private final ClientMapper clientMapper;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final ClaimResultSetMapper claimResultSetMapper;
   private final ClaimSummaryFeeRepository claimSummaryFeeRepository;
   private final CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -96,7 +96,6 @@ public class ClaimService
   private final AssessmentService assessmentService;
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
-  private final ClaimAmendmentStateService claimAmendmentStateService;
   private final StatusCoercer statusCoercer;
 
   private static final Set<String> IGNORED_FIELDS =
@@ -171,18 +170,21 @@ public class ClaimService
     claim.setId(Uuid7.timeBasedUuid());
     claim.setSubmission(submission);
     claim.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claim.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimRepository.save(claim);
 
     ClaimSummaryFee claimSummaryFee = claimMapper.toClaimSummaryFee(claimPost);
     claimSummaryFee.setId(Uuid7.timeBasedUuid());
     claimSummaryFee.setClaim(claim);
     claimSummaryFee.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimSummaryFee.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimSummaryFeeRepository.save(claimSummaryFee);
 
     ClaimCase claimCase = claimMapper.toClaimCase(claimPost);
     claimCase.setId(Uuid7.timeBasedUuid());
     claimCase.setClaim(claim);
     claimCase.setCreatedByUserId(claimPost.getCreatedByUserId());
+    claimCase.setUpdatedByUserId(claimPost.getCreatedByUserId());
     claimCaseRepository.save(claimCase);
 
     Client client = clientMapper.toClient(claimPost);
@@ -190,6 +192,7 @@ public class ClaimService
       client.setId(Uuid7.timeBasedUuid());
       client.setClaim(claim);
       client.setCreatedByUserId(claimPost.getCreatedByUserId());
+      client.setUpdatedByUserId(claimPost.getCreatedByUserId());
       clientRepository.save(client);
     }
 
@@ -386,8 +389,8 @@ public class ClaimService
    * Persist any validation messages contained in the patch.
    *
    * <p>If the incoming patch contains validation messages these are converted to {@link
-   * ValidationMessageLog} entities via the {@link #claimMapper} and saved to the {@link
-   * #validationMessageLogRepository}.
+   * ValidationMessageLog} entities via the {@link #validationMessageLogFactory} and saved to the
+   * {@link #validationMessageLogRepository}.
    *
    * @param claim the claim the messages belong to
    * @param claimPatch the amendment patch that may contain validation messages
@@ -399,7 +402,8 @@ public class ClaimService
           .getValidationMessages()
           .forEach(
               message -> {
-                ValidationMessageLog log = claimMapper.toValidationMessageLog(message, claim);
+                ValidationMessageLog log =
+                    validationMessageLogFactory.createForClaim(message, claim);
                 validationMessageLogRepository.save(log);
               });
     }
@@ -441,6 +445,7 @@ public class ClaimService
       var cfdCreatedBy = claimPatch.getCreatedByUserId();
       if (cfdCreatedBy != null && cfdCreatedBy.isPresent()) {
         calculatedFeeDetail.setCreatedByUserId(cfdCreatedBy.get());
+        calculatedFeeDetail.setUpdatedByUserId(cfdCreatedBy.get());
       }
       calculatedFeeDetailRepository.save(calculatedFeeDetail);
     }
@@ -648,9 +653,7 @@ public class ClaimService
     if (!claimIds.isEmpty()) {
       // 2) Fetch all warning counts in a single query
       Map<UUID, Long> warningsByClaimId =
-          validationMessageLogRepository
-              .countWarningsByClaimIdsAndType(claimIds, ValidationMessageType.WARNING)
-              .stream()
+          validationMessageLogRepository.countCurrentWarningsByClaimIds(claimIds).stream()
               .collect(
                   Collectors.toMap(
                       ClaimWarningCountProjection::getClaimId,

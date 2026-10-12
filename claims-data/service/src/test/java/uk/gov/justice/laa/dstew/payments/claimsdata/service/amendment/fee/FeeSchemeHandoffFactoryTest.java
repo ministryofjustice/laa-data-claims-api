@@ -153,6 +153,7 @@ class FeeSchemeHandoffFactoryTest {
     // The tracking link that the history-endpoint FSP flags depend on.
     assertThat(result.getClaimAmendment()).isSameAs(amendment);
     assertThat(result.getCreatedByUserId()).isEqualTo(AMENDING_USER);
+    assertThat(result.getUpdatedByUserId()).isEqualTo(result.getCreatedByUserId());
     assertThat(result.getCreatedOn()).isNotNull();
 
     assertThat(result.getFeeCode()).isEqualTo("FEE-123");

@@ -69,6 +69,7 @@ public class SubmissionService
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final StatusCoercer statusCoercer;
@@ -93,6 +94,7 @@ public class SubmissionService
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
+    submission.setUpdatedByUserId(submissionPost.getCreatedByUserId());
 
     // This is to ensure that we are only validating form NIL submissions where SubmissionStatus is
     // always READY_FOR_VALIDATION. All other submissions will skip this validation, as they get
@@ -249,7 +251,7 @@ public class SubmissionService
           .forEach(
               message -> {
                 ValidationMessageLog validationLog =
-                    submissionMapper.toValidationMessageLog(message, submission);
+                    validationMessageLogFactory.createForSubmission(message, submission);
                 validationMessageLogRepository.save(validationLog);
               });
     }
