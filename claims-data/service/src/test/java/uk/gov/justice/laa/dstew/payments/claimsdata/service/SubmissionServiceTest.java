@@ -478,7 +478,7 @@ class SubmissionServiceTest {
     submissionService.updateSubmission(id, patch);
 
     assertThat(logAppender.list)
-        .noneSatisfy(event -> assertThat(event.getFormattedMessage()).contains("tombstone"));
+        .noneSatisfy(event -> assertThat(event.getFormattedMessage()).contains("Tombstone"));
   }
 
   @Test
