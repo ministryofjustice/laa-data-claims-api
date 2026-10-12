@@ -479,7 +479,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
         .thenReturn(new PageImpl(Arrays.asList(getClaim(), getClaim())));
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
-    when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
+    when(clientRepository.findByClaimIdIn(any())).thenReturn(List.of(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
     when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
