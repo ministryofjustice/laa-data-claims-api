@@ -1952,21 +1952,36 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
   }
 
+  private static Submission.SubmissionBuilder pendingApprovalSubmission(
+      UUID submissionId, String officeAccountNumber, SubmissionStatus status) {
+    return Submission.builder()
+        .id(submissionId)
+        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+        .officeAccountNumber(officeAccountNumber)
+        .submissionPeriod("APR-2025")
+        .createdByUserId(USER_ID)
+        .providerUserId(USER_ID)
+        .status(status)
+        .createdOn(CREATED_ON)
+        .updatedOn(CREATED_ON);
+  }
+
+  private static String finalValidationPatchBody(UUID submissionId, String officeAccountNumber)
+      throws Exception {
+    return OBJECT_MAPPER.writeValueAsString(
+        new SubmissionPatch()
+            .submissionId(submissionId)
+            .officeAccountNumber(officeAccountNumber)
+            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS));
+  }
+
   @Test
   @DisplayName("Patching a pending submission to final validation in progress publishes one event")
   void patchSubmissionStartsFinalValidationIdempotently() throws Exception {
     UUID submissionId = Uuid7.timeBasedUuid();
     submissionRepository.saveAndFlush(
-        Submission.builder()
-            .id(submissionId)
-            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-            .officeAccountNumber("APPROVE-OFFICE")
-            .submissionPeriod("APR-2025")
-            .createdByUserId(USER_ID)
-            .providerUserId(USER_ID)
-            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
-            .createdOn(CREATED_ON)
-            .updatedOn(CREATED_ON)
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
             .build());
 
     mockMvc
@@ -1974,11 +1989,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    OBJECT_MAPPER.writeValueAsString(
-                        new SubmissionPatch()
-                            .submissionId(submissionId)
-                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
         .andExpect(status().isNoContent());
 
     mockMvc
@@ -1986,11 +1997,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    OBJECT_MAPPER.writeValueAsString(
-                        new SubmissionPatch()
-                            .submissionId(submissionId)
-                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
         .andExpect(status().isNoContent());
 
     Submission approved = submissionRepository.findById(submissionId).orElseThrow();
@@ -2015,16 +2022,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   void patchFinalValidationRejectsIneligibleStatus() throws Exception {
     UUID submissionId = Uuid7.timeBasedUuid();
     submissionRepository.saveAndFlush(
-        Submission.builder()
-            .id(submissionId)
-            .areaOfLaw(AreaOfLaw.CRIME_LOWER)
-            .officeAccountNumber("APPROVE-INVALID-OFFICE")
-            .submissionPeriod("APR-2025")
-            .createdByUserId(USER_ID)
-            .providerUserId(USER_ID)
-            .status(SubmissionStatus.VALIDATION_SUCCEEDED)
-            .createdOn(CREATED_ON)
-            .updatedOn(CREATED_ON)
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-INVALID-OFFICE", SubmissionStatus.VALIDATION_SUCCEEDED)
             .build());
 
     mockMvc
@@ -2032,15 +2031,54 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    OBJECT_MAPPER.writeValueAsString(
-                        new SubmissionPatch()
-                            .submissionId(submissionId)
-                            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS))))
+                .content(finalValidationPatchBody(submissionId, "APPROVE-INVALID-OFFICE")))
         .andExpect(status().isBadRequest());
 
     Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
+  @DisplayName("Patching final validation for another office returns 403 and changes nothing")
+  void patchFinalValidationRejectsMismatchedOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OWNING-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OTHER-OFFICE")))
+        .andExpect(status().isForbidden());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+    assertThat(unchanged.getOfficeAccountNumber()).isEqualTo("APPROVE-OWNING-OFFICE");
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an office account number returns 400")
+  void patchFinalValidationRequiresOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test

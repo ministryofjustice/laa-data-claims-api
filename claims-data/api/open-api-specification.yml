@@ -778,6 +778,8 @@ paths:
       description: >
         Updates an existing submission. Setting `FINAL_VALIDATION_IN_PROGRESS` is accepted only
         from `VALIDATED_PENDING_APPROVAL` and publishes an asynchronous final-validation event.
+        That transition additionally requires `office_account_number` to be supplied and to match
+        the office account number held against the submission, otherwise `403` is returned.
       parameters:
         - name: id
           in: path

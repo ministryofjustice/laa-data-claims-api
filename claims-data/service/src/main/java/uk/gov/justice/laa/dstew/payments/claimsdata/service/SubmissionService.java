@@ -24,6 +24,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
@@ -278,6 +279,8 @@ public class SubmissionService
             .findByIdForUpdate(id)
             .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
 
+    requireMatchingOffice(submissionPatch, submission);
+
     if (submission.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
       return;
     }
@@ -292,6 +295,27 @@ public class SubmissionService
     submissionRepository.save(submission);
     TransactionalPublisher.runAfterCommit(
         () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
+  }
+
+  /**
+   * Confirms the caller is acting for the office that owns the submission. Authorisation itself is
+   * owned by the calling service; this guards against a caller approving a submission belonging to
+   * a different provider. The office account number is mandatory for this transition, so the check
+   * cannot be skipped by omitting it.
+   */
+  private void requireMatchingOffice(SubmissionPatch submissionPatch, Submission submission) {
+    String requestedOffice = submissionPatch.getOfficeAccountNumber();
+
+    if (requestedOffice == null || requestedOffice.isBlank()) {
+      throw new SubmissionBadRequestException(
+          "Office account number is required to start final validation");
+    }
+
+    if (!requestedOffice.equals(submission.getOfficeAccountNumber())) {
+      // The office held against the submission is deliberately not echoed back to the caller.
+      throw new SubmissionOfficeAuthorisationException(
+          "You do not have access to the office account for this submission");
+    }
   }
 
   /**

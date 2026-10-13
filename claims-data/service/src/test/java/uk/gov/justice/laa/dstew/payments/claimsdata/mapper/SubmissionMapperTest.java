@@ -140,6 +140,20 @@ class SubmissionMapperTest {
   }
 
   @Test
+  @DisplayName("does not overwrite officeAccountNumber when patch supplies it")
+  void shouldNotOverwriteOfficeAccountNumberFromPatch() {
+    Submission submission =
+        Submission.builder().officeAccountNumber("OWNING-OFFICE").isNilSubmission(false).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().officeAccountNumber("OTHER-OFFICE").isNilSubmission(true);
+
+    submissionMapper.updateSubmissionFromPatch(patch, submission);
+
+    assertThat(submission.getOfficeAccountNumber()).isEqualTo("OWNING-OFFICE");
+    assertThat(submission.getIsNilSubmission()).isTrue();
+  }
+
+  @Test
   @DisplayName("updates Submission error messages from SubmissionPatch")
   void shouldUpdateErrorMessagesFromPatch() {
     Submission submission = Submission.builder().errorMessages("Original error message").build();

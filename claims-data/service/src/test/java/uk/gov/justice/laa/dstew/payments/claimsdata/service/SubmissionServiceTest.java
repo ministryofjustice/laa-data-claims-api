@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -55,6 +56,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
@@ -481,16 +483,27 @@ class SubmissionServiceTest {
         .noneSatisfy(event -> assertThat(event.getFormattedMessage()).contains("Tombstone"));
   }
 
+  private static final String APPROVING_OFFICE = "APPROVE-OFFICE";
+
+  private static SubmissionPatch finalValidationPatch(String officeAccountNumber) {
+    return new SubmissionPatch()
+        .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+        .officeAccountNumber(officeAccountNumber);
+  }
+
   @Test
   @DisplayName(
       "Should claim an eligible submission and publish final validation event through patch")
   void shouldStartFinalValidationFromPatch() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
-        Submission.builder().id(id).status(SubmissionStatus.VALIDATED_PENDING_APPROVAL).build();
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
-    SubmissionPatch patch =
-        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     submissionService.updateSubmission(id, patch);
 
@@ -506,10 +519,13 @@ class SubmissionServiceTest {
   void shouldNotStartFinalValidationTwice() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
-        Submission.builder().id(id).status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS).build();
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+            .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
-    SubmissionPatch patch =
-        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     submissionService.updateSubmission(id, patch);
 
@@ -532,10 +548,81 @@ class SubmissionServiceTest {
   void shouldRejectFinalValidationForIneligibleStatus(String status) {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
-        Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.valueOf(status))
+            .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
-    SubmissionPatch patch =
-        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
+
+    assertThrows(
+        SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
+
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Should reject final validation when the office does not own the submission")
+  void shouldRejectFinalValidationForMismatchedOffice() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch = finalValidationPatch("ANOTHER-OFFICE");
+
+    SubmissionOfficeAuthorisationException exception =
+        assertThrows(
+            SubmissionOfficeAuthorisationException.class,
+            () -> submissionService.updateSubmission(id, patch));
+
+    assertThat(exception.getMessage()).doesNotContain(APPROVING_OFFICE);
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+  }
+
+  @Test
+  @DisplayName(
+      "Should reject final validation for an already claimed submission when the office differs")
+  void shouldRejectFinalValidationForMismatchedOfficeWhenAlreadyClaimed() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+            .build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch = finalValidationPatch("ANOTHER-OFFICE");
+
+    assertThrows(
+        SubmissionOfficeAuthorisationException.class,
+        () -> submissionService.updateSubmission(id, patch));
+
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"   "})
+  @DisplayName("Should reject final validation when no office account number is supplied")
+  void shouldRejectFinalValidationWithoutOffice(String officeAccountNumber) {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch = finalValidationPatch(officeAccountNumber);
 
     assertThrows(
         SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
@@ -549,8 +636,7 @@ class SubmissionServiceTest {
   void shouldThrowWhenStartingFinalValidationForNonExistentSubmission() {
     UUID id = Uuid7.timeBasedUuid();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.empty());
-    SubmissionPatch patch =
-        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     assertThrows(
         SubmissionNotFoundException.class, () -> submissionService.updateSubmission(id, patch));
