@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.util.ReflectionTestUtils;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
@@ -150,11 +152,18 @@ class ClaimServiceTest {
 
   @Captor ArgumentCaptor<Assessment> assessmentCaptor;
 
+  @InjectMocks private ClaimInquestService claimInquestService;
+
   @InjectMocks private ClaimService claimService;
+
+  @BeforeEach
+  void wireClaimInquestService() {
+    ReflectionTestUtils.setField(claimService, "claimInquestService", claimInquestService);
+  }
 
   private static ClaimsApiProperties inquestsEnabledProperties() {
     ClaimsApiProperties properties = new ClaimsApiProperties();
-    properties.getFeatures().setInquests("true");
+    properties.getInquests().setEnabled("true");
     return properties;
   }
 

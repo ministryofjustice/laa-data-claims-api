@@ -139,7 +139,7 @@ public class BulkSubmissionXmlConverterTests {
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     XmlMapper xmlMapper = new XmlMapper();
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
     bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(claimsApiProperties, xmlMapper);
   }
 
@@ -173,7 +173,7 @@ public class BulkSubmissionXmlConverterTests {
     @DisplayName(
         "Can convert a bulk submission file with outcomes including inquests data when feature flag active")
     void canConvertOutcomesToXmlSubmission() throws IOException {
-      claimsApiProperties.getFeatures().setInquests("true");
+      claimsApiProperties.getInquests().setEnabled("true");
       MultipartFile file = getMultipartFile(OUTCOMES_WITH_CLIENT_INQUESTS_DATA);
       XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);

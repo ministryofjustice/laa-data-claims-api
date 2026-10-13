@@ -44,7 +44,7 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
           .readerFor(XmlSubmission.class)
           .withAttribute(
               XmlOutcomeDeserializer.INQUESTS_ENABLED_ATTRIBUTE,
-              claimsApiProperties.getFeatures().isInquestsEnabled())
+              claimsApiProperties.getInquests().isEnabled())
           .readValue(file.getInputStream());
     } catch (MismatchedInputException mismatchedInputException) {
       log.error(

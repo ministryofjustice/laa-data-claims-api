@@ -322,7 +322,7 @@ class BulkSubmissionCsvConverterTests {
 
     @Test
     void canConvertGovernmentDepartmentsWithSchemaFieldNames() {
-      claimsApiProperties.getFeatures().setInquests("true");
+      claimsApiProperties.getInquests().setEnabled("true");
       String content =
           "OFFICE,account=0U099L\n"
               + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
@@ -376,7 +376,7 @@ class BulkSubmissionCsvConverterTests {
     @ParameterizedTest
     @MethodSource("inquestFields")
     void rejectsInquestFieldsWhenDisabled(String field, String value, String extension) {
-      claimsApiProperties.getFeatures().setInquests("false");
+      claimsApiProperties.getInquests().setEnabled("false");
 
       BulkSubmissionFileReadException exception =
           assertThrows(
@@ -392,7 +392,7 @@ class BulkSubmissionCsvConverterTests {
     @ParameterizedTest
     @MethodSource("inquestFields")
     void acceptsInquestFieldsWhenEnabled(String field, String value, String extension) {
-      claimsApiProperties.getFeatures().setInquests("true");
+      claimsApiProperties.getInquests().setEnabled("true");
 
       CsvOutcome outcome = convert(inquestOutcome(field, value), extension).outcomes().getFirst();
 

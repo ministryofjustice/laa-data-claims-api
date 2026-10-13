@@ -120,7 +120,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void setUp() {
     // Capture the original boolean state
     amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
-    inquestsSwitch = claimsApiProperties.getFeatures().isInquestsEnabled();
+    inquestsSwitch = claimsApiProperties.getInquests().isEnabled();
     seedClaimsData();
   }
 
@@ -128,7 +128,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   void tearDown() {
     // Use String.valueOf() for a null-safe string conversion
     claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
-    claimsApiProperties.getFeatures().setInquests(String.valueOf(inquestsSwitch));
+    claimsApiProperties.getInquests().setEnabled(String.valueOf(inquestsSwitch));
   }
 
   @Test
@@ -277,7 +277,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET v1/claims - hides Inquest information when the feature is disabled")
   void shouldHideInquestInformationFromV1ClaimSearchWhenFeatureDisabled() throws Exception {
     createInquestDetailTestData();
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
 
     MvcResult result =
         mockMvc
@@ -305,7 +305,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET v2/claims - hides Inquest information when the feature is disabled")
   void shouldHideInquestInformationFromV2ClaimSearchWhenFeatureDisabled() throws Exception {
     createInquestDetailTestData();
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
 
     MvcResult result =
         mockMvc
@@ -373,7 +373,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET v1 claim detail - hides Inquest data when the Inquests feature is disabled")
   void shouldHideInquestDataFromV1WhenFeatureDisabled() throws Exception {
     createInquestDetailTestData();
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
 
     MvcResult result =
         mockMvc
@@ -394,7 +394,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName("GET v2 claim detail - hides Inquest data when the Inquests feature is disabled")
   void shouldHideInquestDataFromV2WhenFeatureDisabled() throws Exception {
     createInquestDetailTestData();
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
 
     MvcResult result =
         mockMvc
@@ -531,7 +531,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("POST claim without Inquest data succeeds when the Inquests feature is disabled")
   void shouldAllowNonInquestPostWhenFeatureDisabled() throws Exception {
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
 
     postClaimAndReturnId(getClaimPost(CASE_REFERENCE));
@@ -542,7 +542,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("POST claim with Inquest data is rejected when the Inquests feature is disabled")
   void shouldRejectInquestPostWhenFeatureDisabled() throws Exception {
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
     ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
@@ -936,7 +936,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @ValueSource(booleans = {true, false})
   @DisplayName("PATCH ignores is_inquest when the Inquests feature is disabled")
   void shouldIgnoreIsInquestPatchWhenFeatureDisabled(Boolean isInquest) throws Exception {
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
     calculatedFeeDetail1.setIsInquest(true);
     calculatedFeeDetailRepository.saveAndFlush(calculatedFeeDetail1);
     ClaimPatch claimPatch = new ClaimPatch();
@@ -965,7 +965,7 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @Test
   @DisplayName("PATCH without is_inquest succeeds when the Inquests feature is disabled")
   void shouldAllowCalculationPatchWithoutIsInquestWhenFeatureDisabled() throws Exception {
-    claimsApiProperties.getFeatures().setInquests("false");
+    claimsApiProperties.getInquests().setEnabled("false");
     calculatedFeeDetail1.setIsInquest(true);
     calculatedFeeDetailRepository.saveAndFlush(calculatedFeeDetail1);
     ClaimPatch claimPatch = new ClaimPatch();

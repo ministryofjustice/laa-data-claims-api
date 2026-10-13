@@ -23,23 +23,12 @@ public class ClaimsApiProperties {
   public static class Features {
 
     /**
-     * Raw inquests feature flag ({@code laa.claims.api.features.inquests}).
-     *
-     * <p>Bound as a {@link String} so missing and invalid values fail safe to disabled.
-     */
-    private String inquests;
-
-    /**
      * Raw validated-pending-approval feature flag ({@code
      * laa.claims.api.features.validated-pending-approval}).
      *
      * <p>Bound as a {@link String} so missing and invalid values fail safe to disabled.
      */
     private String validatedPendingApproval;
-
-    public boolean isInquestsEnabled() {
-      return isExplicitlyTrue(inquests);
-    }
 
     public boolean isValidatedPendingApprovalEnabled() {
       return isExplicitlyTrue(validatedPendingApproval);
@@ -53,7 +42,32 @@ public class ClaimsApiProperties {
   /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
   private final Amendments amendments = new Amendments();
 
+  /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
+  private final Inquests inquests = new Inquests();
+
   private final Features features = new Features();
+
+  /** Settings for the inquests feature. */
+  @Getter
+  @Setter
+  public static class Inquests {
+
+    /**
+     * Raw configured value for the inquests toggle ({@code laa.claims.api.inquests.enabled}).
+     *
+     * <p>Bound as a {@link String} so missing and invalid values fail safe to disabled.
+     */
+    private String enabled;
+
+    /**
+     * Whether the inquests capability is enabled.
+     *
+     * @return {@code true} only when the configured value is explicitly {@code true}
+     */
+    public boolean isEnabled() {
+      return enabled != null && Boolean.parseBoolean(enabled.trim());
+    }
+  }
 
   /** Settings for the amendments feature. */
   @Getter

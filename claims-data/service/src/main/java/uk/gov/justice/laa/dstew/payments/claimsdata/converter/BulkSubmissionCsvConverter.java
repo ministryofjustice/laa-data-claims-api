@@ -97,7 +97,7 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
           case CsvHeader.OUTCOME -> {
-            boolean inquestsEnabled = claimsApiProperties.getFeatures().isInquestsEnabled();
+            boolean inquestsEnabled = claimsApiProperties.getInquests().isEnabled();
             csvBulkSubmissionRow
                 .values()
                 .keySet()
