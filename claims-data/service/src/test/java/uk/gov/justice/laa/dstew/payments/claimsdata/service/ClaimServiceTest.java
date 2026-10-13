@@ -117,6 +117,7 @@ class ClaimServiceTest {
   @Mock private ClaimMapper claimMapper;
   @Mock private ClientMapper clientMapper;
   @Mock private ValidationMessageLogRepository validationMessageLogRepository;
+  @Mock private ValidationMessageLogFactory validationMessageLogFactory;
   @Mock private ClaimResultSetMapper claimResultSetMapper;
   @Mock private ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Mock private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
@@ -560,6 +561,35 @@ class ClaimServiceTest {
     verify(calculatedFeeDetailRepository).save(calculatedFeeDetail);
   }
 
+  @DisplayName("set updatedByUserId equal to createdByUserId when creating calculated fee details")
+  @Test
+  void shouldSetUpdatedByUserIdWhenCreatingCalculatedFeeDetails() {
+    final Submission submission = ClaimsDataTestUtil.getSubmission();
+    final Claim claim =
+        ClaimsDataTestUtil.getClaimBuilder().submission(submission).version(1L).build();
+    final ClaimAmendmentPatch patch = new ClaimAmendmentPatch();
+    patch.setStatus(ClaimStatus.READY_TO_PROCESS);
+    final FeeCalculationPatch feeCalculationPatch = new FeeCalculationPatch();
+    patch.setFeeCalculationResponse(feeCalculationPatch);
+    patch.setValidationMessages(Collections.emptyList());
+    patch.setCreatedByUserId(JsonNullable.of(API_USER_ID));
+
+    final ClaimSummaryFee claimSummaryFee = new ClaimSummaryFee();
+    claimSummaryFee.setId(Uuid7.timeBasedUuid());
+    claimSummaryFee.setClaim(claim);
+    when(claimRepository.findByIdAndSubmissionId(CLAIM_1_ID, SUBMISSION_ID))
+        .thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.findByClaim(claim)).thenReturn(Optional.of(claimSummaryFee));
+    final CalculatedFeeDetail calculatedFeeDetail = new CalculatedFeeDetail();
+    when(claimMapper.toCalculatedFeeDetail(feeCalculationPatch)).thenReturn(calculatedFeeDetail);
+
+    claimService.updateClaim(SUBMISSION_ID, CLAIM_1_ID, patch);
+
+    assertThat(calculatedFeeDetail.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(calculatedFeeDetail.getUpdatedByUserId())
+        .isEqualTo(calculatedFeeDetail.getCreatedByUserId());
+  }
+
   @DisplayName("update calculated fee details on update")
   @Test
   void shouldUpdateCalculatedFeeDetails() {
@@ -651,14 +681,14 @@ class ClaimServiceTest {
 
     when(claimRepository.findByIdAndSubmissionId(claimId, submissionId))
         .thenReturn(Optional.of(claim));
-    when(claimMapper.toValidationMessageLog(message1, claim))
+    when(validationMessageLogFactory.createForClaim(message1, claim))
         .thenReturn(new ValidationMessageLog());
 
     claimService.updateClaim(submissionId, claimId, patch);
 
     assertThat(claim.getStatus()).isEqualTo(ClaimStatus.READY_TO_PROCESS);
     verify(claimRepository).save(claim);
-    verify(claimMapper).toValidationMessageLog(message1, claim);
+    verify(validationMessageLogFactory).createForClaim(message1, claim);
   }
 
   @Nested
