@@ -110,8 +110,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final int NO_CLAIMS_IN_SUBMISSION1 = 4;
 
-  private static final String DEPARTMENT1 = "Department 1";
-  private static final String DEPARTMENT2 = "Department 2";
+  private static final String DEPARTMENT1 = DEPARTMENT_MINISTRY_OF_JUSTICE;
+  private static final String DEPARTMENT2 = DEPARTMENT_HEALTH_AND_SOCIAL_CARE;
 
   private Boolean amendmentSwitch;
   private Boolean inquestsSwitch;
@@ -701,14 +701,17 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " occurrence, in supplied order, including repeats and case-insensitive names")
   void shouldPersistInterestedDepartmentsInSuppliedOrderIncludingRepeats() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    var dept1 = saveGovernmentDepartment("CODE1", DEPARTMENT1);
-    var dept2 = saveGovernmentDepartment("CODE2", DEPARTMENT2);
+    var dept1 = findSeededDepartmentByLabel(DEPARTMENT1);
+    var dept2 = findSeededDepartmentByLabel(DEPARTMENT2);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
                 new ClaimInquestDetail()
                     .interestedDepartments(
-                        List.of("department 1", " DEPARTMENT 1 ", "department 2")));
+                        List.of(
+                            DEPARTMENT1.toLowerCase(),
+                            " " + DEPARTMENT1.toUpperCase() + " ",
+                            DEPARTMENT2.toLowerCase())));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
@@ -730,8 +733,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " order of populated ones")
   void shouldSkipBlankInterestedDepartments() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    var dept1 = saveGovernmentDepartment("CODE1", DEPARTMENT1);
-    var dept2 = saveGovernmentDepartment("CODE2", DEPARTMENT2);
+    var dept1 = findSeededDepartmentByLabel(DEPARTMENT1);
+    var dept2 = findSeededDepartmentByLabel(DEPARTMENT2);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
@@ -778,7 +781,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
           + " name is unknown")
   void shouldReturnBadRequestWhenInterestedDepartmentUnknown() throws Exception {
     createSubmissionTestData(AreaOfLaw.LEGAL_HELP);
-    saveGovernmentDepartment("CODE1", DEPARTMENT1);
     final ClaimPost claimPost =
         getClaimPost(CASE_REFERENCE)
             .inquestDetail(
@@ -3001,8 +3003,8 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
             .createdByUserId(API_USER_ID)
             .build());
 
-    var dept1 = saveGovernmentDepartment("DEPT1", DEPARTMENT1);
-    var dept2 = saveGovernmentDepartment("DEPT2", DEPARTMENT2);
+    var dept1 = findSeededDepartmentByLabel(DEPARTMENT1);
+    var dept2 = findSeededDepartmentByLabel(DEPARTMENT2);
     claimInterestedDepartmentRepository.saveAllAndFlush(
         List.of(
             getInterestedDepartment(dept1, 1),
@@ -3055,18 +3057,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
         .displayOrder(displayOrder)
         .createdByUserId(API_USER_ID)
         .build();
-  }
-
-  private GovernmentDepartmentRef saveGovernmentDepartment(String code, String displayLabel) {
-    return governmentDepartmentRefRepository.saveAndFlush(
-        GovernmentDepartmentRef.builder()
-            .id(Uuid7.timeBasedUuid())
-            .governmentDepartmentCode(code)
-            .displayLabel(displayLabel)
-            .isActive(true)
-            .displayOrder(1)
-            .createdByUserId("TEST")
-            .build());
   }
 
   private UUID postClaimAndReturnId(ClaimPost claimPost) throws Exception {

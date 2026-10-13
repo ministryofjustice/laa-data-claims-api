@@ -59,6 +59,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -109,6 +110,11 @@ public abstract class AbstractIntegrationTest {
   // seed literals are deliberately left inline - they are arbitrary, single-use, unasserted fixture
   // data, so naming them would add noise without any drift or de-duplication benefit. These are the
   // CLAIM_1 before-state values the amendment integration tests assert on.
+  // Display labels of government departments seeded by migration V52.
+  protected static final String DEPARTMENT_MINISTRY_OF_JUSTICE = "Ministry of Justice";
+  protected static final String DEPARTMENT_HEALTH_AND_SOCIAL_CARE =
+      "Department for Health and Social Care";
+  protected static final String DEPARTMENT_HOME_OFFICE = "Home Office";
   protected static final String SEEDED_CLIENT_FORENAME = "Alice";
   protected static final String SEEDED_UNIQUE_CLIENT_NUMBER = "01011990/A/BCDE";
   protected static final String SEEDED_CASE_ID = "123";
@@ -197,9 +203,15 @@ public abstract class AbstractIntegrationTest {
     claimSummaryFeeRepository.deleteAll();
     matterStartRepository.deleteAll();
     claimRepository.deleteAll();
-    governmentDepartmentRefRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+  }
+
+  /** Looks up a Flyway-seeded government department (V52) by its display label. */
+  protected GovernmentDepartmentRef findSeededDepartmentByLabel(String displayLabel) {
+    return governmentDepartmentRefRepository
+        .findByDisplayLabelIgnoreCase(displayLabel)
+        .orElseThrow();
   }
 
   void createBulkSubmission() {
