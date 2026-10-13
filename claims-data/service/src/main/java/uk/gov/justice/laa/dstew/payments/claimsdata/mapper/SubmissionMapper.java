@@ -68,17 +68,12 @@ public interface SubmissionMapper {
    * the patch will be copied. The patch's {@code createdByUserId} represents the user making this
    * patch request. (when present) is recorded as the submission's {@code updatedByUserId}.
    *
-   * <p>The office account number identifies the provider that owns the submission and is fixed when
-   * the submission is created, so it is never taken from the patch. A patch carries it to assert
-   * which office the caller believes it is acting for, not to change it.
-   *
    * @param patch the patch object
    * @param entity the entity to update
    */
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   @InheritConfiguration(name = "ignoreAuditFieldsAndId")
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "officeAccountNumber", ignore = true)
   @Mapping(target = "submissionPeriodSortKey", ignore = true)
   @Mapping(target = "officeAccountNumberSortKey", ignore = true)
   @Mapping(target = "createdOn", ignore = true)

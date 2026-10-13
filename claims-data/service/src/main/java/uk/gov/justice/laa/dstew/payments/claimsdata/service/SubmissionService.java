@@ -280,6 +280,7 @@ public class SubmissionService
             .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
 
     requireMatchingOffice(submissionPatch, submission);
+    final String approvingUserId = requireApprovingUser(submissionPatch);
 
     if (submission.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
       return;
@@ -290,8 +291,10 @@ public class SubmissionService
           "Submission is not eligible for approval in status: " + submission.getStatus());
     }
 
+    // Starting final validation is a state transition, not a partial update: only the status and
+    // the approving user are written, so an approval request cannot alter submission content.
     submission.setStatus(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
-    submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
+    submission.setUpdatedByUserId(approvingUserId);
     submissionRepository.save(submission);
     TransactionalPublisher.runAfterCommit(
         () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
@@ -316,6 +319,21 @@ public class SubmissionService
       throw new SubmissionOfficeAuthorisationException(
           "You do not have access to the office account for this submission");
     }
+  }
+
+  /**
+   * Returns the user approving the submission, carried on the patch as {@code createdByUserId} (the
+   * user making the request). Approval is a deliberate user action, so it is always attributable
+   * and the transition is refused when the acting user is absent.
+   */
+  private String requireApprovingUser(SubmissionPatch submissionPatch) {
+    String approvingUserId = submissionPatch.getCreatedByUserId();
+
+    if (approvingUserId == null || approvingUserId.isBlank()) {
+      throw new SubmissionBadRequestException("User id is required to start final validation");
+    }
+
+    return approvingUserId;
   }
 
   /**

@@ -484,11 +484,18 @@ class SubmissionServiceTest {
   }
 
   private static final String APPROVING_OFFICE = "APPROVE-OFFICE";
+  private static final String APPROVING_USER = "approving-user";
 
   private static SubmissionPatch finalValidationPatch(String officeAccountNumber) {
+    return finalValidationPatch(officeAccountNumber, APPROVING_USER);
+  }
+
+  private static SubmissionPatch finalValidationPatch(
+      String officeAccountNumber, String approvingUserId) {
     return new SubmissionPatch()
         .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
-        .officeAccountNumber(officeAccountNumber);
+        .officeAccountNumber(officeAccountNumber)
+        .createdByUserId(approvingUserId);
   }
 
   @Test
@@ -507,10 +514,62 @@ class SubmissionServiceTest {
 
     submissionService.updateSubmission(id, patch);
 
-    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionEventPublisherService).publishSubmissionApprovalEvent(id);
     verify(submissionRepository).save(entity);
+    verifyNoInteractions(submissionMapper);
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(entity.getUpdatedByUserId()).isEqualTo(APPROVING_USER);
+  }
+
+  @Test
+  @DisplayName("Should not apply unrelated patch fields when starting final validation")
+  void shouldIgnoreUnrelatedPatchFieldsWhenStartingFinalValidation() {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .isNilSubmission(false)
+            .numberOfClaims(3)
+            .providerUserId("original-provider")
+            .build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch =
+        finalValidationPatch(APPROVING_OFFICE)
+            .isNilSubmission(true)
+            .numberOfClaims(99)
+            .providerUserId("spoofed-provider");
+
+    submissionService.updateSubmission(id, patch);
+
+    assertThat(entity.getIsNilSubmission()).isFalse();
+    assertThat(entity.getNumberOfClaims()).isEqualTo(3);
+    assertThat(entity.getProviderUserId()).isEqualTo("original-provider");
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"   "})
+  @DisplayName("Should reject final validation when no approving user is supplied")
+  void shouldRejectFinalValidationWithoutApprovingUser(String approvingUserId) {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder()
+            .id(id)
+            .officeAccountNumber(APPROVING_OFFICE)
+            .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build();
+    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE, approvingUserId);
+
+    assertThrows(
+        SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
+
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test

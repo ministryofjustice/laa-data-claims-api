@@ -1968,10 +1968,16 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
   private static String finalValidationPatchBody(UUID submissionId, String officeAccountNumber)
       throws Exception {
+    return finalValidationPatchBody(submissionId, officeAccountNumber, USER_ID);
+  }
+
+  private static String finalValidationPatchBody(
+      UUID submissionId, String officeAccountNumber, String approvingUserId) throws Exception {
     return OBJECT_MAPPER.writeValueAsString(
         new SubmissionPatch()
             .submissionId(submissionId)
             .officeAccountNumber(officeAccountNumber)
+            .createdByUserId(approvingUserId)
             .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS));
   }
 
@@ -2002,6 +2008,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     Submission approved = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(approved.getUpdatedByUserId()).isEqualTo(USER_ID);
 
     ReceiveMessageResponse receiveResp =
         IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
@@ -2058,6 +2065,27 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
     assertThat(unchanged.getOfficeAccountNumber()).isEqualTo("APPROVE-OWNING-OFFICE");
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an approving user returns 400")
+  void patchFinalValidationRequiresApprovingUser() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-USER", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-NO-USER", null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
   }
 
   @Test
