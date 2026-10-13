@@ -776,12 +776,14 @@ paths:
         - Submissions
       summary: Update submission status
       description: >
-        Updates an existing submission. Setting `FINAL_VALIDATION_IN_PROGRESS` is accepted only
+        Updates an existing submission. Setting `READY_FOR_FINAL_VALIDATION` is accepted only
         from `VALIDATED_PENDING_APPROVAL` and publishes an asynchronous final-validation event.
         That transition additionally requires `office_account_number` to be supplied and to match
         the office account number held against the submission, otherwise `403` is returned, and
         requires `created_by_user_id` to identify the approving user. It writes only the submission
         status and the approving user; any other field supplied alongside it is ignored.
+        Setting `FINAL_VALIDATION_IN_PROGRESS` is reserved for the event service once it begins
+        final validation, and is accepted only from `READY_FOR_FINAL_VALIDATION` or from itself.
       parameters:
         - name: id
           in: path
@@ -1647,6 +1649,7 @@ components:
         - CREATED
         - READY_FOR_VALIDATION
         - VALIDATION_IN_PROGRESS
+        - READY_FOR_FINAL_VALIDATION
         - FINAL_VALIDATION_IN_PROGRESS
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
@@ -1656,6 +1659,8 @@ components:
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion.
         VALIDATED_PENDING_APPROVAL indicates the submission passed initial validation and is held for provider review
         before Final Submit; its claims are not yet accepted (VALID).
+        READY_FOR_FINAL_VALIDATION indicates the provider has approved the submission and final validation has been
+        requested; FINAL_VALIDATION_IN_PROGRESS indicates the event service has begun that final validation.
     submission_claim:
       type: object
       description: Claim UUID and status

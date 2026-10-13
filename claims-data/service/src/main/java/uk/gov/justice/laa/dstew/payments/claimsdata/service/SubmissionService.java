@@ -225,12 +225,16 @@ public class SubmissionService
    */
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
-    if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+    if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_FINAL_VALIDATION) {
       updateFinalValidationSubmission(id, submissionPatch);
       return;
     }
 
     Submission submission = requireEntity(id);
+
+    if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      requireAwaitingFinalValidation(submission);
+    }
 
     if (submissionPatch.getCreatedByUserId() == null) {
       log.warn(
@@ -286,7 +290,7 @@ public class SubmissionService
     requireMatchingOffice(submissionPatch, submission);
     final String approvingUserId = requireApprovingUser(submissionPatch);
 
-    if (submission.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+    if (submission.getStatus() == SubmissionStatus.READY_FOR_FINAL_VALIDATION) {
       return;
     }
 
@@ -295,9 +299,9 @@ public class SubmissionService
           "Submission is not eligible for approval in status: " + submission.getStatus());
     }
 
-    // Starting final validation is a state transition, not a partial update: only the status and
+    // Queuing final validation is a state transition, not a partial update: only the status and
     // the approving user are written, so an approval request cannot alter submission content.
-    submission.setStatus(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    submission.setStatus(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
     submission.setUpdatedByUserId(approvingUserId);
     submissionRepository.save(submission);
     TransactionalPublisher.runAfterCommit(
@@ -305,10 +309,26 @@ public class SubmissionService
   }
 
   /**
+   * Refuses to mark final validation as in progress unless the submission is waiting for it. The
+   * event service sets this status when it picks up the approval event, and SQS can redeliver that
+   * event, so a submission that has already reached an outcome must not be pulled back into the
+   * lifecycle. Restating the status is permitted so that a redelivered event is a harmless no-op
+   * rather than a failure that ends up in the dead letter queue.
+   */
+  private void requireAwaitingFinalValidation(Submission submission) {
+    SubmissionStatus currentStatus = submission.getStatus();
+    if (currentStatus != SubmissionStatus.READY_FOR_FINAL_VALIDATION
+        && currentStatus != SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      throw new SubmissionBadRequestException(
+          "Submission is not awaiting final validation in status: " + currentStatus);
+    }
+  }
+
+  /**
    * Refuses the transition unless the validated-pending-approval lifecycle is enabled. {@code
-   * FINAL_VALIDATION_IN_PROGRESS} belongs to that lifecycle, and nothing in this service moves a
+   * READY_FOR_FINAL_VALIDATION} belongs to that lifecycle, and nothing in this service moves a
    * submission out of it: the outcome is owned by the event service, which only reruns final
-   * validation once the lifecycle is live. Claiming a submission while the lifecycle is disabled
+   * validation once the lifecycle is live. Queuing a submission while the lifecycle is disabled
    * would therefore leave it in a status it can never leave.
    */
   private void requireValidatedPendingApprovalLifecycle() {

@@ -510,14 +510,14 @@ class SubmissionServiceTest {
   private static SubmissionPatch finalValidationPatch(
       String officeAccountNumber, String approvingUserId) {
     return new SubmissionPatch()
-        .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+        .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION)
         .officeAccountNumber(officeAccountNumber)
         .createdByUserId(approvingUserId);
   }
 
   @Test
   @DisplayName(
-      "Should claim an eligible submission and publish final validation event through patch")
+      "Should queue an eligible submission and publish final validation event through patch")
   void shouldStartFinalValidationFromPatch() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
@@ -534,7 +534,7 @@ class SubmissionServiceTest {
     verify(submissionEventPublisherService).publishSubmissionApprovalEvent(id);
     verify(submissionRepository).save(entity);
     verifyNoInteractions(submissionMapper);
-    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
     assertThat(entity.getUpdatedByUserId()).isEqualTo(APPROVING_USER);
   }
 
@@ -563,7 +563,7 @@ class SubmissionServiceTest {
     assertThat(entity.getIsNilSubmission()).isFalse();
     assertThat(entity.getNumberOfClaims()).isEqualTo(3);
     assertThat(entity.getProviderUserId()).isEqualTo("original-provider");
-    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
   }
 
   @ParameterizedTest
@@ -591,14 +591,14 @@ class SubmissionServiceTest {
 
   @Test
   @DisplayName(
-      "Should not publish a duplicate final validation event after the submission is claimed")
+      "Should not publish a duplicate final validation event after the submission is queued")
   void shouldNotStartFinalValidationTwice() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
         Submission.builder()
             .id(id)
             .officeAccountNumber(APPROVING_OFFICE)
-            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+            .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION)
             .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
@@ -607,7 +607,7 @@ class SubmissionServiceTest {
 
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
-    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
   }
 
   @ParameterizedTest
@@ -618,7 +618,8 @@ class SubmissionServiceTest {
         "VALIDATION_IN_PROGRESS",
         "VALIDATION_SUCCEEDED",
         "VALIDATION_FAILED",
-        "REPLACED"
+        "REPLACED",
+        "FINAL_VALIDATION_IN_PROGRESS"
       })
   @DisplayName("Should reject final validation when submission is not awaiting approval")
   void shouldRejectFinalValidationForIneligibleStatus(String status) {
@@ -665,14 +666,14 @@ class SubmissionServiceTest {
 
   @Test
   @DisplayName(
-      "Should reject final validation for an already claimed submission when the office differs")
-  void shouldRejectFinalValidationForMismatchedOfficeWhenAlreadyClaimed() {
+      "Should reject final validation for an already queued submission when the office differs")
+  void shouldRejectFinalValidationForMismatchedOfficeWhenAlreadyQueued() {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity =
         Submission.builder()
             .id(id)
             .officeAccountNumber(APPROVING_OFFICE)
-            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS)
+            .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION)
             .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch("ANOTHER-OFFICE");
@@ -720,6 +721,51 @@ class SubmissionServiceTest {
         SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
 
     verify(submissionRepository, never()).findByIdForUpdate(any());
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"READY_FOR_FINAL_VALIDATION", "FINAL_VALIDATION_IN_PROGRESS"})
+  @DisplayName("Should let the event service mark final validation in progress once requested")
+  void shouldMarkFinalValidationInProgress(String status) {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    submissionService.updateSubmission(id, patch);
+
+    verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
+    verify(submissionRepository).save(entity);
+    verifyNoInteractions(submissionEventPublisherService);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "CREATED",
+        "READY_FOR_VALIDATION",
+        "VALIDATION_IN_PROGRESS",
+        "VALIDATED_PENDING_APPROVAL",
+        "VALIDATION_SUCCEEDED",
+        "VALIDATION_FAILED",
+        "REPLACED"
+      })
+  @DisplayName("Should reject marking final validation in progress when it was never requested")
+  void shouldRejectFinalValidationInProgressWhenNotAwaiting(String status) {
+    UUID id = Uuid7.timeBasedUuid();
+    Submission entity =
+        Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
+    SubmissionPatch patch =
+        new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+
+    assertThrows(
+        SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
+
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
   }
