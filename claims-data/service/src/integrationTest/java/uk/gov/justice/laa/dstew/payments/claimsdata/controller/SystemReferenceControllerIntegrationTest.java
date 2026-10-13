@@ -9,6 +9,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,28 +18,34 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GovernmentDepartment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GovernmentDepartmentsList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
 /**
- * Integration tests for the amendment reference lookup. Read assertions run against the Flyway seed
- * data (V41). Mutation tests insert temporary rows with a dedicated code; the class is {@link
- * Transactional} so Spring rolls each test back, leaving the seeded data untouched (no manual
- * teardown required). The MockMvc call shares the test transaction, so the read-only service sees
- * the uncommitted temporary rows.
+ * Integration tests for the system reference lookups. Amendment read assertions run against the
+ * Flyway seed data (V41). Mutation tests insert temporary rows with a dedicated code; the class is
+ * {@link Transactional} so Spring rolls each test back, leaving the seeded data untouched (no
+ * manual teardown required). The MockMvc call shares the test transaction, so the read-only service
+ * sees the uncommitted temporary rows.
  */
-@DisplayName("Amendment reference lookup (integration)")
+@DisplayName("System reference lookups (integration)")
 @Transactional
-class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTest {
+class SystemReferenceControllerIntegrationTest extends AbstractIntegrationTest {
 
   private static final String ENDPOINT = SystemReferencePaths.AMENDMENT_REQUESTED_BY;
   private static final String TEMP_CODE = "ZZ_TEST_TEMP_PARTY";
+  private static final String TEMP_DEPARTMENT_LABEL_PREFIX = "ZZ Test ";
 
   @Autowired private RequestedByReferenceRepository requestedByReferenceRepository;
   @Autowired private AmendmentReasonReferenceRepository amendmentReasonReferenceRepository;
+  @Autowired private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
 
   // Used to force a real DB round-trip in updatingDisplayLabelLeavesCodeUnchanged: because the
   // class
@@ -170,6 +177,19 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
     }
 
     @Test
+    @DisplayName("seeds government department ids as UUIDv7 with audit columns populated")
+    void seededGovernmentDepartmentsAreUuidV7WithAuditPopulated() {
+      assertThat(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+          .isNotEmpty()
+          .allSatisfy(
+              department -> {
+                assertThat(department.getId().version()).isEqualTo(7);
+                assertThat(department.getCreatedByUserId()).isNotBlank();
+                assertThat(department.getCreatedOn()).isNotNull();
+              });
+    }
+
+    @Test
     @DisplayName("leaves the underlying code unchanged when the display label is updated")
     void updatingDisplayLabelLeavesCodeUnchanged() {
       UUID id = Uuid7.timeBasedUuid();
@@ -293,6 +313,117 @@ class AmendmentReferenceControllerIntegrationTest extends AbstractIntegrationTes
           .createdOn(Instant.now())
           .build();
     }
+  }
+
+  @Nested
+  @DisplayName("GET government departments endpoint - lookup response")
+  class GovernmentDepartmentsLookupResponse {
+
+    @Test
+    @DisplayName("returns seeded government departments in display order")
+    void returnsSeededDepartmentsInDisplayOrder() throws Exception {
+      GovernmentDepartmentsList result = callGovernmentDepartmentsEndpoint();
+
+      assertThat(result.getGovernmentDepartments())
+          .extracting(GovernmentDepartment::getName)
+          .hasSize(18)
+          .startsWith("Attorney General's Office", "Cabinet Office")
+          .endsWith("Ministry of Defence", "Ministry of Justice");
+    }
+
+    @Test
+    @DisplayName("returns active government departments in display order")
+    void returnsActiveDepartmentsInDisplayOrder() throws Exception {
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_SECOND", "Second", 999, true));
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_FIRST", "First", 998, true));
+
+      GovernmentDepartmentsList result = callGovernmentDepartmentsEndpoint();
+
+      assertThat(testDepartmentNames(result))
+          .containsExactly(
+              TEMP_DEPARTMENT_LABEL_PREFIX + "First", TEMP_DEPARTMENT_LABEL_PREFIX + "Second");
+    }
+
+    @Test
+    @DisplayName("excludes inactive government departments from the lookup")
+    void excludesInactiveDepartments() throws Exception {
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_ACTIVE", "Active", 998, true));
+      governmentDepartmentRefRepository.save(
+          department("ZZ_TEST_INACTIVE", "Inactive", 999, false));
+
+      GovernmentDepartmentsList result = callGovernmentDepartmentsEndpoint();
+
+      assertThat(testDepartmentNames(result))
+          .containsExactly(TEMP_DEPARTMENT_LABEL_PREFIX + "Active");
+    }
+
+    private List<String> testDepartmentNames(GovernmentDepartmentsList result) {
+      return result.getGovernmentDepartments().stream()
+          .map(GovernmentDepartment::getName)
+          .filter(name -> name.startsWith(TEMP_DEPARTMENT_LABEL_PREFIX))
+          .toList();
+    }
+  }
+
+  @Nested
+  @DisplayName("Active-only government department data access (findByIsActiveTrue...)")
+  class ActiveOnlyGovernmentDepartmentDataAccess {
+
+    @Test
+    @DisplayName("excludes inactive government departments, returning only active ones")
+    void excludesInactiveDepartments() {
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_ACTIVE", "Active", 998, true));
+      governmentDepartmentRefRepository.save(
+          department("ZZ_TEST_INACTIVE", "Inactive", 999, false));
+
+      var activeDepartments = testDepartments();
+
+      assertThat(activeDepartments)
+          .extracting("governmentDepartmentCode")
+          .containsExactly("ZZ_TEST_ACTIVE");
+      assertThat(activeDepartments).extracting("isActive").containsOnly(true);
+    }
+
+    @Test
+    @DisplayName("orders results by display order")
+    void ordersByDisplayOrder() {
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_THIRD", "Third", 999, true));
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_FIRST", "First", 997, true));
+      governmentDepartmentRefRepository.save(department("ZZ_TEST_SECOND", "Second", 998, true));
+
+      assertThat(testDepartments())
+          .extracting("governmentDepartmentCode")
+          .containsExactly("ZZ_TEST_FIRST", "ZZ_TEST_SECOND", "ZZ_TEST_THIRD");
+    }
+
+    private List<GovernmentDepartmentRef> testDepartments() {
+      return governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc().stream()
+          .filter(d -> d.getGovernmentDepartmentCode().startsWith("ZZ_TEST_"))
+          .toList();
+    }
+  }
+
+  private GovernmentDepartmentRef department(String code, String label, int order, boolean active) {
+    return GovernmentDepartmentRef.builder()
+        .id(Uuid7.timeBasedUuid())
+        .governmentDepartmentCode(code)
+        .displayLabel(TEMP_DEPARTMENT_LABEL_PREFIX + label)
+        .isActive(active)
+        .displayOrder(order)
+        .createdByUserId("integration-test")
+        .build();
+  }
+
+  private GovernmentDepartmentsList callGovernmentDepartmentsEndpoint() throws Exception {
+    MvcResult mvcResult =
+        mockMvc
+            .perform(
+                get(SystemReferencePaths.GOVERNMENT_DEPARTMENTS)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    return OBJECT_MAPPER.readValue(
+        mvcResult.getResponse().getContentAsString(), GovernmentDepartmentsList.class);
   }
 
   private AmendmentRequestedByReferenceList callEndpoint() throws Exception {
