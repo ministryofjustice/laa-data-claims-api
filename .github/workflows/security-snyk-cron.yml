@@ -19,6 +19,7 @@ jobs:
       security-events: write
     with:
       image_prefix: ${{ vars.LAA_DATA_CLAIMS_API_IMAGE_PREFIX }}
+      jar_subproject: 'claims-data:service'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
