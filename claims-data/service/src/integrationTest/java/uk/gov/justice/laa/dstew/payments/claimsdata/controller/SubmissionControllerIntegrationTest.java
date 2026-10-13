@@ -600,6 +600,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(createdSubmission.getUpdatedByUserId())
+        .isEqualTo(createdSubmission.getCreatedByUserId());
+    assertThat(createdSubmission.getCreatedOn()).isNotNull();
+    assertThat(createdSubmission.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(createdSubmission.getCreatedOn());
     assertThat(
             listAppender.list.stream()
                 .filter(

@@ -94,6 +94,7 @@ public class SubmissionService
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
+    submission.setUpdatedByUserId(submissionPost.getCreatedByUserId());
 
     // This is to ensure that we are only validating form NIL submissions where SubmissionStatus is
     // always READY_FOR_VALIDATION. All other submissions will skip this validation, as they get
