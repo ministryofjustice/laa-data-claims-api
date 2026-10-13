@@ -7,32 +7,42 @@ on:
         description: Prefix used when naming the temporary image
         required: true
         type: string
+      jar_subproject:
+        description: Required Gradle subproject containing the service JAR to scan
+        required: true
+        type: string
+      java_version:
+        description: Java version used to build the service image
+        required: false
+        default: '25'
+        type: string
+      java_distribution:
+        description: JDK distribution used to build the service image
+        required: false
+        default: corretto
+        type: string
     secrets:
       gh_token:
-        description: GitHub token used by the image build and scan workflow
+        description: Required GitHub token used by the image build and scan workflow
         required: true
       ecr_repository:
-        description: ECR repository used for the container image
+        description: Required ECR repository used for the container image
         required: true
       ecr_region:
-        description: AWS region containing the ECR repository
+        description: Required AWS region containing the ECR repository
         required: true
       ecr_role_to_assume:
-        description: AWS role assumed to access the ECR repository
+        description: Required AWS role assumed to access the ECR repository
         required: true
       snyk_client_id:
-        description: Snyk client ID used to authenticate the image scan
+        description: Required Snyk client ID used to authenticate the image scan
         required: true
       snyk_client_secret:
-        description: Snyk client secret used to authenticate the image scan
+        description: Required Snyk client secret used to authenticate the image scan
         required: true
       slack_webhook:
         description: Slack incoming webhook used for scan failure notifications
         required: false
-
-env:
-  JAVA_VERSION: &JAVA_VERSION '25'
-  JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
 
 jobs:
   image-scan:
@@ -43,10 +53,10 @@ jobs:
       id-token: write
       security-events: write
     with:
-      jar_subproject: 'claims-data:service'
+      jar_subproject: ${{ inputs.jar_subproject }}
       image_version: ${{ format('{0}-snyk-cron-{1}', inputs.image_prefix, github.sha) }}
-      java_version: *JAVA_VERSION
-      java_distribution: *JDK_DISTRIBUTION
+      java_version: ${{ inputs.java_version }}
+      java_distribution: ${{ inputs.java_distribution }}
       image_scan: 'true'
       publish: 'false'
     secrets:
@@ -248,7 +258,7 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-              "text": "Snyk container image scan for laa-data-claims-api failed or found vulnerabilities requiring review",
+              "text": "Snyk container image scan for ${{ github.repository }} failed or found vulnerabilities requiring review",
               "attachments": [
                 {
                   "color": "#d63384",
