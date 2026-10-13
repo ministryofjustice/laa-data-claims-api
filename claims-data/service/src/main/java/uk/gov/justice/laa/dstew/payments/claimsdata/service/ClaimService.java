@@ -338,7 +338,7 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
-    rejectInquestPatchWhenDisabled(claimPatch);
+    ignoreIsInquestPatchWhenDisabled(claimPatch);
 
     statusCoercer.coerce(claimPatch);
     if (isAnAmendment(claimPatch)) {
@@ -348,15 +348,14 @@ public class ClaimService
     }
   }
 
-  private void rejectInquestPatchWhenDisabled(ClaimAmendmentPatch claimPatch) {
-    if (claimsApiProperties.getFeatures().isInquestsEnabled()) {
+  private void ignoreIsInquestPatchWhenDisabled(ClaimAmendmentPatch claimPatch) {
+    if (claimsApiProperties.getFeatures().isInquestsEnabled()
+        || claimPatch.getFeeCalculationResponse() == null) {
       return;
     }
 
     FeeCalculationPatch feeCalculationResponse = claimPatch.getFeeCalculationResponse();
-    if (feeCalculationResponse != null && feeCalculationResponse.getIsInquest() != null) {
-      throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
-    }
+    feeCalculationResponse.setIsInquest(null);
   }
 
   private void saveInterestedDepartments(Claim claim, ClaimPost claimPost) {

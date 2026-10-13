@@ -934,13 +934,16 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  @DisplayName("PATCH rejects is_inquest when the Inquests feature is disabled")
-  void shouldRejectIsInquestPatchWhenFeatureDisabled(Boolean isInquest) throws Exception {
+  @DisplayName("PATCH ignores is_inquest when the Inquests feature is disabled")
+  void shouldIgnoreIsInquestPatchWhenFeatureDisabled(Boolean isInquest) throws Exception {
     claimsApiProperties.getFeatures().setInquests("false");
+    calculatedFeeDetail1.setIsInquest(true);
+    calculatedFeeDetailRepository.saveAndFlush(calculatedFeeDetail1);
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setStatus(ClaimStatus.READY_TO_PROCESS);
     claimPatch.setCreatedByUserId(API_USER_ID);
-    claimPatch.setFeeCalculationResponse(new FeeCalculationPatch().isInquest(isInquest));
+    claimPatch.setFeeCalculationResponse(
+        new FeeCalculationPatch().feeCode("code").isInquest(isInquest));
 
     mockMvc
         .perform(
@@ -948,14 +951,14 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
                 .content(SPARSE_PATCH_MAPPER.writeValueAsString(claimPatch))
                 .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isNoContent());
 
-    assertThat(
-            calculatedFeeDetailRepository
-                .findById(calculatedFeeDetail1.getId())
-                .orElseThrow()
-                .getIsInquest())
-        .isNull();
+    CalculatedFeeDetail updated =
+        calculatedFeeDetailRepository
+            .findFirstByClaimIdOrderByCreatedOnDescIdDesc(CLAIM_1_ID)
+            .orElseThrow();
+    assertThat(updated.getFeeCode()).isEqualTo("code");
+    assertThat(updated.getIsInquest()).isTrue();
     assertThat(claimAmendmentRepository.findByClaimIdOrderByIdDesc(CLAIM_1_ID)).isEmpty();
   }
 

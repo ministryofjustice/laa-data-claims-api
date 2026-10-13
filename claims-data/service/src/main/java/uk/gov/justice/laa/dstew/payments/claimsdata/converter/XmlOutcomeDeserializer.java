@@ -281,21 +281,35 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         case "EXCESS_TRAVEL_COSTS" -> excessTravelCosts = value;
         case "MED_CONCLUDED_DATE" -> medConcludedDate = value;
         case "INQ_CLIENT_MEANS_TESTED" ->
-            inqClientMeansTested = checkFlag(name, value, isInquestEnabled);
-        case "DECEASED_FIRST_NAME" -> deceasedFirstName = checkFlag(name, value, isInquestEnabled);
-        case "DECEASED_SURNAME" -> deceasedSurname = checkFlag(name, value, isInquestEnabled);
-        case "DATE_OF_DEATH" -> dateOfDeath = checkFlag(name, value, isInquestEnabled);
-        case "INQUEST_REF" -> inquestReferenceNumber = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_1" -> governmentDepartment1 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_2" -> governmentDepartment2 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_3" -> governmentDepartment3 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_4" -> governmentDepartment4 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_5" -> governmentDepartment5 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_6" -> governmentDepartment6 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_7" -> governmentDepartment7 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_8" -> governmentDepartment8 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_9" -> governmentDepartment9 = checkFlag(name, value, isInquestEnabled);
-        case "GOV_DEPT_10" -> governmentDepartment10 = checkFlag(name, value, isInquestEnabled);
+            inqClientMeansTested = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "DECEASED_FIRST_NAME" ->
+            deceasedFirstName = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "DECEASED_SURNAME" ->
+            deceasedSurname = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "DATE_OF_DEATH" ->
+            dateOfDeath = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "INQUEST_REF" ->
+            inquestReferenceNumber = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_1" ->
+            governmentDepartment1 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_2" ->
+            governmentDepartment2 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_3" ->
+            governmentDepartment3 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_4" ->
+            governmentDepartment4 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_5" ->
+            governmentDepartment5 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_6" ->
+            governmentDepartment6 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_7" ->
+            governmentDepartment7 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_8" ->
+            governmentDepartment8 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_9" ->
+            governmentDepartment9 = requireInquestFieldEnabled(name, value, isInquestEnabled);
+        case "GOV_DEPT_10" ->
+            governmentDepartment10 = requireInquestFieldEnabled(name, value, isInquestEnabled);
 
         default ->
             throw new IllegalStateException(
@@ -424,8 +438,8 @@ public class XmlOutcomeDeserializer extends JsonDeserializer<XmlOutcome> {
         governmentDepartment10);
   }
 
-  private String checkFlag(String name, String value, boolean isInquestRefFlagEnabled) {
-    if (!isInquestRefFlagEnabled) {
+  private String requireInquestFieldEnabled(String name, String value, boolean inquestsEnabled) {
+    if (!inquestsEnabled) {
       throw new IllegalStateException(
           "The file contains an unrecognised field %s. Correct or remove the field and try again."
               .formatted(name));
