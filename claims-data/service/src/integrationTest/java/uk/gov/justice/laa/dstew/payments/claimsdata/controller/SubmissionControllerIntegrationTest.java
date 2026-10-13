@@ -22,6 +22,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.EntityManager;
@@ -1967,12 +1968,13 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   private static String finalValidationPatchBody(UUID submissionId, String officeAccountNumber)
-      throws Exception {
+      throws JsonProcessingException {
     return finalValidationPatchBody(submissionId, officeAccountNumber, USER_ID);
   }
 
   private static String finalValidationPatchBody(
-      UUID submissionId, String officeAccountNumber, String approvingUserId) throws Exception {
+      UUID submissionId, String officeAccountNumber, String approvingUserId)
+      throws JsonProcessingException {
     return OBJECT_MAPPER.writeValueAsString(
         new SubmissionPatch()
             .submissionId(submissionId)
@@ -2010,18 +2012,11 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
     assertThat(approved.getUpdatedByUserId()).isEqualTo(USER_ID);
 
-    ReceiveMessageResponse receiveResp =
-        IntegrationTestUtils.receiveMessageResponse(sqsClient, this.queueUrl);
-    assertThat(receiveResp.messages()).hasSize(1);
-    assertThat(
-            receiveResp
-                .messages()
-                .getFirst()
-                .messageAttributes()
-                .get("SubmissionEventType")
-                .stringValue())
-        .isEqualTo(SubmissionEventType.APPROVE_SUBMISSION.toString());
-    IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+    List<Message> approvalEvents =
+        IntegrationTestUtils.drainMessagesOfType(
+            sqsClient, this.queueUrl, SubmissionEventType.APPROVE_SUBMISSION.toString());
+    assertThat(approvalEvents).hasSize(1);
+    assertThat(approvalEvents.getFirst().body()).contains(submissionId.toString());
   }
 
   @Test
