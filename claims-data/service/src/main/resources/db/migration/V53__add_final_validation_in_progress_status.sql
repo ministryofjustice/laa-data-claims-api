@@ -1,7 +1,7 @@
 -- Add the final-validation in-progress status used to claim a submission for provider approval.
 
 ALTER TABLE submission
-    DROP CONSTRAINT chk_submission_status;
+    DROP CONSTRAINT IF EXISTS chk_submission_status;
 
 ALTER TABLE submission
     ADD CONSTRAINT chk_submission_status CHECK (status IN (
