@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -44,6 +45,8 @@ public class ClaimsDataTestUtil {
   public static final UUID SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID BULK_SUBMISSION_ID = Uuid7.timeBasedUuid();
   public static final UUID CLAIM_1_ID = Uuid7.timeBasedUuid();
+  public static final String RETENTION_LOOKUP_OFFICE_CODE = "0R695K";
+  public static final String RETENTION_LOOKUP_UFN = "230493/001";
   public static final UUID CLIENT_1_ID = Uuid7.timeBasedUuid();
   public static final UUID MESSAGE_ID = Uuid7.timeBasedUuid();
   public static final UUID MATTER_START_ID = Uuid7.timeBasedUuid();
@@ -420,6 +423,30 @@ public class ClaimsDataTestUtil {
                             .isVatApplicable(true)
                             .build())
                     .build()))
+        .build();
+  }
+
+  public static Claim getRetentionLookupClaim(int index) {
+    if (index < 0) {
+      throw new IllegalArgumentException("index must not be negative");
+    }
+
+    return Claim.builder()
+        .id(
+            index == 0
+                ? UUID.fromString("550e8400-e29b-41d4-a716-446655440001")
+                : UUID.fromString("550e8400-e29b-41d4-a716-%012d".formatted(index)))
+        .submission(
+            Submission.builder()
+                .id(SUBMISSION_ID)
+                .officeAccountNumber(RETENTION_LOOKUP_OFFICE_CODE)
+                .build())
+        .uniqueFileNumber(RETENTION_LOOKUP_UFN)
+        .status(ClaimStatus.VALID)
+        .lineNumber(index + 1)
+        .matterTypeCode(MATTER_TYPE_CODE)
+        .createdOn(Instant.parse("2023-09-28T12:00:00Z"))
+        .updatedOn(Instant.parse("2026-09-28T12:57:13Z").minusSeconds(86_400L * index))
         .build();
   }
 

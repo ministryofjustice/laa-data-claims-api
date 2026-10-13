@@ -10,20 +10,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.dstew.payments.claimsdata.api.SystemReferencesApi;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GovernmentDepartmentsList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AmendmentReferenceService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.GovernmentDepartmentService;
 
-/** Controller exposing read-only governed amendment reference data lookups. */
+/** Controller exposing read-only reference data lookups. */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-public class AmendmentReferenceController implements SystemReferencesApi {
+public class SystemReferenceController implements SystemReferencesApi {
 
   private final AmendmentReferenceService amendmentReferenceService;
+  private final GovernmentDepartmentService governmentDepartmentService;
 
   @Override
   @RateLimiter(name = "referenceRateLimiter", fallbackMethod = "genericFallback")
   public ResponseEntity<AmendmentRequestedByReferenceList> getAmendmentRequestedByReferences() {
     return ResponseEntity.ok(amendmentReferenceService.getAmendmentRequestedByReferences());
+  }
+
+  @Override
+  @RateLimiter(name = "referenceRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<GovernmentDepartmentsList> getGovernmentDepartments() {
+    return ResponseEntity.ok(governmentDepartmentService.getGovernmentDepartments());
   }
 
   private ResponseEntity<String> genericFallback(RequestNotPermitted e) {

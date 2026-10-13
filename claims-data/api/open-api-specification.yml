@@ -1404,6 +1404,32 @@ paths:
         '500':
           description: Internal server error
 
+  /api/v1/system/references/departments:
+    get:
+      operationId: getGovernmentDepartments
+      tags:
+        - System References
+      summary: Get government departments reference data
+      description: |
+        Returns the government departments reference values, in configured display order. Only
+        active values are returned. The response is stable enough for consumers (e.g. AaBC) to cache
+        once at startup and reuse for the lifetime of the running pod.
+      responses:
+        '200':
+          description: Government departments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/government_departments_list'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '429':
+          description: 'Too many requests'
+        '500':
+          description: Internal server error
+
 components:
   parameters:
     pageParam:
@@ -1536,6 +1562,24 @@ components:
           description: >
             Whether the reason is currently selectable. Inactive reasons are still returned so
             consumers can resolve display labels for historical amendments.
+
+    government_departments_list:
+      type: object
+      description: Top-level wrapper for the government departments reference lookup.
+      properties:
+        government_departments:
+          type: array
+          description: >
+            All active government departments in display order.
+          items:
+            $ref: '#/components/schemas/government_department'
+
+    government_department:
+      type: object
+      description: A government department reference value.
+      properties:
+        name:
+          type: string
 
     bulk_submission_patch:
       type: object

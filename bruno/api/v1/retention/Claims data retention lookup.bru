@@ -1,0 +1,26 @@
+meta {
+  name: Claims data retention lookup
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://{{HOST}}/api/v1/claims/retention-lookup?office_code=0P322F&ufn=010225/011
+  body: none
+  auth: inherit
+}
+
+params:query {
+  office_code: 0P322F
+  ufn: 010225/011
+}
+
+headers {
+  Authorization: {{RCW_AUTH_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  forwardAuthorizationHeader: false
+}

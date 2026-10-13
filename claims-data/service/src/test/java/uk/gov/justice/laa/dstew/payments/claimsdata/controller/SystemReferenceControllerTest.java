@@ -21,19 +21,23 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentReasonReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReference;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AmendmentRequestedByReferenceList;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GovernmentDepartment;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.GovernmentDepartmentsList;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.AmendmentReferenceService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.GovernmentDepartmentService;
 
-@WebMvcTest(AmendmentReferenceController.class)
+@WebMvcTest(SystemReferenceController.class)
 @ImportAutoConfiguration(
     exclude = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 @AutoConfigureMockMvc(addFilters = false)
-@DisplayName("AmendmentReferenceController")
-class AmendmentReferenceControllerTest {
+@DisplayName("SystemReferenceController")
+class SystemReferenceControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private AmendmentReferenceService amendmentReferenceService;
+  @MockitoBean private GovernmentDepartmentService governmentDepartmentService;
 
   @Nested
   @DisplayName("GET /api/v1/system/references/amendment-requested-by")
@@ -76,6 +80,39 @@ class AmendmentReferenceControllerTest {
           .perform(get(SystemReferencePaths.AMENDMENT_REQUESTED_BY))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.requested_by").isEmpty());
+    }
+  }
+
+  @Nested
+  @DisplayName("GET /api/v1/system/references/departments")
+  class GetGovernmentDepartments {
+
+    @Test
+    @DisplayName("Status 200: returns the government departments")
+    void returnsGovernmentDepartments() throws Exception {
+      when(governmentDepartmentService.getGovernmentDepartments())
+          .thenReturn(
+              GovernmentDepartmentsList.builder()
+                  .governmentDepartments(
+                      List.of(GovernmentDepartment.builder().name("Home Office").build()))
+                  .build());
+
+      mockMvc
+          .perform(get(SystemReferencePaths.GOVERNMENT_DEPARTMENTS))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.government_departments[0].name").value("Home Office"));
+    }
+
+    @Test
+    @DisplayName("Status 200: returns an empty list when no government departments exist")
+    void returnsEmptyGovernmentDepartmentsList() throws Exception {
+      when(governmentDepartmentService.getGovernmentDepartments())
+          .thenReturn(GovernmentDepartmentsList.builder().governmentDepartments(List.of()).build());
+
+      mockMvc
+          .perform(get(SystemReferencePaths.GOVERNMENT_DEPARTMENTS))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.government_departments").isEmpty());
     }
   }
 }
