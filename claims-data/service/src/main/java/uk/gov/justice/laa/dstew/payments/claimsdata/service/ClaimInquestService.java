@@ -25,6 +25,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartm
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 
+/** Persists, loads and feature-gates the Inquest details of a claim. */
 @Service
 @RequiredArgsConstructor
 public class ClaimInquestService {
@@ -36,6 +37,12 @@ public class ClaimInquestService {
   private final GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
   private final ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
 
+  /**
+   * Persists the Inquest detail and ordered interested departments supplied on claim creation.
+   *
+   * @param claim the newly created claim
+   * @param claimPost the claim creation request
+   */
   public void saveInquestData(Claim claim, ClaimPost claimPost) {
     InquestDetail inquestDetail = inquestDetailMapper.toInquestDetail(claimPost.getInquestDetail());
     if (hasInquestDetailData(inquestDetail)) {
@@ -48,16 +55,34 @@ public class ClaimInquestService {
     saveInterestedDepartments(claim, claimPost);
   }
 
+  /**
+   * Loads the Inquest details for a claim response, or null when the feature is disabled.
+   *
+   * @param claimId the claim identifier
+   * @return the Inquest details, or null when disabled
+   */
   public ClaimInquestDetail getClaimInquestDetailForResponse(UUID claimId) {
     return claimsApiProperties.getInquests().isEnabled() ? getClaimInquestDetail(claimId) : null;
   }
 
+  /**
+   * Clears FSP's is_inquest flag from a fee calculation when the feature is disabled.
+   *
+   * @param feeCalculationResponse the fee calculation, may be null
+   */
   public void clearIsInquestIfFlagDisabled(FeeCalculationPatch feeCalculationResponse) {
     if (!claimsApiProperties.getInquests().isEnabled() && feeCalculationResponse != null) {
       feeCalculationResponse.setIsInquest(null);
     }
   }
 
+  /**
+   * Loads the Inquest details for several claims in batch.
+   *
+   * @param claimIds the claim identifiers
+   * @param clientsByClaimId the clients keyed by claim id, used for the means-tested flag
+   * @return the Inquest details keyed by claim id
+   */
   public Map<UUID, ClaimInquestDetail> getClaimInquestDetails(
       List<UUID> claimIds, Map<UUID, Client> clientsByClaimId) {
     if (claimIds.isEmpty()) {
@@ -117,12 +142,22 @@ public class ClaimInquestService {
     return claimInquestDetail;
   }
 
+  /**
+   * Rejects a claim creation request carrying Inquest data when the feature is disabled.
+   *
+   * @param claimPost the claim creation request
+   */
   public void rejectInquestPostWhenDisabled(ClaimPost claimPost) {
     if (!claimsApiProperties.getInquests().isEnabled() && claimPost.getInquestDetail() != null) {
       throw new ClaimBadRequestException("Inquest fields are not currently enabled.");
     }
   }
 
+  /**
+   * Drops is_inquest from a claim patch when the feature is disabled.
+   *
+   * @param claimPatch the claim patch
+   */
   public void ignoreIsInquestPatchWhenDisabled(ClaimAmendmentPatch claimPatch) {
     if (claimsApiProperties.getInquests().isEnabled()
         || claimPatch.getFeeCalculationResponse() == null) {
