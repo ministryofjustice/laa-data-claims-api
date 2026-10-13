@@ -74,7 +74,11 @@ public class SubmissionEventPublisherService {
     }
   }
 
-  /** Publishes a request to run final validation for a submission awaiting provider approval. */
+  /**
+   * Publishes a request to run final validation for a submission awaiting provider approval.
+   *
+   * @param submissionId the unique identifier for the submission
+   */
   public void publishSubmissionApprovalEvent(UUID submissionId) {
     SubmissionValidationMessage submissionValidationMessage =
         new SubmissionValidationMessage(submissionId);

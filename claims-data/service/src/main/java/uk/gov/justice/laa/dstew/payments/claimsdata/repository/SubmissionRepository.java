@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -42,10 +43,15 @@ public interface SubmissionRepository
       String submissionPeriod,
       Collection<SubmissionStatus> statuses);
 
-  /** Loads a submission while serialising concurrent approval requests for the same row. */
+  /**
+   * Loads a submission while serialising concurrent approval requests for the same row.
+   *
+   * @param submissionId the unique identifier of the submission to lock and load
+   * @return the locked submission, or empty when no submission exists with that id
+   */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT s FROM Submission s WHERE s.id = :submissionId")
-  java.util.Optional<Submission> findByIdForUpdate(@Param("submissionId") UUID submissionId);
+  Optional<Submission> findByIdForUpdate(@Param("submissionId") UUID submissionId);
 
   /**
    * Projection for Calculated total amounts grouped by submission.
