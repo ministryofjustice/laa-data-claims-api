@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
@@ -67,10 +68,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
@@ -254,6 +259,43 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     current.setStatus(ClaimStatus.VALID);
     current.setVersion(5L);
     when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
+  }
+
+  @State("the claim amendment fails field validation")
+  public void theClaimAmendmentFailsFieldValidation() {
+    log.info("Setting up state: the claim amendment fails field validation");
+    claimsApiProperties.getAmendments().setEnabled("true");
+    Claim current = getClaim();
+    current.setStatus(ClaimStatus.VALID);
+    current.setVersion(1L);
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
+        .thenReturn(Optional.of(getCalculatedFeeDetail()));
+    stubAmendmentReferenceData();
+    doReturn(
+            ClaimValidationResult.builder()
+                .issues(
+                    List.of(
+                        validationError(
+                            "INVALID_CLIENT_DATE_OF_BIRTH",
+                            "Client date of birth must be between 01/01/1900 and today",
+                            "client_date_of_birth"),
+                        validationError(
+                            "INVALID_CASE_START_DATE",
+                            "Case start date must not be in the future",
+                            "case_start_date")))
+                .build())
+        .when(validationService)
+        .validateClaim(any(), any());
+  }
+
+  private static ValidationIssue validationError(String code, String message, String path) {
+    return ValidationIssue.builder()
+        .code(code)
+        .message(message)
+        .path(path)
+        .severity(ValidationSeverity.ERROR)
+        .build();
   }
 
   @State("the claim request contains invalid data")
@@ -598,6 +640,10 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("amendment reference data exists")
   public void amendmentReferenceDataExists() {
     log.info("Setting up state: amendment reference data exists");
+    stubAmendmentReferenceData();
+  }
+
+  private void stubAmendmentReferenceData() {
     when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(
             List.of(
@@ -629,6 +675,29 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
     when(amendmentReasonReferenceRepository.findByOrderByRequestedByCodeAscDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+  }
+
+  @State("government department reference data exists")
+  public void governmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                GovernmentDepartmentRef.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000c1"))
+                    .governmentDepartmentCode("MINISTRY_OF_JUSTICE")
+                    .displayLabel("Ministry of Justice")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+  }
+
+  @State("no government department reference data exists")
+  public void noGovernmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: no government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
         .thenReturn(Collections.emptyList());
   }
 

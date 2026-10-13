@@ -12,7 +12,9 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.aop.JaversAuditingAspect;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -111,4 +113,6 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected PathMappedEndpoints pathMappedEndpoints;
   @MockitoBean protected DataSource dataSource;
+
+  @MockitoSpyBean protected ValidationService validationService;
 }
