@@ -39,6 +39,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -51,6 +52,7 @@ import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.Validation
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
@@ -107,6 +109,15 @@ class SubmissionServiceTest {
   @Mock private SubmissionEventPublisherService submissionEventPublisherService;
   @Mock private AssessmentService assessmentService;
   @Mock private StatusCoercer statusCoercer;
+
+  /**
+   * Injected as a real instance rather than a mock so the feature flag resolves through the same
+   * binding rules as production. Enabled by default here; tests covering the disabled lifecycle set
+   * the raw value themselves.
+   */
+  @Spy
+  private ClaimsApiProperties claimsApiProperties =
+      claimsApiPropertiesWith(Boolean.TRUE.toString());
 
   @InjectMocks private SubmissionService submissionService;
 
@@ -486,6 +497,12 @@ class SubmissionServiceTest {
   private static final String APPROVING_OFFICE = "APPROVE-OFFICE";
   private static final String APPROVING_USER = "approving-user";
 
+  private static ClaimsApiProperties claimsApiPropertiesWith(String validatedPendingApproval) {
+    ClaimsApiProperties properties = new ClaimsApiProperties();
+    properties.getFeatures().setValidatedPendingApproval(validatedPendingApproval);
+    return properties;
+  }
+
   private static SubmissionPatch finalValidationPatch(String officeAccountNumber) {
     return finalValidationPatch(officeAccountNumber, APPROVING_USER);
   }
@@ -686,6 +703,23 @@ class SubmissionServiceTest {
     assertThrows(
         SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
 
+    verifyNoInteractions(submissionEventPublisherService, submissionMapper);
+    verify(submissionRepository, never()).save(any());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" ", "false", "FALSE", "off", "no", "banana"})
+  @DisplayName("Should reject final validation when the lifecycle feature is not enabled")
+  void shouldRejectFinalValidationWhenLifecycleDisabled(String validatedPendingApproval) {
+    claimsApiProperties.getFeatures().setValidatedPendingApproval(validatedPendingApproval);
+    UUID id = Uuid7.timeBasedUuid();
+    SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
+
+    assertThrows(
+        SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
+
+    verify(submissionRepository, never()).findByIdForUpdate(any());
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
   }

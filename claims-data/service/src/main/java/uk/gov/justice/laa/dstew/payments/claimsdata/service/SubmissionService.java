@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
@@ -74,6 +75,7 @@ public class SubmissionService
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final StatusCoercer statusCoercer;
+  private final ClaimsApiProperties claimsApiProperties;
   private final AssessmentService assessmentService;
 
   @Override
@@ -274,6 +276,8 @@ public class SubmissionService
   }
 
   private void updateFinalValidationSubmission(UUID id, SubmissionPatch submissionPatch) {
+    requireValidatedPendingApprovalLifecycle();
+
     Submission submission =
         submissionRepository
             .findByIdForUpdate(id)
@@ -298,6 +302,20 @@ public class SubmissionService
     submissionRepository.save(submission);
     TransactionalPublisher.runAfterCommit(
         () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
+  }
+
+  /**
+   * Refuses the transition unless the validated-pending-approval lifecycle is enabled. {@code
+   * FINAL_VALIDATION_IN_PROGRESS} belongs to that lifecycle, and nothing in this service moves a
+   * submission out of it: the outcome is owned by the event service, which only reruns final
+   * validation once the lifecycle is live. Claiming a submission while the lifecycle is disabled
+   * would therefore leave it in a status it can never leave.
+   */
+  private void requireValidatedPendingApprovalLifecycle() {
+    if (!claimsApiProperties.getFeatures().isValidatedPendingApprovalEnabled()) {
+      throw new SubmissionBadRequestException(
+          "Final validation is not enabled: the validated-pending-approval lifecycle is disabled");
+    }
   }
 
   /**

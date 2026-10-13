@@ -36,7 +36,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionPatch;
  * gating:</strong> delete the whole {@code service.coercion} package (this interface, {@code
  * LegacyStatusCoercer}, {@code StatusCoercerConfig}), remove the {@code statusCoercer} field and
  * the five {@code statusCoercer.coerce(...)} call sites in {@code SubmissionService}, {@code
- * BulkSubmissionService} and {@code ClaimService}, and drop the {@code
+ * BulkSubmissionService} and {@code ClaimService}, remove the {@code
+ * requireValidatedPendingApprovalLifecycle()} gate (and the {@code claimsApiProperties} field, if
+ * nothing else uses it) in {@code SubmissionService}, and drop the {@code
  * laa.claims.api.features.validated-pending-approval} property (plus its Helm wiring). The
  * remaining code is already the desired hold-enabled behaviour. All the removable pieces are
  * greppable by the property name or {@code StatusCoercer}.
