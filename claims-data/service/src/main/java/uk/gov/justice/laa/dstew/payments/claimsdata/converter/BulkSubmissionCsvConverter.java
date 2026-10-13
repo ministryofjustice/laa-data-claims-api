@@ -13,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionOutcomeFieldValidator;
 
 /** Converter responsible for converting bulk submissions in TXT/CSV format. */
 @Slf4j
@@ -39,23 +39,6 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
   private final ObjectMapper objectMapper;
   private final CsvMapper csvMapper;
   private final ClaimsApiProperties claimsApiProperties;
-  private static final Set<String> INQUEST_FIELDS =
-      Set.of(
-          "INQ_CLIENT_MEANS_TESTED",
-          "DECEASED_FIRST_NAME",
-          "DECEASED_SURNAME",
-          "DATE_OF_DEATH",
-          "INQUEST_REF",
-          "GOV_DEPT_1",
-          "GOV_DEPT_2",
-          "GOV_DEPT_3",
-          "GOV_DEPT_4",
-          "GOV_DEPT_5",
-          "GOV_DEPT_6",
-          "GOV_DEPT_7",
-          "GOV_DEPT_8",
-          "GOV_DEPT_9",
-          "GOV_DEPT_10");
   static final String MISSING_RECORD_TYPE_ERROR =
       "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.";
 
@@ -114,7 +97,12 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
           case CsvHeader.OUTCOME -> {
-            rejectInquestFieldsWhenDisabled(csvBulkSubmissionRow.values());
+            boolean inquestsEnabled = claimsApiProperties.getFeatures().isInquestsEnabled();
+            csvBulkSubmissionRow
+                .values()
+                .keySet()
+                .forEach(
+                    field -> BulkSubmissionOutcomeFieldValidator.validate(field, inquestsEnabled));
             csvOutcomes.add(
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
           }
@@ -147,18 +135,6 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
     // parent submission object
     return new CsvSubmission(
         csvOffice, csvSchedule, csvOutcomes, csvMatterStarts, csvImmigrationClr);
-  }
-
-  private void rejectInquestFieldsWhenDisabled(Map<String, String> values) {
-    if (!claimsApiProperties.getFeatures().isInquestsEnabled()) {
-      for (String field : values.keySet()) {
-        if (INQUEST_FIELDS.contains(field)) {
-          throw new BulkSubmissionFileReadException(
-              "The file contains an unrecognised field %s. Correct or remove the field and try again."
-                  .formatted(field));
-        }
-      }
-    }
   }
 
   private static String extractReadableMessage(Exception e) {

@@ -40,7 +40,6 @@ public class BulkSubmissionXmlConverter implements BulkSubmissionConverter {
   public XmlSubmission convert(MultipartFile file) {
 
     try {
-      // return xmlMapper.readValue(file.getInputStream(), XmlSubmission.class);
       return xmlMapper
           .readerFor(XmlSubmission.class)
           .withAttribute(
