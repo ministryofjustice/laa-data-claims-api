@@ -709,9 +709,9 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
                 new ClaimInquestDetail()
                     .interestedDepartments(
                         List.of(
-                            DEPARTMENT1.toLowerCase(),
-                            " " + DEPARTMENT1.toUpperCase() + " ",
-                            DEPARTMENT2.toLowerCase())));
+                            "ministry of justice",
+                            " MINISTRY OF JUSTICE ",
+                            "department for health and social care")));
 
     UUID claimId = postClaimAndReturnId(claimPost);
 
