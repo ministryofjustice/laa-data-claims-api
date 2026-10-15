@@ -151,6 +151,7 @@ public class ClaimRetentionLookupSteps {
           List<Claim> expectedClaims = orderedClaims;
           JsonNode content = lastResponse.path("content");
 
+          assertThat(content.isArray()).isTrue();
           assertThat(content).hasSize(expectedClaims.size());
           for (int index = 0; index < expectedClaims.size(); index++) {
             Claim expected = expectedClaims.get(index);
