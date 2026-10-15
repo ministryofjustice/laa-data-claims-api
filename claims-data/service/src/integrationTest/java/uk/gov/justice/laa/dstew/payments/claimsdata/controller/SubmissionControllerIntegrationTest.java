@@ -2011,6 +2011,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     Submission approved = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
     assertThat(approved.getUpdatedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedOn()).isNotNull();
 
     List<Message> approvalEvents =
         IntegrationTestUtils.drainMessagesOfType(
@@ -2108,9 +2110,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @DisplayName("The event service can mark a queued submission as final validation in progress")
   void patchMarksFinalValidationInProgress() throws Exception {
     UUID submissionId = Uuid7.timeBasedUuid();
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
     submissionRepository.saveAndFlush(
         pendingApprovalSubmission(
                 submissionId, "APPROVE-IN-PROGRESS", SubmissionStatus.READY_FOR_FINAL_VALIDATION)
+            .approvedOn(approvedOn)
+            .approvedByUserId(USER_ID)
             .build());
 
     mockMvc
@@ -2123,6 +2128,8 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     Submission updated = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(updated.getApprovedOn()).isEqualTo(approvedOn);
+    assertThat(updated.getApprovedByUserId()).isEqualTo(USER_ID);
   }
 
   @Test

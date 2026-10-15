@@ -15,6 +15,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -536,6 +537,8 @@ class SubmissionServiceTest {
     verifyNoInteractions(submissionMapper);
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
     assertThat(entity.getUpdatedByUserId()).isEqualTo(APPROVING_USER);
+    assertThat(entity.getApprovedByUserId()).isEqualTo(APPROVING_USER);
+    assertThat(entity.getApprovedOn()).isNotNull();
   }
 
   @Test
@@ -594,11 +597,14 @@ class SubmissionServiceTest {
       "Should not publish a duplicate final validation event after the submission is queued")
   void shouldNotStartFinalValidationTwice() {
     UUID id = Uuid7.timeBasedUuid();
+    Instant originalApproval = Instant.parse("2026-01-01T09:00:00Z");
     Submission entity =
         Submission.builder()
             .id(id)
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION)
+            .approvedOn(originalApproval)
+            .approvedByUserId(APPROVING_USER)
             .build();
     when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
@@ -608,6 +614,7 @@ class SubmissionServiceTest {
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
     assertThat(entity.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+    assertThat(entity.getApprovedOn()).isEqualTo(originalApproval);
   }
 
   @ParameterizedTest

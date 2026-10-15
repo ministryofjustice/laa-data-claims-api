@@ -208,6 +208,8 @@ public class SubmissionService
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
+        .approvedOn(toOffsetDateTime(submission.getApprovedOn()))
+        .approvedByUserId(submission.getApprovedByUserId())
         .claims(claims)
         .calculatedTotalAmount(BigDecimalUtils.scaleNullable(calculatedTotalAmount, DECIMAL_PLACES))
         .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
@@ -215,6 +217,16 @@ public class SubmissionService
         .createdByUserId(submission.getCreatedByUserId())
         .providerUserId(submission.getProviderUserId())
         .errorMessages(submission.getErrorMessages());
+  }
+
+  /**
+   * Converts a nullable {@link Instant} to an {@link OffsetDateTime} in the system time zone.
+   *
+   * @param instant the instant to convert, may be null
+   * @return the converted value, or null when the instant is null
+   */
+  private static OffsetDateTime toOffsetDateTime(Instant instant) {
+    return instant == null ? null : OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
   }
 
   /**
@@ -301,8 +313,12 @@ public class SubmissionService
 
     // Queuing final validation is a state transition, not a partial update: only the status and
     // the approving user are written, so an approval request cannot alter submission content.
+    // The approval is recorded separately from updatedOn/updatedByUserId, which the event service
+    // overwrites as final validation progresses.
     submission.setStatus(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
     submission.setUpdatedByUserId(approvingUserId);
+    submission.setApprovedByUserId(approvingUserId);
+    submission.setApprovedOn(Instant.now());
     submissionRepository.save(submission);
     TransactionalPublisher.runAfterCommit(
         () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
