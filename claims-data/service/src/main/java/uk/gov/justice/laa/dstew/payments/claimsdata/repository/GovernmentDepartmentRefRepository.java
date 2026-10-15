@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,6 @@ public interface GovernmentDepartmentRefRepository
    * @return the active government departments in display order
    */
   List<GovernmentDepartmentRef> findByIsActiveTrueOrderByDisplayOrderAsc();
+
+  Optional<GovernmentDepartmentRef> findByDisplayLabelIgnoreCase(String displayLabel);
 }

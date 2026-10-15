@@ -22,7 +22,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.InquestDetail;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
 
-  @Autowired private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
   @Autowired private InquestDetailRepository inquestDetailRepository;
   @Autowired private ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
   @Autowired private EntityManager entityManager;
@@ -38,25 +37,9 @@ class ClaimInquestPersistenceIntegrationTest extends AbstractIntegrationTest {
   void savingClaimPersistsInquestDetailAndInterestedDepartments() {
     Claim claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     GovernmentDepartmentRef department1Ref =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE")
-                .displayLabel("LABEL")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
+        findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
     GovernmentDepartmentRef department2Ref =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE2")
-                .displayLabel("LABEL")
-                .isActive(true)
-                .displayOrder(2)
-                .createdByUserId("TEST")
-                .build());
+        findSeededDepartmentByLabel(DEPARTMENT_HEALTH_AND_SOCIAL_CARE);
 
     LocalDate deceasedDateOfDeath = LocalDate.of(2024, 1, 2);
     claim.setInquestDetail(

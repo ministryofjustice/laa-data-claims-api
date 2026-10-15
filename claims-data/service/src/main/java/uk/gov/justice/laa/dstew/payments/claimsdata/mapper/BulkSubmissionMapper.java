@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.util.StringUtils;
@@ -35,11 +37,12 @@ public interface BulkSubmissionMapper {
    * @param submission the java representation of the bulk submission file
    * @return the API model for the bulk submission.
    */
-  default GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(FileSubmission submission) {
+  default GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(
+      FileSubmission submission, boolean inquestFeatureEnabled) {
     if (submission instanceof CsvSubmission csvSubmission) {
-      return toBulkSubmissionDetails(csvSubmission);
+      return toBulkSubmissionDetails(csvSubmission, inquestFeatureEnabled);
     } else if (submission instanceof XmlSubmission xmlSubmission) {
-      return toBulkSubmissionDetails(xmlSubmission);
+      return toBulkSubmissionDetails(xmlSubmission, inquestFeatureEnabled);
     } else {
       throw new IllegalArgumentException("Unsupported submission type: " + submission.getClass());
     }
@@ -57,7 +60,8 @@ public interface BulkSubmissionMapper {
   @Mapping(
       target = "immigrationClr",
       expression = "java(mapImmigrationClrData(submission.office().schedule().immigrationClr()))")
-  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(XmlSubmission submission);
+  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(
+      XmlSubmission submission, @Context boolean inquestsFeatureEnabled);
 
   /**
    * Maps the given {@code CsvSubmission} to a {@code GetBulkSubmission200ResponseDetails}.
@@ -73,7 +77,8 @@ public interface BulkSubmissionMapper {
       target = "immigrationClr",
       source = "immigrationClr",
       defaultExpression = "java(new ArrayList<>())")
-  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(CsvSubmission submission);
+  GetBulkSubmission200ResponseDetails toBulkSubmissionDetails(
+      CsvSubmission submission, @Context boolean inquestsFeatureEnabled);
 
   /**
    * Map to a {@link GetBulkSubmission200ResponseDetailsOffice}.
@@ -121,6 +126,22 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "repOrderDate", source = "repOrderDate")
   @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
+  @Mapping(
+      target = "deceasedForename",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "deceasedFirstName")
+  @Mapping(
+      target = "deceasedSurname",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "deceasedSurname")
+  @Mapping(
+      target = "deceasedDateOfDeath",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "dateOfDeath")
+  @Mapping(
+      target = "coronersInquestReference",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "inquestRef")
   @Mapping(
       target = "vatIndicator",
       expression = "java(parseBooleanField(outcome.vatIndicator(), \"VAT Applicable\"))")
@@ -269,7 +290,15 @@ public interface BulkSubmissionMapper {
       target = "costsDamagesRecovered",
       expression =
           "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"Costs Damages Recovered Amount must be a valid monetary value\"))")
-  BulkSubmissionOutcome toBulkSubmissionOutcome(XmlOutcome outcome);
+  @Mapping(
+      target = "isClientMeansTested",
+      expression =
+          "java(inquestFeatureEnabled ? parseBooleanField(outcome.inqClientMeansTested(), \"Is Client Means Tested\") : null)")
+  @Mapping(
+      target = "interestedDepartments",
+      expression = "java(inquestFeatureEnabled ? mapInterestedDepartments(outcome) : null)")
+  BulkSubmissionOutcome toBulkSubmissionOutcome(
+      XmlOutcome outcome, @Context boolean inquestFeatureEnabled);
 
   /**
    * Map to a {@link BulkSubmissionOutcome}.
@@ -285,6 +314,22 @@ public interface BulkSubmissionMapper {
   @Mapping(target = "repOrderDate", source = "repOrderDate")
   @Mapping(target = "client2DateOfBirth", source = "client2DateOfBirth")
   @Mapping(target = "medConcludedDate", source = "medConcludedDate")
+  @Mapping(
+      target = "deceasedForename",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "deceasedFirstName")
+  @Mapping(
+      target = "deceasedSurname",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "deceasedSurname")
+  @Mapping(
+      target = "deceasedDateOfDeath",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "dateOfDeath")
+  @Mapping(
+      target = "coronersInquestReference",
+      conditionExpression = "java(inquestFeatureEnabled)",
+      source = "inquestRef")
   @Mapping(
       target = "vatIndicator",
       expression = "java(parseBooleanField(outcome.vatIndicator(), \"VAT Applicable\"))")
@@ -433,7 +478,15 @@ public interface BulkSubmissionMapper {
       target = "costsDamagesRecovered",
       expression =
           "java(parseBigDecimalField(outcome.costsDamagesRecovered(), \"Costs Damages Recovered Amount must be a valid monetary value\"))")
-  BulkSubmissionOutcome toBulkSubmissionOutcome(CsvOutcome outcome);
+  @Mapping(
+      target = "isClientMeansTested",
+      expression =
+          "java(inquestFeatureEnabled ? parseBooleanField(outcome.inqClientMeansTested(), \"Is Client Means Tested\") : null)")
+  @Mapping(
+      target = "interestedDepartments",
+      expression = "java(inquestFeatureEnabled ? mapInterestedDepartments(outcome) : null)")
+  BulkSubmissionOutcome toBulkSubmissionOutcome(
+      CsvOutcome outcome, @Context boolean inquestFeatureEnabled);
 
   /**
    * Map to a {@link BulkSubmissionMatterStart}.
@@ -525,5 +578,49 @@ public interface BulkSubmissionMapper {
       return new ArrayList<>();
     }
     return immigrationClrList.stream().map(XmlImmigrationClr::fields).toList();
+  }
+
+  /**
+   * Collects the non-blank government departments from an XML outcome in field order.
+   *
+   * @param outcome the XML outcome containing government department fields
+   * @return the interested departments, or an empty list if none are populated
+   */
+  default List<String> mapInterestedDepartments(XmlOutcome outcome) {
+    return Stream.of(
+            outcome.govDept1(),
+            outcome.govDept2(),
+            outcome.govDept3(),
+            outcome.govDept4(),
+            outcome.govDept5(),
+            outcome.govDept6(),
+            outcome.govDept7(),
+            outcome.govDept8(),
+            outcome.govDept9(),
+            outcome.govDept10())
+        .filter(StringUtils::hasText)
+        .toList();
+  }
+
+  /**
+   * Collects the non-blank government departments from a CSV outcome in field order.
+   *
+   * @param outcome the CSV outcome containing government department fields
+   * @return the interested departments, or an empty list if none are populated
+   */
+  default List<String> mapInterestedDepartments(CsvOutcome outcome) {
+    return Stream.of(
+            outcome.govDept1(),
+            outcome.govDept2(),
+            outcome.govDept3(),
+            outcome.govDept4(),
+            outcome.govDept5(),
+            outcome.govDept6(),
+            outcome.govDept7(),
+            outcome.govDept8(),
+            outcome.govDept9(),
+            outcome.govDept10())
+        .filter(StringUtils::hasText)
+        .toList();
   }
 }
