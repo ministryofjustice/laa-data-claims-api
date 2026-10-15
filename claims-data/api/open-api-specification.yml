@@ -2186,14 +2186,19 @@ components:
           type: string
         is_client_means_tested:
           type: boolean
+          nullable: true
         deceased_forename:
           type: string
+          nullable: true
         deceased_surname:
           type: string
+          nullable: true
         deceased_date_of_death:
           type: string
+          nullable: true
         coroners_inquest_reference:
           type: string
+          nullable: true
         interested_departments:
           type: array
           nullable: true

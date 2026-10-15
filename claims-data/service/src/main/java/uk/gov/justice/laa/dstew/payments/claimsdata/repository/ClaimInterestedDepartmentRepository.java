@@ -16,6 +16,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimInterestedDepart
 public interface ClaimInterestedDepartmentRepository
     extends JpaRepository<ClaimInterestedDepartment, UUID> {
 
+  @EntityGraph(attributePaths = "governmentDepartment")
   List<ClaimInterestedDepartment> findByClaimIdOrderByDisplayOrderAsc(UUID claimId);
 
   @EntityGraph(attributePaths = "governmentDepartment")
