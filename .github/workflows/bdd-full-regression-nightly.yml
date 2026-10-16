@@ -1,0 +1,32 @@
+name: BDD full regression (nightly)
+
+on:
+  workflow_dispatch:
+  # GitHub Actions cron schedules always run in UTC, which is one hour behind
+  # UK local time during British Summer Time. Runs may also start a few minutes
+  # late when GitHub is under load.
+  schedule:
+    - cron: '0 1 * * 1-5' # 01:00 UTC (02:00 BST), Monday to Friday
+
+env:
+  JAVA_VERSION: &JAVA_VERSION '25'
+  JDK_DISTRIBUTION: &JDK_DISTRIBUTION 'corretto'
+
+jobs:
+  bdd-full-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run BDD @Full_Regression pack
+        uses: ./.github/actions/bdd-test
+        with:
+          java-version: *JAVA_VERSION
+          java-distribution: *JDK_DISTRIBUTION
+          tags: '@Full_Regression'
+          artifact-name: bdd-full-regression-reports

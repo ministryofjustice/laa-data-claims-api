@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @featureFlag
 @dstew-1905
@@ -15,7 +15,7 @@ Feature: Amendments feature flag — application.yml gate on the whole amendment
   # Additive: non-amendment submissions unaffected when flag is off.
   # Additive: when flag is on, existing amendment validations still apply.
 
-  @smoke @AFF_1
+  @smoke @AFF_1 @Regression
   Scenario: Amendments enabled — an amendment submission is accepted
     Given the amendments feature flag is enabled
     And an amendment submission with the following claims

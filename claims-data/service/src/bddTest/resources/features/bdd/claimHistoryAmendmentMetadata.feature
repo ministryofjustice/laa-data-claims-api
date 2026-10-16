@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @amendments
 @dstew-1813
@@ -77,7 +77,7 @@ Feature: Claim history timeline — AMENDMENT event metadata
   #     `amendment_reason_code` assertions (which ARE delivered) and drops the
   #     `amended_field_identifiers` assertion (which is not).
 
-  @smoke @DS1813_1
+  @smoke @DS1813_1 @Regression
   Scenario: Successful amendment appears as an AMENDMENT event with the delivered metadata fields
     # Note: the `amended_field_identifiers` assertion originally on this scenario has been
     # trimmed pending delivery of the Requested-only filter (see de-scope banner above).
@@ -99,7 +99,7 @@ Feature: Claim history timeline — AMENDMENT event metadata
       | requested_by_code     | PROVIDER       |
       | amendment_reason_code | PROVIDER_ERROR |
 
-  @DS1813_3
+  @DS1813_3 @Regression
   Scenario: Multi-amendment chronology — each amendment is its own event, latest is unambiguously derivable
     # AaBC BC-576 Amended banner needs the latest amendment's user/date/time.
     # Deterministic ordering + one event per row makes "latest" unambiguous.

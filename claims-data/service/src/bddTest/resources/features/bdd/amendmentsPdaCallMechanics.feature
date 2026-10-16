@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @pda
 @dstew-1773
@@ -27,7 +27,7 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
     Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
 
-  @PDA_4
+  @PDA_4 @Regression
   Scenario: Successful PDA response inside the configured amendment-path timeout is returned as-is
     # Gap: integration suite has no success-under-budget scenario on the amendment route.
     Given no PDA cache entry exists for officeCode "OFC-004" and effectiveDate "2026-04-01"

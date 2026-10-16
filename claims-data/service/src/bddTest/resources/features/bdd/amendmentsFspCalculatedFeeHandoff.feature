@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-1762
 Feature: Amendment FSP calculated-fee persistence handoff
@@ -32,6 +32,7 @@ Feature: Amendment FSP calculated-fee persistence handoff
   Background:
     Given the amendments feature flag is enabled
 
+  @DS1762_1 @Regression
   Scenario: Monetary change — prepared row is linked, is_price_changed true, FSP diff entry present, previous row retained
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -47,6 +48,7 @@ Feature: Amendment FSP calculated-fee persistence handoff
     And the claim has exactly 2 calculated_fee_detail rows
     And the previous calculated_fee_detail row is retained unchanged
 
+  @DS1762_2
   Scenario: No monetary change — row is still prepared and linked, is_price_changed false
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -59,6 +61,7 @@ Feature: Amendment FSP calculated-fee persistence handoff
     And the latest calculated_fee_detail row is linked to the committed amendment
     And the claim has exactly 2 calculated_fee_detail rows
 
+  @DS1762_3
   Scenario: Atomic-save rollback after successful FSP — the prepared calculated-fee row is discarded
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

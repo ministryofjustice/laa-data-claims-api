@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @mimeChecks
 Feature: MIME validation checks (API)
   API port of the UI Cucumber feature
@@ -18,7 +18,7 @@ Feature: MIME validation checks (API)
   Background:
     Given the bulk submission MIME checks scaffold is ready
 
-  @MC_1
+  @MC_1 @Regression
   Scenario Outline: Accept submission when <format> has Mime Type <mimeType>
     Given I generate "Legal help" "<format>" file with "1" outcomes
     When I upload the generated file with mime type "<mimeType>"

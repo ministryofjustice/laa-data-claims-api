@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @classifier
 @dstew-1757
@@ -22,7 +22,7 @@ Feature: Amendment changed-field classifier — FSP pricing rule (impacts_pricin
     Given the amendments feature flag is enabled
     And the FSP fee-calculation request-body field map is the authoritative pricing rule source
 
-  @smoke @DS1757_1
+  @smoke @DS1757_1 @Regression
   Scenario Outline: FSP pricing — changed field on the FSP request body is pricing-impacting
     Given an original claim exists with a valid pricing baseline
     And an amendment changes only the field "<field>" to a different value

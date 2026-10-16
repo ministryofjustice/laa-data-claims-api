@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-2353
 Feature: Amendment FSP repricing over real HTTP (MockServer)
@@ -15,6 +15,7 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
   Background:
     Given the amendments feature flag is enabled
 
+  @DS2353_1 @Regression
   Scenario: Pricing amendment triggers a real FSP fee-calculation call and is accepted
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -23,6 +24,7 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
     Then the amendment is accepted
     And exactly 1 outbound FSP call was made
 
+  @DS2353_2
   Scenario: FSP repricing technical failure rejects the amendment and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

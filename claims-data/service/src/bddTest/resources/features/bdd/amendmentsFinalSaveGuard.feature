@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @versionGuard
 @dstew-1753
@@ -34,7 +34,7 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
   Background:
     Given the amendments feature flag is enabled
 
-  @smoke @DS1753_1
+  @smoke @DS1753_1 @Regression
   Scenario: Happy path — no concurrent writer, commit succeeds and bumps @Version
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
