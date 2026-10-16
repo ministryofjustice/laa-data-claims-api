@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @feeCodeLookup
 @dstew-1768
@@ -53,7 +53,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
   # Fee-code Area-of-Law gate (INVALID_FEE_CODE_AREA_OF_LAW_CHANGE)
   # ============================================================================
 
-  @smoke @DS1768_1
+  @smoke @DS1768_1 @Regression
   Scenario: Fee-code change within the same Area of Law proceeds past this gate
     Given an original claim exists with feeCode "CRIME-A" and area of law "CRIME_LOWER"
     And the Fee Code Details lookup returns area of law "CRIME_LOWER" for feeCode "CRIME-B"

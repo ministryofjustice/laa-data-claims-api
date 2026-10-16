@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @classifier
 @dstew-1758
@@ -54,7 +54,7 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
   # AC1 — no changed field is pricing-impacting → Step 13 skips FSP. FSP is armed
   # and available, so "no call" proves the decision to skip, not an unavailable
   # dependency.
-  @smoke @DS1758_1
+  @smoke @DS1758_1 @Regression
   Scenario: Non-pricing amendment — Step 13 skips FSP even though FSP is available
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -66,7 +66,7 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
 
   # AC2 — a pricing-impacting change → Step 13 proceeds to FSP request building,
   # observed as exactly one outbound fee-calculation call.
-  @DS1758_2
+  @DS1758_2 @Regression
   Scenario: Pricing amendment — Step 13 proceeds to FSP request building
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

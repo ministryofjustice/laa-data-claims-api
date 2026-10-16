@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @endpoint
 @dstew-1771
@@ -33,7 +33,7 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
   # Happy paths — end-to-end atomic save
   # ============================================================================
 
-  @smoke @DS1771_1
+  @smoke @DS1771_1 @Regression
   Scenario: End-to-end — valid non-pricing amendment saves atomically and skips PDA and FSP
     Given an orchestration claim exists with area of law "LEGAL_HELP"
     And an orchestration amendment updates only the field "client_surname" to "Jones"
@@ -47,7 +47,7 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And the orchestration amendment persisted the field "client_surname" as "Jones"
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
 
-  @DS1771_2
+  @DS1771_2 @Regression
   Scenario: End-to-end — valid pricing amendment calls PDA + FSP and saves all writes atomically
     Given an orchestration claim exists with area of law "LEGAL_HELP"
     And the PDA service will respond "authorised" within the amendment-path timeout

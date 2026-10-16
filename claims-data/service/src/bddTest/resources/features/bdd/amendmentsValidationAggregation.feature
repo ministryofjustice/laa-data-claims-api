@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @stepTwelve
 @dstew-1770

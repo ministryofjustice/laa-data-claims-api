@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @assessment
 @occ
@@ -47,7 +47,7 @@ Feature: Assessment must advance claim.version so in-flight amendments are inval
     And the amendments feature flag is enabled
     And claim "C" exists in status "VALID" and is amendable
 
-  @smoke @DS2051_1
+  @smoke @DS2051_1 @Regression
   Scenario: First successful assessment advances claim.version
     Given claim "C" has version 7
     And claim "C" has hasAssessment=false
@@ -108,7 +108,7 @@ Feature: Assessment must advance claim.version so in-flight amendments are inval
     And claim "C" hasAssessment is unchanged
     And the version advancement is bound to the same transaction as the assessment insert
 
-  @DS2051_6
+  @DS2051_6 @Regression
   Scenario: Amendment then assessment — each advances the version independently
     Given claim "C" has version 3
     When a valid non-pricing amendment for claim "C" carrying version 3 is committed

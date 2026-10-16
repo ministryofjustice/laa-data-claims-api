@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @eligibility
 @dstew-1764
@@ -31,7 +31,7 @@ Feature: Amendment eligibility gate — claim.status must be VALID
     Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
 
-  @smoke @DS1764_1
+  @smoke @DS1764_1 @Regression
   Scenario: Eligible — claim.status "VALID" proceeds past the eligibility gate
     Given an original claim exists with claim.status "VALID"
     And a well-formed amendment payload for that claim

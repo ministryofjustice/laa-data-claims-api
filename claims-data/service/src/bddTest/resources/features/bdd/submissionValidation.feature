@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @validationChecks
 Feature: Submission-level validation (API)
 

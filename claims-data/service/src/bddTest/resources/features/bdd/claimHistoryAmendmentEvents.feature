@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @amendments
 @dstew-1815
@@ -39,7 +39,7 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # AC1 / AC2 — Pricing amendment with FSP-linked calc-fee row
   # ============================================================================
 
-  @smoke @DS1815_1
+  @smoke @DS1815_1 @Regression
   Scenario: Pricing amendment where FSP changed monetary values — pricing_recalculated=true, price_changed=true
     Given a claim exists with a successful amendment
     And the amendment has an amendment-linked calculated_fee_detail row with is_price_changed set to true
